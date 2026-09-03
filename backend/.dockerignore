@@ -1,0 +1,18 @@
+# The build context is `backend/`; keep it to what the image actually needs.
+.venv
+venv
+__pycache__
+**/__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.coverage
+htmlcov
+.env
+.env.*
+!.env.example
+var/
+instance/
+tests/
+*.md

@@ -1,0 +1,97 @@
+{
+  "namespaces": [
+    {
+      "name": "platform",
+      "description": "Nucleus — enterprise application template platform"
+    }
+  ],
+  "models": {
+    "Empty": {}
+  },
+  "endpoints": [
+    {
+      "namespace": "platform",
+      "operation_name": "liveness",
+      "model_name": "Empty",
+      "request_method": ["GET"],
+      "api_url": "/health/live",
+      "description": "Process is up. Never touches a dependency.",
+      "exec_method": {
+        "module_name": "src.api.health",
+        "method_name": "liveness"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "readiness",
+      "model_name": "Empty",
+      "request_method": ["GET"],
+      "api_url": "/health/ready",
+      "description": "Ready to serve traffic — the database must answer.",
+      "exec_method": {
+        "module_name": "src.api.health",
+        "method_name": "readiness"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "health_snapshot",
+      "model_name": "Empty",
+      "request_method": ["GET"],
+      "api_url": "/health/status",
+      "description": "Every monitored dependency, with latency and last error.",
+      "exec_method": {
+        "module_name": "src.api.health",
+        "method_name": "snapshot"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "meta_app",
+      "model_name": "Empty",
+      "request_method": ["GET"],
+      "api_url": "/meta/app",
+      "description": "Branding and the OIDC coordinates the SPA needs before login.",
+      "exec_method": {
+        "module_name": "src.api.meta",
+        "method_name": "application"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "meta_permissions",
+      "model_name": "Empty",
+      "request_method": ["GET"],
+      "api_url": "/meta/permissions",
+      "description": "The permission catalogue, grouped as the admin matrix renders it.",
+      "exec_method": {
+        "module_name": "src.api.meta",
+        "method_name": "permissions"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "meta_roles",
+      "model_name": "Empty",
+      "request_method": ["GET"],
+      "api_url": "/meta/roles",
+      "description": "Built-in role definitions and the permissions each carries.",
+      "exec_method": {
+        "module_name": "src.api.meta",
+        "method_name": "roles"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "meta_routes",
+      "model_name": "Empty",
+      "request_method": ["GET"],
+      "api_url": "/meta/routes",
+      "description": "The API surface this process is serving.",
+      "exec_method": {
+        "module_name": "src.api.meta",
+        "method_name": "routes"
+      }
+    }
+  ]
+}

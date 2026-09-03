@@ -95,25 +95,17 @@ def roles(app=None, operation: str = "", request=None, **_: Any):
 
 
 def routes(app=None, operation: str = "", request=None, **_: Any):
-    """Every route this process serves, from the same table it was mounted from."""
-    from src.api.routes import NAMESPACES, ROUTES
+    """Every route this process serves, read from the map it was mounted from.
 
+    Published rather than derived in the browser: a generated API client that
+    guesses at the surface is a client that drifts from it.
+    """
+    from src.api import endpoint_map
+
+    surface = endpoint_map.routes()
     return {
         "prefix": Config.API_PREFIX,
-        "namespaces": [
-            {"name": name, "description": description}
-            for name, description in NAMESPACES.items()
-        ],
-        "items": [
-            {
-                "operation": route.operation,
-                "namespace": route.namespace,
-                "url": f"{Config.API_PREFIX}{route.url}",
-                "methods": list(route.methods),
-                "summary": route.summary,
-                "handler": route.handler,
-            }
-            for route in ROUTES
-        ],
-        "total": len(ROUTES),
+        "namespaces": endpoint_map.namespaces(),
+        "items": surface,
+        "total": len(surface),
     }, 200

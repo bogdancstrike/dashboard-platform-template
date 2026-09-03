@@ -1,43 +1,42 @@
-"""Development entrypoint — `python main.py`.
+"""Development runner — `python main.py`.
 
-Werkzeug's server, single process, no gevent. Production runs
-`gunicorn -c gunicorn.conf.py wsgi:application` instead; the two differ in how
-requests are served and in nothing else, because both build the app through
-`src.api.app.create_application`.
+Production serves the same application with gunicorn and gevent workers:
+
+    gunicorn -c gunicorn.conf.py wsgi:application
+
+This imports the app from `wsgi`, so the two paths differ in how requests are
+served and in nothing else — including the gevent patching, which `wsgi` does
+at import.
 """
 
 from __future__ import annotations
 
-import os
+import signal
 import sys
 
-# Running `python main.py` puts `backend/` on the path already; running it as
-# `python backend/main.py` from the repository root does not, and QF's
-# `create_app` needs a top-level importable `config`.
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from framework.commons.logger import logger as log
 
-from framework.api.server import CustomRequestHandler  # noqa: E402
-from framework.commons.logger import logger as log  # noqa: E402
+from wsgi import Config, app
 
-from src.api.app import create_application  # noqa: E402
-from src.config import Config  # noqa: E402
+
+def _shutdown(signum, _frame):
+    log.info(f"shutdown signal received: {signal.Signals(signum).name}")
+    sys.exit(0)
 
 
 def main() -> int:
-    host = os.getenv("API_HOST", "0.0.0.0")
-    port = Config.API_PORT
-    app = create_application()
+    signal.signal(signal.SIGTERM, _shutdown)
+    signal.signal(signal.SIGINT, _shutdown)
 
-    log.info(f"development server on http://{host}:{port}{Config.API_PREFIX}/docs", "cyan")
+    host = "0.0.0.0"
+    log.info(f"{Config.APP_NAME} dev server on http://{host}:{Config.API_PORT}/", "cyan")
     app.run(
         host=host,
-        port=port,
-        # The reloader would build the application twice and is off by default
-        # so `docker compose up` does not double every startup log line.
-        debug=os.getenv("FLASK_DEBUG", "false").lower() in ("1", "true", "yes"),
-        use_reloader=os.getenv("FLASK_RELOAD", "false").lower() in ("1", "true", "yes"),
-        threaded=True,
-        request_handler=CustomRequestHandler,
+        port=Config.API_PORT,
+        # The reloader would build the application twice, doubling every startup
+        # log line under `docker compose up`.
+        debug=False,
+        use_reloader=False,
     )
     return 0
 

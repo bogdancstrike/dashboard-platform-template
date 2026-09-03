@@ -11,7 +11,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 
 - [x] Repo scaffold (`backend/`, `frontend/`, `docs/`, compose)
 - [x] QF framework wheel vendored into `backend/dist/`
-- [ ] `docker-compose.yml` — postgres 18, redis 8, api, seed, frontend
+- [~] `backend/Dockerfile` done (gunicorn -k gevent); `docker-compose.yml` outstanding
 - [~] `README.md` done; `.env.example`, `Makefile` outstanding
 - [ ] `docs/architecture.md`, `docs/features.md`
 
@@ -82,6 +82,6 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 
 - [ ] `docker compose up` clean-boot green
 - [ ] Seed verified (row counts + referential checks)
-- [~] Backend tests — 34 passing for routing, health, meta, HTTP contract
+- [~] Backend tests — 41 passing for the endpoint map, health, meta, HTTP contract
 - [ ] Frontend typecheck + build
 - [ ] Docs complete

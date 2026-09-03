@@ -10,8 +10,8 @@ would have had to write anyway — a filter bar that filters in PostgreSQL, an
 audit trail that commits in the same transaction as the change it records, a
 permission catalogue that the admin screen is generated from.
 
-> Status: backend foundations and data model are complete and tested. The API
-> surface, the seed and the frontend are in progress — see
+> Status: backend foundations, data model and API runtime are complete and
+> tested. The endpoint surface, the seed and the frontend are in progress — see
 > [`docs/TODO.md`](docs/TODO.md) for exactly where the line is.
 
 ---
@@ -29,20 +29,32 @@ docs/        Architecture notes and the implementation tracker
 
 | Path | What lives there |
 | --- | --- |
+| `maps/endpoint.json` | **The API surface.** QF mounts every endpoint from here |
 | `src/config.py` | Every runtime knob, read once from the environment |
 | `config.py` | Top-level shim — QF hard-codes `config.Config` |
 | `src/core/` | db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
 | `src/models/` | 49 tables across identity, business, content, personal and platform |
-| `src/api/` | Route table, endpoint-map renderer and request handlers |
+| `src/api/` | Request handlers, plus the loader that checks the endpoint map |
 | `src/services/` | Domain services the handlers compose |
 | `src/seed/` | Deterministic demo data |
 | `tests/` | pytest suite; runs with no database present |
+| `Dockerfile` | Two-stage build; `CMD gunicorn -k gevent -c gunicorn.conf.py wsgi:application` |
 
 ---
 
 ## Running it
 
-Nothing is containerised yet, so this is the host route.
+### Docker
+
+```bash
+cd backend
+docker build -t nucleus-api .
+docker run --rm -p 5101:5101 \
+  -e DATABASE_URL=postgresql+psycopg2://platform:platform@host.docker.internal:5432/platform \
+  nucleus-api
+```
+
+### On the host
 
 ```bash
 cd backend
@@ -55,25 +67,20 @@ docker run -d --name nucleus-pg -p 5432:5432 \
   -e POSTGRES_USER=platform -e POSTGRES_PASSWORD=platform -e POSTGRES_DB=platform \
   postgres:18-alpine
 
-python main.py
+python main.py                                    # development
+gunicorn -k gevent -c gunicorn.conf.py wsgi:application   # production
 ```
 
 Then:
 
 | URL | |
 | --- | --- |
-| <http://localhost:5101/> | Index — points at everything below |
-| <http://localhost:5101/platform/docs> | Swagger UI |
+| <http://localhost:5101/> | Swagger UI |
+| <http://localhost:5101/swagger.json> | OpenAPI document |
 | <http://localhost:5101/platform/health/live> | Liveness (never touches a dependency) |
 | <http://localhost:5101/platform/health/ready> | Readiness (503 until the database answers) |
 | <http://localhost:5101/platform/health/status> | Every dependency, with latency |
 | <http://localhost:5101/platform/meta/routes> | The API surface this process is serving |
-
-In production it is gunicorn with gevent workers instead:
-
-```bash
-gunicorn -c gunicorn.conf.py wsgi:application
-```
 
 ### Tests
 
@@ -93,15 +100,50 @@ TEST_DATABASE_URL=postgresql+psycopg2://platform:platform@localhost:5432/platfor
 
 ---
 
-## The decisions worth knowing
+## Adding an endpoint
 
-**Routes are declared in Python, not JSON.** QF builds endpoints from a JSON
-document. That is fine for a handful of worker endpoints and unworkable for a
-hundred, so [`src/api/routes.py`](backend/src/api/routes.py) holds the table and
-[`endpoint_map.py`](backend/src/api/endpoint_map.py) renders the JSON QF wants.
-The generated file is never committed — a checked-in derived file is a file that
-goes stale. Handlers keep QF's calling convention,
-`handler(app, operation, request, **path_params)`.
+The API surface is `backend/maps/endpoint.json`. QF's router
+(`framework.api.dynamic`) builds every Flask-RESTX resource from it, so adding
+an endpoint is two steps:
+
+1. **Write the handler.** QF's calling convention, in a module under `src/api/`:
+
+   ```python
+   def my_endpoint(app=None, operation="", request=None, **path_params):
+       return {"hello": "world"}, 200
+   ```
+
+2. **Declare it in the map:**
+
+   ```json
+   {
+     "namespace": "platform",
+     "operation_name": "my_endpoint",
+     "model_name": "Empty",
+     "request_method": ["GET"],
+     "api_url": "/things/<uuid:thing_id>",
+     "description": "What it does.",
+     "exec_method": { "module_name": "src.api.things", "method_name": "my_endpoint" }
+   }
+   ```
+
+The namespace is the URL prefix — QF mounts a namespace at `/{name}` — so
+`platform` is what puts the route at `/platform/things/…` and why the namespace
+name matches `API_PREFIX`.
+
+Check it without booting the app:
+
+```bash
+python -m src.api.endpoint_map
+```
+
+That imports every handler the map names and prints the surface. The same check
+runs at startup, so a typo in a handler reference is a process that refuses to
+boot rather than a 500 the first time somebody calls the endpoint.
+
+---
+
+## The decisions worth knowing
 
 **Keycloak owns identity; Nucleus owns authorization detail.** The realm proves
 who you are and which role you hold. The `roles` table turns that role into a
@@ -130,6 +172,11 @@ one that recomputes.
 a healthy API every time the database hiccups, turning a brief outage into a
 crash loop.
 
+**Gevent workers, and psycopg2 patched to match.** The API spends its life
+waiting on PostgreSQL, which greenlets handle for a few megabytes where threads
+would cost a stack each. `psycogreen` is what makes psycopg2 yield instead of
+blocking in libpq — without it the server gets *slower* as concurrency rises.
+
 **UUID primary keys, generated in PostgreSQL.** Shareable in URLs without
 leaking row counts, and the seed can build a whole interconnected graph before a
 single INSERT.
@@ -137,6 +184,10 @@ single INSERT.
 **Audit rows commit with the change they describe.** `core/audit.py` takes the
 caller's session rather than opening its own — otherwise a rolled-back update
 leaves an audit entry claiming it happened.
+
+**Error handlers are installed twice, on purpose.** Flask-RESTX handles
+exceptions inside `Resource.dispatch_request`, so an `@app.errorhandler` alone
+never sees anything raised by a mounted endpoint.
 
 ---
 

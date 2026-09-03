@@ -64,5 +64,5 @@ logs/
 tmp/
 .cache/
 
-# Generated at startup from `src/api/routes.py`; never committed.
-backend/maps/
+# Claude Code session state and worktrees.
+.claude/

@@ -21,10 +21,18 @@ from src.core.errors import (
 PREFIX = Config.API_PREFIX
 
 
-def test_index_points_at_the_useful_urls(client):
-    body = client.get("/").get_json()
-    assert body["docs"] == f"{PREFIX}/docs"
-    assert body["openapi"] == f"{PREFIX}/swagger.json"
+def test_swagger_ui_is_served_at_the_root(client):
+    """QF mounts Flask-RESTX with its default doc path, which is `/`."""
+    response = client.get("/")
+    assert response.status_code == 200
+    assert b"<html" in response.data.lower()
+
+
+def test_openapi_document_describes_the_app(client):
+    spec = client.get("/swagger.json").get_json()
+    assert spec["info"]["title"] == Config.APP_NAME
+    assert spec["info"]["version"] == Config.APP_VERSION
+    assert "platform" in {tag["name"] for tag in spec["tags"]}
 
 
 def test_unknown_path_is_json_not_html(client):
@@ -32,12 +40,6 @@ def test_unknown_path_is_json_not_html(client):
     assert response.status_code == 404
     assert response.is_json
     assert "error" in response.get_json()
-
-
-def test_swagger_ui_renders(client):
-    response = client.get(f"{PREFIX}/docs")
-    assert response.status_code == 200
-    assert b"<html" in response.data.lower()
 
 
 def test_correlation_id_is_echoed(client):
@@ -88,9 +90,8 @@ def test_domain_errors_carry_details():
     assert raised.to_dict()["details"] == {"field": "name"}
 
 
-def test_domain_error_raised_in_a_handler_becomes_its_status(client):
-    """The probe route in `conftest` raises a domain error; the installed
-    handlers must turn it into the documented envelope rather than a 500."""
+def test_domain_error_from_a_flask_route(client):
+    """The probe route in `conftest` raises a domain error."""
     response = client.get("/__error_probe")
     assert response.status_code == 409
     assert response.get_json() == {
@@ -98,3 +99,37 @@ def test_domain_error_raised_in_a_handler_becomes_its_status(client):
         "message": "already exists",
         "details": {"id": "42"},
     }
+
+
+def test_domain_error_from_a_mounted_endpoint(client, monkeypatch):
+    """The case `@app.errorhandler` alone would miss.
+
+    Flask-RESTX handles exceptions inside `Resource.dispatch_request`, so an
+    error raised by a QF-mounted handler only becomes its documented status
+    because the handlers are installed on the Api too. QF resolves the handler
+    by name on every request, which is what makes this patchable.
+    """
+    import src.api.health as health
+
+    def _explode(app=None, operation="", request=None, **_):
+        raise ForbiddenError("not for you", details={"missing": ["health.view"]})
+
+    monkeypatch.setattr(health, "liveness", _explode)
+    response = client.get(f"{PREFIX}/health/live")
+    assert response.status_code == 403
+    assert response.get_json()["error"] == "forbidden"
+    assert response.get_json()["details"] == {"missing": ["health.view"]}
+
+
+def test_unexpected_error_does_not_leak_its_message(client, monkeypatch):
+    import src.api.health as health
+
+    def _explode(app=None, operation="", request=None, **_):
+        raise RuntimeError("connection string postgres://user:hunter2@db/app")
+
+    monkeypatch.setattr(health, "liveness", _explode)
+    response = client.get(f"{PREFIX}/health/live")
+    assert response.status_code == 500
+    body = response.get_json()
+    assert body == {"error": "internal_error", "message": "internal server error"}
+    assert "hunter2" not in response.get_data(as_text=True)
