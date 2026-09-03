@@ -9,6 +9,7 @@ against here rather than discovered in production.
 from __future__ import annotations
 
 import json
+import re
 
 import pytest
 
@@ -38,8 +39,10 @@ def test_every_endpoint_is_documented(client):
     documented = set(spec["paths"])
     for route in endpoint_map.routes():
         # The Api carries no prefix of its own, so a Swagger path is the whole
-        # URL — namespace segment included.
-        assert route["url"] in documented, route["operation"]
+        # URL — namespace segment included. Flask spells typed path parameters
+        # as `<uuid:id>` while OpenAPI spells every parameter as `{id}`.
+        expected = re.sub(r"<(?:[^:>]+:)?([^>]+)>", r"{\1}", route["url"])
+        assert expected in documented, route["operation"]
 
 
 def test_routes_expose_their_handler():

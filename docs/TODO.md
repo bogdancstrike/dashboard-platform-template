@@ -197,6 +197,8 @@ function is a slow test that fails for unrelated reasons.
 - [x] Harness runs with **no** database, cache or Keycloak present — dependencies
       point at a closed port so they are refused in a millisecond;
       `TEST_DATABASE_URL` enables the `database`-marked tests
+- [x] Endpoint-map contract check compares Flask converters with their OpenAPI
+      parameter form, so typed UUID routes are covered by the drift test
 - [ ] **Every endpoint** has an integration test covering five cases: happy
       path, validation failure, 401 without a token, 403 with the wrong role,
       404 for a missing id
