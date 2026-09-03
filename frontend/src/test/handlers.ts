@@ -170,6 +170,46 @@ export const dashboardSummary = {
   generated_at: "2026-09-03T12:00:00Z",
 };
 
+export const explorerCatalogue = {
+  items: [{
+    key: "task",
+    label: "Tasks",
+    description: "Work items, ownership, priority and delivery state.",
+    permission: "records.view",
+    record_count: 500,
+    default_columns: ["reference", "title", "status", "priority", "due_date"],
+    default_sort: "updated_at",
+    fields: [
+      { name: "reference", label: "Reference", kind: "text", sortable: true, filterable: true, searchable: true, facet: false, operators: ["eq", "contains", "starts"], choices: [] },
+      { name: "title", label: "Title", kind: "text", sortable: true, filterable: true, searchable: true, facet: false, operators: ["eq", "contains", "not"], choices: [] },
+      { name: "status", label: "Status", kind: "enum", sortable: true, filterable: true, searchable: false, facet: true, operators: ["eq", "ne", "in", "not_in", "empty", "not_empty"], choices: ["NEW", "IN_PROGRESS", "DONE"] },
+      { name: "priority", label: "Priority", kind: "enum", sortable: true, filterable: true, searchable: false, facet: true, operators: ["eq", "ne", "in", "not_in"], choices: ["NORMAL", "HIGH", "CRITICAL"] },
+      { name: "due_date", label: "Due date", kind: "datetime", sortable: true, filterable: true, searchable: false, facet: false, operators: ["before", "after", "between", "empty"], choices: [] },
+      { name: "updated_at", label: "Updated", kind: "datetime", sortable: true, filterable: true, searchable: false, facet: false, operators: ["before", "after"], choices: [] },
+    ],
+  }],
+  view_modes: ["table", "list", "cards", "compact"],
+};
+
+export const explorerResult = {
+  items: [{ id: "task-1", reference: "TSK-001", title: "Review customer migration", status: "IN_PROGRESS", priority: "HIGH", due_date: "2026-09-10T12:00:00Z" }],
+  total: 1,
+  page: 1,
+  page_size: 25,
+  pages: 1,
+  sort: "updated_at",
+  order: "desc",
+  resource_type: "task",
+  columns: ["reference", "title", "status", "priority", "due_date"],
+  fields: explorerCatalogue.items[0]!.fields,
+  facets: {
+    status: [{ value: "IN_PROGRESS", count: 1 }],
+    priority: [{ value: "HIGH", count: 1 }],
+  },
+  condition_text: "",
+  rule_count: 0,
+};
+
 export const handlers = [
   http.get("/platform/meta/app", ({ request }) => echo(request, appMeta)),
   http.get("/platform/api/me", ({ request }) => echo(request, currentUser)),
@@ -179,4 +219,7 @@ export const handlers = [
   }),
   http.get("/platform/health/status", ({ request }) => echo(request, healthSnapshot)),
   http.get("/platform/dashboard/summary", ({ request }) => echo(request, dashboardSummary)),
+  http.get("/platform/api/explorer/catalog", ({ request }) => echo(request, explorerCatalogue)),
+  http.post("/platform/api/explorer/query", ({ request }) => echo(request, explorerResult)),
+  http.get("/platform/api/saved-searches", ({ request }) => echo(request, { items: [], total: 0 })),
 ];

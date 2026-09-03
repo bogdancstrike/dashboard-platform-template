@@ -138,6 +138,79 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "explorer_catalogue",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/explorer/catalog",
+      "description": "Explorer resources, fields, operators, columns and live record counts.",
+      "exec_method": {
+        "module_name": "src.api.explorer",
+        "method_name": "catalogue"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "explorer_query",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/explorer/query",
+      "description": "Run simple and nested explorer conditions in PostgreSQL.",
+      "exec_method": {
+        "module_name": "src.api.explorer",
+        "method_name": "query"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "saved_searches_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/saved-searches",
+      "description": "List visible saved searches or save the current explorer question.",
+      "exec_method": {
+        "module_name": "src.api.saved_searches",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "saved_search_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/saved-searches/<uuid:search_id>",
+      "description": "Open, update or delete one visible saved search; only its owner may mutate it.",
+      "exec_method": {
+        "module_name": "src.api.saved_searches",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "saved_search_duplicate",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/saved-searches/<uuid:search_id>/duplicate",
+      "description": "Copy any visible saved search into a new private search owned by the caller.",
+      "exec_method": {
+        "module_name": "src.api.saved_searches",
+        "method_name": "duplicate"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "dashboard_alerts",
       "model_name": "Empty",
       "request_method": [

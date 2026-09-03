@@ -125,7 +125,11 @@ def _compile_node(node: dict[str, Any], spec: FieldSet, *, depth: int, counter: 
     kind = (node.get("type") or "group").lower()
 
     if kind in ("group", "rule_group"):
-        conjunction = str(node.get("conjunction") or "AND").upper()
+        properties = node.get("properties") or {}
+        # RAQB's current export nests group settings under `properties`; older
+        # saved trees and the deterministic seed use top-level keys. Supporting
+        # both keeps persisted searches stable across library upgrades.
+        conjunction = str(properties.get("conjunction") or node.get("conjunction") or "AND").upper()
         if conjunction not in ("AND", "OR"):
             raise ValidationError("conjunction must be AND or OR")
         parts = [
@@ -137,7 +141,7 @@ def _compile_node(node: dict[str, Any], spec: FieldSet, *, depth: int, counter: 
         if not parts:
             return None
         combined = and_(*parts) if conjunction == "AND" else or_(*parts)
-        return not_(combined) if node.get("not") else combined
+        return not_(combined) if properties.get("not", node.get("not")) else combined
 
     if kind in ("rule", "field"):
         counter.tick()
@@ -174,7 +178,8 @@ def _describe_node(node: dict[str, Any], spec: FieldSet, *, indent: int, depth: 
     if kind in ("group", "rule_group"):
         if depth > MAX_DEPTH:
             return f"{pad}…"
-        conjunction = str(node.get("conjunction") or "AND").upper()
+        properties = node.get("properties") or {}
+        conjunction = str(properties.get("conjunction") or node.get("conjunction") or "AND").upper()
         parts = [
             text
             for child in _children(node)
@@ -184,7 +189,7 @@ def _describe_node(node: dict[str, Any], spec: FieldSet, *, indent: int, depth: 
             return ""
         joiner = f"\n{pad}    {conjunction}\n"
         body = joiner.join(parts)
-        negation = "NOT " if node.get("not") else ""
+        negation = "NOT " if properties.get("not", node.get("not")) else ""
         if depth == 0 and not negation:
             # The root group needs no parentheses; they only add noise.
             return body

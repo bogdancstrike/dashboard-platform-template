@@ -299,6 +299,68 @@ body {
 .nu-empty-action { margin-top: 12px; }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   Data Explorer (§4–§6, §51)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.nu-explorer-controls { margin-bottom: 12px; border-color: var(--nu-border); }
+.nu-explorer-toolbar {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.5fr) minmax(260px, 1.5fr) auto auto auto;
+  gap: 8px;
+  align-items: center;
+}
+.nu-resource-select { width: 100%; }
+.nu-facets {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--nu-border-subtle);
+}
+.nu-facets .ant-select { min-width: 150px; max-width: 260px; }
+.nu-explorer-results { border-color: var(--nu-border); }
+.nu-explorer-results > .ant-card-body { padding: 0; }
+.nu-explorer-results .ant-alert { margin: 12px; }
+.nu-explorer-table .ant-table-cell { white-space: nowrap; }
+.nu-result { width: 100%; min-width: 0; }
+.nu-result--list { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px 20px; }
+.nu-result--compact { display: flex; align-items: center; gap: 8px; overflow: hidden; }
+.nu-result--compact .nu-result-field { flex: 0 1 auto; min-width: 0; }
+.nu-result--cards { display: grid; gap: 10px; }
+.nu-result-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nu-result-field > .ant-typography { overflow: hidden; text-overflow: ellipsis; }
+.nu-column-picker {
+  display: grid; grid-template-columns: repeat(2, minmax(150px, 1fr));
+  max-width: min(520px, 80vw); max-height: 380px; overflow: auto; gap: 8px 14px;
+}
+.nu-query-builder { overflow-x: auto; padding-bottom: 8px; }
+.nu-query-builder .query-builder { min-width: 680px; }
+.nu-query-inspector { margin-top: 18px; background: var(--nu-bg); }
+.nu-query-inspector pre {
+  margin: 0 0 8px; padding: 12px; overflow: auto; border-radius: 6px;
+  background: var(--nu-surface); border: 1px solid var(--nu-border-subtle);
+  color: var(--nu-text); font: 12px/1.55 var(--nu-font-mono); white-space: pre-wrap;
+}
+.nu-saved-card { width: 100%; border-color: var(--nu-border); }
+.nu-saved-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.nu-link-button {
+  border: 0; padding: 0; background: transparent; color: var(--nu-text);
+  font: inherit; font-weight: 650; text-align: start; cursor: pointer;
+}
+.nu-link-button:hover { color: var(--nu-accent); }
+.nu-saved-condition { margin: 9px 0 12px; line-height: 1.45; }
+
+@media (max-width: 1100px) {
+  .nu-explorer-toolbar { grid-template-columns: minmax(180px, 0.6fr) minmax(220px, 1.4fr) auto auto; }
+  .nu-explorer-toolbar > :last-child { grid-column: auto; }
+}
+
+@media (max-width: 767px) {
+  .nu-explorer-toolbar { display: flex; flex-wrap: wrap; }
+  .nu-explorer-toolbar > .ant-input-affix-wrapper { flex: 1 1 100%; order: -1; }
+  .nu-resource-select { flex: 1 1 180px; }
+  .nu-facets .ant-select { flex: 1 1 140px; max-width: none; }
+  .nu-column-picker { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    Command palette (§31) — fast search and fast actions
    ═══════════════════════════════════════════════════════════════════════ */
 

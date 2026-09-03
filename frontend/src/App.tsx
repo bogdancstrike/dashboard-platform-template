@@ -16,6 +16,7 @@ import { PlaceholderPage } from "@/pages/PlaceholderPage";
  * which is what produced a cross-chunk cycle and a blank page last time.
  */
 const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
+const DataExplorerPage = lazy(() => import("@/pages/DataExplorerPage"));
 const SystemPage = lazy(() => import("@/pages/SystemPage"));
 
 function Loading() {
@@ -294,18 +295,9 @@ export default function App() {
         <Route
           path="explore"
           element={
-            <PlaceholderPage
-              section="§4, §5, §6, §51"
-              summary="Explore any dataset with simple filters, nested conditions, saved searches and reusable views."
-              bullets={[
-                "Choose an entity and inspect its searchable fields, facets and relationships",
-                "Rules and groups, AND/OR, negation, drag to reorder",
-                "The full operator vocabulary, per field kind",
-                "A query inspector rendered from the same tree the SQL is compiled from",
-                "Saved searches open here: private by default, shared with named members, or public — only the owner edits",
-                "Results in four view modes, with the columns the search was saved under",
-              ]}
-            />
+            <Suspense fallback={<Loading />}>
+              <DataExplorerPage />
+            </Suspense>
           }
         />
         <Route

@@ -1,5 +1,7 @@
 import { expect, test, type ConsoleMessage, type Page } from "@playwright/test";
 
+import { signIn } from "./auth";
+
 /**
  * The first e2e suite: does the *built* application actually run in a browser?
  *
@@ -42,11 +44,12 @@ function collectErrors(page: Page): string[] {
 }
 
 test.describe("the application boots", () => {
+  test.beforeEach(async ({ page }) => signIn(page));
+
   test("renders without a single console error", async ({ page }) => {
     const errors = collectErrors(page);
 
-    await page.goto("/");
-    await expect(page.getByText("Enterprise Application Template Platform")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
     // Let anything asynchronous settle before judging the console.
     await page.waitForLoadState("networkidle");
 
@@ -55,7 +58,7 @@ test.describe("the application boots", () => {
 
   test("shows the service metadata the API published", async ({ page }) => {
     const errors = collectErrors(page);
-    await page.goto("/");
+    await page.goto("/admin/health");
 
     await expect(page.getByText("Nucleus", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("template-spa")).toBeVisible();
@@ -65,7 +68,7 @@ test.describe("the application boots", () => {
   });
 
   test("lists every dependency with a live status", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/admin/health");
 
     // Straight from /platform/health/status, through nginx, against the real
     // PostgreSQL, Redis and Keycloak in the stack.
@@ -77,9 +80,9 @@ test.describe("the application boots", () => {
 
   test("a deep link is served by the SPA, not a 404", async ({ page }) => {
     // §69: a URL pasted from a colleague has to work, not only one navigated to.
-    const response = await page.goto("/admin/audit");
-    expect(response?.status()).toBe(200);
-    await expect(page.getByText("Enterprise Application Template Platform")).toBeVisible();
+    await page.goto("/admin/audit");
+    await expect(page).toHaveURL(/\/admin\/audit$/);
+    await expect(page.getByRole("heading", { name: "Audit log" })).toBeVisible();
   });
 
   test("the API is reachable on the app's own origin", async ({ page, baseURL }) => {
@@ -93,9 +96,12 @@ test.describe("the application boots", () => {
 });
 
 test.describe("appearance", () => {
+  test.describe.configure({ mode: "serial" });
+  test.beforeEach(async ({ page }) => signIn(page));
+
   test("density survives a reload", async ({ page }) => {
-    await page.goto("/");
-    await page.getByText("Compact", { exact: true }).click();
+    await page.getByRole("button", { name: /Open the command palette/ }).click();
+    await page.getByText("Use compact density", { exact: true }).click();
     await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
 
     await page.reload();
@@ -103,8 +109,8 @@ test.describe("appearance", () => {
   });
 
   test("dark mode survives a reload and reaches the document", async ({ page }) => {
-    await page.goto("/");
-    await page.getByText("Dark", { exact: true }).click();
+    await page.getByRole("button", { name: /Open the command palette/ }).click();
+    await page.getByText("Switch to the dark theme", { exact: true }).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 
     await page.reload();

@@ -369,42 +369,52 @@ Nucleus extends that to a full condition tree with a real sharing model.
 
 ### The query builder (§4)
 
-- [ ] **RAQB (`@react-awesome-query-builder/antd`) as the editor**, configured
+- [x] **RAQB (`@react-awesome-query-builder/antd`) as the editor**, configured
       from the field catalogue the backend publishes — `FieldSet.describe()`
       already returns name, label, kind, the operators that kind allows, and
       the choices for enums
   - **Acceptance**: the builder can never offer an operator the backend will
     reject, because both read the same declaration. Adding a filterable column
     to an endpoint makes it appear in the builder with no frontend change
-- [ ] **Rules and groups**, nested arbitrarily:
+- [~] **Rules and groups**, nested arbitrarily:
       `CONDITION AND ( CONDITION OR CONDITION )`
   - AND / OR conjunction per group, and group negation (`NOT`)
   - add rule · add group · remove · duplicate
   - **drag-and-drop reordering** of rules within and between groups
   - field-specific operators, switching when the field changes
+  - Shipped: add/remove rules and groups, AND/OR, NOT, field-specific controls,
+    drag/reorder and backend depth/rule limits. A first-class duplicate control
+    still needs to be added to the RAQB action bar
   - **Acceptance**: a tree twelve levels deep is rejected with a message, not a
     stack overflow (`core/rules.py` caps depth at 12 and rules at 200)
-- [ ] **The full operator vocabulary**, per field kind — equals, not equals,
+- [~] **The full operator vocabulary**, per field kind — equals, not equals,
       contains, does not contain, starts with, ends with, greater/less than
       (or equal), between, before, after, in, not in, is empty, is not empty,
       exists, does not exist
   - **Acceptance**: every operator in `core/query.py::OPERATORS` is reachable
     from the UI for at least one field kind, and a unit test asserts the two
     lists agree
-- [ ] **Live result count** as the tree is edited, debounced and cancellable
+  - The backend catalogue now publishes the canonical vocabulary and the RAQB
+    adapter maps it by field kind; the explicit cross-layer agreement test is
+    still outstanding
+- [x] **Live result count** as the tree is edited, debounced and cancellable
   - **Acceptance**: a half-built rule does not blank the results — `compile_tree`
     skips incomplete rules by design, and the UI must not fight that
-- [ ] **Query inspector** (§51) — the parenthesised, indented rendering of the
+- [~] **Query inspector** (§51) — the parenthesised, indented rendering of the
       current tree, toggleable beside the builder
   - **Acceptance**: the text comes from `describe_tree`, the SQL from
     `compile_tree`, both walking the same structure — so the inspector provably
     cannot drift from what executed. Asserted by a test that compiles and
     describes the same tree and compares their field/operator sets
-- [ ] Simple search alongside it (§4): one box across every `searchable` field,
+  - The inspector is live and backend-rendered from the executed tree; the
+    stronger field/operator-set equivalence assertion remains
+- [~] Simple search alongside it (§4): one box across every `searchable` field,
       with recent searches, suggestions, autocomplete, highlighted matches and
       history
-- [ ] Switching simple → advanced carries the current filters into the tree
-      rather than discarding them
+  - Shipped: cancellable, debounced server-side search across the declared
+    searchable fields. Suggestions, highlighting and history remain
+- [x] Simple and advanced conditions compose rather than replacing each other;
+      opening either editor preserves the other part of the question
 
 ### Saved searches (§5)
 
@@ -412,16 +422,18 @@ A saved search stores the *question* and the *presentation*: conditions, sort,
 visible columns, page size and view mode. Opening one that finds the right rows
 and then shows the wrong columns is a saved search nobody trusts.
 
-- [ ] Fields: name, description, owner, created, last modified, condition tree,
+- [x] Fields: name, description, owner, created, last modified, condition tree,
       rendered condition text, default sort, visible columns, page size, view
       mode, favourite flag, use count, last used
-- [ ] Actions: create · rename · edit · duplicate · delete · favourite · run
-- [ ] **A module of the search screen, not a page of its own** (as in
+- [~] Actions: create · rename · edit · duplicate · delete · favourite · run
+  - Create/open/run, duplicate, delete and favourite ship in the explorer;
+    rename and full edit are available in the owner-only API but still need UI
+- [x] **A module of the search screen, not a page of its own** (as in
       gif_responder's `SavedSearchControls`): a panel on `/explore` listing
       them with rule count and condition summary, and opening one loads it
       into the builder in place. `/search` and `/search/saved` redirect there, so an old
       link still works
-- [ ] **Sharing model** — three states, and one rule about who may change what:
+- [~] **Sharing model** — three states, and one rule about who may change what:
 
   | Visibility | Who can see it | Who can edit or delete it |
   | --- | --- | --- |
@@ -443,14 +455,17 @@ and then shows the wrong columns is a saved search nobody trusts.
     search does not appear in another user's list, is not reachable by direct
     id, and is not found by the command palette's "Quick views" group.
     Sharing, unsharing and visibility changes each write an audit row
+  - Backend visibility, owner-only mutation, explicit member shares and audit
+    writes ship with integration coverage. The UI currently creates Private or
+    Public searches; named-member management and ownership transfer remain
 
-- [ ] `resource_shares` table — polymorphic (`resource_type`, `resource_id`,
+- [x] `resource_shares` table — polymorphic (`resource_type`, `resource_id`,
       `user_id`), the same pattern as comments, tags and favourites, so saved
       views (§46), dashboards (§45) and reports (§28) can adopt it unchanged
   - **Acceptance**: unique on (resource, user); removing a user cascades their
     shares; a share never grants edit
 
-- [ ] The list query resolves visibility in **one** statement —
+- [x] The list query resolves visibility in **one** statement —
       `owner = me OR scope = PUBLIC OR id IN (my shares)` — not by fetching
       everything and filtering in Python (§71)
   - **Acceptance**: the generated SQL contains the visibility predicate; a
@@ -458,7 +473,7 @@ and then shows the wrong columns is a saved search nobody trusts.
 
 ### Search results (§6)
 
-- [ ] Four view modes — list · table · card · compact — switchable and remembered
+- [x] Four view modes — list · table · card · compact — switchable and remembered
 - [ ] Match highlighting, relevance, metadata, tags, timestamps, owner, status
 - [ ] Result grouping, sorting, preview drawer (§64) and quick actions
 - [ ] Both pagination strategies (§52): numbered for the table, infinite scroll
@@ -478,9 +493,13 @@ everything else.
 - [ ] `/analytics` — cross-entity KPIs, trends, comparisons and drill-down with
       one shared period/filter context; analyses can become reports, charts or
       dashboard widgets
-- [ ] `/explore` — the canonical home for simple search, nested advanced
+- [~] `/explore` — the canonical home for simple search, nested advanced
       search, query inspection, saved searches, saved views and result modes;
       legacy `/search*` URLs redirect here
+  - Shipped: six declarative datasets, server-side simple/faceted/advanced
+    query, URL state, configurable columns, four result modes, saved-search
+    lifecycle and legacy redirects. Saved views and the remaining saved-search
+    sharing UI are next
 - [ ] `/find/global` — ranked cross-entity results with highlighted matches,
       recent queries, suggestions and keyboard navigation
 - [ ] `/find/relationships` — traverse connections from any record in both an
@@ -711,10 +730,12 @@ Each endpoint ships with its five-case integration test and the page consuming i
     a per-row result so a partial success is reportable (§34)
 - [ ] Bulk preview endpoint (§75) — affected count split into "selected
       manually" and "selected by filter", before anything is applied
-- [ ] Search: simple, advanced (RAQB), global, quick (§4, §6, §31, §32)
+- [~] Search: simple and advanced Data Explorer shipped; global and quick
+      entity search remain (§4, §6, §31, §32)
   - **Acceptance**: the inspector's text and the executed SQL come from the same
     tree (§51); global search groups by entity type and is keyboard-navigable
-- [ ] Saved searches and saved views, with the private/team/org/public ladder
+- [~] Saved searches ship with private/shared/public backend enforcement and
+      owner-only writes; saved views and remaining sharing UI are open
       (§5, §46)
 - [ ] Admin: users, groups, roles, permissions, organizations, departments,
       settings, flags, API clients, integrations, jobs, scheduled tasks,
@@ -755,7 +776,9 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] Auth: Keycloak OIDC using the coordinates `/meta/app` publishes, silent
       refresh, permission hook reading `/api/me`
   - **Acceptance**: no Keycloak URL is baked into the bundle at build time
-- [ ] URL-state persistence — filters, sort, page, columns, density, scroll
+- [~] URL-state persistence — Data Explorer persists resource, simple/faceted/
+      advanced filters, sort, page, page size, columns, result mode and selected
+      saved search; density and scroll restoration remain
       position, selected view (§69, §72)
   - **Acceptance**: copying the URL reproduces the exact view for another user
     with the same permissions; opening a record and returning restores the list
@@ -775,7 +798,9 @@ Each endpoint ships with its five-case integration test and the page consuming i
   - **Acceptance**: opens in under 50ms with the palette code-split; search is
     debounced and cancellable; arrows and `Enter` work throughout; every group
     reachable without a mouse; results respect the caller's permissions
-- [ ] Shared primitives: data table (§3), filter bar, query builder (§4),
+- [~] Shared primitives: Data Explorer now contributes reusable server-backed
+      result table/list/card renderers, facet controls, query builder, saved
+      search drawer and debouncing hook; generic CRUD/bulk primitives,
       drawers and modals (§33), confirmation dialogs (§73), unsaved-changes
       guard (§74), bulk preview dialog (§75), timeline (§48), comments (§36),
       tag input (§37), auto-refresh control (§53)
@@ -785,8 +810,9 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [ ] Dashboard (§2, §66) + dashboard builder (§45, §67)
 - [ ] Data table showcase (§3), entity lists ×11 (§7), entity detail (§8),
       forms (§9), wizard (§10)
-- [ ] Search: simple, advanced with inspector, saved, results in four view
-      modes (§4–§6, §51)
+- [~] Search: Data Explorer ships simple/faceted search, nested advanced RAQB,
+      backend query inspector, saved searches and four URL-persistent result
+      modes; saved views, highlighting, suggestions and preview remain (§4–§6, §51)
 - [ ] Admin area (§11), users with impersonation (§12), roles matrix (§13)
 - [ ] **Audit explorer `/admin/audit` + `AuditTimeline` component (§21)**
   - **Acceptance**: the table shows who / when / what at a glance; opening an
@@ -808,10 +834,12 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] `docker compose up` clean-boot green — every service healthy from empty
       volumes; seed wrote 15 554 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
-- [~] Backend tests — 65 passing (endpoint map, health, meta, HTTP contract, seed)
-- [~] Frontend unit + component tests — 18 passing (API client, theme, states)
+- [~] Backend tests — 83 passing, including Data Explorer query, validation,
+      JWT/RBAC and saved-search visibility/lifecycle integration coverage
+- [~] Frontend unit + component tests — 37 passing, including Data Explorer
+      backend rendering, debounced search and saved-search module coverage
 - [ ] Playwright e2e suite green from a cold boot
-- [ ] Frontend typecheck + build
+- [x] Frontend typecheck + production build
 - [ ] Accessibility — axe clean on every route (§55)
 - [ ] Performance — list page interactive under 1.5s against the seeded database
 - [ ] **§77 walkthrough**: a developer who has never seen the repo opens it and
