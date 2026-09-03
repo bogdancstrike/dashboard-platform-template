@@ -141,6 +141,122 @@ export default function App() {
           }
         />
 
+
+        {/* Analyse */}
+        <Route
+          path="dashboards"
+          element={
+            <PlaceholderPage
+              section="§45, §67"
+              summary="Your dashboards — build them from widgets, and share them the way saved searches are shared."
+              bullets={[
+                "Add, remove, resize, reorder and configure widgets on a 12-column grid",
+                "KPI, chart, table, activity, alerts, tasks and recent-items widgets",
+                "Private by default · shared with named members · public — only the owner edits",
+                "One of them is your home page (§67)",
+              ]}
+            />
+          }
+        />
+        <Route
+          path="reports/builder"
+          element={
+            <PlaceholderPage
+              section="§28"
+              summary="Compose a report from dimensions, metrics, filters, grouping and a period."
+              bullets={[
+                "Pick the entity, then the dimensions and metrics it offers",
+                "Preview the result as you build it, server-side (§71)",
+                "Save, share, schedule and export",
+              ]}
+            />
+          }
+        />
+        <Route
+          path="charts/builder"
+          element={
+            <PlaceholderPage
+              section="§28, §44"
+              summary="Build a chart visually and drop it onto a dashboard."
+              bullets={[
+                "Every ECharts type the platform themes: line, area, stacked area, bar, stacked and horizontal bars, pie, donut, scatter, heatmap, funnel, gauge, timeline",
+                "Live preview against real data, in both themes",
+                "Save it as a widget, or export the underlying rows",
+              ]}
+            />
+          }
+        />
+        <Route
+          path="maps"
+          element={
+            <PlaceholderPage
+              section="§44, §61"
+              summary="Records on a map — customers, devices, orders and regions."
+              bullets={[
+                "Cluster markers by region, and drill into the filtered list (§44)",
+                "Choropleth by region for revenue, tickets and device health",
+                "The same period and filter controls the dashboard uses",
+              ]}
+            />
+          }
+        />
+        <Route
+          path="announcements"
+          element={
+            <PlaceholderPage
+              section="§17, §34"
+              summary="System messages and announcements, from the platform to everyone."
+              bullets={[
+                "Scheduled banners for maintenance windows and releases",
+                "Targeted by role, organization or user",
+                "Acknowledged per reader, so a notice can require a response",
+              ]}
+            />
+          }
+        />
+        <Route
+          path="kanban"
+          element={
+            <PlaceholderPage
+              section="§18"
+              summary="Boards, lanes and cards — with checklists, comments and drag."
+              bullets={[
+                "Drag a card between lanes and within a lane; the position survives a reload",
+                "A card carries a to-do checklist, comments, attachments and an activity timeline",
+                "Filter by assignee, label, due date and text, server-side",
+              ]}
+            />
+          }
+        />
+        <Route
+          path="workflows"
+          element={
+            <PlaceholderPage
+              section="§49"
+              summary="Condition → action automation, on the same query tree the search builder produces."
+              bullets={[
+                "When these conditions match, notify, email, raise a task or call a webhook",
+                "Schedule and cooldown, so one breach does not send forty messages",
+                "Dry-run against current data before enabling",
+              ]}
+            />
+          }
+        />
+        <Route
+          path="notifications"
+          element={
+            <PlaceholderPage
+              section="§17"
+              summary="The notification centre — everything, filterable, markable, live."
+              bullets={[
+                "Mark one read, or mark all read",
+                "Filter by category, severity and read state; grouped so twelve of a kind are one line",
+                "Live over WebSocket, with polling as the fallback",
+              ]}
+            />
+          }
+        />
+
         {/* Records */}
         {["projects", "customers", "orders", "tickets", "devices"].map((entity) => (
           <Route

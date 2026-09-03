@@ -47,8 +47,7 @@ No phase is "all of the backend, then all of the frontend".
 
 ## Reference projects
 
-Four existing projects on this machine set conventions worth following. When a
-decision here says "as in X", this is what it means.
+Four existing projects on this machine set conventions worth following, especially design, features, architecture, technologies, components, dashboards, charts:
 
 | Project | Path | What to take from it |
 | --- | --- | --- |
@@ -57,8 +56,7 @@ decision here says "as in X", this is what it means.
 | **scraper_b2_stealth** | `/home/bogdan/workspace/dev/scraper_b2_stealth` | Long-running job orchestration and operational logging patterns — relevant to §23 background jobs and §22 log streaming |
 | **dentnow-react** | `/home/bogdan/workspace/dev/dentnow-react/dentnow-react` | React application structure and component conventions |
 
-- [ ] Read each before starting the corresponding area; record any deviation
-      from their conventions in the commit message that makes it
+- [ ] Read each before starting the corresponding area.
 
 ---
 
@@ -526,6 +524,56 @@ everything else.
   - **Acceptance**: uploading a file makes it appear in the folder without a
     reload; a download link expires; deleting a file removes the object as well
     as the row; a failed upload leaves neither
+
+### Configurable dashboards, shared like saved searches (§45, §67)
+
+- [ ] `/dashboards` — the reader's own dashboards, plus the ones shared with them
+- [ ] Builder: add · remove · **resize** · **reorder** · configure widgets on a
+      12-column grid; save and reset the layout
+- [ ] Widget kinds: KPI, line/area/bar/pie chart, table, activity feed, alerts,
+      my tasks, recent items — each configured with an entity, a metric, a
+      period and its own filters
+- [ ] **Sharing reuses `resource_shares`, exactly as saved searches do**:
+      private by default · shared with named members · public; only the owner
+      edits, re-shares or deletes; a member who wants their own duplicates it
+  - **Acceptance**: one mechanism, one table, one set of rules for saved
+    searches, saved views, reports and dashboards — a second sharing model is a
+    second set of bugs
+- [ ] One dashboard is the reader's home page (§67)
+
+### `/announcements` — system messages (§17)
+
+- [ ] Platform-wide announcements: scheduled banners for maintenance and
+      releases, targeted by role, organization or user
+- [ ] Acknowledged per reader, so a notice can require a response
+- [ ] Shown in the shell as a dismissible banner, and listed on the page
+
+### `/maps` — records on a map (§44, §61)
+
+- [ ] Customers, devices and orders as clustered markers; choropleth by region
+      for revenue, ticket volume and device health
+- [ ] Clicking a region or cluster drills into the filtered list (§44)
+- [ ] Shares the period and filter controls the dashboard uses
+
+### `/workflows` — condition → action automation (§49)
+
+- [ ] Built on the **same RAQB tree** the advanced search produces, so one
+      editor and one compiler serve both
+- [ ] Actions: notify · email · raise a task · call a webhook
+- [ ] Schedule and cooldown, so one breach does not send forty messages
+- [ ] **Dry run** against current data before enabling
+  - **Acceptance**: the rule that fires is provably the rule the inspector
+    showed, because both come from `core/rules.py`
+
+### `/reports/builder` and `/charts/builder` (§28, §44)
+
+- [ ] Report builder: pick an entity, then its dimensions, metrics, filters,
+      grouping and period; preview server-side as you build; save, share,
+      schedule, export
+- [ ] Chart builder: every ECharts type the platform themes — line, area,
+      stacked area, bar, stacked and horizontal bars, pie, donut, scatter,
+      heatmap, funnel, gauge, timeline — with a live preview in both themes
+- [ ] A saved chart becomes a dashboard widget without being rebuilt
 
 ### Dashboard, expanded (§2, §44)
 
