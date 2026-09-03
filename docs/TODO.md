@@ -47,7 +47,7 @@ No phase is "all of the backend, then all of the frontend".
 
 ## Reference projects
 
-Four existing projects on this machine set conventions worth following, especially design, features, architecture, technologies, components, dashboards, charts:
+Four existing projects on this machine set conventions worth following, especially design, features, architecture, technologies, components, dashboards, charts, docker-composes for third-parties, integrations, etc:
 
 | Project | Path | What to take from it |
 | --- | --- | --- |
@@ -175,9 +175,7 @@ operational enterprise application, not a marketing website.**
 
 ### Keyboard map (§54)
 
-- [ ] `Ctrl/Cmd-K` palette · `/` focus search · `g d`/`g t`/`g p`/`g i` go to
-      dashboard/tasks/projects/inbox · `j`/`k` move between rows · `x` select
-      row · `Enter` open · `?` shortcut help · `Esc` close · `Ctrl-S` submit form
+- [ ] `Ctrl/Cmd-K` palette · `/` focus search - also see gifr /home/bogdan/workspace/dev/gif_responder for cmdk -> it has more "categories": "On this page" being the most important -> actions to do on the current page.
 - **Acceptance**: listed in the `?` dialog; never fires while typing in an
   input; disabled while a modal owns the keyboard
 
