@@ -23,6 +23,13 @@ tenacity>=9.0.0
 pybreaker>=1.2.0
 limits>=3.13.0
 
+# ── WebSockets (§17 live notifications) ──────────────────────────────────
+# flask-sock speaks the protocol over the WSGI connection gunicorn's gevent
+# worker already holds, so live delivery needs no second server and no second
+# port. simple-websocket is its transport.
+flask-sock>=0.7.0,<1
+simple-websocket>=1.1.0,<2
+
 # ── Database ─────────────────────────────────────────────────────────────
 sqlalchemy>=2.0.36,<3
 psycopg2-binary>=2.9.10

@@ -148,7 +148,7 @@ export function CommandPalette() {
         <Command.Group heading="Quick views">
           <Command.Item
             value="view:saved-searches"
-            onSelect={() => close(() => navigate("/search/saved"))}
+            onSelect={() => close(() => navigate("/search?panel=saved"))}
           >
             <span className="nu-cmdk-icon">
               <SearchOutlined />

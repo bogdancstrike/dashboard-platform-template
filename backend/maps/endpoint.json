@@ -134,6 +134,63 @@
         "module_name": "src.api.dashboard",
         "method_name": "alerts"
       }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "notifications_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/notifications",
+      "description": "The caller's notifications, newest first, with unread counts.",
+      "exec_method": {
+        "module_name": "src.api.notifications",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "notifications_counts",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/notifications/counts",
+      "description": "Unread totals \u2014 what the header badge polls when the socket is down.",
+      "exec_method": {
+        "module_name": "src.api.notifications",
+        "method_name": "unread_counts"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "notifications_item",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/notifications/<uuid:notification_id>",
+      "description": "Mark one read or unread, or delete it.",
+      "exec_method": {
+        "module_name": "src.api.notifications",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "notifications_mark_all",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/notifications/read-all",
+      "description": "Mark everything read, or everything in one category.",
+      "exec_method": {
+        "module_name": "src.api.notifications",
+        "method_name": "mark_all"
+      }
     }
   ]
 }

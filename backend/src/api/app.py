@@ -69,6 +69,7 @@ def create_application() -> Flask:
     app = handles.app
 
     install_flask_hooks(app)
+    _install_websocket(app)
     install_restx_error_handlers(handles.api)
     install_flask_error_handlers(app)
 
@@ -79,3 +80,28 @@ def create_application() -> Flask:
         "green",
     )
     return app
+
+
+def _install_websocket(app: Flask) -> None:
+    """Mount the live channel, and start the cross-worker relay.
+
+    Both are best-effort. A platform whose notification centre falls back to
+    polling is a working platform; one that refuses to boot because a WebSocket
+    library is missing is not.
+    """
+    from framework.commons.logger import logger as log
+
+    try:
+        from flask_sock import Sock
+
+        from src.api.websocket import register
+        from src.services import live
+
+        # Ping frames are the server's business; the application-level
+        # heartbeat in websocket.py is what survives a proxy that strips them.
+        app.config.setdefault("SOCK_SERVER_OPTIONS", {"ping_interval": 25})
+        sock = Sock(app)
+        register(app, sock)
+        live.start_relay()
+    except ImportError as exc:
+        log.warning(f"live: websockets unavailable ({exc}); clients will poll", "yellow")

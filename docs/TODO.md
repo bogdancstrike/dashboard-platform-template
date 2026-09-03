@@ -277,7 +277,7 @@ section is a cross-cutting rule rather than a page.
 | 2 | Overview dashboard, KPIs, charts | `/` | `/dashboard/*` | [ ] |
 | 3 | Advanced data table | `/showcase/table` + every list | generic list | [ ] |
 | 4 | Advanced search (simple + RAQB) | `/search` | `/search/advanced` | [ ] |
-| 5 | Saved searches | `/search/saved` | `/saved-searches` | [ ] |
+| 5 | Saved searches | `/search` (panel) | `/saved-searches` | [ ] |
 | 6 | Search results, view modes | `/search/results` | `/search` | [ ] |
 | 7 | Entity list pages | `/{entity}` ×11 | generic list | [ ] |
 | 8 | Entity detail page | `/{entity}/:id` | generic detail | [ ] |
@@ -408,8 +408,11 @@ and then shows the wrong columns is a saved search nobody trusts.
       rendered condition text, default sort, visible columns, page size, view
       mode, favourite flag, use count, last used
 - [ ] Actions: create · rename · edit · duplicate · delete · favourite · run
-- [ ] A dedicated `/search/saved` page listing them, with the rule count and
-      condition summary on each card
+- [ ] **A module of the search screen, not a page of its own** (as in
+      gif_responder's `SavedSearchControls`): a panel on `/search` listing
+      them with rule count and condition summary, and opening one loads it
+      into the builder in place. `/search/saved` redirects there, so an old
+      link still works
 - [ ] **Sharing model** — three states, and one rule about who may change what:
 
   | Visibility | Who can see it | Who can edit or delete it |

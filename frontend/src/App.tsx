@@ -281,30 +281,22 @@ export default function App() {
           path="search"
           element={
             <PlaceholderPage
-              section="§4, §51"
-              summary="Simple search, and a nested condition builder on RAQB."
+              section="§4, §5, §6, §51"
+              summary="Simple search, a nested RAQB condition builder, and the saved searches that live alongside it."
               bullets={[
                 "Rules and groups, AND/OR, negation, drag to reorder",
                 "The full operator vocabulary, per field kind",
                 "A query inspector rendered from the same tree the SQL is compiled from",
+                "Saved searches open here: private by default, shared with named members, or public — only the owner edits",
+                "Results in four view modes, with the columns the search was saved under",
               ]}
             />
           }
         />
-        <Route
-          path="search/saved"
-          element={
-            <PlaceholderPage
-              section="§5"
-              summary="Saved searches — private by default, shareable by name, public if you choose."
-              bullets={[
-                "Private, shared with named members, or public",
-                "Only the owner can edit, re-share or delete",
-                "Conditions, columns, sort and page size travel together",
-              ]}
-            />
-          }
-        />
+        {/* Saved searches open *in* the search screen, so the old address
+            still works and lands where they actually live. */}
+        <Route path="search/saved" element={<Navigate to="/search?panel=saved" replace />} />
+        <Route path="search/saved/:searchId" element={<Navigate to="/search" replace />} />
         <Route
           path="favorites"
           element={

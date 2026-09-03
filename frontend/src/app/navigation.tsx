@@ -36,7 +36,6 @@ import {
   ShopOutlined,
   ShoppingCartOutlined,
   GlobalOutlined,
-  StarOutlined,
   TeamOutlined,
   UserOutlined,
 } from "@ant-design/icons";
@@ -123,8 +122,11 @@ export const NAV_GROUPS: NavGroup[] = [
     key: "find",
     label: "Find",
     items: [
+      // Saved searches are a *module of* advanced search, not a page of their
+      // own — you open one from the search screen and it loads there, the way
+      // gif_responder's SavedSearchControls works. A separate destination would
+      // mean two places that both claim to be where searches live.
       { key: "/search", label: "Advanced search", icon: <SearchOutlined /> },
-      { key: "/search/saved", label: "Saved searches", icon: <StarOutlined /> },
       { key: "/favorites", label: "Favorites", icon: <HeartOutlined /> },
     ],
   },
