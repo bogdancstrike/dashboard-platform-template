@@ -77,6 +77,20 @@ export default function App() {
           }
         />
         <Route
+          path="analytics"
+          element={
+            <PlaceholderPage
+              section="§2, §44, §53"
+              summary="Explore operational performance across records, teams and time periods."
+              bullets={[
+                "Cross-entity KPIs and trends with a shared period and filter context",
+                "Slice, compare and drill from a chart into the records behind it",
+                "Save an analysis as a report, chart or dashboard widget",
+              ]}
+            />
+          }
+        />
+        <Route
           path="reports"
           element={
             <PlaceholderPage
@@ -278,12 +292,13 @@ export default function App() {
 
         {/* Find */}
         <Route
-          path="search"
+          path="explore"
           element={
             <PlaceholderPage
               section="§4, §5, §6, §51"
-              summary="Simple search, a nested RAQB condition builder, and the saved searches that live alongside it."
+              summary="Explore any dataset with simple filters, nested conditions, saved searches and reusable views."
               bullets={[
+                "Choose an entity and inspect its searchable fields, facets and relationships",
                 "Rules and groups, AND/OR, negation, drag to reorder",
                 "The full operator vocabulary, per field kind",
                 "A query inspector rendered from the same tree the SQL is compiled from",
@@ -293,10 +308,53 @@ export default function App() {
             />
           }
         />
-        {/* Saved searches open *in* the search screen, so the old address
-            still works and lands where they actually live. */}
-        <Route path="search/saved" element={<Navigate to="/search?panel=saved" replace />} />
-        <Route path="search/saved/:searchId" element={<Navigate to="/search" replace />} />
+        <Route
+          path="find/global"
+          element={
+            <PlaceholderPage
+              section="§32"
+              summary="Search every record type from one ranked, keyboard-navigable result set."
+              bullets={[
+                "Results grouped by entity with matched terms highlighted",
+                "Recent queries, suggestions and cancellable autocomplete",
+                "Open a result directly or hand its filters to Data Explorer",
+              ]}
+            />
+          }
+        />
+        <Route
+          path="find/relationships"
+          element={
+            <PlaceholderPage
+              section="§44, §50"
+              summary="Follow how customers, projects, orders, tickets, devices and people connect."
+              bullets={[
+                "Start from any record and traverse inbound and outbound relationships",
+                "Switch between an accessible relationship list and a visual graph",
+                "Open a connected record without losing the exploration trail",
+              ]}
+            />
+          }
+        />
+        <Route
+          path="find/catalog"
+          element={
+            <PlaceholderPage
+              section="§65, §71"
+              summary="Discover the platform's entities, fields, ownership, quality and filter vocabulary."
+              bullets={[
+                "Field definitions, data types, allowed operators and enum values",
+                "Record counts, freshness, completeness and known quality issues",
+                "Jump from a catalogue entry into a preconfigured exploration",
+              ]}
+            />
+          }
+        />
+        {/* Advanced and saved searches now live in Data Explorer. Preserve the
+            original addresses because search URLs are routinely bookmarked. */}
+        <Route path="search" element={<Navigate to="/explore" replace />} />
+        <Route path="search/saved" element={<Navigate to="/explore?panel=saved" replace />} />
+        <Route path="search/saved/:searchId" element={<Navigate to="/explore" replace />} />
         <Route
           path="favorites"
           element={

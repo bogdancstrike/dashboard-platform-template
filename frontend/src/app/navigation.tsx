@@ -89,6 +89,7 @@ export const NAV_GROUPS: NavGroup[] = [
     key: "analyse",
     label: "Analyse",
     items: [
+      { key: "/analytics", label: "Analytics", icon: <AreaChartOutlined />, permission: "records.view" },
       { key: "/reports", label: "Reports", icon: <BarChartOutlined />, permission: "reports.view" },
       { key: "/reports/builder", label: "Report builder", icon: <ProjectOutlined />, permission: "reports.manage" },
       { key: "/charts/builder", label: "Chart builder", icon: <AreaChartOutlined />, permission: "reports.manage" },
@@ -122,11 +123,14 @@ export const NAV_GROUPS: NavGroup[] = [
     key: "find",
     label: "Find",
     items: [
-      // Saved searches are a *module of* advanced search, not a page of their
-      // own — you open one from the search screen and it loads there, the way
+      // Saved searches are a *module of* the Data Explorer, not a page of their
+      // own — you open one from the explorer and it loads there, the way
       // gif_responder's SavedSearchControls works. A separate destination would
       // mean two places that both claim to be where searches live.
-      { key: "/search", label: "Advanced search", icon: <SearchOutlined /> },
+      { key: "/explore", label: "Data Explorer", icon: <SearchOutlined />, permission: "records.view" },
+      { key: "/find/global", label: "Global search", icon: <GlobalOutlined />, permission: "records.view" },
+      { key: "/find/relationships", label: "Relationships", icon: <BranchesOutlined />, permission: "records.view" },
+      { key: "/find/catalog", label: "Data catalog", icon: <DatabaseOutlined />, permission: "records.view" },
       { key: "/favorites", label: "Favorites", icon: <HeartOutlined /> },
     ],
   },

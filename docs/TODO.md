@@ -274,9 +274,9 @@ section is a cross-cutting rule rather than a page.
 | 1 | Application shell, navigation | all | `/meta/*`, `/api/me` | [ ] |
 | 2 | Overview dashboard, KPIs, charts | `/` | `/dashboard/*` | [ ] |
 | 3 | Advanced data table | `/showcase/table` + every list | generic list | [ ] |
-| 4 | Advanced search (simple + RAQB) | `/search` | `/search/advanced` | [ ] |
-| 5 | Saved searches | `/search` (panel) | `/saved-searches` | [ ] |
-| 6 | Search results, view modes | `/search/results` | `/search` | [ ] |
+| 4 | Advanced search (simple + RAQB) | `/explore` | `/search/advanced` | [ ] |
+| 5 | Saved searches | `/explore` (panel) | `/saved-searches` | [ ] |
+| 6 | Search results, view modes | `/explore` | `/search` | [ ] |
 | 7 | Entity list pages | `/{entity}` ×11 | generic list | [ ] |
 | 8 | Entity detail page | `/{entity}/:id` | generic detail | [ ] |
 | 9 | Create / edit forms | `/{entity}/:id/edit` | generic CRUD | [ ] |
@@ -302,7 +302,7 @@ section is a cross-cutting rule rather than a page.
 | 29 | Import wizard | `/import` | `/imports` | [ ] |
 | 30 | Export | every list | `/exports` | [ ] |
 | 31 | Command palette (`cmdk`) | global | `/search/quick` | [ ] |
-| 32 | Global search | header | `/search/global` | [ ] |
+| 32 | Global search | header + `/find/global` | `/search/global` | [ ] |
 | 33 | Drawers and modals | — | — | [ ] |
 | 34 | Error and empty states | `/errors/*` | — | [ ] |
 | 35 | Activity feed | `/activity` + detail tabs | `/activity` | [ ] |
@@ -320,8 +320,8 @@ section is a cross-cutting rule rather than a page.
 | 47 | Data comparison | `/{entity}/compare` | generic list | [ ] |
 | 48 | Timeline view | detail tabs | `/activity` | [ ] |
 | 49 | Alerts and rules | `/admin/alerts` | `/admin/alert-rules` | [ ] |
-| 50 | Data relationships | detail tabs | related endpoints | [ ] |
-| 51 | Query inspector | `/search` | — (`core/rules.py`) | [x] core |
+| 50 | Data relationships | detail tabs + `/find/relationships` | related endpoints | [ ] |
+| 51 | Query inspector | `/explore` | — (`core/rules.py`) | [x] core |
 | 52 | Pagination patterns | various | `core/pagination.py` | [x] core |
 | 53 | Data refresh, auto-refresh | data-heavy pages | — | [ ] |
 | 54 | Keyboard navigation | global | — | [ ] |
@@ -407,9 +407,9 @@ and then shows the wrong columns is a saved search nobody trusts.
       mode, favourite flag, use count, last used
 - [ ] Actions: create · rename · edit · duplicate · delete · favourite · run
 - [ ] **A module of the search screen, not a page of its own** (as in
-      gif_responder's `SavedSearchControls`): a panel on `/search` listing
+      gif_responder's `SavedSearchControls`): a panel on `/explore` listing
       them with rule count and condition summary, and opening one loads it
-      into the builder in place. `/search/saved` redirects there, so an old
+      into the builder in place. `/search` and `/search/saved` redirect there, so an old
       link still works
 - [ ] **Sharing model** — three states, and one rule about who may change what:
 
@@ -460,6 +460,23 @@ and then shows the wrong columns is a saved search nobody trusts.
 
 Requested during the build, and specified here so they are tracked like
 everything else.
+
+### `/analytics` and discovery workspaces (§2, §32, §44, §50, §65, §71)
+
+- [x] Navigation and deep-linkable route shells for Analytics, Data Explorer,
+      Global Search, Relationship Explorer and Data Catalog
+- [ ] `/analytics` — cross-entity KPIs, trends, comparisons and drill-down with
+      one shared period/filter context; analyses can become reports, charts or
+      dashboard widgets
+- [ ] `/explore` — the canonical home for simple search, nested advanced
+      search, query inspection, saved searches, saved views and result modes;
+      legacy `/search*` URLs redirect here
+- [ ] `/find/global` — ranked cross-entity results with highlighted matches,
+      recent queries, suggestions and keyboard navigation
+- [ ] `/find/relationships` — traverse connections from any record in both an
+      accessible list and a visual graph without losing the exploration trail
+- [ ] `/find/catalog` — entities and fields with types, allowed operators,
+      ownership, freshness, completeness and links into Data Explorer
 
 ### `/kanban` — boards, cards, drag (§18, §33, §36)
 
