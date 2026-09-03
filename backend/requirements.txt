@@ -1,0 +1,40 @@
+# ── QF framework (vendored wheel; installed from backend/dist/) ───────────
+# qf @ file:///app/backend/dist/qf-1.0.5-py3-none-any.whl
+
+# ── API framework ────────────────────────────────────────────────────────
+flask>=3.0.0,<4
+flask-restx>=1.3.0,<2
+
+# Async serving: gunicorn with gevent workers (greenlets, not OS threads).
+# psycogreen makes psycopg2 cooperate with the gevent event loop, without
+# which one slow query blocks every other request on the worker.
+gunicorn>=23.0.0,<24
+gevent>=24.11.1
+psycogreen>=1.0.2,<2
+
+# ── QF transitive deps ───────────────────────────────────────────────────
+# The framework's app runner imports its ETL module at load time even with
+# enable_etl=False, and that import chain pulls in redis + kafka clients.
+# Kafka is never contacted here; the package only needs to be importable.
+colorama>=0.4.6
+redis>=5.0.0
+kafka-python>=2.0.2,<3
+tenacity>=9.0.0
+pybreaker>=1.2.0
+limits>=3.13.0
+
+# ── Database ─────────────────────────────────────────────────────────────
+sqlalchemy>=2.0.36,<3
+psycopg2-binary>=2.9.10
+
+# ── Auth (Keycloak / OIDC) ───────────────────────────────────────────────
+# JWKS-based access-token verification. python-jose validates RS256 against
+# the realm's published keys; requests fetches them.
+python-jose[cryptography]>=3.3.0
+requests>=2.32.0
+
+# ── Config / utils ───────────────────────────────────────────────────────
+python-dotenv>=1.0.1
+
+# ── Testing ──────────────────────────────────────────────────────────────
+pytest>=8.3.0
