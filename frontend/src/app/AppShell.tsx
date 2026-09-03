@@ -182,7 +182,10 @@ export function AppShell() {
 
           <div className="nu-header-spacer" />
 
-          <Space size={isMobile ? 4 : 8}>
+          {/* Space's default cross-axis alignment follows the inline baseline.
+              The profile trigger is taller than the icon buttons, so its box
+              sat a few pixels high until the row was explicitly centred. */}
+          <Space size={isMobile ? 4 : 8} align="center">
             <Tooltip title="Notifications">
               <Badge count={0} size="small">
                 <Button shape="circle" aria-label="Notifications" icon={<BellOutlined />} />

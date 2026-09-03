@@ -765,7 +765,9 @@ Each endpoint ships with its five-case integration test and the page consuming i
       global search, notification centre, recents, favorites, help and app
       switcher remain
   - [x] Header profile trigger uses a centered 40px button box, aligning avatar
-        and name with the adjacent circular actions at every density
+        and name with the adjacent circular actions at every density; the
+        header action row explicitly uses cross-axis centering rather than the
+        inline baseline
 - [x] **Command palette on `cmdk`** (as in gif_responder), `Ctrl/Cmd-K`, fuzzy,
       grouped: **On this page** · **General** · **Quick views** · **Settings**.
       Its trigger is in the **sidebar, under the logo, as "Fast actions"** — the
