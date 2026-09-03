@@ -30,32 +30,17 @@ export default defineConfig({
     // around 300KB gzipped. Rollup's default warning counts uncompressed bytes,
     // which flags a bundle that is fine over the wire.
     chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      output: {
-        /**
-         * Split the heavy, rarely-changing libraries out of the app chunk, so a
-         * one-line change does not invalidate a megabyte of vendor code in
-         * every reader's cache.
-         *
-         * Decided by module path rather than by a list of package names: a list
-         * emits empty chunks for anything not imported yet, and silently stops
-         * splitting a library the day it moves behind a re-export.
-         */
-        manualChunks(id: string) {
-          if (!id.includes("node_modules")) return undefined;
-          if (id.includes("echarts")) return "charts";
-          if (id.includes("@react-awesome-query-builder")) return "querybuilder";
-          if (id.includes("cmdk")) return "palette";
-          if (id.includes("/antd/") || id.includes("@ant-design") || id.includes("/rc-")) {
-            return "antd";
-          }
-          if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("/scheduler/")) {
-            return "react";
-          }
-          return "vendor";
-        },
-      },
-    },
+
+    // No `manualChunks`. Splitting vendor code by module path looked like free
+    // cache efficiency and shipped a broken bundle: `rc-resize-observer` landed
+    // in one chunk and the `resize-observer-polyfill` it constructs in another,
+    // and the resulting cross-chunk cycle left the constructor undefined at the
+    // moment it was called — "kp is not a constructor", thrown from
+    // observerUtil.js on first render, with the page blank.
+    //
+    // Rollup's default chunking derives the graph from the imports themselves
+    // and cannot produce that. Route-level `import()` is the way to split this
+    // app; hand-partitioning somebody else's dependency graph is not.
   },
   test: {
     globals: true,

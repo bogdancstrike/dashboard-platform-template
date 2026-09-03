@@ -1,300 +1,306 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 980" width="1440" height="980"
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1420 1150" width="1420" height="1150"
      font-family="Inter, 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
      role="img" aria-label="Nucleus platform architecture">
   <title>Nucleus — platform architecture</title>
   <desc>
-    Request flow from the browser through nginx to the Flask API, with Keycloak
-    for identity and PostgreSQL and Redis for data. Numbered steps 1 to 9 trace
-    a first page load, a sign-in and an authenticated API call.
+    Four lanes, left to right: the browser, nginx at the edge, the Flask API,
+    and the data stores. Keycloak sits in a band above the two components that
+    talk to it. Numbered steps 1 to 9 trace a first load, a sign-in, an
+    authenticated call and the seed.
   </desc>
 
   <style>
-    .bg      { fill: #f1f5f9; }
-    .zone    { fill: #ffffff; stroke: #cbd5e1; }
-    .zone-lb { fill: #64748b; font-size: 12px; font-weight: 700; letter-spacing: 1.6px; }
-    .card    { fill: #ffffff; stroke: #e2e8f0; }
-    .title   { fill: #0f172a; font-size: 28px; font-weight: 700; }
-    .sub     { fill: #64748b; font-size: 14px; }
-    .h       { fill: #0f172a; font-size: 16px; font-weight: 650; }
-    .h-sm    { fill: #0f172a; font-size: 13.5px; font-weight: 600; }
-    .t       { fill: #475569; font-size: 12.5px; }
-    .t-dim   { fill: #64748b; font-size: 11.5px; }
-    .mono    { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px; fill: #475569; }
-    .flow    { stroke: #5b5bd6; stroke-width: 2; fill: none; }
-    .flow-2  { stroke: #0891b2; stroke-width: 2; fill: none; }
-    .flow-3  { stroke: #ca8a04; stroke-width: 2; fill: none; }
-    .flow-op { stroke: #94a3b8; stroke-width: 2; fill: none; stroke-dasharray: 5 4; }
-    .lbl     { fill: #475569; font-size: 11.5px; font-weight: 500; }
-    .badge-t { fill: #ffffff; font-size: 12px; font-weight: 700; }
+    .bg       { fill: #f1f5f9; }
+    .zone     { fill: none; stroke: #cbd5e1; stroke-dasharray: 6 5; }
+    .zone-lb  { fill: #94a3b8; font-size: 11.5px; font-weight: 700; letter-spacing: 2px; }
+    .card     { fill: #ffffff; stroke: #e2e8f0; }
+    .card-alt { fill: #f8fafc; stroke: #e2e8f0; }
+    .title    { fill: #0f172a; font-size: 30px; font-weight: 700; letter-spacing: -0.5px; }
+    .sub      { fill: #64748b; font-size: 14.5px; }
+    .h        { fill: #0f172a; font-size: 17px; font-weight: 650; }
+    .h-sm     { fill: #0f172a; font-size: 13.5px; font-weight: 650; }
+    .t        { fill: #475569; font-size: 13px; }
+    .t-dim    { fill: #64748b; font-size: 12.5px; }
+    .mono     { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; fill: #475569; }
+    .rule     { stroke: #eef2f6; }
+    .badge-t  { fill: #ffffff; font-size: 12.5px; font-weight: 700; }
+    .lg-h     { fill: #0f172a; font-size: 13px; font-weight: 650; }
 
     @media (prefers-color-scheme: dark) {
-      .bg      { fill: #020617; }
-      .zone    { fill: #0f172a; stroke: #334155; }
-      .zone-lb { fill: #94a3b8; }
-      .card    { fill: #1e293b; stroke: #334155; }
-      .title   { fill: #f1f5f9; }
-      .sub     { fill: #94a3b8; }
-      .h       { fill: #f1f5f9; }
-      .h-sm    { fill: #f1f5f9; }
-      .t       { fill: #cbd5e1; }
-      .t-dim   { fill: #94a3b8; }
-      .mono    { fill: #cbd5e1; }
-      .lbl     { fill: #cbd5e1; }
-      .flow    { stroke: #8b8bf0; }
+      .bg       { fill: #020617; }
+      .zone     { stroke: #334155; }
+      .zone-lb  { fill: #64748b; }
+      .card     { fill: #0f172a; stroke: #1e293b; }
+      .card-alt { fill: #0b1220; stroke: #1e293b; }
+      .title    { fill: #f1f5f9; }
+      .sub      { fill: #94a3b8; }
+      .h        { fill: #f1f5f9; }
+      .h-sm     { fill: #f1f5f9; }
+      .t        { fill: #cbd5e1; }
+      .t-dim    { fill: #94a3b8; }
+      .mono     { fill: #cbd5e1; }
+      .rule     { stroke: #1e293b; }
+      .lg-h     { fill: #f1f5f9; }
     }
   </style>
 
   <defs>
-    <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <marker id="ai" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
       <path d="M0 0 L10 5 L0 10 z" fill="#5b5bd6"/>
     </marker>
-    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <marker id="ac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
       <path d="M0 0 L10 5 L0 10 z" fill="#0891b2"/>
     </marker>
-    <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <marker id="ay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
       <path d="M0 0 L10 5 L0 10 z" fill="#ca8a04"/>
     </marker>
-    <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
       <path d="M0 0 L10 5 L0 10 z" fill="#94a3b8"/>
     </marker>
-    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#0f172a" flood-opacity="0.08"/>
+    <filter id="sh" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.07"/>
     </filter>
   </defs>
 
-  <rect class="bg" width="1440" height="980"/>
+  <rect class="bg" width="1420" height="1150"/>
 
-  <!-- ── header ───────────────────────────────────────────────────────── -->
-  <g transform="translate(48 34)">
-    <g transform="translate(14 18)">
-      <ellipse rx="17" ry="7" fill="none" stroke="#5b5bd6" stroke-width="2.4" transform="rotate(-28)"/>
-      <ellipse rx="17" ry="7" fill="none" stroke="#5b5bd6" stroke-width="2.4" opacity="0.5" transform="rotate(52)"/>
-      <circle r="7" fill="#5b5bd6"/>
+  <!-- ═══ HEADER ═══════════════════════════════════════════════════════ -->
+  <g transform="translate(48 32)">
+    <g transform="translate(16 22)">
+      <ellipse rx="19" ry="8" fill="none" stroke="#5b5bd6" stroke-width="2.6" transform="rotate(-28)"/>
+      <ellipse rx="19" ry="8" fill="none" stroke="#5b5bd6" stroke-width="2.6" opacity="0.5" transform="rotate(52)"/>
+      <circle r="7.5" fill="#5b5bd6"/>
     </g>
-    <text class="title" x="44" y="18">Nucleus</text>
-    <text class="sub" x="44" y="40">Enterprise application template — request path, identity flow and data plane</text>
+    <text class="title" x="50" y="22">Nucleus</text>
+    <text class="sub" x="50" y="47">Enterprise application template — request path, identity flow and data plane</text>
   </g>
 
-  <!-- ══ CLIENT ═══════════════════════════════════════════════════════ -->
-  <rect class="zone" x="40" y="128" width="292" height="286" rx="10" filter="url(#sh)"/>
-  <text class="zone-lb" x="60" y="154">CLIENT</text>
+  <!-- ═══ IDENTITY BAND ════════════════════════════════════════════════ -->
+  <!-- Placed directly above the only two things that talk to it, so both
+       arrows are short verticals instead of runs across the whole picture. -->
+  <rect class="zone" x="48" y="106" width="994" height="164" rx="12"/>
+  <text class="zone-lb" x="66" y="130">IDENTITY</text>
 
-  <rect class="card" x="62" y="170" width="248" height="222" rx="8"/>
-  <rect x="62" y="170" width="248" height="4" rx="2" fill="#5b5bd6"/>
-  <text class="h" x="80" y="200">Browser</text>
-  <text class="t" x="80" y="222">Single-page application</text>
-  <line x1="80" y1="238" x2="292" y2="238" stroke="#e2e8f0"/>
-  <text class="t-dim" x="80" y="260">React 18 · TypeScript · Ant Design 5</text>
-  <text class="t-dim" x="80" y="280">ECharts · RAQB query builder · cmdk</text>
-  <text class="t-dim" x="80" y="300">TanStack Query</text>
-  <line x1="80" y1="316" x2="292" y2="316" stroke="#e2e8f0"/>
-  <text class="t-dim" x="80" y="338">Tokens, realm and client id are</text>
-  <text class="t-dim" x="80" y="356">fetched at startup — never compiled</text>
-  <text class="t-dim" x="80" y="374">into the bundle</text>
+  <rect class="card-alt" x="68" y="144" width="266" height="108" rx="8"/>
+  <rect x="68" y="144" width="4" height="108" rx="2" fill="#ca8a04"/>
+  <text class="h-sm" x="88" y="170">Public URL</text>
+  <text class="t-dim" x="88" y="192">The browser is redirected here,</text>
+  <text class="t-dim" x="88" y="211">and the issuer on the token</text>
+  <text class="t-dim" x="88" y="230">must match it exactly.</text>
 
-  <!-- ══ EDGE ═════════════════════════════════════════════════════════ -->
-  <rect class="zone" x="372" y="128" width="252" height="286" rx="10" filter="url(#sh)"/>
-  <text class="zone-lb" x="392" y="154">EDGE</text>
+  <rect class="card" x="390" y="132" width="312" height="132" rx="8" filter="url(#sh)"/>
+  <rect x="390" y="132" width="312" height="4" rx="2" fill="#dc2626"/>
+  <text class="h" x="412" y="164">Keycloak</text>
+  <text class="t" x="412" y="188">Realm <tspan class="mono" font-size="13">template</tspan> · JWKS · 5 roles</text>
+  <line class="rule" x1="412" y1="204" x2="680" y2="204"/>
+  <text class="t-dim" x="412" y="226">Keycloak owns <tspan font-weight="600">identity</tspan>.</text>
+  <text class="t-dim" x="412" y="246">Nucleus owns <tspan font-weight="600">permissions</tspan>.</text>
 
-  <rect class="card" x="394" y="170" width="208" height="222" rx="8"/>
-  <rect x="394" y="170" width="208" height="4" rx="2" fill="#16a34a"/>
-  <text class="h" x="412" y="200">nginx</text>
-  <text class="t" x="412" y="222">Static bundle + proxy</text>
-  <line x1="412" y1="238" x2="584" y2="238" stroke="#e2e8f0"/>
-  <text class="mono" x="412" y="260">/            → index.html</text>
-  <text class="mono" x="412" y="280">/assets/     → immutable</text>
-  <text class="mono" x="412" y="300">/platform/*  → api:5101</text>
-  <line x1="412" y1="316" x2="584" y2="316" stroke="#e2e8f0"/>
-  <text class="t-dim" x="412" y="338">One origin, so the browser</text>
-  <text class="t-dim" x="412" y="356">never sends a preflight and</text>
-  <text class="t-dim" x="412" y="374">deep links survive a paste</text>
+  <rect class="card-alt" x="758" y="144" width="266" height="108" rx="8"/>
+  <rect x="758" y="144" width="4" height="108" rx="2" fill="#ca8a04"/>
+  <text class="h-sm" x="778" y="170">Internal URL</text>
+  <text class="t-dim" x="778" y="192">Signing keys are fetched over</text>
+  <text class="t-dim" x="778" y="211">the container network, never</text>
+  <text class="t-dim" x="778" y="230">through the browser's address.</text>
 
-  <!-- ══ IDENTITY ═════════════════════════════════════════════════════ -->
-  <rect class="zone" x="1096" y="128" width="304" height="286" rx="10" filter="url(#sh)"/>
-  <text class="zone-lb" x="1116" y="154">IDENTITY</text>
+  <!-- ═══ LANE 1 — CLIENT ══════════════════════════════════════════════ -->
+  <rect class="zone" x="48" y="300" width="262" height="300" rx="12"/>
+  <text class="zone-lb" x="66" y="324">CLIENT</text>
 
-  <rect class="card" x="1118" y="170" width="260" height="222" rx="8"/>
-  <rect x="1118" y="170" width="260" height="4" rx="2" fill="#dc2626"/>
-  <text class="h" x="1136" y="200">Keycloak</text>
-  <text class="t" x="1136" y="222">Realm <tspan class="mono">template</tspan></text>
-  <line x1="1136" y1="238" x2="1360" y2="238" stroke="#e2e8f0"/>
-  <text class="t-dim" x="1136" y="260">Public URL — the browser is</text>
-  <text class="t-dim" x="1136" y="278">redirected here, and the issuer</text>
-  <text class="t-dim" x="1136" y="296">on the token must match it</text>
-  <text class="t-dim" x="1136" y="320">Internal URL — signing keys are</text>
-  <text class="t-dim" x="1136" y="338">fetched over the container network</text>
-  <line x1="1136" y1="352" x2="1360" y2="352" stroke="#e2e8f0"/>
-  <text class="t-dim" x="1136" y="374">5 roles · 5 demo users · JWKS</text>
+  <rect class="card" x="66" y="338" width="226" height="244" rx="8" filter="url(#sh)"/>
+  <rect x="66" y="338" width="226" height="4" rx="2" fill="#5b5bd6"/>
+  <text class="h" x="86" y="372">Browser</text>
+  <text class="t" x="86" y="394">Single-page application</text>
+  <line class="rule" x1="86" y1="410" x2="272" y2="410"/>
+  <text class="t-dim" x="86" y="432">React 18 · TypeScript</text>
+  <text class="t-dim" x="86" y="452">Ant Design 5 · ECharts</text>
+  <text class="t-dim" x="86" y="472">RAQB builder · cmdk</text>
+  <line class="rule" x1="86" y1="488" x2="272" y2="488"/>
+  <text class="t-dim" x="86" y="510">Realm, client id and URLs</text>
+  <text class="t-dim" x="86" y="530">arrive at startup — none is</text>
+  <text class="t-dim" x="86" y="550">compiled into the bundle</text>
 
-  <!-- ══ APPLICATION ══════════════════════════════════════════════════ -->
-  <rect class="zone" x="664" y="128" width="392" height="606" rx="10" filter="url(#sh)"/>
-  <text class="zone-lb" x="684" y="154">APPLICATION</text>
+  <!-- ═══ LANE 2 — EDGE ════════════════════════════════════════════════ -->
+  <rect class="zone" x="380" y="300" width="262" height="300" rx="12"/>
+  <text class="zone-lb" x="398" y="324">EDGE</text>
 
-  <rect class="card" x="686" y="170" width="348" height="66" rx="8"/>
-  <rect x="686" y="170" width="348" height="4" rx="2" fill="#5b5bd6"/>
-  <text class="h" x="704" y="200">API — gunicorn + gevent</text>
-  <text class="t-dim" x="704" y="222">Greenlets, with psycopg2 patched to yield</text>
+  <rect class="card" x="398" y="338" width="226" height="244" rx="8" filter="url(#sh)"/>
+  <rect x="398" y="338" width="226" height="4" rx="2" fill="#16a34a"/>
+  <text class="h" x="418" y="372">nginx</text>
+  <text class="t" x="418" y="394">Bundle + reverse proxy</text>
+  <line class="rule" x1="418" y1="410" x2="604" y2="410"/>
+  <text class="mono" x="418" y="432">/           → index.html</text>
+  <text class="mono" x="418" y="452">/assets/    → immutable</text>
+  <text class="mono" x="418" y="472">/platform/* → api:5101</text>
+  <line class="rule" x1="418" y1="488" x2="604" y2="488"/>
+  <text class="t-dim" x="418" y="510">One origin: no preflight</text>
+  <text class="t-dim" x="418" y="530">on any call, and a deep</text>
+  <text class="t-dim" x="418" y="550">link survives being pasted</text>
 
-  <!-- endpoint map -->
-  <rect class="card" x="686" y="252" width="348" height="72" rx="8"/>
-  <text class="h-sm" x="704" y="276">maps/endpoint.json</text>
-  <text class="t-dim" x="704" y="296">The API surface. QF's router mounts every</text>
-  <text class="t-dim" x="704" y="313">resource from it; verified at startup</text>
+  <!-- ═══ LANE 3 — APPLICATION ═════════════════════════════════════════ -->
+  <rect class="zone" x="712" y="300" width="330" height="440" rx="12"/>
+  <text class="zone-lb" x="730" y="324">APPLICATION</text>
 
-  <!-- handlers -->
-  <rect class="card" x="686" y="340" width="348" height="62" rx="8"/>
-  <text class="h-sm" x="704" y="364">src/api/ — handlers</text>
-  <text class="mono" x="704" y="386">handler(app, operation, request, **params)</text>
+  <rect class="card" x="730" y="338" width="294" height="58" rx="8" filter="url(#sh)"/>
+  <rect x="730" y="338" width="294" height="4" rx="2" fill="#5b5bd6"/>
+  <text class="h" x="750" y="368">API — gunicorn + gevent</text>
+  <text class="t-dim" x="750" y="387">Greenlets, psycopg2 patched to yield</text>
 
-  <!-- core -->
-  <rect class="card" x="686" y="418" width="348" height="180" rx="8"/>
-  <rect x="686" y="418" width="4" height="180" rx="2" fill="#0891b2"/>
-  <text class="h-sm" x="708" y="442">src/core/ — the load-bearing layer</text>
+  <rect class="card" x="730" y="408" width="294" height="52" rx="8"/>
+  <text class="h-sm" x="750" y="431">maps/endpoint.json</text>
+  <text class="t-dim" x="750" y="450">The API surface, verified at startup</text>
 
-  <rect x="708" y="456" width="94" height="26" rx="13" fill="#eef2ff" stroke="#c7d2fe"/>
-  <text class="t" x="722" y="473" font-size="11.5">auth · RBAC</text>
-  <rect x="812" y="456" width="86" height="26" rx="13" fill="#ecfeff" stroke="#a5f3fc"/>
-  <text class="t" x="826" y="473" font-size="11.5">query · SQL</text>
-  <rect x="908" y="456" width="104" height="26" rx="13" fill="#f0fdf4" stroke="#bbf7d0"/>
-  <text class="t" x="922" y="473" font-size="11.5">rules · RAQB</text>
+  <rect class="card" x="730" y="472" width="294" height="52" rx="8"/>
+  <text class="h-sm" x="750" y="495">src/api/ — handlers</text>
+  <text class="mono" x="750" y="514" font-size="11">handler(app, operation, request, …)</text>
 
-  <rect x="708" y="492" width="80" height="26" rx="13" fill="#fef2f2" stroke="#fecaca"/>
-  <text class="t" x="722" y="509" font-size="11.5">audit</text>
-  <rect x="798" y="492" width="80" height="26" rx="13" fill="#fffbeb" stroke="#fde68a"/>
-  <text class="t" x="812" y="509" font-size="11.5">cache</text>
-  <rect x="888" y="492" width="124" height="26" rx="13" fill="#f8fafc" stroke="#e2e8f0"/>
-  <text class="t" x="902" y="509" font-size="11.5">pagination · clock</text>
+  <rect class="card" x="730" y="536" width="294" height="122" rx="8"/>
+  <rect x="730" y="536" width="4" height="122" rx="2" fill="#0891b2"/>
+  <text class="h-sm" x="752" y="559">src/core/</text>
+  <rect x="752" y="572" width="76" height="24" rx="12" fill="#eef2ff" stroke="#c7d2fe"/>
+  <text class="t" x="763" y="588" font-size="11.5">auth</text>
+  <rect x="836" y="572" width="76" height="24" rx="12" fill="#ecfeff" stroke="#a5f3fc"/>
+  <text class="t" x="847" y="588" font-size="11.5">query</text>
+  <rect x="920" y="572" width="84" height="24" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text class="t" x="931" y="588" font-size="11.5">rules</text>
+  <rect x="752" y="604" width="76" height="24" rx="12" fill="#fef2f2" stroke="#fecaca"/>
+  <text class="t" x="763" y="620" font-size="11.5">audit</text>
+  <rect x="836" y="604" width="76" height="24" rx="12" fill="#fffbeb" stroke="#fde68a"/>
+  <text class="t" x="847" y="620" font-size="11.5">cache</text>
+  <rect x="920" y="604" width="84" height="24" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text class="t" x="931" y="620" font-size="11.5">paging</text>
+  <text class="t-dim" x="752" y="648">Filters compile to SQL, never to a page</text>
 
-  <text class="t-dim" x="708" y="544">Filtering, sorting, faceting and search all</text>
-  <text class="t-dim" x="708" y="562">compile to SQL — never to a filtered page</text>
-  <text class="t-dim" x="708" y="580">Audit rows commit with the change they describe</text>
+  <rect class="card" x="730" y="670" width="294" height="52" rx="8"/>
+  <text class="h-sm" x="750" y="693">src/models/ — SQLAlchemy 2</text>
+  <text class="t-dim" x="750" y="712">50 tables · UUID keys · soft delete</text>
 
-  <!-- models -->
-  <rect class="card" x="686" y="614" width="348" height="62" rx="8"/>
-  <text class="h-sm" x="704" y="638">src/models/ — SQLAlchemy 2</text>
-  <text class="t-dim" x="704" y="658">49 tables · UUID keys · soft delete · JSONB</text>
+  <!-- ═══ LANE 4 — DATA ════════════════════════════════════════════════ -->
+  <rect class="zone" x="1112" y="300" width="262" height="440" rx="12"/>
+  <text class="zone-lb" x="1130" y="324">DATA</text>
 
-  <!-- ══ DATA ═════════════════════════════════════════════════════════ -->
-  <rect class="zone" x="1096" y="450" width="304" height="284" rx="10" filter="url(#sh)"/>
-  <text class="zone-lb" x="1116" y="476">DATA</text>
+  <rect class="card" x="1130" y="338" width="226" height="184" rx="8" filter="url(#sh)"/>
+  <rect x="1130" y="338" width="226" height="4" rx="2" fill="#0891b2"/>
+  <text class="h" x="1150" y="372">PostgreSQL 18</text>
+  <text class="t" x="1150" y="394">System of record</text>
+  <line class="rule" x1="1150" y1="410" x2="1336" y2="410"/>
+  <text class="t-dim" x="1150" y="432">50 tables · 499 indexes</text>
+  <text class="t-dim" x="1150" y="452">113 foreign keys</text>
+  <text class="t-dim" x="1150" y="478">Every filter, sort, facet</text>
+  <text class="t-dim" x="1150" y="498">and search is answered</text>
+  <text class="t-dim" x="1150" y="518">here, not in the browser</text>
 
-  <rect class="card" x="1118" y="492" width="260" height="106" rx="8"/>
-  <rect x="1118" y="492" width="260" height="4" rx="2" fill="#0891b2"/>
-  <text class="h" x="1136" y="522">PostgreSQL 18</text>
-  <text class="t-dim" x="1136" y="544">50 tables · 499 indexes · 113 FKs</text>
-  <text class="t-dim" x="1136" y="564">System of record</text>
-  <text class="t-dim" x="1136" y="584">Every list query is answered here</text>
+  <rect class="card" x="1130" y="546" width="226" height="176" rx="8" filter="url(#sh)"/>
+  <rect x="1130" y="546" width="226" height="4" rx="2" fill="#dc2626"/>
+  <text class="h" x="1150" y="580">Redis 8</text>
+  <text class="t" x="1150" y="602">Cache</text>
+  <line class="rule" x1="1150" y1="618" x2="1336" y2="618"/>
+  <text class="t-dim" x="1150" y="640">An optimisation, never</text>
+  <text class="t-dim" x="1150" y="660">a dependency.</text>
+  <text class="t-dim" x="1150" y="686">Unreachable ⇒ every</text>
+  <text class="t-dim" x="1150" y="706">helper degrades to a miss</text>
 
-  <rect class="card" x="1118" y="614" width="260" height="100" rx="8"/>
-  <rect x="1118" y="614" width="260" height="4" rx="2" fill="#dc2626"/>
-  <text class="h" x="1136" y="644">Redis 8</text>
-  <text class="t-dim" x="1136" y="666">An optimisation, never a dependency</text>
-  <text class="t-dim" x="1136" y="686">Unreachable ⇒ every helper degrades</text>
-  <text class="t-dim" x="1136" y="704">to a miss; readiness still passes</text>
+  <!-- ═══ ARROWS — only ever between neighbours ════════════════════════ -->
 
-  <!-- ══ SEED ═════════════════════════════════════════════════════════ -->
-  <rect class="zone" x="40" y="450" width="584" height="284" rx="10" filter="url(#sh)"/>
-  <text class="zone-lb" x="60" y="476">ONE-SHOT JOB</text>
+  <!-- 1 · browser → nginx -->
+  <path stroke="#5b5bd6" stroke-width="2.2" fill="none" d="M296 386 H376" marker-end="url(#ai)"/>
+  <circle cx="336" cy="362" r="12" fill="#5b5bd6"/>
+  <text class="badge-t" x="336" y="366.5" text-anchor="middle">1</text>
 
-  <rect class="card" x="62" y="492" width="540" height="222" rx="8"/>
-  <rect x="62" y="492" width="540" height="4" rx="2" fill="#ca8a04"/>
-  <text class="h" x="80" y="522">Seed — <tspan class="mono" font-size="14">python -m src.seed</tspan></text>
-  <text class="t" x="80" y="546">Runs to completion before the API starts, and refuses to run twice</text>
-  <line x1="80" y1="562" x2="584" y2="562" stroke="#e2e8f0"/>
-  <text class="t-dim" x="80" y="586">15 554 rows across 50 tables, built in memory and written in one transaction</text>
-  <text class="t-dim" x="80" y="608">Ids come from the seeded stream, so a bookmark or a screenshot survives a reseed</text>
-  <text class="t-dim" x="80" y="630">Timestamps are offsets from the run — a dataset seeded today looks like today</text>
-  <text class="t-dim" x="80" y="652">Statuses drawn by weight, values deliberately missing, timestamps that follow status</text>
-  <line x1="80" y1="668" x2="584" y2="668" stroke="#e2e8f0"/>
-  <text class="t-dim" x="80" y="692">Five Keycloak personas seeded with the realm's emails — signing in adopts a full profile</text>
+  <!-- 2 · nginx → api -->
+  <path stroke="#5b5bd6" stroke-width="2.2" fill="none" d="M628 386 H708" marker-end="url(#ai)"/>
+  <circle cx="668" cy="362" r="12" fill="#5b5bd6"/>
+  <text class="badge-t" x="668" y="366.5" text-anchor="middle">2</text>
 
-  <!-- ══ FLOW ARROWS ══════════════════════════════════════════════════ -->
+  <!-- 3 · browser → keycloak -->
+  <path stroke="#ca8a04" stroke-width="2.2" fill="none" d="M150 334 V274" marker-end="url(#ay)"/>
+  <circle cx="150" cy="292" r="12" fill="#ca8a04"/>
+  <text class="badge-t" x="150" y="296.5" text-anchor="middle">3</text>
 
-  <!-- 1  browser → nginx : load the app -->
-  <path class="flow" d="M310 232 H392" marker-end="url(#a1)"/>
-  <circle cx="351" cy="212" r="11" fill="#5b5bd6"/>
-  <text class="badge-t" x="351" y="216" text-anchor="middle">1</text>
+  <!-- 4 · keycloak → browser -->
+  <path stroke="#ca8a04" stroke-width="2.2" fill="none" d="M208 274 V334" marker-end="url(#ay)"/>
+  <circle cx="208" cy="292" r="12" fill="#ca8a04"/>
+  <text class="badge-t" x="208" y="296.5" text-anchor="middle">4</text>
 
-  <!-- 2  nginx → api : meta/app -->
-  <path class="flow" d="M602 268 H684" marker-end="url(#a1)"/>
-  <circle cx="643" cy="248" r="11" fill="#5b5bd6"/>
-  <text class="badge-t" x="643" y="252" text-anchor="middle">2</text>
+  <!-- 5 · browser → nginx, authenticated -->
+  <path stroke="#5b5bd6" stroke-width="2.2" fill="none" d="M296 522 H376" marker-end="url(#ai)"/>
+  <circle cx="336" cy="546" r="12" fill="#5b5bd6"/>
+  <text class="badge-t" x="336" y="550.5" text-anchor="middle">5</text>
 
-  <!-- 3  browser → keycloak (over the top) -->
-  <path class="flow-3" d="M186 168 V104 H1248 V166" marker-end="url(#a3)"/>
-  <circle cx="717" cy="104" r="11" fill="#ca8a04"/>
-  <text class="badge-t" x="717" y="108" text-anchor="middle">3</text>
-  <text class="lbl" x="740" y="98">authorize — public URL, browser redirect</text>
+  <!-- 6 · nginx → api, authenticated -->
+  <path stroke="#5b5bd6" stroke-width="2.2" fill="none" d="M628 522 H708" marker-end="url(#ai)"/>
+  <circle cx="668" cy="546" r="12" fill="#5b5bd6"/>
+  <text class="badge-t" x="668" y="550.5" text-anchor="middle">6</text>
 
-  <!-- 4  keycloak → browser (token) -->
-  <path class="flow-3" d="M1248 396 V424 H206 V396" marker-end="url(#a3)"/>
-  <circle cx="717" cy="424" r="11" fill="#ca8a04"/>
-  <text class="badge-t" x="717" y="428" text-anchor="middle">4</text>
-  <text class="lbl" x="740" y="418">access token — role, email, audience</text>
+  <!-- 7 · api → keycloak, JWKS -->
+  <path stroke="#ca8a04" stroke-width="2.2" fill="none" d="M877 334 V274" marker-end="url(#ay)"/>
+  <circle cx="877" cy="292" r="12" fill="#ca8a04"/>
+  <text class="badge-t" x="877" y="296.5" text-anchor="middle">7</text>
 
-  <!-- 5  browser → nginx → api, authenticated -->
-  <path class="flow" d="M310 320 H360 V352 H392" marker-end="url(#a1)"/>
-  <circle cx="351" cy="332" r="11" fill="#5b5bd6"/>
-  <text class="badge-t" x="351" y="336" text-anchor="middle">5</text>
-  <text class="lbl" x="228" y="410">Bearer token, same origin</text>
+  <!-- 8 · api → postgres -->
+  <path stroke="#0891b2" stroke-width="2.2" fill="none" d="M1028 420 H1108" marker-end="url(#ac)"/>
+  <circle cx="1068" cy="396" r="12" fill="#0891b2"/>
+  <text class="badge-t" x="1068" y="400.5" text-anchor="middle">8</text>
 
-  <path class="flow" d="M602 360 H684" marker-end="url(#a1)"/>
+  <!-- 9 · api ⇢ redis, optional -->
+  <path stroke="#94a3b8" stroke-width="2.2" fill="none" stroke-dasharray="6 5" d="M1028 620 H1108" marker-end="url(#ag)"/>
+  <circle cx="1068" cy="644" r="12" fill="#94a3b8"/>
+  <text class="badge-t" x="1068" y="648.5" text-anchor="middle">9</text>
 
-  <!-- 6  api → keycloak : JWKS -->
-  <path class="flow-3" d="M1038 292 H1116" marker-end="url(#a3)"/>
-  <circle cx="1077" cy="272" r="11" fill="#ca8a04"/>
-  <text class="badge-t" x="1077" y="276" text-anchor="middle">6</text>
-  <text class="lbl" x="1044" y="322">JWKS — internal URL</text>
+  <!-- ═══ SEED — one-shot, before the API accepts traffic ══════════════ -->
+  <rect class="zone" x="48" y="796" width="994" height="152" rx="12"/>
+  <text class="zone-lb" x="66" y="820">BOOTSTRAP · ONE-SHOT JOB</text>
 
-  <!-- 7  api → postgres -->
-  <path class="flow-2" d="M1038 540 H1116" marker-end="url(#a2)"/>
-  <circle cx="1077" cy="520" r="11" fill="#0891b2"/>
-  <text class="badge-t" x="1077" y="524" text-anchor="middle">7</text>
+  <rect class="card" x="66" y="834" width="958" height="98" rx="8" filter="url(#sh)"/>
+  <rect x="66" y="834" width="958" height="4" rx="2" fill="#ca8a04"/>
+  <text class="h" x="88" y="866">Seed — <tspan class="mono" font-size="15">python -m src.seed</tspan></text>
+  <text class="t-dim" x="88" y="890">Runs to completion before the API starts, and refuses to run twice · 15 554 rows across 50 tables, built in memory, written in one transaction</text>
+  <text class="t-dim" x="88" y="912">Ids come from the seeded stream, so a bookmark survives a reseed · Statuses drawn by weight · Five Keycloak personas with the realm's own emails</text>
 
-  <!-- 8  api ⇢ redis (optional) -->
-  <path class="flow-op" d="M1038 656 H1116" marker-end="url(#a4)"/>
-  <circle cx="1077" cy="686" r="11" fill="#94a3b8"/>
-  <text class="badge-t" x="1077" y="690" text-anchor="middle">8</text>
+  <!-- seed → postgres: one bend, over empty space -->
+  <path stroke="#0891b2" stroke-width="2.2" fill="none" d="M1028 883 H1243 V746" marker-end="url(#ac)"/>
+  <circle cx="1243" cy="800" r="12" fill="#0891b2"/>
+  <text class="badge-t" x="1243" y="804.5" text-anchor="middle">0</text>
 
-  <!-- 9  seed → postgres -->
-  <path class="flow-2" d="M602 604 H648 V760 H1248 V722" marker-end="url(#a2)"/>
-  <circle cx="900" cy="760" r="11" fill="#0891b2"/>
-  <text class="badge-t" x="900" y="764" text-anchor="middle">9</text>
+  <!-- ═══ LEGEND ═══════════════════════════════════════════════════════ -->
+  <rect class="card" x="48" y="984" width="1326" height="140" rx="10" filter="url(#sh)"/>
+  <text class="lg-h" x="70" y="1012">Request flow</text>
 
-  <!-- ══ LEGEND ═══════════════════════════════════════════════════════ -->
-  <rect class="zone" x="40" y="800" width="1360" height="140" rx="10" filter="url(#sh)"/>
-  <text class="zone-lb" x="60" y="826">REQUEST FLOW</text>
+  <g transform="translate(70 1030)">
+    <circle cx="9" cy="9" r="9" fill="#0891b2"/><text class="badge-t" x="9" y="13" text-anchor="middle" font-size="11">0</text>
+    <text class="t-dim" x="26" y="13">Seed writes the dataset</text>
 
-  <g transform="translate(60 844)">
-    <circle cx="10" cy="10" r="10" fill="#5b5bd6"/><text class="badge-t" x="10" y="14" text-anchor="middle">1</text>
-    <text class="t" x="28" y="14">Browser loads the SPA from nginx</text>
-
-    <circle cx="10" cy="42" r="10" fill="#5b5bd6"/><text class="badge-t" x="10" y="46" text-anchor="middle">2</text>
-    <text class="t" x="28" y="46">SPA reads <tspan class="mono">/platform/meta/app</tspan> for the OIDC coordinates</text>
-
-    <circle cx="10" cy="74" r="10" fill="#ca8a04"/><text class="badge-t" x="10" y="78" text-anchor="middle">3</text>
-    <text class="t" x="28" y="78">Browser is redirected to Keycloak's <tspan font-weight="600">public</tspan> URL</text>
+    <circle cx="9" cy="39" r="9" fill="#5b5bd6"/><text class="badge-t" x="9" y="43" text-anchor="middle" font-size="11">1</text>
+    <text class="t-dim" x="26" y="43">Browser loads the SPA</text>
   </g>
 
-  <g transform="translate(500 844)">
-    <circle cx="10" cy="10" r="10" fill="#ca8a04"/><text class="badge-t" x="10" y="14" text-anchor="middle">4</text>
-    <text class="t" x="28" y="14">Access token returned — role, email, audience</text>
+  <g transform="translate(322 1030)">
+    <circle cx="9" cy="9" r="9" fill="#5b5bd6"/><text class="badge-t" x="9" y="13" text-anchor="middle" font-size="11">2</text>
+    <text class="t-dim" x="26" y="13">Reads <tspan class="mono" font-size="11.5">/meta/app</tspan> for OIDC config</text>
 
-    <circle cx="10" cy="42" r="10" fill="#5b5bd6"/><text class="badge-t" x="10" y="46" text-anchor="middle">5</text>
-    <text class="t" x="28" y="46">API calls carry it, same origin, through nginx</text>
-
-    <circle cx="10" cy="74" r="10" fill="#ca8a04"/><text class="badge-t" x="10" y="78" text-anchor="middle">6</text>
-    <text class="t" x="28" y="78">Signature checked against JWKS over the <tspan font-weight="600">internal</tspan> URL</text>
+    <circle cx="9" cy="39" r="9" fill="#ca8a04"/><text class="badge-t" x="9" y="43" text-anchor="middle" font-size="11">3</text>
+    <text class="t-dim" x="26" y="43">Redirected to Keycloak (public URL)</text>
   </g>
 
-  <g transform="translate(960 844)">
-    <circle cx="10" cy="10" r="10" fill="#0891b2"/><text class="badge-t" x="10" y="14" text-anchor="middle">7</text>
-    <text class="t" x="28" y="14">Handler → core → SQLAlchemy → PostgreSQL</text>
+  <g transform="translate(690 1030)">
+    <circle cx="9" cy="9" r="9" fill="#ca8a04"/><text class="badge-t" x="9" y="13" text-anchor="middle" font-size="11">4</text>
+    <text class="t-dim" x="26" y="13">Token returned — role, email, audience</text>
 
-    <circle cx="10" cy="42" r="10" fill="#94a3b8"/><text class="badge-t" x="10" y="46" text-anchor="middle">8</text>
-    <text class="t" x="28" y="46">Read-through cache, optional — dashed for a reason</text>
+    <circle cx="9" cy="39" r="9" fill="#5b5bd6"/><text class="badge-t" x="9" y="43" text-anchor="middle" font-size="11">5</text>
+    <text class="t-dim" x="26" y="43">Calls carry it, same origin</text>
 
-    <circle cx="10" cy="74" r="10" fill="#0891b2"/><text class="badge-t" x="10" y="78" text-anchor="middle">9</text>
-    <text class="t" x="28" y="78">Seed writes the demo dataset before the API starts</text>
+    <circle cx="9" cy="69" r="9" fill="#5b5bd6"/><text class="badge-t" x="9" y="73" text-anchor="middle" font-size="11">6</text>
+    <text class="t-dim" x="26" y="73">nginx forwards them to the API</text>
+  </g>
+
+  <g transform="translate(1030 1030)">
+    <circle cx="9" cy="9" r="9" fill="#ca8a04"/><text class="badge-t" x="9" y="13" text-anchor="middle" font-size="11">7</text>
+    <text class="t-dim" x="26" y="13">Signature checked against JWKS</text>
+
+    <circle cx="9" cy="39" r="9" fill="#0891b2"/><text class="badge-t" x="9" y="43" text-anchor="middle" font-size="11">8</text>
+    <text class="t-dim" x="26" y="43">Core → SQLAlchemy → PostgreSQL</text>
+
+    <circle cx="9" cy="69" r="9" fill="#94a3b8"/><text class="badge-t" x="9" y="73" text-anchor="middle" font-size="11">9</text>
+    <text class="t-dim" x="26" y="73">Read-through cache — dashed, optional</text>
   </g>
 </svg>

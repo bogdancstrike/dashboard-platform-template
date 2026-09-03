@@ -1,0 +1,116 @@
+import { expect, test, type ConsoleMessage, type Page } from "@playwright/test";
+
+/**
+ * The first e2e suite: does the *built* application actually run in a browser?
+ *
+ * This exists because of a bug no other level could have caught. The unit
+ * tests passed, the component tests passed, typecheck was clean and the build
+ * succeeded — and the deployed page was blank, because a `manualChunks` split
+ * put `rc-resize-observer` in one chunk and the `resize-observer-polyfill` it
+ * constructs in another. The bundler produced a cycle, the constructor was
+ * undefined when called, and the only symptom was a console error.
+ *
+ * So: every test here fails on an unexpected console error, and the first one
+ * does nothing else.
+ */
+
+/** Noise that is not the application's fault and not worth failing on. */
+const IGNORED = [
+  /favicon/i,
+  /Download the React DevTools/i,
+  // React 18 + AntD 5: AntD's compatible-version warning on React 19 only.
+  /\[antd: compatible\]/i,
+];
+
+function collectErrors(page: Page): string[] {
+  const errors: string[] = [];
+
+  page.on("console", (message: ConsoleMessage) => {
+    if (message.type() !== "error") return;
+    const text = message.text();
+    if (IGNORED.some((pattern) => pattern.test(text))) return;
+    errors.push(`console.error: ${text}`);
+  });
+
+  // An uncaught exception never reaches console.error in every browser, so it
+  // is captured separately — this is the channel the chunking bug used.
+  page.on("pageerror", (error: Error) => {
+    errors.push(`uncaught: ${error.message}`);
+  });
+
+  return errors;
+}
+
+test.describe("the application boots", () => {
+  test("renders without a single console error", async ({ page }) => {
+    const errors = collectErrors(page);
+
+    await page.goto("/");
+    await expect(page.getByText("Enterprise Application Template Platform")).toBeVisible();
+    // Let anything asynchronous settle before judging the console.
+    await page.waitForLoadState("networkidle");
+
+    expect(errors, `browser reported:\n${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("shows the service metadata the API published", async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto("/");
+
+    await expect(page.getByText("Nucleus", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("template-spa")).toBeVisible();
+    await expect(page.getByText("http://localhost:8080/realms/template")).toBeVisible();
+
+    expect(errors).toEqual([]);
+  });
+
+  test("lists every dependency with a live status", async ({ page }) => {
+    await page.goto("/");
+
+    // Straight from /platform/health/status, through nginx, against the real
+    // PostgreSQL, Redis and Keycloak in the stack.
+    await expect(page.getByRole("cell", { name: "database" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "cache" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "identity" })).toBeVisible();
+    await expect(page.getByText("healthy").first()).toBeVisible();
+  });
+
+  test("a deep link is served by the SPA, not a 404", async ({ page }) => {
+    // §69: a URL pasted from a colleague has to work, not only one navigated to.
+    const response = await page.goto("/admin/audit");
+    expect(response?.status()).toBe(200);
+    await expect(page.getByText("Enterprise Application Template Platform")).toBeVisible();
+  });
+
+  test("the API is reachable on the app's own origin", async ({ page, baseURL }) => {
+    // No CORS, no preflight, no API URL in the bundle.
+    const response = await page.request.get(`${baseURL}/platform/meta/app`);
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body.name).toBe("Nucleus");
+    expect(body.auth.realm).toBe("template");
+  });
+});
+
+test.describe("appearance", () => {
+  test("density survives a reload", async ({ page }) => {
+    await page.goto("/");
+    await page.getByText("Compact", { exact: true }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
+
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
+  });
+
+  test("dark mode survives a reload and reaches the document", async ({ page }) => {
+    await page.goto("/");
+    await page.getByText("Dark", { exact: true }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    // The browser paints form controls and scrollbars from this, so a dark page
+    // with a white scrollbar means it was never set.
+    await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
+  });
+});
