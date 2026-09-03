@@ -1,0 +1,190 @@
+# Nucleus — the whole platform, from nothing to a working sign-in.
+#
+#     docker compose up
+#
+# Six services. The ordering constraints are the interesting part: the API
+# waits for PostgreSQL *and* Keycloak to be **healthy**, not merely started —
+# a container that is running is not a database that accepts connections, and
+# depends_on without a condition only guarantees the former.
+#
+# The seed runs once, as a job, and refuses to run twice. `python -m src.seed`
+# stops when it finds data, so `up` after a restart is a no-op rather than a
+# second copy of the dataset.
+
+name: nucleus
+
+networks:
+  nucleusnet:
+
+volumes:
+  postgres-data: {}
+  redis-data: {}
+  keycloak-data: {}
+  storage-data: {}
+
+# Every backend process — api and seed — reads the same settings.
+x-backend-env: &backend-env
+  DATABASE_URL: "postgresql+psycopg2://platform:platform@postgres:5432/platform"
+  REDIS_URL: "redis://redis:6379/0"
+  CACHE_ENABLED: "${CACHE_ENABLED:-true}"
+  # Two URLs, and the distinction is what makes OIDC work in Docker: keys are
+  # FETCHED over the internal network, the issuer is VALIDATED against the
+  # public address the browser actually used. Collapsing them breaks one or the
+  # other.
+  KEYCLOAK_INTERNAL_URL: "http://keycloak:8080"
+  KEYCLOAK_PUBLIC_URL: "http://localhost:${KEYCLOAK_PORT:-8080}"
+  KEYCLOAK_REALM: "template"
+  KEYCLOAK_SPA_CLIENT_ID: "template-spa"
+  KEYCLOAK_AUDIENCE: "template-api"
+  ALLOWED_ORIGINS: "http://localhost:${FRONTEND_PORT:-5174},http://localhost:5174"
+  API_PORT: "5101"
+  API_PREFIX: "/platform"
+  ENVIRONMENT: "${ENVIRONMENT:-local}"
+  LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+  SECRET_KEY: "${SECRET_KEY:-dev-only-change-me}"
+  STORAGE_DIR: "/app/backend/var/storage"
+  SEED_SCALE: "${SEED_SCALE:-full}"
+  SEED_RANDOM_SEED: "${SEED_RANDOM_SEED:-20260101}"
+
+services:
+
+  # ── PostgreSQL 18 ────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:18-alpine
+    container_name: nucleus-postgres
+    networks: [nucleusnet]
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    environment:
+      POSTGRES_USER: "platform"
+      POSTGRES_PASSWORD: "platform"
+      POSTGRES_DB: "platform"
+    volumes:
+      # PostgreSQL 18's image expects a single mount at /var/lib/postgresql and
+      # puts the cluster in a version-named subdirectory beneath it, so that
+      # `pg_upgrade --link` can work across a mount boundary. Mounting the older
+      # /var/lib/postgresql/data path makes 18 refuse to start.
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U platform -d platform"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # ── Redis 8 — a cache, never a dependency ────────────────────────────────
+  # `core/cache.py` degrades to a miss when this is unreachable, and readiness
+  # does not fail on it. It is here to be exercised, not to be relied on.
+  redis:
+    image: redis:8-alpine
+    container_name: nucleus-redis
+    networks: [nucleusnet]
+    ports:
+      - "${REDIS_PORT:-6380}:6379"
+    command: ["redis-server", "--appendonly", "yes", "--save", ""]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # ── Keycloak — identity, with the realm imported from the repo ───────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.1
+    container_name: nucleus-keycloak
+    networks: [nucleusnet]
+    ports:
+      - "${KEYCLOAK_PORT:-8080}:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: "${KEYCLOAK_ADMIN_USER:-admin}"
+      KC_BOOTSTRAP_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-admin}"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+    command: ["start-dev", "--import-realm"]
+    volumes:
+      - ./keycloak/realm-template.json:/opt/keycloak/data/import/realm-template.json:ro
+      - keycloak-data:/opt/keycloak/data
+    # The image carries no curl or wget, so the probe is a bare TCP request.
+    # It asks for the *realm*, not the root: Keycloak answers on the port
+    # before the import has finished, and an API that starts then cannot
+    # fetch signing keys.
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /realms/template HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && grep -q '200 OK' <&3"
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    restart: unless-stopped
+
+  # ── One-shot: create the schema, then seed ───────────────────────────────
+  seed:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: nucleus-api
+    container_name: nucleus-seed
+    networks: [nucleusnet]
+    working_dir: /app/backend
+    depends_on:
+      postgres: {condition: service_healthy}
+    environment:
+      <<: *backend-env
+      SERVICE_NAME: "nucleus-seed"
+      CACHE_ENABLED: "false"
+    # Refuses to run twice: it stops when it finds data. Pass --reset through
+    # SEED_ARGS to rebuild, which is what `make reseed` does.
+    command: ["sh", "-c", "python -m src.seed --scale $${SEED_SCALE} $${SEED_ARGS:-}"]
+    restart: "no"
+
+  # ── API — gunicorn with gevent workers ───────────────────────────────────
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: nucleus-api
+    container_name: nucleus-api
+    networks: [nucleusnet]
+    working_dir: /app/backend
+    ports:
+      - "${API_PORT:-5101}:5101"
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      keycloak: {condition: service_healthy}
+      seed: {condition: service_completed_successfully}
+    environment:
+      <<: *backend-env
+      SERVICE_NAME: "nucleus-api"
+      WEB_CONCURRENCY: "${WEB_CONCURRENCY:-2}"
+    volumes:
+      - storage-data:/app/backend/var/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5101/platform/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    command: ["gunicorn", "-k", "gevent", "-c", "gunicorn.conf.py", "wsgi:application"]
+    restart: unless-stopped
+
+  # ── Frontend — the built SPA, served by nginx on the API's origin ────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: nucleus-frontend
+    container_name: nucleus-frontend
+    networks: [nucleusnet]
+    ports:
+      - "${FRONTEND_PORT:-5174}:80"
+    depends_on:
+      api: {condition: service_healthy}
+    environment:
+      NUCLEUS_API_UPSTREAM: "api:5101"
+    restart: unless-stopped
