@@ -16,6 +16,15 @@ from src.seed import catalog
 from src.seed.support import slugify
 from src.seed.world import World
 
+#: Saved searches (§5): private by default, some shared with named people, a
+#: few public. Weighted so the majority are private — which is what makes the
+#: sharing screens worth having and the visibility query worth testing.
+SEARCH_SCOPES: tuple[tuple[str, float], ...] = (
+    ("PRIVATE", 0.6), ("SHARED", 0.28), ("PUBLIC", 0.12),
+)
+
+#: Views, dashboards and reports keep the broader ladder, where "everyone in my
+#: department" is the natural audience and naming people one by one is not.
 SCOPES: tuple[tuple[str, float], ...] = (
     ("PRIVATE", 0.5), ("TEAM", 0.24), ("ORGANIZATION", 0.2), ("PUBLIC", 0.06),
 )
@@ -44,11 +53,62 @@ COLUMN_SETS: dict[str, tuple[str, ...]] = {
 def build(world: World) -> None:
     _notification_preferences(world)
     _saved_searches(world)
+    _shares(world)
     _saved_views(world)
     _dashboards(world)
     _reports(world)
     _favorites(world)
     _recent_items(world)
+
+
+def _shares(world: World) -> None:
+    """Members on the saved searches whose scope is SHARED (§5).
+
+    Only SHARED searches get rows: a private one has no audience, and a public
+    one needs none. Rows are kept when a search is flipped to PUBLIC and back,
+    but the seed has no history to preserve, so it only fills the SHARED ones.
+
+    The personas are over-represented as *recipients* — a sharing screen that
+    shows nothing shared *with you* on the account everyone signs in as
+    demonstrates half the feature.
+    """
+    from src.models.personal import ResourceShare
+
+    rng = world.rng.derive("shares")
+    personas = list(world.personas.values())
+    if not world.users:
+        return
+
+    seen: set[tuple[str, str]] = set()
+    for search in world.saved_searches:
+        if search.scope != "SHARED":
+            continue
+        candidates = [u for u in world.users if u.id != search.owner_id]
+        if not candidates:
+            continue
+        recipients = rng.sample(candidates, rng.integer(1, 4))
+        # Make sure a persona other than the owner can see some of these.
+        for persona in personas:
+            if persona.id != search.owner_id and rng.chance(0.4):
+                recipients.append(persona)
+
+        for recipient in recipients:
+            key = (str(search.id), str(recipient.id))
+            if key in seen:
+                continue
+            seen.add(key)
+            world.resource_shares.append(
+                ResourceShare(
+                    id=rng.uuid(),
+                    resource_type="saved_search",
+                    resource_id=str(search.id),
+                    user_id=recipient.id,
+                    shared_by_id=search.owner_id,
+                    # Read only, always. Editing belongs to the owner (§5).
+                    permission="VIEW",
+                    created_at=rng.between(search.created_at, world.anchor),
+                )
+            )
 
 
 def _audience(world: World):
@@ -127,7 +187,7 @@ def _saved_searches(world: World) -> None:
                 resource_type=resource_type,
                 owner_id=owner.id,
                 organization_id=owner.organization_id,
-                scope=rng.weighted(SCOPES),
+                scope=rng.weighted(SEARCH_SCOPES),
                 condition_tree=tree,
                 # Rendered by the inspector's own function: the text a user
                 # reads is then provably the shape of the SQL that runs.

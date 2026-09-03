@@ -19,7 +19,7 @@ from src.models.identity import (  # noqa: F401
 )
 from src.models.personal import (  # noqa: F401
     Dashboard, DashboardWidget, Favorite, NotificationPreference, RecentItem,
-    Report, SavedSearch, SavedView,
+    Report, ResourceShare, SavedSearch, SavedView,
 )
 from src.models.platform import (  # noqa: F401
     ActivityEntry, AlertRule, ApiClient, ApiCredential, ApiRequestLog, AuditLog,

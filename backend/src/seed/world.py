@@ -189,6 +189,7 @@ class World:
 
     # personalization
     saved_searches: list[Any] = field(default_factory=list)
+    resource_shares: list[Any] = field(default_factory=list)
     saved_views: list[Any] = field(default_factory=list)
     favorites: list[Any] = field(default_factory=list)
     recent_items: list[Any] = field(default_factory=list)

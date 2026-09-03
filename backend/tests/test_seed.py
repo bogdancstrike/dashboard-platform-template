@@ -204,6 +204,39 @@ def test_offline_devices_have_not_just_reported(world):
         assert (world.anchor - device.last_seen_at).total_seconds() > 3600
 
 
+def test_saved_searches_are_private_by_default(world):
+    """§5: nothing is shared by accident, so most searches have no audience."""
+    scopes = [search.scope for search in world.saved_searches]
+    assert set(scopes) <= {"PRIVATE", "SHARED", "PUBLIC"}
+    assert scopes.count("PRIVATE") > scopes.count("PUBLIC")
+
+
+def test_only_shared_searches_have_members(world):
+    """A share row on a private search is dead data the visibility query would
+    then have to remember to ignore."""
+    by_id = {str(search.id): search for search in world.saved_searches}
+    for share in world.resource_shares:
+        assert share.resource_type == "saved_search"
+        owner_search = by_id[share.resource_id]
+        assert owner_search.scope == "SHARED"
+
+
+def test_a_share_never_grants_edit(world):
+    """Editing and deleting belong to the owner alone (§5)."""
+    assert all(share.permission == "VIEW" for share in world.resource_shares)
+
+
+def test_nobody_is_a_member_of_their_own_search(world):
+    by_id = {str(search.id): search for search in world.saved_searches}
+    for share in world.resource_shares:
+        assert share.user_id != by_id[share.resource_id].owner_id
+
+
+def test_shares_are_unique_per_person_and_resource(world):
+    keys = [(s.resource_type, s.resource_id, s.user_id) for s in world.resource_shares]
+    assert len(keys) == len(set(keys))
+
+
 def test_credentials_never_store_plaintext(world):
     for credential in world.api_credentials:
         assert credential.secret_hash.startswith("sha256$")

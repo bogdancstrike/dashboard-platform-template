@@ -355,6 +355,108 @@ section is a cross-cutting rule rather than a page.
 
 ---
 
+## Advanced search and saved searches (§4, §5, §6, §51)
+
+The single most important feature in the template, and the one the reference
+project only sketches. gif_responder has saved searches as *name + filters*;
+Nucleus extends that to a full condition tree with a real sharing model.
+
+### The query builder (§4)
+
+- [ ] **RAQB (`@react-awesome-query-builder/antd`) as the editor**, configured
+      from the field catalogue the backend publishes — `FieldSet.describe()`
+      already returns name, label, kind, the operators that kind allows, and
+      the choices for enums
+  - **Acceptance**: the builder can never offer an operator the backend will
+    reject, because both read the same declaration. Adding a filterable column
+    to an endpoint makes it appear in the builder with no frontend change
+- [ ] **Rules and groups**, nested arbitrarily:
+      `CONDITION AND ( CONDITION OR CONDITION )`
+  - AND / OR conjunction per group, and group negation (`NOT`)
+  - add rule · add group · remove · duplicate
+  - **drag-and-drop reordering** of rules within and between groups
+  - field-specific operators, switching when the field changes
+  - **Acceptance**: a tree twelve levels deep is rejected with a message, not a
+    stack overflow (`core/rules.py` caps depth at 12 and rules at 200)
+- [ ] **The full operator vocabulary**, per field kind — equals, not equals,
+      contains, does not contain, starts with, ends with, greater/less than
+      (or equal), between, before, after, in, not in, is empty, is not empty,
+      exists, does not exist
+  - **Acceptance**: every operator in `core/query.py::OPERATORS` is reachable
+    from the UI for at least one field kind, and a unit test asserts the two
+    lists agree
+- [ ] **Live result count** as the tree is edited, debounced and cancellable
+  - **Acceptance**: a half-built rule does not blank the results — `compile_tree`
+    skips incomplete rules by design, and the UI must not fight that
+- [ ] **Query inspector** (§51) — the parenthesised, indented rendering of the
+      current tree, toggleable beside the builder
+  - **Acceptance**: the text comes from `describe_tree`, the SQL from
+    `compile_tree`, both walking the same structure — so the inspector provably
+    cannot drift from what executed. Asserted by a test that compiles and
+    describes the same tree and compares their field/operator sets
+- [ ] Simple search alongside it (§4): one box across every `searchable` field,
+      with recent searches, suggestions, autocomplete, highlighted matches and
+      history
+- [ ] Switching simple → advanced carries the current filters into the tree
+      rather than discarding them
+
+### Saved searches (§5)
+
+A saved search stores the *question* and the *presentation*: conditions, sort,
+visible columns, page size and view mode. Opening one that finds the right rows
+and then shows the wrong columns is a saved search nobody trusts.
+
+- [ ] Fields: name, description, owner, created, last modified, condition tree,
+      rendered condition text, default sort, visible columns, page size, view
+      mode, favourite flag, use count, last used
+- [ ] Actions: create · rename · edit · duplicate · delete · favourite · run
+- [ ] A dedicated `/search/saved` page listing them, with the rule count and
+      condition summary on each card
+- [ ] **Sharing model** — three states, and one rule about who may change what:
+
+  | Visibility | Who can see it | Who can edit or delete it |
+  | --- | --- | --- |
+  | **Private** (default) | the owner only | the owner |
+  | **Shared** | the owner **plus explicitly added members** | the owner |
+  | **Public** | anyone signed in | the owner |
+
+  - A new saved search is **Private**. Nothing is shared by accident.
+  - The owner adds individual members by name or email; each added member gets
+    read access and can run the search, nothing more.
+  - The owner may flip it to **Public**, at which point every signed-in user can
+    see and run it. Member entries are kept, so flipping back to Shared restores
+    exactly the previous audience rather than losing it.
+  - **Only the owner may edit, rename, re-share or delete.** A member who wants
+    their own version duplicates it, and the copy is theirs and Private.
+  - Transfer of ownership is an explicit action, audited (§21).
+  - **Acceptance**: a member cannot `PUT` or `DELETE` someone else's saved
+    search — 403 with the reason, asserted by an integration test. A private
+    search does not appear in another user's list, is not reachable by direct
+    id, and is not found by the command palette's "Quick views" group.
+    Sharing, unsharing and visibility changes each write an audit row
+
+- [ ] `resource_shares` table — polymorphic (`resource_type`, `resource_id`,
+      `user_id`), the same pattern as comments, tags and favourites, so saved
+      views (§46), dashboards (§45) and reports (§28) can adopt it unchanged
+  - **Acceptance**: unique on (resource, user); removing a user cascades their
+    shares; a share never grants edit
+
+- [ ] The list query resolves visibility in **one** statement —
+      `owner = me OR scope = PUBLIC OR id IN (my shares)` — not by fetching
+      everything and filtering in Python (§71)
+  - **Acceptance**: the generated SQL contains the visibility predicate; a
+    user with no shares and no public searches issues the same single query
+
+### Search results (§6)
+
+- [ ] Four view modes — list · table · card · compact — switchable and remembered
+- [ ] Match highlighting, relevance, metadata, tags, timestamps, owner, status
+- [ ] Result grouping, sorting, preview drawer (§64) and quick actions
+- [ ] Both pagination strategies (§52): numbered for the table, infinite scroll
+      or "load more" for the card and list modes
+
+---
+
 ## Phase 0 — Foundations
 
 - [x] Repo scaffold (`backend/`, `frontend/`, `docs/`)

@@ -46,8 +46,9 @@ INSERT_ORDER: tuple[str, ...] = (
     "api_request_logs", "alert_rules", "import_runs", "audit_logs",
     "activity_entries", "system_logs", "notifications",
     # personalization
-    "notification_preferences", "saved_searches", "saved_views", "dashboards",
-    "dashboard_widgets", "reports", "favorites", "recent_items",
+    "notification_preferences", "saved_searches", "resource_shares",
+    "saved_views", "dashboards", "dashboard_widgets", "reports", "favorites",
+    "recent_items",
 )
 
 #: (World attribute, column) pairs whose value points at a row in a table that
@@ -158,13 +159,14 @@ def verify(session) -> list[str]:
     A seed that silently produces an orphan is a seed that costs an afternoon
     later, when a list page 500s on a join nobody suspected.
     """
-    from sqlalchemy import and_, func, select
+    from sqlalchemy import and_, cast, func, select
+    from sqlalchemy.dialects.postgresql import UUID as PgUUID
     from sqlalchemy.orm import aliased
 
     from src.models.business import Order, Project, Task, Ticket
     from src.models.content import Comment, EmailMessage, EmailThread, FileObject
     from src.models.identity import Department, Team, User
-    from src.models.personal import Dashboard, DashboardWidget
+    from src.models.personal import Dashboard, DashboardWidget, ResourceShare, SavedSearch
     from src.models.platform import ActivityEntry, AuditLog, BackgroundJob
 
     problems: list[str] = []
@@ -198,6 +200,31 @@ def verify(session) -> list[str]:
     _orphans("jobs.initiated_by_id", BackgroundJob, BackgroundJob.initiated_by_id, User)
     _orphans("widgets.dashboard_id", DashboardWidget, DashboardWidget.dashboard_id, Dashboard)
     _orphans("messages.thread_id", EmailMessage, EmailMessage.thread_id, EmailThread)
+
+    _orphans("resource_shares.user_id", ResourceShare, ResourceShare.user_id, User)
+
+    # A share grants read, never write (§5) — editing belongs to the owner.
+    writable = session.scalar(
+        select(func.count()).select_from(ResourceShare).where(ResourceShare.permission != "VIEW")
+    )
+    if writable:
+        problems.append(f"resource_shares: {writable} rows grant more than VIEW")
+
+    # An owner cannot be a member of their own search; the row would be dead
+    # data that the visibility query has to remember to ignore.
+    self_shared = session.scalar(
+        select(func.count())
+        .select_from(ResourceShare)
+        .join(SavedSearch, SavedSearch.id == cast(ResourceShare.resource_id, PgUUID))
+        .where(
+            and_(
+                ResourceShare.resource_type == "saved_search",
+                ResourceShare.user_id == SavedSearch.owner_id,
+            )
+        )
+    )
+    if self_shared:
+        problems.append(f"resource_shares: {self_shared} rows share a search with its own owner")
 
     # Nobody may manage themselves; the org chart would recurse forever.
     self_managing = session.scalar(
