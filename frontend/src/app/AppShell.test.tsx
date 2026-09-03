@@ -43,6 +43,7 @@ describe("authenticated application shell", () => {
     renderShell();
 
     const profileTrigger = document.querySelector(".nu-user") as HTMLElement;
+    expect(profileTrigger.tagName).toBe("BUTTON");
     await user.click(profileTrigger);
     expect(await screen.findByText("Administrator · Northwind Partners")).toBeInTheDocument();
     expect(screen.queryByText("Guest")).not.toBeInTheDocument();

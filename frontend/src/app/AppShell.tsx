@@ -263,7 +263,7 @@ export function AppShell() {
                 ],
               }}
             >
-              <span className="nu-user" tabIndex={0}>
+              <button className="nu-user" type="button" aria-label="Open profile menu">
                 <Avatar
                   size="small"
                   src={auth.profile?.user.avatar_url ?? undefined}
@@ -276,7 +276,7 @@ export function AppShell() {
                     {auth.profile?.user.full_name ?? (auth.loading ? "Signing in…" : "Unavailable")}
                   </Typography.Text>
                 )}
-              </span>
+              </button>
             </Dropdown>
           </Space>
         </Header>

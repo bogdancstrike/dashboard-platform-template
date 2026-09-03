@@ -203,8 +203,16 @@ body {
    room to end above it. */
 .nu-sider .ant-menu { padding-bottom: 56px; }
 
-.nu-user { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; min-width: 0; }
-.nu-user .ant-typography { max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nu-user {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-width: 0; height: 40px; padding: 0 4px;
+  border: 0; background: transparent; color: inherit;
+  font: inherit; line-height: 1; cursor: pointer;
+}
+.nu-user .ant-typography {
+  max-width: 16ch; margin: 0; line-height: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 .nu-content {
   height: calc(100vh - 56px); height: calc(100dvh - 56px);
