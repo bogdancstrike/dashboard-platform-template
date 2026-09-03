@@ -109,6 +109,21 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "current_user",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT"
+      ],
+      "api_url": "/api/me",
+      "description": "The caller's profile, live permissions, organization and preferences.",
+      "exec_method": {
+        "module_name": "src.api.me",
+        "method_name": "profile"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "dashboard_summary",
       "model_name": "Empty",
       "request_method": [

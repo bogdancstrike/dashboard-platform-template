@@ -33,10 +33,10 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Backend core (`src/core/`) | **done** — db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
-| Endpoints | 7 of ~110 — health ×3, meta ×4 |
+| Endpoints | 14 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 65 backend + 18 frontend passing. No e2e yet |
-| Frontend | scaffold **done** — theme, API client, 18 tests, build clean |
+| Tests | 71 backend + 29 frontend passing. No e2e yet |
+| Frontend | scaffold **done** — theme, API client, 29 tests, build clean |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
 **Backend and frontend are built in parallel from here**, in vertical slices: an
@@ -680,7 +680,8 @@ Each endpoint ships with its five-case integration test and the page consuming i
 
 - [x] Health / readiness / dependency snapshot (§24)
 - [x] Meta: SPA config, permission catalogue, roles, route surface
-- [ ] `/api/me` — profile, permissions, org, preferences; persona switch (§58)
+- [~] `/api/me` — profile, permissions, org and validated preference updates
+      shipped; frontend identity/permission provider and persona switch remain (§58)
   - **Acceptance**: drives every permission decision in the UI; a role change on
     the server is visible on the next request without re-login
 - [ ] Dashboard: KPIs with previous-period comparison and sparklines, the
