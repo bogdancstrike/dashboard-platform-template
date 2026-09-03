@@ -1,0 +1,65 @@
+# ── Python ───────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+!backend/dist/
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.hypothesis/
+
+# ── Node / frontend ──────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/stats.html
+*.tsbuildinfo
+.npm/
+.pnpm-store/
+playwright-report/
+test-results/
+.playwright-mcp/
+
+# ── Local runtime state ──────────────────────────────────────────────────
+# Uploaded files live on a Docker volume in the stack; this is the bind-mount
+# path used when the backend runs on the host.
+backend/var/
+backend/instance/
+*.db
+*.sqlite3
+
+# ── Environment ──────────────────────────────────────────────────────────
+# `.env.example` is committed on purpose — it is the documentation of every
+# knob. A real `.env` never is.
+.env
+.env.*
+!.env.example
+.secrets/
+
+# ── Editors / OS ─────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Logs and scratch ─────────────────────────────────────────────────────
+*.log
+logs/
+tmp/
+.cache/
