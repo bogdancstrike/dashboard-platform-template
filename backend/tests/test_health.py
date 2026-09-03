@@ -18,13 +18,26 @@ def test_liveness_never_touches_a_dependency(client):
     assert body["started_at"].endswith("Z")
 
 
-def test_readiness_refuses_traffic_without_a_database(client):
+def test_readiness_follows_the_database(client, has_database):
+    """Readiness is exactly "can the database answer".
+
+    Both directions matter, so the assertion follows the environment rather
+    than assuming one: with `TEST_DATABASE_URL` set there is a database and the
+    probe must pass; without one it must refuse traffic rather than let an
+    orchestrator route into a process that cannot serve.
+    """
     response = client.get(f"{PREFIX}/health/ready")
-    assert response.status_code == 503
     body = response.get_json()
-    assert body["status"] == "not_ready"
-    assert body["checks"]["database"]["status"] == "unavailable"
-    assert "error" in body["checks"]["database"]
+    if has_database:
+        assert response.status_code == 200
+        assert body["status"] == "ready"
+        assert body["checks"]["database"]["status"] == "healthy"
+        assert body["checks"]["database"]["latency_ms"] >= 0
+    else:
+        assert response.status_code == 503
+        assert body["status"] == "not_ready"
+        assert body["checks"]["database"]["status"] == "unavailable"
+        assert "error" in body["checks"]["database"]
 
 
 def test_readiness_does_not_fail_on_a_disabled_cache(client):
@@ -33,13 +46,21 @@ def test_readiness_does_not_fail_on_a_disabled_cache(client):
     assert body["checks"]["cache"]["status"] == "disabled"
 
 
-def test_snapshot_reports_each_dependency(client):
+def test_snapshot_reports_each_dependency(client, has_database):
     response = client.get(f"{PREFIX}/health/status")
     body = response.get_json()
     assert set(body["checks"]) == {"database", "cache", "identity"}
-    assert body["status"] == "unhealthy"
-    assert response.status_code == 503
-    assert "database" in body["degraded"]
+    # Keycloak is unreachable in the suite either way, so the snapshot is never
+    # fully healthy here — but only the database is fatal.
+    assert "identity" in body["degraded"]
+    if has_database:
+        assert body["status"] == "degraded"
+        assert response.status_code == 200
+        assert "database" not in body["degraded"]
+    else:
+        assert body["status"] == "unhealthy"
+        assert response.status_code == 503
+        assert "database" in body["degraded"]
 
 
 def test_snapshot_leaks_no_configuration(client):

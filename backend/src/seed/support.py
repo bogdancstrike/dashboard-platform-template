@@ -193,3 +193,13 @@ def avatar_data_uri(name: str, color: str) -> str:
 
 def checksum_of(*parts: Any) -> str:
     return hashlib.sha256("|".join(str(p) for p in parts).encode()).hexdigest()
+
+
+def mask_hash(secret: str) -> str:
+    """What actually goes in `api_credentials.secret_hash`.
+
+    A plain SHA-256, matching the seed's purpose: this is demo data, and the
+    point being demonstrated is that the *plaintext is not stored*. Real
+    credential issuance should use a slow KDF; the column is sized for it.
+    """
+    return f"sha256${hashlib.sha256(secret.encode()).hexdigest()}"

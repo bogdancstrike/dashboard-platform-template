@@ -1,4 +1,6 @@
-# Nucleus
+<p align="center">
+  <img src="docs/logo.svg" alt="Nucleus" width="340">
+</p>
 
 An enterprise application template platform: the screens, patterns and plumbing
 that every internal business application ends up needing, built once so the next

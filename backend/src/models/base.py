@@ -17,15 +17,32 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, func, text
+from sqlalchemy import DateTime, ForeignKey, Index, MetaData, String, func, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PgUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+#: Every constraint and index gets a deterministic name.
+#:
+#: Two things depend on this. Migrations need to name what they alter, and a
+#: constraint PostgreSQL named `users_manager_id_fkey` in one database and
+#: `users_manager_id_fkey1` in another is a migration that works on one of them.
+#: And `drop_all` has to break foreign-key *cycles* — users → departments →
+#: users — by dropping a constraint before the tables, which it can only do if
+#: the constraint has a name it knows.
+NAMING_CONVENTION = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s",
+}
 
 
 class Base(DeclarativeBase):
     """All models share this metadata, so `Base.metadata.create_all` builds the
     whole schema in one pass and the seed never has to order its imports."""
 
+    metadata = MetaData(naming_convention=NAMING_CONVENTION)
     type_annotation_map = {dict[str, Any]: JSONB, list[Any]: JSONB}
 
 

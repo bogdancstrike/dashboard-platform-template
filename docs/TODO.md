@@ -12,7 +12,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 - [x] Repo scaffold (`backend/`, `frontend/`, `docs/`, compose)
 - [x] QF framework wheel vendored into `backend/dist/`
 - [~] `backend/Dockerfile` done (gunicorn -k gevent); `docker-compose.yml` outstanding
-- [~] `README.md` done; `.env.example`, `Makefile` outstanding
+- [~] `README.md` + `docs/logo.svg` done; `.env.example`, `Makefile` outstanding
 - [ ] `docs/architecture.md`, `docs/features.md`
 
 ## Phase 1 — Backend core
@@ -43,9 +43,10 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 
 ## Phase 3 — Seeds (§57)
 
-- [ ] Deterministic generator: 20 orgs, 150 users, 50 projects, 500 tasks,
+- [x] Deterministic generator: 20 orgs, 150 users, 50 projects, 500 tasks,
       1 000 audit rows, 200 emails, 100 files, 100 jobs, thousands of records
-- [ ] Referential consistency across all modules
+      — 15 454 rows across 49 tables, `python -m src.seed`
+- [x] Referential consistency across all modules — `--check` verifies it
 
 ## Phase 4 — Backend API
 
@@ -54,16 +55,26 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 - [ ] Generic entity list/detail/CRUD/bulk (§3, §7, §8, §43)
 - [ ] Search: simple, advanced (RAQB), saved searches (§4, §5, §6)
 - [ ] Admin: users, groups, roles, permissions, settings, flags, api, jobs
+- [ ] `/admin/audit` — audit explorer (§21). Comprehensive by design: who
+      (actor, role, impersonator), when, what (action, resource, label), and
+      the field-level **before → after** diff. Filterable on actor, action,
+      resource type/id, result, correlation id and date range; plus a
+      per-entity timeline on every detail page. Shape follows tickora's audit
+      explorer; `AuditLog` already stores state_before/state_after/changes.
 - [ ] Email module, tasks, calendar, files, audit, logs, health, reports
 - [ ] Import/export pipelines (§29, §30)
 
 ## Phase 5 — Frontend foundation
 
-- [ ] Vite + React + TS + AntD + ECharts + RAQB toolchain
+- [ ] Vite + React + TS + AntD + ECharts + RAQB + cmdk toolchain
 - [ ] Theme tokens, AntD theme, CSS vars, chart theme, density modes
 - [ ] API client, query hooks, URL-state persistence (§69, §72)
 - [ ] App shell: sidebar, header, breadcrumbs, global search, notifications,
-      profile, quick actions, recents, favorites, command palette
+      profile, quick actions, recents, favorites
+- [ ] Command palette on `cmdk` (as in gif_responder), Ctrl/Cmd-K, grouped:
+      **On this page** (actions for the current route) · **General** (navigation
+      and entity search results) · **Quick views** (saved views and searches) ·
+      **Settings**
 
 ## Phase 6 — Frontend pages
 
@@ -73,7 +84,8 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 - [ ] Admin area, users, roles matrix
 - [ ] Email inbox/detail/compose
 - [ ] Tasks (kanban/table/list), calendar, file manager
-- [ ] Audit logs, system logs, jobs, system health, api, integrations, flags
+- [ ] Audit explorer page (/admin/audit) + AuditTimeline component, system
+      logs, jobs, system health, api, integrations, flags
 - [ ] Reports, import, export
 - [ ] Component showcase, template gallery, error pages
 - [ ] Preferences, security, organization settings
@@ -81,7 +93,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 ## Phase 7 — Verification
 
 - [ ] `docker compose up` clean-boot green
-- [ ] Seed verified (row counts + referential checks)
-- [~] Backend tests — 41 passing for the endpoint map, health, meta, HTTP contract
+- [x] Seed verified (row counts + referential checks)
+- [~] Backend tests — 61 passing (endpoint map, health, meta, HTTP contract, seed)
 - [ ] Frontend typecheck + build
 - [ ] Docs complete
