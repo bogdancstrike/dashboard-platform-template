@@ -37,7 +37,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
 | Tests | 65 backend + 18 frontend passing. No e2e yet |
 | Frontend | scaffold **done** — theme, API client, 18 tests, build clean |
-| Compose stack | **not started** |
+| Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
 **Backend and frontend are built in parallel from here**, in vertical slices: an
 endpoint ships together with the page that consumes it and the tests for both.
@@ -463,15 +463,17 @@ and then shows the wrong columns is a saved search nobody trusts.
 - [x] QF framework wheel vendored into `backend/dist/`
 - [x] `README.md` + `docs/logo.svg`
 - [x] `backend/Dockerfile` — two stage, `CMD gunicorn -k gevent -c gunicorn.conf.py wsgi:application`
-- [ ] `frontend/Dockerfile` — Vite build, static bundle served by nginx
-- [ ] `docker-compose.yml` — postgres 18, redis 8, keycloak, api, seed, frontend
+- [x] `frontend/Dockerfile` — Vite build, bundle served by nginx on the API's
+      own origin (no CORS, no API URL compiled into the bundle)
+- [x] `docker-compose.yml` — postgres 18, redis 8, keycloak, seed, api, frontend
   - **Acceptance**: `docker compose up` on a clean machine reaches a working
     sign-in page with seeded data and no manual step; every service has a
     healthcheck; the API waits for postgres and keycloak to be *healthy*, not
     merely started; a second `up` does not re-seed or duplicate data
-- [ ] `.env.example` — every knob documented, working local defaults
+- [x] `.env.example` — every knob documented, working local defaults
   - **Acceptance**: copying it to `.env` unchanged produces a working stack
-- [ ] `Makefile` — `up` · `down` · `seed` · `reseed` · `test` · `e2e` · `lint` · `logs`
+- [x] `Makefile` — `up` · `down` · `clean` · `wait` · `urls` · `seed` · `reseed` ·
+      `check-seed` · `psql` · `test` · `test-backend-db` · `e2e` · `lint` · `logs`
 - [ ] `docs/architecture.md` — the request path, the auth flow across the two
       Keycloak URLs, the layering rule, why QF is wired the way it is
 - [ ] `docs/features.md` — the §1–§77 catalogue mapped to routes and endpoints,
@@ -632,7 +634,8 @@ Each endpoint ships with its five-case integration test and the page consuming i
 
 ## Phase 7 — Verification
 
-- [ ] `docker compose up` clean-boot green
+- [x] `docker compose up` clean-boot green — every service healthy from empty
+      volumes; seed wrote 15 554 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
 - [~] Backend tests — 65 passing (endpoint map, health, meta, HTTP contract, seed)
 - [~] Frontend unit + component tests — 18 passing (API client, theme, states)
