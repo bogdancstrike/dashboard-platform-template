@@ -1,0 +1,103 @@
+/*
+ * The global stylesheet.
+ *
+ * Deliberately short. AntD owns component styling; this file owns only what
+ * sits outside a component — the page ground, the focus ring, the scrollbars —
+ * and it reads the CSS custom properties that `AppearanceProvider` writes, so
+ * it cannot drift from the component theme.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--nu-font);
+  font-size: var(--nu-font-size, 14px);
+  background: var(--nu-bg);
+  color: var(--nu-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/*
+ * A focus ring that is always visible when the keyboard put it there, and never
+ * when the mouse did. §55 requires the first; §59 requires the second, because
+ * a ring around every clicked button reads as a rendering bug.
+ */
+:focus-visible {
+  outline: 2px solid var(--nu-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--nu-accent);
+  color: #fff;
+}
+
+/* Scrollbars styled to the theme; a white scrollbar on a dark page is the
+   single most common giveaway that dark mode was added afterwards. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--nu-border) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--nu-border);
+  border: 2px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--nu-text-tertiary);
+  background-clip: content-box;
+}
+
+/* §55: honour the OS setting rather than deciding for the reader. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Skip link — the first thing a keyboard user meets, and invisible otherwise. */
+.nu-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 1000;
+  padding: 8px 16px;
+  background: var(--nu-surface);
+  color: var(--nu-text);
+  box-shadow: var(--nu-shadow-md);
+  border-radius: 0 0 6px 0;
+}
+
+.nu-skip-link:focus {
+  left: 0;
+}

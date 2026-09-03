@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>Nucleus</title>
+  <defs>
+    <linearGradient id="c" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c7cf5"/>
+      <stop offset="55%" stop-color="#5b5bd6"/>
+      <stop offset="100%" stop-color="#4338ca"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(32 32)">
+    <!-- Two crossed orbits and a core: the logo mark, sized so it still reads
+         at 16px in a browser tab. -->
+    <ellipse rx="27" ry="11" fill="none" stroke="#5b5bd6" stroke-width="4"
+             opacity="0.9" transform="rotate(-28)"/>
+    <ellipse rx="27" ry="11" fill="none" stroke="#5b5bd6" stroke-width="4"
+             opacity="0.55" transform="rotate(52)"/>
+    <circle r="12" fill="url(#c)"/>
+    <circle cx="24" cy="-12.8" r="4" fill="#22d3ee"/>
+  </g>
+</svg>

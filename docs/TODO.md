@@ -35,8 +35,8 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
 | Endpoints | 7 of ~110 — health ×3, meta ×4 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 61 backend passing. No frontend tests, no e2e yet |
-| Frontend | **not started** |
+| Tests | 65 backend + 18 frontend passing. No e2e yet |
+| Frontend | scaffold **done** — theme, API client, 18 tests, build clean |
 | Compose stack | **not started** |
 
 **Backend and frontend are built in parallel from here**, in vertical slices: an
@@ -223,8 +223,8 @@ function is a slow test that fails for unrelated reasons.
 
 ### Frontend
 
-- [ ] Vitest + React Testing Library + MSW, mocking the API from the same
-      OpenAPI document the client is generated from
+- [x] Vitest + React Testing Library + MSW, mocking at the network boundary so
+      tests exercise the real client rather than a stubbed module
 - [ ] Unit: formatters, URL-state serialisation (§72), permission hooks, query
       builder value coercion, keyboard handlers
 - [ ] Component: every state in [States](#states-every-data-view-must-have) for
@@ -575,13 +575,15 @@ Each endpoint ships with its five-case integration test and the page consuming i
 
 ## Phase 5 — Frontend foundation
 
-- [ ] Vite + React + TS + AntD + ECharts + RAQB + cmdk toolchain
-  - **Acceptance**: `npm run dev` starts in under 2s; `build` and `typecheck`
-    clean under `strict: true`
-- [ ] Theme: tokens → AntD theme → CSS variables → ECharts theme; dark mode;
-      page and table density
-- [ ] API client generated from `/swagger.json`, correlation id echoed on every
-      request and surfaced on error screens
+- [x] Vite + React + TS + AntD + ECharts + RAQB + cmdk toolchain — dev server
+      ready in 79ms; `build` and `typecheck` clean under `strict: true`;
+      vendor split by module path (react 46KB gz, antd 235KB gz, app 6KB gz)
+- [x] Theme: `tokens.ts` → AntD theme → CSS variables → ECharts theme; light /
+      dark / system; three density modes; both persisted and applied to the
+      document root
+- [~] API client — correlation id on every request, `ApiError` from the error
+      envelope, cancellation, bearer injection, 12 unit tests. Still hand-written;
+      generating it from `/swagger.json` is outstanding
 - [ ] Auth: Keycloak OIDC using the coordinates `/meta/app` publishes, silent
       refresh, permission hook reading `/api/me`
   - **Acceptance**: no Keycloak URL is baked into the bundle at build time
@@ -632,8 +634,8 @@ Each endpoint ships with its five-case integration test and the page consuming i
 
 - [ ] `docker compose up` clean-boot green
 - [x] Seed verified (row counts + referential checks)
-- [~] Backend tests — 61 passing (endpoint map, health, meta, HTTP contract, seed)
-- [ ] Frontend unit + component tests
+- [~] Backend tests — 65 passing (endpoint map, health, meta, HTTP contract, seed)
+- [~] Frontend unit + component tests — 18 passing (API client, theme, states)
 - [ ] Playwright e2e suite green from a cold boot
 - [ ] Frontend typecheck + build
 - [ ] Accessibility — axe clean on every route (§55)

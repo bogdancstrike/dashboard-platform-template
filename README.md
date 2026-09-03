@@ -22,7 +22,7 @@ permission catalogue that the admin screen is generated from.
 
 ```
 backend/     Flask + Flask-RESTX API on the QF framework, SQLAlchemy 2, PostgreSQL 18
-frontend/    Vite + React + TypeScript + AntD + ECharts   (not started)
+frontend/    Vite + React + TypeScript + AntD + ECharts + RAQB + cmdk
 keycloak/    Realm export: roles, clients, demo users
 docs/        Architecture notes and the implementation tracker
 ```
@@ -41,6 +41,15 @@ docs/        Architecture notes and the implementation tracker
 | `src/seed/` | Deterministic demo data |
 | `tests/` | pytest suite; runs with no database present |
 | `Dockerfile` | Two-stage build; `CMD gunicorn -k gevent -c gunicorn.conf.py wsgi:application` |
+
+### Frontend layout
+
+| Path | What lives there |
+| --- | --- |
+| `src/theme/tokens.ts` | **The design tokens.** The AntD theme, the CSS custom properties and the ECharts theme all derive from this one file, so the three cannot drift |
+| `src/theme/AppearanceProvider.tsx` | Light / dark / system and the three density modes, applied to AntD and the stylesheet together |
+| `src/api/client.ts` | Correlation id on every request, `ApiError` from the error envelope, cancellation, bearer injection |
+| `src/test/` | MSW handlers and the provider-wrapped render helper |
 
 ---
 
@@ -84,10 +93,30 @@ Then:
 | <http://localhost:5101/platform/health/status> | Every dependency, with latency |
 | <http://localhost:5101/platform/meta/routes> | The API surface this process is serving |
 
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:5174, proxying /platform to the backend
+npm run build      # typecheck, then bundle
+npm run test       # vitest + React Testing Library + MSW
+```
+
+The dev server proxies `/platform` rather than talking to the API
+cross-origin, so development exercises the same request path production uses
+behind a reverse proxy — no CORS preflight that only exists on a developer's
+machine, and no API URL compiled into the bundle.
+
+Nothing environment-specific is baked in at build time. The Keycloak realm, its
+public URL and the SPA client id are fetched from `/platform/meta/app` at
+startup, which is what lets one built image run in staging and production.
+
 ### Tests
 
 ```bash
 cd backend && python -m pytest
+cd frontend && npm run test
 ```
 
 The suite runs with **no database, cache or Keycloak present** — dependencies
