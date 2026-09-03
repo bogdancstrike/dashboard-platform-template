@@ -7,6 +7,7 @@ Postgres without a `.env` file. Compose overrides what it needs to.
 from __future__ import annotations
 
 import os
+from urllib.parse import urlsplit as _urlsplit
 
 
 def _flag(name: str, default: bool = False) -> bool:
@@ -26,6 +27,10 @@ class Config:
     ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
     APP_NAME = os.getenv("APP_NAME", "Nucleus")
     APP_DESCRIPTION = os.getenv("APP_DESCRIPTION", "Enterprise Application Template Platform")
+    #: Shown on the health page and in the Swagger document. Set from the build
+    #: (a tag or a short SHA) so a running process can be identified.
+    APP_VERSION = os.getenv("APP_VERSION", "1.0.0")
+    BUILD_REF = os.getenv("BUILD_REF", "dev")
 
     # ── HTTP ─────────────────────────────────────────────────────────────
     API_PORT = _int("API_PORT", 5101)
@@ -52,6 +57,17 @@ class Config:
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     CACHE_ENABLED = _flag("CACHE_ENABLED", True)
     CACHE_TTL_SECONDS = _int("CACHE_TTL_SECONDS", 30)
+
+    # QF's ETL module builds a Redis connection pool at *import* time from
+    # these three attributes, and `framework.app.runner` imports it whether or
+    # not the ETL is enabled. Deriving them from REDIS_URL keeps one source of
+    # truth: setting REDIS_URL alone must never leave QF pointed elsewhere.
+    # The pool is lazy, so nothing connects until something asks it to — which
+    # in this template is never.
+    _redis = _urlsplit(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
+    REDIS_HOST = _redis.hostname or "localhost"
+    REDIS_PORT = _redis.port or 6379
+    REDIS_DB = int((_redis.path or "/0").lstrip("/") or 0)
 
     # ── Auth — Keycloak (OIDC) ───────────────────────────────────────────
     # Two URLs, not one, and the distinction is the whole reason this works in

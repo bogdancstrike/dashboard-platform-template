@@ -63,3 +63,6 @@ Thumbs.db
 logs/
 tmp/
 .cache/
+
+# Generated at startup from `src/api/routes.py`; never committed.
+backend/maps/

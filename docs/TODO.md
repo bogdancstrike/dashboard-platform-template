@@ -12,33 +12,33 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 - [x] Repo scaffold (`backend/`, `frontend/`, `docs/`, compose)
 - [x] QF framework wheel vendored into `backend/dist/`
 - [ ] `docker-compose.yml` — postgres 18, redis 8, api, seed, frontend
-- [ ] `.env.example`, `Makefile`, `README.md`
+- [~] `README.md` done; `.env.example`, `Makefile` outstanding
 - [ ] `docs/architecture.md`, `docs/features.md`
 
 ## Phase 1 — Backend core
 
-- [ ] `src/config.py` + top-level `config.py` shim (QF requires it)
-- [ ] `wsgi.py` / `main.py` / `gunicorn.conf.py`
-- [ ] `core/db.py` — engine, `session_scope`
-- [ ] `core/errors.py` — domain error taxonomy + Flask/RESTX handlers
-- [ ] `core/pagination.py` — page/size envelope
-- [ ] `core/query.py` — declarative FieldSet filter/sort/search/facets
-- [ ] `core/rules.py` — RAQB JSON-logic tree → SQLAlchemy (§4, §51)
-- [ ] `core/cache.py` — Redis caching helpers (§53)
-- [ ] `core/auth.py` — JWT sessions, personas, RBAC decorators (§58)
-- [ ] `core/audit.py` — audit trail writer (§21)
-- [ ] `core/correlation.py` — correlation id + CORS
+- [x] `src/config.py` + top-level `config.py` shim (QF requires it)
+- [x] `wsgi.py` / `main.py` / `gunicorn.conf.py`
+- [x] `core/db.py` — engine, `session_scope`
+- [x] `core/errors.py` — domain error taxonomy + Flask/RESTX handlers
+- [x] `core/pagination.py` — page/size envelope
+- [x] `core/query.py` — declarative FieldSet filter/sort/search/facets
+- [x] `core/rules.py` — RAQB JSON-logic tree → SQLAlchemy (§4, §51)
+- [x] `core/cache.py` — Redis caching helpers (§53)
+- [x] `core/auth.py` — JWT sessions, personas, RBAC decorators (§58)
+- [x] `core/audit.py` — audit trail writer (§21)
+- [x] `core/correlation.py` — correlation id + CORS
 
 ## Phase 2 — Data model
 
-- [ ] Identity: organizations, departments, teams, regions, users, roles,
+- [x] Identity: organizations, departments, teams, regions, users, roles,
       permissions, groups, sessions, login history, security events
-- [ ] Business: projects, customers, tickets, orders, tasks, documents,
+- [x] Business: projects, customers, tickets, orders, tasks, documents,
       devices, events (calendar)
-- [ ] Content: emails/threads/attachments, comments, tags, files/folders
-- [ ] Platform: notifications, audit logs, system logs, jobs, scheduled tasks,
+- [x] Content: emails/threads/attachments, comments, tags, files/folders
+- [x] Platform: notifications, audit logs, system logs, jobs, scheduled tasks,
       feature flags, api clients, integrations, alert rules, email templates
-- [ ] Personalization: saved searches, saved views, favorites, recent items,
+- [x] Personalization: saved searches, saved views, favorites, recent items,
       dashboards/widgets, preferences, reports
 
 ## Phase 3 — Seeds (§57)
@@ -49,7 +49,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 
 ## Phase 4 — Backend API
 
-- [ ] Health/readiness, `/api/me`, auth + persona switch
+- [~] Health/readiness done; `/api/me`, auth + persona switch outstanding
 - [ ] Dashboard KPIs, charts, alerts, drill-down (§2, §44, §66)
 - [ ] Generic entity list/detail/CRUD/bulk (§3, §7, §8, §43)
 - [ ] Search: simple, advanced (RAQB), saved searches (§4, §5, §6)
@@ -82,6 +82,6 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 
 - [ ] `docker compose up` clean-boot green
 - [ ] Seed verified (row counts + referential checks)
-- [ ] Backend tests
+- [~] Backend tests — 34 passing for routing, health, meta, HTTP contract
 - [ ] Frontend typecheck + build
 - [ ] Docs complete
