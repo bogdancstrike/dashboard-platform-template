@@ -115,7 +115,6 @@ def get_profile(session, principal) -> dict[str, Any]:
             ),
             "impersonator_label": principal.impersonator_label or None,
         },
-        "personas": _demo_personas(session),
     }
 
 
@@ -183,46 +182,6 @@ def _named(value, extra: str) -> dict[str, str] | None:
     if value is None:
         return None
     return {"id": str(value.id), "name": value.name, extra: str(getattr(value, extra))}
-
-
-def _demo_personas(session) -> list[dict[str, Any]]:
-    """Persona switch choices for local/demo deployments, sourced from users.
-
-    The browser receives no hard-coded account catalogue. Production returns
-    no choices at all; local environments resolve the seeded realm accounts
-    against their current database roles and labels.
-    """
-    from src.config import Config
-    from src.models.identity import User
-
-    if Config.ENVIRONMENT not in {"local", "development", "test"}:
-        return []
-
-    usernames = ("admin", "manager", "operator", "analyst", "user")
-    rows = session.scalars(
-        select(User)
-        .options(joinedload(User.role))
-        .where(
-            User.username.in_(usernames),
-            User.status == "ACTIVE",
-            User.deleted_at.is_(None),
-        )
-    ).all()
-    by_username = {row.username: row for row in rows}
-    return [
-        {
-            "username": row.username,
-            "full_name": row.full_name,
-            "avatar_url": row.avatar_url,
-            "role": {
-                "code": row.role.code if row.role else "VIEWER",
-                "name": row.role.name if row.role else "Viewer",
-                "color": row.role.color if row.role else "#64748b",
-            },
-        }
-        for username in usernames
-        if (row := by_username.get(username)) is not None
-    ]
 
 
 def _choice_text(values: set[Any]) -> str:

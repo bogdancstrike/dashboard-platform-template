@@ -11,7 +11,7 @@ import {
 
 import { meApi, type CurrentUser } from "@/api/me";
 import { useAppearance } from "@/theme/AppearanceProvider";
-import { signOut, switchPersona } from "./keycloak";
+import { signOut } from "./keycloak";
 
 interface AuthContextValue {
   profile: CurrentUser | null;
@@ -20,7 +20,6 @@ interface AuthContextValue {
   can: (permission?: string) => boolean;
   refresh: () => Promise<unknown>;
   signOut: () => Promise<void>;
-  switchPersona: (username: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -86,7 +85,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       can,
       refresh: query.refetch,
       signOut,
-      switchPersona,
     }),
     [query.data, query.isLoading, query.error, query.refetch, can],
   );

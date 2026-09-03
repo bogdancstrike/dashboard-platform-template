@@ -239,20 +239,6 @@ export function AppShell() {
                         appearance === "light" ? "dark" : appearance === "dark" ? "system" : "light",
                       ),
                   },
-                  ...(auth.profile?.personas.length
-                    ? [
-                        { type: "divider" as const },
-                        {
-                          key: "personas",
-                          label: "Switch demo persona",
-                          children: auth.profile.personas.map((persona) => ({
-                            key: `persona-${persona.username}`,
-                            label: `${persona.full_name} · ${persona.role.name}`,
-                            onClick: () => void auth.switchPersona(persona.username),
-                          })),
-                        },
-                      ]
-                    : []),
                   { type: "divider" },
                   {
                     key: "signout",

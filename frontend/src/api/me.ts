@@ -58,12 +58,6 @@ export interface CurrentUser {
     impersonator_id: string | null;
     impersonator_label: string | null;
   };
-  personas: Array<{
-    username: string;
-    full_name: string;
-    avatar_url: string | null;
-    role: { code: string; name: string; color: string };
-  }>;
 }
 
 export type PreferencePatch = {

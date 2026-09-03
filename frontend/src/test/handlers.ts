@@ -102,14 +102,6 @@ export const currentUser = {
     impersonator_id: null,
     impersonator_label: null,
   },
-  personas: [
-    {
-      username: "admin",
-      full_name: "Ada Administrator",
-      avatar_url: null,
-      role: { code: "ADMINISTRATOR", name: "Administrator", color: "#dc2626" },
-    },
-  ],
 };
 
 /** Echoes the correlation id back, exactly as the real server does. */

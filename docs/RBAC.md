@@ -72,10 +72,9 @@ unmapped realm account falls back to `VIEWER`; it does not gain write access.
 | `analyst` | `analyst` | `ANALYST` | 50 | Read, search, export, audit and reporting |
 | `user` | `viewer` | `VIEWER` | 20 | Read-only day-to-day access |
 
-These accounts and their passwords are local demo data from
-`keycloak/realm-template.json`; they are not a production account strategy.
-The profile menu obtains the available local persona choices from `/api/me`.
-Production environments return no demo persona choices.
+These accounts and their passwords are local test data from
+`keycloak/realm-template.json`; they are not a production account strategy and
+the application does not expose an account-switching control.
 
 The local `users` row is matched by Keycloak subject first, then email, then
 username. Keycloak remains authoritative for name and email. Suspended, locked
@@ -177,8 +176,8 @@ link to a known but forbidden route renders a 403 explanation. This behavior
 is useful, but the backend decorator remains mandatory because browser state
 can be changed by the caller.
 
-The production frontend contains no mock role matrix, persona list or
-permission fallback. Test fixtures under `frontend/src/test/` simulate HTTP
+The production frontend contains no mock role matrix or permission fallback.
+Test fixtures under `frontend/src/test/` simulate HTTP
 responses for isolated component tests only and are excluded from the runtime
 module graph. Playwright tests exercise the real Keycloak, API and database.
 

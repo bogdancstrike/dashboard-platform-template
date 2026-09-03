@@ -86,7 +86,7 @@ An item is `[x]` only when all of these hold:
 
 - [x] The production frontend contains no fixture/mock datasets and makes no
       authorization decisions from hard-coded roles. Users, organizations,
-      demo-persona choices, permissions and page data come from backend APIs.
+      permissions and page data come from backend APIs.
       MSW remains test-only infrastructure at the HTTP boundary; it is never
       imported by the application bundle
 
@@ -695,8 +695,8 @@ Each endpoint ships with its five-case integration test and the page consuming i
 
 - [x] Health / readiness / dependency snapshot (§24)
 - [x] Meta: SPA config, permission catalogue, roles, route surface
-- [x] `/api/me` — profile, live permissions, organization, validated preference
-      updates and backend-sourced demo persona switch choices (§58)
+- [x] `/api/me` — profile, live permissions, organization and validated
+      preference updates (§58)
   - **Acceptance**: drives every permission decision in the UI; a role change on
     the server is visible on the next request without re-login
 - [ ] Dashboard: KPIs with previous-period comparison and sparklines, the
@@ -761,7 +761,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
     with the same permissions; opening a record and returning restores the list
     exactly, scroll included; back/forward move through view states
 - [~] App shell (§1): nested permission-aware navigation, authenticated profile,
-      403 deep-link guard, sign-out and demo persona switching shipped; badges,
+      403 deep-link guard and sign-out shipped; badges,
       global search, notification centre, recents, favorites, help and app
       switcher remain
   - [x] Header profile trigger uses a centered 40px button box, aligning avatar

@@ -59,14 +59,6 @@ export function signOut(): Promise<void> {
   return requireClient().logout({ redirectUri: window.location.origin });
 }
 
-export function switchPersona(username: string): Promise<void> {
-  return requireClient().login({
-    prompt: "login",
-    loginHint: username,
-    redirectUri: `${window.location.origin}/dashboard`,
-  });
-}
-
 function requireClient(): Keycloak {
   if (!keycloak) throw new Error("Authentication has not been initialized.");
   return keycloak;
