@@ -638,6 +638,8 @@ everything else.
       Keycloak URLs, the layering rule, why QF is wired the way it is
 - [ ] `docs/features.md` — the §1–§77 catalogue mapped to routes and endpoints,
       as a developer's index into the template (§77)
+- [x] `docs/RBAC.md` — JWT/Redis verification flow, exact default role/access
+      matrix, additive groups, backend enforcement and frontend behavior
 
 ## Phase 1 — Backend core
 

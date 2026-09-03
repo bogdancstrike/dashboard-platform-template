@@ -227,3 +227,4 @@ never sees anything raised by a mounted endpoint.
 | | |
 | --- | --- |
 | [`docs/TODO.md`](docs/TODO.md) | Implementation tracker, updated after every task |
+| [`docs/RBAC.md`](docs/RBAC.md) | Authentication flow, role/access matrix, groups and enforcement rules |
