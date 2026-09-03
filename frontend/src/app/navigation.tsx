@@ -183,13 +183,16 @@ export const NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((group) => group.items);
 export function selectedKeyFor(pathname: string): string {
   // `/` redirects to `/dashboard`, so it selects the same item.
   if (pathname === "/") return "/dashboard";
-  let best = "/dashboard";
+  let best: string | undefined;
   for (const item of NAV_ITEMS) {
-    if ((pathname === item.key || pathname.startsWith(`${item.key}/`)) && item.key.length > best.length) {
+    if (
+      (pathname === item.key || pathname.startsWith(`${item.key}/`)) &&
+      (!best || item.key.length > best.length)
+    ) {
       best = item.key;
     }
   }
-  return best;
+  return best ?? "/dashboard";
 }
 
 /** Breadcrumb trail for a path, from the navigation itself. */

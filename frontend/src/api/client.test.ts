@@ -113,6 +113,22 @@ describe("request", () => {
     expect(authorization).toBe("Bearer a-token");
   });
 
+  it("waits for an asynchronous token refresh", async () => {
+    let authorization: string | null = null;
+    server.use(
+      http.get("/platform/refreshed", ({ request: req }) => {
+        authorization = req.headers.get("Authorization");
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+
+    setTokenProvider(async () => "fresh-token");
+    await api.get("/refreshed");
+    setTokenProvider(() => null);
+
+    expect(authorization).toBe("Bearer fresh-token");
+  });
+
   it("sends no Authorization header when there is no token", async () => {
     let authorization: string | null = "unset";
     server.use(

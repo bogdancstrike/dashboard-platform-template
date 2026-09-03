@@ -27,4 +27,9 @@ describe("find and analytics navigation", () => {
       "Data catalog",
     ]);
   });
+
+  it("selects valid routes that are shorter than /dashboard", () => {
+    expect(selectedKeyFor("/admin")).toBe("/admin");
+    expect(selectedKeyFor("/mail/thread-1")).toBe("/mail");
+  });
 });

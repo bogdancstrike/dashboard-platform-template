@@ -22,6 +22,7 @@ highest-ranked one wins.
 from __future__ import annotations
 
 import functools
+import hashlib
 import json
 import threading
 import time
@@ -221,9 +222,23 @@ _jwks = _JwksCache()
 
 
 def verify_token(token: str) -> dict[str, Any]:
-    """Verify signature, issuer, audience and expiry. Raises Unauthorized."""
+    """Verify signature, issuer, audience and expiry. Raises Unauthorized.
+
+    Successful claims are cached in Redis until the JWT itself expires. The
+    cache key is a SHA-256 digest, never the bearer token, so neither Redis keys
+    nor values expose a reusable credential. Cache failure is only a miss.
+    """
     if not token:
         raise UnauthorizedError("Authentication required.")
+
+    from src.core import cache
+
+    cache_key = _token_cache_key(token)
+    cached = cache.get_json(cache_key)
+    current_time = time.time()
+    if isinstance(cached, dict) and _expiry(cached) > current_time:
+        return cached
+
     try:
         header = jwt.get_unverified_header(token)
     except JWTError as exc:
@@ -237,7 +252,7 @@ def verify_token(token: str) -> dict[str, Any]:
         raise UnauthorizedError("Token was signed by an unknown key.")
 
     try:
-        return jwt.decode(
+        claims = jwt.decode(
             token,
             key,
             algorithms=[key.get("alg", "RS256")],
@@ -250,11 +265,27 @@ def verify_token(token: str) -> dict[str, Any]:
                 "leeway": Config.JWT_LEEWAY_SECONDS,
             },
         )
+        seconds_left = int(_expiry(claims) - current_time)
+        if seconds_left > 0:
+            cache.set_json(cache_key, claims, ttl=seconds_left)
+        return claims
     except JWTError as exc:
         message = str(exc)
         if "expired" in message.lower():
             raise UnauthorizedError("Your session has expired. Sign in again.") from exc
         raise UnauthorizedError(f"Token verification failed: {message}") from exc
+
+
+def _token_cache_key(token: str) -> str:
+    digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    return f"{Config.SERVICE_NAME}:auth:token:{digest}"
+
+
+def _expiry(claims: dict[str, Any]) -> float:
+    try:
+        return float(claims.get("exp") or 0)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def role_from_claims(claims: dict[str, Any]) -> str:

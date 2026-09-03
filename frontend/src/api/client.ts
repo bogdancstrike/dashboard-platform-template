@@ -69,10 +69,11 @@ export interface RequestOptions {
   headers?: Record<string, string>;
 }
 
-/** Supplies the bearer token. Set once, when auth initialises. */
-let tokenProvider: () => string | null = () => null;
+/** Supplies a fresh bearer token. Set once, when auth initialises. */
+type TokenProvider = () => string | null | Promise<string | null>;
+let tokenProvider: TokenProvider = () => null;
 
-export function setTokenProvider(provider: () => string | null): void {
+export function setTokenProvider(provider: TokenProvider): void {
   tokenProvider = provider;
 }
 
@@ -111,7 +112,10 @@ export function buildQuery(params: Record<string, unknown> | undefined): string 
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = "GET", params, body, signal, headers = {} } = options;
   const correlationId = newCorrelationId();
-  const token = tokenProvider();
+  // Keycloak may refresh an almost-expired token before returning it. Awaiting
+  // here keeps freshness in one place instead of asking every API module to
+  // remember to refresh first.
+  const token = await tokenProvider();
 
   const response = await fetch(`${API_PREFIX}${path}${buildQuery(params)}`, {
     method,

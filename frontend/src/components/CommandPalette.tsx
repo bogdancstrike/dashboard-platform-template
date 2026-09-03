@@ -11,6 +11,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { NAV_GROUPS, NAV_ITEMS, selectedKeyFor } from "@/app/navigation";
+import { useAuth } from "@/auth/AuthProvider";
 import { useCommands, type PageCommand } from "@/commands/CommandContext";
 import { useAppearance } from "@/theme/AppearanceProvider";
 import type { Density } from "@/theme/tokens";
@@ -42,6 +43,7 @@ export function CommandPalette() {
   const navigate = useNavigate();
   const location = useLocation();
   const { appearance, mode, density, setAppearance, setDensity } = useAppearance();
+  const { can } = useAuth();
   const [query, setQuery] = useState("");
 
   // A palette that reopens showing the last search is a palette that answers
@@ -131,7 +133,7 @@ export function CommandPalette() {
 
         <Command.Group heading="General">
           {NAV_GROUPS.flatMap((group) =>
-            group.items.map((item) => (
+            group.items.filter((item) => can(item.permission)).map((item) => (
               <Command.Item
                 key={item.key}
                 value={`nav:${item.key}:${group.label} ${item.label}`}

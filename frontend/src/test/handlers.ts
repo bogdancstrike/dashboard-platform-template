@@ -52,6 +52,66 @@ export const healthSnapshot = {
   },
 };
 
+export const currentUser = {
+  user: {
+    id: "00000000-0000-0000-0000-000000000001",
+    email: "admin@nucleus.example",
+    username: "admin",
+    full_name: "Ada Administrator",
+    first_name: "Ada",
+    last_name: "Administrator",
+    avatar_url: null,
+    initials: "AA",
+    phone: null,
+    job_title: "Platform Administrator",
+    status: "ACTIVE",
+    locale: "en-US",
+    timezone: "Europe/Bucharest",
+    joined_at: "2025-01-01T00:00:00Z",
+    last_seen_at: "2026-09-03T12:00:00Z",
+    profile_completeness: 100,
+    mfa_enabled: true,
+  },
+  role: {
+    code: "ADMINISTRATOR",
+    name: "Administrator",
+    description: "Unrestricted access.",
+    color: "#dc2626",
+  },
+  organization: { id: "org-1", name: "Northwind Partners", slug: "northwind" },
+  department: { id: "dep-1", name: "Operations", code: "OPS" },
+  team: { id: "team-1", name: "Team Atlas", slug: "atlas" },
+  groups: [],
+  permissions: ["admin.access", "records.view", "users.view", "health.view"],
+  preferences: {
+    appearance: {
+      theme: "system" as const,
+      density: "middle" as const,
+      sidebar_collapsed: false,
+    },
+    formats: {
+      date: "YYYY-MM-DD" as const,
+      time: "24h" as const,
+      number: "1,234.56" as const,
+    },
+    defaults: { page_size: 25 as const, landing_page: "dashboard" },
+  },
+  session: {
+    id: "session-1",
+    impersonating: false,
+    impersonator_id: null,
+    impersonator_label: null,
+  },
+  personas: [
+    {
+      username: "admin",
+      full_name: "Ada Administrator",
+      avatar_url: null,
+      role: { code: "ADMINISTRATOR", name: "Administrator", color: "#dc2626" },
+    },
+  ],
+};
+
 /** Echoes the correlation id back, exactly as the real server does. */
 function echo<T extends object>(request: Request, body: T, status = 200) {
   return HttpResponse.json(body, {
@@ -120,6 +180,11 @@ export const dashboardSummary = {
 
 export const handlers = [
   http.get("/platform/meta/app", ({ request }) => echo(request, appMeta)),
+  http.get("/platform/api/me", ({ request }) => echo(request, currentUser)),
+  http.put("/platform/api/me", async ({ request }) => {
+    const body = (await request.json()) as { preferences: Record<string, unknown> };
+    return echo(request, { preferences: { ...currentUser.preferences, ...body.preferences } });
+  }),
   http.get("/platform/health/status", ({ request }) => echo(request, healthSnapshot)),
   http.get("/platform/dashboard/summary", ({ request }) => echo(request, dashboardSummary)),
 ];

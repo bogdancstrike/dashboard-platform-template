@@ -56,6 +56,13 @@ def test_me_returns_the_live_platform_profile(client, monkeypatch):
     assert body["team"]["name"]
     assert "admin.access" in body["permissions"]
     assert body["preferences"]["appearance"]["theme"] in {"light", "dark", "system"}
+    assert [persona["username"] for persona in body["personas"]] == [
+        "admin",
+        "manager",
+        "operator",
+        "analyst",
+        "user",
+    ]
 
 
 @pytest.mark.database

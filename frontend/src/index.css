@@ -29,6 +29,21 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+.nu-boot {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  background: var(--nu-bg, #f1f5f9);
+  color: var(--nu-text-secondary, #475569);
+  font-family: var(--nu-font, sans-serif);
+  font-size: 13px;
+}
+
 /*
  * A focus ring that is always visible when the keyboard put it there, and never
  * when the mouse did. §55 requires the first; §59 requires the second, because

@@ -8,6 +8,7 @@ import {
   Grid,
   Layout,
   Menu,
+  Result,
   Space,
   Tooltip,
   Typography,
@@ -24,10 +25,11 @@ import {
 } from "@ant-design/icons";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 
+import { useAuth } from "@/auth/AuthProvider";
 import { CommandPalette, CommandTrigger } from "@/components/CommandPalette";
 import { STORAGE_KEYS } from "@/config";
 import { useAppearance } from "@/theme/AppearanceProvider";
-import { NAV_GROUPS, selectedKeyFor, trailFor } from "./navigation";
+import { NAV_GROUPS, NAV_ITEMS, selectedKeyFor, trailFor } from "./navigation";
 
 const { Header, Sider, Content } = Layout;
 
@@ -52,6 +54,7 @@ export function AppShell() {
   const location = useLocation();
   const screens = Grid.useBreakpoint();
   const { mode, setAppearance, appearance } = useAppearance();
+  const auth = useAuth();
 
   const isMobile = screens.lg === false;
   const roomy = screens.xl === true;
@@ -94,17 +97,22 @@ export function AppShell() {
         key: group.key,
         label: group.label,
         type: "group" as const,
-        children: group.items.map((item) => ({
-          key: item.key,
-          icon: item.icon,
-          label: item.label,
-          disabled: item.disabled,
-        })),
-      })),
-    [],
+        children: group.items
+          .filter((item) => auth.can(item.permission))
+          .map((item) => ({
+            key: item.key,
+            icon: item.icon,
+            label: item.label,
+            disabled: item.disabled,
+          })),
+      })).filter((group) => group.children.length > 0),
+    [auth.can],
   );
 
   const trail = trailFor(location.pathname);
+  const activeItem = NAV_ITEMS.find((item) => item.key === selected);
+  const forbidden =
+    !auth.loading && Boolean(activeItem?.permission) && !auth.can(activeItem?.permission);
 
   return (
     <Layout className="nu-shell">
@@ -196,7 +204,15 @@ export function AppShell() {
             <Dropdown
               menu={{
                 items: [
-                  { key: "who", disabled: true, label: "Not signed in" },
+                  {
+                    key: "who",
+                    disabled: true,
+                    label: auth.profile
+                      ? `${auth.profile.role.name} · ${auth.profile.organization?.name ?? "No organization"}`
+                      : auth.loading
+                        ? "Loading profile…"
+                        : "Profile unavailable",
+                  },
                   { type: "divider" },
                   {
                     key: "preferences",
@@ -223,14 +239,43 @@ export function AppShell() {
                         appearance === "light" ? "dark" : appearance === "dark" ? "system" : "light",
                       ),
                   },
+                  ...(auth.profile?.personas.length
+                    ? [
+                        { type: "divider" as const },
+                        {
+                          key: "personas",
+                          label: "Switch demo persona",
+                          children: auth.profile.personas.map((persona) => ({
+                            key: `persona-${persona.username}`,
+                            label: `${persona.full_name} · ${persona.role.name}`,
+                            onClick: () => void auth.switchPersona(persona.username),
+                          })),
+                        },
+                      ]
+                    : []),
                   { type: "divider" },
-                  { key: "signout", icon: <LogoutOutlined />, label: "Sign out", disabled: true },
+                  {
+                    key: "signout",
+                    icon: <LogoutOutlined />,
+                    label: "Sign out",
+                    onClick: () => void auth.signOut(),
+                  },
                 ],
               }}
             >
               <span className="nu-user" tabIndex={0}>
-                <Avatar size="small" icon={<UserOutlined />} />
-                {!isMobile && <Typography.Text strong>Guest</Typography.Text>}
+                <Avatar
+                  size="small"
+                  src={auth.profile?.user.avatar_url ?? undefined}
+                  icon={!auth.profile?.user.avatar_url ? <UserOutlined /> : undefined}
+                >
+                  {auth.profile?.user.initials}
+                </Avatar>
+                {!isMobile && (
+                  <Typography.Text strong>
+                    {auth.profile?.user.full_name ?? (auth.loading ? "Signing in…" : "Unavailable")}
+                  </Typography.Text>
+                )}
               </span>
             </Dropdown>
           </Space>
@@ -241,7 +286,15 @@ export function AppShell() {
             Skip to content
           </a>
           <div id="nu-main">
-            <Outlet />
+            {forbidden ? (
+              <Result
+                status="403"
+                title="Permission required"
+                subTitle={`Your role does not include ${activeItem?.permission}.`}
+              />
+            ) : (
+              <Outlet />
+            )}
           </div>
         </Content>
       </Layout>

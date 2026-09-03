@@ -35,8 +35,8 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
 | Endpoints | 14 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 71 backend + 29 frontend passing. No e2e yet |
-| Frontend | scaffold **done** — theme, API client, 29 tests, build clean |
+| Tests | 75 backend + 34 frontend passing. No e2e yet |
+| Frontend | scaffold **done** — theme, API client, OIDC/RBAC, 34 tests, build clean |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
 **Backend and frontend are built in parallel from here**, in vertical slices: an
@@ -81,6 +81,14 @@ An item is `[x]` only when all of these hold:
 6. **Deep-linkable** (§69) and **state-persistent** (§72) if it is a view.
 7. **Docs updated** — this file, plus `README.md` if running or extending changed.
 8. **Committed and pushed.**
+
+### Runtime data boundary
+
+- [x] The production frontend contains no fixture/mock datasets and makes no
+      authorization decisions from hard-coded roles. Users, organizations,
+      demo-persona choices, permissions and page data come from backend APIs.
+      MSW remains test-only infrastructure at the HTTP boundary; it is never
+      imported by the application bundle
 
 ### Housekeeping
 
@@ -639,7 +647,10 @@ everything else.
 - [x] `core/query.py` — declarative FieldSet filter/sort/search/facets (§71)
 - [x] `core/rules.py` — RAQB tree → SQLAlchemy, and → readable text (§4, §51)
 - [x] `core/cache.py` — Redis helpers, degrading to a miss when unreachable
-- [x] `core/auth.py` — JWT verification, personas, RBAC decorators (§58, §76)
+- [x] `core/auth.py` — JWT verification, personas, RBAC decorators (§58, §76);
+      verified claims cached in Redis under a SHA-256 token digest for no
+      longer than the JWT's remaining lifetime, with cache failure degrading
+      to normal signature verification
 - [x] `core/audit.py` — audit trail writer (§21)
 - [x] `core/correlation.py` — correlation id + CORS
 - [x] API runtime — `maps/endpoint.json`, validated at startup
@@ -680,8 +691,8 @@ Each endpoint ships with its five-case integration test and the page consuming i
 
 - [x] Health / readiness / dependency snapshot (§24)
 - [x] Meta: SPA config, permission catalogue, roles, route surface
-- [~] `/api/me` — profile, permissions, org and validated preference updates
-      shipped; frontend identity/permission provider and persona switch remain (§58)
+- [x] `/api/me` — profile, live permissions, organization, validated preference
+      updates and backend-sourced demo persona switch choices (§58)
   - **Acceptance**: drives every permission decision in the UI; a role change on
     the server is visible on the next request without re-login
 - [ ] Dashboard: KPIs with previous-period comparison and sparklines, the
@@ -737,7 +748,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [~] API client — correlation id on every request, `ApiError` from the error
       envelope, cancellation, bearer injection, 12 unit tests. Still hand-written;
       generating it from `/swagger.json` is outstanding
-- [ ] Auth: Keycloak OIDC using the coordinates `/meta/app` publishes, silent
+- [x] Auth: Keycloak OIDC using the coordinates `/meta/app` publishes, silent
       refresh, permission hook reading `/api/me`
   - **Acceptance**: no Keycloak URL is baked into the bundle at build time
 - [ ] URL-state persistence — filters, sort, page, columns, density, scroll
@@ -745,9 +756,10 @@ Each endpoint ships with its five-case integration test and the page consuming i
   - **Acceptance**: copying the URL reproduces the exact view for another user
     with the same permissions; opening a record and returning restores the list
     exactly, scroll included; back/forward move through view states
-- [ ] App shell (§1): sidebar with nested groups, badges and permission-aware
-      items, header, breadcrumbs, global search, notification centre, profile
-      menu, quick actions, recents, favorites, help entry, app switcher
+- [~] App shell (§1): nested permission-aware navigation, authenticated profile,
+      403 deep-link guard, sign-out and demo persona switching shipped; badges,
+      global search, notification centre, recents, favorites, help and app
+      switcher remain
 - [x] **Command palette on `cmdk`** (as in gif_responder), `Ctrl/Cmd-K`, fuzzy,
       grouped: **On this page** · **General** · **Quick views** · **Settings**.
       Its trigger is in the **sidebar, under the logo, as "Fast actions"** — the
