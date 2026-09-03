@@ -46,6 +46,17 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
+    alias: {
+      // jsdom has no canvas, and a real chart throws inside zrender on dispose.
+      // The card around it is what these tests are about.
+      "echarts-for-react": fileURLToPath(
+        new URL("./src/test/stubs/echarts-for-react.tsx", import.meta.url),
+      ),
+    },
+    // `e2e/` belongs to Playwright. Vitest picking it up loads Playwright's
+    // `test.describe` outside a Playwright runner, which fails in a way that
+    // reads like a dependency conflict rather than a misrouted file.
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
     css: false,
     // The API is mocked at the network boundary (MSW), so a component test
     // exercises the real fetch path rather than a hand-stubbed module.

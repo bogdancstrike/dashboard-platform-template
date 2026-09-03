@@ -11,6 +11,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { App as AntApp } from "antd";
 import { render, type RenderOptions, type RenderResult } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
+import { MemoryRouter } from "react-router-dom";
 
 import { AppearanceProvider } from "@/theme/AppearanceProvider";
 
@@ -25,11 +26,20 @@ export function makeQueryClient(): QueryClient {
   });
 }
 
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({
+  children,
+  route = "/",
+}: {
+  children: ReactNode;
+  /** The URL the tree renders at — pages read filters and periods from it. */
+  route?: string;
+}) {
   return (
     <QueryClientProvider client={makeQueryClient()}>
       <AppearanceProvider>
-        <AntApp>{children}</AntApp>
+        <AntApp>
+          <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+        </AntApp>
       </AppearanceProvider>
     </QueryClientProvider>
   );
@@ -37,7 +47,11 @@ export function Providers({ children }: { children: ReactNode }) {
 
 export function renderWithProviders(
   ui: ReactElement,
-  options?: Omit<RenderOptions, "wrapper">,
+  options?: Omit<RenderOptions, "wrapper"> & { route?: string },
 ): RenderResult {
-  return render(ui, { wrapper: Providers, ...options });
+  const { route, ...rest } = options ?? {};
+  return render(ui, {
+    wrapper: ({ children }) => <Providers route={route}>{children}</Providers>,
+    ...rest,
+  });
 }

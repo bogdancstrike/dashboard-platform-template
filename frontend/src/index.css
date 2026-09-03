@@ -101,3 +101,265 @@ body {
 .nu-skip-link:focus {
   left: 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Application shell (§1)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* dvh, not vh: on a phone the browser's own chrome occupies the difference,
+   and the sidebar does not scroll — anything in that strip is unreachable. */
+.nu-shell { height: 100vh; height: 100dvh; overflow: hidden; }
+.nu-shell > .ant-layout { min-width: 0; height: 100vh; height: 100dvh; overflow: hidden; }
+
+.nu-sider {
+  height: 100vh; height: 100dvh;
+  position: sticky !important; top: 0; left: 0; overflow: hidden;
+  background: #0f172a !important;
+  border-right: 1px solid rgba(148, 163, 184, 0.12);
+}
+.nu-sider .ant-layout-sider-children { display: flex; flex-direction: column; min-height: 100%; }
+.nu-sider .ant-menu {
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  background: transparent; border-inline-end: none;
+  padding-bottom: 24px;
+}
+.nu-sider .ant-menu-item-group-title {
+  color: rgba(148, 163, 184, 0.55);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+  padding-inline: 20px; margin-top: 10px;
+}
+.nu-sider--mobile {
+  position: fixed !important; z-index: 60; transform: translateX(-100%);
+  transition: transform 0.2s ease;
+}
+.nu-sider--open { transform: translateX(0); width: 248px !important; min-width: 248px !important; }
+.nu-scrim { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.55); z-index: 50; }
+
+.nu-logo {
+  display: flex; align-items: center; gap: 11px; min-height: 56px; padding: 0 18px;
+  cursor: pointer; user-select: none; flex: 0 0 auto;
+}
+.nu-logo span { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.nu-logo strong { color: #fff; font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
+.nu-logo small { color: rgba(255, 255, 255, 0.45); font-size: 11px; }
+
+/* Three tracks — navigation, search, identity — so search takes the middle and
+   the width. It is the control people aim at rather than glance at. */
+.nu-header {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center; gap: 12px; height: 56px;
+  padding-inline: 18px;
+  border-bottom: 1px solid var(--nu-border);
+  background: var(--nu-surface);
+}
+.nu-header-search { display: flex; justify-content: center; min-width: 0; }
+.nu-breadcrumb { font-size: 13px; }
+
+.nu-omni {
+  display: inline-flex; align-items: center; gap: 10px;
+  width: min(460px, 100%); height: 34px; padding: 0 10px 0 12px;
+  border: 1px solid var(--nu-border); border-radius: 8px;
+  background: var(--nu-bg); color: var(--nu-text-tertiary);
+  font: inherit; font-size: 13px; cursor: pointer; text-align: start;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.nu-omni:hover { border-color: var(--nu-accent); background: var(--nu-surface); }
+.nu-omni-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Explicit box: inherited line-height made the chip taller than the 34px
+   field it sits in, so it stood proud of the rounded end rather than inside
+   it. */
+.nu-omni-kbd {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center;
+  height: 20px; padding: 0 6px; border-radius: 4px; line-height: 1;
+  border: 1px solid var(--nu-border); background: var(--nu-surface);
+  font-family: var(--nu-font-mono); font-size: 11px; color: var(--nu-text-tertiary);
+}
+
+/* AntD's collapse trigger is a light bar by default, which reads as a seam
+   across the bottom of a dark rail. */
+.nu-sider .ant-layout-sider-trigger {
+  background: #0b1220;
+  color: rgba(255, 255, 255, 0.55);
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+.nu-sider .ant-layout-sider-trigger:hover { color: #fff; background: #131f38; }
+/* The menu scrolls; the trigger is fixed over its last item, so the list needs
+   room to end above it. */
+.nu-sider .ant-menu { padding-bottom: 56px; }
+
+.nu-user { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; min-width: 0; }
+.nu-user .ant-typography { max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.nu-content {
+  height: calc(100vh - 56px); height: calc(100dvh - 56px);
+  overflow: auto; padding: 20px; background: var(--nu-bg);
+}
+
+@media (max-width: 991px) {
+  .nu-header { padding-inline: 10px; gap: 8px; }
+  .nu-content { padding: 14px; }
+  .nu-omni-label { display: none; }
+  .nu-omni { width: auto; }
+}
+
+/* ── page furniture ─────────────────────────────────────────────────── */
+.nu-page-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  flex-wrap: wrap; margin-bottom: 16px;
+}
+.nu-page-header-titles { min-width: 0; }
+.nu-page-title {
+  margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.015em; color: var(--nu-text);
+  display: flex; align-items: center; gap: 10px;
+}
+.nu-page-subtitle { margin-top: 4px; color: var(--nu-text-secondary); font-size: 13px; max-width: 90ch; }
+.nu-page-back { margin-inline-start: -8px; flex: 0 0 auto; }
+
+/* ── KPI tiles ──────────────────────────────────────────────────────── */
+/* A KPI row reads as one object only when the tiles are one size. Labels wrap
+   at some widths and only half carry a hint, so the height is set here rather
+   than left to whatever each tile happens to contain. */
+.nu-statcard {
+  border: 1px solid var(--nu-border); height: 100%; min-height: 104px;
+  transition: box-shadow 120ms ease, transform 120ms ease, border-color 120ms ease;
+}
+.nu-statcard .ant-card-body { height: 100%; }
+.nu-statcard:hover { box-shadow: var(--nu-shadow-md); transform: translateY(-1px); border-color: var(--nu-accent); }
+.nu-statcard-row { display: flex; align-items: flex-start; gap: 13px; height: 100%; }
+.nu-statcard-icon {
+  width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+  font-size: 16px; flex: 0 0 auto;
+}
+.nu-statcard-main { min-width: 0; flex: 1; }
+.nu-statcard-label {
+  font-size: 11.5px; font-weight: 600; color: var(--nu-text-secondary);
+  text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px;
+  overflow-wrap: anywhere;
+}
+.nu-statcard-value { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.nu-statcard-number {
+  font-size: 24px; font-weight: 700; line-height: 1.15; color: var(--nu-text);
+  font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+}
+.nu-statcard-delta {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 3px;
+  padding: 1px 7px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+/* Two lines rather than an ellipsis: at tile width a single nowrap line cuts
+   the sentence before the word that says which window the number is for. */
+.nu-statcard-hint {
+  font-size: 11.5px; margin-top: 4px; line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* ── charts ─────────────────────────────────────────────────────────── */
+.nu-chartcard { height: 100%; }
+.nu-chart-extra { display: inline-flex; align-items: center; gap: 8px; }
+
+/* ── alert strip (§66) ──────────────────────────────────────────────── */
+.nu-alert-strip .ant-card-body { padding: 10px 14px; }
+.nu-alert-tag { cursor: pointer; margin-inline-end: 0; border: none; }
+.nu-alert-tag:hover { filter: brightness(1.08); }
+
+/* ── activity feed ──────────────────────────────────────────────────── */
+.nu-activity-card .ant-timeline { margin-top: 4px; }
+.nu-activity-item { font-size: 13px; line-height: 1.45; }
+.nu-activity-time { font-size: 11.5px; color: var(--nu-text-tertiary); margin-top: 2px; }
+
+/* ── empty states (§34) ─────────────────────────────────────────────── */
+.nu-empty { padding: 40px 16px; text-align: center; color: var(--nu-text-secondary); }
+.nu-empty--compact { padding: 18px 12px; }
+.nu-empty-icon { font-size: 28px; color: var(--nu-text-tertiary); opacity: 0.7; margin-bottom: 8px; }
+.nu-empty-hint { font-size: 12.5px; color: var(--nu-text-tertiary); margin-top: 4px; }
+.nu-empty-action { margin-top: 12px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Command palette (§31) — fast search and fast actions
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* The trigger lives in the sidebar, directly under the logo: it is the first
+   thing in the navigation because it is the fastest way through it. */
+.nu-fast { flex: 0 0 auto; padding: 4px 12px 10px; }
+.nu-fast--collapsed { padding-inline: 12px; }
+.nu-fast-heading {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.55); padding: 6px 8px 8px;
+}
+.nu-fast-trigger {
+  display: flex; align-items: center; gap: 9px; width: 100%; height: 34px;
+  padding: 0 8px 0 10px; border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(148, 163, 184, 0.08);
+  color: rgba(226, 232, 240, 0.72);
+  font: inherit; font-size: 13px; text-align: start; cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.nu-fast-trigger:hover {
+  background: rgba(148, 163, 184, 0.16);
+  border-color: rgba(139, 139, 240, 0.6);
+  color: #fff;
+}
+.nu-fast--collapsed .nu-fast-trigger { justify-content: center; padding: 0; }
+.nu-fast-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nu-fast-trigger kbd {
+  flex: 0 0 auto; display: inline-flex; align-items: center; height: 19px;
+  padding: 0 5px; border-radius: 4px; line-height: 1;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(2, 6, 23, 0.4);
+  font-family: var(--nu-font-mono); font-size: 10.5px; color: rgba(226, 232, 240, 0.6);
+}
+
+.nu-header-spacer { min-width: 0; }
+
+/* ── the dialog ─────────────────────────────────────────────────────── */
+[cmdk-overlay] { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.45); z-index: 1200; }
+.nu-cmdk {
+  position: fixed; z-index: 1201;
+  top: 14vh; left: 50%; transform: translateX(-50%);
+  width: min(620px, calc(100vw - 32px)); max-height: 62vh;
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--nu-surface); color: var(--nu-text);
+  border: 1px solid var(--nu-border); border-radius: 12px;
+  box-shadow: var(--nu-shadow-lg);
+}
+
+.nu-cmdk-input {
+  display: flex; align-items: center; gap: 10px; flex: 0 0 auto;
+  padding: 12px 14px; border-bottom: 1px solid var(--nu-border-subtle);
+  color: var(--nu-text-tertiary);
+}
+.nu-cmdk-input input {
+  flex: 1; min-width: 0; border: none; outline: none; background: transparent;
+  font: inherit; font-size: 15px; color: var(--nu-text);
+}
+.nu-cmdk-input input::placeholder { color: var(--nu-text-tertiary); }
+.nu-cmdk-input kbd {
+  padding: 1px 6px; border-radius: 4px; border: 1px solid var(--nu-border);
+  font-family: var(--nu-font-mono); font-size: 11px; color: var(--nu-text-tertiary);
+}
+
+.nu-cmdk [cmdk-list] { flex: 1; min-height: 0; overflow: auto; padding: 6px; scroll-padding: 6px; }
+.nu-cmdk [cmdk-group-heading] {
+  padding: 10px 10px 6px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--nu-text-tertiary);
+}
+.nu-cmdk [cmdk-item] {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 8px; cursor: pointer;
+  font-size: 13.5px; color: var(--nu-text);
+}
+/* cmdk drives selection from the keyboard, so hover is not the state that
+   matters — this is the one the arrow keys move. */
+.nu-cmdk [cmdk-item][data-selected="true"] { background: var(--nu-accent-soft); }
+.nu-cmdk [cmdk-item][aria-disabled="true"] { opacity: 0.45; cursor: default; }
+.nu-cmdk-icon { display: inline-flex; width: 18px; justify-content: center; color: var(--nu-text-tertiary); }
+.nu-cmdk-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nu-cmdk-hint { flex: 0 0 auto; font-size: 11.5px; color: var(--nu-text-tertiary); }
+.nu-cmdk [cmdk-item] kbd {
+  padding: 1px 6px; border-radius: 4px; border: 1px solid var(--nu-border);
+  font-family: var(--nu-font-mono); font-size: 11px; color: var(--nu-text-tertiary);
+}
+.nu-cmdk-empty { display: block; padding: 24px 12px; text-align: center; color: var(--nu-text-tertiary); font-size: 13px; }

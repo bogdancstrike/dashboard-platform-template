@@ -5,8 +5,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { App as AntApp } from "antd";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
+import { CommandProvider } from "@/commands/CommandContext";
 import App from "@/App";
 import { AppearanceProvider } from "@/theme/AppearanceProvider";
 
@@ -38,7 +40,11 @@ createRoot(container).render(
         {/* AntApp supplies the message/notification/modal contexts that the
             static `message.*` helpers cannot theme. */}
         <AntApp>
-          <App />
+          <BrowserRouter>
+            <CommandProvider>
+              <App />
+            </CommandProvider>
+          </BrowserRouter>
         </AntApp>
       </AppearanceProvider>
     </QueryClientProvider>

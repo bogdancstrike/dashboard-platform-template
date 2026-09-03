@@ -2,7 +2,7 @@
   "namespaces": [
     {
       "name": "platform",
-      "description": "Nucleus — enterprise application template platform"
+      "description": "Nucleus \u2014 enterprise application template platform"
     }
   ],
   "models": {
@@ -13,7 +13,9 @@
       "namespace": "platform",
       "operation_name": "liveness",
       "model_name": "Empty",
-      "request_method": ["GET"],
+      "request_method": [
+        "GET"
+      ],
       "api_url": "/health/live",
       "description": "Process is up. Never touches a dependency.",
       "exec_method": {
@@ -25,9 +27,11 @@
       "namespace": "platform",
       "operation_name": "readiness",
       "model_name": "Empty",
-      "request_method": ["GET"],
+      "request_method": [
+        "GET"
+      ],
       "api_url": "/health/ready",
-      "description": "Ready to serve traffic — the database must answer.",
+      "description": "Ready to serve traffic \u2014 the database must answer.",
       "exec_method": {
         "module_name": "src.api.health",
         "method_name": "readiness"
@@ -37,7 +41,9 @@
       "namespace": "platform",
       "operation_name": "health_snapshot",
       "model_name": "Empty",
-      "request_method": ["GET"],
+      "request_method": [
+        "GET"
+      ],
       "api_url": "/health/status",
       "description": "Every monitored dependency, with latency and last error.",
       "exec_method": {
@@ -49,7 +55,9 @@
       "namespace": "platform",
       "operation_name": "meta_app",
       "model_name": "Empty",
-      "request_method": ["GET"],
+      "request_method": [
+        "GET"
+      ],
       "api_url": "/meta/app",
       "description": "Branding and the OIDC coordinates the SPA needs before login.",
       "exec_method": {
@@ -61,7 +69,9 @@
       "namespace": "platform",
       "operation_name": "meta_permissions",
       "model_name": "Empty",
-      "request_method": ["GET"],
+      "request_method": [
+        "GET"
+      ],
       "api_url": "/meta/permissions",
       "description": "The permission catalogue, grouped as the admin matrix renders it.",
       "exec_method": {
@@ -73,7 +83,9 @@
       "namespace": "platform",
       "operation_name": "meta_roles",
       "model_name": "Empty",
-      "request_method": ["GET"],
+      "request_method": [
+        "GET"
+      ],
       "api_url": "/meta/roles",
       "description": "Built-in role definitions and the permissions each carries.",
       "exec_method": {
@@ -85,12 +97,42 @@
       "namespace": "platform",
       "operation_name": "meta_routes",
       "model_name": "Empty",
-      "request_method": ["GET"],
+      "request_method": [
+        "GET"
+      ],
       "api_url": "/meta/routes",
       "description": "The API surface this process is serving.",
       "exec_method": {
         "module_name": "src.api.meta",
         "method_name": "routes"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "dashboard_summary",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/dashboard/summary",
+      "description": "KPIs with previous-period comparison, charts, alerts and activity.",
+      "exec_method": {
+        "module_name": "src.api.dashboard",
+        "method_name": "summary"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "dashboard_alerts",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/dashboard/alerts",
+      "description": "Operational alerts, each linking to the records behind it.",
+      "exec_method": {
+        "module_name": "src.api.dashboard",
+        "method_name": "alerts"
       }
     }
   ]

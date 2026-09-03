@@ -164,6 +164,25 @@ export function statusColor(value: string | null | undefined): string {
   return STATUS_COLORS[value.toUpperCase()] ?? NEUTRAL[400];
 }
 
+/** The status colour only when there is one — `undefined` otherwise. */
+export function knownStatusColor(value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+  return STATUS_COLORS[value.toUpperCase()];
+}
+
+/**
+ * The colour a category should be drawn in.
+ *
+ * A known status keeps its own colour, so `DONE` is the same green on the
+ * chart, in the table and on the board. Anything else takes the next series
+ * colour rather than being painted the "unknown" grey — a bar chart of ticket
+ * categories is not a chart of statuses, and rendering it entirely grey to
+ * signal that would be a strange thing to do to the reader.
+ */
+export function categoryColor(value: string | null | undefined, index: number): string {
+  return knownStatusColor(value) ?? SERIES[index % SERIES.length] ?? SERIES[0];
+}
+
 export const RADIUS = { control: 4, card: 6, modal: 8, pill: 999 } as const;
 
 /** 4px base unit. Anything not on this scale is a mistake, not a nuance. */

@@ -457,6 +457,88 @@ and then shows the wrong columns is a saved search nobody trusts.
 
 ---
 
+## Modules added after the first pass
+
+Requested during the build, and specified here so they are tracked like
+everything else.
+
+### `/kanban` — boards, cards, drag (§18, §33, §36)
+
+- [ ] Model: `kanban_boards` → `kanban_lanes` → `kanban_cards`, plus
+      `kanban_card_items` (the card's to-do list). Comments reuse the existing
+      polymorphic `comments` table; attachments reuse `files`
+  - Cards carry `position` **and** `lane_id`, so a drag is one UPDATE and a
+    reload restores exactly what the reader left
+- [ ] Board CRUD, lane CRUD, card CRUD
+- [ ] **Drag a card between lanes and within a lane.** Optimistic on the client,
+      reconciled against the server's answer (§73)
+  - **Acceptance**: dragging a card and reloading shows it where it was
+    dropped; a failed move snaps back and says why; two people dragging the
+    same card do not corrupt the order
+- [ ] Card detail: description, assignee, due date, labels, **to-do checklist**
+      with per-item completion, **comments** with mentions, attachments,
+      activity timeline
+  - **Acceptance**: ticking a to-do updates the card's progress without a
+    reload; the checklist and comment counts show on the card face
+- [ ] Filters: assignee, label, due, text — applied server-side (§71)
+- [ ] Keyboard: move a card between lanes without a mouse (§54, §55)
+
+### `/notifications` — the notification centre, live (§17)
+
+- [ ] A page listing every notification: category, severity, actor, resource,
+      timestamp, read state
+- [ ] **Mark one as read**, and **mark all as read**
+- [ ] Filter by category, severity and read state; group by `group_key` so
+      twelve "assigned you a task" rows collapse into one
+- [ ] **Live over WebSocket (`wss://`)** — a new notification appears without a
+      reload, and the header badge updates with it
+  - Backend: a WS endpoint authenticated by the same access token, scoped to
+    the signed-in user; heartbeats; server-side fan-out on write
+  - Client: reconnect with backoff, and **fall back to polling** when the
+    socket cannot be established — a notification centre that silently stops
+    updating behind a corporate proxy is worse than one that polls
+  - **Acceptance**: two browsers signed in as the same user both see a new
+    notification within a second; killing the socket reconnects without a
+    reload and without duplicating rows; a user never receives another user's
+    notifications (asserted by an integration test, not by inspection)
+
+### `/profile` — the user's own page (§40, §41)
+
+- [ ] Header: avatar, name, role, organization, department, joined, last seen
+- [ ] Tabs: overview · activity · security · preferences
+- [ ] Personal analytics, in the style of gif_responder's profile: tasks
+      completed over time, throughput by week, an activity heatmap by day,
+      and the record types they touch most
+- [ ] Their own recent activity, favourites, saved searches and sessions
+- [ ] A public view of another user at `/profile/:username`, showing only what
+      the viewer's permissions allow
+
+### `/files` — object storage on MinIO (§20)
+
+- [ ] MinIO added to the compose stack, with a bucket created on first boot
+- [ ] Backend storage service behind one interface, so MinIO is swappable for
+      S3 or a local volume without touching a handler
+- [ ] **Presigned URLs** for upload and download — bytes never pass through the
+      API process, which is what keeps a 200MB upload from occupying a gevent
+      worker for the duration
+- [ ] Multi-file drag-and-drop upload with per-file progress; move, rename,
+      copy, delete; preview for images, PDF and text
+  - **Acceptance**: uploading a file makes it appear in the folder without a
+    reload; a download link expires; deleting a file removes the object as well
+    as the row; a failed upload leaves neither
+
+### Dashboard, expanded (§2, §44)
+
+- [x] KPI row with previous-period comparison and drill-down
+- [x] Alert strip, activity feed, six chart panels, chart/table toggle, CSV
+- [ ] **More chart types**, as gif_responder's dashboard does: stacked area,
+      horizontal bars, a donut with a centre total, a day/hour heatmap, a
+      funnel, a gauge for SLA compliance, and a scatter of value against age
+  - **Acceptance**: every panel is readable in both themes, has an empty state,
+    and can be read as a table and exported
+
+---
+
 ## Phase 0 — Foundations
 
 - [x] Repo scaffold (`backend/`, `frontend/`, `docs/`)
@@ -597,10 +679,10 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [ ] App shell (§1): sidebar with nested groups, badges and permission-aware
       items, header, breadcrumbs, global search, notification centre, profile
       menu, quick actions, recents, favorites, help entry, app switcher
-- [ ] **Command palette on `cmdk`** (as in gif_responder), `Ctrl/Cmd-K`, fuzzy,
-      grouped: **On this page** (actions for the current route) · **General**
-      (navigation and entity search results) · **Quick views** (saved views and
-      searches) · **Settings** (§31)
+- [x] **Command palette on `cmdk`** (as in gif_responder), `Ctrl/Cmd-K`, fuzzy,
+      grouped: **On this page** · **General** · **Quick views** · **Settings**.
+      Its trigger is in the **sidebar, under the logo, as "Fast actions"** — the
+      palette is fast search *and* fast commands, not a link to `/search` (§31)
   - **Acceptance**: opens in under 50ms with the palette code-split; search is
     debounced and cancellable; arrows and `Enter` work throughout; every group
     reachable without a mouse; results respect the caller's permissions
