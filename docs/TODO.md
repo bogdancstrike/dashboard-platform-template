@@ -623,6 +623,8 @@ everything else.
 - [x] `backend/Dockerfile` — two stage, `CMD gunicorn -k gevent -c gunicorn.conf.py wsgi:application`
 - [x] `frontend/Dockerfile` — Vite build, bundle served by nginx on the API's
       own origin (no CORS, no API URL compiled into the bundle)
+  - Healthcheck targets `127.0.0.1`, matching the rendered IPv4 nginx listener
+    instead of Alpine's IPv6-first `localhost`
 - [x] `docker-compose.yml` — postgres 18, redis 8, keycloak, seed, api, frontend
   - **Acceptance**: `docker compose up` on a clean machine reaches a working
     sign-in page with seeded data and no manual step; every service has a
