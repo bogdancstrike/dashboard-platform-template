@@ -79,7 +79,7 @@ export function PeoplePicker({
       optionLabelProp="label"
       notFoundContent={results.isFetching ? "Searching…" : "Nobody by that name"}
       onChange={(next) => {
-        const ids = (Array.isArray(next) ? next : next ? [next] : []) as string[];
+        const ids = (Array.isArray(next) ? next : next ? [next] : []);
         onChange(ids, people.filter((person) => ids.includes(person.id)));
       }}
       options={people.map((person) => ({

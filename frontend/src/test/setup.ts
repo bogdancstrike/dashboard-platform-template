@@ -16,7 +16,7 @@ if (!window.matchMedia) {
     addEventListener: () => {},
     removeEventListener: () => {},
     dispatchEvent: () => false,
-  })) as typeof window.matchMedia;
+  }));
 }
 
 if (!window.ResizeObserver) {
@@ -24,7 +24,7 @@ if (!window.ResizeObserver) {
     observe() {}
     unobserve() {}
     disconnect() {}
-  } as unknown as typeof ResizeObserver;
+  };
 }
 
 // jsdom throws "not implemented" for the two-argument form, which AntD's table
@@ -34,7 +34,7 @@ const realGetComputedStyle = window.getComputedStyle.bind(window);
 window.getComputedStyle = ((element: Element, pseudoElement?: string | null) =>
   pseudoElement
     ? ({ getPropertyValue: () => "" } as unknown as CSSStyleDeclaration)
-    : realGetComputedStyle(element)) as typeof window.getComputedStyle;
+    : realGetComputedStyle(element));
 
 // `error` rather than `warn`: a request the handlers do not cover is a test
 // quietly exercising something nobody described, which is worth failing on.

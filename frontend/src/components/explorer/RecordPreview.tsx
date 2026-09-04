@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 
 import type { ExplorerField, ExplorerResult } from "@/api/explorer";
 import { HighlightedText } from "@/components/HighlightedText";
+import { asText } from "@/lib/text";
 
 const { Text } = Typography;
 
@@ -32,7 +33,7 @@ export function RecordPreview({ open, record, result, onClose }: RecordPreviewPr
   if (!record || !result) return null;
 
   const fields = result.fields;
-  const title = String(record[result.columns[0] ?? "id"] ?? record.id);
+  const title = asText(record[result.columns[0] ?? "id"]) || record.id;
 
   const copy = async (value: string, what: string) => {
     try {
@@ -117,13 +118,13 @@ function PreviewValue({
     return <Text type="secondary">—</Text>;
   }
   if (field.kind === "datetime") {
-    const parsed = new Date(String(value));
-    return <Text>{Number.isNaN(parsed.valueOf()) ? String(value) : parsed.toLocaleString()}</Text>;
+    const parsed = new Date(asText(value));
+    return <Text>{Number.isNaN(parsed.valueOf()) ? asText(value) : parsed.toLocaleString()}</Text>;
   }
   if (field.kind === "bool") return <Text>{value ? "Yes" : "No"}</Text>;
   return (
     <Text>
-      <HighlightedText text={String(value)} term={term} />
+      <HighlightedText text={asText(value)} term={term} />
     </Text>
   );
 }

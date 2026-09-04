@@ -12,10 +12,11 @@
 
 import { Button, Card, Empty, List, Space, Table, Tag, Tooltip, Typography } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
-import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
+import type { ColumnsType, ColumnType, TablePaginationConfig } from "antd/es/table";
 
 import type { ExplorerField, ExplorerResult, ExplorerView } from "@/api/explorer";
 import { HighlightedText } from "@/components/HighlightedText";
+import { asText } from "@/lib/text";
 
 const { Text } = Typography;
 
@@ -54,19 +55,21 @@ export function ExplorerResults({
   const empty = <Empty description="No records match this question" />;
 
   const columns: ColumnsType<ExplorerRecord> = [
-    ...(result?.columns ?? []).map((name) => {
+    ...(result?.columns ?? []).map((name): ColumnType<ExplorerRecord> => {
       const field = fields.get(name);
       return {
         key: name,
         dataIndex: name,
         title: field?.label ?? title(name),
-        sorter: field?.sortable,
+        ...(field?.sortable ? { sorter: true } : {}),
+        // Which arrow the header shows, driven by what the server sorted by
+        // rather than by what the table last remembered.
         sortOrder: result?.sort === name ? (result.order === "asc" ? "ascend" : "descend") : null,
         ellipsis: true,
         render: (value: unknown) => (
           <Value value={value} field={field} term={searchable.has(name) ? term : ""} />
         ),
-      } as ColumnsType<ExplorerRecord>[number];
+      };
     }),
     {
       key: "actions",
@@ -229,18 +232,18 @@ function Value({
 }) {
   if (value === null || value === undefined || value === "") return <Text type="secondary">—</Text>;
   if (field?.kind === "bool") return <Tag color={value ? "green" : "default"}>{value ? "Yes" : "No"}</Tag>;
-  if (field?.kind === "enum") return <Tag>{String(value).replaceAll("_", " ")}</Tag>;
+  if (field?.kind === "enum") return <Tag>{asText(value).replaceAll("_", " ")}</Tag>;
   if (field?.kind === "datetime") {
-    const parsed = new Date(String(value));
-    return <Text>{Number.isNaN(parsed.valueOf()) ? String(value) : parsed.toLocaleString()}</Text>;
+    const parsed = new Date(asText(value));
+    return <Text>{Number.isNaN(parsed.valueOf()) ? asText(value) : parsed.toLocaleString()}</Text>;
   }
   if (Array.isArray(value)) {
-    return <Space size={4} wrap>{value.map((entry) => <Tag key={String(entry)}>{String(entry)}</Tag>)}</Space>;
+    return <Space size={4} wrap>{value.map((entry) => <Tag key={asText(entry)}>{asText(entry)}</Tag>)}</Space>;
   }
   if (typeof value === "number") {
     return <Text>{value.toLocaleString(undefined, { maximumFractionDigits: 2 })}</Text>;
   }
-  const text = <HighlightedText text={String(value)} term={term} />;
+  const text = <HighlightedText text={asText(value)} term={term} />;
   return primary ? <Text strong>{text}</Text> : <Text>{text}</Text>;
 }
 
@@ -265,9 +268,7 @@ function group(rows: ExplorerRecord[], field: string, result?: ExplorerResult): 
   );
   const sections = new Map<string, ExplorerRecord[]>();
   for (const row of rows) {
-    const value = row[field] === null || row[field] === undefined || row[field] === ""
-      ? ""
-      : String(row[field]);
+    const value = asText(row[field]);
     const bucket = sections.get(value);
     if (bucket) bucket.push(row);
     else sections.set(value, [row]);

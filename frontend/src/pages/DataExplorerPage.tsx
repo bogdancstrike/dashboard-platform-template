@@ -41,6 +41,7 @@ import { SavedSearchDrawer } from "@/components/explorer/SavedSearchDrawer";
 import { SavedSearchForm } from "@/components/explorer/SavedSearchForm";
 import { PageHeader } from "@/components/PageHeader";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { asText } from "@/lib/text";
 
 const { Text } = Typography;
 
@@ -180,7 +181,7 @@ export default function DataExplorerPage() {
     if (saved.condition_tree) next.set("tree", JSON.stringify(saved.condition_tree));
     Object.entries(saved.filters).forEach(([name, value]) => {
       if (value !== undefined && value !== null && value !== "") {
-        next.set(`f.${name}`, Array.isArray(value) ? value.join(",") : String(value));
+        next.set(`f.${name}`, Array.isArray(value) ? value.join(",") : asText(value));
       }
     });
     next.set("columns", saved.columns.join(","));

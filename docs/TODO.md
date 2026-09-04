@@ -240,6 +240,13 @@ function is a slow test that fails for unrelated reasons.
   `strict: true`; `npm run build` produces no chunk above 500KB gzipped without
   an explicit exemption
 
+- [x] **Lint** — `eslint.config.js` exists and `make lint` runs it. Type-aware
+      rules only, and only ones that catch defects a type checker cannot see: a
+      floating promise, a hook whose dependencies drifted, a comparison that is
+      always true. No stylistic rules — a lint run that spends its output on
+      quote characters trains people to skim it. Errors fail the run; warnings
+      advise, and the places a warning is wrong carry a comment saying why
+
 ### End to end — Playwright
 
 - [x] Harness: `docker compose up`, seed, then run against the real stack with

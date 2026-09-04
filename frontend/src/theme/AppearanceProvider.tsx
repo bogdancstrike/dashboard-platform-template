@@ -72,6 +72,9 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   // Follow the OS while the setting is `system`, and keep following it — a
   // laptop that switches to dark at sunset should take the app with it.
   useEffect(() => {
+    // The DOM types say `matchMedia` is always there; jsdom says otherwise,
+    // which is why `test/setup.ts` polyfills it. The guard is not dead code.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!window.matchMedia) return;
     const query = window.matchMedia("(prefers-color-scheme: dark)");
     const listener = (event: MediaQueryListEvent) => setSystemMode(event.matches ? "dark" : "light");

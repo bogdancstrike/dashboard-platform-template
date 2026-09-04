@@ -9,6 +9,7 @@ import { BrowserRouter } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { metaApi } from "@/api/meta";
+import { asText } from "@/lib/text";
 import { AuthProvider } from "@/auth/AuthProvider";
 import { initializeAuth } from "@/auth/keycloak";
 import { CommandProvider } from "@/commands/CommandContext";
@@ -45,7 +46,7 @@ function Boot({ error }: { error?: unknown }) {
         <Result
           status="error"
           title="Could not sign you in"
-          subTitle={error instanceof Error ? error.message : String(error)}
+          subTitle={error instanceof Error ? error.message : asText(error)}
           extra={<Button onClick={() => window.location.reload()}>Try again</Button>}
         />
       </div>

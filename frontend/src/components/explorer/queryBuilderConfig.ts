@@ -151,7 +151,7 @@ function builderOperatorDefinitions(): Operators {
         ? { ...definition, label: OPERATOR_LABEL[name] as string }
         : definition,
     ]),
-  ) as Operators;
+  );
 }
 
 /**
@@ -177,8 +177,8 @@ function builderTypes(): Types {
   const types = AntdConfig.types;
   return {
     ...types,
-    text: withMembershipWidget(types["text"] as Type),
-    number: withMembershipWidget(types["number"] as Type),
+    text: withMembershipWidget(types["text"]),
+    number: withMembershipWidget(types["number"]),
   };
 }
 
@@ -249,5 +249,5 @@ export function queryBuilderConfig(fields: ExplorerField[]): Config {
           },
         ]),
     ),
-  } as Config;
+  };
 }

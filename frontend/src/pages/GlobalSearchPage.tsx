@@ -65,9 +65,8 @@ export default function GlobalSearchPage() {
       const step = event.key === "ArrowDown" ? 1 : -1;
       const next = (cursor + step + flattened.length) % flattened.length;
       setCursor(next);
-      listRef.current
-        ?.querySelectorAll("[data-hit]")
-        [next]?.scrollIntoView({ block: "nearest" });
+      const hits = listRef.current?.querySelectorAll("[data-hit]");
+      hits?.[next]?.scrollIntoView({ block: "nearest" });
     }
     if (event.key === "Enter") {
       const hit = flattened[cursor];

@@ -106,8 +106,9 @@ e2e: ## Playwright end-to-end suite against the running stack
 	cd $(FRONTEND) && npm run test:e2e
 
 .PHONY: lint
-lint: ## Typecheck the frontend and check the endpoint map
+lint: ## Typecheck and lint the frontend, and check the endpoint map
 	cd $(FRONTEND) && npm run typecheck
+	cd $(FRONTEND) && npm run lint
 	cd $(BACKEND) && ../$(PY) -m src.api.endpoint_map
 
 # ── Local development, outside Docker ────────────────────────────────────

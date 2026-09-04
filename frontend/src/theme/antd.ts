@@ -23,6 +23,9 @@ export type Appearance = "light" | "dark" | "system";
 
 export function resolveAppearance(appearance: Appearance): "light" | "dark" {
   if (appearance !== "system") return appearance;
+  // Server-side rendering has no window, and jsdom has no matchMedia; the DOM
+  // types account for neither.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (typeof window === "undefined" || !window.matchMedia) return "light";
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }

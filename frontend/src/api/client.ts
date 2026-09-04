@@ -17,6 +17,7 @@
  */
 
 import { API_PREFIX, CORRELATION_HEADER } from "@/config";
+import { asText } from "@/lib/text";
 
 export interface ApiErrorBody {
   error: string;
@@ -102,7 +103,7 @@ export function buildQuery(params: Record<string, unknown> | undefined): string 
       const joined = value.filter((v) => v !== undefined && v !== null && v !== "").join(",");
       if (joined) search.set(key, joined);
     } else {
-      search.set(key, String(value));
+      search.set(key, asText(value));
     }
   }
   const query = search.toString();

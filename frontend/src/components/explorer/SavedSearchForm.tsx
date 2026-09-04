@@ -123,7 +123,7 @@ export function SavedSearchForm({
       };
       return search
         ? explorerApi.updateSaved(search.id, body)
-        : explorerApi.createSaved(body as SaveSearchInput);
+        : explorerApi.createSaved(body);
     },
     onSuccess: async (saved) => {
       await invalidate();

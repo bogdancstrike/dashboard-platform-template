@@ -122,6 +122,10 @@ describe("request", () => {
       }),
     );
 
+    // Deliberately async with nothing to await: the provider may return a
+    // promise — Keycloak refreshes an expiring token before answering — and
+    // this asserts the client waits for it.
+    // eslint-disable-next-line @typescript-eslint/require-await
     setTokenProvider(async () => "fresh-token");
     await api.get("/refreshed");
     setTokenProvider(() => null);
