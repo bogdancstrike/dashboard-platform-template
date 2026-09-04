@@ -33,9 +33,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Backend core (`src/core/`) | **done** — db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
-| Endpoints | 32 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×3, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×1, audit ×5, records ×1 |
+| Endpoints | 33 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×3, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×2, audit ×5, records ×1 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 190 backend + 123 frontend + 78 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
+| Tests | 192 backend + 129 frontend + 81 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
 | Frontend | shell, Data Explorer, discovery workspaces and the notification centre; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -572,8 +572,10 @@ everything else.
     that cannot explain its own order is one nobody scrolls past the first row
   - ↑/↓ walk the flattened results across group boundaries, Enter opens the
     highlighted one, and a group hands its term to Data Explorer
-- [x] `/find/relationships` — traverse connections from any record in both an
-      accessible list and a visual graph without losing the exploration trail
+- [x] `/find/relationships` — a **graph-analysis page** first and a traversal
+      tool second: it opens on the connection map rather than an empty search
+      box, then follows any record's links in both an accessible list and a
+      visual graph without losing the exploration trail
   - The connections are **derived from the schema**: every link is a foreign
     key that already exists, so adding a column with a `ForeignKey` makes the
     relationship appear and removing one makes it disappear. A hand-written
@@ -588,6 +590,18 @@ everything else.
     would land somewhere different each time, making two screenshots of one
     record look like two different records; the list beside it is the
     accessible and complete equivalent
+  - **The landing state is an analysis, not a prompt.**
+    `/api/relationships/overview` returns the whole map — entities sized by
+    record count, every foreign key weighted by how many rows actually carry
+    it, and the records the most rows point at. An explorer that opens on a
+    search box only helps somebody who already knew what they were looking for
+  - **Coverage is the finding.** "600 tickets, 310 of which name a customer" is
+    a different fact from "tickets have customers", and the other 290 are
+    usually what somebody came to see. Every relation shows the share of rows
+    carrying it, and a thin one is flagged rather than left to be noticed
+  - Hubs come from one `GROUP BY` per profiled relation rather than a count per
+    record: asking "how connected is this customer?" of three hundred customers
+    one at a time is three hundred round trips for a panel nobody would wait for
 - [x] `/find/catalog` — entities and fields with types, allowed operators,
       freshness, completeness and links into Data Explorer
   - Generated from the same `Resource` declarations the explorer, the builder
@@ -1015,20 +1029,31 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] `docker compose up` clean-boot green — every service healthy from empty
       volumes; seed wrote 15 554 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
-- [~] Backend tests — 183 passing, including Data Explorer query, validation,
+- [~] Backend tests — 192 passing, including Data Explorer query, validation,
       JWT/RBAC, saved-search visibility/lifecycle, the notification centre's
       scoping/filtering/grouping contract, the audit ledger's permissions,
-      diff semantics, redaction and read-only surface, and the export writers'
-      BOM, formula-injection and question-not-page guarantees
-- [~] Frontend unit + component tests — 111 passing, including Data Explorer
+      diff semantics, redaction and read-only surface, the export writers' BOM,
+      formula-injection and question-not-page guarantees, the entity detail
+      contract and the connection map's aggregates
+  - The one test that drops every table now does so in a scratch database of
+    its own. Pointed at `TEST_DATABASE_URL` — which `make test-backend-db`
+    aims at the **running stack** — it silently replaced the demo dataset with a
+    small one, so every Playwright run afterwards measured 60 tasks where
+    compose had produced 500. Nothing failed; the numbers were quietly different
+- [~] Frontend unit + component tests — 129 passing, including Data Explorer
       backend rendering, debounced search, saved-search module, the
       notification centre's six states, the header bell, the audit explorer,
-      the per-record timeline and the authenticated download path
-- [~] Playwright e2e suite — 66 tests green against `docker compose up` on the
+      the per-record timeline, the authenticated download path, the generic
+      entity list and detail pages, and the connection map
+- [~] Playwright e2e suite — 81 tests green against `docker compose up` on the
       full seed, covering the shell, appearance, Data Explorer, saved searches,
       global search, relationships, the catalogue, the notification centre, the
-      audit explorer and a real file download. A cold-boot run from empty
-      volumes is still the outstanding proof
+      audit explorer, a real file download and all six entity lists. A cold-boot
+      run from empty volumes is still the outstanding proof
+  - Two flaky assertions found and removed rather than retried: a row read by
+    position can be reordered by a background refetch before it is clicked, and
+    an AntD option located by `.first()` finds rc-virtual-list's zero-width
+    measurement copy
 - [x] Frontend typecheck + production build
 - [ ] Accessibility — axe clean on every route (§55)
 - [ ] Performance — list page interactive under 1.5s against the seeded database
