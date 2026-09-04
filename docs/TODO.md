@@ -33,9 +33,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Backend core (`src/core/`) | **done** — db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
-| Endpoints | 22 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×2, saved searches ×4, directory ×1, global search ×1 |
+| Endpoints | 22 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×2, saved searches ×4, directory ×1, global search ×1, catalogue ×2 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 128 backend + 77 frontend + 38 Playwright e2e, green against `docker compose up` |
+| Tests | 133 backend + 77 frontend + 42 Playwright e2e, green against `docker compose up` |
 | Frontend | scaffold **done** — theme, API client, OIDC/RBAC, 34 tests, build clean |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -545,8 +545,18 @@ everything else.
     highlighted one, and a group hands its term to Data Explorer
 - [ ] `/find/relationships` — traverse connections from any record in both an
       accessible list and a visual graph without losing the exploration trail
-- [ ] `/find/catalog` — entities and fields with types, allowed operators,
-      ownership, freshness, completeness and links into Data Explorer
+- [x] `/find/catalog` — entities and fields with types, allowed operators,
+      freshness, completeness and links into Data Explorer
+  - Generated from the same `Resource` declarations the explorer, the builder
+    and global search read, so an entry cannot describe a field that is not
+    there or omit one that is. A catalogue kept by hand is wrong within a month
+  - Completeness is **measured**: one aggregate per dataset counts every
+    column's non-NULL rows in a single pass, and the percentage is shown beside
+    the count it came from. Notes say what a reader should know before trusting
+    a dataset — a sparse field narrows results twice — as observations, not
+    judgements
+  - `?field=` returns the values a field actually holds, most common first:
+    the declared choices are what the code allows, this is what the data has
 
 ### `/kanban` — boards, cards, drag (§18, §33, §36)
 

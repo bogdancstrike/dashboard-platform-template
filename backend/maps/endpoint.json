@@ -239,6 +239,34 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "catalog_datasets",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/catalog/datasets",
+      "description": "Every dataset the caller may read, with field profiles and freshness.",
+      "exec_method": {
+        "module_name": "src.api.catalog",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "catalog_dataset",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/catalog/datasets/<string:resource_type>",
+      "description": "One dataset's catalogue entry, or `?field=` for the values it holds.",
+      "exec_method": {
+        "module_name": "src.api.catalog",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "directory_people",
       "model_name": "Empty",
       "request_method": [

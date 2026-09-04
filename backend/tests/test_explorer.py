@@ -506,3 +506,74 @@ def test_global_search_only_looks_where_the_caller_may_read(client, monkeypatch)
 
 def test_global_search_requires_a_token(client):
     assert client.get(f"{PREFIX}/api/search/global?q=abc").status_code == 401
+
+
+# ── data catalogue (§65) ─────────────────────────────────────────────────
+
+
+@pytest.mark.database
+def test_the_catalogue_describes_exactly_the_fields_the_explorer_exposes(client, monkeypatch):
+    """Generated from one declaration, so it cannot describe a field that is
+    not there or omit one that is — which is how a hand-kept catalogue rots."""
+    from src.services.explorer import resources
+
+    response = client.get(f"{PREFIX}/api/catalog/datasets", headers=_authenticate(monkeypatch))
+
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["total"] == len(resources())
+    for entry in body["items"]:
+        declared = resources()[entry["key"]].fields
+        assert [field["name"] for field in entry["fields"]] == [
+            spec.name for spec in declared.fields
+        ]
+
+
+@pytest.mark.database
+def test_completeness_is_measured_against_the_whole_dataset(client, monkeypatch):
+    response = client.get(f"{PREFIX}/api/catalog/datasets", headers=_authenticate(monkeypatch))
+
+    tasks = next(item for item in response.get_json()["items"] if item["key"] == "task")
+    assert tasks["record_count"] > 0
+    reference = next(field for field in tasks["fields"] if field["name"] == "reference")
+    description = next(field for field in tasks["fields"] if field["name"] == "description")
+
+    # A required column is complete; an optional one is not, and the count it
+    # was derived from is returned beside the percentage.
+    assert reference["completeness"] == 100.0
+    assert reference["filled"] == tasks["record_count"]
+    assert 0 < description["completeness"] < 100
+    assert description["filled"] < tasks["record_count"]
+
+
+@pytest.mark.database
+def test_the_catalogue_reports_the_values_a_field_actually_holds(client, monkeypatch):
+    """The declared choices are what the code allows; this is what the data has."""
+    response = client.get(
+        f"{PREFIX}/api/catalog/datasets/task?field=status", headers=_authenticate(monkeypatch)
+    )
+
+    body = response.get_json()
+    assert body["field"] == "status"
+    counts = [entry["count"] for entry in body["values"]]
+    assert counts == sorted(counts, reverse=True)
+    from src.core import vocabulary
+
+    assert {entry["value"] for entry in body["values"]} <= set(vocabulary.TASK_STATUS)
+
+
+@pytest.mark.database
+def test_the_catalogue_refuses_an_unknown_dataset_or_field(client, monkeypatch):
+    headers = _authenticate(monkeypatch)
+
+    dataset = client.get(f"{PREFIX}/api/catalog/datasets/secrets", headers=headers)
+    field = client.get(f"{PREFIX}/api/catalog/datasets/task?field=nope", headers=headers)
+
+    assert dataset.status_code == 400
+    assert "task" in dataset.get_json()["details"]["available"]
+    assert field.status_code == 400
+    assert "status" in field.get_json()["details"]["available"]
+
+
+def test_the_catalogue_requires_a_token(client):
+    assert client.get(f"{PREFIX}/api/catalog/datasets").status_code == 401

@@ -18,6 +18,7 @@ import { PlaceholderPage } from "@/pages/PlaceholderPage";
 const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
 const DataExplorerPage = lazy(() => import("@/pages/DataExplorerPage"));
 const GlobalSearchPage = lazy(() => import("@/pages/GlobalSearchPage"));
+const DataCatalogPage = lazy(() => import("@/pages/DataCatalogPage"));
 const SystemPage = lazy(() => import("@/pages/SystemPage"));
 
 function Loading() {
@@ -326,15 +327,9 @@ export default function App() {
         <Route
           path="find/catalog"
           element={
-            <PlaceholderPage
-              section="§65, §71"
-              summary="Discover the platform's entities, fields, ownership, quality and filter vocabulary."
-              bullets={[
-                "Field definitions, data types, allowed operators and enum values",
-                "Record counts, freshness, completeness and known quality issues",
-                "Jump from a catalogue entry into a preconfigured exploration",
-              ]}
-            />
+            <Suspense fallback={<Loading />}>
+              <DataCatalogPage />
+            </Suspense>
           }
         />
         {/* Advanced and saved searches now live in Data Explorer. Preserve the
