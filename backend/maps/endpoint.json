@@ -447,6 +447,20 @@
         "module_name": "src.api.audit",
         "method_name": "resource_timeline"
       }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "record_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/records/<string:resource_type>/<uuid:record_id>",
+      "description": "One entity record, with every field its declaration publishes.",
+      "exec_method": {
+        "module_name": "src.api.records",
+        "method_name": "item"
+      }
     }
   ]
 }

@@ -33,9 +33,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Backend core (`src/core/`) | **done** — db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
-| Endpoints | 31 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×3, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×1, audit ×5 |
+| Endpoints | 32 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×3, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×1, audit ×5, records ×1 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 183 backend + 111 frontend + 66 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
+| Tests | 190 backend + 123 frontend + 78 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
 | Frontend | shell, Data Explorer, discovery workspaces and the notification centre; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -298,8 +298,8 @@ section is a cross-cutting rule rather than a page.
 | 4 | Advanced search (simple + RAQB) | `/explore` | `/api/explorer/query` | [x] |
 | 5 | Saved searches | `/explore` (panel) | `/api/saved-searches` | [x] |
 | 6 | Search results, view modes | `/explore` | `/api/explorer/query` | [x] |
-| 7 | Entity list pages | `/{entity}` ×11 | generic list | [ ] |
-| 8 | Entity detail page | `/{entity}/:id` | generic detail | [ ] |
+| 7 | Entity list pages | `/{entity}` ×6 | generic list | [x] |
+| 8 | Entity detail page | `/{entity}/:id` | `/api/records/…` | [x] |
 | 9 | Create / edit forms | `/{entity}/:id/edit` | generic CRUD | [ ] |
 | 10 | Multi-step wizard | `/{entity}/new/wizard` | draft endpoints | [ ] |
 | 11 | Admin area | `/admin` | `/admin/*` | [ ] |
@@ -865,11 +865,19 @@ Each endpoint ships with its five-case integration test and the page consuming i
   - **Acceptance**: every KPI links to the list that explains it with the same
     filters applied; "this month" means the same thing to the tile and the chart
     beneath it; drill-down keeps a back-stack (§44)
-- [ ] Generic entity list/detail/CRUD/bulk for all 11 entities (§3, §7, §8, §43)
-  - **Acceptance**: one declaration per entity yields list, detail, create,
-    update, delete, bulk and export; filtering, sorting, faceting and search
-    happen in SQL (§71); a 200 000-row table pages in under 200ms; bulk returns
-    a per-row result so a partial success is reportable (§34)
+- [~] Generic entity **read** ships for all six datasets (§3, §7, §8). One
+      declaration already yields the list, its filters, facets, sort, search and
+      export; `/api/records/<type>/<id>` adds the detail from the same
+      declaration, so a field filterable on the list is a field the detail page
+      shows. Create, update, delete and bulk (§9, §43) are next
+  - The list endpoint is deliberately the explorer's `POST /api/explorer/query`
+    rather than a second implementation. Two list endpoints is two places for
+    "case-insensitive" to be decided differently
+  - A record of the wrong type is a 404 rather than a redirect or the record:
+    an id is not a capability, and whether it exists is itself information
+  - **Acceptance**: partly met. One declaration → list, detail, export, filters
+    and facets in SQL. Bulk, and the per-row partial result it has to report,
+    are open
 - [ ] Bulk preview endpoint (§75) — affected count split into "selected
       manually" and "selected by filter", before anything is applied
 - [~] Search: simple and advanced Data Explorer shipped; global and quick
@@ -967,8 +975,18 @@ Each endpoint ships with its five-case integration test and the page consuming i
 ## Phase 6 — Frontend pages
 
 - [ ] Dashboard (§2, §66) + dashboard builder (§45, §67)
-- [ ] Data table showcase (§3), entity lists ×11 (§7), entity detail (§8),
-      forms (§9), wizard (§10)
+- [~] Entity lists ×6 (§7) and entity detail (§8) ship as **one** generic list
+      page and **one** generic detail page, driven by the resource declarations
+      the explorer and the query builder already read. Adding a column to a
+      resource makes it appear on both with no frontend change
+  - The list is not the Data Explorer, deliberately: the explorer is where a
+    question is asked, this is where work is done — the entity's own columns,
+    facets from the live counts, a row that opens the record, and a link to the
+    explorer for when the question outgrows the page
+  - Every detail page carries the audit timeline (§21, §48) on its History tab,
+    reading the scoped endpoint so a reader who may open the record can read
+    its history without the whole ledger
+  - Data table showcase (§3), forms (§9) and the wizard (§10) remain
 - [~] Search: Data Explorer ships simple/faceted search, nested advanced RAQB,
       backend query inspector, saved searches and four URL-persistent result
       modes; saved views, highlighting, suggestions and preview remain (§4–§6, §51)

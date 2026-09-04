@@ -21,6 +21,8 @@ const GlobalSearchPage = lazy(() => import("@/pages/GlobalSearchPage"));
 const DataCatalogPage = lazy(() => import("@/pages/DataCatalogPage"));
 const RelationshipExplorerPage = lazy(() => import("@/pages/RelationshipExplorerPage"));
 const AuditExplorerPage = lazy(() => import("@/pages/AuditExplorerPage"));
+const EntityListPage = lazy(() => import("@/pages/EntityListPage"));
+const EntityDetailPage = lazy(() => import("@/pages/EntityDetailPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 const SystemPage = lazy(() => import("@/pages/SystemPage"));
 
@@ -112,20 +114,6 @@ export default function App() {
         />
 
         {/* Work */}
-        <Route
-          path="tasks"
-          element={
-            <PlaceholderPage
-              section="§18"
-              summary="The work queue, as a board, a table or a list."
-              bullets={[
-                "Kanban with drag-and-drop that survives a reload",
-                "Table and list views over the same data",
-                "Bulk assignment and status change (§43)",
-              ]}
-            />
-          }
-        />
         <Route
           path="calendar"
           element={
@@ -271,23 +259,36 @@ export default function App() {
           }
         />
 
-        {/* Records */}
-        {["projects", "customers", "orders", "tickets", "devices"].map((entity) => (
-          <Route
-            key={entity}
-            path={entity}
-            element={
-              <PlaceholderPage
-                section="§3, §7, §8"
-                summary={`The ${entity} list, on the generic entity pattern.`}
-                bullets={[
-                  "Server-side filtering, sorting, faceting and search (§71)",
-                  "Configurable columns, saved views and bulk operations",
-                  "Row preview drawer and a full detail page",
-                ]}
-              />
-            }
-          />
+        {/* Records — one generic list and one generic detail, driven by the
+            same declarations the explorer and the query builder read (§7, §8).
+            `/tasks` is here too: the kanban board (§18) will become another
+            view of the same records rather than another copy of them. */}
+        {[
+          { path: "tasks", key: "task" },
+          { path: "projects", key: "project" },
+          { path: "customers", key: "customer" },
+          { path: "orders", key: "order" },
+          { path: "tickets", key: "ticket" },
+          { path: "devices", key: "device" },
+        ].map((entity) => (
+          <Route key={entity.path} path={entity.path}>
+            <Route
+              index
+              element={
+                <Suspense fallback={<Loading />}>
+                  <EntityListPage resourceKey={entity.key} />
+                </Suspense>
+              }
+            />
+            <Route
+              path=":id"
+              element={
+                <Suspense fallback={<Loading />}>
+                  <EntityDetailPage resourceKey={entity.key} />
+                </Suspense>
+              }
+            />
+          </Route>
         ))}
 
         {/* Find */}

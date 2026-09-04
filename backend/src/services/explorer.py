@@ -39,6 +39,27 @@ class Resource:
     default_columns: tuple[str, ...]
     default_sort: str = "updated_at"
     permission: str = "records.view"
+    #: The route the entity pages live under — `/tickets`, `/customers`.
+    #: Plural because that is what a list is, and a URL is read by people.
+    route: str = ""
+    #: Which field names a record on its own detail page, which one identifies
+    #: it in a sentence, and which one carries its state. Declared rather than
+    #: guessed: a heading that reads "a1f3c8de-…" is a heading nobody can use.
+    title_field: str = "name"
+    subtitle_field: str = ""
+    status_field: str = "status"
+
+    @property
+    def path(self) -> str:
+        return self.route or f"/{self.key}s"
+
+    def label_for(self, row: Any) -> str:
+        """What to call one record, in one place, so every screen agrees."""
+        for name in (self.title_field, self.subtitle_field, "reference", "code", "name"):
+            value = getattr(row, name, None) if name else None
+            if value:
+                return str(value)
+        return str(getattr(row, "id", ""))
 
 
 def _common(model) -> tuple[Field, ...]:
@@ -75,6 +96,7 @@ def _resources() -> dict[str, Resource]:
                 *_common(Task),
             ),
             ("reference", "title", "status", "priority", "due_date", "progress", "updated_at"),
+            route="/tasks", title_field="title", subtitle_field="reference",
         ),
         "ticket": Resource(
             "ticket", "Tickets", "Support demand, SLA health, severity and ownership.", Ticket,
@@ -99,6 +121,7 @@ def _resources() -> dict[str, Resource]:
                 *_common(Ticket),
             ),
             ("reference", "subject", "status", "priority", "severity", "due_at", "sla_breached"),
+            route="/tickets", title_field="subject", subtitle_field="reference",
         ),
         "project": Resource(
             "project", "Projects", "Portfolio delivery, budget, progress and health.", Project,
@@ -123,6 +146,7 @@ def _resources() -> dict[str, Resource]:
                 *_common(Project),
             ),
             ("code", "name", "status", "health", "priority", "progress", "due_date"),
+            route="/projects", title_field="name", subtitle_field="code",
         ),
         "customer": Resource(
             "customer", "Customers", "Accounts, lifecycle, value and relationship health.", Customer,
@@ -146,6 +170,7 @@ def _resources() -> dict[str, Resource]:
                 *_common(Customer),
             ),
             ("code", "name", "status", "segment", "industry", "lifetime_value", "last_contact_at"),
+            route="/customers", title_field="name", subtitle_field="code",
         ),
         "order": Resource(
             "order", "Orders", "Commercial transactions, fulfilment and payment state.", Order,
@@ -169,6 +194,7 @@ def _resources() -> dict[str, Resource]:
             ),
             ("reference", "status", "payment_status", "fulfilment_status", "channel", "total", "placed_at"),
             default_sort="placed_at",
+            route="/orders", title_field="reference",
         ),
         "device": Resource(
             "device", "Devices", "Managed hardware, telemetry and operational health.", Device,
@@ -191,6 +217,7 @@ def _resources() -> dict[str, Resource]:
             ),
             ("serial", "name", "kind", "status", "location", "battery_percent", "last_seen_at"),
             default_sort="last_seen_at",
+            route="/devices", title_field="name", subtitle_field="serial",
         ),
     }
 
@@ -224,6 +251,10 @@ def catalogue(session, *, principal) -> dict[str, Any]:
             "label": resource.label,
             "description": resource.description,
             "permission": resource.permission,
+            "path": resource.path,
+            "title_field": resource.title_field,
+            "subtitle_field": resource.subtitle_field,
+            "status_field": resource.status_field,
             "record_count": count_of(session, base),
             "default_columns": list(resource.default_columns),
             "default_sort": resource.default_sort,

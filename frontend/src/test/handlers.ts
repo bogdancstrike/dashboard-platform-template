@@ -179,6 +179,10 @@ export const explorerCatalogue = {
     record_count: 500,
     default_columns: ["reference", "title", "status", "priority", "due_date"],
     default_sort: "updated_at",
+    path: "/tasks",
+    title_field: "title",
+    subtitle_field: "reference",
+    status_field: "status",
     fields: [
       { name: "reference", label: "Reference", kind: "text", sortable: true, filterable: true, searchable: true, facet: false, operators: ["eq", "contains", "starts"], choices: [] },
       { name: "title", label: "Title", kind: "text", sortable: true, filterable: true, searchable: true, facet: false, operators: ["eq", "contains", "not"], choices: [] },
@@ -334,6 +338,32 @@ export function auditPage(items = auditRows) {
   };
 }
 
+
+export const recordDetail = {
+  id: "task-1",
+  resource_type: "task",
+  resource_label: "Tasks",
+  path: "/tasks",
+  title: "Review customer migration",
+  subtitle: "TSK-001",
+  status: "IN_PROGRESS",
+  title_field: "title",
+  status_field: "status",
+  fields: [
+    { name: "reference", label: "Reference", kind: "text", value: "TSK-001" },
+    { name: "title", label: "Title", kind: "text", value: "Review customer migration" },
+    { name: "status", label: "Status", kind: "enum", value: "IN_PROGRESS" },
+    { name: "progress", label: "Progress", kind: "number", value: 45 },
+    { name: "due_date", label: "Due date", kind: "datetime", value: "2026-09-10T12:00:00Z" },
+    { name: "description", label: "Description", kind: "text", value: null },
+    { name: "assignee_id", label: "Assignee ID", kind: "uuid", value: "11111111-2222-3333-4444-555555555555" },
+    { name: "created_at", label: "Created", kind: "datetime", value: "2026-08-01T09:00:00Z" },
+    { name: "updated_at", label: "Updated", kind: "datetime", value: "2026-09-03T09:00:00Z" },
+  ],
+  created_at: "2026-08-01T09:00:00Z",
+  updated_at: "2026-09-03T09:00:00Z",
+};
+
 export const handlers = [
   http.get("/platform/meta/app", ({ request }) => echo(request, appMeta)),
   http.get("/platform/api/search/global", ({ request }) =>
@@ -384,6 +414,7 @@ export const handlers = [
     echo(request, { marked: 2, read_at: "2026-09-03T12:00:00Z" }),
   ),
 
+  http.get("/platform/api/records/:type/:id", ({ request }) => echo(request, recordDetail)),
   http.get("/platform/admin/audit/catalog", ({ request }) => echo(request, auditCatalogue)),
   // Before the `:id` rule: MSW matches path segments loosely, so `:id`
   // would swallow "export". Flask's typed <uuid:> converter would not.

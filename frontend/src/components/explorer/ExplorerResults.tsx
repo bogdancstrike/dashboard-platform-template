@@ -33,6 +33,15 @@ export interface ExplorerResultsProps {
   onPage: (page: number, pageSize: number) => void;
   onSort: (field: string, order: "asc" | "desc") => void;
   onPreview: (record: ExplorerRecord) => void;
+  /**
+   * What a row click does, when it should do something other than preview.
+   *
+   * The explorer is a place to ask questions, so a row there opens a drawer
+   * beside the answer. An entity list is a place to work, so a row there opens
+   * the record. Same table, same renderer, one prop — rather than two tables
+   * that will drift in every detail except the one being compared.
+   */
+  onOpen?: (record: ExplorerRecord) => void;
   onLoadMore?: () => void;
   loadingMore?: boolean;
 }
@@ -46,6 +55,7 @@ export function ExplorerResults({
   onPage,
   onSort,
   onPreview,
+  onOpen,
   onLoadMore,
   loadingMore,
 }: ExplorerResultsProps) {
@@ -94,7 +104,7 @@ export function ExplorerResults({
         size="middle"
         scroll={{ x: "max-content" }}
         onRow={(record) => ({
-          onClick: () => onPreview(record),
+          onClick: () => (onOpen ?? onPreview)(record),
           style: { cursor: "pointer" },
         })}
         pagination={{
@@ -150,10 +160,16 @@ export function ExplorerResults({
               <PreviewButton record={item} onPreview={onPreview} />
             </div>
           );
+          const open = onOpen;
+          const clickable = open
+            ? { onClick: () => open(item), style: { cursor: "pointer" } }
+            : {};
           return view === "cards" ? (
-            <List.Item><Card size="small">{body}</Card></List.Item>
+            <List.Item>
+              <Card size="small" {...clickable}>{body}</Card>
+            </List.Item>
           ) : (
-            <List.Item>{body}</List.Item>
+            <List.Item {...clickable}>{body}</List.Item>
           );
       }}
     />

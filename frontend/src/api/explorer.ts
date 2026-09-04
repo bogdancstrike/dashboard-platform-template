@@ -40,6 +40,12 @@ export interface ExplorerResource {
   default_columns: string[];
   default_sort: string;
   fields: ExplorerField[];
+  /** Where this entity's pages live — `/tickets`, `/customers`. */
+  path: string;
+  /** Which field names a record, and which carries its state (§8). */
+  title_field: string;
+  subtitle_field: string;
+  status_field: string;
 }
 
 export interface ExplorerCatalogue {
