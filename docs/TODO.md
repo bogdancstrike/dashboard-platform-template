@@ -35,7 +35,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
 | Endpoints | 14 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 75 backend + 34 frontend passing. No e2e yet |
+| Tests | 116 backend + 69 frontend + 23 Playwright e2e, green against `docker compose up` |
 | Frontend | scaffold **done** — theme, API client, OIDC/RBAC, 34 tests, build clean |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -242,8 +242,12 @@ function is a slow test that fails for unrelated reasons.
 
 ### End to end — Playwright
 
-- [ ] Harness: `docker compose up`, seed, then run against the real stack with
+- [x] Harness: `docker compose up`, seed, then run against the real stack with
       real Keycloak sign-in
+  - Personas are signed in once by a `setup` project and their sessions replayed
+    (`e2e/auth.setup.ts`). The realm is `bruteForceProtected`, so a suite where
+    every test signs in for itself locks the account as soon as it runs in
+    parallel — which is the default
 - [ ] **Personas** (§58) — each of the five signs in and sees the navigation
       their role allows; `viewer` cannot reach `/admin/*` and is told which
       permission is missing
@@ -284,7 +288,7 @@ section is a cross-cutting rule rather than a page.
 | 1 | Application shell, navigation | all | `/meta/*`, `/api/me` | [ ] |
 | 2 | Overview dashboard, KPIs, charts | `/` | `/dashboard/*` | [ ] |
 | 3 | Advanced data table | `/showcase/table` + every list | generic list | [ ] |
-| 4 | Advanced search (simple + RAQB) | `/explore` | `/search/advanced` | [ ] |
+| 4 | Advanced search (simple + RAQB) | `/explore` | `/api/explorer/query` | [x] |
 | 5 | Saved searches | `/explore` (panel) | `/saved-searches` | [ ] |
 | 6 | Search results, view modes | `/explore` | `/search` | [ ] |
 | 7 | Entity list pages | `/{entity}` ×11 | generic list | [ ] |
@@ -331,7 +335,7 @@ section is a cross-cutting rule rather than a page.
 | 48 | Timeline view | detail tabs | `/activity` | [ ] |
 | 49 | Alerts and rules | `/admin/alerts` | `/admin/alert-rules` | [ ] |
 | 50 | Data relationships | detail tabs + `/find/relationships` | related endpoints | [ ] |
-| 51 | Query inspector | `/explore` | — (`core/rules.py`) | [x] core |
+| 51 | Query inspector | `/explore` | — (`core/rules.py`) | [x] |
 | 52 | Pagination patterns | various | `core/pagination.py` | [x] core |
 | 53 | Data refresh, auto-refresh | data-heavy pages | — | [ ] |
 | 54 | Keyboard navigation | global | — | [ ] |
@@ -376,38 +380,48 @@ Nucleus extends that to a full condition tree with a real sharing model.
   - **Acceptance**: the builder can never offer an operator the backend will
     reject, because both read the same declaration. Adding a filterable column
     to an endpoint makes it appear in the builder with no frontend change
-- [~] **Rules and groups**, nested arbitrarily:
+- [x] **Rules and groups**, nested arbitrarily:
       `CONDITION AND ( CONDITION OR CONDITION )`
   - AND / OR conjunction per group, and group negation (`NOT`)
-  - add rule · add group · remove · duplicate
+  - add rule · add group · remove · duplicate (a per-node control, attached by
+    wrapping each item — the library's own action bar has no extension point)
   - **drag-and-drop reordering** of rules within and between groups
   - field-specific operators, switching when the field changes
-  - Shipped: add/remove rules and groups, AND/OR, NOT, field-specific controls,
-    drag/reorder and backend depth/rule limits. A first-class duplicate control
-    still needs to be added to the RAQB action bar
   - **Acceptance**: a tree twelve levels deep is rejected with a message, not a
     stack overflow (`core/rules.py` caps depth at 12 and rules at 200)
-- [~] **The full operator vocabulary**, per field kind — equals, not equals,
+  - Adding a rule used to do nothing at all: the tree round-tripped through the
+    URL and the library discards empty rules on load. The editor now owns the
+    tree while it is being edited (`AdvancedQueryBuilder`)
+- [x] **The full operator vocabulary**, per field kind — equals, not equals,
       contains, does not contain, starts with, ends with, greater/less than
       (or equal), between, before, after, in, not in, is empty, is not empty,
       exists, does not exist
   - **Acceptance**: every operator in `core/query.py::OPERATORS` is reachable
     from the UI for at least one field kind, and a unit test asserts the two
-    lists agree
-  - The backend catalogue now publishes the canonical vocabulary and the RAQB
-    adapter maps it by field kind; the explicit cross-layer agreement test is
-    still outstanding
+    lists agree — `queryBuilderConfig.test.ts` asserts it in both directions,
+    including that no offered operator is one the library's own widget type
+    cannot render (which is how select fields shipped with an empty operator
+    dropdown), and `tests/test_rules.py` asserts the backend half
+  - Translation is per field kind, not global; text and number are lent the
+    multiselect widget so `in`/`not_in` stay reachable for them
 - [x] **Live result count** as the tree is edited, debounced and cancellable
   - **Acceptance**: a half-built rule does not blank the results — `compile_tree`
     skips incomplete rules by design, and the UI must not fight that
-- [~] **Query inspector** (§51) — the parenthesised, indented rendering of the
-      current tree, toggleable beside the builder
+- [x] **The editor holds a draft; `Search` runs it.** The count beside the
+      button previews the draft through the same endpoint that will run it, so
+      the number promised is the number that arrives, while the page behind the
+      drawer keeps the last question that was actually asked. Closing without
+      searching changes nothing. `Save as…` names the draft (§5) and runs it,
+      because a saved name that refers to rows nobody can see is not trusted
+- [x] **Query inspector** (§51) — the parenthesised, indented rendering of the
+      current tree, shown beside the builder
   - **Acceptance**: the text comes from `describe_tree`, the SQL from
     `compile_tree`, both walking the same structure — so the inspector provably
-    cannot drift from what executed. Asserted by a test that compiles and
-    describes the same tree and compares their field/operator sets
-  - The inspector is live and backend-rendered from the executed tree; the
-    stronger field/operator-set equivalence assertion remains
+    cannot drift from what executed. Asserted by
+    `test_rules.py::test_the_inspector_names_every_field_and_operator_the_sql_uses`,
+    which compiles and describes one tree and compares what each mentions
+  - An e2e test reads the inspector's sentence back after building the rule in
+    the editor, so the assertion covers the round trip, not just the function
 - [~] Simple search alongside it (§4): one box across every `searchable` field,
       with recent searches, suggestions, autocomplete, highlighted matches and
       history
