@@ -35,7 +35,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
 | Endpoints | 14 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 116 backend + 69 frontend + 23 Playwright e2e, green against `docker compose up` |
+| Tests | 122 backend + 69 frontend + 29 Playwright e2e, green against `docker compose up` |
 | Frontend | scaffold **done** — theme, API client, OIDC/RBAC, 34 tests, build clean |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -289,7 +289,7 @@ section is a cross-cutting rule rather than a page.
 | 2 | Overview dashboard, KPIs, charts | `/` | `/dashboard/*` | [ ] |
 | 3 | Advanced data table | `/showcase/table` + every list | generic list | [ ] |
 | 4 | Advanced search (simple + RAQB) | `/explore` | `/api/explorer/query` | [x] |
-| 5 | Saved searches | `/explore` (panel) | `/saved-searches` | [ ] |
+| 5 | Saved searches | `/explore` (panel) | `/api/saved-searches` | [x] |
 | 6 | Search results, view modes | `/explore` | `/search` | [ ] |
 | 7 | Entity list pages | `/{entity}` ×11 | generic list | [ ] |
 | 8 | Entity detail page | `/{entity}/:id` | generic detail | [ ] |
@@ -439,9 +439,12 @@ and then shows the wrong columns is a saved search nobody trusts.
 - [x] Fields: name, description, owner, created, last modified, condition tree,
       rendered condition text, default sort, visible columns, page size, view
       mode, favourite flag, use count, last used
-- [~] Actions: create · rename · edit · duplicate · delete · favourite · run
-  - Create/open/run, duplicate, delete and favourite ship in the explorer;
-    rename and full edit are available in the owner-only API but still need UI
+- [x] Actions: create · rename · edit · duplicate · delete · favourite · run
+  - One form for creating and editing, because they ask the same questions and
+    a create dialog that omits sharing teaches people it lives somewhere else.
+    The panel filters by name, condition or owner, and shows only the actions
+    the API will allow — a member sees Open and Duplicate, an owner also sees
+    Edit, Favourite and Delete
 - [x] **A module of the search screen, not a page of its own** (as in
       gif_responder's `SavedSearchControls`): a panel on `/explore` listing
       them with rule count and condition summary, and opening one loads it
@@ -469,9 +472,14 @@ and then shows the wrong columns is a saved search nobody trusts.
     search does not appear in another user's list, is not reachable by direct
     id, and is not found by the command palette's "Quick views" group.
     Sharing, unsharing and visibility changes each write an audit row
-  - Backend visibility, owner-only mutation, explicit member shares and audit
-    writes ship with integration coverage. The UI currently creates Private or
-    Public searches; named-member management and ownership transfer remain
+  - Shipped end to end. `searches.share` is enforced rather than merely
+    defined: OPERATOR and VIEWER keep their own searches and publish nobody's,
+    and they are told so in the form rather than by a 403 after typing a name.
+    Members are picked from `GET /api/directory/people`, the same control every
+    "who should see this" question will use. Transfer is its own audited
+    action, and leaves the previous owner a member — losing sight of a search
+    the moment you hand it over is not a handover anybody would risk making.
+    Two signed-in browsers assert the rules in `e2e/saved-searches.spec.ts`
 
 - [x] `resource_shares` table — polymorphic (`resource_type`, `resource_id`,
       `user_id`), the same pattern as comments, tags and favourites, so saved

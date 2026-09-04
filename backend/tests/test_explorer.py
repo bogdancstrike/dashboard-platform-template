@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import select
@@ -23,6 +23,36 @@ def _claims(username: str, role: str) -> dict:
 def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):
     monkeypatch.setattr("src.core.auth.verify_token", lambda _token: _claims(username, role))
     return {"Authorization": f"Bearer explorer-{username}"}
+
+
+@pytest.fixture()
+def created_searches(has_database):
+    """Saved searches a test creates, removed however the test ends.
+
+    This suite runs against the same PostgreSQL the application serves, so a
+    test that leaves rows behind changes what the next person to open the demo
+    sees — and "Explorer test 8f3c… (copy)" in a saved-search panel is not a
+    demo anybody wants to show. Removed through the session rather than the API
+    because ownership may have moved during the test.
+    """
+    identifiers: list[str] = []
+    yield identifiers
+
+    if not has_database or not identifiers:
+        return
+    from sqlalchemy import delete as sql_delete
+
+    from src.core.db import session_scope
+    from src.models.personal import ResourceShare, SavedSearch
+
+    with session_scope() as session:
+        session.execute(sql_delete(ResourceShare).where(
+            ResourceShare.resource_type == "saved_search",
+            ResourceShare.resource_id.in_(identifiers),
+        ))
+        session.execute(sql_delete(SavedSearch).where(
+            SavedSearch.id.in_([UUID(value) for value in identifiers])
+        ))
 
 
 def test_explorer_endpoints_require_a_bearer_token(client):
@@ -111,7 +141,7 @@ def test_explorer_checks_live_rbac_after_jwt_verification(client, monkeypatch):
 
 
 @pytest.mark.database
-def test_saved_search_lifecycle_preserves_question_and_presentation(client, monkeypatch):
+def test_saved_search_lifecycle_preserves_question_and_presentation(client, monkeypatch, created_searches):
     headers = _authenticate(monkeypatch)
     name = f"Explorer test {uuid4()}"
     payload = {
@@ -130,6 +160,9 @@ def test_saved_search_lifecycle_preserves_question_and_presentation(client, monk
     created = client.post(f"{PREFIX}/api/saved-searches", headers=headers, json=payload)
     assert created.status_code == 201
     search = created.get_json()
+    # Registered even though the test deletes them: `DELETE` is a soft delete,
+    # and a soft-deleted row is still a row in the demo database.
+    created_searches.append(search["id"])
     assert search["condition_text"].strip() == "Priority in ['HIGH', 'CRITICAL']"
     assert search["can_edit"] is True
 
@@ -148,16 +181,23 @@ def test_saved_search_lifecycle_preserves_question_and_presentation(client, monk
     copied = client.post(
         f"{PREFIX}/api/saved-searches/{search['id']}/duplicate", headers=headers,
     )
+    created_searches.append(copied.get_json()["id"])
     assert copied.status_code == 201
     assert copied.get_json()["scope"] == "PRIVATE"
     assert copied.get_json()["owner"]["id"] == search["owner"]["id"]
 
+    # The suite runs against the same database the application uses, so what it
+    # creates it also removes — a demo dataset silting up with "Explorer test
+    # … (copy)" is a demo nobody wants to show anybody.
+    assert client.delete(
+        f"{PREFIX}/api/saved-searches/{copied.get_json()['id']}", headers=headers
+    ).status_code == 204
     assert client.delete(f"{PREFIX}/api/saved-searches/{search['id']}", headers=headers).status_code == 204
     assert client.get(f"{PREFIX}/api/saved-searches/{search['id']}", headers=headers).status_code == 404
 
 
 @pytest.mark.database
-def test_shared_search_is_readable_but_only_owner_can_mutate(client, monkeypatch):
+def test_shared_search_is_readable_but_only_owner_can_mutate(client, monkeypatch, created_searches):
     from src.core.db import session_scope
     from src.models.identity import User
 
@@ -173,6 +213,7 @@ def test_shared_search_is_readable_but_only_owner_can_mutate(client, monkeypatch
             "sort": "updated_at", "order": "desc", "page_size": 25, "view_mode": "list",
         },
     ).get_json()
+    created_searches.append(created["id"])
 
     member_headers = _authenticate(monkeypatch, "user", "viewer")
     opened = client.get(f"{PREFIX}/api/saved-searches/{created['id']}", headers=member_headers)
@@ -188,7 +229,7 @@ def test_shared_search_is_readable_but_only_owner_can_mutate(client, monkeypatch
 
 
 @pytest.mark.database
-def test_private_search_is_not_discoverable_by_another_user(client, monkeypatch):
+def test_private_search_is_not_discoverable_by_another_user(client, monkeypatch, created_searches):
     owner_headers = _authenticate(monkeypatch)
     created = client.post(
         f"{PREFIX}/api/saved-searches", headers=owner_headers,
@@ -198,6 +239,7 @@ def test_private_search_is_not_discoverable_by_another_user(client, monkeypatch)
             "page_size": 25, "view_mode": "table",
         },
     ).get_json()
+    created_searches.append(created["id"])
 
     other_headers = _authenticate(monkeypatch, "user", "viewer")
     listed = client.get(
@@ -210,7 +252,7 @@ def test_private_search_is_not_discoverable_by_another_user(client, monkeypatch)
 
 
 @pytest.mark.database
-def test_sharing_needs_the_share_permission(client, monkeypatch):
+def test_sharing_needs_the_share_permission(client, monkeypatch, created_searches):
     """A viewer keeps their own searches and publishes none of anyone's."""
     from src.core.db import session_scope
     from src.models.identity import User
@@ -236,6 +278,7 @@ def test_sharing_needs_the_share_permission(client, monkeypatch):
         json={**private, "name": f"Viewer shared {uuid4()}", "member_ids": [str(colleague.id)]},
     )
 
+    created_searches.append(own.get_json()["id"])
     assert own.status_code == 201
     assert published.status_code == 403
     assert shared.status_code == 403
@@ -243,7 +286,7 @@ def test_sharing_needs_the_share_permission(client, monkeypatch):
 
 
 @pytest.mark.database
-def test_ownership_transfer_is_explicit_and_leaves_the_previous_owner_reading(client, monkeypatch):
+def test_ownership_transfer_is_explicit_and_leaves_the_previous_owner_reading(client, monkeypatch, created_searches):
     from src.core.db import session_scope
     from src.models.identity import User
 
@@ -262,6 +305,7 @@ def test_ownership_transfer_is_explicit_and_leaves_the_previous_owner_reading(cl
             "page_size": 25, "view_mode": "table",
         },
     ).get_json()
+    created_searches.append(created["id"])
 
     handed = client.post(
         f"{PREFIX}/api/saved-searches/{created['id']}/transfer", headers=owner_headers,
@@ -294,7 +338,7 @@ def test_ownership_transfer_is_explicit_and_leaves_the_previous_owner_reading(cl
 
 
 @pytest.mark.database
-def test_transfer_refuses_a_recipient_who_cannot_receive(client, monkeypatch):
+def test_transfer_refuses_a_recipient_who_cannot_receive(client, monkeypatch, created_searches):
     headers = _authenticate(monkeypatch)
     created = client.post(
         f"{PREFIX}/api/saved-searches", headers=headers,
@@ -304,6 +348,7 @@ def test_transfer_refuses_a_recipient_who_cannot_receive(client, monkeypatch):
             "page_size": 25, "view_mode": "table",
         },
     ).get_json()
+    created_searches.append(created["id"])
 
     nobody = client.post(
         f"{PREFIX}/api/saved-searches/{created['id']}/transfer", headers=headers,
@@ -343,3 +388,35 @@ def test_the_people_directory_answers_a_share_picker(client, monkeypatch):
 
 def test_the_people_directory_requires_a_token(client):
     assert client.get(f"{PREFIX}/api/directory/people").status_code == 401
+
+
+@pytest.mark.database
+def test_a_facet_filter_sent_as_a_list_narrows_the_same_way_as_a_string(client, monkeypatch):
+    """The explorer posts JSON, where `?priority=CRITICAL` is `["CRITICAL"]`.
+
+    Stringifying that list produced `"['CRITICAL']"` and a filter that matched
+    nothing — an empty table rather than an error, which is the hardest kind of
+    wrong answer to notice.
+    """
+    headers = _authenticate(monkeypatch)
+    body = {"resource_type": "task", "columns": ["reference", "priority"], "page_size": 10}
+
+    as_list = client.post(
+        f"{PREFIX}/api/explorer/query", headers=headers,
+        json={**body, "filters": {"priority": ["CRITICAL"]}},
+    ).get_json()
+    as_text = client.post(
+        f"{PREFIX}/api/explorer/query", headers=headers,
+        json={**body, "filters": {"priority": "CRITICAL"}},
+    ).get_json()
+    unfiltered = client.post(f"{PREFIX}/api/explorer/query", headers=headers, json=body).get_json()
+    cleared = client.post(
+        f"{PREFIX}/api/explorer/query", headers=headers,
+        json={**body, "filters": {"priority": []}},
+    ).get_json()
+
+    assert as_list["total"] == as_text["total"] > 0
+    assert as_list["total"] < unfiltered["total"]
+    assert all(item["priority"] == "CRITICAL" for item in as_list["items"])
+    # An emptied multi-select means "stop narrowing", not "match nothing".
+    assert cleared["total"] == unfiltered["total"]

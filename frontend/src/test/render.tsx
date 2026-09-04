@@ -13,6 +13,7 @@ import { render, type RenderOptions, type RenderResult } from "@testing-library/
 import type { ReactElement, ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 
+import { AuthProvider } from "@/auth/AuthProvider";
 import { AppearanceProvider } from "@/theme/AppearanceProvider";
 
 export function makeQueryClient(): QueryClient {
@@ -34,11 +35,16 @@ export function Providers({
   /** The URL the tree renders at — pages read filters and periods from it. */
   route?: string;
 }) {
+  // The same nesting as main.tsx, AuthProvider included: components ask it
+  // what the signed-in person may do, and one rendered outside it throws. The
+  // profile it fetches is answered by the mock handlers like any other request.
   return (
     <QueryClientProvider client={makeQueryClient()}>
       <AppearanceProvider>
         <AntApp>
-          <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+          <AuthProvider>
+            <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+          </AuthProvider>
         </AntApp>
       </AppearanceProvider>
     </QueryClientProvider>

@@ -179,7 +179,7 @@ test.describe("Data Explorer", () => {
     const blocked = await previewCount(page);
 
     await page.getByRole("button", { name: "Save as…" }).click();
-    await page.getByLabel("Name").fill(alias);
+    await page.getByLabel("Name", { exact: true }).fill(alias);
     await page.getByRole("button", { name: "Save search" }).click();
 
     // Saving runs it too: a named search that shows other rows is a name

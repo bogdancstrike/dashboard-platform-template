@@ -165,10 +165,25 @@ class FieldSet:
 # ── value coercion ───────────────────────────────────────────────────────
 
 
-def _values(raw: str, *, name: str) -> list[str]:
-    if len(raw) > MAX_FILTER_CHARS:
+def _as_text(raw: Any) -> str:
+    """One filter value as the comma-separated string every reader expects.
+
+    Filters arrive from two places with two shapes: a query string, where
+    `?status=A,B` is already text, and a JSON request body, where the same
+    filter is `["A", "B"]`. Stringifying the list without this produces
+    `"['A', 'B']"` and a WHERE clause that matches nothing at all — a filter
+    that silently returns an empty table rather than failing.
+    """
+    if isinstance(raw, (list, tuple, set)):
+        return ",".join(str(value) for value in raw)
+    return str(raw)
+
+
+def _values(raw: Any, *, name: str) -> list[str]:
+    text = _as_text(raw)
+    if len(text) > MAX_FILTER_CHARS:
         raise ValidationError(f"{name} filter must be at most {MAX_FILTER_CHARS} characters")
-    values = [part.strip() for part in str(raw).split(",") if part.strip()]
+    values = [part.strip() for part in text.split(",") if part.strip()]
     if len(values) > MAX_FILTER_VALUES:
         raise ValidationError(f"{name} accepts at most {MAX_FILTER_VALUES} values")
     return values
@@ -366,7 +381,7 @@ def build_predicate(spec: Field, operator: str, raw: Any):
     return or_(*(column.ilike(f"%{v}%") for v in values))
 
 
-def _default_predicate(spec: Field, raw: str):
+def _default_predicate(spec: Field, raw: Any):
     """The clause a bare `?field=value` means, per kind."""
     values = _values(raw, name=spec.name)
     if not values:
@@ -393,6 +408,19 @@ def _default_predicate(spec: Field, raw: str):
 # ── statement builders ───────────────────────────────────────────────────
 
 
+def _blank_argument(raw: Any) -> bool:
+    """No value at all — as a missing key, an empty string or an empty list.
+
+    A cleared multi-select sends `[]`, which means "do not narrow by this",
+    not "narrow by nothing".
+    """
+    if raw is None:
+        return True
+    if isinstance(raw, (list, tuple, set)):
+        return not any(str(value).strip() for value in raw)
+    return not str(raw).strip()
+
+
 def apply_filters(stmt: Select, args, spec: FieldSet) -> Select:
     """Narrow `stmt` by every recognised query parameter in `args`."""
     for field_spec in spec.fields:
@@ -400,8 +428,8 @@ def apply_filters(stmt: Select, args, spec: FieldSet) -> Select:
             continue
         name = field_spec.name
         raw = args.get(name)
-        if raw not in (None, ""):
-            predicate = _default_predicate(field_spec, str(raw))
+        if not _blank_argument(raw):
+            predicate = _default_predicate(field_spec, raw)
             if predicate is not None:
                 stmt = stmt.where(predicate)
 
@@ -410,9 +438,9 @@ def apply_filters(stmt: Select, args, spec: FieldSet) -> Select:
             low = args.get(f"{name}_min") or args.get(f"{name}_from")
             high = args.get(f"{name}_max") or args.get(f"{name}_to")
             if low:
-                stmt = stmt.where(field_spec.column >= convert(str(low), name=name))
+                stmt = stmt.where(field_spec.column >= convert(_as_text(low), name=name))
             if high:
-                stmt = stmt.where(field_spec.column <= convert(str(high), name=name))
+                stmt = stmt.where(field_spec.column <= convert(_as_text(high), name=name))
 
     # Explicit operators, e.g. `?title__not=draft`. Applied after the plain
     # filters so one field can carry both: "contains X but not Y" is among the
@@ -425,13 +453,13 @@ def apply_filters(stmt: Select, args, spec: FieldSet) -> Select:
         if field_spec is None or not field_spec.filterable:
             continue
         raw = args.get(key)
-        if raw in (None, ""):
+        if _blank_argument(raw):
             continue
-        predicate = build_predicate(field_spec, operator, str(raw))
+        predicate = build_predicate(field_spec, operator, raw)
         if predicate is not None:
             stmt = stmt.where(predicate)
 
-    term = (args.get("q") or "").strip()
+    term = _as_text(args.get("q") or "").strip()
     if term:
         if len(term) > MAX_FILTER_CHARS:
             raise ValidationError(f"q must be at most {MAX_FILTER_CHARS} characters")

@@ -37,7 +37,8 @@ import {
 import { AdvancedSearchDrawer } from "@/components/explorer/AdvancedSearchDrawer";
 import { ExplorerResults } from "@/components/explorer/ExplorerResults";
 import type { QueryNode } from "@/components/explorer/queryTree";
-import { SaveSearchModal, SavedSearchDrawer } from "@/components/explorer/SavedSearchControls";
+import { SavedSearchDrawer } from "@/components/explorer/SavedSearchDrawer";
+import { SavedSearchForm } from "@/components/explorer/SavedSearchForm";
 import { PageHeader } from "@/components/PageHeader";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
@@ -63,6 +64,8 @@ export default function DataExplorerPage() {
   // by definition has not been run yet, so the modal is handed that tree
   // rather than the one behind it. `undefined` means "whatever is on screen".
   const [draftToSave, setDraftToSave] = useState<QueryNode | null | undefined>(undefined);
+  //: The saved search being edited, if the form was opened from the panel.
+  const [editing, setEditing] = useState<SavedSearch | undefined>(undefined);
 
   const catalogue = useQuery({
     queryKey: ["explorer-catalogue"],
@@ -110,13 +113,24 @@ export default function DataExplorerPage() {
   const settling = results.isFetching || request !== debouncedRequest;
 
   const savedOpen = params.get("panel") === "saved";
+
+  /**
+   * Change part of the question, leaving the rest of the URL alone.
+   *
+   * Built from the *current* parameters rather than the ones this render
+   * captured: two handlers firing in one tick — opening a saved search and
+   * closing the panel it came from — would otherwise have the second write
+   * back the state the first had just replaced, silently discarding it.
+   */
   const set = (changes: Record<string, string | number | null>, replace = true) => {
-    const next = new URLSearchParams(params);
-    Object.entries(changes).forEach(([key, value]) => {
-      if (value === null || value === "") next.delete(key);
-      else next.set(key, String(value));
-    });
-    setParams(next, { replace });
+    setParams((current) => {
+      const next = new URLSearchParams(current);
+      Object.entries(changes).forEach(([key, value]) => {
+        if (value === null || value === "") next.delete(key);
+        else next.set(key, String(value));
+      });
+      return next;
+    }, { replace });
   };
 
   const chooseResource = (key: string) => {
@@ -145,6 +159,8 @@ export default function DataExplorerPage() {
     next.set("page_size", String(saved.page_size));
     next.set("view", saved.view_mode);
     next.set("saved", saved.id);
+    // Everything, including closing the panel, in one write: `panel` is simply
+    // absent from the parameters a saved search restores.
     setParams(next);
   };
 
@@ -182,7 +198,13 @@ export default function DataExplorerPage() {
             <Button icon={<FolderOpenOutlined />} onClick={() => set({ panel: "saved" })}>
               Saved searches
             </Button>
-            <Button type="primary" icon={<SaveOutlined />} disabled={!request} onClick={() => setSaveOpen(true)}>
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              data-testid="save-search"
+              disabled={!request}
+              onClick={() => setSaveOpen(true)}
+            >
               Save
             </Button>
           </>
@@ -305,27 +327,39 @@ export default function DataExplorerPage() {
         resourceType={resource?.key ?? ""}
         onClose={() => set({ panel: null })}
         onOpen={openSaved}
+        onEdit={(search) => {
+          setEditing(search);
+          setSaveOpen(true);
+        }}
       />
       {saveValue && (
-        <SaveSearchModal
+        <SavedSearchForm
           open={saveOpen}
-          value={saveValue}
+          value={editing ? savedQuestion(editing) : saveValue}
+          {...(editing ? { search: editing } : {})}
           onClose={() => {
             setSaveOpen(false);
             setDraftToSave(undefined);
+            setEditing(undefined);
           }}
           // Saving a draft also runs it: a search worth naming is one the
           // person is about to look at, and leaving the page showing something
           // else would make the saved name refer to rows nobody can see.
           onSaved={(saved) => {
-            set({
-              ...(draftToSave !== undefined
-                ? { tree: draftToSave ? JSON.stringify(draftToSave) : null }
-                : {}),
-              saved: saved.id,
-            });
+            // Editing changes the name or the audience, not the question on
+            // screen; only a freshly saved draft has a new question to show.
+            if (!editing) {
+              set({
+                ...(draftToSave !== undefined
+                  ? { tree: draftToSave ? JSON.stringify(draftToSave) : null }
+                  : {}),
+                saved: saved.id,
+              });
+            }
             setDraftToSave(undefined);
+            setEditing(undefined);
           }}
+          onTransferred={() => setEditing(undefined)}
         />
       )}
     </>
@@ -355,6 +389,27 @@ function ColumnPicker({ resource, value, onChange }: {
       <Button icon={<ColumnHeightOutlined />}>Columns</Button>
     </Popover>
   );
+}
+
+/**
+ * The question a saved search stores, in the shape the form saves back.
+ *
+ * Editing a saved search must not silently rewrite its question to whatever
+ * happens to be on screen: renaming somebody's "Critical work" should not turn
+ * it into the customer list the editor was looking at when they renamed it.
+ */
+function savedQuestion(search: SavedSearch) {
+  return {
+    resource_type: search.resource_type,
+    condition_tree: search.condition_tree,
+    filters: search.filters,
+    query_text: search.query_text,
+    sort: search.sort,
+    order: search.order,
+    columns: search.columns,
+    page_size: search.page_size,
+    view_mode: search.view_mode,
+  };
 }
 
 function parseTree(raw: string | null): Record<string, unknown> | null {

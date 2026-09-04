@@ -138,4 +138,7 @@ export const explorerApi = {
   deleteSaved: (id: string) => api.delete<void>(`/api/saved-searches/${id}`),
   duplicateSaved: (id: string) =>
     api.post<SavedSearch>(`/api/saved-searches/${id}/duplicate`),
+  /** Hand a saved search to somebody else. Owner-only, audited, irreversible. */
+  transferSaved: (id: string, ownerId: string) =>
+    api.post<SavedSearch>(`/api/saved-searches/${id}/transfer`, { owner_id: ownerId }),
 };
