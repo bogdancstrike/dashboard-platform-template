@@ -20,6 +20,7 @@ const DataExplorerPage = lazy(() => import("@/pages/DataExplorerPage"));
 const GlobalSearchPage = lazy(() => import("@/pages/GlobalSearchPage"));
 const DataCatalogPage = lazy(() => import("@/pages/DataCatalogPage"));
 const RelationshipExplorerPage = lazy(() => import("@/pages/RelationshipExplorerPage"));
+const AuditExplorerPage = lazy(() => import("@/pages/AuditExplorerPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 const SystemPage = lazy(() => import("@/pages/SystemPage"));
 
@@ -377,15 +378,9 @@ export default function App() {
         <Route
           path="admin/audit"
           element={
-            <PlaceholderPage
-              section="§21"
-              summary="Who did what, when, and what changed — with the before → after diff."
-              bullets={[
-                "Filter by actor, action, resource, result, correlation id and date range",
-                "A detail drawer showing every changed field, old value beside new",
-                "The same timeline on every entity detail page",
-              ]}
-            />
+            <Suspense fallback={<Loading />}>
+              <AuditExplorerPage />
+            </Suspense>
           }
         />
         <Route

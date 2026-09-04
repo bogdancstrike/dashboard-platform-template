@@ -269,6 +269,71 @@ export function notificationPage(items = notificationRows, extra: Record<string,
   };
 }
 
+
+export const auditCatalogue = {
+  fields: [
+    { name: "occurred_at", label: "When", kind: "datetime", sortable: true, filterable: true, searchable: false, facet: false, operators: ["before", "after", "between"], choices: [] },
+    { name: "action", label: "Action", kind: "enum", sortable: true, filterable: true, searchable: false, facet: true, operators: ["eq", "ne", "in", "not_in"], choices: [] },
+    { name: "actor_label", label: "Actor", kind: "text", sortable: true, filterable: true, searchable: true, facet: true, operators: ["eq", "contains"], choices: [] },
+  ],
+  default_columns: ["occurred_at", "actor_label", "action", "resource_type", "resource_label", "result"],
+  default_sort: "occurred_at",
+  actions: ["CREATE", "UPDATE", "DELETE", "EXPORT", "IMPERSONATE"],
+  results: ["SUCCESS", "FAILURE", "DENIED", "PARTIAL"],
+  total: 1000,
+};
+
+export const auditRows = [
+  {
+    id: "audit-1", occurred_at: "2026-09-03T11:00:00Z", action: "UPDATE", result: "SUCCESS",
+    resource_type: "ticket", resource_id: "ticket-1", resource_label: "TIC-00042",
+    actor_id: "u2", actor_label: "Mara Manager", actor_role: "MANAGER",
+    impersonated: false, impersonator_label: "", correlation_id: "abc123",
+    message: "", changed_field_count: 2,
+  },
+  {
+    id: "audit-2", occurred_at: "2026-09-03T10:30:00Z", action: "DELETE", result: "DENIED",
+    resource_type: "project", resource_id: "project-9", resource_label: "Atlas rollout",
+    actor_id: "u5", actor_label: "Uma User", actor_role: "VIEWER",
+    impersonated: true, impersonator_label: "Ada Administrator", correlation_id: "def456",
+    message: "delete refused", changed_field_count: 0,
+  },
+];
+
+export const auditEntry = {
+  ...auditRows[0]!,
+  ip_address: "10.4.2.19",
+  user_agent: "Mozilla/5.0",
+  organization_id: "org-1",
+  metadata: { source: "ui" },
+  state_before: { status: "OPEN", assignee: "Ana Pop", note: null },
+  state_after: { status: "CLOSED", assignee: null, note: "resolved on call" },
+  changed_fields: ["assignee", "note", "status"],
+  changes: [
+    { field: "assignee", from: "Ana Pop", to: null, kind: "cleared" },
+    { field: "note", from: null, to: "resolved on call", kind: "added" },
+    { field: "status", from: "OPEN", to: "CLOSED", kind: "changed" },
+  ],
+};
+
+export function auditPage(items = auditRows) {
+  return {
+    items,
+    total: items.length,
+    page: 1,
+    page_size: 25,
+    pages: 1,
+    sort: "occurred_at",
+    order: "desc",
+    fields: auditCatalogue.fields,
+    facets: {
+      action: [{ value: "UPDATE", count: 1 }, { value: "DELETE", count: 1 }],
+      resource_type: [{ value: "ticket", count: 1 }, { value: "project", count: 1 }],
+    },
+    columns: auditCatalogue.default_columns,
+  };
+}
+
 export const handlers = [
   http.get("/platform/meta/app", ({ request }) => echo(request, appMeta)),
   http.get("/platform/api/search/global", ({ request }) =>
@@ -318,4 +383,25 @@ export const handlers = [
   http.post("/platform/notifications/read-all", ({ request }) =>
     echo(request, { marked: 2, read_at: "2026-09-03T12:00:00Z" }),
   ),
+
+  http.get("/platform/admin/audit/catalog", ({ request }) => echo(request, auditCatalogue)),
+  http.get("/platform/admin/audit/:id", ({ request }) => echo(request, auditEntry)),
+  http.get("/platform/admin/audit", ({ request }) => {
+    // Honours the filters the page sends, so a test asserting "one row after
+    // filtering" asserts the request rather than a conveniently short fixture.
+    const query = new URL(request.url).searchParams;
+    const actions = query.get("action")?.split(",").filter(Boolean) ?? [];
+    const items = auditRows.filter((row) => !actions.length || actions.includes(row.action));
+    return echo(request, auditPage(items));
+  }),
+  http.get("/platform/api/audit/timeline", ({ request }) => {
+    const query = new URL(request.url).searchParams;
+    return echo(request, {
+      items: [auditEntry],
+      total: 1,
+      resource_type: query.get("resource_type") ?? "",
+      resource_id: query.get("resource_id") ?? "",
+      limit: Number(query.get("limit") ?? 50),
+    });
+  }),
 ];

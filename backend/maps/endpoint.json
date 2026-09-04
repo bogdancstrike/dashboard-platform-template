@@ -2,7 +2,7 @@
   "namespaces": [
     {
       "name": "platform",
-      "description": "Nucleus — enterprise application template platform"
+      "description": "Nucleus \u2014 enterprise application template platform"
     }
   ],
   "models": {
@@ -31,7 +31,7 @@
         "GET"
       ],
       "api_url": "/health/ready",
-      "description": "Ready to serve traffic — the database must answer.",
+      "description": "Ready to serve traffic \u2014 the database must answer.",
       "exec_method": {
         "module_name": "src.api.health",
         "method_name": "readiness"
@@ -329,7 +329,7 @@
         "GET"
       ],
       "api_url": "/notifications/counts",
-      "description": "Unread totals — what the header badge polls when the socket is down.",
+      "description": "Unread totals \u2014 what the header badge polls when the socket is down.",
       "exec_method": {
         "module_name": "src.api.notifications",
         "method_name": "unread_counts"
@@ -362,6 +362,62 @@
       "exec_method": {
         "module_name": "src.api.notifications",
         "method_name": "mark_all"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "audit_catalogue",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/audit/catalog",
+      "description": "Audit filter vocabulary \u2014 fields, operators, actions and results.",
+      "exec_method": {
+        "module_name": "src.api.audit",
+        "method_name": "catalogue"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "audit_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/audit",
+      "description": "The audit ledger \u2014 who did what, when, filtered and faceted in SQL.",
+      "exec_method": {
+        "module_name": "src.api.audit",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "audit_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/audit/<uuid:entry_id>",
+      "description": "One audit entry, with its field-level before \u2192 after diff.",
+      "exec_method": {
+        "module_name": "src.api.audit",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "audit_timeline",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/audit/timeline",
+      "description": "Everything recorded against one record \u2014 the detail-page timeline.",
+      "exec_method": {
+        "module_name": "src.api.audit",
+        "method_name": "resource_timeline"
       }
     }
   ]

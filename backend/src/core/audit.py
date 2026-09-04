@@ -41,13 +41,19 @@ _REDACTED = {
 }
 
 
+#: What a redacted value looks like wherever one is rendered.
+MASK = "••••••••"
+
+
+def is_secret(key: Any) -> bool:
+    """Whether a field name is one whose value must never be stored or shown."""
+    return str(key).lower() in _REDACTED
+
+
 def redact(payload: dict[str, Any] | None) -> dict[str, Any]:
     if not payload:
         return {}
-    return {
-        key: ("••••••••" if key.lower() in _REDACTED else value)
-        for key, value in payload.items()
-    }
+    return {key: (MASK if is_secret(key) else value) for key, value in payload.items()}
 
 
 def diff(before: dict[str, Any] | None, after: dict[str, Any] | None) -> dict[str, Any]:
@@ -126,6 +132,11 @@ def record(
         metadata_json=metadata or None,
         occurred_at=now(),
         impersonated=bool(principal and principal.is_impersonating),
+        # Who was actually at the keyboard. `actor_*` above is who the request
+        # was treated as, and during an impersonation those are two different
+        # people — which is the first thing anybody asks of such a row.
+        impersonator_id=principal.impersonator_id if principal else None,
+        impersonator_label=(principal.impersonator_label if principal else "")[:160] or None,
     )
     session.add(entry)
 

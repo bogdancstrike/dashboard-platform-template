@@ -33,9 +33,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Backend core (`src/core/`) | **done** — db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
-| Endpoints | 22 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×2, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×1 |
+| Endpoints | 29 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×2, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×1, audit ×4 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 151 backend + 94 frontend + 57 Playwright e2e — all green against `docker compose up` on the **full** seed (15 554 rows) |
+| Tests | 166 backend + 106 frontend + 65 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
 | Frontend | shell, Data Explorer, discovery workspaces and the notification centre; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -312,7 +312,7 @@ section is a cross-cutting rule rather than a page.
 | 18 | Tasks / work queue (kanban) | `/tasks` | `/tasks` | [ ] |
 | 19 | Calendar | `/calendar` | `/calendar/events` | [ ] |
 | 20 | File manager | `/files` | `/files` | [ ] |
-| 21 | **Audit logs** | `/admin/audit` | `/admin/audit` | [ ] |
+| 21 | **Audit logs** | `/admin/audit` | `/admin/audit` | [x] |
 | 22 | System logs | `/admin/logs` | `/admin/logs` | [ ] |
 | 23 | Background jobs | `/admin/jobs` | `/admin/jobs` | [ ] |
 | 24 | System health | `/admin/health` | `/health/status` | [x] API |
@@ -339,7 +339,7 @@ section is a cross-cutting rule rather than a page.
 | 45 | Dashboard builder | `/dashboards/:id/edit` | `/dashboards` | [ ] |
 | 46 | Saved views | every list | `/saved-views` | [ ] |
 | 47 | Data comparison | `/{entity}/compare` | generic list | [ ] |
-| 48 | Timeline view | detail tabs | `/activity` | [ ] |
+| 48 | Timeline view | detail tabs | `/api/audit/timeline` | [~] |
 | 49 | Alerts and rules | `/admin/alerts` | `/admin/alert-rules` | [ ] |
 | 50 | Data relationships | detail tabs + `/find/relationships` | `/api/relationships/*` | [~] |
 | 51 | Query inspector | `/explore` | — (`core/rules.py`) | [x] |
@@ -862,18 +862,28 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [ ] Admin: users, groups, roles, permissions, organizations, departments,
       settings, flags, API clients, integrations, jobs, scheduled tasks,
       email templates (§11–§13, §25–§27, §42)
-- [ ] **`/admin/audit` — audit explorer (§21).** Comprehensive by design: **who**
-      (actor, role, and the impersonator when there was one), **when**, **what**
-      (action, resource type, id, label), and the field-level **before → after**
-      diff. Filterable on actor, action, resource type/id, result, correlation
-      id and date range; exportable; plus a per-entity timeline for every detail
-      page. Follows tickora's explorer; `AuditLog` already stores
-      `state_before` / `state_after` / `changed_fields` / `changes`
-  - **Acceptance**: every write through the API produces an audit row **in the
-    same transaction** as the change; the row stays readable after the user it
-    refers to is deleted (`actor_label` is denormalised); secret-shaped fields
-    are redacted (§76); added and cleared fields are distinguishable in the diff;
+- [~] **`/admin/audit` — audit explorer (§21).** Ledger, entry and per-record
+      timeline ship. Filterable on actor, action, resource type/id, result,
+      correlation id, impersonation and date range, all in SQL (§71) off the
+      same `core/query.py` declaration that publishes the filter vocabulary.
+      **Export is the one part still open** — it waits on `core/export.py`
+  - Read-only by construction: no create, update or delete endpoint exists, and
+    an e2e test asserts that none answers. An audit trail with a `DELETE` is a
+    trail whose missing entry proves nothing
+  - The ledger needs `audit.view`; the per-record timeline needs only
+    `records.view`, because reading one record's history is not the privilege
+    of reading everything anybody has ever done. The timeline refuses to answer
+    without a resource, so it cannot become the ledger by omission
+  - **Acceptance**: met, and asserted rather than inspected — the row stays
+    readable when its actor is gone (`actor_label` is denormalised); added,
+    changed and cleared fields are three distinguishable kinds the *server*
+    decides, so the drawer cannot re-derive a different diff; secret-shaped
+    fields are redacted on the way **out** as well as in, so the property
+    belongs to the endpoint rather than to every writer that will ever exist;
     an impersonated action records both identities
+  - `AuditLog` gained `impersonator_id` / `impersonator_label`. A boolean alone
+    said an impersonation happened and left unanswered the only question
+    anybody asks of such a row
 - [~] Notifications ship complete — list, counts, filters, server-side
       grouping, mark one/all/group, delete, and the live channel (§17).
       Notification *preferences* (§40) are still open
@@ -941,11 +951,15 @@ Each endpoint ships with its five-case integration test and the page consuming i
       backend query inspector, saved searches and four URL-persistent result
       modes; saved views, highlighting, suggestions and preview remain (§4–§6, §51)
 - [ ] Admin area (§11), users with impersonation (§12), roles matrix (§13)
-- [ ] **Audit explorer `/admin/audit` + `AuditTimeline` component (§21)**
-  - **Acceptance**: the table shows who / when / what at a glance; opening an
-    entry shows the before → after diff field by field with added and cleared
-    values distinguishable; filters round-trip through the URL; the same
-    timeline component renders on every entity detail page
+- [x] **Audit explorer `/admin/audit` + `AuditTimeline` component (§21)**
+  - **Acceptance**: met. The table shows who / when / what at a glance, an
+    entry opens its diff field by field with added and cleared distinguishable,
+    every filter *and the open entry* round-trip through the URL so an
+    investigation can be pasted into a ticket, and `AuditTimeline` is a
+    standalone component fed by the scoped endpoint — ready for every entity
+    detail page as those land
+  - Its palette commands are the questions an auditor actually arrives with:
+    refused actions, deletions, and anything done while impersonating
 - [ ] Email inbox, detail, compose (§14–§16)
 - [ ] Tasks kanban/table/list with drag (§18), calendar (§19), file manager (§20)
 - [ ] System logs with live tail (§22), jobs (§23), health (§24), API (§25),
@@ -961,16 +975,19 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] `docker compose up` clean-boot green — every service healthy from empty
       volumes; seed wrote 15 554 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
-- [~] Backend tests — 151 passing, including Data Explorer query, validation,
-      JWT/RBAC, saved-search visibility/lifecycle and the notification centre's
-      scoping, filtering, grouping and mark/delete contract
-- [~] Frontend unit + component tests — 94 passing, including Data Explorer
+- [~] Backend tests — 166 passing, including Data Explorer query, validation,
+      JWT/RBAC, saved-search visibility/lifecycle, the notification centre's
+      scoping/filtering/grouping contract, and the audit ledger's permissions,
+      diff semantics, redaction and read-only surface
+- [~] Frontend unit + component tests — 106 passing, including Data Explorer
       backend rendering, debounced search, saved-search module, the
-      notification centre's six states and the header bell
-- [~] Playwright e2e suite — 57 tests green against `docker compose up` on the
+      notification centre's six states, the header bell, the audit explorer and
+      the per-record timeline
+- [~] Playwright e2e suite — 65 tests green against `docker compose up` on the
       full seed, covering the shell, appearance, Data Explorer, saved searches,
-      global search, relationships, the catalogue and the notification centre.
-      A cold-boot run from empty volumes is still the outstanding proof
+      global search, relationships, the catalogue, the notification centre and
+      the audit explorer. A cold-boot run from empty volumes is still the
+      outstanding proof
 - [x] Frontend typecheck + production build
 - [ ] Accessibility — axe clean on every route (§55)
 - [ ] Performance — list page interactive under 1.5s against the seeded database

@@ -561,6 +561,9 @@ def _audit_and_activity(world: World) -> None:
         before, after = _change_for(rng, action, resource_type)
         changes = diff(before, after)
         impersonated = action == "IMPERSONATE" or rng.chance(0.02)
+        # An impersonated row carries both identities, so the explorer has
+        # something real to render for the case §21 cares most about.
+        impersonator = rng.pick(list(world.personas.values()) or world.users) if impersonated else None
 
         world.audit_logs.append(
             AuditLog(
@@ -585,6 +588,8 @@ def _audit_and_activity(world: World) -> None:
                 changes=changes or None,
                 metadata_json={"source": rng.pick(("ui", "api", "job"))},
                 impersonated=impersonated,
+                impersonator_id=impersonator.id if impersonator else None,
+                impersonator_label=impersonator.full_name if impersonator else None,
                 created_at=occurred,
             )
         )

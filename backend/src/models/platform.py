@@ -54,7 +54,14 @@ class AuditLog(Base, TimestampMixin):
     changed_fields: Mapped[list[str] | None] = mapped_column(ARRAY(String(64)))
     changes: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     metadata_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    #: Both identities, because "who did this" has two answers when an
+    #: administrator is acting as somebody else (§12, §21). `actor_*` is who
+    #: the system was treating the request as; these are who was actually at
+    #: the keyboard. A boolean alone says an impersonation happened and leaves
+    #: the only question anybody asks afterwards unanswered.
     impersonated: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    impersonator_id: Mapped[UUID | None] = fk("users.id")
+    impersonator_label: Mapped[str | None] = mapped_column(String(160), index=True)
 
 
 class ActivityEntry(Base, TimestampMixin):
