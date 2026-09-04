@@ -78,6 +78,18 @@ export function setTokenProvider(provider: TokenProvider): void {
   tokenProvider = provider;
 }
 
+/**
+ * A fresh bearer token, for the one caller that is not `fetch`.
+ *
+ * A browser's `WebSocket` constructor cannot set an `Authorization` header, so
+ * the live channel has to carry the token itself. Reading it through the same
+ * provider every request uses means the socket reconnects with a refreshed
+ * token rather than a copy captured when the tab was opened.
+ */
+export function accessToken(): Promise<string | null> {
+  return Promise.resolve(tokenProvider());
+}
+
 /** Called whenever a request comes back 401, so the shell can react once. */
 let onUnauthorized: (() => void) | null = null;
 

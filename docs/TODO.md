@@ -35,8 +35,8 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
 | Endpoints | 22 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×2, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×1 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 139 backend + 77 frontend + 48 Playwright e2e, green against `docker compose up`, verified twice against a freshly seeded database |
-| Frontend | scaffold **done** — theme, API client, OIDC/RBAC, 34 tests, build clean |
+| Tests | 151 backend + 94 frontend + 62 Playwright e2e, green against `docker compose up` on the **full** seed (15 554 rows) |
+| Frontend | shell, Data Explorer, discovery workspaces and the notification centre; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
 **Backend and frontend are built in parallel from here**, in vertical slices: an
@@ -308,7 +308,7 @@ section is a cross-cutting rule rather than a page.
 | 14 | Email inbox | `/mail` | `/mail/threads` | [ ] |
 | 15 | Email detail, threading | `/mail/:id` | `/mail/threads/:id` | [ ] |
 | 16 | Compose email | `/mail/compose` | `/mail/messages` | [ ] |
-| 17 | Notification centre | header + `/notifications` | `/notifications` | [ ] |
+| 17 | Notification centre | header + `/notifications` | `/notifications` | [x] |
 | 18 | Tasks / work queue (kanban) | `/tasks` | `/tasks` | [ ] |
 | 19 | Calendar | `/calendar` | `/calendar/events` | [ ] |
 | 20 | File manager | `/files` | `/files` | [ ] |
@@ -616,22 +616,45 @@ everything else.
 
 ### `/notifications` — the notification centre, live (§17)
 
-- [ ] A page listing every notification: category, severity, actor, resource,
-      timestamp, read state
-- [ ] **Mark one as read**, and **mark all as read**
-- [ ] Filter by category, severity and read state; group by `group_key` so
-      twelve "assigned you a task" rows collapse into one
-- [ ] **Live over WebSocket (`wss://`)** — a new notification appears without a
+- [x] A page listing every notification: category, severity, actor, resource,
+      timestamp, read state — with all six data states (§34), URL-backed
+      filters (§69, §72) and its actions in the command palette's "On this
+      page" group
+- [x] **Mark one as read** and back again, **mark all as read**, mark one
+      collapsed group read, and delete
+- [x] Filter by category, severity, read state and text; group by `group_key`
+      so twelve "assigned you a task" rows collapse into one
+  - Grouped **in PostgreSQL**, not in the browser: one statement with window
+    functions returns the newest member of each group plus how many it stands
+    for. A page that groups the twenty-five rows it happens to have downloaded
+    reports "3 of a kind" for something the server would have called thirty
+  - A row with no `group_key` falls back to its own id, so a one-of-a-kind
+    notice is its own group rather than disappearing into an "ungrouped" pile
+- [x] **Live over WebSocket (`wss://`)** — a new notification appears without a
       reload, and the header badge updates with it
   - Backend: a WS endpoint authenticated by the same access token, scoped to
     the signed-in user; heartbeats; server-side fan-out on write
-  - Client: reconnect with backoff, and **fall back to polling** when the
-    socket cannot be established — a notification centre that silently stops
-    updating behind a corporate proxy is worse than one that polls
-  - **Acceptance**: two browsers signed in as the same user both see a new
-    notification within a second; killing the socket reconnects without a
-    reload and without duplicating rows; a user never receives another user's
-    notifications (asserted by an integration test, not by inspection)
+  - Client: one socket for the whole app, reconnect with backoff, a silence
+    watchdog, and **polling as the fallback** — every notification query drops
+    to a timer the moment the socket is not carrying updates, and the page says
+    which of the two it is rather than looking live while being stale
+  - Delivery **invalidates** rather than merges: the server stays the single
+    authority, so a reconnect that missed a message, a second tab and an
+    in-flight mark-read cannot leave the cache disagreeing with the database
+  - Two things had to be fixed for the socket to survive the real stack, and
+    both failed silently into "it still works, just by polling":
+    * nginx forwards `Upgrade`/`Connection` and holds the socket open for an
+      hour, rather than closing it on the 120s read timeout
+    * the server **selects** the `bearer` subprotocol the browser offers. A
+      `WebSocket` constructor cannot set an `Authorization` header, so the
+      token rides in the subprotocol — and RFC 6455 makes the client fail any
+      handshake accepted without one of the protocols it offered. The socket
+      opened, authenticated, and was dropped by the browser a millisecond later
+  - **Acceptance**: met — the e2e suite asserts the page reads "Live" against
+    the compose stack (so the handshake, the proxy and the token path all
+    work), that marking read and unread moves the count both ways, and that
+    one reader cannot reach another's notification by id. A backend
+    integration test asserts the scoping directly rather than by inspection
 
 ### `/profile` — the user's own page (§40, §41)
 
@@ -739,6 +762,11 @@ everything else.
   - **Acceptance**: copying it to `.env` unchanged produces a working stack
 - [x] `Makefile` — `up` · `down` · `clean` · `wait` · `urls` · `seed` · `reseed` ·
       `check-seed` · `psql` · `test` · `test-backend-db` · `e2e` · `lint` · `logs`
+  - `reseed` passes `SEED_ARGS` with `-e`, as `check-seed` already did. Setting
+    it in the caller's environment does nothing: compose only forwards a
+    variable a service declares, so `make reseed` was silently a no-op against
+    a database that already had data — which is every database it would ever
+    be aimed at
 - [ ] `docs/architecture.md` — the request path, the auth flow across the two
       Keycloak URLs, the layering rule, why QF is wired the way it is
 - [ ] `docs/features.md` — the §1–§77 catalogue mapped to routes and endpoints,
@@ -838,7 +866,9 @@ Each endpoint ships with its five-case integration test and the page consuming i
     refers to is deleted (`actor_label` is denormalised); secret-shaped fields
     are redacted (§76); added and cleared fields are distinguishable in the diff;
     an impersonated action records both identities
-- [ ] Notifications + preferences (§17, §40)
+- [~] Notifications ship complete — list, counts, filters, server-side
+      grouping, mark one/all/group, delete, and the live channel (§17).
+      Notification *preferences* (§40) are still open
 - [ ] Email module: threads, messages, drafts, templates, send (§14–§16)
 - [ ] Tasks, calendar, files, comments, tags, activity (§18–§20, §35–§37, §48)
 - [ ] Favorites, recents, dashboards, reports (§38, §39, §45, §67, §28)
@@ -870,9 +900,12 @@ Each endpoint ships with its five-case integration test and the page consuming i
     with the same permissions; opening a record and returning restores the list
     exactly, scroll included; back/forward move through view states
 - [~] App shell (§1): nested permission-aware navigation, authenticated profile,
-      403 deep-link guard and sign-out shipped; badges,
-      global search, notification centre, recents, favorites, help and app
-      switcher remain
+      403 deep-link guard, sign-out, the live notification bell and the
+      sidebar unread badge shipped; global search, recents, favorites, help and
+      app switcher remain
+  - Navigation items name the counter they carry. Only `unread` has an endpoint
+    today, and an item whose counter nothing publishes renders with no badge
+    rather than a permanent `0`, which reads as a broken feature
   - [x] Header profile trigger uses a centered 40px button box, aligning avatar
         and name with the adjacent circular actions at every density; the
         header action row explicitly uses cross-axis centering rather than the
@@ -920,11 +953,18 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] `docker compose up` clean-boot green — every service healthy from empty
       volumes; seed wrote 15 554 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
-- [~] Backend tests — 83 passing, including Data Explorer query, validation,
-      JWT/RBAC and saved-search visibility/lifecycle integration coverage
-- [~] Frontend unit + component tests — 37 passing, including Data Explorer
-      backend rendering, debounced search and saved-search module coverage
-- [ ] Playwright e2e suite green from a cold boot
+- [~] Backend tests — 151 passing, including Data Explorer query, validation,
+      JWT/RBAC, saved-search visibility/lifecycle and the notification centre's
+      scoping, filtering, grouping and mark/delete contract
+- [~] Frontend unit + component tests — 94 passing, including Data Explorer
+      backend rendering, debounced search, saved-search module, the
+      notification centre's six states and the header bell
+- [~] Playwright e2e suite — 62 tests, run against `docker compose up` on the
+      full seed. One pre-existing failure is open: explorer result sections
+      (§6) are built from the rows already loaded rather than from the facet
+      list, so a group with nothing on the first page renders no section and
+      the section counts no longer add up to the total. Invisible at the
+      `small` seed, where the first 25 rows happened to contain every status
 - [x] Frontend typecheck + production build
 - [ ] Accessibility — axe clean on every route (§55)
 - [ ] Performance — list page interactive under 1.5s against the seeded database

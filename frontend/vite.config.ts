@@ -19,7 +19,10 @@ export default defineConfig({
     port: 5174,
     strictPort: true,
     proxy: {
-      "/platform": { target: "http://localhost:5101", changeOrigin: true },
+      // `ws` so the live notification channel (§17) survives the dev proxy as
+      // well as nginx — without it the socket only works in the built image,
+      // which is the worst place to discover it is broken.
+      "/platform": { target: "http://localhost:5101", changeOrigin: true, ws: true },
       "/swagger.json": { target: "http://localhost:5101", changeOrigin: true },
     },
   },

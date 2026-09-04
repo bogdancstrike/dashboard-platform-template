@@ -220,6 +220,55 @@ export const globalResults = {
   truncated: false,
 };
 
+
+/** Six notifications for the signed-in user, three of them unread. */
+export const notificationRows = [
+  {
+    id: "n1", category: "ASSIGNMENT", severity: "INFO",
+    title: "Mara Manager assigned you TSK-00042", body: "Migrate the billing exports",
+    icon: "user-check", is_read: false, read_at: null, link: "/tasks/task-1",
+    resource_type: "task", resource_id: "task-1",
+    actor_id: "u2", actor_label: "Mara Manager",
+    group_key: "assignment:task", created_at: "2026-09-03T11:40:00Z",
+  },
+  {
+    id: "n2", category: "SECURITY", severity: "CRITICAL",
+    title: "New sign-in from an unrecognised device", body: "Bucharest, Chrome on Linux",
+    icon: "shield", is_read: false, read_at: null, link: "/settings/security",
+    resource_type: "user", resource_id: "u1",
+    actor_id: null, actor_label: null,
+    group_key: "security:user", created_at: "2026-09-03T09:15:00Z",
+  },
+  {
+    id: "n3", category: "APPROVAL", severity: "WARNING",
+    title: "Approval requested for ORD-00311", body: "18 400 EUR — awaiting your sign-off",
+    icon: "check-circle", is_read: true, read_at: "2026-09-03T10:00:00Z",
+    link: "/orders/order-1", resource_type: "order", resource_id: "order-1",
+    actor_id: "u3", actor_label: "Otto Operator",
+    group_key: "approval:order", created_at: "2026-09-02T16:05:00Z",
+  },
+];
+
+export const notificationCounts = {
+  unread: 2,
+  by_category: { ASSIGNMENT: 1, SECURITY: 1 },
+};
+
+export function notificationPage(items = notificationRows, extra: Record<string, unknown> = {}) {
+  return {
+    items,
+    total: items.length,
+    page: 1,
+    page_size: 25,
+    pages: 1,
+    sort: "created_at",
+    order: "desc",
+    grouped: false,
+    ...notificationCounts,
+    ...extra,
+  };
+}
+
 export const handlers = [
   http.get("/platform/meta/app", ({ request }) => echo(request, appMeta)),
   http.get("/platform/api/search/global", ({ request }) =>
@@ -235,4 +284,38 @@ export const handlers = [
   http.get("/platform/api/explorer/catalog", ({ request }) => echo(request, explorerCatalogue)),
   http.post("/platform/api/explorer/query", ({ request }) => echo(request, explorerResult)),
   http.get("/platform/api/saved-searches", ({ request }) => echo(request, { items: [], total: 0 })),
+
+  http.get("/platform/notifications/counts", ({ request }) => echo(request, notificationCounts)),
+  http.get("/platform/notifications", ({ request }) => {
+    // The handler honours the filters the page sends, so a test that asserts
+    // "unread only shows two rows" is asserting the request the page made
+    // rather than a fixture that happens to be short.
+    const query = new URL(request.url).searchParams;
+    const read = query.get("read") ?? "all";
+    const grouped = query.get("group") === "true";
+    const category = query.get("category")?.split(",").filter(Boolean) ?? [];
+
+    let items = notificationRows.filter((row) => {
+      if (read === "unread" && row.is_read) return false;
+      if (read === "read" && !row.is_read) return false;
+      if (category.length && !category.includes(row.category)) return false;
+      return true;
+    });
+
+    if (grouped) {
+      items = items.map((row) => ({ ...row, group_count: 4, group_unread: 2 }));
+    }
+    return echo(request, notificationPage(items, { grouped }));
+  }),
+  http.put("/platform/notifications/:id", async ({ request, params }) => {
+    const body = (await request.json()) as { is_read?: boolean };
+    const row = notificationRows.find((item) => item.id === params["id"]) ?? notificationRows[0]!;
+    return echo(request, { ...row, is_read: body.is_read !== false });
+  }),
+  http.delete("/platform/notifications/:id", ({ request, params }) =>
+    echo(request, { deleted: String(params["id"]) }),
+  ),
+  http.post("/platform/notifications/read-all", ({ request }) =>
+    echo(request, { marked: 2, read_at: "2026-09-03T12:00:00Z" }),
+  ),
 ];

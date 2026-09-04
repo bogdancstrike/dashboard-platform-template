@@ -53,10 +53,13 @@ def item(app=None, operation: str = "", request=None, notification_id: str = "",
 
 @requires()
 def mark_all(app=None, operation: str = "", request=None, **_: Any):
-    """Mark everything read, or everything in one category."""
+    """Mark everything read, or everything in one category or collapsed group."""
     principal = me()
     body = json_body()
     with session_scope() as session:
         return service.mark_all_read(
-            session, principal.user_id, category=body.get("category")
+            session,
+            principal.user_id,
+            category=body.get("category"),
+            group_key=body.get("group_key"),
         ), 200

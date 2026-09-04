@@ -20,7 +20,8 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import String, case, cast, distinct, func, or_, select, update
+from sqlalchemy.orm import aliased
 
 from src.core.clock import iso, now
 from src.core.errors import NotFoundError, ValidationError
@@ -78,31 +79,71 @@ def counts(session, user_id: UUID) -> dict[str, Any]:
     return {"unread": int(unread), "by_category": per_category}
 
 
-def listing(session, user_id: UUID, args, page: Page) -> dict[str, Any]:
-    """One page of notifications, newest first."""
+def _clauses(user_id: UUID, args) -> list:
+    """Every filter the notification centre offers, as SQL predicates.
+
+    Shared by the flat listing and the grouped one so the two can never
+    disagree about what the current filter selects — a grouped view that
+    counts rows the flat view excludes is a grouped view nobody believes.
+    """
     from src.models.platform import Notification
 
-    stmt = _base_query(user_id)
+    clauses = [Notification.user_id == user_id]
 
-    unread_only = str(args.get("unread") or "").lower() in ("1", "true", "yes")
-    if unread_only:
-        stmt = stmt.where(Notification.is_read.is_(False))
+    read_state = str(args.get("read") or "").strip().lower()
+    if str(args.get("unread") or "").lower() in ("1", "true", "yes") or read_state == "unread":
+        clauses.append(Notification.is_read.is_(False))
+    elif read_state == "read":
+        clauses.append(Notification.is_read.is_(True))
+    elif read_state not in ("", "all"):
+        raise ValidationError("read must be one of: all, read, unread")
 
     category = args.get("category")
     if category:
         values = [value.strip().upper() for value in str(category).split(",") if value.strip()]
-        stmt = stmt.where(Notification.category.in_(values))
+        clauses.append(Notification.category.in_(values))
 
     severity = args.get("severity")
     if severity:
         values = [value.strip().upper() for value in str(severity).split(",") if value.strip()]
-        stmt = stmt.where(Notification.severity.in_(values))
+        clauses.append(Notification.severity.in_(values))
+
+    group_key = args.get("group_key")
+    if group_key:
+        clauses.append(Notification.group_key == str(group_key))
 
     term = (args.get("q") or "").strip()
     if term:
         like = f"%{term}%"
-        stmt = stmt.where(or_(Notification.title.ilike(like), Notification.body.ilike(like)))
+        clauses.append(or_(Notification.title.ilike(like), Notification.body.ilike(like)))
 
+    return clauses
+
+
+def _group_key(model):
+    """The value rows are collapsed on.
+
+    A row with no `group_key` is its own group rather than joining a single
+    enormous "ungrouped" pile — falling back to the id is what keeps a
+    one-of-a-kind notice visible instead of hidden behind a count.
+    """
+    return func.coalesce(model.group_key, cast(model.id, String))
+
+
+def listing(session, user_id: UUID, args, page: Page) -> dict[str, Any]:
+    """One page of notifications, newest first.
+
+    `?group=true` collapses a `group_key` into one row carrying the count and
+    the newest member, which is the difference between a centre people read and
+    twelve copies of "assigned you a task" burying everything else.
+    """
+    from src.models.platform import Notification
+
+    clauses = _clauses(user_id, args)
+    if str(args.get("group") or "").lower() in ("1", "true", "yes"):
+        return _grouped(session, user_id, clauses, page)
+
+    stmt = select(Notification).where(*clauses)
     total = session.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     rows = session.scalars(
         stmt.order_by(Notification.created_at.desc())
@@ -114,8 +155,57 @@ def listing(session, user_id: UUID, args, page: Page) -> dict[str, Any]:
         [serialize(row) for row in rows],
         total,
         page,
+        grouped=False,
         **counts(session, user_id),
     )
+
+
+def _grouped(session, user_id: UUID, clauses: list, page: Page) -> dict[str, Any]:
+    """One row per `group_key`: the newest member, plus how many it stands for.
+
+    The counts ride along as window functions over the same filtered set, so
+    the page is one statement rather than a query per group — the shape that
+    turns a notification centre into fifty round trips as soon as it is useful.
+    """
+    from src.models.platform import Notification
+
+    key = _group_key(Notification)
+    ranked = (
+        select(
+            Notification,
+            func.count().over(partition_by=key).label("group_count"),
+            func.sum(case((Notification.is_read.is_(False), 1), else_=0))
+            .over(partition_by=key)
+            .label("group_unread"),
+            func.row_number()
+            .over(partition_by=key, order_by=Notification.created_at.desc())
+            .label("member_rank"),
+        )
+        .where(*clauses)
+        .subquery()
+    )
+    newest = aliased(Notification, ranked)
+
+    total = session.scalar(
+        select(func.count(distinct(key))).select_from(Notification).where(*clauses)
+    ) or 0
+
+    rows = session.execute(
+        select(newest, ranked.c.group_count, ranked.c.group_unread)
+        .where(ranked.c.member_rank == 1)
+        .order_by(newest.created_at.desc())
+        .offset(page.offset)
+        .limit(page.page_size)
+    ).all()
+
+    items = []
+    for row, group_count, group_unread in rows:
+        item = serialize(row)
+        item["group_count"] = int(group_count or 1)
+        item["group_unread"] = int(group_unread or 0)
+        items.append(item)
+
+    return envelope(items, total, page, grouped=True, **counts(session, user_id))
 
 
 def mark_read(session, user_id: UUID, notification_id: str) -> dict[str, Any]:
@@ -148,8 +238,14 @@ def mark_unread(session, user_id: UUID, notification_id: str) -> dict[str, Any]:
     return serialize(row)
 
 
-def mark_all_read(session, user_id: UUID, *, category: str | None = None) -> dict[str, Any]:
-    """Mark everything, or everything in one category.
+def mark_all_read(
+    session,
+    user_id: UUID,
+    *,
+    category: str | None = None,
+    group_key: str | None = None,
+) -> dict[str, Any]:
+    """Mark everything, everything in one category, or one collapsed group.
 
     A single UPDATE rather than a read-then-write loop: somebody with two
     thousand unread rows should not pay for two thousand round trips, and the
@@ -168,6 +264,11 @@ def mark_all_read(session, user_id: UUID, *, category: str | None = None) -> dic
         if not values:
             raise ValidationError("category must not be empty when given")
         stmt = stmt.where(Notification.category.in_(values))
+    if group_key:
+        # The grouped view collapses on the key *or* the id when there is none,
+        # so dismissing a group has to accept both spellings — otherwise the
+        # one-of-a-kind rows the view shows cannot be dismissed from it.
+        stmt = stmt.where(_group_key(Notification) == str(group_key))
 
     result = session.execute(stmt)
     return {"marked": int(result.rowcount or 0), "read_at": iso(moment)}

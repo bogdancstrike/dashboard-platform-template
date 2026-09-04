@@ -97,9 +97,22 @@ def _install_websocket(app: Flask) -> None:
         from src.api.websocket import register
         from src.services import live
 
-        # Ping frames are the server's business; the application-level
-        # heartbeat in websocket.py is what survives a proxy that strips them.
-        app.config.setdefault("SOCK_SERVER_OPTIONS", {"ping_interval": 25})
+        # Two options, and the second one is load-bearing:
+        #
+        # * `ping_interval` — protocol-level pings are the server's business;
+        #   the application-level heartbeat in websocket.py is what survives a
+        #   proxy that strips them.
+        # * `subprotocols` — the browser sends the access token *as* a
+        #   subprotocol, because a `WebSocket` constructor cannot set an
+        #   `Authorization` header. RFC 6455 then requires the client to fail
+        #   the connection if the server accepts the handshake without
+        #   selecting one of the offered protocols. Without this the socket
+        #   opens, authenticates, and is closed by the browser a millisecond
+        #   later with no status code — which looks exactly like a proxy
+        #   problem and is not one.
+        app.config.setdefault(
+            "SOCK_SERVER_OPTIONS", {"ping_interval": 25, "subprotocols": ["bearer"]}
+        )
         sock = Sock(app)
         register(app, sock)
         live.start_relay()

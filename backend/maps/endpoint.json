@@ -315,7 +315,7 @@
         "GET"
       ],
       "api_url": "/notifications",
-      "description": "The caller's notifications, newest first, with unread counts.",
+      "description": "The caller's notifications, newest first, filterable and optionally grouped, with unread counts.",
       "exec_method": {
         "module_name": "src.api.notifications",
         "method_name": "collection"
@@ -358,7 +358,7 @@
         "POST"
       ],
       "api_url": "/notifications/read-all",
-      "description": "Mark everything read, or everything in one category.",
+      "description": "Mark everything read, or everything in one category or collapsed group.",
       "exec_method": {
         "module_name": "src.api.notifications",
         "method_name": "mark_all"

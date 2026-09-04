@@ -135,6 +135,12 @@ export function cssVariables(appearance: Appearance, density: Density): Record<s
     "--nu-padding": `${scale.padding}px`,
     "--nu-font": FONT.family,
     "--nu-font-mono": FONT.mono,
+    // The radii AntD already applies to its own components, published so a
+    // hand-built surface (the notification panel, a popover of our own) rounds
+    // to the same corner rather than to whichever value somebody typed.
+    "--nu-radius-control": `${RADIUS.control}px`,
+    "--nu-radius-card": `${RADIUS.card}px`,
+    "--nu-radius-modal": `${RADIUS.modal}px`,
     "--nu-shadow-sm": SHADOW.sm,
     "--nu-shadow-md": SHADOW.md,
     "--nu-shadow-lg": SHADOW.lg,

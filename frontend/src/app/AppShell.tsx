@@ -14,7 +14,6 @@ import {
   Typography,
 } from "antd";
 import {
-  BellOutlined,
   LogoutOutlined,
   MenuOutlined,
   MoonOutlined,
@@ -25,9 +24,14 @@ import {
 } from "@ant-design/icons";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 
+import { useQuery } from "@tanstack/react-query";
+
+import { notificationsApi } from "@/api/notifications";
 import { useAuth } from "@/auth/AuthProvider";
 import { CommandPalette, CommandTrigger } from "@/components/CommandPalette";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { STORAGE_KEYS } from "@/config";
+import { usePollInterval } from "@/live/LiveProvider";
 import { useAppearance } from "@/theme/AppearanceProvider";
 import { NAV_GROUPS, NAV_ITEMS, selectedKeyFor, trailFor } from "./navigation";
 
@@ -91,6 +95,18 @@ export function AppShell() {
   const selected = selectedKeyFor(location.pathname);
   const showLabels = isMobile || !collapsed;
 
+  // The counters navigation items ride on (§1). Only `unread` has an endpoint
+  // today; an item naming a counter nothing publishes renders without a badge
+  // rather than with a zero, because a permanent "0" beside a menu entry reads
+  // as a broken feature rather than as good news.
+  const badgePoll = usePollInterval(60_000);
+  const counts = useQuery({
+    queryKey: ["notifications", "counts"],
+    queryFn: ({ signal }) => notificationsApi.counts(signal),
+    refetchInterval: badgePoll,
+  });
+  const counters: Record<string, number | undefined> = { unread: counts.data?.unread };
+
   const menuItems = useMemo(
     () =>
       NAV_GROUPS.map((group) => ({
@@ -99,14 +115,25 @@ export function AppShell() {
         type: "group" as const,
         children: group.items
           .filter((item) => auth.can(item.permission))
-          .map((item) => ({
-            key: item.key,
-            icon: item.icon,
-            label: item.label,
-            disabled: item.disabled,
-          })),
+          .map((item) => {
+            const count = item.badge ? counters[item.badge] : undefined;
+            return {
+              key: item.key,
+              icon: item.icon,
+              label: count ? (
+                <span className="nu-nav-item">
+                  <span>{item.label}</span>
+                  <Badge count={count} size="small" overflowCount={99} />
+                </span>
+              ) : (
+                item.label
+              ),
+              disabled: item.disabled,
+            };
+          }),
       })).filter((group) => group.children.length > 0),
-    [auth.can],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [auth.can, counts.data?.unread],
   );
 
   const trail = trailFor(location.pathname);
@@ -186,11 +213,7 @@ export function AppShell() {
               The profile trigger is taller than the icon buttons, so its box
               sat a few pixels high until the row was explicitly centred. */}
           <Space size={isMobile ? 4 : 8} align="center">
-            <Tooltip title="Notifications">
-              <Badge count={0} size="small">
-                <Button shape="circle" aria-label="Notifications" icon={<BellOutlined />} />
-              </Badge>
-            </Tooltip>
+            <NotificationBell />
             {!isMobile && (
               <Tooltip title={mode === "dark" ? "Switch to light" : "Switch to dark"}>
                 <Button

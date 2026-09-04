@@ -13,6 +13,7 @@ import { asText } from "@/lib/text";
 import { AuthProvider } from "@/auth/AuthProvider";
 import { initializeAuth } from "@/auth/keycloak";
 import { CommandProvider } from "@/commands/CommandContext";
+import { LiveProvider } from "@/live/LiveProvider";
 import App from "@/App";
 import { AppearanceProvider } from "@/theme/AppearanceProvider";
 
@@ -73,11 +74,15 @@ async function start() {
               static `message.*` helpers cannot theme. */}
           <AntApp>
             <AuthProvider>
-              <BrowserRouter>
-                <CommandProvider>
-                  <App />
-                </CommandProvider>
-              </BrowserRouter>
+              {/* Inside AntApp so a delivered notification can raise a toast,
+                  and inside AuthProvider so the socket opens with a token. */}
+              <LiveProvider>
+                <BrowserRouter>
+                  <CommandProvider>
+                    <App />
+                  </CommandProvider>
+                </BrowserRouter>
+              </LiveProvider>
             </AuthProvider>
           </AntApp>
         </AppearanceProvider>

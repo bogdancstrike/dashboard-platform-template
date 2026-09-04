@@ -20,6 +20,7 @@ const DataExplorerPage = lazy(() => import("@/pages/DataExplorerPage"));
 const GlobalSearchPage = lazy(() => import("@/pages/GlobalSearchPage"));
 const DataCatalogPage = lazy(() => import("@/pages/DataCatalogPage"));
 const RelationshipExplorerPage = lazy(() => import("@/pages/RelationshipExplorerPage"));
+const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 const SystemPage = lazy(() => import("@/pages/SystemPage"));
 
 function Loading() {
@@ -263,15 +264,9 @@ export default function App() {
         <Route
           path="notifications"
           element={
-            <PlaceholderPage
-              section="§17"
-              summary="The notification centre — everything, filterable, markable, live."
-              bullets={[
-                "Mark one read, or mark all read",
-                "Filter by category, severity and read state; grouped so twelve of a kind are one line",
-                "Live over WebSocket, with polling as the fallback",
-              ]}
-            />
+            <Suspense fallback={<Loading />}>
+              <NotificationsPage />
+            </Suspense>
           }
         />
 

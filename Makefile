@@ -74,7 +74,7 @@ seed: ## Seed, if the database is empty
 
 .PHONY: reseed
 reseed: ## Drop every table and seed again
-	SEED_ARGS=--reset $(COMPOSE) run --rm seed
+	$(COMPOSE) run --rm -e SEED_ARGS=--reset seed
 
 .PHONY: check-seed
 check-seed: ## Verify the seeded data is referentially consistent
