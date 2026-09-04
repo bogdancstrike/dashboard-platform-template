@@ -244,7 +244,14 @@ def run(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
         statement = statement.where(predicate)
 
     total = count_of(session, statement)
-    facets = facets_for(session, statement, resource.fields)
+    # One GROUP BY per faceted column, so it is asked for rather than assumed:
+    # the explorer's filtering happens in the condition builder, and computing
+    # menus nobody renders is work the reader waits for.
+    facets = (
+        facets_for(session, statement, resource.fields)
+        if bool(payload.get("facets"))
+        else {}
+    )
     statement = apply_sort(statement, page, resource.fields, default=resource.default_sort)
     rows = session.scalars(statement.offset(page.offset).limit(page.page_size)).unique().all()
     columns = _columns(payload.get("columns"), resource)

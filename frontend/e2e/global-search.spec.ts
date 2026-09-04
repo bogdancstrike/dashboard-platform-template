@@ -40,7 +40,9 @@ test.describe("global search", () => {
 
     // Same term, now narrowed to that one dataset.
     await expect(page).toHaveURL(/\/explore\?resource=project&q=migration/);
-    await expect(page.getByPlaceholder("Search projects…")).toHaveValue("migration");
+    await expect(
+      page.getByPlaceholder("Search projects, and everywhere else…"),
+    ).toHaveValue("migration");
   });
 
   test("the keyboard walks the results and opens one", async ({ page }) => {

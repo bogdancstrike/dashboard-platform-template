@@ -65,13 +65,8 @@ test.describe("saved searches", () => {
   test("stores the question and the presentation, and restores both", async ({ page }) => {
     const name = uniqueName("Critical only");
 
-    await page.getByTestId("facet-priority").click();
-    await page
-      .locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option")
-      .filter({ has: page.getByText(/^CRITICAL/) })
-      .first()
-      .click();
-    await page.keyboard.press("Escape");
+    // A question worth saving: a condition, a term and a presentation.
+    await page.getByPlaceholder("Search tasks, and everywhere else…").fill("audit");
     await page.getByTestId("view-mode").getByText("Cards", { exact: true }).click();
     await expect(page.getByTestId("explorer-settling")).toBeHidden();
     const matches = await page.getByTestId("explorer-match-count").innerText();
@@ -84,7 +79,7 @@ test.describe("saved searches", () => {
     await page.getByRole("button", { name: name, exact: true }).click();
 
     await expect(page.getByTestId("explorer-match-count")).toHaveText(matches);
-    expect(new URL(page.url()).searchParams.get("f.priority")).toBe("CRITICAL");
+    expect(new URL(page.url()).searchParams.get("q")).toBe("audit");
     expect(new URL(page.url()).searchParams.get("view")).toBe("cards");
 
     await deleteSearch(page, name);

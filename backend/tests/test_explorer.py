@@ -577,3 +577,21 @@ def test_the_catalogue_refuses_an_unknown_dataset_or_field(client, monkeypatch):
 
 def test_the_catalogue_requires_a_token(client):
     assert client.get(f"{PREFIX}/api/catalog/datasets").status_code == 401
+
+
+@pytest.mark.database
+def test_facets_are_computed_only_when_they_are_asked_for(client, monkeypatch):
+    """A GROUP BY per faceted column is work somebody waits for, and the
+    explorer filters through the condition builder rather than a facet row."""
+    headers = _authenticate(monkeypatch)
+    body = {"resource_type": "task", "columns": ["reference"], "page_size": 5}
+
+    default = client.post(f"{PREFIX}/api/explorer/query", headers=headers, json=body)
+    asked = client.post(
+        f"{PREFIX}/api/explorer/query", headers=headers, json={**body, "facets": True}
+    )
+
+    assert default.get_json()["facets"] == {}
+    facets = asked.get_json()["facets"]
+    assert set(facets) == {"status", "priority", "kind"}
+    assert facets["status"], "a faceted column with rows must offer values"

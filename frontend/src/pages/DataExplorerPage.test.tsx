@@ -25,12 +25,13 @@ describe("Data Explorer", () => {
         items: [], total: 0, page: 1, page_size: 25, pages: 1,
         sort: "updated_at", order: "desc", resource_type: "task",
         columns: [], fields: [], facets: {}, condition_text: "", rule_count: 0,
+        query_text: "", searchable: [],
       });
     }));
     const user = userEvent.setup();
     renderWithProviders(<DataExplorerPage />, { route: "/explore?resource=task" });
 
-    const search = await screen.findByPlaceholderText("Search tasks…");
+    const search = await screen.findByPlaceholderText("Search tasks, and everywhere else…");
     await user.type(search, "critical review");
 
     await waitFor(() => expect(requests.at(-1)?.query_text).toBe("critical review"));

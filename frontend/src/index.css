@@ -310,11 +310,6 @@ body {
   align-items: center;
 }
 .nu-resource-select { width: 100%; }
-.nu-facets {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--nu-border-subtle);
-}
-.nu-facets .ant-select { min-width: 150px; max-width: 260px; }
 .nu-explorer-results { border-color: var(--nu-border); }
 .nu-explorer-results > .ant-card-body { padding: 0; }
 .nu-explorer-results .ant-alert { margin: 12px; }
@@ -412,6 +407,8 @@ mark.nu-mark {
 .nu-recent-heading { display: flex; align-items: center; justify-content: space-between; }
 .nu-recent-clear { font-size: 12px; font-weight: 500; }
 .nu-recent-option { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+/* A hit from another dataset: what it is, and which field found it. */
+.nu-elsewhere-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
 /* Every result mode keeps its preview action at the trailing edge, so the eye
    finds it in the same place whichever mode the reader chose. */
@@ -479,7 +476,6 @@ mark.nu-mark {
   .nu-explorer-toolbar { display: flex; flex-wrap: wrap; }
   .nu-explorer-toolbar > .ant-input-affix-wrapper { flex: 1 1 100%; order: -1; }
   .nu-resource-select { flex: 1 1 180px; }
-  .nu-facets .ant-select { flex: 1 1 140px; max-width: none; }
   .nu-column-picker { grid-template-columns: 1fr; }
 }
 

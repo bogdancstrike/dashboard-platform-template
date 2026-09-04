@@ -103,14 +103,14 @@ test.describe("Data Explorer", () => {
   test("simple search narrows the rows and survives a reload", async ({ page }) => {
     const total = await matchCount(page);
 
-    await page.getByPlaceholder("Search tasks…").fill("audit");
+    await page.getByPlaceholder("Search tasks, and everywhere else…").fill("audit");
     await expect.poll(() => matchCount(page)).toBeLessThan(total);
     const narrowed = await matchCount(page);
 
     // §69: the question lives in the URL, so it can be pasted to a colleague.
     expect(new URL(page.url()).searchParams.get("q")).toBe("audit");
     await page.reload();
-    await expect(page.getByPlaceholder("Search tasks…")).toHaveValue("audit");
+    await expect(page.getByPlaceholder("Search tasks, and everywhere else…")).toHaveValue("audit");
     await expect.poll(() => matchCount(page)).toBe(narrowed);
   });
 
@@ -223,15 +223,18 @@ test.describe("Data Explorer", () => {
     expect(await previewCount(page)).toBe(total);
   });
 
-  test("a facet filters by a value that is actually present", async ({ page }) => {
-    const total = await matchCount(page);
+  test("the search box offers matches from the other datasets too (§32)", async ({ page }) => {
+    // The rows behind the box answer for this dataset; the dropdown answers
+    // "it exists, it is simply not a task".
+    await page.getByPlaceholder("Search tasks, and everywhere else…").fill("PRJ-0001");
 
-    await page.getByTestId("facet-priority").click();
-    await chooseOption(page, /^CRITICAL/);
-    await page.keyboard.press("Escape");
+    const dropdown = page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden)");
+    await expect(dropdown.getByText("Projects", { exact: true })).toBeVisible();
+    await dropdown.getByText("PRJ-0001", { exact: true }).click();
 
-    await expect.poll(() => matchCount(page)).toBeLessThan(total);
-    expect(new URL(page.url()).searchParams.get("f.priority")).toBe("CRITICAL");
+    // Opened as itself, in its own dataset.
+    await expect(page).toHaveURL(/resource=project&f\.id=/);
+    await expect(page.getByRole("cell", { name: "PRJ-0001", exact: true })).toBeVisible();
   });
 
   test("every result mode renders the same answer", async ({ page }) => {
@@ -246,7 +249,7 @@ test.describe("Data Explorer", () => {
   });
 
   test("a match is marked where the search actually found it (§6)", async ({ page }) => {
-    await page.getByPlaceholder("Search tasks…").fill("audit");
+    await page.getByPlaceholder("Search tasks, and everywhere else…").fill("audit");
     await expect.poll(() => matchCount(page)).toBeGreaterThan(0);
 
     // Marked in the columns the server searched, and nowhere else: a highlight
@@ -259,7 +262,7 @@ test.describe("Data Explorer", () => {
   });
 
   test("a search joins the history and can be picked again", async ({ page }) => {
-    const box = page.getByPlaceholder("Search tasks…");
+    const box = page.getByPlaceholder("Search tasks, and everywhere else…");
     await box.fill("harden");
     await box.press("Enter");
     await expect.poll(() => matchCount(page)).toBeGreaterThan(0);

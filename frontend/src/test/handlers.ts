@@ -208,10 +208,23 @@ export const explorerResult = {
   },
   condition_text: "",
   rule_count: 0,
+  query_text: "",
+  searchable: ["reference", "title"],
+};
+
+/** Global search, so the explorer's box has something to offer beside the dataset. */
+export const globalResults = {
+  query: "",
+  total: 0,
+  groups: [],
+  truncated: false,
 };
 
 export const handlers = [
   http.get("/platform/meta/app", ({ request }) => echo(request, appMeta)),
+  http.get("/platform/api/search/global", ({ request }) =>
+    echo(request, { ...globalResults, query: new URL(request.url).searchParams.get("q") ?? "" }),
+  ),
   http.get("/platform/api/me", ({ request }) => echo(request, currentUser)),
   http.put("/platform/api/me", async ({ request }) => {
     const body = (await request.json()) as { preferences: Record<string, unknown> };

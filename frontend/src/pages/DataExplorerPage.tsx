@@ -34,7 +34,7 @@ import {
 } from "@/api/explorer";
 import { AdvancedSearchDrawer } from "@/components/explorer/AdvancedSearchDrawer";
 import { RecordPreview } from "@/components/explorer/RecordPreview";
-import { SimpleSearch } from "@/components/explorer/SimpleSearch";
+import { ExplorerSearch } from "@/components/explorer/ExplorerSearch";
 import { ExplorerResults, type ExplorerRecord } from "@/components/explorer/ExplorerResults";
 import type { QueryNode } from "@/components/explorer/queryTree";
 import { SavedSearchDrawer } from "@/components/explorer/SavedSearchDrawer";
@@ -169,10 +169,6 @@ export default function DataExplorerPage() {
     setParams(next);
   };
 
-  const setFilter = (name: string, values: string[]) => {
-    set({ [`f.${name}`]: values.length ? values.join(",") : null, page: null });
-  };
-
   const openSaved = (saved: SavedSearch) => {
     const next = new URLSearchParams();
     next.set("resource", saved.resource_type);
@@ -263,7 +259,7 @@ export default function DataExplorerPage() {
               return <div><div>{item?.label}</div><Text type="secondary">{item?.description}</Text></div>;
             }}
           />
-          <SimpleSearch
+          <ExplorerSearch
             dataset={resource?.key ?? "records"}
             label={resource?.label.toLowerCase() ?? "records"}
             value={queryText}
@@ -275,28 +271,6 @@ export default function DataExplorerPage() {
           <ColumnPicker resource={resource} value={columns} onChange={(next) => set({ columns: next.join(","), page: null })} />
           {activeFilterCount > 0 && <Button icon={<ClearOutlined />} onClick={clearQuestion}>Clear</Button>}
         </div>
-
-        {results.data && Object.keys(results.data.facets).length > 0 && (
-          <div className="nu-facets" aria-label="Dataset filters">
-            {Object.entries(results.data.facets).slice(0, 5).map(([name, values]) => {
-              const field = resource?.fields.find((candidate) => candidate.name === name);
-              return (
-                <Select
-                  key={name}
-                  data-testid={`facet-${name}`}
-                  mode="multiple"
-                  allowClear
-                  maxTagCount="responsive"
-                  aria-label={field?.label ?? name}
-                  placeholder={field?.label ?? name}
-                  value={asArray(filters[name])}
-                  onChange={(next) => setFilter(name, next)}
-                  options={values.map((item) => ({ value: item.value, label: `${item.value} · ${item.count}` }))}
-                />
-              );
-            })}
-          </div>
-        )}
       </Card>
 
       <Card
@@ -468,11 +442,6 @@ function parseFilters(params: URLSearchParams): Record<string, string[]> {
     if (key.startsWith("f.") && value) out[key.slice(2)] = value.split(",").filter(Boolean);
   });
   return out;
-}
-
-function asArray(value: unknown): string[] {
-  if (Array.isArray(value)) return value.map(String);
-  return value === undefined || value === null || value === "" ? [] : [String(value)];
 }
 
 function asView(value: string | null): ExplorerView {

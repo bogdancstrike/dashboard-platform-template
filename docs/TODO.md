@@ -35,7 +35,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
 | Endpoints | 22 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×2, saved searches ×4, directory ×1, global search ×1, catalogue ×2 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 133 backend + 77 frontend + 42 Playwright e2e, green against `docker compose up` |
+| Tests | 134 backend + 77 frontend + 42 Playwright e2e, green against `docker compose up` |
 | Frontend | scaffold **done** — theme, API client, OIDC/RBAC, 34 tests, build clean |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -424,6 +424,16 @@ Nucleus extends that to a full condition tree with a real sharing model.
     the editor, so the assertion covers the round trip, not just the function
 - [x] Simple search alongside it (§4): one box across every `searchable` field,
       with recent searches, autocomplete, highlighted matches and history
+  - **The box searches the dataset on screen and offers matches from every
+    other one** (§32): the rows behind it narrow as the term is typed, and the
+    dropdown answers the question the reader has when nothing comes back — the
+    record exists, it is simply not a task. Selecting one opens it in its own
+    dataset; "See every match" hands the term to `/find/global`
+  - The facet menus below it are gone. Per-field narrowing belongs to the
+    condition builder beside the box, which does it better in every respect —
+    any field, any operator, negation, nesting — where the facet row offered
+    three fields chosen for you and cost a `GROUP BY` per field on every
+    keystroke. Facets are still computed, on request (`"facets": true`)
   - Recent searches are the only suggestion offered, and per dataset: a
     suggestion drawn from the data guesses what the reader meant from a prefix,
     and guessing wrong in a search box is worse than not guessing. They live in
