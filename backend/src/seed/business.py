@@ -54,7 +54,7 @@ def _customers(world: World) -> None:
                 email=f"hello@{slugify(name)}.example",
                 phone=rng.maybe(f"+{rng.integer(30, 49)} {rng.integer(20, 89)} {rng.integer(1000000, 9999999)}", 0.85),
                 website=rng.maybe(f"https://www.{slugify(name)}.example", 0.7),
-                status=rng.weighted((("ACTIVE", 0.82), ("INACTIVE", 0.12), ("BLOCKED", 0.06))),
+                status=rng.weighted(catalog.CUSTOMER_STATUSES),
                 segment=segment,
                 industry=rng.pick(catalog.INDUSTRIES),
                 lifecycle_stage=stage,
@@ -143,7 +143,7 @@ def _projects(world: World) -> None:
                 # Overspend on a minority, because "spent vs budget" is only a
                 # useful chart when some bars cross the line.
                 spent=round(budget * (rng.decimal(0.05, 1.25) if rng.chance(0.25) else rng.decimal(0.05, 0.95)), 2),
-                currency=rng.pick(("EUR", "EUR", "EUR", "USD", "GBP")),
+                currency=rng.pick(catalog.ORDER_CURRENCIES),
                 progress=progress,
                 tags=rng.sample([t[0] for t in catalog.TAGS], rng.integer(0, 4)),
                 color=rng.pick(("#5b5bd6", "#0891b2", "#16a34a", "#ca8a04", "#dc2626", "#7c3aed")),
@@ -390,7 +390,7 @@ def _orders(world: World) -> None:
                 shipping=shipping,
                 discount=discount,
                 total=round(subtotal - discount + tax + shipping, 2),
-                currency=rng.pick(("EUR", "EUR", "EUR", "USD", "GBP")),
+                currency=rng.pick(catalog.ORDER_CURRENCIES),
                 item_count=sum(line["quantity"] for line in lines),
                 items=lines,
                 notes=rng.maybe("Customer asked for consolidated invoicing.", 0.2),

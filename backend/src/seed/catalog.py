@@ -12,6 +12,14 @@ words in it can change independently. Two rules held throughout:
 
 from __future__ import annotations
 
+from src.core import vocabulary
+from src.core.vocabulary import weighted
+
+# The closed value sets live in `core/vocabulary.py`, shared with the query
+# builder and the API. Here they are given the distribution the seed draws
+# from — positionally, so a value added there without a weight fails loudly
+# instead of quietly never being generated.
+
 # ── people ───────────────────────────────────────────────────────────────
 
 FIRST_NAMES: tuple[str, ...] = (
@@ -154,18 +162,11 @@ PROJECT_SUBJECTS: tuple[str, ...] = (
     "Inventory Forecasting", "Quality Management",
 )
 
-PROJECT_STATUSES: tuple[tuple[str, float], ...] = (
-    ("ACTIVE", 0.45), ("PLANNING", 0.15), ("ON_HOLD", 0.1),
-    ("COMPLETED", 0.22), ("CANCELLED", 0.05), ("ARCHIVED", 0.03),
-)
-PROJECT_PHASES: tuple[str, ...] = ("DISCOVERY", "DESIGN", "EXECUTION", "ROLLOUT", "CLOSURE")
-PROJECT_HEALTH: tuple[tuple[str, float], ...] = (
-    ("ON_TRACK", 0.62), ("AT_RISK", 0.24), ("OFF_TRACK", 0.14),
-)
+PROJECT_STATUSES = weighted(vocabulary.PROJECT_STATUS, (0.45, 0.15, 0.1, 0.22, 0.05, 0.03))
+PROJECT_PHASES = vocabulary.PROJECT_PHASE
+PROJECT_HEALTH = weighted(vocabulary.PROJECT_HEALTH, (0.62, 0.24, 0.14))
 
-PRIORITIES: tuple[tuple[str, float], ...] = (
-    ("LOW", 0.2), ("NORMAL", 0.45), ("HIGH", 0.25), ("CRITICAL", 0.1),
-)
+PRIORITIES = weighted(vocabulary.PRIORITY, (0.2, 0.45, 0.25, 0.1))
 
 TASK_VERBS: tuple[str, ...] = (
     "Migrate", "Refactor", "Document", "Investigate", "Automate", "Review",
@@ -183,11 +184,8 @@ TASK_OBJECTS: tuple[str, ...] = (
     "the incident runbook", "the data retention policy", "the pricing table",
 )
 
-TASK_STATUSES: tuple[tuple[str, float], ...] = (
-    ("NEW", 0.16), ("ASSIGNED", 0.14), ("IN_PROGRESS", 0.22),
-    ("BLOCKED", 0.07), ("IN_REVIEW", 0.11), ("DONE", 0.26), ("CANCELLED", 0.04),
-)
-TASK_KINDS: tuple[str, ...] = ("TASK", "BUG", "FEATURE", "CHORE", "INCIDENT", "REQUEST")
+TASK_STATUSES = weighted(vocabulary.TASK_STATUS, (0.16, 0.14, 0.22, 0.07, 0.11, 0.26, 0.04))
+TASK_KINDS = vocabulary.TASK_KIND
 
 BLOCKED_REASONS: tuple[str, ...] = (
     "Waiting on vendor response", "Blocked by upstream migration",
@@ -219,38 +217,24 @@ TICKET_SUBJECTS: tuple[str, ...] = (
     "Attachment preview shows a blank page",
 )
 
-TICKET_STATUSES: tuple[tuple[str, float], ...] = (
-    ("OPEN", 0.2), ("ASSIGNED", 0.13), ("IN_PROGRESS", 0.17),
-    ("WAITING_CUSTOMER", 0.09), ("ESCALATED", 0.05),
-    ("RESOLVED", 0.28), ("CLOSED", 0.08),
+TICKET_STATUSES = weighted(
+    vocabulary.TICKET_STATUS, (0.2, 0.13, 0.17, 0.09, 0.05, 0.28, 0.08)
 )
-TICKET_CATEGORIES: tuple[str, ...] = (
-    "SUPPORT", "BUG", "BILLING", "ACCESS", "PERFORMANCE", "DATA", "FEATURE_REQUEST",
-)
-TICKET_CHANNELS: tuple[tuple[str, float], ...] = (
-    ("EMAIL", 0.38), ("PORTAL", 0.28), ("PHONE", 0.14), ("CHAT", 0.15), ("API", 0.05),
-)
-SEVERITIES: tuple[tuple[str, float], ...] = (
-    ("MINOR", 0.42), ("MODERATE", 0.32), ("MAJOR", 0.19), ("CRITICAL", 0.07),
-)
+TICKET_CATEGORIES = vocabulary.TICKET_CATEGORY
+TICKET_CHANNELS = weighted(vocabulary.TICKET_CHANNEL, (0.38, 0.28, 0.14, 0.15, 0.05))
+SEVERITIES = weighted(vocabulary.SEVERITY, (0.42, 0.32, 0.19, 0.07))
 
-CUSTOMER_SEGMENTS: tuple[tuple[str, float], ...] = (
-    ("SMB", 0.42), ("MID_MARKET", 0.33), ("ENTERPRISE", 0.2), ("STRATEGIC", 0.05),
-)
-LIFECYCLE_STAGES: tuple[tuple[str, float], ...] = (
-    ("LEAD", 0.12), ("PROSPECT", 0.14), ("CUSTOMER", 0.55),
-    ("RENEWAL", 0.12), ("CHURNED", 0.07),
-)
+CUSTOMER_SEGMENTS = weighted(vocabulary.CUSTOMER_SEGMENT, (0.42, 0.33, 0.2, 0.05))
+CUSTOMER_STATUSES = weighted(vocabulary.CUSTOMER_STATUS, (0.82, 0.12, 0.06))
+LIFECYCLE_STAGES = weighted(vocabulary.LIFECYCLE_STAGE, (0.12, 0.14, 0.55, 0.12, 0.07))
 
-ORDER_STATUSES: tuple[tuple[str, float], ...] = (
-    ("PENDING", 0.12), ("CONFIRMED", 0.2), ("PROCESSING", 0.15),
-    ("SHIPPED", 0.16), ("DELIVERED", 0.29), ("CANCELLED", 0.05), ("REFUNDED", 0.03),
+ORDER_STATUSES = weighted(
+    vocabulary.ORDER_STATUS, (0.12, 0.2, 0.15, 0.16, 0.29, 0.05, 0.03)
 )
-PAYMENT_STATUSES: tuple[tuple[str, float], ...] = (
-    ("PAID", 0.62), ("UNPAID", 0.2), ("PARTIAL", 0.08),
-    ("REFUNDED", 0.05), ("OVERDUE", 0.05),
-)
-ORDER_CHANNELS: tuple[str, ...] = ("DIRECT", "PORTAL", "PARTNER", "MARKETPLACE", "PHONE")
+PAYMENT_STATUSES = weighted(vocabulary.PAYMENT_STATUS, (0.62, 0.2, 0.08, 0.05, 0.05))
+ORDER_CHANNELS = vocabulary.ORDER_CHANNEL
+#: Three-to-one in favour of the home currency, so totals are not uniformly mixed.
+ORDER_CURRENCIES: tuple[str, ...] = ("EUR", "EUR", "EUR", "USD", "GBP")
 
 #: (name, unit price, unit)
 PRODUCTS: tuple[tuple[str, float, str], ...] = (
@@ -273,14 +257,8 @@ PRODUCTS: tuple[tuple[str, float, str], ...] = (
 DEVICE_MANUFACTURERS: tuple[str, ...] = (
     "Aeris", "Bolder", "Cygnus", "Dynamo", "Elpis", "Fluxtron", "Halberd",
 )
-DEVICE_KINDS: tuple[tuple[str, float], ...] = (
-    ("SENSOR", 0.38), ("GATEWAY", 0.18), ("CONTROLLER", 0.14),
-    ("CAMERA", 0.12), ("METER", 0.12), ("BEACON", 0.06),
-)
-DEVICE_STATUSES: tuple[tuple[str, float], ...] = (
-    ("ONLINE", 0.66), ("OFFLINE", 0.14), ("DEGRADED", 0.09),
-    ("MAINTENANCE", 0.07), ("DECOMMISSIONED", 0.04),
-)
+DEVICE_KINDS = weighted(vocabulary.DEVICE_KIND, (0.38, 0.18, 0.14, 0.12, 0.12, 0.06))
+DEVICE_STATUSES = weighted(vocabulary.DEVICE_STATUS, (0.66, 0.14, 0.09, 0.07, 0.04))
 
 # ── calendar ─────────────────────────────────────────────────────────────
 
