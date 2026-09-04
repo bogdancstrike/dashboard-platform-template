@@ -225,6 +225,20 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "search_global",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/search/global",
+      "description": "Rank one term across every dataset the caller may read.",
+      "exec_method": {
+        "module_name": "src.api.search",
+        "method_name": "global_search"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "directory_people",
       "model_name": "Empty",
       "request_method": [

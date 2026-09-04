@@ -399,8 +399,10 @@ body {
   font: inherit; font-weight: 650; text-align: start; cursor: pointer;
 }
 .nu-link-button:hover { color: var(--nu-accent); }
-/* A marked match, in the app's accent rather than the browser's yellow. */
-.nu-mark {
+/* A marked match, in the app's accent rather than the browser's yellow — and
+   qualified by the element, because AntD's reset styles bare `mark` and its
+   stylesheet is injected after this one. */
+mark.nu-mark {
   padding: 0 1px; border-radius: 3px;
   background: var(--nu-accent-soft); color: inherit; font-weight: 650;
 }
@@ -424,6 +426,29 @@ body {
 }
 .nu-preview-title { font-weight: 650; }
 .nu-preview .ant-descriptions-item-label { width: 38%; }
+
+/* Global search: a ranked list read top to bottom, so each hit is one row
+   with its evidence beneath it and the whole row is the target. */
+.nu-global-search-box { border-color: var(--nu-border); }
+.nu-global-results { display: flex; flex-direction: column; gap: 12px; }
+.nu-global-group { border-color: var(--nu-border); }
+.nu-global-group > .ant-card-body { padding: 4px 0; }
+.nu-global-group h5.ant-typography { margin: 0; }
+.nu-global-hit {
+  position: relative; display: block; width: 100%; padding: 10px 36px 10px 16px;
+  border: 0; border-inline-start: 2px solid transparent; background: transparent;
+  color: inherit; font: inherit; text-align: start; cursor: pointer;
+}
+.nu-global-hit:hover, .nu-global-hit.is-active {
+  background: var(--nu-accent-soft); border-inline-start-color: var(--nu-accent);
+}
+.nu-global-hit-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.nu-global-hit-snippet { display: flex; gap: 8px; align-items: baseline; margin-top: 4px; }
+.nu-global-hit-go {
+  position: absolute; inset-inline-end: 14px; top: 50%; transform: translateY(-50%);
+  color: var(--nu-text-tertiary); opacity: 0;
+}
+.nu-global-hit:hover .nu-global-hit-go, .nu-global-hit.is-active .nu-global-hit-go { opacity: 1; }
 
 .nu-person { display: flex; flex-direction: column; line-height: 1.3; }
 .nu-person-role { font-size: 12px; }

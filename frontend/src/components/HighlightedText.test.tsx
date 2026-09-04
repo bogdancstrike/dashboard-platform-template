@@ -46,6 +46,14 @@ describe("the rendered highlight", () => {
     expect(marks[0]?.tagName).toBe("MARK");
   });
 
+  it("marks a value that is entirely the term", () => {
+    // A reference searched for in full comes back as one part, and that part
+    // is the match — returning early on "one part" left it unmarked.
+    const { container } = render(<HighlightedText text="TSK-00042" term="TSK-00042" />);
+
+    expect(container.querySelector("mark")?.textContent).toBe("TSK-00042");
+  });
+
   it("renders untouched text when nothing matches", () => {
     const { container } = render(<HighlightedText text="Audit the rules" term="zzz" />);
 

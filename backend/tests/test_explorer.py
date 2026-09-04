@@ -434,3 +434,75 @@ def test_a_facet_filter_sent_as_a_list_narrows_the_same_way_as_a_string(client, 
     assert all(item["priority"] == "CRITICAL" for item in as_list["items"])
     # An emptied multi-select means "stop narrowing", not "match nothing".
     assert cleared["total"] == unfiltered["total"]
+
+
+# ── global search (§32) ──────────────────────────────────────────────────
+
+
+@pytest.mark.database
+def test_global_search_ranks_an_exact_reference_above_a_mention(client, monkeypatch):
+    """The whole point of scoring: the record *called* TSK-00042 comes first."""
+    response = client.get(
+        f"{PREFIX}/api/search/global?q=TSK-00042", headers=_authenticate(monkeypatch)
+    )
+
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["query"] == "TSK-00042"
+    tasks = next(group for group in body["groups"] if group["resource_type"] == "task")
+    first = tasks["items"][0]
+    assert first["label"] == "TSK-00042"
+    assert first["matched_field"] == "reference"
+    # Exact beats prefix beats contains; see EXACT/PREFIX/CONTAINS.
+    assert first["score"] >= 100
+    assert all(first["score"] >= item["score"] for item in tasks["items"])
+
+
+@pytest.mark.database
+def test_global_search_says_which_field_matched_and_shows_it(client, monkeypatch):
+    response = client.get(
+        f"{PREFIX}/api/search/global?q=migration", headers=_authenticate(monkeypatch)
+    )
+
+    body = response.get_json()
+    assert body["total"] > 0
+    for group in body["groups"]:
+        for item in group["items"]:
+            assert item["matched_field"]
+            assert item["matched_label"]
+            # The snippet contains the term it was cut around.
+            assert "migration" in item["snippet"].lower()
+
+
+@pytest.mark.database
+def test_global_search_asks_for_a_term_rather_than_failing(client, monkeypatch):
+    """An empty box is the normal state of a search page, not a bad request."""
+    headers = _authenticate(monkeypatch)
+
+    empty = client.get(f"{PREFIX}/api/search/global", headers=headers)
+    single = client.get(f"{PREFIX}/api/search/global?q=a", headers=headers)
+
+    assert empty.status_code == 200
+    assert empty.get_json() == {"query": "", "total": 0, "groups": [], "truncated": False}
+    assert single.status_code == 200
+    assert single.get_json()["total"] == 0
+
+
+@pytest.mark.database
+def test_global_search_only_looks_where_the_caller_may_read(client, monkeypatch):
+    """A dataset the role cannot read is not searched, not searched and hidden."""
+    from src.services.explorer import resources
+
+    everything = client.get(
+        f"{PREFIX}/api/search/global?q=e", headers=_authenticate(monkeypatch)
+    )
+    searched = client.get(
+        f"{PREFIX}/api/search/global?q=re", headers=_authenticate(monkeypatch)
+    ).get_json()
+
+    assert everything.status_code == 200
+    assert {group["resource_type"] for group in searched["groups"]} <= set(resources())
+
+
+def test_global_search_requires_a_token(client):
+    assert client.get(f"{PREFIX}/api/search/global?q=abc").status_code == 401

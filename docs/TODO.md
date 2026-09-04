@@ -33,9 +33,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Backend core (`src/core/`) | **done** — db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
-| Endpoints | 14 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1 |
+| Endpoints | 22 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×2, saved searches ×4, directory ×1, global search ×1 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 123 backend + 76 frontend + 33 Playwright e2e, green against `docker compose up` |
+| Tests | 128 backend + 77 frontend + 38 Playwright e2e, green against `docker compose up` |
 | Frontend | scaffold **done** — theme, API client, OIDC/RBAC, 34 tests, build clean |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -316,7 +316,7 @@ section is a cross-cutting rule rather than a page.
 | 29 | Import wizard | `/import` | `/imports` | [ ] |
 | 30 | Export | every list | `/exports` | [ ] |
 | 31 | Command palette (`cmdk`) | global | `/search/quick` | [ ] |
-| 32 | Global search | header + `/find/global` | `/search/global` | [ ] |
+| 32 | Global search | header + `/find/global` | `/api/search/global` | [x] |
 | 33 | Drawers and modals | — | — | [ ] |
 | 34 | Error and empty states | `/errors/*` | — | [ ] |
 | 35 | Activity feed | `/activity` + detail tabs | `/activity` | [ ] |
@@ -532,8 +532,17 @@ everything else.
     query, URL state, configurable columns, four result modes, saved-search
     lifecycle and legacy redirects. Saved views and the remaining saved-search
     sharing UI are next
-- [ ] `/find/global` — ranked cross-entity results with highlighted matches,
-      recent queries, suggestions and keyboard navigation
+- [x] `/find/global` — ranked cross-entity results with highlighted matches,
+      recent queries and keyboard navigation
+  - Reuses the explorer's resource declarations, so there is no second list of
+    datasets to keep in step and one the caller may not read is not searched
+    rather than searched and filtered afterwards
+  - Ranking is computed in PostgreSQL and *explainable*: exact beats prefix
+    beats contains, an earlier-declared field beats a later one, and every hit
+    returns the field that matched with the text around it. A cross-entity list
+    that cannot explain its own order is one nobody scrolls past the first row
+  - ↑/↓ walk the flattened results across group boundaries, Enter opens the
+    highlighted one, and a group hands its term to Data Explorer
 - [ ] `/find/relationships` — traverse connections from any record in both an
       accessible list and a visual graph without losing the exploration trail
 - [ ] `/find/catalog` — entities and fields with types, allowed operators,

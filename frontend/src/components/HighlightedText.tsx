@@ -20,7 +20,10 @@ export interface HighlightedTextProps {
 
 export function HighlightedText({ text, term }: HighlightedTextProps) {
   const parts = useMemo(() => split(text, term), [text, term]);
-  if (parts.length === 1) return <>{text}</>;
+  // One part can still *be* the match — a reference searched for in full is
+  // the whole value — so the test is whether anything matched, not how many
+  // pieces the value came apart into.
+  if (!parts.some((part) => part.match)) return <>{text}</>;
 
   return (
     <>

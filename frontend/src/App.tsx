@@ -17,6 +17,7 @@ import { PlaceholderPage } from "@/pages/PlaceholderPage";
  */
 const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
 const DataExplorerPage = lazy(() => import("@/pages/DataExplorerPage"));
+const GlobalSearchPage = lazy(() => import("@/pages/GlobalSearchPage"));
 const SystemPage = lazy(() => import("@/pages/SystemPage"));
 
 function Loading() {
@@ -303,15 +304,9 @@ export default function App() {
         <Route
           path="find/global"
           element={
-            <PlaceholderPage
-              section="§32"
-              summary="Search every record type from one ranked, keyboard-navigable result set."
-              bullets={[
-                "Results grouped by entity with matched terms highlighted",
-                "Recent queries, suggestions and cancellable autocomplete",
-                "Open a result directly or hand its filters to Data Explorer",
-              ]}
-            />
+            <Suspense fallback={<Loading />}>
+              <GlobalSearchPage />
+            </Suspense>
           }
         />
         <Route
