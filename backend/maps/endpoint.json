@@ -475,6 +475,34 @@
         "module_name": "src.api.records",
         "method_name": "item"
       }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "admin_roles_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/roles",
+      "description": "The roles in force, the permissions each grants, and who holds them.",
+      "exec_method": {
+        "module_name": "src.api.roles",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "admin_role_item",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT"
+      ],
+      "api_url": "/admin/roles/<string:code>",
+      "description": "Change what a role grants; applies on the holder's next request.",
+      "exec_method": {
+        "module_name": "src.api.roles",
+        "method_name": "item"
+      }
     }
   ]
 }

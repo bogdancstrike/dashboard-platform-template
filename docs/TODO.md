@@ -33,9 +33,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Backend core (`src/core/`) | **done** — db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
-| Endpoints | 33 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×3, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×2, audit ×5, records ×1 |
+| Endpoints | 35 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×3, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×2, audit ×5, records ×1, roles ×2 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 192 backend + 129 frontend + 81 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
+| Tests | 203 backend + 139 frontend + 87 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
 | Frontend | shell, Data Explorer, discovery workspaces and the notification centre; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -304,7 +304,7 @@ section is a cross-cutting rule rather than a page.
 | 10 | Multi-step wizard | `/{entity}/new/wizard` | draft endpoints | [ ] |
 | 11 | Admin area | `/admin` | `/admin/*` | [ ] |
 | 12 | User management, impersonation | `/admin/users` | `/admin/users` | [ ] |
-| 13 | Roles and permission matrix | `/admin/roles` | `/admin/roles` | [ ] |
+| 13 | Roles and permission matrix | `/admin/roles` | `/admin/roles` | [x] |
 | 14 | Email inbox | `/mail` | `/mail/threads` | [ ] |
 | 15 | Email detail, threading | `/mail/:id` | `/mail/threads/:id` | [ ] |
 | 16 | Compose email | `/mail/compose` | `/mail/messages` | [ ] |
@@ -1004,7 +1004,27 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [~] Search: Data Explorer ships simple/faceted search, nested advanced RAQB,
       backend query inspector, saved searches and four URL-persistent result
       modes; saved views, highlighting, suggestions and preview remain (§4–§6, §51)
-- [ ] Admin area (§11), users with impersonation (§12), roles matrix (§13)
+- [~] **Roles matrix `/admin/roles` (§13)** ships. The admin area itself (§11)
+      and users with impersonation (§12) remain
+  - Built from the two things that actually decide access: the permission
+    catalogue the code checks against, and the `roles` table
+    `core/auth._permissions_for` reads on **every** request. So every
+    permission an endpoint can require appears on the screen that grants it,
+    one that does not exist cannot be granted, and an edit applies to the
+    holder's next request with no re-login and no cache to invalidate
+  - **Acceptance**: met, and proved rather than described — an e2e test signs
+    a viewer in, has an administrator grant `audit.view` from the matrix, and
+    asserts the *same session* may then read the ledger
+  - Edits are staged and confirmed (§73). A permission change is not a
+    preference: the reader sees the whole shape of what they are about to do
+    before it happens, rather than firing six writes at the authorization
+    model while thinking
+  - You cannot remove your own `roles.manage` or `admin.access`. It is the one
+    change that cannot be undone from inside the application, because the
+    screen that would undo it is the one you just closed to yourself. Disabled
+    in the UI and refused with a 409 by the server
+  - Every edit is audited in the same transaction, with the permissions it
+    moved visible in the audit drawer's diff
 - [x] **Audit explorer `/admin/audit` + `AuditTimeline` component (§21)**
   - **Acceptance**: met. The table shows who / when / what at a glance, an
     entry opens its diff field by field with added and cleared distinguishable,
@@ -1029,27 +1049,38 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] `docker compose up` clean-boot green — every service healthy from empty
       volumes; seed wrote 15 554 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
-- [~] Backend tests — 192 passing, including Data Explorer query, validation,
+- [~] Backend tests — 203 passing, including Data Explorer query, validation,
       JWT/RBAC, saved-search visibility/lifecycle, the notification centre's
       scoping/filtering/grouping contract, the audit ledger's permissions,
       diff semantics, redaction and read-only surface, the export writers' BOM,
       formula-injection and question-not-page guarantees, the entity detail
-      contract and the connection map's aggregates
+      contract, the connection map's aggregates, and the roles matrix's
+      live-permission, lockout and audit behaviour
   - The one test that drops every table now does so in a scratch database of
     its own. Pointed at `TEST_DATABASE_URL` — which `make test-backend-db`
     aims at the **running stack** — it silently replaced the demo dataset with a
     small one, so every Playwright run afterwards measured 60 tasks where
     compose had produced 500. Nothing failed; the numbers were quietly different
-- [~] Frontend unit + component tests — 129 passing, including Data Explorer
+- [~] Frontend unit + component tests — 139 passing, including Data Explorer
       backend rendering, debounced search, saved-search module, the
       notification centre's six states, the header bell, the audit explorer,
       the per-record timeline, the authenticated download path, the generic
-      entity list and detail pages, and the connection map
-- [~] Playwright e2e suite — 81 tests green against `docker compose up` on the
+      entity list and detail pages, the connection map and the permission matrix
+- [~] Playwright e2e suite — 87 tests green against `docker compose up` on the
       full seed, covering the shell, appearance, Data Explorer, saved searches,
       global search, relationships, the catalogue, the notification centre, the
-      audit explorer, a real file download and all six entity lists. A cold-boot
-      run from empty volumes is still the outstanding proof
+      audit explorer, a real file download, all six entity lists and the
+      permission matrix. A cold-boot run from empty volumes is still the
+      outstanding proof
+  - Worker count is **capped** rather than left to the machine. Playwright
+    defaults to half the cores — sixteen browsers on a 32-core laptop —
+    against one API container with two gevent workers and one Keycloak, and
+    test parallelism that outruns the system under test produces flakes that
+    read exactly like product bugs. Three consecutive clean full runs at the
+    cap; `E2E_WORKERS` overrides it
+  - Specs that write must not be readable by other specs' assertions: the
+    roles tests append `PERMISSION_CHANGE` rows, so the audit tests now filter
+    on seeded rows (`resource_type=ticket`) rather than on "every UPDATE"
   - Two flaky assertions found and removed rather than retried: a row read by
     position can be reordered by a background refetch before it is clicked, and
     an AntD option located by `.first()` finds rc-virtual-list's zero-width

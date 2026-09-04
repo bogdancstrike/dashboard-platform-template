@@ -702,3 +702,20 @@ mark.nu-mark {
    under the shorter side. */
 .nu-fill-height { height: 100%; }
 .nu-fill-height > .ant-card-body { height: calc(100% - 40px); }
+
+/* ── The permission matrix (§13) ──────────────────────────────────────────
+   A group heading is a row, not a section break: it keeps the horizontal
+   scroll aligned with the columns it summarises. */
+
+.nu-matrix-group > td { background: var(--nu-surface); font-weight: 600; }
+.nu-permission-code { font-family: var(--nu-font-mono); font-size: 11px; }
+/* A staged toggle is visibly not yet true — a permission change nobody
+   confirmed should not look like one that has already happened. */
+.nu-cell-changed { position: relative; }
+.nu-cell-changed::after {
+  content: "";
+  position: absolute; inset: -5px -7px; border-radius: 4px;
+  border: 1px dashed var(--nu-accent);
+  pointer-events: none;
+}
+.nu-cell-lock { margin-inline-start: 6px; color: var(--nu-text-tertiary); font-size: 11px; }

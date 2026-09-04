@@ -53,10 +53,10 @@ test.describe("audit explorer", () => {
   });
 
   test("an entry opens its before → after diff, and the URL carries it", async ({ page }) => {
-    // Only rows that actually changed something have a diff worth opening.
-    await page.getByRole("combobox", { name: "Action" }).click();
-    await page.getByTitle("Update", { exact: true }).click();
-    await page.keyboard.press("Escape");
+    // Scoped to seeded ticket updates rather than "every UPDATE": other specs
+    // legitimately write audit rows while this one runs, and a ledger filtered
+    // only by action would shift under it.
+    await page.goto("/admin/audit?action=UPDATE&resource_type=ticket");
 
     await ledger(page).getByRole("row").nth(1).click();
 
@@ -100,9 +100,10 @@ test.describe("audit explorer", () => {
   });
 
   test("exports the filtered ledger as a real file (§30)", async ({ page }) => {
-    await page.getByRole("combobox", { name: "Action" }).click();
-    await page.getByTitle("Update", { exact: true }).click();
-    await page.keyboard.press("Escape");
+    // A filter over seeded rows only: the count and the file are compared, and
+    // another spec's audit write landing between them would break a true page.
+    await page.goto("/admin/audit?action=UPDATE&resource_type=ticket");
+    await expect(ledger(page).getByRole("row").nth(1)).toBeVisible();
     const filtered = await totalShown(page);
 
     const [download] = await Promise.all([

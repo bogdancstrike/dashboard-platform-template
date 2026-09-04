@@ -21,6 +21,7 @@ const GlobalSearchPage = lazy(() => import("@/pages/GlobalSearchPage"));
 const DataCatalogPage = lazy(() => import("@/pages/DataCatalogPage"));
 const RelationshipExplorerPage = lazy(() => import("@/pages/RelationshipExplorerPage"));
 const AuditExplorerPage = lazy(() => import("@/pages/AuditExplorerPage"));
+const RolesPage = lazy(() => import("@/pages/RolesPage"));
 const EntityListPage = lazy(() => import("@/pages/EntityListPage"));
 const EntityDetailPage = lazy(() => import("@/pages/EntityDetailPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
@@ -362,14 +363,9 @@ export default function App() {
         <Route
           path="admin/roles"
           element={
-            <PlaceholderPage
-              section="§13"
-              summary="The permission matrix, generated from the catalogue the API publishes."
-              bullets={[
-                "Every permission in code appears on the screen that grants it",
-                "Editing a role changes behaviour on the next request, without a re-login",
-              ]}
-            />
+            <Suspense fallback={<Loading />}>
+              <RolesPage />
+            </Suspense>
           }
         />
         <Route

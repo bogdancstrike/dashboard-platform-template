@@ -397,6 +397,53 @@ export const connectionMap = {
   totals: { records: 1850, entities: 4, relations: 2, links: 1090 },
 };
 
+
+export const roleMatrix = {
+  items: [
+    {
+      id: "role-admin", code: "ADMINISTRATOR", name: "Administrator",
+      description: "Unrestricted access.", rank: 100, color: "#dc2626",
+      is_system: true, is_default: false,
+      permissions: ["admin.access", "roles.manage", "records.view", "audit.view"],
+      permission_labels: ["Administration area", "Manage roles", "View records", "View audit logs"],
+      user_count: 3,
+      default_permissions: ["admin.access", "roles.manage", "records.view", "audit.view"],
+      customised: false, is_yours: true,
+    },
+    {
+      id: "role-viewer", code: "VIEWER", name: "Viewer",
+      description: "Read-only.", rank: 20, color: "#64748b",
+      is_system: true, is_default: true,
+      permissions: ["records.view"],
+      permission_labels: ["View records"],
+      user_count: 42,
+      default_permissions: ["records.view", "reports.view"],
+      customised: true, is_yours: false,
+    },
+  ],
+  total: 2,
+  permissions: {
+    groups: [
+      {
+        name: "Records",
+        permissions: [
+          { code: "records.view", label: "View records" },
+          { code: "audit.view", label: "View audit logs" },
+        ],
+      },
+      {
+        name: "Administration",
+        permissions: [
+          { code: "admin.access", label: "Administration area" },
+          { code: "roles.manage", label: "Manage roles" },
+        ],
+      },
+    ],
+    total: 4,
+  },
+  your_role: "ADMINISTRATOR",
+};
+
 export const handlers = [
   http.get("/platform/meta/app", ({ request }) => echo(request, appMeta)),
   http.get("/platform/api/search/global", ({ request }) =>
@@ -447,6 +494,13 @@ export const handlers = [
     echo(request, { marked: 2, read_at: "2026-09-03T12:00:00Z" }),
   ),
 
+  http.get("/platform/admin/roles", ({ request }) => echo(request, roleMatrix)),
+  http.put("/platform/admin/roles/:code", async ({ request, params }) => {
+    const body = (await request.json()) as { permissions?: string[] };
+    const role =
+      roleMatrix.items.find((item) => item.code === params["code"]) ?? roleMatrix.items[0]!;
+    return echo(request, { ...role, permissions: body.permissions ?? role.permissions });
+  }),
   http.get("/platform/api/relationships/overview", ({ request }) => echo(request, connectionMap)),
   http.get("/platform/api/records/:type/:id", ({ request }) => echo(request, recordDetail)),
   http.get("/platform/admin/audit/catalog", ({ request }) => echo(request, auditCatalogue)),

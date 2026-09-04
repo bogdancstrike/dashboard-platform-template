@@ -16,7 +16,12 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env["CI"],
   retries: process.env["CI"] ? 2 : 0,
-  workers: process.env["CI"] ? 1 : undefined,
+  // Capped rather than left to the machine. Playwright defaults to half the
+  // cores — sixteen browsers on a 32-core laptop — against one API container
+  // with two gevent workers and one Keycloak. Test parallelism that outruns
+  // the system under test produces flakes that read exactly like product bugs,
+  // and chasing those costs more than the minute the cap adds.
+  workers: process.env["CI"] ? 1 : Number(process.env["E2E_WORKERS"] ?? 4),
   reporter: process.env["CI"] ? [["github"], ["html", { open: "never" }]] : [["list"]],
   timeout: 30_000,
   expect: { timeout: 10_000 },
