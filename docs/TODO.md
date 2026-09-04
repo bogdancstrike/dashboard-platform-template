@@ -33,9 +33,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Backend core (`src/core/`) | **done** — db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
-| Endpoints | 22 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×2, saved searches ×4, directory ×1, global search ×1, catalogue ×2 |
+| Endpoints | 22 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×2, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×1 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 134 backend + 77 frontend + 42 Playwright e2e, green against `docker compose up` |
+| Tests | 138 backend + 77 frontend + 46 Playwright e2e, green against `docker compose up` |
 | Frontend | scaffold **done** — theme, API client, OIDC/RBAC, 34 tests, build clean |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -334,7 +334,7 @@ section is a cross-cutting rule rather than a page.
 | 47 | Data comparison | `/{entity}/compare` | generic list | [ ] |
 | 48 | Timeline view | detail tabs | `/activity` | [ ] |
 | 49 | Alerts and rules | `/admin/alerts` | `/admin/alert-rules` | [ ] |
-| 50 | Data relationships | detail tabs + `/find/relationships` | related endpoints | [ ] |
+| 50 | Data relationships | detail tabs + `/find/relationships` | `/api/relationships/*` | [~] |
 | 51 | Query inspector | `/explore` | — (`core/rules.py`) | [x] |
 | 52 | Pagination patterns | various | `core/pagination.py` | [x] core |
 | 53 | Data refresh, auto-refresh | data-heavy pages | — | [ ] |
@@ -553,8 +553,22 @@ everything else.
     that cannot explain its own order is one nobody scrolls past the first row
   - ↑/↓ walk the flattened results across group boundaries, Enter opens the
     highlighted one, and a group hands its term to Data Explorer
-- [ ] `/find/relationships` — traverse connections from any record in both an
+- [x] `/find/relationships` — traverse connections from any record in both an
       accessible list and a visual graph without losing the exploration trail
+  - The connections are **derived from the schema**: every link is a foreign
+    key that already exists, so adding a column with a `ForeignKey` makes the
+    relationship appear and removing one makes it disappear. A hand-written
+    adjacency list is a second description of the database, wrong the first
+    time anybody migrates
+  - Outbound is one row per key that is set; inbound is counted in full and
+    sampled — a customer has three hundred orders, and the useful answer is
+    "300, here are the newest eight" with a link to all of them in the explorer
+  - The trail is in the URL: every hop is pushed, the breadcrumb walks back to
+    any earlier record, and the whole path can be pasted to somebody else
+  - The graph is a deterministic radial layout in plain SVG. A force simulation
+    would land somewhere different each time, making two screenshots of one
+    record look like two different records; the list beside it is the
+    accessible and complete equivalent
 - [x] `/find/catalog` — entities and fields with types, allowed operators,
       freshness, completeness and links into Data Explorer
   - Generated from the same `Resource` declarations the explorer, the builder

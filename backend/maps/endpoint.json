@@ -267,6 +267,20 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "relationships",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/relationships/<string:resource_type>/<uuid:record_id>",
+      "description": "Everything a record points at, and everything pointing at it.",
+      "exec_method": {
+        "module_name": "src.api.relationships",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "directory_people",
       "model_name": "Empty",
       "request_method": [

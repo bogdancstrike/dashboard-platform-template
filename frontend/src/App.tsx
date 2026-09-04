@@ -19,6 +19,7 @@ const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
 const DataExplorerPage = lazy(() => import("@/pages/DataExplorerPage"));
 const GlobalSearchPage = lazy(() => import("@/pages/GlobalSearchPage"));
 const DataCatalogPage = lazy(() => import("@/pages/DataCatalogPage"));
+const RelationshipExplorerPage = lazy(() => import("@/pages/RelationshipExplorerPage"));
 const SystemPage = lazy(() => import("@/pages/SystemPage"));
 
 function Loading() {
@@ -313,15 +314,9 @@ export default function App() {
         <Route
           path="find/relationships"
           element={
-            <PlaceholderPage
-              section="§44, §50"
-              summary="Follow how customers, projects, orders, tickets, devices and people connect."
-              bullets={[
-                "Start from any record and traverse inbound and outbound relationships",
-                "Switch between an accessible relationship list and a visual graph",
-                "Open a connected record without losing the exploration trail",
-              ]}
-            />
+            <Suspense fallback={<Loading />}>
+              <RelationshipExplorerPage />
+            </Suspense>
           }
         />
         <Route

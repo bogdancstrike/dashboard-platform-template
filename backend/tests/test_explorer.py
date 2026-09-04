@@ -5,7 +5,7 @@ from __future__ import annotations
 from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from src.config import Config
 
@@ -595,3 +595,81 @@ def test_facets_are_computed_only_when_they_are_asked_for(client, monkeypatch):
     facets = asked.get_json()["facets"]
     assert set(facets) == {"status", "priority", "kind"}
     assert facets["status"], "a faceted column with rows must offer values"
+
+
+# ── relationships (§44, §50) ─────────────────────────────────────────────
+
+
+@pytest.mark.database
+def test_relationships_are_derived_from_the_schema_not_a_second_list(client, monkeypatch):
+    """Every group corresponds to a real foreign key, in the right direction."""
+    from src.core.db import session_scope
+    from src.models.business import Customer
+
+    headers = _authenticate(monkeypatch)
+    with session_scope() as session:
+        customer = session.scalars(select(Customer).limit(1)).one()
+        customer_id = str(customer.id)
+
+    response = client.get(f"{PREFIX}/api/relationships/customer/{customer_id}", headers=headers)
+
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["root"]["id"] == customer_id
+    assert body["root"]["resource_type"] == "customer"
+
+    outbound = {group["relation"] for group in body["groups"] if group["direction"] == "outbound"}
+    inbound = {group["relation"] for group in body["groups"] if group["direction"] == "inbound"}
+    # Declared on `customers` as columns…
+    assert outbound <= {"account_manager_id", "organization_id", "region_id"}
+    # …and on other tables as columns pointing back at it.
+    assert inbound <= {
+        "tickets.customer_id", "orders.customer_id", "projects.customer_id",
+    }
+    for group in body["groups"]:
+        assert group["total"] >= len(group["items"])
+        assert group["items"], "a group with no rows should not be returned at all"
+
+
+@pytest.mark.database
+def test_an_inbound_relation_is_counted_in_full_and_sampled(client, monkeypatch):
+    from src.core.db import session_scope
+    from src.models.business import Project, Task
+
+    headers = _authenticate(monkeypatch)
+    with session_scope() as session:
+        project_id = session.scalars(
+            select(Task.project_id).where(Task.project_id.is_not(None)).limit(1)
+        ).one()
+        expected = session.scalar(
+            select(func.count()).select_from(Task).where(
+                Task.project_id == project_id, Task.deleted_at.is_(None)
+            )
+        )
+        assert session.get(Project, project_id) is not None
+
+    response = client.get(
+        f"{PREFIX}/api/relationships/project/{project_id}?sample=2", headers=headers
+    )
+
+    tasks = next(
+        group for group in response.get_json()["groups"] if group["relation"] == "tasks.project_id"
+    )
+    assert tasks["total"] == expected
+    assert len(tasks["items"]) == min(2, expected)
+    assert tasks["has_more"] is (expected > 2)
+
+
+@pytest.mark.database
+def test_relationships_refuse_an_unknown_dataset_or_a_missing_record(client, monkeypatch):
+    headers = _authenticate(monkeypatch)
+
+    unknown = client.get(f"{PREFIX}/api/relationships/secrets/{uuid4()}", headers=headers)
+    missing = client.get(f"{PREFIX}/api/relationships/task/{uuid4()}", headers=headers)
+
+    assert unknown.status_code == 400
+    assert missing.status_code == 404
+
+
+def test_relationships_require_a_token(client):
+    assert client.get(f"{PREFIX}/api/relationships/task/{uuid4()}").status_code == 401
