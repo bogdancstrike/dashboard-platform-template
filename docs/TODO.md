@@ -35,7 +35,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
 | Endpoints | 22 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×2, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×1 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 151 backend + 94 frontend + 62 Playwright e2e, green against `docker compose up` on the **full** seed (15 554 rows) |
+| Tests | 151 backend + 94 frontend + 57 Playwright e2e — all green against `docker compose up` on the **full** seed (15 554 rows) |
 | Frontend | shell, Data Explorer, discovery workspaces and the notification centre; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -525,6 +525,14 @@ and then shows the wrong columns is a saved search nobody trusts.
     has one section per row — and each heading counts that value's share of
     the **whole** result rather than the rows on screen, so the sections still
     add up to the total when only the first page has loaded
+  - The sections themselves come from the facet counts, not from the loaded
+    rows. Built the other way round, a group with nothing on the first page
+    disappeared entirely: at 500 tasks the 34 blocked ones had no row among the
+    first 25, so the breakdown quietly omitted part of the answer while still
+    claiming to be a breakdown of it. A counted-but-unloaded section now says
+    so. The `small` seed hid this, because 25 of 60 tasks happened to contain
+    every status — a reminder that a demo dataset small enough to be convenient
+    is a dataset that agrees with whatever the code does
   - The preview's actions are the three that belong there: copy the id, copy a
     link to this exact view, and follow the record's connections (§50)
 - [x] Both pagination strategies (§52): numbered for the table, "load more" for
@@ -959,12 +967,10 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [~] Frontend unit + component tests — 94 passing, including Data Explorer
       backend rendering, debounced search, saved-search module, the
       notification centre's six states and the header bell
-- [~] Playwright e2e suite — 62 tests, run against `docker compose up` on the
-      full seed. One pre-existing failure is open: explorer result sections
-      (§6) are built from the rows already loaded rather than from the facet
-      list, so a group with nothing on the first page renders no section and
-      the section counts no longer add up to the total. Invisible at the
-      `small` seed, where the first 25 rows happened to contain every status
+- [~] Playwright e2e suite — 57 tests green against `docker compose up` on the
+      full seed, covering the shell, appearance, Data Explorer, saved searches,
+      global search, relationships, the catalogue and the notification centre.
+      A cold-boot run from empty volumes is still the outstanding proof
 - [x] Frontend typecheck + production build
 - [ ] Accessibility — axe clean on every route (§55)
 - [ ] Performance — list page interactive under 1.5s against the seeded database

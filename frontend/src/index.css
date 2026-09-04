@@ -664,3 +664,6 @@ mark.nu-mark {
    there while the pointer is over it is a control a keyboard never finds. */
 .nu-notice-actions { flex: 0 0 auto; }
 .nu-notice-pager { display: flex; justify-content: flex-end; padding-top: 12px; }
+
+/* A section the server counted but whose rows are further down the result. */
+.nu-result-section-unloaded { display: block; padding: 8px 4px 12px; font-size: 12.5px; }

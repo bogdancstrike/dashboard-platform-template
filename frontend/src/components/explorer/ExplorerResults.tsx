@@ -176,7 +176,16 @@ export function ExplorerResults({
                     : ""}
                 </Text>
               </header>
-              {renderList(section.rows)}
+              {section.rows.length > 0 ? (
+                renderList(section.rows)
+              ) : (
+                // The group exists and the server counted it; these rows are
+                // simply further down the result. Saying so is the difference
+                // between "there are none" and "you have not reached them".
+                <Text type="secondary" className="nu-result-section-unloaded">
+                  Not loaded yet — continue below to reach these.
+                </Text>
+              )}
             </section>
           ))
         : renderList(items)}
@@ -256,17 +265,31 @@ interface Section {
 }
 
 /**
- * Section the loaded rows by one field, biggest first.
+ * Section a result by one field, biggest first.
  *
- * The rows are the ones already fetched; the totals come from the facet counts
- * the server computed over the *whole* result, so a header reads "8 of 24"
- * rather than counting what happens to be on screen.
+ * The sections come from the **facet counts**, which the server computed over
+ * the whole result, and the loaded rows are filed into them. Building them
+ * from the loaded rows instead — which is what this did — silently drops any
+ * group with nothing on the first page: at 500 tasks the 34 blocked ones had
+ * no row among the first 25, so the section vanished and the headings stopped
+ * adding up to the total. The reader was looking at a breakdown of the answer
+ * that was missing a part of the answer, with nothing to say so.
+ *
+ * A section with no rows yet is therefore kept, showing what it holds. It is
+ * the difference between "there are no blocked tasks" and "you have not
+ * scrolled to them".
  */
 function group(rows: ExplorerRecord[], field: string, result?: ExplorerResult): Section[] {
   const totals = new Map(
     (result?.facets[field] ?? []).map((entry) => [entry.value, entry.count] as const),
   );
+
+  // Every group the server reported, in the order it reported them, and then
+  // any value a loaded row carries that the facet list did not mention — the
+  // facet query is capped, so a high-cardinality field can hand back rows from
+  // outside the top of the list.
   const sections = new Map<string, ExplorerRecord[]>();
+  for (const value of totals.keys()) sections.set(value, []);
   for (const row of rows) {
     const value = asText(row[field]);
     const bucket = sections.get(value);
