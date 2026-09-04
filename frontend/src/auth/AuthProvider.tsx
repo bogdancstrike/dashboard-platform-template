@@ -58,15 +58,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [query.data, setAppearance, setDensity]);
 
   // Persist later UI changes, but never write the hydration values back.
+  //
+  // Written on the spot rather than debounced: appearance and density change
+  // by a discrete click, not by typing, so there is nothing to coalesce — and
+  // a debounce loses the change entirely when the click is followed by a
+  // reload before the timer fires, which is exactly how a user tries a theme
+  // and finds it did not stick. `mutate` is reference-stable in React Query,
+  // so this effect runs on a real change and not on every render.
+  const persistPreferences = preferenceMutation.mutate;
   useEffect(() => {
     if (!remoteApplied.current) return;
     if (lastSaved.current.theme === appearance && lastSaved.current.density === density) return;
-    const timer = window.setTimeout(() => {
-      lastSaved.current = { theme: appearance, density };
-      preferenceMutation.mutate({ appearance: { theme: appearance, density } });
-    }, 250);
-    return () => window.clearTimeout(timer);
-  }, [appearance, density, preferenceMutation]);
+    lastSaved.current = { theme: appearance, density };
+    persistPreferences({ appearance: { theme: appearance, density } });
+  }, [appearance, density, persistPreferences]);
 
   const permissionSet = useMemo(
     () => new Set(query.data?.permissions ?? []),

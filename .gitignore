@@ -32,6 +32,8 @@ frontend/stats.html
 playwright-report/
 test-results/
 .playwright-mcp/
+# Signed-in browser sessions cached by the Playwright setup project.
+frontend/.auth/
 
 # ── Local runtime state ──────────────────────────────────────────────────
 # Uploaded files live on a Docker volume in the stack; this is the bind-mount

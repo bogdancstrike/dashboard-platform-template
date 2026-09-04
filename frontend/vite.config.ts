@@ -44,7 +44,9 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: "jsdom",
+    // jsdom, minus the AbortController it would otherwise shadow Node's with.
+    // See src/test/environment.ts for why that one substitution matters.
+    environment: "./src/test/environment.ts",
     setupFiles: ["./src/test/setup.ts"],
     alias: {
       // jsdom has no canvas, and a real chart throws inside zrender on dispose.

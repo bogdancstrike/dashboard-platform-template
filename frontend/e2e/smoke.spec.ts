@@ -95,28 +95,43 @@ test.describe("the application boots", () => {
   });
 });
 
+/**
+ * Appearance is stored per user on the server (§40), so these tests inherit
+ * whatever the previous run left behind. Each therefore reads the current
+ * value and switches to the other one rather than assuming a starting state —
+ * a test that only passes on a pristine account is a test that fails on the
+ * second run.
+ */
 test.describe("appearance", () => {
   test.describe.configure({ mode: "serial" });
   test.beforeEach(async ({ page }) => signIn(page));
 
   test("density survives a reload", async ({ page }) => {
+    const html = page.locator("html");
+    const target = (await html.getAttribute("data-density")) === "compact"
+      ? "comfortable"
+      : "compact";
+
     await page.getByRole("button", { name: /Open the command palette/ }).click();
-    await page.getByText("Use compact density", { exact: true }).click();
-    await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
+    await page.getByText(`Use ${target} density`, { exact: true }).click();
+    await expect(html).toHaveAttribute("data-density", target);
 
     await page.reload();
-    await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
+    await expect(html).toHaveAttribute("data-density", target);
   });
 
-  test("dark mode survives a reload and reaches the document", async ({ page }) => {
+  test("the theme survives a reload and reaches the document", async ({ page }) => {
+    const html = page.locator("html");
+    const target = (await html.getAttribute("data-theme")) === "dark" ? "light" : "dark";
+
     await page.getByRole("button", { name: /Open the command palette/ }).click();
-    await page.getByText("Switch to the dark theme", { exact: true }).click();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await page.getByText(`Switch to the ${target} theme`, { exact: true }).click();
+    await expect(html).toHaveAttribute("data-theme", target);
 
     await page.reload();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(html).toHaveAttribute("data-theme", target);
     // The browser paints form controls and scrollbars from this, so a dark page
     // with a white scrollbar means it was never set.
-    await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
+    await expect(html).toHaveCSS("color-scheme", target);
   });
 });
