@@ -92,7 +92,17 @@ class Field:
 
     @property
     def title(self) -> str:
-        return self.label or self.name.replace("_", " ").title()
+        """The heading and query-builder label for this column.
+
+        Sentence case, not Title Case: it is what the explicit labels in the
+        resource declarations already use ("Due date", "SLA breached"), and a
+        column list mixing "Battery Percent" with "Due date" reads as two
+        products. An acronym or a unit still needs an explicit `label`.
+        """
+        if self.label:
+            return self.label
+        spaced = self.name.replace("_", " ")
+        return spaced[:1].upper() + spaced[1:]
 
     @property
     def expression(self):

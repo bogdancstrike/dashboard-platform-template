@@ -75,10 +75,16 @@ def _children(node: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _rule_parts(node: dict[str, Any]) -> tuple[str, str, Any]:
+    """Field, operator and value of one rule; the field is "" when unchosen.
+
+    A rule whose field has not been picked yet is the first state every rule
+    passes through — the editor sends the tree on each change, and the drawer
+    is open while it happens. Reporting that as an error would make adding a
+    rule fail the request that is showing the results behind it, so it is
+    reported as incomplete and skipped, exactly like a rule with no value.
+    """
     props = node.get("properties") or {}
-    field = props.get("field") or props.get("fieldName")
-    if not field:
-        raise ValidationError("every rule needs a field")
+    field = props.get("field") or props.get("fieldName") or ""
     operator = props.get("operator") or "eq"
     value = props.get("value")
     if isinstance(value, list):
@@ -146,6 +152,8 @@ def _compile_node(node: dict[str, Any], spec: FieldSet, *, depth: int, counter: 
     if kind in ("rule", "field"):
         counter.tick()
         field, operator, value = _rule_parts(node)
+        if not field:
+            return None
         field_spec = spec.by_name.get(field)
         if field_spec is None:
             raise ValidationError(
@@ -196,6 +204,8 @@ def _describe_node(node: dict[str, Any], spec: FieldSet, *, indent: int, depth: 
         return f"{pad}{negation}(\n{body}\n{pad})"
 
     field, operator, value = _rule_parts(node)
+    if not field:
+        return ""
     field_spec = spec.by_name.get(field)
     label = field_spec.title if field_spec else field
     try:

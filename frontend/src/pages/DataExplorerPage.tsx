@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   Checkbox,
-  Drawer,
   Empty,
   Input,
   Popover,
@@ -14,12 +13,10 @@ import {
   Select,
   Skeleton,
   Space,
-  Statistic,
   Tag,
   Typography,
 } from "antd";
 import {
-  ApartmentOutlined,
   BarsOutlined,
   BuildOutlined,
   ClearOutlined,
@@ -37,8 +34,9 @@ import {
   type ExplorerView,
   type SavedSearch,
 } from "@/api/explorer";
-import { AdvancedQueryBuilder } from "@/components/explorer/AdvancedQueryBuilder";
+import { AdvancedSearchDrawer } from "@/components/explorer/AdvancedSearchDrawer";
 import { ExplorerResults } from "@/components/explorer/ExplorerResults";
+import type { QueryNode } from "@/components/explorer/queryTree";
 import { SaveSearchModal, SavedSearchDrawer } from "@/components/explorer/SavedSearchControls";
 import { PageHeader } from "@/components/PageHeader";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -61,6 +59,10 @@ export default function DataExplorerPage() {
   const [params, setParams] = useSearchParams();
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
+  // "Save as…" inside the advanced editor names the draft condition, which
+  // by definition has not been run yet, so the modal is handed that tree
+  // rather than the one behind it. `undefined` means "whatever is on screen".
+  const [draftToSave, setDraftToSave] = useState<QueryNode | null | undefined>(undefined);
 
   const catalogue = useQuery({
     queryKey: ["explorer-catalogue"],
@@ -102,6 +104,10 @@ export default function DataExplorerPage() {
     enabled: Boolean(debouncedRequest),
     placeholderData: (previous) => previous,
   });
+  // True from the keystroke, not from the request: during the debounce the
+  // numbers on screen already answer a question nobody is asking any more, and
+  // saying so is the difference between "thinking" and "apparently ignored me".
+  const settling = results.isFetching || request !== debouncedRequest;
 
   const savedOpen = params.get("panel") === "saved";
   const set = (changes: Record<string, string | number | null>, replace = true) => {
@@ -151,7 +157,7 @@ export default function DataExplorerPage() {
   const activeFilterCount = Object.keys(filters).length + (tree ? 1 : 0) + (queryText ? 1 : 0);
   const saveValue = request ? {
     resource_type: request.resource_type,
-    condition_tree: request.condition_tree ?? null,
+    condition_tree: draftToSave !== undefined ? draftToSave : request.condition_tree ?? null,
     filters: request.filters ?? {},
     query_text: request.query_text ?? "",
     sort: request.sort ?? resource?.default_sort ?? "updated_at",
@@ -166,7 +172,11 @@ export default function DataExplorerPage() {
       <PageHeader
         title="Data Explorer"
         subtitle="Ask precise questions across platform datasets. Every filter, sort and condition executes in PostgreSQL."
-        tag={results.data && <Tag color="blue">{results.data.total.toLocaleString()} matches</Tag>}
+        tag={results.data && (
+          <Tag color="blue" data-testid="explorer-match-count">
+            {results.data.total.toLocaleString()} matches
+          </Tag>
+        )}
         actions={
           <>
             <Button icon={<FolderOpenOutlined />} onClick={() => set({ panel: "saved" })}>
@@ -188,6 +198,7 @@ export default function DataExplorerPage() {
           <Select
             className="nu-resource-select"
             aria-label="Dataset"
+            data-testid="dataset-select"
             value={resource?.key}
             loading={catalogue.isLoading}
             onChange={chooseResource}
@@ -221,6 +232,7 @@ export default function DataExplorerPage() {
               return (
                 <Select
                   key={name}
+                  data-testid={`facet-${name}`}
                   mode="multiple"
                   allowClear
                   maxTagCount="responsive"
@@ -238,10 +250,17 @@ export default function DataExplorerPage() {
 
       <Card
         className="nu-explorer-results"
-        title={<Space><BarsOutlined /><span>{resource?.label ?? "Results"}</span>{results.isFetching && <Text type="secondary">Updating…</Text>}</Space>}
+        title={
+          <Space>
+            <BarsOutlined />
+            <span>{resource?.label ?? "Results"}</span>
+            {settling && <Text type="secondary" data-testid="explorer-settling">Updating…</Text>}
+          </Space>
+        }
         extra={
           <Segmented
             size="small"
+            data-testid="view-mode"
             value={view}
             options={VIEW_OPTIONS}
             onChange={(next) => set({ view: String(next), page: null })}
@@ -266,33 +285,20 @@ export default function DataExplorerPage() {
         )}
       </Card>
 
-      <Drawer
-        open={advancedOpen}
-        width="min(920px, 94vw)"
-        title={<Space><ApartmentOutlined />Advanced conditions</Space>}
-        onClose={() => setAdvancedOpen(false)}
-        extra={results.data && <Statistic value={results.data.total} suffix="matches" valueStyle={{ fontSize: 16 }} />}
-      >
-        <Alert
-          style={{ marginBottom: 16 }}
-          type="info"
-          showIcon
-          message="Build groups with AND, OR and NOT"
-          description="Incomplete rules are ignored while you work. Results refresh automatically after a short pause."
+      {resource && request && (
+        <AdvancedSearchDrawer
+          open={advancedOpen}
+          fields={resource.fields}
+          request={request}
+          onClose={() => setAdvancedOpen(false)}
+          onSearch={(next) => set({ tree: next ? JSON.stringify(next) : null, page: null })}
+          onSave={(next) => {
+            setAdvancedOpen(false);
+            setDraftToSave(next);
+            setSaveOpen(true);
+          }}
         />
-        {resource && (
-          <AdvancedQueryBuilder
-            key={resource.key}
-            fields={resource.fields}
-            value={tree}
-            onChange={(next) => set({ tree: JSON.stringify(next), page: null })}
-          />
-        )}
-        <Card size="small" title="Query inspector" className="nu-query-inspector">
-          <pre>{results.data?.condition_text?.trim() || "All records"}</pre>
-          <Text type="secondary">Rendered by the backend from the same tree compiled into SQL.</Text>
-        </Card>
-      </Drawer>
+      )}
 
       <SavedSearchDrawer
         open={savedOpen}
@@ -304,8 +310,22 @@ export default function DataExplorerPage() {
         <SaveSearchModal
           open={saveOpen}
           value={saveValue}
-          onClose={() => setSaveOpen(false)}
-          onSaved={(saved) => set({ saved: saved.id })}
+          onClose={() => {
+            setSaveOpen(false);
+            setDraftToSave(undefined);
+          }}
+          // Saving a draft also runs it: a search worth naming is one the
+          // person is about to look at, and leaving the page showing something
+          // else would make the saved name refer to rows nobody can see.
+          onSaved={(saved) => {
+            set({
+              ...(draftToSave !== undefined
+                ? { tree: draftToSave ? JSON.stringify(draftToSave) : null }
+                : {}),
+              saved: saved.id,
+            });
+            setDraftToSave(undefined);
+          }}
         />
       )}
     </>

@@ -331,8 +331,59 @@ body {
   max-width: min(520px, 80vw); max-height: 380px; overflow: auto; gap: 8px 14px;
 }
 .nu-query-builder { overflow-x: auto; padding-bottom: 8px; }
-.nu-query-builder .query-builder { min-width: 680px; }
-.nu-query-inspector { margin-top: 18px; background: var(--nu-bg); }
+.nu-query-builder .query-builder {
+  min-width: 680px; margin: 0; font: inherit; color: var(--nu-text);
+}
+
+/* The library ships a cream-and-gold palette of its own, which reads as a
+   third-party widget dropped into the page and is unreadable in dark mode.
+   Only the surfaces are restated — every control inside a rule is an AntD
+   component already themed by ConfigProvider, so re-skinning those would
+   fight the design system rather than join it.
+   Groups are tinted one step above the page and rules sit on the raised
+   surface, which is what makes nesting legible without extra borders. */
+.nu-query-builder .query-builder .group,
+.nu-query-builder .query-builder .rule_group,
+.nu-query-builder .query-builder .rule_group_ext,
+.nu-query-builder .query-builder .rule_group_ext .group {
+  background: var(--nu-bg); border: 1px solid var(--nu-border);
+}
+.nu-query-builder .query-builder .rule,
+.nu-query-builder .query-builder .rule_group .rule,
+.nu-query-builder .query-builder .rule_group_ext .rule {
+  background: var(--nu-surface-raised); border: 1px solid var(--nu-border-subtle);
+}
+.nu-query-builder .query-builder .rule-with-error .rule,
+.nu-query-builder .query-builder .group-with-error > .group { border-color: var(--nu-danger); }
+.nu-query-builder .query-builder .rule--error,
+.nu-query-builder .query-builder .rule_group--error { color: var(--nu-danger); }
+.nu-query-builder .query-builder .qb-placeholder { border-color: var(--nu-accent) !important; }
+.nu-query-builder .query-builder .group--conjunctions { margin-inline-end: 8px; }
+
+/* The duplicate control rides alongside the library's own rule actions, which
+   have no extension point of their own. It stays out of the way until the row
+   is hovered or the button itself is focused, so the action bar reads the same
+   as it did before for anyone not looking for it. */
+.nu-query-builder .group-or-rule-container { position: relative; }
+.nu-query-duplicate {
+  position: absolute; top: 6px; right: 6px; z-index: 2;
+  color: var(--nu-text-secondary); opacity: 0; transition: opacity 120ms ease;
+}
+.nu-query-builder .group-or-rule-container:hover > .nu-query-duplicate,
+.nu-query-duplicate:focus-visible { opacity: 1; }
+.nu-query-duplicate:hover { color: var(--nu-accent); }
+/* The advanced editor is a column: guidance, the tree, what it reads as, and
+   the actions that run or name it. The action row is sticky so the match count
+   and Search stay reachable while a deep tree scrolls behind them. */
+.nu-advanced-search { display: flex; flex-direction: column; gap: 16px; }
+.nu-advanced-actions {
+  position: sticky; bottom: 0; z-index: 3;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  flex-wrap: wrap; padding: 12px 0 4px;
+  background: var(--nu-surface); border-top: 1px solid var(--nu-border);
+}
+.nu-advanced-count .ant-statistic-title { margin-bottom: 0; font-size: 12px; }
+.nu-query-inspector { background: var(--nu-bg); }
 .nu-query-inspector pre {
   margin: 0 0 8px; padding: 12px; overflow: auto; border-radius: 6px;
   background: var(--nu-surface); border: 1px solid var(--nu-border-subtle);

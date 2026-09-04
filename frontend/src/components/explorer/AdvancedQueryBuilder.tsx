@@ -1,133 +1,144 @@
-import { useEffect, useMemo, useState } from "react";
+/**
+ * The nested condition editor of §4 — `CONDITION AND ( CONDITION OR … )`.
+ *
+ * Two things here are less obvious than they look.
+ *
+ * **The tree is owned locally while it is being edited.** The page keeps the
+ * question in the URL so it can be shared and reloaded, which means every
+ * change comes straight back as a new `value`. Re-loading the editor from that
+ * echo is what made "Add rule" appear to do nothing: a rule with no field yet
+ * is an *empty* rule, the library discards empty rules when a tree is loaded,
+ * and the new row vanished between the click and the next render. So the
+ * component compares an incoming `value` against what it last emitted and only
+ * reloads when somebody else — a saved search, the back button — changed it.
+ *
+ * **A half-built rule is not an error.** `compile_tree` skips incomplete rules
+ * by design, so the results behind the drawer keep answering the part of the
+ * question that is finished instead of blanking on every keystroke.
+ */
+
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
-  AntdConfig,
   Builder,
   Query,
   Utils as QbUtils,
-  type Config,
   type ImmutableTree,
+  type ItemBuilderProps,
   type JsonTree,
 } from "@react-awesome-query-builder/antd";
+import { Button, Tooltip } from "antd";
+import { CopyOutlined } from "@ant-design/icons";
 import "@react-awesome-query-builder/antd/css/styles.css";
 
 import type { ExplorerField } from "@/api/explorer";
 
-const OPERATOR_ALIAS: Record<string, string> = {
-  eq: "equal",
-  ne: "not_equal",
-  contains: "like",
-  not: "not_like",
-  starts: "starts_with",
-  ends: "ends_with",
-  gt: "greater",
-  gte: "greater_or_equal",
-  lt: "less",
-  lte: "less_or_equal",
-  before: "less",
-  after: "greater",
-  in: "select_any_in",
-  not_in: "select_not_any_in",
-  empty: "is_empty",
-  not_empty: "is_not_empty",
-  exists: "is_not_null",
-  not_exists: "is_null",
-};
+import { queryBuilderConfig } from "./queryBuilderConfig";
+import { duplicateNode, emptyTree, type QueryNode } from "./queryTree";
 
-const TYPE: Record<ExplorerField["kind"], string> = {
-  text: "text",
-  enum: "select",
-  bool: "boolean",
-  number: "number",
-  datetime: "datetime",
-  uuid: "text",
-  json: "text",
-  array: "text",
-};
-
-function emptyTree(): JsonTree {
-  return {
-    id: crypto.randomUUID(),
-    type: "group",
-    children1: [],
-    properties: { conjunction: "AND", not: false },
-  };
-}
-
-function queryConfig(fields: ExplorerField[]): Config {
-  return {
-    ...AntdConfig,
-    settings: {
-      ...AntdConfig.settings,
-      showNot: true,
-      canReorder: true,
-      canRegroup: true,
-      maxNesting: 12,
-      maxNumberOfRules: 200,
-      renderSize: "small",
-    },
-    fields: Object.fromEntries(
-      fields.filter((field) => field.filterable).map((field) => {
-        const operators = Array.from(
-          new Set(field.operators.map((operator) => OPERATOR_ALIAS[operator] ?? operator)),
-        );
-        return [
-          field.name,
-          {
-            label: field.label,
-            type: TYPE[field.kind],
-            operators,
-            ...(field.kind === "enum"
-              ? {
-                  fieldSettings: {
-                    listValues: field.choices.map((value) => ({ value, title: value })),
-                    allowCustomValues: field.choices.length === 0,
-                    showSearch: true,
-                  },
-                }
-              : {}),
-          },
-        ];
-      }),
-    ),
-  } as Config;
-}
-
-export function AdvancedQueryBuilder({
-  fields,
-  value,
-  onChange,
-}: {
+export interface AdvancedQueryBuilderProps {
+  /** The catalogue the API published for the selected dataset. */
   fields: ExplorerField[];
-  value: Record<string, unknown> | null;
-  onChange: (tree: Record<string, unknown>) => void;
-}) {
-  const config = useMemo(() => queryConfig(fields), [fields]);
-  const blank = useMemo(emptyTree, []);
-  const serialised = useMemo(() => JSON.stringify(value ?? blank), [value, blank]);
-  const [tree, setTree] = useState<ImmutableTree>(() => QbUtils.loadTree(JSON.parse(serialised)));
+  value: QueryNode | null;
+  onChange: (tree: QueryNode) => void;
+}
+
+export function AdvancedQueryBuilder({ fields, value, onChange }: AdvancedQueryBuilderProps) {
+  const config = useMemo(() => queryBuilderConfig(fields), [fields]);
+  const [tree, setTree] = useState<ImmutableTree>(() => load(value));
+
+  /** The JSON of the last tree handed upward; an equal `value` is our own echo. */
+  const emitted = useRef(serialise(value));
 
   useEffect(() => {
-    setTree(QbUtils.loadTree(JSON.parse(serialised)));
-  }, [serialised]);
+    const incoming = serialise(value);
+    if (incoming === emitted.current) return;
+    emitted.current = incoming;
+    setTree(load(value));
+  }, [value]);
 
-  const change = (next: ImmutableTree) => {
+  const publish = (next: ImmutableTree) => {
     setTree(next);
-    onChange(QbUtils.getTree(next) as unknown as Record<string, unknown>);
+    const json = QbUtils.getTree(next) as unknown as QueryNode;
+    emitted.current = serialise(json);
+    onChange(json);
+  };
+
+  /** Clone one rule or group in place, keyed by the path the builder gives us. */
+  const duplicate = (path: readonly string[]) => {
+    const current = QbUtils.getTree(tree) as unknown as QueryNode;
+    const next = duplicateNode(current, path);
+    if (next) publish(QbUtils.loadTree(next as unknown as JsonTree));
   };
 
   return (
     <div className="nu-query-builder" aria-label="Advanced query builder">
       <Query
         {...config}
+        settings={{
+          ...config.settings,
+          // The library renders the rule's own action bar and gives no room to
+          // extend it, so the duplicate control is attached by wrapping each
+          // item — the one place a path to the node is available.
+          renderItem: (props: ItemBuilderProps) => (
+            <QueryItem {...props} onDuplicate={duplicate} />
+          ),
+        }}
         value={tree}
-        onChange={change}
-        renderBuilder={(props) => <Builder {...props} />}
+        onChange={publish}
+        // The library's stylesheet is scoped under `.query-builder`, and it is
+        // the host application that has to render it — without this wrapper
+        // every rule falls back to unstyled stacked blocks.
+        renderBuilder={(props) => (
+          <div className="query-builder">
+            <Builder {...props} />
+          </div>
+        )}
       />
     </div>
   );
 }
 
-/** Exported for the catalogue contract test: every backend operator maps once. */
-export function queryBuilderOperator(operator: string): string {
-  return OPERATOR_ALIAS[operator] ?? operator;
+/**
+ * One rule or group, plus the duplicate action §4 asks for beside it.
+ *
+ * `itemComponent` is the library's own renderer for this node; wrapping rather
+ * than replacing it means the rule keeps every behaviour — drag handles,
+ * validation, locking — that the builder gives it.
+ */
+function QueryItem({
+  itemComponent: Item,
+  onDuplicate,
+  ...props
+}: ItemBuilderProps & { onDuplicate: (path: readonly string[]) => void }) {
+  const path: string[] = props.path?.toJS?.() ?? [];
+  const isRoot = path.length <= 1;
+
+  // A fragment, not a wrapper element: the library's stylesheet lays a rule out
+  // through the parent container's own children, and an extra box between them
+  // collapses the row into a stack.
+  return (
+    <Fragment>
+      {Item(props)}
+      {!isRoot && (
+        <Tooltip title="Duplicate">
+          <Button
+            className="nu-query-duplicate"
+            type="text"
+            size="small"
+            icon={<CopyOutlined />}
+            aria-label={`Duplicate this ${props.type === "group" ? "group" : "rule"}`}
+            onClick={() => onDuplicate(path)}
+          />
+        </Tooltip>
+      )}
+    </Fragment>
+  );
+}
+
+function load(value: QueryNode | null): ImmutableTree {
+  return QbUtils.loadTree((value ?? emptyTree()) as unknown as JsonTree);
+}
+
+function serialise(value: QueryNode | null | undefined): string {
+  return JSON.stringify(value ?? null);
 }

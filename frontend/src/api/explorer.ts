@@ -15,6 +15,22 @@ export interface ExplorerField {
   choices: string[];
 }
 
+/**
+ * One node of a query-builder condition tree, as it travels on the wire.
+ *
+ * The same JSON that `core/rules.py` compiles into SQL and describes for the
+ * query inspector, and that a saved search stores verbatim. Declared here
+ * rather than beside the editor because it is part of the API contract, not of
+ * one component's internals.
+ */
+export interface QueryNode {
+  id?: string;
+  type?: string;
+  properties?: Record<string, unknown>;
+  /** Keyed by node id, or an array, depending on which export produced it. */
+  children1?: Record<string, QueryNode> | QueryNode[];
+}
+
 export interface ExplorerResource {
   key: string;
   label: string;
@@ -34,7 +50,7 @@ export interface ExplorerCatalogue {
 export interface ExplorerRequest {
   resource_type: string;
   query_text?: string;
-  condition_tree?: Record<string, unknown> | null;
+  condition_tree?: QueryNode | null;
   filters?: Record<string, unknown>;
   columns?: string[];
   page?: number;
@@ -68,7 +84,7 @@ export interface SavedSearch {
   owner: { id: string; name: string; email: string | null };
   can_edit: boolean;
   members: Array<{ id: string; name: string; email: string }>;
-  condition_tree: Record<string, unknown> | null;
+  condition_tree: QueryNode | null;
   condition_text: string | null;
   filters: Record<string, unknown>;
   query_text: string;
