@@ -11,6 +11,12 @@
  * complete one, and a graph, which is the one that shows shape. The list is the
  * default because "which of these are mine?" is answered by reading, not by
  * looking at a picture.
+ *
+ * With no record chosen it is an *analysis* page rather than an empty search
+ * box: the connection map, the strength and coverage of every relation, and
+ * the records the most rows point at. An explorer whose landing state asks the
+ * reader to already know what they are looking for is an explorer that only
+ * helps people who did not need it.
  */
 
 import { useMemo, useState } from "react";
@@ -41,6 +47,7 @@ import {
 import { relationshipsApi, type RelatedNode } from "@/api/relationships";
 import { searchApi } from "@/api/search";
 import { PageHeader } from "@/components/PageHeader";
+import { ConnectionMapView } from "@/components/relationships/ConnectionMapView";
 import { RelationshipGraph } from "@/components/RelationshipGraph";
 import { SimpleSearch } from "@/components/explorer/SimpleSearch";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -92,6 +99,7 @@ export default function RelationshipExplorerPage() {
   if (!resource || !id) {
     return <StartHere onStart={(node, entity) => setParams({ resource: entity, id: node.id })} />;
   }
+
 
   const root = graph.data?.root;
 
@@ -253,62 +261,81 @@ function StartHere({ onStart }: { onStart: (node: RelatedNode, entity: string) =
     queryFn: ({ signal }) => searchApi.global(debounced, signal),
     enabled: debounced.length >= 2,
   });
+  const searching = debounced.length >= 2;
 
   return (
     <>
       <PageHeader
         title="Relationships"
-        subtitle="Start from any record and follow how it connects to the rest of the platform."
+        subtitle="How the platform's records connect — and where it is worth starting."
       />
-      <Card size="small">
-        <SimpleSearch dataset="relationships" label="a record to start from" value={term} onChange={setTerm} />
+
+      <Card size="small" className="nu-filter-bar">
+        <SimpleSearch
+          dataset="relationships"
+          label="a record to start from"
+          value={term}
+          onChange={setTerm}
+        />
       </Card>
 
-      {results.isLoading && <Skeleton active paragraph={{ rows: 4 }} />}
-
-      {results.data?.groups.map((group) => (
-        <Card key={group.resource_type} size="small" title={group.label}>
-          <List
-            dataSource={group.items}
-            renderItem={(hit) => (
-              <List.Item
-                className="nu-relation-item"
-                actions={[
-                  <Button
-                    key="start"
-                    type="link"
-                    icon={<ApartmentOutlined />}
-                    onClick={() =>
-                      onStart(
-                        {
-                          id: hit.id,
-                          label: hit.label,
-                          summary: hit.summary,
-                          entity: hit.resource_type,
-                          explorable: true,
-                          updated_at: null,
-                        },
-                        hit.resource_type,
-                      )
-                    }
+      {/* Searching replaces the analysis rather than pushing it down the page:
+          somebody who has typed a name is no longer reading the map. */}
+      {searching ? (
+        <>
+          {results.isLoading && <Skeleton active paragraph={{ rows: 4 }} />}
+          {results.data?.total === 0 && <Empty description={`Nothing matches “${debounced}”`} />}
+          {results.data?.groups.map((group) => (
+            <Card key={group.resource_type} size="small" title={group.label} className="nu-block">
+              <List
+                dataSource={group.items}
+                renderItem={(hit) => (
+                  <List.Item
+                    className="nu-relation-item"
+                    actions={[
+                      <Button
+                        key="start"
+                        type="link"
+                        icon={<ApartmentOutlined />}
+                        onClick={() =>
+                          onStart(
+                            {
+                              id: hit.id,
+                              label: hit.label,
+                              summary: hit.summary,
+                              entity: hit.resource_type,
+                              explorable: true,
+                              updated_at: null,
+                            },
+                            hit.resource_type,
+                          )
+                        }
+                      >
+                        Start here
+                      </Button>,
+                    ]}
                   >
-                    Start here
-                  </Button>,
-                ]}
-              >
-                <List.Item.Meta title={hit.label} description={hit.summary} />
-              </List.Item>
-            )}
-          />
-        </Card>
-      ))}
-
-      {results.data && results.data.total === 0 && debounced.length >= 2 && (
-        <Empty description={`Nothing matches “${debounced}”`} />
+                    <List.Item.Meta title={hit.label} description={hit.summary} />
+                  </List.Item>
+                )}
+              />
+            </Card>
+          ))}
+        </>
+      ) : (
+        <ConnectionMapView
+          onStart={(entity, id) =>
+            onStart(
+              { id, label: "", summary: "", entity, explorable: true, updated_at: null },
+              entity,
+            )
+          }
+        />
       )}
     </>
   );
 }
+
 
 /** `tickets.customer_id` → `customer_id`, the column that points back here. */
 function relationColumn(relation: string): string {

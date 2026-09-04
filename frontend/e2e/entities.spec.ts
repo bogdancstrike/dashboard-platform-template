@@ -96,13 +96,17 @@ test.describe("entity lists", () => {
   test("a row opens the record, and the record comes back to the list", async ({ page }) => {
     await signIn(page, "admin", "/tickets");
 
-    const reference = await rows(page).nth(1).getByRole("cell").first().innerText();
-    await rows(page).nth(1).click();
+    await expect(rows(page).nth(1)).toBeVisible();
+    const reference = (await rows(page).nth(1).getByRole("cell").first().innerText()).trim();
+    // Click the row *carrying that reference* rather than "the second row": a
+    // background refetch can reorder the list between reading it and clicking,
+    // and then the record opened is not the one the assertion is about.
+    await rows(page).filter({ hasText: reference }).first().click();
 
     await expect(page).toHaveURL(/\/tickets\/[0-9a-f-]{36}/);
     // The heading names the record rather than repeating its id.
     await expect(page.getByRole("heading")).not.toHaveText(/^[0-9a-f-]{36}$/);
-    await expect(page.getByText(reference.trim()).first()).toBeVisible();
+    await expect(page.getByText(reference).first()).toBeVisible();
 
     await page.getByRole("button", { name: "Back" }).click();
     await expect(page).toHaveURL(/\/tickets$/);

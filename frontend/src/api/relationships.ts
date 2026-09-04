@@ -34,7 +34,50 @@ export interface RelationshipGraph {
   total: number;
 }
 
+
+/** One entity in the connection map, sized by how many records it holds. */
+export interface MapNode {
+  key: string;
+  table: string;
+  label: string;
+  count: number;
+  explorable: boolean;
+}
+
+/** One foreign key, weighted by how many rows actually carry it. */
+export interface MapEdge {
+  relation: string;
+  label: string;
+  source: string;
+  source_label: string;
+  target: string;
+  target_label: string;
+  count: number;
+  /** Of the rows that could carry this link, the share that do. */
+  coverage: number;
+  source_total: number;
+}
+
+/** A record the most rows point at, and the relation that makes it a hub. */
+export interface HubRecord extends RelatedNode {
+  resource_type: string;
+  connections: number;
+  via: string;
+  via_label: string;
+}
+
+export interface ConnectionMap {
+  nodes: MapNode[];
+  edges: MapEdge[];
+  hubs: HubRecord[];
+  totals: { records: number; entities: number; relations: number; links: number };
+}
+
 export const relationshipsApi = {
+  /** The map itself, before any record has been chosen. */
+  overview: (signal?: AbortSignal) =>
+    api.get<ConnectionMap>("/api/relationships/overview", { signal }),
+
   of: (resourceType: string, id: string, signal?: AbortSignal) =>
     api.get<RelationshipGraph>(`/api/relationships/${resourceType}/${id}`, { signal }),
 };

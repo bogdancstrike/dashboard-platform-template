@@ -364,6 +364,39 @@ export const recordDetail = {
   updated_at: "2026-09-03T09:00:00Z",
 };
 
+
+export const connectionMap = {
+  nodes: [
+    { key: "ticket", table: "tickets", label: "Tickets", count: 600, explorable: true },
+    { key: "customer", table: "customers", label: "Customers", count: 300, explorable: true },
+    { key: "order", table: "orders", label: "Orders", count: 800, explorable: true },
+    { key: "users", table: "users", label: "Users", count: 150, explorable: false },
+  ],
+  edges: [
+    {
+      relation: "customer_id", label: "Customer",
+      source: "order", source_label: "Orders",
+      target: "customer", target_label: "Customers",
+      count: 780, coverage: 97.5, source_total: 800,
+    },
+    {
+      relation: "customer_id", label: "Customer",
+      source: "ticket", source_label: "Tickets",
+      target: "customer", target_label: "Customers",
+      count: 310, coverage: 51.7, source_total: 600,
+    },
+  ],
+  hubs: [
+    {
+      id: "customer-1", label: "Northwind Partners", summary: "ENTERPRISE",
+      entity: "customer", explorable: true, updated_at: null,
+      resource_type: "customer", connections: 42,
+      via: "Customer", via_label: "Orders · as customer",
+    },
+  ],
+  totals: { records: 1850, entities: 4, relations: 2, links: 1090 },
+};
+
 export const handlers = [
   http.get("/platform/meta/app", ({ request }) => echo(request, appMeta)),
   http.get("/platform/api/search/global", ({ request }) =>
@@ -414,6 +447,7 @@ export const handlers = [
     echo(request, { marked: 2, read_at: "2026-09-03T12:00:00Z" }),
   ),
 
+  http.get("/platform/api/relationships/overview", ({ request }) => echo(request, connectionMap)),
   http.get("/platform/api/records/:type/:id", ({ request }) => echo(request, recordDetail)),
   http.get("/platform/admin/audit/catalog", ({ request }) => echo(request, auditCatalogue)),
   // Before the `:id` rule: MSW matches path segments loosely, so `:id`

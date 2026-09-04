@@ -281,6 +281,20 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "relationship_overview",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/relationships/overview",
+      "description": "The platform's connection map: entities, weighted relations, coverage and hub records.",
+      "exec_method": {
+        "module_name": "src.api.relationships",
+        "method_name": "overview"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "relationships",
       "model_name": "Empty",
       "request_method": [

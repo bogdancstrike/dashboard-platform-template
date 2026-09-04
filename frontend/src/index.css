@@ -667,3 +667,38 @@ mark.nu-mark {
 
 /* A section the server counted but whose rows are further down the result. */
 .nu-result-section-unloaded { display: block; padding: 8px 4px 12px; font-size: 12.5px; }
+
+/* ── The connection map (§50) ─────────────────────────────────────────────
+   A deterministic layout, so two screenshots of the same data are the same
+   picture and "the node on the left" keeps meaning something. */
+
+.nu-schema-graph svg { width: 100%; height: auto; display: block; }
+.nu-schema-edge {
+  fill: none;
+  stroke: var(--nu-border);
+  opacity: 0.55;
+  cursor: pointer;
+  transition: stroke 140ms ease-out, opacity 140ms ease-out;
+}
+.nu-schema-edge:hover,
+.nu-schema-edge--active { stroke: var(--nu-accent); opacity: 1; }
+.nu-schema-node { cursor: pointer; }
+.nu-schema-node circle { transition: filter 140ms ease-out; }
+.nu-schema-node:hover circle,
+.nu-schema-node--active circle { filter: brightness(1.12); }
+.nu-schema-node:focus-visible circle { outline: 2px solid var(--nu-accent); }
+.nu-schema-node text {
+  font-size: 12px;
+  fill: var(--nu-text);
+  pointer-events: none;
+}
+.nu-schema-node .nu-schema-count { font-size: 11px; fill: var(--nu-text-tertiary); }
+.nu-schema-legend { display: block; margin-top: 8px; font-size: 12px; }
+
+.nu-hub .ant-card-body { padding: 10px 12px; }
+.nu-row-selected > td { background: var(--nu-accent-soft) !important; }
+
+/* A card that fills its column, so a two-column row does not leave a hole
+   under the shorter side. */
+.nu-fill-height { height: 100%; }
+.nu-fill-height > .ant-card-body { height: calc(100% - 40px); }

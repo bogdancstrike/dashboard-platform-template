@@ -601,6 +601,54 @@ def test_facets_are_computed_only_when_they_are_asked_for(client, monkeypatch):
 
 
 @pytest.mark.database
+def test_the_connection_map_answers_before_a_record_is_chosen(client, monkeypatch):
+    """The landing view of §50: how does any of this connect, in aggregate."""
+    response = client.get(
+        f"{PREFIX}/api/relationships/overview", headers=_authenticate(monkeypatch)
+    )
+
+    assert response.status_code == 200
+    body = response.get_json()
+
+    keys = {node["key"] for node in body["nodes"]}
+    assert {"ticket", "customer", "order", "project"} <= keys
+    assert all(node["count"] > 0 for node in body["nodes"])
+
+    # Every edge is a foreign key that exists, in the direction it points.
+    edge = next(
+        item for item in body["edges"]
+        if item["source"] == "order" and item["target"] == "customer"
+    )
+    assert edge["relation"] == "customer_id"
+    assert edge["count"] > 0
+    assert 0 < edge["coverage"] <= 100
+    # Edges are ordered by weight, so the map's strongest links are first.
+    counts = [item["count"] for item in body["edges"]]
+    assert counts == sorted(counts, reverse=True)
+
+    # Hubs are the records the most rows point at — the useful place to start.
+    assert body["hubs"]
+    assert all(hub["connections"] > 0 for hub in body["hubs"])
+    assert body["totals"]["relations"] == len(body["edges"])
+
+
+@pytest.mark.database
+def test_the_connection_map_omits_datasets_the_caller_cannot_read(client, monkeypatch):
+    # The map is drawn from what the reader may see, not from the schema —
+    # otherwise it is a diagram of data they were refused.
+    _authenticate(monkeypatch, "user", "viewer")
+    monkeypatch.setattr("src.core.auth._permissions_for", lambda *_args: set())
+
+    response = client.get(
+        f"{PREFIX}/api/relationships/overview",
+        headers={"Authorization": "Bearer verified-but-unprivileged"},
+    )
+
+    assert response.status_code == 403
+    assert response.get_json()["details"]["missing"] == ["records.view"]
+
+
+@pytest.mark.database
 def test_relationships_are_derived_from_the_schema_not_a_second_list(client, monkeypatch):
     """Every group corresponds to a real foreign key, in the right direction."""
     from src.core.db import session_scope

@@ -10,6 +10,17 @@ from src.services import relationships as service
 
 
 @requires("records.view")
+def overview(app=None, operation: str = "", request=None, **_: Any):
+    """The connection map itself, before any record has been chosen.
+
+    An explorer that opens on an empty search box asks the reader to already
+    know what they are looking for; this answers the question they arrive with.
+    """
+    with session_scope() as session:
+        return service.overview(session, principal=me()), 200
+
+
+@requires("records.view")
 def item(app=None, operation: str = "", request=None, resource_type=None, record_id=None, **_: Any):
     """Everything this record points at, and everything pointing at it."""
     args = request.args if request is not None else {}

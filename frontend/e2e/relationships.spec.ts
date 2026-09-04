@@ -17,6 +17,46 @@ async function startFrom(page: Page, reference: string): Promise<void> {
   await expect(page.getByRole("heading", { name: reference })).toBeVisible();
 }
 
+test.describe("the connection map", () => {
+  test.beforeEach(async ({ page }) => signIn(page, "admin", "/find/relationships"));
+
+  test("opens on an analysis of the whole platform, not an empty search box", async ({
+    page,
+  }) => {
+    // The landing state answers the question a reader arrives with — how does
+    // any of this connect — rather than asking them to already know.
+    await expect(page.getByTestId("schema-graph")).toBeVisible();
+    await expect(page.getByTestId("relation-strength")).toBeVisible();
+    await expect(page.getByTestId("hub-records")).toBeVisible();
+
+    // Drawn from the real schema and the real rows.
+    const graph = page.getByRole("img", { name: /entities connected by \d+ relations/ });
+    await expect(graph).toBeVisible();
+    await expect(graph.getByLabel(/Tickets, [\d,]+ records/)).toBeVisible();
+    await expect(page.getByText("Relations", { exact: true })).toBeVisible();
+  });
+
+  test("a hub record is a place to start exploring", async ({ page }) => {
+    const hubs = page.getByTestId("hub-records");
+    await expect(hubs.getByText(/links$/).first()).toBeVisible();
+
+    await hubs.getByRole("button", { name: /Explore/ }).first().click();
+
+    // Straight into the per-record view, with the record chosen for them.
+    await expect(page).toHaveURL(/resource=[a-z]+&id=[0-9a-f-]{36}/);
+    await expect(page.getByTestId("relationship-view")).toBeVisible();
+  });
+
+  test("searching replaces the analysis rather than burying it", async ({ page }) => {
+    await expect(page.getByTestId("schema-graph")).toBeVisible();
+
+    await page.getByPlaceholder("Search a record to start from…").fill("CUS-00001");
+
+    await expect(page.getByTestId("schema-graph")).toBeHidden();
+    await expect(page.getByRole("button", { name: "Start here" }).first()).toBeVisible();
+  });
+});
+
 test.describe("relationship explorer", () => {
   test.beforeEach(async ({ page }) => signIn(page, "admin", "/find/relationships"));
 
