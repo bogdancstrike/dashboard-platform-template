@@ -10,9 +10,9 @@
  * rest of the record lives.
  */
 
-import { Button, Descriptions, Drawer, Space, Tooltip, Typography } from "antd";
-import { CopyOutlined, LinkOutlined } from "@ant-design/icons";
-import { App } from "antd";
+import { App, Button, Descriptions, Drawer, Space, Tooltip, Typography } from "antd";
+import { ApartmentOutlined, CopyOutlined, LinkOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 
 import type { ExplorerField, ExplorerResult } from "@/api/explorer";
 import { HighlightedText } from "@/components/HighlightedText";
@@ -28,6 +28,7 @@ export interface RecordPreviewProps {
 
 export function RecordPreview({ open, record, result, onClose }: RecordPreviewProps) {
   const { message } = App.useApp();
+  const navigate = useNavigate();
   if (!record || !result) return null;
 
   const fields = result.fields;
@@ -52,6 +53,17 @@ export function RecordPreview({ open, record, result, onClose }: RecordPreviewPr
       title={<span className="nu-preview-title">{title}</span>}
       extra={
         <Space>
+          <Tooltip title="Follow this record's connections">
+            <Button
+              icon={<ApartmentOutlined />}
+              aria-label="Show connections"
+              onClick={() =>
+                navigate(
+                  `/find/relationships?resource=${result.resource_type}&id=${record.id}`,
+                )
+              }
+            />
+          </Tooltip>
           <Tooltip title="Copy this record's id">
             <Button
               icon={<CopyOutlined />}

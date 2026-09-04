@@ -57,6 +57,8 @@ export interface ExplorerRequest {
   page_size?: number;
   sort?: string;
   order?: "asc" | "desc";
+  /** Compute facet counts. One GROUP BY per faceted column, so it is asked for. */
+  facets?: boolean;
 }
 
 export interface ExplorerResult {

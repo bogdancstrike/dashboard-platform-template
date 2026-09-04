@@ -35,7 +35,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
 | Endpoints | 22 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×2, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×1 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 138 backend + 77 frontend + 46 Playwright e2e, green against `docker compose up` |
+| Tests | 138 backend + 77 frontend + 48 Playwright e2e, green against `docker compose up` |
 | Frontend | scaffold **done** — theme, API client, OIDC/RBAC, 34 tests, build clean |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -290,7 +290,7 @@ section is a cross-cutting rule rather than a page.
 | 3 | Advanced data table | `/showcase/table` + every list | generic list | [ ] |
 | 4 | Advanced search (simple + RAQB) | `/explore` | `/api/explorer/query` | [x] |
 | 5 | Saved searches | `/explore` (panel) | `/api/saved-searches` | [x] |
-| 6 | Search results, view modes | `/explore` | `/api/explorer/query` | [~] |
+| 6 | Search results, view modes | `/explore` | `/api/explorer/query` | [x] |
 | 7 | Entity list pages | `/{entity}` ×11 | generic list | [ ] |
 | 8 | Entity detail page | `/{entity}/:id` | generic detail | [ ] |
 | 9 | Create / edit forms | `/{entity}/:id/edit` | generic CRUD | [ ] |
@@ -513,9 +513,13 @@ and then shows the wrong columns is a saved search nobody trusts.
 - [x] Match highlighting, metadata, tags, timestamps, status. Relevance ranking
       belongs to `/find/global`, where results from several entities have to be
       ordered against each other
-- [~] Result grouping, sorting, preview drawer (§64) and quick actions
-  - The preview drawer, its copy-id and copy-link actions, and sorting ship.
-    Grouping by an enum field is next
+- [x] Result grouping, sorting, preview drawer (§64) and quick actions
+  - Grouping is offered for faceted fields only — a list grouped by "Title"
+    has one section per row — and each heading counts that value's share of
+    the **whole** result rather than the rows on screen, so the sections still
+    add up to the total when only the first page has loaded
+  - The preview's actions are the three that belong there: copy the id, copy a
+    link to this exact view, and follow the record's connections (§50)
 - [x] Both pagination strategies (§52): numbered for the table, "load more" for
       the card and list modes
   - Accumulated rows are dropped the moment the question changes, so a list

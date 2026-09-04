@@ -417,6 +417,15 @@ mark.nu-mark {
   gap: 12px; width: 100%; min-width: 0;
 }
 .nu-result-fields { flex: 1; min-width: 0; }
+/* A grouped scan reads as headed sections, with the section's share of the
+   whole result beside its name. */
+.nu-result-section + .nu-result-section { margin-top: 8px; }
+.nu-result-section-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 10px 16px 6px; border-top: 1px solid var(--nu-border-subtle);
+  position: sticky; top: 0; z-index: 1; background: var(--nu-surface);
+}
+.nu-group-select { min-width: 190px; }
 .nu-load-more {
   display: flex; align-items: center; justify-content: center; gap: 12px;
   padding: 14px 0 4px;

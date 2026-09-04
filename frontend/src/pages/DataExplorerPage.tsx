@@ -89,6 +89,7 @@ export default function DataExplorerPage() {
   const sort = params.get("sort") ?? resource?.default_sort ?? "updated_at";
   const order = params.get("order") === "asc" ? "asc" : "desc";
 
+  const groupBy = params.get("group") ?? "";
   const request = useMemo<ExplorerRequest | null>(() => resource ? ({
     resource_type: resource.key,
     query_text: queryText,
@@ -99,7 +100,10 @@ export default function DataExplorerPage() {
     page_size: pageSize,
     sort,
     order,
-  }) : null, [resource, queryText, tree, filters, columns, page, pageSize, sort, order]);
+    // Section headers count the whole result, not the rows on screen, and the
+    // facet counts are where that number comes from.
+    ...(groupBy ? { facets: true } : {}),
+  }) : null, [resource, queryText, tree, filters, columns, page, pageSize, sort, order, groupBy]);
   const debouncedRequest = useDebouncedValue(request, 280);
   const results = useQuery({
     queryKey: ["explorer-results", debouncedRequest],
@@ -269,6 +273,13 @@ export default function DataExplorerPage() {
             <Button icon={<BuildOutlined />} onClick={() => setAdvancedOpen(true)}>Advanced</Button>
           </Badge>
           <ColumnPicker resource={resource} value={columns} onChange={(next) => set({ columns: next.join(","), page: null })} />
+          {scanning && (
+            <GroupPicker
+              resource={resource}
+              value={groupBy}
+              onChange={(next) => set({ group: next || null, page: null })}
+            />
+          )}
           {activeFilterCount > 0 && <Button icon={<ClearOutlined />} onClick={clearQuestion}>Clear</Button>}
         </div>
       </Card>
@@ -304,7 +315,9 @@ export default function DataExplorerPage() {
             result={results.data}
             view={view}
             loading={results.isLoading}
-            {...(scanning ? { rows: scanned, onLoadMore: loadMore, loadingMore: results.isFetching } : {})}
+            {...(scanning
+              ? { rows: scanned, groupBy, onLoadMore: loadMore, loadingMore: results.isFetching }
+              : {})}
             onPage={(nextPage, nextSize) => set({ page: nextPage, page_size: nextSize })}
             onSort={(field, direction) => set({ sort: field, order: direction, page: null })}
             onPreview={setPreview}
@@ -375,6 +388,37 @@ export default function DataExplorerPage() {
         />
       )}
     </>
+  );
+}
+
+/**
+ * Section the scanning modes by one field (§6).
+ *
+ * Offered only for fields declared as facets, because those are the ones with
+ * a small enough vocabulary to be worth reading as headings — grouping a list
+ * by "Title" produces one section per row.
+ */
+function GroupPicker({ resource, value, onChange }: {
+  resource?: ExplorerResource;
+  value: string;
+  onChange: (field: string) => void;
+}) {
+  const options = (resource?.fields ?? [])
+    .filter((field) => field.facet)
+    .map((field) => ({ value: field.name, label: `Group by ${field.label.toLowerCase()}` }));
+  if (options.length === 0) return null;
+
+  return (
+    <Select
+      allowClear
+      className="nu-group-select"
+      aria-label="Group results"
+      data-testid="group-select"
+      placeholder="No grouping"
+      value={value || undefined}
+      onChange={(next) => onChange(next ?? "")}
+      options={options}
+    />
   );
 }
 

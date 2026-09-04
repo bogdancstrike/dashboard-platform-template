@@ -314,6 +314,35 @@ test.describe("Data Explorer", () => {
     await expect(cards).toHaveCount(50);
   });
 
+  test("results can be sectioned by a field, counted against the whole result (§6)", async ({ page }) => {
+    const total = await matchCount(page);
+    await page.getByTestId("view-mode").getByText("List", { exact: true }).click();
+
+    await page.getByTestId("group-select").click();
+    await chooseOption(page, "Group by status");
+
+    const headings = page.locator(".nu-result-section-head");
+    await expect(headings.first()).toBeVisible();
+    // Sections count their share of the whole result, not the rows on screen,
+    // so the parts add up to the total however few have been loaded.
+    const counts = await headings.allInnerTexts();
+    const shares = counts.map((text) => Number(text.match(/of ([\d,]+)/)?.[1]?.replace(/,/g, "") ?? 0));
+    const loaded = counts.map((text) => Number(text.match(/^\D*(\d+)/)?.[1] ?? 0));
+    const summed = shares.map((share, index) => share || loaded[index] || 0);
+    expect(summed.reduce((a, b) => a + b, 0)).toBe(total);
+  });
+
+  test("the preview opens the record's connections (§50)", async ({ page }) => {
+    await matchCount(page);
+    const reference = await page.getByRole("cell").first().innerText();
+    await page.getByRole("cell", { name: reference, exact: true }).click();
+
+    await page.getByRole("button", { name: "Show connections" }).click();
+
+    await expect(page).toHaveURL(/\/find\/relationships\?resource=task&id=/);
+    await expect(page.getByRole("heading", { name: reference })).toBeVisible();
+  });
+
   test("another dataset brings its own fields", async ({ page }) => {
     await page.getByTestId("dataset-select").click();
     await chooseOption(page, /^Devices/);

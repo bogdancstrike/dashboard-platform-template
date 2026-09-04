@@ -27,6 +27,8 @@ export interface ExplorerResultsProps {
   loading: boolean;
   /** Rows accumulated by "Load more" in the scanning modes, if any. */
   rows?: ExplorerRecord[];
+  /** Field to section the scanning modes by; empty for one flat list. */
+  groupBy?: string;
   onPage: (page: number, pageSize: number) => void;
   onSort: (field: string, order: "asc" | "desc") => void;
   onPreview: (record: ExplorerRecord) => void;
@@ -39,6 +41,7 @@ export function ExplorerResults({
   view,
   loading,
   rows,
+  groupBy,
   onPage,
   onSort,
   onPreview,
@@ -115,15 +118,15 @@ export function ExplorerResults({
 
   const items = rows ?? result?.items ?? [];
   const more = items.length < (result?.total ?? 0);
+  const sections = groupBy ? group(items, groupBy, result) : null;
 
-  return (
-    <>
-      <List
-        loading={loading}
-        dataSource={items}
-        grid={view === "cards" ? { gutter: 12, xs: 1, sm: 2, lg: 3, xl: 4 } : undefined}
-        locale={{ emptyText: empty }}
-        renderItem={(item) => {
+  const renderList = (data: ExplorerRecord[]) => (
+    <List
+      loading={loading}
+      dataSource={data}
+      grid={view === "cards" ? { gutter: 12, xs: 1, sm: 2, lg: 3, xl: 4 } : undefined}
+      locale={{ emptyText: empty }}
+      renderItem={(item) => {
           const body = (
             <div className={`nu-result nu-result--${view}`}>
               <div className="nu-result-fields">
@@ -149,8 +152,31 @@ export function ExplorerResults({
           ) : (
             <List.Item>{body}</List.Item>
           );
-        }}
-      />
+      }}
+    />
+  );
+
+  return (
+    <>
+      {sections
+        ? sections.map((section) => (
+            <section key={section.value} className="nu-result-section">
+              <header className="nu-result-section-head">
+                <Text strong>{section.label}</Text>
+                {/* Loaded here, of the whole result: a section header that
+                    counted only the rows on screen would shrink as the reader
+                    scrolls, which is the opposite of what a count is for. */}
+                <Text type="secondary">
+                  {section.rows.length}
+                  {section.total > 0 && section.total !== section.rows.length
+                    ? ` of ${section.total.toLocaleString()}`
+                    : ""}
+                </Text>
+              </header>
+              {renderList(section.rows)}
+            </section>
+          ))
+        : renderList(items)}
       {items.length > 0 && (
         <div className="nu-load-more">
           <Text type="secondary">
@@ -216,6 +242,47 @@ function Value({
   }
   const text = <HighlightedText text={String(value)} term={term} />;
   return primary ? <Text strong>{text}</Text> : <Text>{text}</Text>;
+}
+
+interface Section {
+  value: string;
+  label: string;
+  rows: ExplorerRecord[];
+  /** How many the whole result holds, from the facet counts. */
+  total: number;
+}
+
+/**
+ * Section the loaded rows by one field, biggest first.
+ *
+ * The rows are the ones already fetched; the totals come from the facet counts
+ * the server computed over the *whole* result, so a header reads "8 of 24"
+ * rather than counting what happens to be on screen.
+ */
+function group(rows: ExplorerRecord[], field: string, result?: ExplorerResult): Section[] {
+  const totals = new Map(
+    (result?.facets[field] ?? []).map((entry) => [entry.value, entry.count] as const),
+  );
+  const sections = new Map<string, ExplorerRecord[]>();
+  for (const row of rows) {
+    const value = row[field] === null || row[field] === undefined || row[field] === ""
+      ? ""
+      : String(row[field]);
+    const bucket = sections.get(value);
+    if (bucket) bucket.push(row);
+    else sections.set(value, [row]);
+  }
+
+  return [...sections.entries()]
+    .map(([value, sectionRows]) => ({
+      value,
+      // An absent value is a group of its own, and saying so beats an empty
+      // heading the reader has to guess at.
+      label: value === "" ? "No value" : value.replaceAll("_", " "),
+      rows: sectionRows,
+      total: totals.get(value) ?? 0,
+    }))
+    .sort((a, b) => (b.total || b.rows.length) - (a.total || a.rows.length));
 }
 
 function title(value: string): string {
