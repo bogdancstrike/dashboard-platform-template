@@ -2,7 +2,7 @@
   "namespaces": [
     {
       "name": "platform",
-      "description": "Nucleus \u2014 enterprise application template platform"
+      "description": "Nucleus — enterprise application template platform"
     }
   ],
   "models": {
@@ -31,7 +31,7 @@
         "GET"
       ],
       "api_url": "/health/ready",
-      "description": "Ready to serve traffic \u2014 the database must answer.",
+      "description": "Ready to serve traffic — the database must answer.",
       "exec_method": {
         "module_name": "src.api.health",
         "method_name": "readiness"
@@ -211,6 +211,34 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "saved_search_transfer",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/saved-searches/<uuid:search_id>/transfer",
+      "description": "Transfer ownership of a saved search. Owner only, audited.",
+      "exec_method": {
+        "module_name": "src.api.saved_searches",
+        "method_name": "transfer"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "directory_people",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/directory/people",
+      "description": "Search active colleagues, for share and assignment pickers.",
+      "exec_method": {
+        "module_name": "src.api.directory",
+        "method_name": "people"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "dashboard_alerts",
       "model_name": "Empty",
       "request_method": [
@@ -245,7 +273,7 @@
         "GET"
       ],
       "api_url": "/notifications/counts",
-      "description": "Unread totals \u2014 what the header badge polls when the socket is down.",
+      "description": "Unread totals — what the header badge polls when the socket is down.",
       "exec_method": {
         "module_name": "src.api.notifications",
         "method_name": "unread_counts"

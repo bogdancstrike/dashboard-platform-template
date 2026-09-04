@@ -24,6 +24,14 @@ SCOPES = frozenset({"PRIVATE", "SHARED", "PUBLIC"})
 VIEW_MODES = frozenset({"table", "list", "cards", "compact"})
 ORDERS = frozenset({"asc", "desc"})
 
+#: Holding this is what separates "I keep my own searches" from "I decide what
+#: other people see". OPERATOR and VIEWER have their own searches and no way to
+#: publish one.
+SHARE_PERMISSION = "searches.share"
+
+#: An audience larger than this is what `PUBLIC` is for.
+MAX_MEMBERS = 100
+
 
 def list_searches(session, args, *, principal) -> dict[str, Any]:
     statement = _visible_statement(principal).order_by(
@@ -116,6 +124,59 @@ def duplicate(session, search_id: Any, *, principal) -> dict[str, Any]:
     return _serialize(session, row, principal)
 
 
+def transfer(session, search_id: Any, payload: dict[str, Any], *, principal) -> dict[str, Any]:
+    """Hand a saved search to somebody else (§5).
+
+    An explicit action rather than a field on `update`, because it is the one
+    change the current owner cannot undo: afterwards they are a member like any
+    other. They are kept as a member for exactly that reason — losing sight of
+    a search you built, the moment you hand it over, is not a handover anybody
+    would risk making.
+    """
+    from src.models.identity import User
+
+    row = _owned_visible(session, search_id, principal)
+    principal.require(SHARE_PERMISSION)
+    if not isinstance(payload, dict):
+        raise ValidationError("The transfer must be a JSON object.")
+
+    new_owner_id = parse_uuid(payload.get("owner_id"), field="owner_id")
+    if new_owner_id == row.owner_id:
+        raise ValidationError("This saved search already belongs to that person.")
+    new_owner = session.scalars(
+        select(User).where(
+            User.id == new_owner_id, User.deleted_at.is_(None), User.status == "ACTIVE"
+        )
+    ).one_or_none()
+    if new_owner is None:
+        raise ValidationError(
+            "That person cannot receive a saved search.",
+            details={"owner_id": str(new_owner_id)},
+        )
+
+    before = _state(row)
+    previous_owner_id = row.owner_id
+    # Assigned through the relationship, not the raw column: the serializer
+    # reads `row.owner`, and setting only the id leaves it pointing at the
+    # person who just gave the search away.
+    row.owner = new_owner
+    # The new owner needs no share of their own, and the old one keeps a
+    # read-only place on the list they used to own.
+    members = [str(user_id) for user_id in _member_ids(session, row) if user_id != new_owner_id]
+    members.append(str(previous_owner_id))
+    session.flush()
+    _replace_members(session, row, members, principal=principal, owner_id=new_owner_id)
+
+    audit.record(
+        session, action="TRANSFER", resource_type="saved_search", resource_id=row.id,
+        resource_label=row.name, principal=principal, before=before, after=_state(row),
+        metadata={"from_owner_id": str(previous_owner_id), "to_owner_id": str(new_owner_id)},
+        message=f"transferred saved search {row.name} to {new_owner.full_name}",
+        activity=False,
+    )
+    return _serialize(session, row, principal)
+
+
 def _visible_statement(principal):
     shared_ids = select(ResourceShare.resource_id).where(
         ResourceShare.user_id == principal.user_id,
@@ -186,6 +247,10 @@ def _validated(
     scope = str(payload.get("scope", existing.scope if existing else "PRIVATE")).upper()
     if scope not in SCOPES:
         raise ValidationError("scope must be PRIVATE, SHARED or PUBLIC", details={"field": "scope"})
+    if scope != "PRIVATE" and (existing is None or existing.scope != scope):
+        # Checked on the change, not on every save: a role losing the
+        # permission must not make its owner's existing searches unsavable.
+        principal.require(SHARE_PERMISSION)
     if not partial or "scope" in payload:
         out["scope"] = scope
 
@@ -255,16 +320,37 @@ def _validated(
         members = payload.get("member_ids") or []
         if not isinstance(members, list):
             raise ValidationError("member_ids must be an array")
-        out["member_ids"] = list(dict.fromkeys(str(value) for value in members))[:100]
+        if members:
+            principal.require(SHARE_PERMISSION)
+        out["member_ids"] = list(dict.fromkeys(str(value) for value in members))[:MAX_MEMBERS]
     return out
 
 
-def _replace_members(session, row: SavedSearch, member_ids: list[str], *, principal) -> None:
+def _member_ids(session, row: SavedSearch) -> list[Any]:
+    return list(session.scalars(
+        select(ResourceShare.user_id).where(
+            ResourceShare.resource_type == "saved_search",
+            ResourceShare.resource_id == str(row.id),
+        )
+    ).all())
+
+
+def _replace_members(
+    session, row: SavedSearch, member_ids: list[str], *, principal, owner_id: Any = None,
+) -> None:
+    """Set the explicit audience, replacing whatever was there.
+
+    Replacement rather than merge, because the UI edits the whole list: a
+    member removed on screen has to disappear here, and an "add" endpoint that
+    cannot remove leaves an audience nobody can shrink.
+    """
     from src.models.identity import User
 
+    owner = owner_id if owner_id is not None else row.owner_id
     identifiers = [parse_uuid(value, field="member_id") for value in member_ids]
-    if principal.user_id in identifiers:
-        identifiers.remove(principal.user_id)
+    # The owner already sees it; a share row for them would be a second answer
+    # to the same question, and `can_edit` would then depend on which one won.
+    identifiers = [value for value in dict.fromkeys(identifiers) if value != owner]
     existing_ids = set(session.scalars(
         select(User.id).where(User.id.in_(identifiers), User.deleted_at.is_(None), User.status == "ACTIVE")
     ).all()) if identifiers else set()

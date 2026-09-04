@@ -34,3 +34,10 @@ def item(app=None, operation: str = "", request=None, search_id=None, **_: Any):
 def duplicate(app=None, operation: str = "", request=None, search_id=None, **_: Any):
     with session_scope() as session:
         return service.duplicate(session, search_id, principal=me()), 201
+
+
+@requires("records.view")
+def transfer(app=None, operation: str = "", request=None, search_id=None, **_: Any):
+    """Hand ownership to somebody else — owner-only, and audited (§5, §21)."""
+    with session_scope() as session:
+        return service.transfer(session, search_id, json_body(), principal=me()), 200
