@@ -1,4 +1,4 @@
-import { api } from "./client";
+import { api, download } from "./client";
 
 export type FieldKind = "text" | "enum" | "bool" | "number" | "datetime" | "uuid" | "json" | "array";
 export type ExplorerView = "table" | "list" | "cards" | "compact";
@@ -130,6 +130,18 @@ export const explorerApi = {
     api.get<ExplorerCatalogue>("/api/explorer/catalog", { signal }),
   query: (body: ExplorerRequest, signal?: AbortSignal) =>
     api.post<ExplorerResult>("/api/explorer/query", body, { signal }),
+  /**
+   * Download the current exploration (§30).
+   *
+   * A POST, because the question can be a nested condition tree and that does
+   * not belong in a query string.
+   */
+  export: (body: ExplorerRequest & { format: string }) =>
+    download("/api/explorer/export", {
+      method: "POST",
+      body,
+      fallbackName: `${body.resource_type}.${body.format}`,
+    }),
   saved: (resourceType?: string, signal?: AbortSignal) =>
     api.get<{ items: SavedSearch[]; total: number }>("/api/saved-searches", {
       params: { resource_type: resourceType },

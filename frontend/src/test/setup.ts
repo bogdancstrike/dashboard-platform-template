@@ -36,6 +36,20 @@ window.getComputedStyle = ((element: Element, pseudoElement?: string | null) =>
     ? ({ getPropertyValue: () => "" } as unknown as CSSStyleDeclaration)
     : realGetComputedStyle(element));
 
+// jsdom implements neither half of the object-URL API, and the download helper
+// (§30) needs both to hand a blob to the browser. Recording the created URLs
+// lets a test assert a save was actually triggered rather than merely attempted.
+if (!URL.createObjectURL) {
+  const created: string[] = [];
+  URL.createObjectURL = (blob: Blob) => {
+    const url = `blob:nucleus/${created.length}`;
+    created.push(url);
+    void blob;
+    return url;
+  };
+  URL.revokeObjectURL = () => {};
+}
+
 // `error` rather than `warn`: a request the handlers do not cover is a test
 // quietly exercising something nobody described, which is worth failing on.
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));

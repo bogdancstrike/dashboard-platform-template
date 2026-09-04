@@ -1,4 +1,4 @@
-import { api } from "./client";
+import { api, download } from "./client";
 
 /** How a field moved. "added" and "cleared" are not the same event. */
 export type ChangeKind = "added" | "changed" | "cleared";
@@ -116,6 +116,10 @@ export const auditApi = {
 
   entry: (id: string, signal?: AbortSignal) =>
     api.get<AuditEntry>(`/admin/audit/${id}`, { signal }),
+
+  /** Download the ledger under the current filters (§30). */
+  export: (params: AuditQuery & { format: string }) =>
+    download("/admin/audit/export", { params, fallbackName: "audit-log.csv" }),
 
   /**
    * Every recorded action against one record.

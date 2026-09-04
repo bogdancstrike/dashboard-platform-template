@@ -23,6 +23,10 @@ from src.core.query import Field, FieldSet, apply_filters, apply_sort, count_of,
 from src.core.rules import compile_tree, describe_tree, rule_count
 
 
+#: Reading a dataset and taking a copy of it away are different privileges.
+EXPORT_PERMISSION = "records.export"
+
+
 @dataclass(frozen=True, slots=True)
 class Resource:
     """Everything the generic explorer needs to expose one ORM entity."""
@@ -272,6 +276,41 @@ def run(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
         # matches that are not there.
         query_text=str(payload.get("query_text") or "").strip(),
         searchable=[field.name for field in resource.fields.searchable],
+    )
+
+
+def export(payload: dict[str, Any], *, principal):
+    """The current exploration as a file (§30).
+
+    The same statement `run` builds, minus its page — so the download is
+    provably the question on screen rather than a second, similar query that
+    will drift from it. Not handed a session: the rows stream after this
+    returns and open one of their own.
+    """
+    from src.core import export as writer
+
+    if not isinstance(payload, dict):
+        raise ValidationError("The query must be a JSON object.")
+    resource = resource_for(payload.get("resource_type"), principal=principal)
+    principal.require(EXPORT_PERMISSION)
+
+    fmt = writer.parse_format(payload.get("format"))
+    page = parse_page(payload, default_sort=resource.default_sort)
+
+    statement = apply_filters(_base_statement(resource), _query_args(payload), resource.fields)
+    predicate = compile_tree(payload.get("condition_tree"), resource.fields)
+    if predicate is not None:
+        statement = statement.where(predicate)
+    statement = apply_sort(statement, page, resource.fields, default=resource.default_sort)
+
+    names = _columns(payload.get("columns"), resource)
+    columns = [writer.Column(name, resource.fields.by_name[name].title) for name in names]
+    rows = writer.stream_rows(statement, limit=writer.limit_for(fmt))
+    return writer.response(
+        (_serialize(row, resource, names) for row in rows),
+        columns,
+        fmt=fmt,
+        stem=resource.key,
     )
 
 

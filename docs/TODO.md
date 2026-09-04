@@ -33,9 +33,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Backend core (`src/core/`) | **done** — db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
-| Endpoints | 29 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×2, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×1, audit ×4 |
+| Endpoints | 31 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×3, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×1, audit ×5 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 166 backend + 106 frontend + 65 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
+| Tests | 183 backend + 111 frontend + 66 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
 | Frontend | shell, Data Explorer, discovery workspaces and the notification centre; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -321,7 +321,7 @@ section is a cross-cutting rule rather than a page.
 | 27 | Feature flags | `/admin/flags` | `/admin/flags` | [ ] |
 | 28 | Reports | `/reports` | `/reports` | [ ] |
 | 29 | Import wizard | `/import` | `/imports` | [ ] |
-| 30 | Export | every list | `/exports` | [ ] |
+| 30 | Export | every list | `/{list}/export` | [~] |
 | 31 | Command palette (`cmdk`) | global | `/search/quick` | [ ] |
 | 32 | Global search | header + `/find/global` | `/api/search/global` | [x] |
 | 33 | Drawers and modals | — | — | [ ] |
@@ -799,8 +799,28 @@ everything else.
 - [x] `core/audit.py` — audit trail writer (§21)
 - [x] `core/correlation.py` — correlation id + CORS
 - [x] API runtime — `maps/endpoint.json`, validated at startup
-- [ ] `core/export.py` — CSV / XLSX / JSON writers honouring filters, sort,
-      columns and selection (§30)
+- [x] `core/export.py` — CSV / XLSX / JSON writers honouring filters, sort and
+      columns (§30). Wired into Data Explorer and the audit ledger; every list
+      built after this gets it by handing over the statement it already has
+  - **It exports the question, not the page.** The same statement the list
+    endpoint built, minus its LIMIT — so the file and the screen cannot
+    disagree about what was asked
+  - **It streams.** Rows come off the cursor in batches and go out as they
+    arrive, so a worker holds a batch rather than a file. The generator opens
+    its own session, because the response is returned before the first row is
+    read and a handler's `session_scope` would already have closed — a
+    truncated download with a 200 on it
+  - **It does not hand Excel a formula.** A cell beginning `=`, `+`, `-` or `@`
+    is *executed* on open, and those values came from a text box somebody typed
+    into. Quoted on the way out; numbers left numeric so a number column stays
+    one (§76)
+  - A UTF-8 BOM, because Excel on Windows otherwise reads the file as the local
+    codepage and mangles every accented name in it
+  - Exporting is its own permission (`records.export`), separate from reading:
+    taking a copy of the ledger off the platform is not the same act as looking
+    at it
+  - Still open: **selection** (export these twelve rows) waits on bulk
+    selection, and the row cap becoming a background job waits on §23
 - [ ] `core/importer.py` — column detection, mapping, row validation, staged
       preview, transactional execute (§29)
 
@@ -866,7 +886,8 @@ Each endpoint ships with its five-case integration test and the page consuming i
       timeline ship. Filterable on actor, action, resource type/id, result,
       correlation id, impersonation and date range, all in SQL (§71) off the
       same `core/query.py` declaration that publishes the filter vocabulary.
-      **Export is the one part still open** — it waits on `core/export.py`
+      **Export ships** — CSV, JSON and XLSX of the filtered ledger, carrying
+      the columns an investigation needs that a table has no room for
   - Read-only by construction: no create, update or delete endpoint exists, and
     an e2e test asserts that none answers. An audit trail with a `DELETE` is a
     trail whose missing entry proves nothing
@@ -890,7 +911,8 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [ ] Email module: threads, messages, drafts, templates, send (§14–§16)
 - [ ] Tasks, calendar, files, comments, tags, activity (§18–§20, §35–§37, §48)
 - [ ] Favorites, recents, dashboards, reports (§38, §39, §45, §67, §28)
-- [ ] Import/export pipelines (§29, §30)
+- [~] Export ships for every list that exists (§30). Import (§29) and the
+      "an export above the row limit becomes a background job" half are open
   - **Acceptance**: an export above the row limit becomes a background job with
     a downloadable artefact; an import previews per-row errors before executing
     and never half-applies a batch
@@ -975,19 +997,20 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] `docker compose up` clean-boot green — every service healthy from empty
       volumes; seed wrote 15 554 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
-- [~] Backend tests — 166 passing, including Data Explorer query, validation,
+- [~] Backend tests — 183 passing, including Data Explorer query, validation,
       JWT/RBAC, saved-search visibility/lifecycle, the notification centre's
-      scoping/filtering/grouping contract, and the audit ledger's permissions,
-      diff semantics, redaction and read-only surface
-- [~] Frontend unit + component tests — 106 passing, including Data Explorer
+      scoping/filtering/grouping contract, the audit ledger's permissions,
+      diff semantics, redaction and read-only surface, and the export writers'
+      BOM, formula-injection and question-not-page guarantees
+- [~] Frontend unit + component tests — 111 passing, including Data Explorer
       backend rendering, debounced search, saved-search module, the
-      notification centre's six states, the header bell, the audit explorer and
-      the per-record timeline
-- [~] Playwright e2e suite — 65 tests green against `docker compose up` on the
+      notification centre's six states, the header bell, the audit explorer,
+      the per-record timeline and the authenticated download path
+- [~] Playwright e2e suite — 66 tests green against `docker compose up` on the
       full seed, covering the shell, appearance, Data Explorer, saved searches,
-      global search, relationships, the catalogue, the notification centre and
-      the audit explorer. A cold-boot run from empty volumes is still the
-      outstanding proof
+      global search, relationships, the catalogue, the notification centre, the
+      audit explorer and a real file download. A cold-boot run from empty
+      volumes is still the outstanding proof
 - [x] Frontend typecheck + production build
 - [ ] Accessibility — axe clean on every route (§55)
 - [ ] Performance — list page interactive under 1.5s against the seeded database

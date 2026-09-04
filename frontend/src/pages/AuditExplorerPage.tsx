@@ -26,6 +26,7 @@ import { auditApi, type AuditQuery, type AuditRow } from "@/api/audit";
 import { AuditDiff } from "@/components/audit/AuditDiff";
 import { actionColor, humaniseAction, resultColor } from "@/components/audit/vocabulary";
 import { EmptyState, NoResults } from "@/components/EmptyState";
+import { ExportButton } from "@/components/ExportButton";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -286,11 +287,19 @@ export default function AuditExplorerPage() {
           ) : undefined
         }
         actions={
-          filterCount > 0 ? (
-            <Button icon={<ClearOutlined />} onClick={clearFilters}>
-              Clear {filterCount} filter{filterCount === 1 ? "" : "s"}
-            </Button>
-          ) : undefined
+          <>
+            {filterCount > 0 && (
+              <Button icon={<ClearOutlined />} onClick={clearFilters}>
+                Clear {filterCount} filter{filterCount === 1 ? "" : "s"}
+              </Button>
+            )}
+            {/* The file carries the filters on screen, not the page: an audit
+                export of twenty-five of four thousand rows would be evidence
+                of nothing. */}
+            <ExportButton
+              onExport={(format) => auditApi.export({ ...query, page: undefined, format })}
+            />
+          </>
         }
       />
 

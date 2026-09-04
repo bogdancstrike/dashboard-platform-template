@@ -385,6 +385,17 @@ export const handlers = [
   ),
 
   http.get("/platform/admin/audit/catalog", ({ request }) => echo(request, auditCatalogue)),
+  // Before the `:id` rule: MSW matches path segments loosely, so `:id`
+  // would swallow "export". Flask's typed <uuid:> converter would not.
+  http.get("/platform/admin/audit/export", ({ request }) =>
+    HttpResponse.text("\ufeffWhen,Actor\n2026-09-03T11:00:00Z,Mara Manager\n", {
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": 'attachment; filename="audit-log-2026-09-03-1200.csv"',
+        [CORRELATION_HEADER]: request.headers.get(CORRELATION_HEADER) ?? "",
+      },
+    }),
+  ),
   http.get("/platform/admin/audit/:id", ({ request }) => echo(request, auditEntry)),
   http.get("/platform/admin/audit", ({ request }) => {
     // Honours the filters the page sends, so a test asserting "one row after
@@ -394,6 +405,15 @@ export const handlers = [
     const items = auditRows.filter((row) => !actions.length || actions.includes(row.action));
     return echo(request, auditPage(items));
   }),
+  http.post("/platform/api/explorer/export", ({ request }) =>
+    HttpResponse.text("\ufeffReference,Title\nTSK-001,Review\n", {
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": 'attachment; filename="task-2026-09-03-1200.csv"',
+        [CORRELATION_HEADER]: request.headers.get(CORRELATION_HEADER) ?? "",
+      },
+    }),
+  ),
   http.get("/platform/api/audit/timeline", ({ request }) => {
     const query = new URL(request.url).searchParams;
     return echo(request, {

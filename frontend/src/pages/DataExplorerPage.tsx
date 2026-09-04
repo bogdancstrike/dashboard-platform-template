@@ -39,6 +39,7 @@ import { ExplorerResults, type ExplorerRecord } from "@/components/explorer/Expl
 import type { QueryNode } from "@/components/explorer/queryTree";
 import { SavedSearchDrawer } from "@/components/explorer/SavedSearchDrawer";
 import { SavedSearchForm } from "@/components/explorer/SavedSearchForm";
+import { ExportButton } from "@/components/ExportButton";
 import { PageHeader } from "@/components/PageHeader";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { asText } from "@/lib/text";
@@ -229,6 +230,14 @@ export default function DataExplorerPage() {
             <Button icon={<FolderOpenOutlined />} onClick={() => set({ panel: "saved" })}>
               Saved searches
             </Button>
+            {/* Exports the question, not the page — the same request the
+                results came from, without its LIMIT. */}
+            <ExportButton
+              disabled={!request}
+              onExport={(format) =>
+                explorerApi.export({ ...request!, page: 1, format })
+              }
+            />
             <Button
               type="primary"
               icon={<SaveOutlined />}

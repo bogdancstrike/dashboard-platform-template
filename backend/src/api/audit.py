@@ -38,6 +38,20 @@ def item(app=None, operation: str = "", request=None, entry_id: str = "", **kwar
         return service.entry(session, identifier, principal=me()), 200
 
 
+@requires("audit.view", "records.export")
+def export(app=None, operation: str = "", request=None, **_: Any):
+    """The ledger as CSV, JSON or XLSX, under the filters on screen (§30).
+
+    Two permissions, because reading the ledger and taking a copy of it off the
+    platform are different privileges — and the second is the one that leaves
+    the building.
+    """
+    args = request.args if request is not None else {}
+    # No `session_scope` here: the response streams after this returns, so the
+    # rows carry a session of their own. See `core/export.stream_rows`.
+    return service.export(args, principal=me())
+
+
 @requires("records.view")
 def resource_timeline(app=None, operation: str = "", request=None, **_: Any):
     """Everything recorded against one record — the detail-page panel (§48).

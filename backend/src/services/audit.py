@@ -40,6 +40,9 @@ from src.core.query import Field, FieldSet, apply_filters, apply_sort, count_of,
 #: read is not the same privilege as reading everything anybody has ever done.
 LEDGER_PERMISSION = "audit.view"
 TIMELINE_PERMISSION = "records.view"
+#: Reading the ledger and taking a copy of it off the platform are two
+#: different privileges, and the second is the one that leaves the building.
+EXPORT_PERMISSION = "records.export"
 
 #: A timeline is a detail-page panel, not a data export.
 MAX_TIMELINE = 200
@@ -74,6 +77,17 @@ def _fields() -> FieldSet:
 #: Columns the explorer shows before anybody configures it.
 DEFAULT_COLUMNS = (
     "occurred_at", "actor_label", "action", "resource_type", "resource_label", "result",
+)
+
+#: What an export carries by default — the columns on screen, plus the three an
+#: investigation needs and a table has no room for.
+EXPORT_COLUMNS = (
+    *DEFAULT_COLUMNS,
+    "actor_role",
+    "impersonator_label",
+    "resource_id",
+    "correlation_id",
+    "message",
 )
 
 
@@ -117,6 +131,52 @@ def listing(session, args, *, principal) -> dict[str, Any]:
         facets=facets,
         columns=list(DEFAULT_COLUMNS),
     )
+
+
+def export(args, *, principal):
+    """The ledger as a file, under exactly the filters on screen (§30).
+
+    Deliberately *not* handed a session: the rows are streamed after this
+    returns, so `core/export.stream_rows` opens one of its own. The statement
+    is the same one `listing` builds, minus its page — which is what makes the
+    file and the screen provably the same question.
+    """
+    principal.require(LEDGER_PERMISSION)
+    principal.require(EXPORT_PERMISSION)
+    from src.core import export as writer
+
+    fields = _fields()
+    fmt = writer.parse_format(args.get("format"))
+    page = parse_page(args, default_sort="occurred_at")
+
+    statement = apply_filters(_statement(), args, fields)
+    statement = apply_sort(statement, page, fields, default="occurred_at")
+
+    columns = [
+        writer.Column(name, fields.by_name[name].title)
+        for name in _export_columns(args, fields)
+    ]
+    rows = writer.stream_rows(statement, limit=writer.limit_for(fmt))
+    return writer.response(
+        (summarise(row) for row in rows), columns, fmt=fmt, stem="audit-log"
+    )
+
+
+def _export_columns(args, fields: FieldSet) -> list[str]:
+    """The columns to write, defaulting to a row somebody can actually read.
+
+    An export of every declared field is a spreadsheet with a horizontal
+    scrollbar and no story; an export of the six on screen is the thing the
+    reader was looking at.
+    """
+    raw = str(args.get("columns") or "").strip()
+    if not raw:
+        return list(EXPORT_COLUMNS)
+    requested = [name.strip() for name in raw.split(",") if name.strip()]
+    unknown = [name for name in requested if name not in fields.by_name]
+    if unknown:
+        raise ValidationError("Unknown export column.", details={"columns": unknown})
+    return requested or list(EXPORT_COLUMNS)
 
 
 def entry(session, entry_id: Any, *, principal) -> dict[str, Any]:

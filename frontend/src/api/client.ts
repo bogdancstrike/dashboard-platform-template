@@ -175,6 +175,68 @@ function asErrorBody(parsed: unknown, status: number): ApiErrorBody {
   return { error: "error", message: `Request failed with ${status}` };
 }
 
+/**
+ * Fetch a file and hand it to the browser to save (§30).
+ *
+ * A plain `<a href>` cannot do this: the download has to carry the bearer
+ * token, and a browser navigation carries cookies rather than headers. So the
+ * bytes are fetched like any other request and saved through an object URL.
+ *
+ * The filename comes from the server's `Content-Disposition` when it sends
+ * one, because the server is what knows the format and the moment — a client
+ * that names the file itself will eventually disagree with the file's contents.
+ */
+export async function download(
+  path: string,
+  options: RequestOptions & { fallbackName?: string } = {},
+): Promise<void> {
+  const { method = "GET", params, body, signal, headers = {}, fallbackName = "export" } = options;
+  const correlationId = newCorrelationId();
+  const token = await tokenProvider();
+
+  const response = await fetch(`${API_PREFIX}${path}${buildQuery(params)}`, {
+    method,
+    signal,
+    headers: {
+      [CORRELATION_HEADER]: correlationId,
+      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...headers,
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+
+  const echoed = response.headers.get(CORRELATION_HEADER) ?? correlationId;
+
+  if (!response.ok) {
+    if (response.status === 401) onUnauthorized?.();
+    // A failed download still answers with the JSON error envelope, so the
+    // caller gets the same `ApiError` it would from any other call rather than
+    // a saved file containing an error message.
+    const text = await response.text();
+    throw new ApiError(response.status, asErrorBody(safeParse(text), response.status), echoed);
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filenameFrom(response.headers.get("Content-Disposition")) ?? fallbackName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  // Revoked on the next tick: revoking synchronously races the click in some
+  // browsers and saves a zero-byte file.
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+/** The `filename="…"` a Content-Disposition header carries, if any. */
+export function filenameFrom(header: string | null): string | undefined {
+  if (!header) return undefined;
+  const quoted = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(header);
+  return quoted?.[1] ? decodeURIComponent(quoted[1]) : undefined;
+}
+
 export const api = {
   get: <T>(path: string, options?: Omit<RequestOptions, "method" | "body">) =>
     request<T>(path, { ...options, method: "GET" }),

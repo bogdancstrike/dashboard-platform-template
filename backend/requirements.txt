@@ -40,6 +40,11 @@ psycopg2-binary>=2.9.10
 python-jose[cryptography]>=3.3.0
 requests>=2.32.0
 
+# ── Exports (§30) ────────────────────────────────────────────────────────
+# XLSX only. CSV and JSON are written by the standard library, streamed, and
+# need nothing; a spreadsheet is a zip container and does not.
+openpyxl>=3.1.5,<4
+
 # ── Config / utils ───────────────────────────────────────────────────────
 python-dotenv>=1.0.1
 

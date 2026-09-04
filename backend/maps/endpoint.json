@@ -166,6 +166,20 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "explorer_export",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/explorer/export",
+      "description": "Download the current exploration as CSV, JSON or XLSX.",
+      "exec_method": {
+        "module_name": "src.api.explorer",
+        "method_name": "export"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "saved_searches_collection",
       "model_name": "Empty",
       "request_method": [
@@ -390,6 +404,20 @@
       "exec_method": {
         "module_name": "src.api.audit",
         "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "audit_export",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/audit/export",
+      "description": "Download the audit ledger as CSV, JSON or XLSX under the current filters.",
+      "exec_method": {
+        "module_name": "src.api.audit",
+        "method_name": "export"
       }
     },
     {

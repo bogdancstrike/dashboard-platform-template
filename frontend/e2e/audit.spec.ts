@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+
 import { expect, test, type Page } from "@playwright/test";
 
 import { signIn, storageStateFor } from "./auth";
@@ -95,6 +97,34 @@ test.describe("audit explorer", () => {
     await page.getByLabel("Search the audit log").fill(correlation ?? "");
     await expect.poll(async () => totalShown(page)).toBeGreaterThan(0);
     await expect.poll(async () => totalShown(page)).toBeLessThan(10);
+  });
+
+  test("exports the filtered ledger as a real file (§30)", async ({ page }) => {
+    await page.getByRole("combobox", { name: "Action" }).click();
+    await page.getByTitle("Update", { exact: true }).click();
+    await page.keyboard.press("Escape");
+    const filtered = await totalShown(page);
+
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      (async () => {
+        await page.getByRole("button", { name: /Export/ }).click();
+        await page.getByText("CSV — for a spreadsheet").click();
+      })(),
+    ]);
+
+    expect(download.suggestedFilename()).toMatch(/^audit-log-\d{4}-\d{2}-\d{2}-\d{4}\.csv$/);
+
+    const path = await download.path();
+    const text = await readFile(path, "utf8");
+    // The BOM is what stops Excel mangling every accented name in the file.
+    expect(text.charCodeAt(0)).toBe(0xfeff);
+
+    const lines = text.trimEnd().split("\n");
+    expect(lines[0]).toContain("Correlation ID");
+    // The file is the *question*, not the twenty-five rows on screen.
+    expect(lines.length - 1).toBe(filtered);
+    expect(filtered).toBeGreaterThan(25);
   });
 
   test("the empty state explains itself rather than showing a blank table", async ({ page }) => {
