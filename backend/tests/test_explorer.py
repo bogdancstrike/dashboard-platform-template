@@ -673,3 +673,31 @@ def test_relationships_refuse_an_unknown_dataset_or_a_missing_record(client, mon
 
 def test_relationships_require_a_token(client):
     assert client.get(f"{PREFIX}/api/relationships/task/{uuid4()}").status_code == 401
+
+
+@pytest.mark.database
+def test_paging_over_a_column_full_of_ties_never_repeats_or_skips_a_row(client, monkeypatch):
+    """The seed writes every task in one transaction, so `updated_at` is the
+    same for all of them — an ordering with no tiebreaker is then free to
+    return a different sequence per query, and OFFSET paging over it shows one
+    row twice and another never."""
+    headers = _authenticate(monkeypatch)
+    body = {
+        "resource_type": "task", "columns": ["reference"],
+        "sort": "updated_at", "order": "desc", "page_size": 25,
+    }
+
+    pages = [
+        client.post(
+            f"{PREFIX}/api/explorer/query", headers=headers, json={**body, "page": page}
+        ).get_json()
+        for page in (1, 2)
+    ]
+    seen = [item["id"] for page in pages for item in page["items"]]
+
+    assert len(seen) == len(set(seen)), "a row appeared on two pages"
+    # And asking again gives the same answer, not a reshuffle.
+    again = client.post(
+        f"{PREFIX}/api/explorer/query", headers=headers, json={**body, "page": 1}
+    ).get_json()
+    assert [item["id"] for item in again["items"]] == [item["id"] for item in pages[0]["items"]]

@@ -489,6 +489,16 @@ def apply_sort(stmt: Select, page, spec: FieldSet, *, default: str) -> Select:
         clauses.append(
             column.desc().nullslast() if direction == "desc" else column.asc().nullsfirst()
         )
+
+    # A total order, always. Two rows sharing an `updated_at` have no defined
+    # position relative to each other, and PostgreSQL is free to return them in
+    # a different order for each query — so page 2 of an OFFSET scan can repeat
+    # a row from page 1 and never show another one at all. A seeded dataset,
+    # where thousands of rows are written in one transaction, hits this
+    # immediately; production hits it eventually and blames the reader.
+    identity = spec.by_name.get("id")
+    if identity is not None and "id" not in fields:
+        clauses.append(identity.column.asc())
     return stmt.order_by(*clauses)
 
 
