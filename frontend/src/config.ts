@@ -21,4 +21,6 @@ export const STORAGE_KEYS = {
   appearance: "nucleus.appearance",
   density: "nucleus.density",
   sidebarCollapsed: "nucleus.sidebar.collapsed",
+  //: Suffixed with the dataset; see hooks/useRecentSearches.
+  recentSearches: "nucleus.search.recent",
 } as const;

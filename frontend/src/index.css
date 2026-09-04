@@ -319,11 +319,14 @@ body {
 .nu-explorer-results > .ant-card-body { padding: 0; }
 .nu-explorer-results .ant-alert { margin: 12px; }
 .nu-explorer-table .ant-table-cell { white-space: nowrap; }
-.nu-result { width: 100%; min-width: 0; }
-.nu-result--list { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px 20px; }
-.nu-result--compact { display: flex; align-items: center; gap: 8px; overflow: hidden; }
+/* The mode decides how the fields lay out; the row around them is always the
+   fields plus the preview action, so that action sits in one place. */
+.nu-result--list .nu-result-fields {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px 20px;
+}
+.nu-result--compact .nu-result-fields { display: flex; align-items: center; gap: 8px; overflow: hidden; }
 .nu-result--compact .nu-result-field { flex: 0 1 auto; min-width: 0; }
-.nu-result--cards { display: grid; gap: 10px; }
+.nu-result--cards .nu-result-fields { display: grid; gap: 10px; }
 .nu-result-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .nu-result-field > .ant-typography { overflow: hidden; text-overflow: ellipsis; }
 .nu-column-picker {
@@ -396,6 +399,32 @@ body {
   font: inherit; font-weight: 650; text-align: start; cursor: pointer;
 }
 .nu-link-button:hover { color: var(--nu-accent); }
+/* A marked match, in the app's accent rather than the browser's yellow. */
+.nu-mark {
+  padding: 0 1px; border-radius: 3px;
+  background: var(--nu-accent-soft); color: inherit; font-weight: 650;
+}
+
+/* Recent searches: a history, so each row can be forgotten individually. */
+.nu-simple-search { width: 100%; }
+.nu-recent-heading { display: flex; align-items: center; justify-content: space-between; }
+.nu-recent-clear { font-size: 12px; font-weight: 500; }
+.nu-recent-option { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* Every result mode keeps its preview action at the trailing edge, so the eye
+   finds it in the same place whichever mode the reader chose. */
+.nu-result {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; width: 100%; min-width: 0;
+}
+.nu-result-fields { flex: 1; min-width: 0; }
+.nu-load-more {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  padding: 14px 0 4px;
+}
+.nu-preview-title { font-weight: 650; }
+.nu-preview .ant-descriptions-item-label { width: 38%; }
+
 .nu-person { display: flex; flex-direction: column; line-height: 1.3; }
 .nu-person-role { font-size: 12px; }
 .nu-saved-description { margin-bottom: 8px; line-height: 1.45; }

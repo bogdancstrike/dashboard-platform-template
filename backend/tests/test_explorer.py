@@ -391,6 +391,20 @@ def test_the_people_directory_requires_a_token(client):
 
 
 @pytest.mark.database
+def test_the_result_echoes_what_was_searched_for_so_matches_can_be_marked(client, monkeypatch):
+    """§6 highlighting marks the executed term, not the one being typed."""
+    response = client.post(
+        f"{PREFIX}/api/explorer/query", headers=_authenticate(monkeypatch),
+        json={"resource_type": "task", "query_text": "  audit  ", "page_size": 5},
+    )
+
+    body = response.get_json()
+    assert body["query_text"] == "audit"
+    assert set(body["searchable"]) == {"reference", "title", "description"}
+    assert body["total"] > 0
+
+
+@pytest.mark.database
 def test_a_facet_filter_sent_as_a_list_narrows_the_same_way_as_a_string(client, monkeypatch):
     """The explorer posts JSON, where `?priority=CRITICAL` is `["CRITICAL"]`.
 

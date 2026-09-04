@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Alert,
@@ -7,7 +7,6 @@ import {
   Card,
   Checkbox,
   Empty,
-  Input,
   Popover,
   Segmented,
   Select,
@@ -23,7 +22,6 @@ import {
   ColumnHeightOutlined,
   FolderOpenOutlined,
   SaveOutlined,
-  SearchOutlined,
 } from "@ant-design/icons";
 import { useSearchParams } from "react-router-dom";
 
@@ -35,7 +33,9 @@ import {
   type SavedSearch,
 } from "@/api/explorer";
 import { AdvancedSearchDrawer } from "@/components/explorer/AdvancedSearchDrawer";
-import { ExplorerResults } from "@/components/explorer/ExplorerResults";
+import { RecordPreview } from "@/components/explorer/RecordPreview";
+import { SimpleSearch } from "@/components/explorer/SimpleSearch";
+import { ExplorerResults, type ExplorerRecord } from "@/components/explorer/ExplorerResults";
 import type { QueryNode } from "@/components/explorer/queryTree";
 import { SavedSearchDrawer } from "@/components/explorer/SavedSearchDrawer";
 import { SavedSearchForm } from "@/components/explorer/SavedSearchForm";
@@ -111,6 +111,36 @@ export default function DataExplorerPage() {
   // numbers on screen already answer a question nobody is asking any more, and
   // saying so is the difference between "thinking" and "apparently ignored me".
   const settling = results.isFetching || request !== debouncedRequest;
+
+  /** The record shown in the preview drawer, if any. */
+  const [preview, setPreview] = useState<ExplorerRecord | null>(null);
+
+  /**
+   * List and card modes accumulate pages instead of replacing them (§52).
+   *
+   * The rows are held here rather than in the results component so that
+   * changing the question — a new term, another filter — throws them away: a
+   * "load more" that keeps rows from a question nobody is asking any more is
+   * a list that quietly mixes two answers.
+   */
+  const scanning = view === "list" || view === "cards";
+  const [scanned, setScanned] = useState<ExplorerRecord[]>([]);
+  const questionKey = JSON.stringify({ ...request, page: undefined });
+
+  useEffect(() => {
+    setScanned([]);
+  }, [questionKey, scanning]);
+
+  useEffect(() => {
+    if (!scanning || !results.data) return;
+    setScanned((current) => {
+      if (results.data.page === 1) return results.data.items;
+      const seen = new Set(current.map((row) => row.id));
+      return [...current, ...results.data.items.filter((row) => !seen.has(row.id))];
+    });
+  }, [scanning, results.data]);
+
+  const loadMore = () => set({ page: (results.data?.page ?? 1) + 1 });
 
   const savedOpen = params.get("panel") === "saved";
 
@@ -233,12 +263,11 @@ export default function DataExplorerPage() {
               return <div><div>{item?.label}</div><Text type="secondary">{item?.description}</Text></div>;
             }}
           />
-          <Input
-            allowClear
-            prefix={<SearchOutlined />}
-            placeholder={`Search ${resource?.label.toLowerCase() ?? "records"}…`}
+          <SimpleSearch
+            dataset={resource?.key ?? "records"}
+            label={resource?.label.toLowerCase() ?? "records"}
             value={queryText}
-            onChange={(event) => set({ q: event.target.value, page: null })}
+            onChange={(next: string) => set({ q: next, page: null })}
           />
           <Badge count={activeFilterCount} size="small">
             <Button icon={<BuildOutlined />} onClick={() => setAdvancedOpen(true)}>Advanced</Button>
@@ -301,8 +330,10 @@ export default function DataExplorerPage() {
             result={results.data}
             view={view}
             loading={results.isLoading}
+            {...(scanning ? { rows: scanned, onLoadMore: loadMore, loadingMore: results.isFetching } : {})}
             onPage={(nextPage, nextSize) => set({ page: nextPage, page_size: nextSize })}
             onSort={(field, direction) => set({ sort: field, order: direction, page: null })}
+            onPreview={setPreview}
           />
         )}
       </Card>
@@ -321,6 +352,13 @@ export default function DataExplorerPage() {
           }}
         />
       )}
+
+      <RecordPreview
+        open={Boolean(preview)}
+        record={preview}
+        result={results.data}
+        onClose={() => setPreview(null)}
+      />
 
       <SavedSearchDrawer
         open={savedOpen}

@@ -73,6 +73,10 @@ export interface ExplorerResult {
   facets: Record<string, Array<{ value: string; count: number }>>;
   condition_text: string;
   rule_count: number;
+  /** The term that was executed, for highlighting what actually matched. */
+  query_text: string;
+  /** The fields the free-text search covered, and so the ones worth marking. */
+  searchable: string[];
 }
 
 export interface SavedSearch {

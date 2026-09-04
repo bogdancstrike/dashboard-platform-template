@@ -35,7 +35,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
 | Endpoints | 14 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 122 backend + 69 frontend + 29 Playwright e2e, green against `docker compose up` |
+| Tests | 123 backend + 76 frontend + 33 Playwright e2e, green against `docker compose up` |
 | Frontend | scaffold **done** — theme, API client, OIDC/RBAC, 34 tests, build clean |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -290,7 +290,7 @@ section is a cross-cutting rule rather than a page.
 | 3 | Advanced data table | `/showcase/table` + every list | generic list | [ ] |
 | 4 | Advanced search (simple + RAQB) | `/explore` | `/api/explorer/query` | [x] |
 | 5 | Saved searches | `/explore` (panel) | `/api/saved-searches` | [x] |
-| 6 | Search results, view modes | `/explore` | `/search` | [ ] |
+| 6 | Search results, view modes | `/explore` | `/api/explorer/query` | [~] |
 | 7 | Entity list pages | `/{entity}` ×11 | generic list | [ ] |
 | 8 | Entity detail page | `/{entity}/:id` | generic detail | [ ] |
 | 9 | Create / edit forms | `/{entity}/:id/edit` | generic CRUD | [ ] |
@@ -422,11 +422,15 @@ Nucleus extends that to a full condition tree with a real sharing model.
     which compiles and describes one tree and compares what each mentions
   - An e2e test reads the inspector's sentence back after building the rule in
     the editor, so the assertion covers the round trip, not just the function
-- [~] Simple search alongside it (§4): one box across every `searchable` field,
-      with recent searches, suggestions, autocomplete, highlighted matches and
-      history
-  - Shipped: cancellable, debounced server-side search across the declared
-    searchable fields. Suggestions, highlighting and history remain
+- [x] Simple search alongside it (§4): one box across every `searchable` field,
+      with recent searches, autocomplete, highlighted matches and history
+  - Recent searches are the only suggestion offered, and per dataset: a
+    suggestion drawn from the data guesses what the reader meant from a prefix,
+    and guessing wrong in a search box is worse than not guessing. They live in
+    the browser, not in a table of everything everyone ever typed
+  - Matches are marked with `<mark>` in the fields the server actually searched
+    — the response echoes both the executed term and the searchable field list,
+    so a highlight is evidence of a match rather than a coincidence
 - [x] Simple and advanced conditions compose rather than replacing each other;
       opening either editor preserves the other part of the question
 
@@ -496,10 +500,16 @@ and then shows the wrong columns is a saved search nobody trusts.
 ### Search results (§6)
 
 - [x] Four view modes — list · table · card · compact — switchable and remembered
-- [ ] Match highlighting, relevance, metadata, tags, timestamps, owner, status
-- [ ] Result grouping, sorting, preview drawer (§64) and quick actions
-- [ ] Both pagination strategies (§52): numbered for the table, infinite scroll
-      or "load more" for the card and list modes
+- [x] Match highlighting, metadata, tags, timestamps, status. Relevance ranking
+      belongs to `/find/global`, where results from several entities have to be
+      ordered against each other
+- [~] Result grouping, sorting, preview drawer (§64) and quick actions
+  - The preview drawer, its copy-id and copy-link actions, and sorting ship.
+    Grouping by an enum field is next
+- [x] Both pagination strategies (§52): numbered for the table, "load more" for
+      the card and list modes
+  - Accumulated rows are dropped the moment the question changes, so a list
+    never mixes the answers to two questions
 
 ---
 

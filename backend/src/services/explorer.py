@@ -259,6 +259,12 @@ def run(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
         facets=facets,
         condition_text=describe_tree(tree, resource.fields),
         rule_count=rule_count(tree),
+        # Echoed so the client highlights the term that was actually searched
+        # for, not the one currently in the box: the two differ for as long as
+        # the request is in flight, and highlighting the newer one marks
+        # matches that are not there.
+        query_text=str(payload.get("query_text") or "").strip(),
+        searchable=[field.name for field in resource.fields.searchable],
     )
 
 

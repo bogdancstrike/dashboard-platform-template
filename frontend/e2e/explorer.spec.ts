@@ -245,6 +245,72 @@ test.describe("Data Explorer", () => {
     }
   });
 
+  test("a match is marked where the search actually found it (§6)", async ({ page }) => {
+    await page.getByPlaceholder("Search tasks…").fill("audit");
+    await expect.poll(() => matchCount(page)).toBeGreaterThan(0);
+
+    // Marked in the columns the server searched, and nowhere else: a highlight
+    // is evidence of a match, not a coincidence of spelling.
+    const marks = page.locator("mark.nu-mark");
+    expect(await marks.count()).toBeGreaterThan(0);
+    for (const text of await marks.allTextContents()) {
+      expect(text.toLowerCase()).toBe("audit");
+    }
+  });
+
+  test("a search joins the history and can be picked again", async ({ page }) => {
+    const box = page.getByPlaceholder("Search tasks…");
+    await box.fill("harden");
+    await box.press("Enter");
+    await expect.poll(() => matchCount(page)).toBeGreaterThan(0);
+    const narrowed = await matchCount(page);
+
+    await box.fill("");
+    await expect.poll(() => matchCount(page)).toBeGreaterThan(narrowed);
+
+    await box.click();
+    await expect(page.getByText("Recent searches")).toBeVisible();
+    await chooseOption(page, /harden/);
+
+    await expect(box).toHaveValue("harden");
+    await expect.poll(() => matchCount(page)).toBe(narrowed);
+  });
+
+  test("a row opens beside the list rather than instead of it (§64)", async ({ page }) => {
+    // Read after the first result lands: before it, the only cell in the table
+    // is the empty state, and every later step then looks for that.
+    await matchCount(page);
+    const reference = await page.getByRole("cell").first().innerText();
+
+    // A cell, not the row: the row is wider than the viewport, so clicking its
+    // centre lands wherever the horizontal scroll happens to have put it.
+    await page.getByRole("cell", { name: reference, exact: true }).click();
+
+    const preview = page.getByRole("dialog");
+    await expect(preview).toBeVisible();
+    // Every declared field, not only the visible columns.
+    await expect(preview.getByText("Estimate (hours)")).toBeVisible();
+    // The heading and the Reference row both name it; one is enough.
+    await expect(preview.getByText(reference, { exact: true }).first()).toBeVisible();
+
+    // The list is still there behind it, at the same place.
+    await page.keyboard.press("Escape");
+    await expect(preview).toBeHidden();
+    await expect(page.getByRole("cell", { name: reference, exact: true })).toBeVisible();
+  });
+
+  test("the scanning modes load more rather than paginate (§52)", async ({ page }) => {
+    await page.getByTestId("view-mode").getByText("Cards", { exact: true }).click();
+    await expect.poll(() => matchCount(page)).toBeGreaterThan(25);
+
+    const cards = page.locator(".nu-result--cards");
+    await expect(cards).toHaveCount(25);
+    await page.getByRole("button", { name: "Load more" }).click();
+
+    // Appended, not replaced: the reader keeps what they had already read.
+    await expect(cards).toHaveCount(50);
+  });
+
   test("another dataset brings its own fields", async ({ page }) => {
     await page.getByTestId("dataset-select").click();
     await chooseOption(page, /^Devices/);
