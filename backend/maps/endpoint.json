@@ -609,6 +609,36 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "comments_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/comments",
+      "description": "The conversation on one record, and adding to it.",
+      "exec_method": {
+        "module_name": "src.api.comments",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "comments_item",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/comments/<uuid:comment_id>",
+      "description": "Change or withdraw one comment; only its author may.",
+      "exec_method": {
+        "module_name": "src.api.comments",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "admin_roles_collection",
       "model_name": "Empty",
       "request_method": [

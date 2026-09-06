@@ -21,6 +21,8 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from sqlalchemy import select
+
 from src.config import Config
 from src.core.clock import now
 from src.seed import business, content, identity, operations, personal
@@ -252,3 +254,36 @@ def verify(session) -> list[str]:
             problems.append(f"persona {email} is missing")
 
     return problems
+
+
+def sync_roles(session) -> dict[str, list[str]]:
+    """Give the built-in roles every permission their declaration names.
+
+    A permission that exists in code and in no role's row can be granted by
+    nobody: `core/auth._permissions_for` reads the database, so adding one to
+    the catalogue leaves every existing installation unable to use it until
+    somebody grants it by hand. Seeding again is not an answer — it refuses to
+    run on a populated database, and rightly.
+
+    Additive on purpose. An administrator may have removed a permission from a
+    system role deliberately through the matrix (§13), and reconciling *down*
+    would silently undo that decision on the next deploy. Adding only means the
+    worst case is a permission back that somebody has to remove again — which
+    is visible, rather than an access grant that quietly disappears.
+    """
+    from src.core.auth import ROLE_DEFAULTS
+    from src.models.identity import Role
+
+    added: dict[str, list[str]] = {}
+    for code, definition in ROLE_DEFAULTS.items():
+        role = session.scalars(select(Role).where(Role.code == code)).one_or_none()
+        if role is None:
+            continue
+        held = set(role.permissions or [])
+        missing = [name for name in definition["permissions"] if name not in held]
+        if missing:
+            # Reassigned rather than mutated: an ARRAY column changed in place
+            # is not seen as dirty by SQLAlchemy, and the UPDATE never happens.
+            role.permissions = [*(role.permissions or []), *missing]
+            added[code] = missing
+    return added

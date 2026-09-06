@@ -623,7 +623,13 @@ export const recordDetail = {
     { name: "status", label: "Status", kind: "enum", value: "IN_PROGRESS", editable: true },
     { name: "progress", label: "Progress", kind: "number", value: 45, editable: true, minimum: 0, maximum: 100 },
     { name: "due_date", label: "Due date", kind: "datetime", value: "2026-09-10T12:00:00Z" },
-    { name: "description", label: "Description", kind: "text", value: null },
+    { name: "description", label: "Description", kind: "text", value: null, editable: true },
+    { name: "kind", label: "Kind", kind: "enum", value: "FEATURE", editable: true },
+    { name: "priority", label: "Priority", kind: "enum", value: "HIGH", editable: true },
+    { name: "checklist", label: "Checklist", kind: "json", editable: true, value: [
+      { text: "Export the old rows", done: true },
+      { text: "Load them", done: false },
+    ] },
     { name: "assignee_id", label: "Assignee ID", kind: "uuid", value: "11111111-2222-3333-4444-555555555555" },
     { name: "created_at", label: "Created", kind: "datetime", value: "2026-08-01T09:00:00Z" },
     { name: "updated_at", label: "Updated", kind: "datetime", value: "2026-09-03T09:00:00Z" },
@@ -804,6 +810,50 @@ const REPORT_SEED = JSON.parse(JSON.stringify(savedReports)) as Record<string, u
 export function resetReports(): void {
   savedReports.length = 0;
   savedReports.push(...(JSON.parse(JSON.stringify(REPORT_SEED)) as Record<string, unknown>[]));
+}
+
+/**
+ * A conversation on the fixture task (§36), in a store the handlers mutate —
+ * so "post a comment and see it appear" asserts a round trip rather than a
+ * component's own state.
+ */
+export const recordComments: Record<string, unknown>[] = [
+  {
+    id: "comment-1",
+    resource_type: "task",
+    resource_id: "task-1",
+    parent_id: null,
+    body: "Blocked on the migration script.",
+    author: { id: "user-2", name: "Mara Manager", avatar_url: null, job_title: "Delivery lead" },
+    mentions: [],
+    is_internal: false,
+    is_pinned: false,
+    edited_at: null,
+    created_at: "2026-09-03T10:00:00Z",
+    can_edit: false,
+  },
+  {
+    id: "comment-2",
+    resource_type: "task",
+    resource_id: "task-1",
+    parent_id: "comment-1",
+    body: "Running it tonight.",
+    author: { id: "user-1", name: "Ada Administrator", avatar_url: null, job_title: "Platform" },
+    mentions: [],
+    is_internal: false,
+    is_pinned: false,
+    edited_at: null,
+    created_at: "2026-09-03T11:00:00Z",
+    can_edit: true,
+  },
+];
+
+const COMMENT_SEED = JSON.parse(JSON.stringify(recordComments)) as Record<string, unknown>[];
+
+/** Puts the conversation back between tests. */
+export function resetComments(): void {
+  recordComments.length = 0;
+  recordComments.push(...(JSON.parse(JSON.stringify(COMMENT_SEED)) as Record<string, unknown>[]));
 }
 
 export const connectionMap = {
@@ -1232,6 +1282,52 @@ export const handlers = [
   }),
   http.get("/platform/api/relationships/overview", ({ request }) => echo(request, connectionMap)),
   http.get("/platform/api/records/:type/:id", ({ request }) => echo(request, recordDetail)),
+  http.get("/platform/api/comments", ({ request }) => {
+    const query = new URL(request.url).searchParams;
+    const items = recordComments.filter(
+      (item) =>
+        item["resource_type"] === query.get("resource_type") &&
+        item["resource_id"] === query.get("resource_id"),
+    );
+    return echo(request, {
+      items,
+      total: items.length,
+      resource_type: query.get("resource_type") ?? "",
+      resource_id: query.get("resource_id") ?? "",
+      can_comment: true,
+    });
+  }),
+  http.post("/platform/api/comments", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const created = {
+      ...recordComments[0],
+      ...body,
+      id: `comment-${recordComments.length + 1}`,
+      parent_id: body["parent_id"] ?? null,
+      author: { id: "user-1", name: "Ada Administrator", avatar_url: null, job_title: "Platform" },
+      edited_at: null,
+      created_at: "2026-09-06T12:00:00Z",
+      can_edit: true,
+    };
+    recordComments.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.put("/platform/api/comments/:id", async ({ request, params }) => {
+    const body = (await request.json()) as { body: string };
+    const index = recordComments.findIndex((item) => item["id"] === params["id"]);
+    const updated = {
+      ...recordComments[Math.max(index, 0)],
+      body: body.body,
+      edited_at: "2026-09-06T12:05:00Z",
+    };
+    if (index >= 0) recordComments[index] = updated;
+    return HttpResponse.json(updated);
+  }),
+  http.delete("/platform/api/comments/:id", ({ params }) => {
+    const index = recordComments.findIndex((item) => item["id"] === params["id"]);
+    if (index >= 0) recordComments.splice(index, 1);
+    return HttpResponse.json({ deleted: true, id: params["id"] });
+  }),
   http.get("/platform/admin/audit/catalog", ({ request }) => echo(request, auditCatalogue)),
   // Before the `:id` rule: MSW matches path segments loosely, so `:id`
   // would swallow "export". Flask's typed <uuid:> converter would not.

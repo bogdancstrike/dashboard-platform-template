@@ -4,6 +4,7 @@
     python -m src.seed --scale small      # a tenth of the data, for iterating
     python -m src.seed --reset            # drop everything first
     python -m src.seed --check            # verify an existing dataset
+    python -m src.seed --sync-roles       # give built-in roles new permissions
     python -m src.seed --dry-run          # build in memory, write nothing
 
 It refuses to seed a database that already has data unless `--reset` or
@@ -32,6 +33,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--reset", action="store_true", help="drop every table before seeding")
     parser.add_argument("--force", action="store_true", help="seed even if data is already present")
     parser.add_argument("--check", action="store_true", help="verify the existing dataset and exit")
+    parser.add_argument(
+        "--sync-roles", action="store_true",
+        help="add any newly declared permissions to the built-in roles and exit",
+    )
     parser.add_argument("--dry-run", action="store_true", help="build in memory, write nothing")
     parser.add_argument("--quiet", action="store_true", help="only print the summary line")
     return parser
@@ -53,6 +58,17 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     engine = get_engine()
+
+    if args.sync_roles:
+        # Not part of a seed run: this is what an *existing* database needs
+        # when the permission catalogue grows, and seeding refuses to touch a
+        # populated one.
+        with session_scope() as session:
+            added = runner.sync_roles(session)
+        for code, permissions in sorted(added.items()):
+            print(f"  {code}: +{', '.join(permissions)}")
+        print("roles already match the catalogue" if not added else "roles updated")
+        return 0
 
     if args.check:
         with session_scope() as session:

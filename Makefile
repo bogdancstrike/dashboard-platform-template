@@ -80,6 +80,10 @@ reseed: ## Drop every table and seed again
 check-seed: ## Verify the seeded data is referentially consistent
 	$(COMPOSE) run --rm -e SEED_ARGS=--check seed
 
+.PHONY: sync-roles
+sync-roles: ## Give the built-in roles any newly declared permissions
+	$(COMPOSE) run --rm -e SEED_ARGS=--sync-roles seed
+
 .PHONY: psql
 psql: ## Open a psql shell on the stack's database
 	$(COMPOSE) exec postgres psql -U platform -d platform

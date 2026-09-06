@@ -49,6 +49,7 @@ PERMISSION_GROUPS: dict[str, list[tuple[str, str]]] = {
         ("records.create", "Create records"),
         ("records.update", "Update records"),
         ("records.delete", "Delete records"),
+        ("records.comment", "Comment on records"),
         ("records.export", "Export records"),
         ("records.import", "Import records"),
         ("records.bulk", "Run bulk operations"),
@@ -116,7 +117,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
         "color": "#7c3aed",
         "permissions": [
             "records.view", "records.create", "records.update", "records.export",
-            "records.import", "records.bulk",
+            "records.comment", "records.import", "records.bulk",
             "users.view", "users.manage",
             "jobs.view", "jobs.manage", "audit.view", "health.view", "logs.view",
             "tasks.view", "tasks.manage", "mail.access",
@@ -131,6 +132,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
         "color": "#0891b2",
         "permissions": [
             "records.view", "records.create", "records.update", "records.export",
+            "records.comment",
             "users.view", "jobs.view", "health.view",
             "tasks.view", "tasks.manage", "mail.access",
             "files.view", "files.manage", "calendar.view", "calendar.manage",

@@ -216,6 +216,12 @@ def _resources() -> dict[str, Resource]:
                 Field("logged_hours", Task.logged_hours, kind="number", label="Logged (hours)"),
                 Field("assignee_id", Task.assignee_id, kind="uuid", label="Assignee ID"),
                 Field("project_id", Task.project_id, kind="uuid", label="Project ID"),
+                # The card's to-do list (§18). Declared so it travels with the
+                # record and can be written by the same endpoint everything
+                # else is; ticking an item is an edit to the task, not a
+                # second kind of write with a second set of rules.
+                Field("checklist", Task.checklist, kind="json", filterable=False,
+                      sortable=False),
                 *_common(Task),
             ),
             ("reference", "title", "status", "priority", "due_date", "progress", "updated_at"),
@@ -246,6 +252,7 @@ def _resources() -> dict[str, Resource]:
                 Writable("logged_hours", minimum=0, maximum=10_000),
                 Writable("assignee_id"),
                 Writable("project_id"),
+                Writable("checklist"),
             ),
             identity=Identity("reference", "TSK"),
         ),

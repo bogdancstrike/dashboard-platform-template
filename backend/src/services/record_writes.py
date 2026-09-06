@@ -223,6 +223,8 @@ def _value(session, field: Field, spec: Writable, raw: Any) -> Any:
         return _moment(field, raw)
     if field.kind == "uuid":
         return _reference(session, field, raw)
+    if field.kind == "json":
+        return _document(field, raw)
     return _text(field, raw)
 
 
@@ -303,6 +305,51 @@ def _moment(field: Field, raw: Any) -> datetime:
     if not isinstance(parsed, datetime):
         parsed = datetime.combine(parsed, datetime.min.time())
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+
+
+#: A checklist longer than this is a project, not a card (§18).
+MAX_ITEMS = 50
+#: One to-do line. Longer than this and it belongs in the description.
+MAX_ITEM_CHARS = 200
+
+
+def _document(field: Field, raw: Any) -> Any:
+    """A JSON field, validated as the shape the page actually renders.
+
+    Only lists of `{text, done}` today, because the one declared JSON writable
+    is a checklist. Storing whatever arrives would make the column a place any
+    client could put anything — which is how a JSONB column becomes a second,
+    undocumented schema.
+    """
+    if not isinstance(raw, (list, tuple)):
+        raise ValidationError(
+            f"{field.title} must be a list of items.", details={"field": field.name}
+        )
+    if len(raw) > MAX_ITEMS:
+        raise ValidationError(
+            f"{field.title} holds at most {MAX_ITEMS} items.",
+            details={"field": field.name, "count": len(raw), "maximum": MAX_ITEMS},
+        )
+
+    items = []
+    for entry in raw:
+        if not isinstance(entry, dict):
+            raise ValidationError(
+                f"Each {field.title.lower()} item must be an object.",
+                details={"field": field.name},
+            )
+        text = str(entry.get("text") or "").strip()
+        if not text:
+            raise ValidationError(
+                f"A {field.title.lower()} item needs text.", details={"field": field.name}
+            )
+        if len(text) > MAX_ITEM_CHARS:
+            raise ValidationError(
+                f"A {field.title.lower()} item is at most {MAX_ITEM_CHARS} characters.",
+                details={"field": field.name, "length": len(text)},
+            )
+        items.append({"text": text, "done": bool(entry.get("done", False))})
+    return items
 
 
 def _reference(session, field: Field, raw: Any) -> UUID:

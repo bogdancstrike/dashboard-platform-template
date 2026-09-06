@@ -876,6 +876,30 @@ mark.nu-mark {
 .nu-task-meta { font-size: 11px; }
 .nu-task-meta .ant-typography { font-size: 11px; }
 
+/* The task work page: a checklist and a conversation (§18, §36). */
+.nu-checklist { list-style: none; margin: 0 0 8px; padding: 0; }
+.nu-checklist > li {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 0; border-bottom: 1px solid var(--nu-border-subtle);
+}
+.nu-checklist > li:last-child { border-bottom: none; }
+.nu-checklist .ant-checkbox-wrapper { flex: 1; align-items: center; }
+.nu-checklist-done { text-decoration: line-through; color: var(--nu-text-tertiary); }
+
+.nu-comments { list-style: none; margin: 0 0 12px; padding: 0; }
+.nu-comments > li + li { margin-top: 10px; }
+.nu-comments--replies {
+  margin: 8px 0 0 34px; padding-left: 10px;
+  border-left: 2px solid var(--nu-border-subtle);
+}
+.nu-comment { display: flex; gap: 8px; }
+.nu-comment-body { flex: 1; min-width: 0; }
+.nu-comment-head { font-size: 12px; }
+.nu-comment-text { margin: 2px 0 0 !important; white-space: pre-wrap; }
+.nu-comment-composer { border-top: 1px solid var(--nu-border-subtle); padding-top: 10px; }
+.nu-field-label { display: block; font-size: 12px; margin-bottom: 4px; }
+.nu-record-prose { white-space: pre-wrap; margin-bottom: 0 !important; }
+
 /* Projects — the portfolio timeline. */
 .nu-timeline { display: flex; flex-direction: column; }
 .nu-timeline-axis {

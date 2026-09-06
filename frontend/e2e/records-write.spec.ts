@@ -17,7 +17,9 @@ import { signIn, storageStateFor } from "./auth";
  *
  * Serial, and not because the tests are slow. They all write to one board, and
  * a lane count read while another worker is moving a card into that lane is a
- * flake that reads exactly like a product bug.
+ * flake that reads exactly like a product bug. The task *work* page lives here
+ * for the same reason: it creates and deletes tasks, which moves the very
+ * counts the board tests measure.
  */
 
 test.describe.configure({ mode: "serial" });
@@ -74,9 +76,12 @@ test.describe("the task board writes to the record", () => {
     const card = page.getByTestId("lane-ASSIGNED").locator(".nu-task-card")
       .filter({ hasText: reference });
     await card.getByText(reference).click();
-    await page.getByRole("tab", { name: "History" }).click();
 
-    // The ledger says what moved and to what — not merely that something did.
+    // The task page carries its history as a section rather than a tab — it
+    // is a work page, and what happened to the record is part of the work.
+    // The ledger says what moved and to what, not merely that something did.
+    await expect(page.getByTestId("task-checklist")).toBeVisible();
+    await expect(page.locator("#nu-main")).toContainText("History");
     await expect(page.locator("#nu-main")).toContainText("ASSIGNED");
 
     await page.goBack();
@@ -137,4 +142,105 @@ test.describe("editing a record", () => {
     await expect(page.getByText("This board is read-only for you")).toBeVisible();
     await context.close();
   });
+});
+
+/**
+ * Create a task of this suite's own and open it.
+ *
+ * Not "the first card on the board": the board spec moves that one between
+ * lanes at the same time, and two specs editing one row produce failures that
+ * look like product bugs. Creating one also exercises the path a reader takes
+ * to get here.
+ */
+async function openScratchTask(page: Page, title: string): Promise<void> {
+  await signIn(page, "admin", "/tasks");
+  await page.getByRole("button", { name: /New task/ }).click();
+  const drawer = page.getByRole("dialog");
+  await drawer.getByLabel("Title").fill(title);
+  await drawer.getByTestId("record-form-save").click();
+  await expect(page.getByTestId("task-checklist")).toBeVisible();
+}
+
+/** Remove it again, so the seeded dataset ends where it started. */
+async function deleteTask(page: Page, title: string): Promise<void> {
+  // Close whatever layer is open first — `Esc` closes the topmost one (§54),
+  // and an open profile menu covers the header actions underneath it.
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: /Delete/ }).first().click();
+  await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
+  await expect(page.getByTestId("task-board")).toBeVisible();
+  await expect(page.getByText(title)).toHaveCount(0);
+}
+
+test("a comment is stored, and another person sees it", async ({ page, browser }) => {
+  const title = `Playwright comment task ${Date.now()}`;
+  const body = `Playwright note ${Date.now()}`;
+  await openScratchTask(page, title);
+  const address = page.url();
+
+  const thread = page.getByTestId("comment-thread");
+  await thread.getByLabel("Add a comment").fill(body);
+  await thread.getByTestId("post-comment").click();
+  await expect(thread.getByText(body)).toBeVisible();
+
+  // A second reader, in their own session: a comment stored only in this
+  // browser would be invisible here.
+  const other = await browser.newContext({ storageState: storageStateFor("manager") });
+  const otherPage = await other.newPage();
+  try {
+    await signIn(otherPage, "manager", new URL(address).pathname);
+    await expect(otherPage.getByTestId("comment-thread").getByText(body)).toBeVisible();
+  } finally {
+    await other.close();
+  }
+
+  await deleteTask(page, title);
+});
+
+test("a ticked to-do is an edit to the record and survives a reload", async ({ page }) => {
+  const title = `Playwright checklist task ${Date.now()}`;
+  await openScratchTask(page, title);
+  const checklist = page.getByTestId("task-checklist");
+  const step = "Verify the counts";
+
+  await checklist.getByLabel("New checklist item").fill(step);
+  await checklist.getByRole("button", { name: /Add/ }).click();
+  const item = checklist.getByRole("checkbox", { name: step });
+  await expect(item).toBeVisible();
+
+  // Clicked rather than `check()`ed: the box is controlled by the record, so
+  // it only ticks once the write has come back — and `check()` asserts the
+  // state change synchronously.
+  await item.click();
+  await expect(item).toBeChecked();
+  await page.reload();
+
+  // Still ticked, because it was written to the task rather than held on the
+  // page — and the record's own history says so.
+  await expect(page.getByTestId("task-checklist").getByRole("checkbox", { name: step })).toBeChecked();
+  await expect(page.locator("#nu-main")).toContainText("History");
+
+  await deleteTask(page, title);
+});
+
+test("a reader who may not comment is told, not handed a box that fails", async ({ page, browser }) => {
+  const title = `Playwright permission task ${Date.now()}`;
+  await openScratchTask(page, title);
+  const address = new URL(page.url()).pathname;
+
+  const context = await browser.newContext({ storageState: storageStateFor("analyst") });
+  const analyst = await context.newPage();
+  try {
+    await signIn(analyst, "analyst", address);
+    // An analyst reads everything and writes nothing — the page says which
+    // permission that is, rather than failing after somebody has typed (§76).
+    await expect(
+      analyst.getByText("You can read this conversation but not add to it"),
+    ).toBeVisible();
+    await expect(analyst.getByTestId("post-comment")).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+
+  await deleteTask(page, title);
 });

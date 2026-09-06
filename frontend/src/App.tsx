@@ -43,6 +43,9 @@ const EntityDetailPage = lazy(() => import("@/pages/EntityDetailPage"));
  * six different jobs.
  */
 const TasksBoardPage = lazy(() => import("@/pages/entities/TasksBoardPage"));
+// Tasks get their own detail page: it is the record people work *in*, and a
+// generic field list is the wrong shape for that job (§8, §18, §36).
+const TaskDetailPage = lazy(() => import("@/pages/entities/TaskDetailPage"));
 const ProjectsPortfolioPage = lazy(() => import("@/pages/entities/ProjectsPortfolioPage"));
 const CustomersPage = lazy(() => import("@/pages/entities/CustomersPage"));
 const OrdersLedgerPage = lazy(() => import("@/pages/entities/OrdersLedgerPage"));
@@ -287,8 +290,26 @@ export default function App() {
         {/* Records — six datasets, six pages (§7, §8). The list layouts are
             deliberately unlike one another; what they share is the query
             contract underneath, not a template. */}
+        <Route path="tasks">
+          <Route
+            index
+            element={
+              <Suspense fallback={<Loading />}>
+                <TasksBoardPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path=":id"
+            element={
+              <Suspense fallback={<Loading />}>
+                <TaskDetailPage />
+              </Suspense>
+            }
+          />
+        </Route>
+
         {[
-          { path: "tasks", key: "task", list: <TasksBoardPage /> },
           { path: "projects", key: "project", list: <ProjectsPortfolioPage /> },
           { path: "customers", key: "customer", list: <CustomersPage /> },
           { path: "orders", key: "order", list: <OrdersLedgerPage /> },

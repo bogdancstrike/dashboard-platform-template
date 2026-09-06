@@ -304,10 +304,40 @@ vertical slice with its own tests, its own tracker entry and its own commit.
       vocabulary and stays that way: the board is a view of the work queue, and
       a lane somebody invents there would be a status no filter, chart or
       report has ever heard of
-- [ ] **`/tasks/:id` becomes a work page, not a field dump** (§8, §36, §48) —
-      the shape an issue tracker has: description, checklist, assignee and
-      dates on one side, a conversation with comments on the other, and the
-      activity timeline beneath it
+- [x] **`/tasks/:id` is a work page, not a field dump** (§8, §36, §48) — the
+      shape the job has, rather than the shape of the row it came from
+  - The controls used every day do not open a form: status, priority and
+    assignee write on change, through the same endpoint and the same
+    optimistic-then-reconciled path the board's drag uses (§73). Everything
+    rarer is behind Edit, which is the shared declaration-driven drawer — so
+    the page adds a *shape*, not a second way to write a task
+  - **Ticking a to-do is an edit to the record.** `checklist` is a declared
+    JSON field written by the record endpoint and audited like any other
+    change; a "checklist API" would be a second set of rules about who may
+    change what, for the same row. The generic form grows a JSON control at
+    the same time, so a declared-editable document is editable everywhere
+    rather than only on the page that knows what it means
+  - **Comments (§36) are polymorphic and reusable.** One `CommentThread`
+    addressed by `resource_type` + `resource_id`, because the table is
+    polymorphic and a component per entity is five copies of the same
+    threading, editing and permission logic. Replies nest one level — what
+    people use — rather than arbitrarily
+  - **The conversation and the history are kept apart.** Comments are what
+    people said; the audit timeline is what the system recorded. One feed
+    makes a decision indistinguishable from a side effect
+  - `records.comment` is its own permission: a reader who may open the ledger
+    is not automatically somebody who may annotate it. An analyst is told so
+    in place of a composer, rather than after typing (§76)
+  - Adding a permission to the catalogue leaves existing databases unable to
+    grant it — `_permissions_for` reads the `roles` table, and seeding refuses
+    to touch a populated database. `python -m src.seed --sync-roles` closes
+    that, additively: an administrator may have removed a permission from a
+    system role deliberately, and reconciling *down* would undo that silently
+  - Verification: 14 backend tests (live PostgreSQL) covering the thread, the
+    permissions, edit marking, reply scoping, mentions and the checklist's
+    validation; 8 frontend tests; 3 Playwright tests proving a comment is
+    stored where a colleague can read it, that a ticked to-do survives a
+    reload, and that an analyst is told rather than refused
 - [~] **Continue implementation task by task** — update this tracker, commit,
       push, redeploy both FE/BE and test the deployed result after each task.
       Current sequence: CRUD on every entity page, then the Analyse section.
@@ -545,7 +575,7 @@ section is a cross-cutting rule rather than a page.
 | 15 | Email detail, threading | `/mail/:id` | `/mail/threads/:id` | [ ] |
 | 16 | Compose email | `/mail/compose` | `/mail/messages` | [ ] |
 | 17 | Notification centre | header + `/notifications` | `/notifications` | [x] |
-| 18 | Tasks / work queue (kanban) | `/tasks` | `/api/records/task` | [~] board + drag |
+| 18 | Tasks / work queue (kanban) | `/tasks`, `/tasks/:id` | `/api/records/task` | [~] board, drag, card detail |
 | 19 | Calendar | `/calendar` | `/calendar/events` | [ ] |
 | 20 | File manager | `/files` | `/files` | [ ] |
 | 21 | **Audit logs** | `/admin/audit` | `/admin/audit` | [x] |
@@ -563,7 +593,7 @@ section is a cross-cutting rule rather than a page.
 | 33 | Drawers and modals | — | — | [ ] |
 | 34 | Error and empty states | `/errors/*` | — | [ ] |
 | 35 | Activity feed | `/activity` + detail tabs | `/activity` | [ ] |
-| 36 | Comments | detail tabs | `/comments` | [ ] |
+| 36 | Comments | `/tasks/:id`, detail pages | `/api/comments` | [~] |
 | 37 | Tags and labels | `/admin/tags` + inline | `/tags` | [ ] |
 | 38 | Favorites | `/favorites` | `/favorites` | [ ] |
 | 39 | Recent items | sidebar + `/recent` | `/recent` | [ ] |
@@ -896,11 +926,15 @@ everything else.
   - **Acceptance**: met for the lane change and asserted end to end — a card
     moved and reloaded is where it was dropped, a refused move snaps back and
     says why, and a stale edit is refused with a 409 rather than applied
-- [ ] Card detail: description, assignee, due date, labels, **to-do checklist**
+- [~] Card detail: description, assignee, due date, labels, **to-do checklist**
       with per-item completion, **comments** with mentions, attachments,
       activity timeline
-  - **Acceptance**: ticking a to-do updates the card's progress without a
-    reload; the checklist and comment counts show on the card face
+  - Shipped on `/tasks/:id`: description, checklist with per-item completion,
+    assignee, dates, effort, comments with mentions and one level of replies,
+    and the audit timeline. Labels and attachments wait on §37 and §20
+  - **Acceptance**: met for the checklist and the conversation — ticking an
+    item writes the record and the progress moves with it, without a reload.
+    Counts on the card face are still open
 - [ ] Filters: assignee, label, due, text — applied server-side (§71)
 - [ ] Keyboard: move a card between lanes without a mouse (§54, §55)
 
@@ -1186,7 +1220,8 @@ there was only one. The point of a template is the opposite.
 - [x] `.env.example` — every knob documented, working local defaults
   - **Acceptance**: copying it to `.env` unchanged produces a working stack
 - [x] `Makefile` — `up` · `down` · `clean` · `wait` · `urls` · `seed` · `reseed` ·
-      `check-seed` · `psql` · `test` · `test-backend-db` · `e2e` · `lint` · `logs`
+      `check-seed` · `sync-roles` · `psql` · `test` · `test-backend-db` · `e2e` ·
+      `lint` · `logs`
   - `reseed` passes `SEED_ARGS` with `-e`, as `check-seed` already did. Setting
     it in the caller's environment does nothing: compose only forwards a
     variable a service declares, so `make reseed` was silently a no-op against
@@ -1479,7 +1514,8 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] `docker compose up` clean-boot green — every service healthy from empty
       volumes; seed wrote 15 554 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
-- [~] Backend tests — 290 passing, including saved reports' lifecycle and
+- [~] Backend tests — 303 passing, including the comment thread's permissions
+      and editing rules, the checklist's validation, saved reports' lifecycle and
       sharing, the analysis compiler's grouping,
       refusals and reconciliation, Data Explorer query, validation,
       record create/edit/delete with its declaration, bounds, foreign keys and
@@ -1495,7 +1531,8 @@ Each endpoint ships with its five-case integration test and the page consuming i
     aims at the **running stack** — it silently replaced the demo dataset with a
     small one, so every Playwright run afterwards measured 60 tasks where
     compose had produced 500. Nothing failed; the numbers were quietly different
-- [~] Frontend unit + component tests — 215 passing, including saved reports
+- [~] Frontend unit + component tests — 223 passing, including the task work
+      page and its conversation, saved reports
       and the builder, the analytics
       workspace, the record form,
       create/edit/delete on all six entity pages,
@@ -1504,7 +1541,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
       notification centre's six states, the header bell, the audit explorer,
       the per-record timeline, the authenticated download path, the generic
       entity list and detail pages, the connection map and the permission matrix
-- [~] Playwright e2e suite — 120 tests green against `docker compose up` on the
+- [~] Playwright e2e suite — 123 tests green against `docker compose up` on the
       full seed, covering the shell, appearance, Data Explorer, saved searches,
       global search, relationships, the catalogue, the notification centre, the
       audit explorer, a real file download, all six entity lists, record
