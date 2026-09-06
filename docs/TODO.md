@@ -236,8 +236,8 @@ vertical slice with its own tests, its own tracker entry and its own commit.
     and delete — a page that quietly stayed read-only fails it. 202 frontend
     tests, typecheck and lint clean, FE redeployed and the full 114-test
     Playwright suite green
-- [~] **The `ANALYSE` pages** — `/analytics` ships; `/reports`,
-      `/reports/builder`, `/charts/builder` and `/maps` are next
+- [~] **The `ANALYSE` pages** — `/analytics`, `/reports` and `/reports/builder`
+      ship; `/charts/builder` and `/maps` are next
   - **One compiler, not four endpoints.** `POST /api/analysis/run` takes
     *group these rows by these columns and measure them this way* — the
     question the workspace, both builders and the map all ask. Four endpoints
@@ -257,11 +257,30 @@ vertical slice with its own tests, its own tracker entry and its own commit.
   - `/analytics` holds one context — dataset, period, grouping, granularity,
     measure and chart kind, all in the URL (§69, §72) — and every panel reads
     it. Clicking a value leaves for that entity's own page, filtered (§44)
-  - Verification: 14 backend tests (live PostgreSQL) covering the contract,
-    the refusals and the reconciliation; 5 frontend tests asserting the shared
-    period, the URL round-trip and the drill-down; 3 Playwright tests proving
-    the numbers are the database's — hundreds of rows, not the page's
-    twenty-five — and that the period narrows them
+  - **`/reports` is a list of questions and one answer**, not a gallery of
+    names: pick a report, read its result. Running one hands the *stored
+    definition* to the same compiler, so a report and the screen it was built
+    on cannot disagree about the same data
+  - **`/reports/builder` previews what it will save.** Every control writes
+    into one draft, the draft is the preview query, and the preview query is
+    what is stored — there is no step in between that could reinterpret it.
+    The draft lives in the URL, which is what lets the analytics workspace's
+    "Save as a report" hand its context straight over
+  - **Sharing is `core/sharing`**, extracted from the saved-search service and
+    now used by both: private by default, shared with named members, public,
+    and only the owner writes. One mechanism, one table, one set of rules —
+    saved views (§46) and dashboards (§45) adopt it with a string
+  - Verification: 25 backend tests (live PostgreSQL) covering the compiler's
+    contract, the refusals, the reconciliation and the report lifecycle;
+    13 frontend tests asserting the shared period, the URL round-trip, the
+    drill-down, the preview-is-what-is-saved property and who may act on
+    somebody else's report; 5 Playwright tests proving the numbers are the
+    database's, that a report built in the browser survives a reload, and
+    that a private one is invisible to a colleague
+  - One deployed bug this found and fixed: `DELETE /api/reports/<id>` echoed
+    the route's `UUID` back unconverted, which is a 500 *after* the delete has
+    committed — a request that reports failure having succeeded. A test now
+    asserts the response body, not only that the row went
 - [ ] **The sidebar's collapsed state is a preference** (§1, §40) — stored on
       the account beside theme and density, so it follows the reader to another
       browser rather than living only in this one's localStorage
@@ -521,7 +540,7 @@ section is a cross-cutting rule rather than a page.
 | 25 | API management | `/admin/api` | `/admin/api-clients` | [ ] |
 | 26 | Integrations | `/admin/integrations` | `/admin/integrations` | [ ] |
 | 27 | Feature flags | `/admin/flags` | `/admin/flags` | [ ] |
-| 28 | Reports | `/reports` | `/reports` | [ ] |
+| 28 | Reports | `/reports`, `/reports/builder` | `/api/reports`, `/api/analysis/run` | [x] |
 | 29 | Import wizard | `/import` | `/imports` | [ ] |
 | 30 | Export | every list | `/{list}/export` | [~] |
 | 31 | Command palette (`cmdk`) | global | `/search/quick` | [ ] |
@@ -1014,12 +1033,13 @@ everything else.
 - [ ] Widget kinds: KPI, line/area/bar/pie chart, table, activity feed, alerts,
       my tasks, recent items — each configured with an entity, a metric, a
       period and its own filters
-- [ ] **Sharing reuses `resource_shares`, exactly as saved searches do**:
+- [~] **Sharing reuses `resource_shares`, exactly as saved searches do**:
       private by default · shared with named members · public; only the owner
       edits, re-shares or deletes; a member who wants their own duplicates it
-  - **Acceptance**: one mechanism, one table, one set of rules for saved
-    searches, saved views, reports and dashboards — a second sharing model is a
-    second set of bugs
+  - **Acceptance**: met for saved searches and reports. `core/sharing` holds
+    the visibility predicate, the owner check, the member replacement and the
+    scope vocabulary; both services read it, and adopting it costs one string.
+    Saved views (§46) and dashboards (§45) are the remaining adopters
 - [ ] One dashboard is the reader's home page (§67)
 
 ### `/announcements` — system messages (§17)
@@ -1048,9 +1068,13 @@ everything else.
 
 ### `/reports/builder` and `/charts/builder` (§28, §44)
 
-- [ ] Report builder: pick an entity, then its dimensions, metrics, filters,
+- [x] Report builder: pick an entity, then its dimensions, metrics, filters,
       grouping and period; preview server-side as you build; save, share,
       schedule, export
+  - Shipped. The preview *is* the query that gets saved, and what may be
+    picked comes from `/api/analysis/catalog` — so the builder cannot offer a
+    column the compiler will reject. Scheduling stores its cron string;
+    running one on a schedule waits on §23
 - [ ] Chart builder: every ECharts type the platform themes — line, area,
       stacked area, bar, stacked and horizontal bars, pie, donut, scatter,
       heatmap, funnel, gauge, timeline — with a live preview in both themes
@@ -1440,7 +1464,8 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] `docker compose up` clean-boot green — every service healthy from empty
       volumes; seed wrote 15 554 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
-- [~] Backend tests — 279 passing, including the analysis compiler's grouping,
+- [~] Backend tests — 290 passing, including saved reports' lifecycle and
+      sharing, the analysis compiler's grouping,
       refusals and reconciliation, Data Explorer query, validation,
       record create/edit/delete with its declaration, bounds, foreign keys and
       lost-race refusal,
@@ -1455,7 +1480,8 @@ Each endpoint ships with its five-case integration test and the page consuming i
     aims at the **running stack** — it silently replaced the demo dataset with a
     small one, so every Playwright run afterwards measured 60 tasks where
     compose had produced 500. Nothing failed; the numbers were quietly different
-- [~] Frontend unit + component tests — 207 passing, including the analytics
+- [~] Frontend unit + component tests — 215 passing, including saved reports
+      and the builder, the analytics
       workspace, the record form,
       create/edit/delete on all six entity pages,
       the board write path and Data Explorer
@@ -1463,7 +1489,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
       notification centre's six states, the header bell, the audit explorer,
       the per-record timeline, the authenticated download path, the generic
       entity list and detail pages, the connection map and the permission matrix
-- [~] Playwright e2e suite — 117 tests green against `docker compose up` on the
+- [~] Playwright e2e suite — 119 tests green against `docker compose up` on the
       full seed, covering the shell, appearance, Data Explorer, saved searches,
       global search, relationships, the catalogue, the notification centre, the
       audit explorer, a real file download, all six entity lists, record

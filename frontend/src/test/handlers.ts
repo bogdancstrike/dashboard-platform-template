@@ -740,6 +740,72 @@ export function analysisResult(body: {
   };
 }
 
+/**
+ * Saved reports, in a store the handlers actually mutate (§28).
+ *
+ * A fixed array would let a "create then see it in the list" test pass while
+ * the page never re-read anything: the list has to change because the write
+ * changed it, which is the behaviour worth asserting.
+ */
+export const savedReports: Record<string, unknown>[] = [
+  {
+    id: "report-1",
+    name: "Revenue by channel",
+    description: "Where the money comes from",
+    resource_type: "order",
+    scope: "PRIVATE",
+    owner: { id: "user-1", name: "Ada Administrator", email: "admin@nucleus.example" },
+    can_edit: true,
+    members: [],
+    dimensions: [{ field: "channel", granularity: "" }],
+    metrics: [{ aggregation: "sum", field: "total" }],
+    filters: {},
+    condition_tree: null,
+    period: "last_90_days",
+    visualization: "bar",
+    sort: null,
+    order: "desc",
+    schedule: null,
+    is_favorite: false,
+    run_count: 3,
+    last_run_at: "2026-09-05T09:00:00Z",
+    created_at: "2026-08-01T09:00:00Z",
+    updated_at: "2026-09-05T09:00:00Z",
+  },
+  {
+    id: "report-2",
+    name: "Tickets by severity",
+    description: null,
+    resource_type: "ticket",
+    scope: "PUBLIC",
+    owner: { id: "user-2", name: "Mara Manager", email: "manager@nucleus.example" },
+    can_edit: false,
+    members: [],
+    dimensions: [{ field: "severity", granularity: "" }],
+    metrics: [{ aggregation: "count", field: "" }],
+    filters: {},
+    condition_tree: null,
+    period: "all_time",
+    visualization: "pie",
+    sort: null,
+    order: "desc",
+    schedule: null,
+    is_favorite: false,
+    run_count: 0,
+    last_run_at: null,
+    created_at: "2026-08-02T09:00:00Z",
+    updated_at: "2026-08-02T09:00:00Z",
+  },
+];
+
+const REPORT_SEED = JSON.parse(JSON.stringify(savedReports)) as Record<string, unknown>[];
+
+/** Puts the store back, so one test's write cannot decide another's list. */
+export function resetReports(): void {
+  savedReports.length = 0;
+  savedReports.push(...(JSON.parse(JSON.stringify(REPORT_SEED)) as Record<string, unknown>[]));
+}
+
 export const connectionMap = {
   nodes: [
     { key: "ticket", table: "tickets", label: "Tickets", count: 600, explorable: true },
@@ -997,6 +1063,70 @@ export const handlers = [
   http.get("/platform/dashboard/summary", ({ request }) => echo(request, dashboardSummary)),
   http.get("/platform/api/explorer/catalog", ({ request }) => echo(request, explorerCatalogue)),
   http.get("/platform/api/analysis/catalog", ({ request }) => echo(request, analysisCatalogue)),
+  http.get("/platform/api/reports", ({ request }) =>
+    echo(request, {
+      items: savedReports,
+      total: savedReports.length,
+      visualizations: ["bar", "hbar", "line", "area", "pie", "stacked-bar", "treemap", "table"],
+      can_create: true,
+      can_share: true,
+    }),
+  ),
+  http.post("/platform/api/reports", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const created = {
+      ...savedReports[0],
+      ...body,
+      id: `report-${savedReports.length + 1}`,
+      owner: { id: "user-1", name: "Ada Administrator", email: "admin@nucleus.example" },
+      can_edit: true,
+      members: [],
+      run_count: 0,
+      last_run_at: null,
+    };
+    savedReports.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.post("/platform/api/reports/:id/run", async ({ params, request }) => {
+    const report = savedReports.find((item) => item["id"] === params["id"]) ?? savedReports[0]!;
+    const overrides = (await request.json().catch(() => ({}))) as { period?: string };
+    return HttpResponse.json({
+      report,
+      result: analysisResult({
+        resource_type: String(report["resource_type"]),
+        dimensions: report["dimensions"] as { field: string }[],
+        measures: report["metrics"] as { aggregation: string; field?: string }[],
+        period: overrides.period ?? String(report["period"]),
+      }),
+    });
+  }),
+  http.post("/platform/api/reports/:id/duplicate", ({ params }) => {
+    const source = savedReports.find((item) => item["id"] === params["id"]) ?? savedReports[0]!;
+    const copy = {
+      ...source,
+      id: `${String(source["id"])}-copy`,
+      name: `${String(source["name"])} (copy)`,
+      scope: "PRIVATE",
+      can_edit: true,
+    };
+    savedReports.push(copy);
+    return HttpResponse.json(copy, { status: 201 });
+  }),
+  http.get("/platform/api/reports/:id", ({ request, params }) =>
+    echo(request, savedReports.find((item) => item["id"] === params["id"]) ?? savedReports[0]!),
+  ),
+  http.put("/platform/api/reports/:id", async ({ request, params }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const index = savedReports.findIndex((item) => item["id"] === params["id"]);
+    const updated = { ...savedReports[Math.max(index, 0)], ...body };
+    if (index >= 0) savedReports[index] = updated;
+    return HttpResponse.json(updated);
+  }),
+  http.delete("/platform/api/reports/:id", ({ params }) => {
+    const index = savedReports.findIndex((item) => item["id"] === params["id"]);
+    if (index >= 0) savedReports.splice(index, 1);
+    return HttpResponse.json({ deleted: true, id: params["id"] });
+  }),
   http.post("/platform/api/analysis/run", async ({ request }) =>
     HttpResponse.json(analysisResult((await request.json()) as Parameters<typeof analysisResult>[0]), {
       headers: { [CORRELATION_HEADER]: request.headers.get(CORRELATION_HEADER) ?? "" },

@@ -19,6 +19,8 @@ import { PlaceholderPage } from "@/pages/PlaceholderPage";
  */
 const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
+const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
+const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
 const DataExplorerPage = lazy(() => import("@/pages/DataExplorerPage"));
 const GlobalSearchPage = lazy(() => import("@/pages/GlobalSearchPage"));
 const DataCatalogPage = lazy(() => import("@/pages/DataCatalogPage"));
@@ -136,15 +138,9 @@ export default function App() {
         <Route
           path="reports"
           element={
-            <PlaceholderPage
-              section="§28"
-              summary="Build a report from dimensions, metrics, filters and a visualisation."
-              bullets={[
-                "Pick dimensions, metrics, grouping, sorting and a time period",
-                "Save it, share it, schedule it",
-                "Export the result, respecting the current filters (§30)",
-              ]}
-            />
+            <Suspense fallback={<Loading />}>
+              <ReportsPage />
+            </Suspense>
           }
         />
 
@@ -204,15 +200,9 @@ export default function App() {
         <Route
           path="reports/builder"
           element={
-            <PlaceholderPage
-              section="§28"
-              summary="Compose a report from dimensions, metrics, filters, grouping and a period."
-              bullets={[
-                "Pick the entity, then the dimensions and metrics it offers",
-                "Preview the result as you build it, server-side (§71)",
-                "Save, share, schedule and export",
-              ]}
-            />
+            <Suspense fallback={<Loading />}>
+              <ReportBuilderPage />
+            </Suspense>
           }
         />
         <Route

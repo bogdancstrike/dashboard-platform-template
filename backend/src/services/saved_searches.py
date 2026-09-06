@@ -9,18 +9,21 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import String, cast, delete, or_, select
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from src.core import audit
+from src.core import audit, sharing
 from src.core.clock import iso, now
-from src.core.errors import ForbiddenError, NotFoundError, ValidationError
+from src.core.errors import NotFoundError, ValidationError
 from src.core.pagination import parse_uuid
 from src.core.rules import compile_tree, describe_tree, rule_count
-from src.models.personal import ResourceShare, SavedSearch
+from src.models.personal import SavedSearch
 from src.services.explorer import resource_for
 
-SCOPES = frozenset({"PRIVATE", "SHARED", "PUBLIC"})
+#: The polymorphic key this kind of saved thing shares under. One string is
+#: what adopting `core/sharing` costs (§5, §46).
+KIND = "saved_search"
+
 VIEW_MODES = frozenset({"table", "list", "cards", "compact"})
 ORDERS = frozenset({"asc", "desc"})
 
@@ -28,9 +31,6 @@ ORDERS = frozenset({"asc", "desc"})
 #: other people see". OPERATOR and VIEWER have their own searches and no way to
 #: publish one.
 SHARE_PERMISSION = "searches.share"
-
-#: An audience larger than this is what `PUBLIC` is for.
-MAX_MEMBERS = 100
 
 
 def list_searches(session, args, *, principal) -> dict[str, Any]:
@@ -178,21 +178,12 @@ def transfer(session, search_id: Any, payload: dict[str, Any], *, principal) -> 
 
 
 def _visible_statement(principal):
-    shared_ids = select(ResourceShare.resource_id).where(
-        ResourceShare.user_id == principal.user_id,
-        ResourceShare.resource_type == "saved_search",
-        ResourceShare.permission == "VIEW",
-    )
     return (
         select(SavedSearch)
         .options(selectinload(SavedSearch.owner))
         .where(
             SavedSearch.deleted_at.is_(None),
-            or_(
-                SavedSearch.owner_id == principal.user_id,
-                SavedSearch.scope == "PUBLIC",
-                cast(SavedSearch.id, String).in_(shared_ids),
-            ),
+            sharing.visibility(SavedSearch, KIND, principal),
         )
     )
 
@@ -207,11 +198,7 @@ def _visible(session, search_id: Any, principal) -> SavedSearch:
 
 def _owned_visible(session, search_id: Any, principal) -> SavedSearch:
     row = _visible(session, search_id, principal)
-    if row.owner_id != principal.user_id:
-        raise ForbiddenError(
-            "Only the owner may change this saved search.",
-            details={"owner_id": str(row.owner_id), "search_id": str(row.id)},
-        )
+    sharing.require_owner(row, principal, kind="saved search")
     return row
 
 
@@ -244,13 +231,14 @@ def _validated(
     if not partial or "resource_type" in payload:
         out["resource_type"] = resource.key
 
-    scope = str(payload.get("scope", existing.scope if existing else "PRIVATE")).upper()
-    if scope not in SCOPES:
-        raise ValidationError("scope must be PRIVATE, SHARED or PUBLIC", details={"field": "scope"})
-    if scope != "PRIVATE" and (existing is None or existing.scope != scope):
-        # Checked on the change, not on every save: a role losing the
-        # permission must not make its owner's existing searches unsavable.
-        principal.require(SHARE_PERMISSION)
+    # Checked on the change, not on every save: a role losing the permission
+    # must not make its owner's existing searches unsavable.
+    changing = existing is None or str(payload.get("scope", existing.scope)).upper() != existing.scope
+    scope = sharing.scope_of(
+        payload.get("scope", existing.scope if existing else "PRIVATE"),
+        principal=principal if changing else None,
+        share_permission=SHARE_PERMISSION,
+    )
     if not partial or "scope" in payload:
         out["scope"] = scope
 
@@ -317,68 +305,29 @@ def _validated(
             out[flag] = bool(payload.get(flag, getattr(existing, flag, False)))
 
     if "member_ids" in payload or not partial:
-        members = payload.get("member_ids") or []
-        if not isinstance(members, list):
-            raise ValidationError("member_ids must be an array")
-        if members:
+        wanted = sharing.requested_members(payload)
+        if wanted:
             principal.require(SHARE_PERMISSION)
-        out["member_ids"] = list(dict.fromkeys(str(value) for value in members))[:MAX_MEMBERS]
+        out["member_ids"] = wanted
     return out
 
 
 def _member_ids(session, row: SavedSearch) -> list[Any]:
-    return list(session.scalars(
-        select(ResourceShare.user_id).where(
-            ResourceShare.resource_type == "saved_search",
-            ResourceShare.resource_id == str(row.id),
-        )
-    ).all())
+    return sharing.member_ids(session, KIND, row.id)
 
 
 def _replace_members(
     session, row: SavedSearch, member_ids: list[str], *, principal, owner_id: Any = None,
 ) -> None:
-    """Set the explicit audience, replacing whatever was there.
-
-    Replacement rather than merge, because the UI edits the whole list: a
-    member removed on screen has to disappear here, and an "add" endpoint that
-    cannot remove leaves an audience nobody can shrink.
-    """
-    from src.models.identity import User
-
-    owner = owner_id if owner_id is not None else row.owner_id
-    identifiers = [parse_uuid(value, field="member_id") for value in member_ids]
-    # The owner already sees it; a share row for them would be a second answer
-    # to the same question, and `can_edit` would then depend on which one won.
-    identifiers = [value for value in dict.fromkeys(identifiers) if value != owner]
-    existing_ids = set(session.scalars(
-        select(User.id).where(User.id.in_(identifiers), User.deleted_at.is_(None), User.status == "ACTIVE")
-    ).all()) if identifiers else set()
-    missing = set(identifiers) - existing_ids
-    if missing:
-        raise ValidationError("One or more shared members do not exist.", details={"member_ids": sorted(map(str, missing))})
-
-    session.execute(delete(ResourceShare).where(
-        ResourceShare.resource_type == "saved_search",
-        ResourceShare.resource_id == str(row.id),
-    ))
-    for user_id in identifiers:
-        session.add(ResourceShare(
-            resource_type="saved_search", resource_id=str(row.id), user_id=user_id,
-            shared_by_id=principal.user_id, permission="VIEW",
-        ))
+    sharing.replace_members(
+        session, KIND, row.id, member_ids,
+        principal=principal,
+        owner_id=owner_id if owner_id is not None else row.owner_id,
+    )
 
 
 def _members(session, row: SavedSearch) -> list[dict[str, str]]:
-    from src.models.identity import User
-
-    rows = session.execute(
-        select(User.id, User.full_name, User.email)
-        .join(ResourceShare, ResourceShare.user_id == User.id)
-        .where(ResourceShare.resource_type == "saved_search", ResourceShare.resource_id == str(row.id))
-        .order_by(User.full_name)
-    ).all()
-    return [{"id": str(user_id), "name": name, "email": email} for user_id, name, email in rows]
+    return sharing.members(session, KIND, row.id)
 
 
 def _serialize(session, row: SavedSearch, principal) -> dict[str, Any]:

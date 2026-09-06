@@ -208,6 +208,65 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "reports_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/reports",
+      "description": "Saved reports this reader may open, and creating one.",
+      "exec_method": {
+        "module_name": "src.api.reports",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "reports_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/reports/<uuid:report_id>",
+      "description": "One saved report: read it, change it, or remove it.",
+      "exec_method": {
+        "module_name": "src.api.reports",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "reports_run",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/reports/<uuid:report_id>/run",
+      "description": "Execute a saved report through the shared analysis compiler.",
+      "exec_method": {
+        "module_name": "src.api.reports",
+        "method_name": "run"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "reports_duplicate",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/reports/<uuid:report_id>/duplicate",
+      "description": "A private copy of a report, owned by the caller.",
+      "exec_method": {
+        "module_name": "src.api.reports",
+        "method_name": "duplicate"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "explorer_export",
       "model_name": "Empty",
       "request_method": [
