@@ -5,24 +5,10 @@ import { describe, expect, it } from "vitest";
 import { Route, Routes } from "react-router-dom";
 
 import EntityDetailPage from "@/pages/EntityDetailPage";
-import { EntityListPage } from "@/pages/EntityListPage";
 import { CommandProvider } from "@/commands/CommandContext";
-import { explorerResult, recordDetail } from "@/test/handlers";
+import { recordDetail } from "@/test/handlers";
 import { renderWithProviders } from "@/test/render";
 import { server } from "@/test/server";
-
-function renderList(route = "/tasks") {
-  return renderWithProviders(
-    <CommandProvider>
-      <Routes>
-        <Route path="/tasks" element={<EntityListPage resourceKey="task" />} />
-        <Route path="/tasks/:id" element={<div>the task detail page</div>} />
-        <Route path="/explore" element={<div>the explorer</div>} />
-      </Routes>
-    </CommandProvider>,
-    { route },
-  );
-}
 
 function renderDetail(route = "/tasks/task-1") {
   return renderWithProviders(
@@ -35,81 +21,6 @@ function renderDetail(route = "/tasks/task-1") {
     { route },
   );
 }
-
-describe("the generic entity list", () => {
-  it("takes its title, columns and rows from the entity's own declaration", async () => {
-    renderList();
-
-    expect(await screen.findByRole("heading", { name: "Tasks" })).toBeInTheDocument();
-    // Columns are the resource's `default_columns`, labelled by the catalogue.
-    expect(await screen.findByRole("columnheader", { name: "Reference" })).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "Due date" })).toBeInTheDocument();
-    expect(screen.getByText("TSK-001")).toBeInTheDocument();
-    expect(screen.getByTestId("entity-total")).toHaveTextContent("1 of 500");
-  });
-
-  it("builds its facet menus from the counts the server returned", async () => {
-    renderList();
-
-    // Not a hardcoded option list: the menu can only offer values that are
-    // actually reachable under the other filters.
-    const status = await screen.findByRole("combobox", { name: "Status" });
-    expect(status).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Priority" })).toBeInTheDocument();
-  });
-
-  it("asks the server when a facet is chosen", async () => {
-    const user = userEvent.setup();
-    const seen: Record<string, unknown>[] = [];
-    server.use(
-      http.post("/platform/api/explorer/query", async ({ request }) => {
-        seen.push((await request.json()) as Record<string, unknown>);
-        return HttpResponse.json(explorerResult);
-      }),
-    );
-
-    renderList();
-    await user.click(await screen.findByRole("combobox", { name: "Status" }));
-    await user.click(await screen.findByTitle("IN_PROGRESS · 1"));
-
-    await waitFor(() =>
-      expect(seen.at(-1)?.["filters"]).toEqual({ status: "IN_PROGRESS" }),
-    );
-  });
-
-  it("opens the record when a row is clicked, not a drawer", async () => {
-    const user = userEvent.setup();
-    renderList();
-
-    await user.click(await screen.findByText("TSK-001"));
-
-    // A working list navigates; the explorer's drawer is the other affordance.
-    expect(await screen.findByText("the task detail page")).toBeInTheDocument();
-  });
-
-  it("hands a wider question to the explorer rather than growing its own builder", async () => {
-    const user = userEvent.setup();
-    renderList();
-
-    await user.click(await screen.findByRole("button", { name: /Ask a wider question/ }));
-
-    expect(await screen.findByText("the explorer")).toBeInTheDocument();
-  });
-
-  it("says so when the catalogue does not offer the entity", async () => {
-    server.use(
-      http.get("/platform/api/explorer/catalog", () =>
-        HttpResponse.json({ items: [], view_modes: ["table"] }),
-      ),
-    );
-
-    renderList();
-
-    expect(
-      await screen.findByText("That record type is not available to you"),
-    ).toBeInTheDocument();
-  });
-});
 
 describe("the generic entity detail page", () => {
   it("names the record rather than showing its id", async () => {

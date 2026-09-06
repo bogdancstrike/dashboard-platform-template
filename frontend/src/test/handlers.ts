@@ -195,6 +195,260 @@ export const explorerCatalogue = {
   view_modes: ["table", "list", "cards", "compact"],
 };
 
+/**
+ * The other five datasets, in the shape the catalogue publishes them.
+ *
+ * Written out rather than generated, because the six entity pages each read a
+ * *different* subset of fields, and a fixture that invents them from a loop
+ * would let a page ask for a column the real catalogue never declares.
+ */
+function field(
+  name: string,
+  label: string,
+  kind: string,
+  extra: Partial<{ facet: boolean; searchable: boolean; choices: string[] }> = {},
+) {
+  return {
+    name,
+    label,
+    kind,
+    sortable: true,
+    filterable: true,
+    searchable: extra.searchable ?? false,
+    facet: extra.facet ?? false,
+    operators: ["eq", "ne"],
+    choices: extra.choices ?? [],
+  };
+}
+
+explorerCatalogue.items.push(
+  {
+    key: "project", label: "Projects", description: "Portfolio delivery, budget and health.",
+    permission: "records.view", record_count: 50,
+    default_columns: ["code", "name", "status", "health", "progress", "due_date"],
+    default_sort: "start_date", path: "/projects",
+    title_field: "name", subtitle_field: "code", status_field: "status",
+    fields: [
+      field("code", "Code", "text", { searchable: true }),
+      field("name", "Name", "text", { searchable: true }),
+      field("status", "Status", "enum", { facet: true, choices: ["ACTIVE", "COMPLETED"] }),
+      field("phase", "Phase", "enum", { facet: true, choices: ["BUILD", "DISCOVERY"] }),
+      field("health", "Health", "enum", { facet: true, choices: ["ON_TRACK", "AT_RISK", "OFF_TRACK"] }),
+      field("priority", "Priority", "enum", { facet: true, choices: ["HIGH", "NORMAL"] }),
+      field("start_date", "Start date", "datetime"),
+      field("due_date", "Due date", "datetime"),
+      field("budget", "Budget", "number"),
+      field("spent", "Spent", "number"),
+      field("progress", "Progress", "number"),
+    ],
+  },
+  {
+    key: "customer", label: "Customers", description: "Accounts, lifecycle and value.",
+    permission: "records.view", record_count: 300,
+    default_columns: ["code", "name", "status", "segment", "lifetime_value"],
+    default_sort: "updated_at", path: "/customers",
+    title_field: "name", subtitle_field: "code", status_field: "status",
+    fields: [
+      field("code", "Code", "text", { searchable: true }),
+      field("name", "Name", "text", { searchable: true }),
+      field("email", "Email", "text", { searchable: true }),
+      field("status", "Status", "enum", { facet: true, choices: ["ACTIVE", "CHURNED"] }),
+      field("segment", "Segment", "enum", { facet: true, choices: ["ENTERPRISE", "SMB"] }),
+      field("industry", "Industry", "text", { facet: true }),
+      field("lifecycle_stage", "Lifecycle stage", "enum", { facet: true, choices: ["CUSTOMER", "LEAD"] }),
+      field("country", "Country", "text", { facet: true }),
+      field("city", "City", "text", { searchable: true }),
+      field("lifetime_value", "Lifetime value", "number"),
+      field("satisfaction", "Satisfaction", "number"),
+      field("last_contact_at", "Last contact", "datetime"),
+    ],
+  },
+  {
+    key: "order", label: "Orders", description: "Commercial transactions and payment state.",
+    permission: "records.view", record_count: 800,
+    default_columns: ["reference", "status", "total", "placed_at"],
+    default_sort: "placed_at", path: "/orders",
+    title_field: "reference", subtitle_field: "", status_field: "status",
+    fields: [
+      field("reference", "Reference", "text", { searchable: true }),
+      field("status", "Status", "enum", { facet: true, choices: ["CONFIRMED", "CANCELLED"] }),
+      field("payment_status", "Payment status", "enum", { facet: true, choices: ["PAID", "UNPAID"] }),
+      field("fulfilment_status", "Fulfilment status", "enum", { facet: true, choices: ["SHIPPED", "PENDING"] }),
+      field("channel", "Channel", "enum", { facet: true, choices: ["PORTAL", "DIRECT"] }),
+      field("total", "Total", "number"),
+      field("currency", "Currency", "enum", { facet: true, choices: ["EUR"] }),
+      field("item_count", "Items", "number"),
+      field("placed_at", "Placed", "datetime"),
+    ],
+  },
+  {
+    key: "ticket", label: "Tickets", description: "Support demand, SLA health and ownership.",
+    permission: "records.view", record_count: 600,
+    default_columns: ["reference", "subject", "status", "severity"],
+    default_sort: "updated_at", path: "/tickets",
+    title_field: "subject", subtitle_field: "reference", status_field: "status",
+    fields: [
+      field("reference", "Reference", "text", { searchable: true }),
+      field("subject", "Subject", "text", { searchable: true }),
+      field("description", "Description", "text", { searchable: true }),
+      field("status", "Status", "enum", { facet: true, choices: ["OPEN", "RESOLVED"] }),
+      field("priority", "Priority", "enum", { facet: true, choices: ["HIGH", "NORMAL"] }),
+      field("severity", "Severity", "enum", { facet: true, choices: ["CRITICAL", "MAJOR", "MINOR"] }),
+      field("category", "Category", "enum", { facet: true, choices: ["BILLING", "TECHNICAL"] }),
+      field("channel", "Channel", "enum", { facet: true, choices: ["EMAIL", "PORTAL"] }),
+      field("due_at", "Due", "datetime"),
+      field("sla_breached", "SLA breached", "bool", { facet: true }),
+      field("resolution_minutes", "Resolution minutes", "number"),
+      field("created_at", "Created", "datetime"),
+    ],
+  },
+  {
+    key: "device", label: "Devices", description: "Managed hardware and telemetry.",
+    permission: "records.view", record_count: 250,
+    default_columns: ["serial", "name", "status", "last_seen_at"],
+    default_sort: "last_seen_at", path: "/devices",
+    title_field: "name", subtitle_field: "serial", status_field: "status",
+    fields: [
+      field("serial", "Serial", "text", { searchable: true }),
+      field("name", "Name", "text", { searchable: true }),
+      field("kind", "Kind", "enum", { facet: true, choices: ["GATEWAY", "SENSOR"] }),
+      field("model", "Model", "text", { searchable: true }),
+      field("manufacturer", "Manufacturer", "text", { facet: true }),
+      field("status", "Status", "enum", { facet: true, choices: ["ONLINE", "OFFLINE", "DEGRADED"] }),
+      field("location", "Location", "text", { facet: true }),
+      field("last_seen_at", "Last seen", "datetime"),
+      field("battery_percent", "Battery", "number"),
+      field("signal_strength", "Signal", "number"),
+      field("uptime_hours", "Uptime", "number"),
+      field("error_count", "Errors", "number"),
+    ],
+  },
+);
+
+/** One row per dataset, enough to prove the page drew the right thing. */
+export const entityRows: Record<string, Record<string, unknown>[]> = {
+  task: [
+    { id: "task-1", reference: "TSK-001", title: "Review customer migration", status: "IN_PROGRESS", priority: "HIGH", kind: "FEATURE", due_date: "2026-09-10T12:00:00Z", progress: 45, estimate_hours: 8, logged_hours: 3, updated_at: "2026-09-03T09:00:00Z" },
+  ],
+  project: [
+    { id: "project-1", code: "PRJ-0001", name: "Billing replatform", status: "ACTIVE", phase: "BUILD", health: "AT_RISK", priority: "HIGH", start_date: "2026-01-05T00:00:00Z", due_date: "2026-11-30T00:00:00Z", budget: 400000, spent: 380000, progress: 62 },
+    { id: "project-2", code: "PRJ-0002", name: "Warehouse rollout", status: "ACTIVE", phase: "DISCOVERY", health: "ON_TRACK", priority: "NORMAL", start_date: "2026-03-01T00:00:00Z", due_date: "2026-08-01T00:00:00Z", budget: 120000, spent: 30000, progress: 20 },
+  ],
+  customer: [
+    { id: "customer-1", code: "CUS-0001", name: "Northwind Partners", email: "ops@northwind.example", status: "ACTIVE", segment: "ENTERPRISE", industry: "Logistics", lifecycle_stage: "CUSTOMER", country: "DE", city: "Berlin", lifetime_value: 480000, satisfaction: 8.2, last_contact_at: "2026-09-01T10:00:00Z" },
+  ],
+  order: [
+    { id: "order-1", reference: "ORD-00311", status: "CONFIRMED", payment_status: "UNPAID", fulfilment_status: "PENDING", channel: "PORTAL", total: 18400, currency: "EUR", item_count: 6, placed_at: "2026-09-02T16:05:00Z" },
+  ],
+  ticket: [
+    { id: "ticket-1", reference: "TIC-00042", subject: "Login fails after password reset", description: "Customer cannot sign in.", status: "OPEN", priority: "HIGH", severity: "CRITICAL", category: "TECHNICAL", channel: "EMAIL", due_at: "2026-09-04T09:00:00Z", sla_breached: true, resolution_minutes: 0, created_at: "2026-09-03T08:00:00Z" },
+    { id: "ticket-2", reference: "TIC-00043", subject: "Invoice shows the wrong VAT", description: "Billing question.", status: "OPEN", priority: "NORMAL", severity: "MINOR", category: "BILLING", channel: "PORTAL", due_at: "2026-09-09T09:00:00Z", sla_breached: false, resolution_minutes: 0, created_at: "2026-09-02T08:00:00Z" },
+  ],
+  device: [
+    { id: "device-1", serial: "SN-000123", name: "Gateway Berlin 04", kind: "GATEWAY", model: "GW-8", manufacturer: "Acme", status: "DEGRADED", location: "Berlin DC", last_seen_at: "2026-09-03T11:00:00Z", battery_percent: 18, signal_strength: 71, uptime_hours: 900, error_count: 4 },
+  ],
+};
+
+/** Facets keyed by dataset, so a page's filter menu has something to offer. */
+const entityFacets: Record<string, Record<string, { value: string; count: number }[]>> = {
+  task: {
+    status: [{ value: "IN_PROGRESS", count: 1 }, { value: "NEW", count: 4 }, { value: "DONE", count: 9 }],
+    priority: [{ value: "HIGH", count: 1 }],
+  },
+  project: {
+    health: [{ value: "AT_RISK", count: 1 }, { value: "ON_TRACK", count: 1 }],
+    phase: [{ value: "BUILD", count: 1 }],
+    status: [{ value: "ACTIVE", count: 2 }],
+    priority: [{ value: "HIGH", count: 1 }],
+  },
+  customer: {
+    segment: [{ value: "ENTERPRISE", count: 1 }],
+    lifecycle_stage: [{ value: "CUSTOMER", count: 1 }],
+    industry: [{ value: "Logistics", count: 1 }],
+    country: [{ value: "DE", count: 1 }],
+  },
+  order: {
+    status: [{ value: "CONFIRMED", count: 1 }],
+    payment_status: [{ value: "UNPAID", count: 1 }],
+    fulfilment_status: [{ value: "PENDING", count: 1 }],
+    channel: [{ value: "PORTAL", count: 1 }],
+    currency: [{ value: "EUR", count: 1 }],
+  },
+  ticket: {
+    severity: [{ value: "CRITICAL", count: 1 }, { value: "MINOR", count: 1 }],
+    status: [{ value: "OPEN", count: 2 }],
+    category: [{ value: "TECHNICAL", count: 1 }],
+  },
+  device: {
+    status: [{ value: "DEGRADED", count: 1 }, { value: "ONLINE", count: 8 }],
+    kind: [{ value: "GATEWAY", count: 1 }],
+    manufacturer: [{ value: "Acme", count: 1 }],
+    location: [{ value: "Berlin DC", count: 1 }],
+  },
+};
+
+/** The query response for any dataset, honouring the status filter a board sends. */
+export function entityResult(body: {
+  resource_type?: string;
+  filters?: Record<string, unknown>;
+  columns?: string[];
+}) {
+  const key = String(body.resource_type ?? "task");
+  const resource = explorerCatalogue.items.find((item) => item.key === key);
+  const status = body.filters?.["status"];
+  const items = (entityRows[key] ?? []).filter(
+    (row) => !status || row["status"] === status,
+  );
+  return {
+    items,
+    total: items.length,
+    page: 1,
+    page_size: 25,
+    pages: 1,
+    sort: resource?.default_sort ?? "updated_at",
+    order: "desc",
+    resource_type: key,
+    columns: body.columns ?? resource?.default_columns ?? [],
+    fields: resource?.fields ?? [],
+    facets: entityFacets[key] ?? {},
+    condition_text: "",
+    rule_count: 0,
+    query_text: "",
+    searchable: [],
+  };
+}
+
+/** The declared metrics, breakdowns and trend for any dataset. */
+export function entityInsights(resourceType = "task") {
+  const facets = entityFacets[resourceType] ?? {};
+  return {
+    resource_type: resourceType,
+    total: (entityRows[resourceType] ?? []).length,
+    metrics: [
+      { key: "total", label: "Records", value: 42, format: "number", hint: "", filter: {} },
+      { key: "revenue", label: "Revenue", value: 1250000, format: "currency", hint: "", filter: {} },
+      { key: "share", label: "Breached", value: 12.5, format: "percent", hint: "", filter: {} },
+      { key: "open", label: "Open", value: 7, format: "number", hint: "", filter: { status: ["OPEN"] } },
+    ],
+    breakdowns: Object.entries(facets).map(([name, values]) => ({
+      field: name,
+      label: name,
+      series: values.map((facet) => ({ name: facet.value, value: facet.count })),
+      distinct: values.length,
+    })),
+    trend: {
+      field: "created_at",
+      label: "Created",
+      measure: "count",
+      series: [
+        { name: "2026-09-01", value: 3 },
+        { name: "2026-09-02", value: 5 },
+        { name: "2026-09-03", value: 4 },
+      ],
+    },
+  };
+}
+
 export const explorerResult = {
   items: [{ id: "task-1", reference: "TSK-001", title: "Review customer migration", status: "IN_PROGRESS", priority: "HIGH", due_date: "2026-09-10T12:00:00Z" }],
   total: 1,
@@ -614,7 +868,27 @@ export const handlers = [
   http.get("/platform/health/status", ({ request }) => echo(request, healthSnapshot)),
   http.get("/platform/dashboard/summary", ({ request }) => echo(request, dashboardSummary)),
   http.get("/platform/api/explorer/catalog", ({ request }) => echo(request, explorerCatalogue)),
-  http.post("/platform/api/explorer/query", ({ request }) => echo(request, explorerResult)),
+  http.post("/platform/api/explorer/query", async ({ request }) => {
+    const body = (await request.json()) as {
+      resource_type?: string;
+      filters?: Record<string, unknown>;
+      columns?: string[];
+    };
+    // The Data Explorer's own tests assert against `explorerResult`; the
+    // entity pages ask for five other datasets, and a handler that answered
+    // "task" to all of them would let a page draw the wrong entity and pass.
+    // A per-lane query is answered by `entityResult` even for tasks, because a
+    // handler that ignored the status filter would put the same card in every
+    // lane of the board and the board would still look right.
+    const scoped = Boolean((body as { filters?: Record<string, unknown> }).filters?.["status"]);
+    return echo(request, body.resource_type !== "task" || scoped
+      ? entityResult(body)
+      : explorerResult);
+  }),
+  http.post("/platform/api/explorer/insights", async ({ request }) => {
+    const body = (await request.json()) as { resource_type?: string };
+    return echo(request, entityInsights(body.resource_type ?? "task"));
+  }),
   http.get("/platform/api/saved-searches", ({ request }) => echo(request, { items: [], total: 0 })),
 
   http.get("/platform/notifications/counts", ({ request }) => echo(request, notificationCounts)),

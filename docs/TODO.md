@@ -33,9 +33,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Backend core (`src/core/`) | **done** — db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
-| Endpoints | 39 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×3, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×3, audit ×5, records ×1, roles ×2, users ×3 |
+| Endpoints | 40 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×4, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×3, audit ×5, records ×1, roles ×2, users ×3 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 233 backend + 162 frontend + 100 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
+| Tests | 238 backend + 171 frontend + 101 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
 | Frontend | shell, Data Explorer, discovery workspaces and the notification centre; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -127,15 +127,18 @@ vertical slice with its own tests, its own tracker entry and its own commit.
 - [x] **Relationships is a graph-analysis page drawn with D3** (§50) — force
       layouts, communities detected server-side, entity map and ego network all
       on the same D3 component
-- [ ] **Records must stop looking alike** (§7, §8) — six entities, six
-      genuinely different pages, list *and* detail. `/tasks` a board,
-      `/projects` a portfolio timeline, `/customers` an account view,
-      `/orders` a commercial ledger, `/tickets` a triage queue, `/devices` a
-      fleet monitor. The detail pages especially: `/projects/:id`,
-      `/tickets/:id` and `/tasks/:id` currently differ only in their data
+- [~] **Records must stop looking alike** (§7, §8) — six entities, six
+      genuinely different pages. The **lists** now differ: `/tasks` a board,
+      `/projects` a portfolio timeline, `/customers` an account grid,
+      `/orders` a ledger, `/tickets` a split triage queue, `/devices` a fleet
+      monitor. The **detail** pages are next — `/projects/:id`, `/tickets/:id`
+      and `/tasks/:id` still differ only in their data
 - [x] **`/notifications` should look better** (§17) — a digest strip that is
       also the filter, rows grouped under the day they arrived on, unread as a
       tinted card rather than bold text alone
+- [ ] **`/settings/preferences` must persist through the backend** (§40) —
+      saved server-side and applied automatically on the next visit, from any
+      browser
 - [ ] **`/dashboard` needs far more charts** (§2, §44) — the full ECharts
       vocabulary, following `gif_responder`'s dashboard and going beyond it
 - [ ] **`/explore` needs a record side panel** (§64) — click a row and read the
@@ -883,6 +886,67 @@ everything else.
       funnel, a gauge for SLA compliance, and a scatter of value against age
   - **Acceptance**: every panel is readable in both themes, has an empty state,
     and can be read as a table and exported
+
+---
+
+## Entity pages — six datasets, six pages (§7, §8)
+
+There used to be one generic list page rendered six times. It was correct,
+DRY, and exactly wrong for a template: every entity looked like every other
+one, so the project demonstrated *one* way to present records and implied
+there was only one. The point of a template is the opposite.
+
+- [x] **Six list pages, no shared layout**
+  - `/tasks` — a **board**. Lanes are the declared status vocabulary, not the
+    values on the page, so an empty lane is information and the columns do not
+    move as work does. Each lane is its **own query**: it knows its own total
+    from the server, pages independently, and a hundred blocked tasks cannot
+    push "in review" off the screen. Grouping one downloaded page would report
+    "3 in progress" for a project with ninety
+  - `/projects` — a **portfolio timeline**. A project has a shape in time and a
+    table of dates hides it; two bars overlapping in March is a fact about
+    capacity that no sort reveals. Budget burn sits on the same row as reported
+    health, because that is the pair that disagrees — "on track" at 96% of
+    budget is the finding
+  - `/customers` — an **account grid**. Who they are, what they are worth, how
+    they feel, when anybody last spoke to them: four facts that read badly as
+    four columns and well as one card, ordered by lifetime value because that
+    is the order people ask for
+  - `/orders` — a **ledger**. The densest table in the platform, tabular
+    numerals, with payment and fulfilment as *separate* columns because an
+    order can be paid and unshipped or shipped and unpaid, and collapsing that
+    loses the only two facts anybody chases
+  - `/tickets` — a **split triage queue** (§62, §63). The job is working down a
+    list, not looking at one, and a page that costs a navigation per ticket
+    costs it forty times an hour. The open ticket is in the URL
+  - `/devices` — a **fleet monitor**. Two health signals per unit as bars
+    rather than numbers, because a wall of forty is scanned and a scan reads
+    length faster than digits. Staleness gets its own colour: a device that has
+    not reported in a week is a different problem from one reporting that it is
+    unwell
+- [x] **What they share is the contract, not a template.** `useEntityView`
+      holds the catalogue lookup, the URL keys, the filters, the query and the
+      aggregates; `EntityChrome` holds the header, the facet bar and the metric
+      strip. Neither has an opinion about layout — the moment either grows a
+      `view` prop it has become the generic page these replaced
+- [x] **`POST /api/explorer/insights` (§44, §71)** — headline metrics,
+      breakdowns and a trend for whatever the current query selects
+  - Declared on the `Resource` (`Insight`, `Metric`) like everything else, so
+    adding a headline number to a dataset is a declaration rather than an
+    endpoint and a page
+  - Takes the **same payload** the query takes. A summary computed over the
+    whole table while the list below shows a filtered slice is two answers to
+    one question, with no way to tell which is which
+  - Aggregated in PostgreSQL. Summing twenty-five loaded rows gives "revenue:
+    41 000" for a dataset holding four million — not a smaller version of the
+    right answer but a wrong one
+  - A breakdown's long tail is **collapsed and named**, never dropped: a chart
+    whose slices do not add up to the total cannot be reconciled with the list
+    beside it
+- [x] Tests assert the pages are *different*: a lane, a bar, a card, two
+      settlement columns, a split queue, a gauge. The suite that came before
+      asserted the same three things six times and would have passed against
+      the page this work replaced
 
 ---
 

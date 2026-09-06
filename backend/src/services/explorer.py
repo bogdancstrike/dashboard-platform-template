@@ -14,7 +14,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Select, select
+from sqlalchemy import Numeric, Select, cast as sql_cast, func, select
 
 from src.core import vocabulary
 from src.core.errors import ValidationError
@@ -25,6 +25,50 @@ from src.core.rules import compile_tree, describe_tree, rule_count
 
 #: Reading a dataset and taking a copy of it away are different privileges.
 EXPORT_PERMISSION = "records.export"
+
+
+@dataclass(frozen=True, slots=True)
+class Metric:
+    """One headline number a dataset can answer about itself.
+
+    Declared beside the fields rather than computed in a page, for the same
+    reason the field catalogue is: a number a screen works out for itself is a
+    second definition of it, and the two disagree the first time somebody
+    changes what "open" means.
+    """
+
+    key: str
+    label: str
+    #: `count` · `sum` · `avg` · `share` — `share` is the percentage of rows
+    #: matching `equals`, which is how "SLA breached" and "overdue" are asked.
+    kind: str = "count"
+    #: The field aggregated. Required for `sum` and `avg`.
+    field: str = ""
+    #: For `count` and `share`: restrict to rows whose `field` is one of these.
+    equals: tuple[str, ...] = ()
+    #: How the client should render it: `number` · `currency` · `percent` ·
+    #: `hours`. A formatting hint, not a unit conversion.
+    format: str = "number"
+    hint: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class Insight:
+    """What a dataset can say about the rows currently in view.
+
+    Three shapes, because three questions are worth answering above a list:
+    *how much* (metrics), *of what kinds* (breakdowns) and *going which way*
+    (a trend). Anything more specific belongs on a report.
+    """
+
+    metrics: tuple[Metric, ...] = ()
+    #: Faceted fields worth charting rather than only filtering by.
+    breakdowns: tuple[str, ...] = ()
+    #: The date field a time series is drawn over, when one makes sense.
+    trend: str = ""
+    #: Aggregated alongside the trend, when the dataset has money or effort in
+    #: it. Empty means the trend counts rows.
+    trend_value: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,6 +92,8 @@ class Resource:
     title_field: str = "name"
     subtitle_field: str = ""
     status_field: str = "status"
+    #: What this dataset can say about itself above a list (§44).
+    insight: Insight = Insight()
 
     @property
     def path(self) -> str:
@@ -97,6 +143,19 @@ def _resources() -> dict[str, Resource]:
             ),
             ("reference", "title", "status", "priority", "due_date", "progress", "updated_at"),
             route="/tasks", title_field="title", subtitle_field="reference",
+            insight=Insight(
+                metrics=(
+                    Metric("total", "Work items"),
+                    Metric("in_progress", "In progress", field="status",
+                           equals=("IN_PROGRESS", "IN_REVIEW")),
+                    Metric("logged", "Hours logged", kind="sum", field="logged_hours",
+                           format="hours"),
+                    Metric("progress", "Average progress", kind="avg", field="progress",
+                           format="percent"),
+                ),
+                breakdowns=("status", "priority", "kind"),
+                trend="created_at",
+            ),
         ),
         "ticket": Resource(
             "ticket", "Tickets", "Support demand, SLA health, severity and ownership.", Ticket,
@@ -122,6 +181,20 @@ def _resources() -> dict[str, Resource]:
             ),
             ("reference", "subject", "status", "priority", "severity", "due_at", "sla_breached"),
             route="/tickets", title_field="subject", subtitle_field="reference",
+            insight=Insight(
+                metrics=(
+                    Metric("total", "Tickets"),
+                    Metric("open", "Open", field="status",
+                           equals=("OPEN", "ASSIGNED", "IN_PROGRESS", "WAITING_CUSTOMER",
+                                   "ESCALATED")),
+                    Metric("breached", "SLA breached", kind="share", field="sla_breached",
+                           equals=("true",), format="percent"),
+                    Metric("resolution", "Mean resolution", kind="avg",
+                           field="resolution_minutes", format="minutes"),
+                ),
+                breakdowns=("severity", "status", "category", "channel"),
+                trend="created_at",
+            ),
         ),
         "project": Resource(
             "project", "Projects", "Portfolio delivery, budget, progress and health.", Project,
@@ -147,6 +220,17 @@ def _resources() -> dict[str, Resource]:
             ),
             ("code", "name", "status", "health", "priority", "progress", "due_date"),
             route="/projects", title_field="name", subtitle_field="code",
+            insight=Insight(
+                metrics=(
+                    Metric("total", "Projects"),
+                    Metric("at_risk", "At risk", field="health", equals=("AT_RISK", "OFF_TRACK")),
+                    Metric("budget", "Budget", kind="sum", field="budget", format="currency"),
+                    Metric("spent", "Spent", kind="sum", field="spent", format="currency"),
+                ),
+                breakdowns=("health", "phase", "status"),
+                trend="start_date",
+                trend_value="budget",
+            ),
         ),
         "customer": Resource(
             "customer", "Customers", "Accounts, lifecycle, value and relationship health.", Customer,
@@ -171,6 +255,19 @@ def _resources() -> dict[str, Resource]:
             ),
             ("code", "name", "status", "segment", "industry", "lifetime_value", "last_contact_at"),
             route="/customers", title_field="name", subtitle_field="code",
+            insight=Insight(
+                metrics=(
+                    Metric("total", "Accounts"),
+                    Metric("active", "Active", field="status", equals=("ACTIVE",)),
+                    Metric("value", "Lifetime value", kind="sum", field="lifetime_value",
+                           format="currency"),
+                    Metric("satisfaction", "Satisfaction", kind="avg", field="satisfaction",
+                           format="score"),
+                ),
+                breakdowns=("segment", "lifecycle_stage", "industry", "country"),
+                trend="created_at",
+                trend_value="lifetime_value",
+            ),
         ),
         "order": Resource(
             "order", "Orders", "Commercial transactions, fulfilment and payment state.", Order,
@@ -195,6 +292,19 @@ def _resources() -> dict[str, Resource]:
             ("reference", "status", "payment_status", "fulfilment_status", "channel", "total", "placed_at"),
             default_sort="placed_at",
             route="/orders", title_field="reference",
+            insight=Insight(
+                metrics=(
+                    Metric("total", "Orders"),
+                    Metric("revenue", "Revenue", kind="sum", field="total", format="currency"),
+                    Metric("average", "Average order", kind="avg", field="total",
+                           format="currency"),
+                    Metric("unpaid", "Awaiting payment", field="payment_status",
+                           equals=("UNPAID", "PARTIAL", "OVERDUE")),
+                ),
+                breakdowns=("status", "payment_status", "fulfilment_status", "channel"),
+                trend="placed_at",
+                trend_value="total",
+            ),
         ),
         "device": Resource(
             "device", "Devices", "Managed hardware, telemetry and operational health.", Device,
@@ -218,6 +328,17 @@ def _resources() -> dict[str, Resource]:
             ("serial", "name", "kind", "status", "location", "battery_percent", "last_seen_at"),
             default_sort="last_seen_at",
             route="/devices", title_field="name", subtitle_field="serial",
+            insight=Insight(
+                metrics=(
+                    Metric("total", "Devices"),
+                    Metric("online", "Online", field="status", equals=("ONLINE",)),
+                    Metric("battery", "Mean battery", kind="avg", field="battery_percent",
+                           format="percent"),
+                    Metric("errors", "Errors logged", kind="sum", field="error_count"),
+                ),
+                breakdowns=("status", "kind", "manufacturer", "location"),
+                trend="last_seen_at",
+            ),
         ),
     }
 
@@ -393,3 +514,167 @@ def _json_value(value: Any) -> Any:
     if isinstance(value, tuple):
         return list(value)
     return value
+
+
+# ── insights (§44, §71) ──────────────────────────────────────────────────
+
+#: Buckets in a trend. Enough to see a shape, few enough to read the axis.
+TREND_BUCKETS = 30
+#: Values per breakdown before the tail is dropped. A pie with forty slices is
+#: a colour wheel.
+BREAKDOWN_LIMIT = 8
+
+
+def insights(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
+    """What a dataset says about the rows the reader is currently looking at.
+
+    Deliberately the *same* filters as the list beside it. A summary computed
+    over the whole table while the table below shows a filtered slice is two
+    answers to one question, and the reader has no way to tell which is which —
+    so this takes the identical payload `run` takes and applies it identically.
+
+    Everything is aggregated in PostgreSQL. Summing a page of twenty-five rows
+    in the browser gives "revenue: 41 000" for a dataset holding four million,
+    which is not a smaller version of the right answer but a wrong one.
+
+    What is returned is decided by the `Insight` declared on the resource, so
+    adding a headline number to a dataset is a declaration rather than an
+    endpoint and a page.
+    """
+    if not isinstance(payload, dict):
+        raise ValidationError("The query must be a JSON object.")
+    resource = resource_for(payload.get("resource_type"), principal=principal)
+
+    statement = apply_filters(_base_statement(resource), _query_args(payload), resource.fields)
+    predicate = compile_tree(payload.get("condition_tree"), resource.fields)
+    if predicate is not None:
+        statement = statement.where(predicate)
+
+    scope = statement.subquery()
+    declared = resource.insight
+
+    return {
+        "resource_type": resource.key,
+        "total": count_of(session, statement),
+        "metrics": [_metric(session, scope, resource, metric) for metric in declared.metrics],
+        "breakdowns": [
+            _breakdown(session, scope, resource, name)
+            for name in declared.breakdowns
+            if name in resource.fields.by_name
+        ],
+        "trend": _trend(session, scope, resource, declared),
+    }
+
+
+def _column_of(scope, resource: Resource, name: str):
+    """The declared field's column, as it exists on the filtered subquery."""
+    field = resource.fields.by_name.get(name)
+    if field is None:
+        raise ValidationError("Unknown field.", details={"field": name})
+    return scope.c[field.column.key]
+
+
+def _metric(session, scope, resource: Resource, metric: Metric) -> dict[str, Any]:
+    """One headline number, computed over the filtered set."""
+    value: float
+    if metric.kind in ("sum", "avg") and metric.field:
+        column = _column_of(scope, resource, metric.field)
+        aggregate = func.sum if metric.kind == "sum" else func.avg
+        value = float(session.scalar(select(aggregate(sql_cast(column, Numeric))).select_from(scope)) or 0)
+    else:
+        statement = select(func.count()).select_from(scope)
+        matched = statement
+        if metric.field and metric.equals:
+            column = _column_of(scope, resource, metric.field)
+            matched = statement.where(_matches(column, metric.equals))
+        counted = float(session.scalar(matched) or 0)
+        if metric.kind == "share":
+            # A share of nothing is zero rather than a division by zero, and
+            # zero is the honest answer: no rows breached because no rows.
+            everything = float(session.scalar(statement) or 0)
+            value = round(100 * counted / everything, 1) if everything else 0.0
+        else:
+            value = counted
+
+    return {
+        "key": metric.key,
+        "label": metric.label,
+        "value": round(value, 2),
+        "format": metric.format,
+        "hint": metric.hint,
+        # The filter that reproduces the number, so a tile can be clicked
+        # through to the rows behind it (§44).
+        "filter": (
+            {metric.field: list(metric.equals)} if metric.field and metric.equals else {}
+        ),
+    }
+
+
+def _matches(column, values: tuple[str, ...]):
+    """`equals` as SQL, coping with the booleans a declaration spells as text."""
+    if values in (("true",), ("false",)):
+        return column.is_(values[0] == "true")
+    return column.in_(list(values))
+
+
+def _breakdown(session, scope, resource: Resource, name: str) -> dict[str, Any]:
+    """One group-by, largest first, with the long tail collapsed."""
+    column = _column_of(scope, resource, name)
+    rows = session.execute(
+        select(column.label("name"), func.count().label("value"))
+        .select_from(scope)
+        .group_by(column)
+        .order_by(func.count().desc())
+    ).all()
+
+    head = rows[:BREAKDOWN_LIMIT]
+    tail = sum(int(row.value) for row in rows[BREAKDOWN_LIMIT:])
+    series = [{"name": str(row.name or "—"), "value": int(row.value)} for row in head]
+    if tail:
+        # Named rather than dropped: a chart whose slices do not add up to the
+        # total is a chart nobody can reconcile with the list beside it.
+        series.append({"name": f"{len(rows) - BREAKDOWN_LIMIT} others", "value": tail})
+
+    field = resource.fields.by_name[name]
+    return {"field": name, "label": field.title, "series": series, "distinct": len(rows)}
+
+
+def _trend(session, scope, resource: Resource, declared: Insight) -> dict[str, Any] | None:
+    """Rows — or their value — over time, bucketed by day.
+
+    Only over the range the filtered set actually spans, so a dataset with two
+    years of history and a filter selecting last week draws last week rather
+    than a flat line with one spike at the end.
+    """
+    if not declared.trend or declared.trend not in resource.fields.by_name:
+        return None
+
+    column = _column_of(scope, resource, declared.trend)
+    bucket = func.date_trunc("day", column).label("at")
+    measure = func.count().label("value")
+    if declared.trend_value and declared.trend_value in resource.fields.by_name:
+        measure = func.sum(
+            sql_cast(_column_of(scope, resource, declared.trend_value), Numeric)
+        ).label("value")
+
+    rows = session.execute(
+        select(bucket, measure)
+        .select_from(scope)
+        .where(column.isnot(None))
+        .group_by(bucket)
+        .order_by(bucket.desc())
+        .limit(TREND_BUCKETS)
+    ).all()
+
+    field = resource.fields.by_name[declared.trend]
+    return {
+        "field": declared.trend,
+        "label": field.title,
+        "measure": declared.trend_value or "count",
+        # Reversed here rather than in the browser: a chart is drawn left to
+        # right and the query has to end with a LIMIT on the newest.
+        "series": [
+            {"name": row.at.date().isoformat(), "value": float(row.value or 0)}
+            for row in reversed(rows)
+        ],
+    }

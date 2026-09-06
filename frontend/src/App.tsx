@@ -24,8 +24,25 @@ const AuditExplorerPage = lazy(() => import("@/pages/AuditExplorerPage"));
 const RolesPage = lazy(() => import("@/pages/RolesPage"));
 const UsersPage = lazy(() => import("@/pages/UsersPage"));
 const UserDetailPage = lazy(() => import("@/pages/UserDetailPage"));
-const EntityListPage = lazy(() => import("@/pages/EntityListPage"));
 const EntityDetailPage = lazy(() => import("@/pages/EntityDetailPage"));
+
+/**
+ * Six datasets, six pages (§7).
+ *
+ * There used to be one generic list here, driven by the resource declarations.
+ * It was correct and it was unusable as a template: every entity looked like
+ * every other entity, which taught a reader nothing about how to build the
+ * seventh. These share their data layer — `useEntityView`, the same query, the
+ * same URL keys — and share no layout at all, because a board, a portfolio
+ * timeline, an account book, a ledger, a triage queue and a fleet monitor are
+ * six different jobs.
+ */
+const TasksBoardPage = lazy(() => import("@/pages/entities/TasksBoardPage"));
+const ProjectsPortfolioPage = lazy(() => import("@/pages/entities/ProjectsPortfolioPage"));
+const CustomersPage = lazy(() => import("@/pages/entities/CustomersPage"));
+const OrdersLedgerPage = lazy(() => import("@/pages/entities/OrdersLedgerPage"));
+const TicketsQueuePage = lazy(() => import("@/pages/entities/TicketsQueuePage"));
+const DevicesFleetPage = lazy(() => import("@/pages/entities/DevicesFleetPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 const SystemPage = lazy(() => import("@/pages/SystemPage"));
 
@@ -262,27 +279,19 @@ export default function App() {
           }
         />
 
-        {/* Records — one generic list and one generic detail, driven by the
-            same declarations the explorer and the query builder read (§7, §8).
-            `/tasks` is here too: the kanban board (§18) will become another
-            view of the same records rather than another copy of them. */}
+        {/* Records — six datasets, six pages (§7, §8). The list layouts are
+            deliberately unlike one another; what they share is the query
+            contract underneath, not a template. */}
         {[
-          { path: "tasks", key: "task" },
-          { path: "projects", key: "project" },
-          { path: "customers", key: "customer" },
-          { path: "orders", key: "order" },
-          { path: "tickets", key: "ticket" },
-          { path: "devices", key: "device" },
+          { path: "tasks", key: "task", list: <TasksBoardPage /> },
+          { path: "projects", key: "project", list: <ProjectsPortfolioPage /> },
+          { path: "customers", key: "customer", list: <CustomersPage /> },
+          { path: "orders", key: "order", list: <OrdersLedgerPage /> },
+          { path: "tickets", key: "ticket", list: <TicketsQueuePage /> },
+          { path: "devices", key: "device", list: <DevicesFleetPage /> },
         ].map((entity) => (
           <Route key={entity.path} path={entity.path}>
-            <Route
-              index
-              element={
-                <Suspense fallback={<Loading />}>
-                  <EntityListPage resourceKey={entity.key} />
-                </Suspense>
-              }
-            />
+            <Route index element={<Suspense fallback={<Loading />}>{entity.list}</Suspense>} />
             <Route
               path=":id"
               element={

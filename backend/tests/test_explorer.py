@@ -594,6 +594,121 @@ def test_facets_are_computed_only_when_they_are_asked_for(client, monkeypatch):
     assert facets["status"], "a faceted column with rows must offer values"
 
 
+# ── insights (§44, §71) ──────────────────────────────────────────────────
+
+
+@pytest.mark.database
+def test_insights_summarise_the_dataset_from_its_declaration(client, monkeypatch):
+    """Adding a headline number is a declaration, not an endpoint and a page."""
+    response = client.post(
+        f"{PREFIX}/api/explorer/insights",
+        headers=_authenticate(monkeypatch),
+        json={"resource_type": "order"},
+    )
+
+    assert response.status_code == 200
+    body = response.get_json()
+
+    metrics = {metric["key"]: metric for metric in body["metrics"]}
+    assert metrics["revenue"]["format"] == "currency"
+    assert metrics["revenue"]["value"] > 0
+    # An average is an average, not a sum divided in the browser.
+    assert metrics["average"]["value"] == pytest.approx(
+        metrics["revenue"]["value"] / body["total"], rel=0.01
+    )
+
+    # Breakdowns are group-bys, largest first, and they add up to the total.
+    status = next(item for item in body["breakdowns"] if item["field"] == "status")
+    counts = [point["value"] for point in status["series"]]
+    assert counts == sorted(counts, reverse=True)
+    assert sum(counts) == body["total"]
+
+    assert body["trend"]["measure"] == "total"
+    assert len(body["trend"]["series"]) > 1
+
+
+@pytest.mark.database
+def test_insights_describe_the_filtered_rows_and_not_the_whole_table(client, monkeypatch):
+    """The number above a list must be about the list, or it is a second answer."""
+    headers = _authenticate(monkeypatch)
+
+    everything = client.post(
+        f"{PREFIX}/api/explorer/insights", headers=headers, json={"resource_type": "order"}
+    ).get_json()
+    portal = client.post(
+        f"{PREFIX}/api/explorer/insights",
+        headers=headers,
+        json={"resource_type": "order", "filters": {"channel": "PORTAL"}},
+    ).get_json()
+
+    assert 0 < portal["total"] < everything["total"]
+    assert portal["metrics"][1]["value"] < everything["metrics"][1]["value"]
+    # And it agrees with the list the same filter produces.
+    listed = client.post(
+        f"{PREFIX}/api/explorer/query",
+        headers=headers,
+        json={"resource_type": "order", "filters": {"channel": "PORTAL"}, "page_size": 1},
+    ).get_json()
+    assert listed["total"] == portal["total"]
+
+
+@pytest.mark.database
+def test_a_share_metric_is_a_percentage_and_survives_an_empty_set(client, monkeypatch):
+    headers = _authenticate(monkeypatch)
+
+    tickets = client.post(
+        f"{PREFIX}/api/explorer/insights", headers=headers, json={"resource_type": "ticket"}
+    ).get_json()
+    breached = next(item for item in tickets["metrics"] if item["key"] == "breached")
+    assert 0 <= breached["value"] <= 100
+    assert breached["format"] == "percent"
+
+    # A share of nothing is zero, not a division by zero. The filter is chosen
+    # to match no rows at all.
+    empty = client.post(
+        f"{PREFIX}/api/explorer/insights",
+        headers=headers,
+        json={"resource_type": "ticket", "query_text": "no-such-ticket-anywhere"},
+    ).get_json()
+    assert empty["total"] == 0
+    assert all(metric["value"] == 0 for metric in empty["metrics"])
+
+
+@pytest.mark.database
+def test_a_breakdown_collapses_its_tail_rather_than_dropping_it(client, monkeypatch):
+    """A chart whose slices do not add up cannot be reconciled with the list."""
+    body = client.post(
+        f"{PREFIX}/api/explorer/insights",
+        headers=_authenticate(monkeypatch),
+        json={"resource_type": "customer"},
+    ).get_json()
+
+    industry = next(item for item in body["breakdowns"] if item["field"] == "industry")
+    assert sum(point["value"] for point in industry["series"]) == body["total"]
+    if industry["distinct"] > 8:
+        assert industry["series"][-1]["name"].endswith("others")
+
+
+@pytest.mark.database
+def test_every_dataset_declares_insights_and_refuses_an_unknown_one(client, monkeypatch):
+    headers = _authenticate(monkeypatch)
+
+    # Every dataset the catalogue offers can answer this, or an entity page
+    # built on it opens with four empty boxes.
+    for key in ("task", "ticket", "project", "customer", "order", "device"):
+        body = client.post(
+            f"{PREFIX}/api/explorer/insights", headers=headers, json={"resource_type": key}
+        ).get_json()
+        assert body["metrics"], key
+        assert body["breakdowns"], key
+
+    unknown = client.post(
+        f"{PREFIX}/api/explorer/insights", headers=headers, json={"resource_type": "secrets"}
+    )
+    assert unknown.status_code == 400
+    assert client.post(f"{PREFIX}/api/explorer/insights", json={}).status_code == 401
+
+
 # ── relationships (§44, §50) ─────────────────────────────────────────────
 
 

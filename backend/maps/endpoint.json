@@ -166,6 +166,20 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "explorer_insights",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/explorer/insights",
+      "description": "Headline metrics, breakdowns and a trend for the rows the current query selects.",
+      "exec_method": {
+        "module_name": "src.api.explorer",
+        "method_name": "insights"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "explorer_export",
       "model_name": "Empty",
       "request_method": [

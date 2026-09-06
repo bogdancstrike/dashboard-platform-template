@@ -48,6 +48,46 @@ export interface ExplorerResource {
   status_field: string;
 }
 
+/** One headline number a dataset declares about itself (§44). */
+export interface InsightMetric {
+  key: string;
+  label: string;
+  value: number;
+  format: "number" | "currency" | "percent" | "hours" | "minutes" | "score";
+  hint: string;
+  /** The filter that reproduces it, so the tile can be clicked through. */
+  filter: Record<string, string[]>;
+}
+
+export interface SeriesPoint {
+  name: string;
+  value: number;
+}
+
+export interface InsightBreakdown {
+  field: string;
+  label: string;
+  series: SeriesPoint[];
+  /** How many distinct values exist, before the tail was collapsed. */
+  distinct: number;
+}
+
+export interface InsightTrend {
+  field: string;
+  label: string;
+  /** The field summed per bucket, or `count`. */
+  measure: string;
+  series: SeriesPoint[];
+}
+
+export interface ExplorerInsights {
+  resource_type: string;
+  total: number;
+  metrics: InsightMetric[];
+  breakdowns: InsightBreakdown[];
+  trend: InsightTrend | null;
+}
+
 export interface ExplorerCatalogue {
   items: ExplorerResource[];
   view_modes: ExplorerView[];
@@ -136,6 +176,14 @@ export const explorerApi = {
     api.get<ExplorerCatalogue>("/api/explorer/catalog", { signal }),
   query: (body: ExplorerRequest, signal?: AbortSignal) =>
     api.post<ExplorerResult>("/api/explorer/query", body, { signal }),
+  /**
+   * What the current question adds up to (§44).
+   *
+   * Takes the same payload the query takes, so the summary above a list can
+   * never describe a different set of rows from the list itself.
+   */
+  insights: (body: ExplorerRequest, signal?: AbortSignal) =>
+    api.post<ExplorerInsights>("/api/explorer/insights", body, { signal }),
   /**
    * Download the current exploration (§30).
    *

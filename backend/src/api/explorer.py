@@ -23,6 +23,17 @@ def query(app=None, operation: str = "", request=None, **_: Any):
         return service.run(session, json_body(), principal=me()), 200
 
 
+@requires("records.view")
+def insights(app=None, operation: str = "", request=None, **_: Any):
+    """What the current question adds up to, aggregated in SQL.
+
+    Takes the same payload the query takes, so the summary above a list can
+    never describe a different set of rows from the list itself.
+    """
+    with session_scope() as session:
+        return service.insights(session, json_body(), principal=me()), 200
+
+
 @requires("records.view", "records.export")
 def export(app=None, operation: str = "", request=None, **_: Any):
     """Download the current exploration as CSV, JSON or XLSX (§30).

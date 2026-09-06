@@ -38,6 +38,25 @@ function readState(page: Page, label: string) {
   return page.getByTitle(label, { exact: true });
 }
 
+/**
+ * Guarantee the signed-in reader has something unread.
+ *
+ * The demo mailbox is shared and finite. Any run that fails between marking a
+ * row read and putting it back leaves the seed one short, and enough of those
+ * leave a suite that fails with what looks like a product bug — "the unread
+ * filter shows nothing" — on a database that is simply exhausted. Provisioning
+ * instead of assuming makes the suite repeatable without a reseed.
+ */
+async function ensureUnread(page: Page): Promise<void> {
+  await readState(page, "Unread").click();
+  if ((await page.getByRole("button", { name: /as read$/ }).count()) === 0) {
+    await readState(page, "Read").click();
+    await page.getByRole("button", { name: /as unread$/ }).first().click();
+    await readState(page, "Unread").click();
+  }
+  await expect(page.getByRole("button", { name: /as read$/ }).first()).toBeVisible();
+}
+
 test.describe("notification centre", () => {
   test.beforeEach(async ({ page }) => signIn(page, "admin", "/notifications"));
 
@@ -80,7 +99,7 @@ test.describe("notification centre", () => {
   });
 
   test("filtering asks the server and round-trips through the URL", async ({ page }) => {
-    await readState(page, "Unread").click();
+    await ensureUnread(page);
 
     await expect(page).toHaveURL(/read=unread/);
     const rows = centre(page).getByRole("listitem");
@@ -109,17 +128,7 @@ test.describe("notification centre", () => {
   });
 
   test("marking one read and unread again moves the count both ways", async ({ page }) => {
-    await readState(page, "Unread").click();
-
-    // Make sure there is something unread to work with. The demo mailbox is
-    // shared and finite, and a test that only passes on a fresh seed is a test
-    // people stop running.
-    if ((await page.getByRole("button", { name: /as read$/ }).count()) === 0) {
-      await readState(page, "Read").click();
-      await page.getByRole("button", { name: /as unread$/ }).first().click();
-      await readState(page, "Unread").click();
-    }
-    await expect(page.getByRole("button", { name: /as read$/ }).first()).toBeVisible();
+    await ensureUnread(page);
 
     const before = Number(
       (await page.getByTestId("unread-count").textContent())?.replace(/\D/g, "") ?? "0",

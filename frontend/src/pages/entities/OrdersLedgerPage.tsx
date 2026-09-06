@@ -1,0 +1,256 @@
+/**
+ * Orders as a ledger (§7, §3).
+ *
+ * Money is read down a column, aligned, in one typeface, with a total at the
+ * top — so this is the densest table in the platform and makes no apology for
+ * it. What a ledger adds over a list is *reconciliation*: the revenue on the
+ * strip, the trend behind it and the rows below are the same query, so a
+ * reader can check the page against itself.
+ *
+ * Two states matter more than the rest and get their own column each rather
+ * than being folded into one "status": an order can be paid and not shipped,
+ * or shipped and not paid, and collapsing that loses the only two facts
+ * anybody chases.
+ */
+
+import { Card, Skeleton, Space, Table, Tag, Tooltip, Typography } from "antd";
+import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
+import type { SorterResult } from "antd/es/table/interface";
+import { useNavigate } from "react-router-dom";
+
+import type { SeriesPoint } from "@/api/explorer";
+import { ChartCard } from "@/components/ChartCard";
+import { EmptyState, NoResults } from "@/components/EmptyState";
+import { usePageCommands } from "@/commands/CommandContext";
+import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
+import { useEntityView } from "@/entities/useEntityView";
+import { absoluteTime, relativeTime } from "@/lib/time";
+import { knownStatusColor } from "@/theme/tokens";
+
+const { Text } = Typography;
+
+const COLUMNS = [
+  "reference", "status", "payment_status", "fulfilment_status", "channel",
+  "total", "currency", "item_count", "placed_at",
+];
+
+interface OrderRow {
+  id: string;
+  reference?: string;
+  status?: string;
+  payment_status?: string;
+  fulfilment_status?: string;
+  channel?: string;
+  total?: number;
+  currency?: string;
+  item_count?: number;
+  placed_at?: string | null;
+}
+
+const SYMBOL: Record<string, string> = { EUR: "€", USD: "$", GBP: "£" };
+
+export default function OrdersLedgerPage() {
+  const navigate = useNavigate();
+  const view = useEntityView("order", { columns: COLUMNS, defaultSort: "placed_at" });
+  const rows = (view.rows.data?.items ?? []) as OrderRow[];
+  const insights = view.insights.data;
+
+  usePageCommands("entity:order", [
+    {
+      id: "order.unpaid",
+      label: "Show orders awaiting payment",
+      keywords: "money overdue unpaid",
+      run: () => view.setFilter("payment_status", "UNPAID"),
+    },
+    {
+      id: "order.unshipped",
+      label: "Show orders that have not shipped",
+      keywords: "fulfilment delivery pending",
+      run: () => view.setFilter("fulfilment_status", "PENDING"),
+    },
+  ]);
+
+  const columns: ColumnsType<OrderRow> = [
+    {
+      title: "Reference",
+      dataIndex: "reference",
+      width: 140,
+      fixed: "left",
+      sorter: true,
+      render: (value: string) => <Text className="nu-mono">{value}</Text>,
+    },
+    {
+      title: "Placed",
+      dataIndex: "placed_at",
+      width: 130,
+      sorter: true,
+      defaultSortOrder: "descend",
+      render: (value: string | null) => (
+        <Tooltip title={absoluteTime(value)}>
+          <Text>{relativeTime(value)}</Text>
+        </Tooltip>
+      ),
+    },
+    {
+      title: "Order",
+      dataIndex: "status",
+      width: 130,
+      sorter: true,
+      render: (value: string) => (
+        <Tag color={knownStatusColor(value)} bordered={false}>
+          {value}
+        </Tag>
+      ),
+    },
+    {
+      // Two columns rather than one: an order can be paid and unshipped, or
+      // shipped and unpaid, and those are the two facts anybody chases.
+      title: "Payment",
+      dataIndex: "payment_status",
+      width: 130,
+      sorter: true,
+      render: (value: string) => (
+        <Tag color={knownStatusColor(value)} bordered={false}>
+          {value}
+        </Tag>
+      ),
+    },
+    {
+      title: "Fulfilment",
+      dataIndex: "fulfilment_status",
+      width: 130,
+      sorter: true,
+      render: (value: string) => (
+        <Tag color={knownStatusColor(value)} bordered={false}>
+          {value}
+        </Tag>
+      ),
+    },
+    { title: "Channel", dataIndex: "channel", width: 120, sorter: true },
+    {
+      title: "Items",
+      dataIndex: "item_count",
+      width: 80,
+      align: "right",
+      sorter: true,
+    },
+    {
+      title: "Total",
+      dataIndex: "total",
+      width: 140,
+      align: "right",
+      sorter: true,
+      render: (value: number, row) => (
+        <Text strong className="nu-money">
+          {SYMBOL[row.currency ?? "EUR"] ?? ""}
+          {Number(value ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        </Text>
+      ),
+    },
+  ];
+
+  const onChange = (
+    pagination: TablePaginationConfig,
+    _filters: unknown,
+    sorter: SorterResult<OrderRow> | SorterResult<OrderRow>[],
+  ) => {
+    const single = Array.isArray(sorter) ? sorter[0] : sorter;
+    const field = typeof single?.field === "string" ? single.field : view.sort;
+    view.set({
+      page: pagination.current === 1 ? null : (pagination.current ?? null),
+      page_size: pagination.pageSize === 25 ? null : (pagination.pageSize ?? null),
+      sort: single?.order ? field : null,
+      order: single?.order === "ascend" ? "asc" : null,
+    });
+  };
+
+  if (view.catalogue.isLoading) return <Skeleton active paragraph={{ rows: 8 }} />;
+
+  const trend: SeriesPoint[] = insights?.trend?.series ?? [];
+
+  return (
+    <>
+      <EntityHeader
+        view={view}
+        subtitle="Commercial transactions, newest first — with what they are worth and where they are stuck."
+      />
+
+      <MetricStrip view={view} accents={["accent", "success", "info", "warning"]} />
+
+      <ChartCard
+        id="orders-revenue"
+        height={200}
+        panel={{
+          kind: "area",
+          title: "Revenue booked, by day",
+          series: trend.map((point) => ({ bucket: point.name, value: point.value })),
+        }}
+        loading={view.insights.isLoading}
+      />
+
+      <EntityFilters
+        view={view}
+        only={["status", "payment_status", "fulfilment_status", "channel", "currency"]}
+      />
+      <EntityError view={view} />
+
+      <Card size="small" className="nu-block">
+        <Table<OrderRow>
+          rowKey="id"
+          size="small"
+          className="nu-ledger"
+          columns={columns}
+          dataSource={rows}
+          loading={view.rows.isLoading}
+          onChange={onChange}
+          scroll={{ x: 1080 }}
+          onRow={(row) => ({
+            onClick: () => navigate(`/orders/${row.id}`),
+            style: { cursor: "pointer" },
+          })}
+          locale={{
+            emptyText: view.rows.isLoading ? (
+              " "
+            ) : view.filterCount > 0 ? (
+              <NoResults filterCount={view.filterCount} onClear={view.clearFilters} />
+            ) : (
+              <EmptyState title="No orders have been placed yet" />
+            ),
+          }}
+          summary={() =>
+            rows.length > 0 && insights ? (
+              <Table.Summary fixed="bottom">
+                <Table.Summary.Row className="nu-ledger-total">
+                  <Table.Summary.Cell index={0} colSpan={7}>
+                    <Space size={6}>
+                      <Text strong>Total across the filtered set</Text>
+                      <Text type="secondary">
+                        — the server's, not this page's
+                      </Text>
+                    </Space>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={7} align="right">
+                    <Text strong className="nu-money">
+                      €
+                      {Math.round(
+                        insights.metrics.find((metric) => metric.key === "revenue")?.value ?? 0,
+                      ).toLocaleString()}
+                    </Text>
+                  </Table.Summary.Cell>
+                </Table.Summary.Row>
+              </Table.Summary>
+            ) : null
+          }
+          pagination={{
+            current: view.rows.data?.page ?? view.page,
+            pageSize: view.rows.data?.page_size ?? view.pageSize,
+            total: view.rows.data?.total ?? 0,
+            showSizeChanger: true,
+            pageSizeOptions: [25, 50, 100, 200],
+            showTotal: (count, range) => `${range[0]}–${range[1]} of ${count.toLocaleString()}`,
+          }}
+        />
+      </Card>
+    </>
+  );
+}

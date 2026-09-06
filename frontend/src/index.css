@@ -822,3 +822,147 @@ mark.nu-mark {
 .nu-impersonation strong { font-weight: 700; }
 .nu-impersonation .ant-btn { margin-inline-start: auto; }
 .nu-mfa-on { color: var(--nu-success); }
+
+/* ── Entity pages (§7) ────────────────────────────────────────────────────
+   Six datasets, six layouts. They share a metric strip and a filter bar and
+   nothing else, because a kanban board and a fleet monitor are not one page
+   with different columns — which is exactly what made them indistinguishable
+   before. */
+
+.nu-metric-strip {
+  display: grid; gap: 12px; margin-bottom: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+.nu-statcard-unit { margin-left: 2px; font-size: 0.62em; color: var(--nu-text-secondary); }
+.nu-mono { font-family: var(--nu-font-mono); font-size: 0.92em; }
+.nu-money { font-variant-numeric: tabular-nums; }
+
+/* Tasks — the board. Lanes scroll horizontally as a set; a lane scrolls
+   vertically on its own, so a hundred blocked tasks cannot push the next
+   column off the screen. */
+.nu-board {
+  display: grid; gap: 12px; align-items: start;
+  grid-auto-flow: column; grid-auto-columns: minmax(260px, 1fr);
+  overflow-x: auto; padding-bottom: 8px;
+}
+.nu-lane {
+  background: var(--nu-surface); border: 1px solid var(--nu-border-subtle);
+  border-radius: var(--nu-radius-card); padding: 10px;
+  max-height: 72vh; display: flex; flex-direction: column;
+}
+.nu-lane-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.nu-lane-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.nu-lane-title {
+  font-size: 11.5px; font-weight: 650; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--nu-text-secondary);
+}
+.nu-lane-count {
+  margin-left: auto; padding: 0 7px; border-radius: 999px; font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  background: var(--nu-surface-raised); border: 1px solid var(--nu-border-subtle);
+}
+.nu-lane-cards { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+.nu-lane-cards > li + li { margin-top: 8px; }
+.nu-task-card .ant-card-body { padding: 10px; }
+.nu-task-ref { font-family: var(--nu-font-mono); font-size: 11px; }
+.nu-task-title { font-size: 13px; line-height: 1.35; }
+.nu-task-meta { font-size: 11px; }
+.nu-task-meta .ant-typography { font-size: 11px; }
+
+/* Projects — the portfolio timeline. */
+.nu-timeline { display: flex; flex-direction: column; }
+.nu-timeline-axis {
+  position: relative; height: 20px; margin-left: 232px; margin-right: 132px;
+  border-bottom: 1px solid var(--nu-border-subtle);
+}
+.nu-timeline-tick {
+  position: absolute; transform: translateX(-50%);
+  font-size: 11px; color: var(--nu-text-tertiary); white-space: nowrap;
+}
+.nu-timeline-row {
+  display: grid; grid-template-columns: 220px 1fr 120px; gap: 12px;
+  align-items: center; padding: 7px 0; cursor: pointer;
+  border-bottom: 1px solid var(--nu-border-subtle);
+}
+.nu-timeline-row:hover { background: var(--nu-hover); }
+.nu-timeline-row:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: -2px; }
+.nu-timeline-label { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nu-timeline-track { position: relative; height: 20px; }
+.nu-timeline-bar {
+  position: absolute; top: 3px; height: 14px; border-radius: 7px;
+  min-width: 6px; overflow: hidden; opacity: 0.85;
+}
+/* The lighter inner bar is progress; the outer bar is the calendar. Where the
+   two disagree is the whole reason to draw them together. */
+.nu-timeline-progress {
+  display: block; height: 100%;
+  background: color-mix(in srgb, #ffffff 45%, transparent);
+}
+.nu-timeline-undated { font-size: 11.5px; }
+.nu-timeline-burn { font-size: 11px; }
+
+/* Customers — account cards. */
+.nu-account-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+.nu-account .ant-card-body { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.nu-account-head { display: flex; align-items: flex-start; gap: 10px; }
+.nu-account-name { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.nu-account-value { display: flex; align-items: baseline; gap: 6px; }
+.nu-account-amount { font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.nu-account-meta { font-size: 11.5px; }
+.nu-account-contact { margin: 0 !important; font-size: 12px; color: var(--nu-text-secondary); }
+.nu-account-touch { font-size: 11.5px; }
+
+/* Orders — the ledger. Tabular numerals so columns of money line up. */
+.nu-ledger .ant-table-cell { font-variant-numeric: tabular-nums; }
+.nu-ledger-total > td { background: var(--nu-surface-raised) !important; }
+
+/* Tickets — the split queue (§63). */
+.nu-split { display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 12px; align-items: start; }
+@media (max-width: 1100px) { .nu-split { grid-template-columns: 1fr; } }
+.nu-split-list .ant-card-body { padding: 6px; }
+.nu-split-detail { min-height: 420px; }
+.nu-queue { list-style: none; margin: 0; padding: 0; max-height: 66vh; overflow-y: auto; }
+.nu-queue-row {
+  display: flex; gap: 10px; width: 100%; text-align: start;
+  padding: 9px 8px; border: none; background: transparent; cursor: pointer;
+  border-radius: var(--nu-radius-control);
+}
+.nu-queue-row:hover { background: var(--nu-hover); }
+.nu-queue-row.is-open { background: var(--nu-accent-soft); box-shadow: inset 2px 0 0 var(--nu-accent); }
+.nu-queue-row:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: -2px; }
+.nu-queue-severity { width: 4px; border-radius: 2px; flex: none; }
+.nu-queue-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.nu-queue-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.nu-queue-breach { color: var(--nu-danger); }
+.nu-queue-meta { display: flex; align-items: center; gap: 6px; font-size: 11.5px; }
+.nu-queue-pager { display: flex; justify-content: center; padding: 8px 0 2px; }
+.nu-ticket-body { white-space: pre-wrap; margin-bottom: 0 !important; }
+
+/* Devices — the fleet monitor. */
+.nu-fleet {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+.nu-device .ant-card-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.nu-device-head { display: flex; align-items: center; gap: 8px; }
+.nu-device-head > .ant-typography { flex: 1; min-width: 0; }
+.nu-device-serial { font-size: 11px; }
+.nu-gauge { display: flex; align-items: center; gap: 8px; }
+.nu-gauge-icon { font-size: 13px; width: 14px; flex: none; }
+.nu-gauge-track {
+  flex: 1; height: 6px; border-radius: 3px; overflow: hidden;
+  background: var(--nu-border-subtle);
+}
+.nu-gauge-fill { display: block; height: 100%; border-radius: 3px; }
+.nu-gauge-value {
+  width: 26px; text-align: right; font-size: 11px;
+  font-variant-numeric: tabular-nums; color: var(--nu-text-secondary);
+}
+.nu-device-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; font-size: 11.5px; margin-top: 2px;
+}
+.nu-device-seen { white-space: nowrap; }

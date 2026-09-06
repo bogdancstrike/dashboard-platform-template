@@ -46,6 +46,7 @@ function formatValue(value: number, unit: string): string {
 export function StatCard({
   label,
   value,
+  displayValue,
   unit = "",
   icon,
   accent = "accent",
@@ -58,8 +59,16 @@ export function StatCard({
 }: {
   label: string;
   value: number;
+  /**
+   * Pre-formatted, when the caller already knows how the number should read.
+   *
+   * A declared metric arrives with its own format — currency, percent, hours,
+   * a score out of ten — and re-deriving that from a bare number here would be
+   * a second opinion about the same value.
+   */
+  displayValue?: string;
   unit?: string;
-  icon: ReactNode;
+  icon?: ReactNode;
   accent?: string;
   hint?: ReactNode;
   trend?: Trend;
@@ -81,7 +90,11 @@ export function StatCard({
       onClick={onClick}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
-      aria-label={onClick ? `${label}: ${value}. Open the records behind it.` : undefined}
+      aria-label={
+        onClick
+          ? `${label}: ${displayValue ?? value}. Open the records behind it.`
+          : undefined
+      }
       onKeyDown={
         onClick
           ? (event) => {
@@ -95,17 +108,22 @@ export function StatCard({
       style={onClick ? { cursor: "pointer" } : undefined}
     >
       <div className="nu-statcard-row">
-        <div
-          className="nu-statcard-icon"
-          style={{ color, background: `color-mix(in srgb, ${color} 14%, transparent)` }}
-          aria-hidden
-        >
-          {icon}
-        </div>
+        {icon && (
+          <div
+            className="nu-statcard-icon"
+            style={{ color, background: `color-mix(in srgb, ${color} 14%, transparent)` }}
+            aria-hidden
+          >
+            {icon}
+          </div>
+        )}
         <div className="nu-statcard-main">
           <div className="nu-statcard-label">{label}</div>
           <div className="nu-statcard-value">
-            <span className="nu-statcard-number">{formatValue(value, unit)}</span>
+            <span className="nu-statcard-number">
+              {displayValue ?? formatValue(value, unit)}
+              {displayValue && unit ? <span className="nu-statcard-unit">{unit}</span> : null}
+            </span>
             {moved && (
               <Tooltip
                 title={
