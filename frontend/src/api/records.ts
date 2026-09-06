@@ -22,6 +22,10 @@ export interface RecordDetail {
   title_field: string;
   status_field: string;
   fields: RecordField[];
+  /** Declared text fields to read as prose rather than table cells. */
+  content_fields: string[];
+  /** Extension attributes; secret-shaped keys are masked by the server. */
+  metadata: Record<string, unknown>;
   created_at: string | null;
   updated_at: string | null;
 }

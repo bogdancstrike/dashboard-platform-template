@@ -144,13 +144,20 @@ vertical slice with its own tests, its own tracker entry and its own commit.
       browser
 - [x] **`/dashboard` needs far more charts** (§2, §44) — the full ECharts
       vocabulary, following `gif_responder`'s dashboard and going beyond it
-- [ ] **`/explore` needs a record side panel** (§64) — click a row and read the
+- [~] **`/explore` needs a record side panel** (§64) — click a row and read the
       record itself: metadata, full text, related items. `rag-poc`'s data
       explorer is the reference
   - Fetch the complete record independently of visible table columns; show
     article-style text, labelled metadata, timestamps and related records.
     Preserve the search, make the selected record shareable in the URL, and
     support keyboard opening, closing, loading, missing and failed records.
+  - Implemented: `record=<id>` deep links, dedicated detail reads, declared
+    prose fields, order notes, labelled attributes and structured metadata,
+    lazy related-record links, keyboard preview/Escape, and correlation-aware
+    retry/missing/forbidden states. Extension metadata masks nested secret keys.
+  - Local verification: 247 backend tests on PostgreSQL, 188 frontend tests,
+    typecheck, endpoint-map validation and lint pass (14 existing warnings).
+    Deployed browser verification is in progress before marking this complete.
 - [x] **Expand `/dashboard` using Apache ECharts**, informed by
       `/home/bogdan/workspace/dev/gif_responder` and extending its examples:
       meaningful charts and statistics from real backend data, readable table
@@ -165,7 +172,8 @@ vertical slice with its own tests, its own tracker entry and its own commit.
   - Verification: 243 backend tests (live PostgreSQL), 181 frontend tests,
     typecheck and lint (no errors; existing warnings), production Compose build,
     and 13 deployed browser tests covering real canvases, CSV, persistence and
-    shell smoke checks. Final post-push deployment/full browser run follows.
+    shell smoke checks. Commit `db5763a` pushed to `origin/master`; FE/BE
+    redeployed, health probes passed and the full 107-test browser suite passed.
 - [x] **Clean, documented code is required for all today's work** — follow
       the engineering standards above: focused modules, clear naming, SOLID
       where useful, DRY, YAGNI, explicit API contracts, comments explaining

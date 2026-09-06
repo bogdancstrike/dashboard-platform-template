@@ -38,6 +38,8 @@ describe("the dashboard", () => {
     const user = userEvent.setup();
     renderWithProviders(<DashboardPage />, { route: "/?period=last_30_days" });
 
+    // jsdom's media query stub uses the compact period picker.
+    await user.click(await screen.findByRole("combobox", { name: "Dashboard period" }));
     await user.click(await screen.findByText("Last 7 days"));
     // MemoryRouter keeps the search in its own history; the control reflects it.
     expect(await screen.findByText("Last 7 days")).toBeInTheDocument();

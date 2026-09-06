@@ -21,6 +21,7 @@ from typing import Any
 from sqlalchemy import select
 
 from src.core.errors import NotFoundError
+from src.core.audit import MASK, is_secret
 from src.core.pagination import parse_uuid
 from src.services.explorer import Resource, resource_for
 
@@ -62,9 +63,26 @@ def detail(session, resource_type: Any, record_id: Any, *, principal) -> dict[st
         "title_field": resource.title_field,
         "status_field": resource.status_field,
         "fields": fields,
+        "content_fields": list(resource.content_fields),
+        "metadata": _safe_metadata(getattr(row, "metadata_json", None) or {}),
         "created_at": _json_value(getattr(row, "created_at", None)),
         "updated_at": _json_value(getattr(row, "updated_at", None)),
     }
+
+
+def _safe_metadata(value: Any) -> Any:
+    """Keep structured metadata readable while masking secret keys at any depth.
+
+    Metadata is an explicitly exposed extension point; other undeclared ORM
+    fields remain private. Reuse the audit vocabulary so both views agree on
+    what is sensitive, including keys nested inside objects and arrays.
+    """
+    if isinstance(value, dict):
+        return {key: MASK if is_secret(key) else _safe_metadata(item)
+                for key, item in value.items()}
+    if isinstance(value, list):
+        return [_safe_metadata(item) for item in value]
+    return value
 
 
 def _lookup(resource: Resource, identifier):

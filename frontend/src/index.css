@@ -975,3 +975,9 @@ mark.nu-mark {
 .nu-setting-text { display: flex; flex-direction: column; gap: 2px; max-width: 60%; }
 .nu-setting-hint { font-size: 11.5px; line-height: 1.4; }
 .nu-setting-control { flex: none; }
+/* Record previews keep document whitespace and long identifiers within the panel. */
+.nu-record-content { display: grid; gap: 24px; }
+.nu-preview-summary { margin-bottom: 12px; }
+.nu-record-prose p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; margin: 8px 0 0; }
+.nu-record-json { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; font-size: 12px; }
+.nu-record-content .ant-descriptions-item-content { overflow-wrap: anywhere; min-width: 0; }

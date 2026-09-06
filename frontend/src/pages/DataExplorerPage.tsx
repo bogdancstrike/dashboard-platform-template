@@ -119,7 +119,7 @@ export default function DataExplorerPage() {
   const settling = results.isFetching || request !== debouncedRequest;
 
   /** The record shown in the preview drawer, if any. */
-  const [preview, setPreview] = useState<ExplorerRecord | null>(null);
+  const previewId = params.get("record") ?? "";
 
   /**
    * List and card modes accumulate pages instead of replacing them (§52).
@@ -330,7 +330,7 @@ export default function DataExplorerPage() {
               : {})}
             onPage={(nextPage, nextSize) => set({ page: nextPage, page_size: nextSize })}
             onSort={(field, direction) => set({ sort: field, order: direction, page: null })}
-            onPreview={setPreview}
+            onPreview={(record) => set({ record: record.id, resource: results.data?.resource_type ?? requestedResource }, false)}
           />
         )}
       </Card>
@@ -351,10 +351,10 @@ export default function DataExplorerPage() {
       )}
 
       <RecordPreview
-        open={Boolean(preview)}
-        record={preview}
-        result={results.data}
-        onClose={() => setPreview(null)}
+        resourceType={requestedResource}
+        recordId={previewId}
+        term={queryText}
+        onClose={() => set({ record: null })}
       />
 
       <SavedSearchDrawer

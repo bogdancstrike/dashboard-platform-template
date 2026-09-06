@@ -43,6 +43,47 @@ def test_a_record_needs_a_bearer_token(client):
     assert client.get(f"{PREFIX}/api/records/ticket/{uuid4()}").status_code == 401
 
 
+def test_extension_metadata_masks_secret_keys_recursively_without_mutating_storage():
+    from src.core.audit import MASK
+    from src.services.records import _safe_metadata
+
+    stored = {"source": "portal", "nested": [{"API_KEY": "private", "tag": "public"}]}
+    assert _safe_metadata(stored) == {
+        "source": "portal", "nested": [{"API_KEY": MASK, "tag": "public"}],
+    }
+    assert stored["nested"][0]["API_KEY"] == "private"
+
+
+@pytest.mark.database
+def test_detail_preserves_the_full_body_and_declares_its_presentation(client, monkeypatch):
+    ticket = _a_ticket()
+    body = client.get(f"{PREFIX}/api/records/ticket/{ticket.id}",
+                      headers=_authenticate(monkeypatch)).get_json()
+    assert body["content_fields"] == ["description"]
+    assert next(field["value"] for field in body["fields"] if field["name"] == "description") == ticket.description
+    assert body["metadata"] == (ticket.metadata_json or {})
+
+
+@pytest.mark.database
+def test_order_notes_are_available_even_when_not_selected_as_list_columns(client, monkeypatch):
+    from src.core.db import session_scope
+    from src.models.business import Order
+
+    with session_scope() as session:
+        order = session.scalars(select(Order).where(Order.notes.isnot(None),
+                                                   Order.deleted_at.is_(None)).limit(1)).one()
+    body = client.get(f"{PREFIX}/api/records/order/{order.id}",
+                      headers=_authenticate(monkeypatch)).get_json()
+    assert body["content_fields"] == ["notes"]
+    assert next(field["value"] for field in body["fields"] if field["name"] == "notes") == order.notes
+
+
+@pytest.mark.database
+def test_invalid_record_identifiers_do_not_match_the_uuid_route(client, monkeypatch):
+    response = client.get(f"{PREFIX}/api/records/task/not-a-uuid", headers=_authenticate(monkeypatch))
+    assert response.status_code == 404
+
+
 @pytest.mark.database
 def test_a_record_carries_every_field_its_declaration_publishes(client, monkeypatch):
     ticket = _a_ticket()

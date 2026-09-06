@@ -160,10 +160,8 @@ export function ExplorerResults({
               <PreviewButton record={item} onPreview={onPreview} />
             </div>
           );
-          const open = onOpen;
-          const clickable = open
-            ? { onClick: () => open(item), style: { cursor: "pointer" } }
-            : {};
+          const open = onOpen ?? onPreview;
+          const clickable = { onClick: () => open(item), style: { cursor: "pointer" } };
           return view === "cards" ? (
             <List.Item>
               <Card size="small" {...clickable}>{body}</Card>

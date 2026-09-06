@@ -1,130 +1,83 @@
 /**
- * A record's full detail beside the list it came from (§64).
+ * Fetch a complete record beside its search results (§64).
  *
- * The point of a preview is to answer "is this the row I want?" without losing
- * the list — going to a detail page and back costs the scroll position, the
- * page, and the reader's place in a comparison they were part-way through.
- *
- * It shows *every* declared field, not only the visible columns: the columns
- * are what somebody chose to compare across rows, and the preview is where the
- * rest of the record lives.
+ * The URL owns identity; the record API owns content. A projected table row is
+ * never used as detail data, so hiding a column cannot hide the article body.
+ * Requests are scoped by resource and ID and cancelled when selection changes.
  */
+import { useQuery } from "@tanstack/react-query";
+import { App, Button, Drawer, Skeleton, Space, Tabs, Tag, Tooltip, Typography } from "antd";
+import { ApartmentOutlined, CopyOutlined, ExportOutlined, LinkOutlined } from "@ant-design/icons";
+import { Link, useNavigate } from "react-router-dom";
 
-import { App, Button, Descriptions, Drawer, Space, Tooltip, Typography } from "antd";
-import { ApartmentOutlined, CopyOutlined, LinkOutlined } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
-
-import type { ExplorerField, ExplorerResult } from "@/api/explorer";
-import { HighlightedText } from "@/components/HighlightedText";
-import { asText } from "@/lib/text";
-
-const { Text } = Typography;
+import { recordsApi } from "@/api/records";
+import { knownStatusColor } from "@/theme/tokens";
+import { RecordContent } from "./RecordContent";
+import { RecordReadError } from "./RecordReadError";
+import { RecordRelations } from "./RecordRelations";
 
 export interface RecordPreviewProps {
-  open: boolean;
-  record: (Record<string, unknown> & { id: string }) | null;
-  result: ExplorerResult | undefined;
+  resourceType: string;
+  recordId: string;
+  term?: string;
   onClose: () => void;
 }
 
-export function RecordPreview({ open, record, result, onClose }: RecordPreviewProps) {
+export function RecordPreview({ resourceType, recordId, term = "", onClose }: RecordPreviewProps) {
   const { message } = App.useApp();
   const navigate = useNavigate();
-  if (!record || !result) return null;
+  const record = useQuery({
+    queryKey: ["record", resourceType, recordId],
+    queryFn: ({ signal }) => recordsApi.get(resourceType, recordId, signal),
+    enabled: Boolean(resourceType && recordId),
+  });
+  const data = record.data;
 
-  const fields = result.fields;
-  const title = asText(record[result.columns[0] ?? "id"]) || record.id;
-
-  const copy = async (value: string, what: string) => {
+  const copy = async (value: string, label: string) => {
     try {
       await navigator.clipboard.writeText(value);
-      message.success(`${what} copied`);
+      message.success(`${label} copied`);
     } catch {
-      // Clipboard access is denied in some contexts; saying so beats a silent
-      // no-op that looks like the button is broken.
       message.warning("Your browser would not let the page copy that");
     }
   };
 
   return (
     <Drawer
-      open={open}
-      width="min(560px, 94vw)"
+      open={Boolean(recordId)}
+      width="min(680px, 96vw)"
       onClose={onClose}
-      title={<span className="nu-preview-title">{title}</span>}
-      extra={
-        <Space>
-          <Tooltip title="Follow this record's connections">
-            <Button
-              icon={<ApartmentOutlined />}
-              aria-label="Show connections"
-              onClick={() =>
-                navigate(
-                  `/find/relationships?resource=${result.resource_type}&id=${record.id}`,
-                )
-              }
-            />
-          </Tooltip>
-          <Tooltip title="Copy this record's id">
-            <Button
-              icon={<CopyOutlined />}
-              aria-label="Copy record id"
-              onClick={() => void copy(record.id, "Record id")}
-            />
-          </Tooltip>
-          <Tooltip title="Copy a link to this exact view">
-            <Button
-              icon={<LinkOutlined />}
-              aria-label="Copy link to this view"
-              onClick={() => void copy(window.location.href, "Link")}
-            />
-          </Tooltip>
-        </Space>
-      }
+      title={<span className="nu-preview-title">{data?.title ?? "Record preview"}</span>}
+      extra={<Space size={4}>
+        <Tooltip title="Copy record ID">
+          <Button icon={<CopyOutlined />} aria-label="Copy record id"
+            onClick={() => void copy(recordId, "Record id")} />
+        </Tooltip>
+        <Tooltip title="Copy a link to this record and search">
+          <Button icon={<LinkOutlined />} aria-label="Copy link to this view"
+            onClick={() => void copy(window.location.href, "Link")} />
+        </Tooltip>
+      </Space>}
     >
-      <Descriptions
-        className="nu-preview"
-        column={1}
-        size="small"
-        bordered
-        items={fields.map((field) => ({
-          key: field.name,
-          label: field.label,
-          children: (
-            <PreviewValue
-              value={record[field.name]}
-              field={field}
-              term={result.searchable.includes(field.name) ? result.query_text : ""}
-            />
-          ),
-        }))}
-      />
+      {record.isLoading && <Skeleton active paragraph={{ rows: 12 }} />}
+      {record.isError && <RecordReadError error={record.error} onRetry={() => void record.refetch()} />}
+      {data && !record.isError && <>
+        <Space wrap size={8} className="nu-preview-summary">
+          <Typography.Text type="secondary">{data.resource_label}</Typography.Text>
+          {data.subtitle && <Typography.Text code>{data.subtitle}</Typography.Text>}
+          {data.status && <Tag color={knownStatusColor(data.status)}>{data.status}</Tag>}
+          <Link to={`${data.path}/${data.id}`}><ExportOutlined /> Open full record</Link>
+          <Button type="link" aria-label="Show connections" icon={<ApartmentOutlined />}
+            onClick={() => navigate(`/find/relationships?resource=${resourceType}&id=${recordId}`)}>
+            Connections
+          </Button>
+        </Space>
+        <Tabs key={`${resourceType}:${recordId}`} defaultActiveKey="record" items={[
+          { key: "record", label: "Record", children: <RecordContent record={data} term={term} /> },
+          { key: "related", label: "Related records", children:
+            <RecordRelations resourceType={resourceType} recordId={recordId} /> },
+        ]} />
+      </>}
     </Drawer>
-  );
-}
-
-function PreviewValue({
-  value,
-  field,
-  term,
-}: {
-  value: unknown;
-  field: ExplorerField;
-  term: string;
-}) {
-  if (value === null || value === undefined || value === "") {
-    // A field the record does not carry is different from one the result did
-    // not ask for; both are absent here, and neither is an error.
-    return <Text type="secondary">—</Text>;
-  }
-  if (field.kind === "datetime") {
-    const parsed = new Date(asText(value));
-    return <Text>{Number.isNaN(parsed.valueOf()) ? asText(value) : parsed.toLocaleString()}</Text>;
-  }
-  if (field.kind === "bool") return <Text>{value ? "Yes" : "No"}</Text>;
-  return (
-    <Text>
-      <HighlightedText text={asText(value)} term={term} />
-    </Text>
   );
 }

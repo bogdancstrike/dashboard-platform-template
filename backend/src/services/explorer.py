@@ -92,6 +92,9 @@ class Resource:
     title_field: str = "name"
     subtitle_field: str = ""
     status_field: str = "status"
+    #: Long-form fields read as document sections in record previews. Explicit
+    #: opt-in keeps a new database column from becoming public by accident.
+    content_fields: tuple[str, ...] = ()
     #: What this dataset can say about itself above a list (§44).
     insight: Insight = Insight()
 
@@ -143,6 +146,7 @@ def _resources() -> dict[str, Resource]:
             ),
             ("reference", "title", "status", "priority", "due_date", "progress", "updated_at"),
             route="/tasks", title_field="title", subtitle_field="reference",
+            content_fields=("description",),
             insight=Insight(
                 metrics=(
                     Metric("total", "Work items"),
@@ -181,6 +185,7 @@ def _resources() -> dict[str, Resource]:
             ),
             ("reference", "subject", "status", "priority", "severity", "due_at", "sla_breached"),
             route="/tickets", title_field="subject", subtitle_field="reference",
+            content_fields=("description",),
             insight=Insight(
                 metrics=(
                     Metric("total", "Tickets"),
@@ -220,6 +225,7 @@ def _resources() -> dict[str, Resource]:
             ),
             ("code", "name", "status", "health", "priority", "progress", "due_date"),
             route="/projects", title_field="name", subtitle_field="code",
+            content_fields=("description",),
             insight=Insight(
                 metrics=(
                     Metric("total", "Projects"),
@@ -273,6 +279,7 @@ def _resources() -> dict[str, Resource]:
             "order", "Orders", "Commercial transactions, fulfilment and payment state.", Order,
             FieldSet(
                 Field("reference", Order.reference, searchable=True, label="Reference"),
+                Field("notes", Order.notes, searchable=True),
                 Field("status", Order.status, kind="enum", facet=True,
                       choices=vocabulary.ORDER_STATUS),
                 Field("payment_status", Order.payment_status, kind="enum", facet=True,
@@ -292,6 +299,7 @@ def _resources() -> dict[str, Resource]:
             ("reference", "status", "payment_status", "fulfilment_status", "channel", "total", "placed_at"),
             default_sort="placed_at",
             route="/orders", title_field="reference",
+            content_fields=("notes",),
             insight=Insight(
                 metrics=(
                     Metric("total", "Orders"),

@@ -596,6 +596,8 @@ export function auditPage(items = auditRows) {
 
 
 export const recordDetail = {
+  content_fields: ["description"],
+  metadata: { source: "Customer portal", tags: ["migration", "enterprise"] },
   id: "task-1",
   resource_type: "task",
   resource_label: "Tasks",
