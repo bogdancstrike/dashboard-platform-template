@@ -281,9 +281,24 @@ vertical slice with its own tests, its own tracker entry and its own commit.
     the route's `UUID` back unconverted, which is a 500 *after* the delete has
     committed — a request that reports failure having succeeded. A test now
     asserts the response body, not only that the row went
-- [ ] **The sidebar's collapsed state is a preference** (§1, §40) — stored on
+- [x] **The sidebar's collapsed state is a preference** (§1, §40) — stored on
       the account beside theme and density, so it follows the reader to another
       browser rather than living only in this one's localStorage
+  - The field and the settings control already existed; what was missing is
+    that *collapsing the sidebar itself* wrote nothing. It does now
+  - Only an explicit toggle writes. The responsive collapse on a narrow window
+    is a consequence of the window, and storing it would mean resizing a
+    browser silently changed a setting
+  - The localStorage fast path stays, so the first paint after a reload does
+    not flash an expanded sidebar before the profile arrives
+  - **Acceptance**: met — an e2e test collapses it, opens the account in a
+    browser context with no storage at all, and finds it collapsed there
+- [x] **Two real contrast failures fixed on the way** (§55) — links and the
+      selected tab were left to AntD's derivation, which lands on #6666d4 in
+      light mode (4.47:1 against an off-white panel) and #6c6cd3 in dark
+      (3.75:1 at 13px). Both are now named from the accent ramp: 5.4:1 and
+      6.5:1. Found by the axe assertion on the record preview, which is what
+      that assertion is for
 - [ ] **Lanes can be created, renamed and removed** (§18) — on `/kanban`, where
       a lane is a row a person owns. On `/tasks` a lane is the declared status
       vocabulary and stays that way: the board is a view of the work queue, and
@@ -1489,7 +1504,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
       notification centre's six states, the header bell, the audit explorer,
       the per-record timeline, the authenticated download path, the generic
       entity list and detail pages, the connection map and the permission matrix
-- [~] Playwright e2e suite — 119 tests green against `docker compose up` on the
+- [~] Playwright e2e suite — 120 tests green against `docker compose up` on the
       full seed, covering the shell, appearance, Data Explorer, saved searches,
       global search, relationships, the catalogue, the notification centre, the
       audit explorer, a real file download, all six entity lists, record
@@ -1510,6 +1525,23 @@ Each endpoint ships with its five-case integration test and the page consuming i
     position can be reordered by a background refetch before it is clicked, and
     an AntD option located by `.first()` finds rc-virtual-list's zero-width
     measurement copy
+  - Three more, as the suite passed a hundred tests. Each was the test being
+    wrong rather than the product:
+    * **axe measured a drawer mid-animation.** A colour sampled during the
+      transition is a blend of the text and what is behind it, which axe
+      reports as a serious contrast failure on every element at once — for a
+      frame no reader ever sees. The scan now waits for the document to stop
+      animating, and the two *real* contrast failures it had been masking are
+      fixed
+    * **A date-format assertion read the newest audit row.** The ledger renders
+      anything younger than a week as "3d ago", and the newest row is now
+      usually something the suite itself just wrote. It reads the entry
+      drawer, which always prints the full instant
+    * **The worker cap is three, not four.** The failures at four were
+      sign-ins timing out against Keycloak rather than anything in the
+      product, and a suite whose failures are about its own concurrency
+      teaches people to rerun instead of to read. Three consecutive full runs
+      at the new cap; one flake in four before it
 - [x] Frontend typecheck + production build
 - [ ] Accessibility — axe clean on every route (§55)
 - [ ] Performance — list page interactive under 1.5s against the seeded database

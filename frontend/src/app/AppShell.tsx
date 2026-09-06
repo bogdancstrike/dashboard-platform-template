@@ -35,6 +35,7 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { STORAGE_KEYS } from "@/config";
 import { usePollInterval } from "@/live/LiveProvider";
 import { landingPath } from "@/pages/PreferencesPage";
+import { usePreferences } from "@/settings/PreferencesProvider";
 import { useAppearance } from "@/theme/AppearanceProvider";
 import { NAV_GROUPS, NAV_ITEMS, selectedKeyFor, trailFor } from "./navigation";
 
@@ -63,6 +64,7 @@ export function AppShell() {
   const { mode, setAppearance, appearance } = useAppearance();
   const auth = useAuth();
   const impersonation = useImpersonation();
+  const { preferences, save: savePreference } = usePreferences();
 
   const isMobile = screens.lg === false;
   const roomy = screens.xl === true;
@@ -91,6 +93,22 @@ export function AppShell() {
     preferenceApplied.current = true;
     if (!isMobile && roomy) setCollapsed(auth.profile.preferences.appearance.sidebar_collapsed);
   }, [auth.profile, isMobile, roomy]);
+
+  /**
+   * Collapsing the sidebar is a decision, and decisions are preferences (§40).
+   *
+   * Saved to the account rather than only to this browser, so it follows the
+   * reader to a second machine — the same promise theme, density and page size
+   * make. Only an *explicit* toggle writes: the responsive collapse above is a
+   * consequence of the window being narrow, and storing that would mean
+   * resizing a window silently changed a setting.
+   */
+  const chooseCollapsed = (next: boolean) => {
+    setCollapsed(next);
+    if (!isMobile && next !== preferences.appearance.sidebar_collapsed) {
+      savePreference({ appearance: { sidebar_collapsed: next } });
+    }
+  };
 
   useEffect(() => {
     try {
@@ -168,7 +186,7 @@ export function AppShell() {
         theme="dark"
         collapsible={!isMobile}
         collapsed={!isMobile && collapsed}
-        onCollapse={setCollapsed}
+        onCollapse={chooseCollapsed}
         width={248}
         collapsedWidth={isMobile ? 0 : 72}
       >

@@ -43,6 +43,14 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
       // Lighter in dark mode: #5b5bd6 on charcoal is legible but heavy, and
       // an accent that has to be hunted for stops being an accent.
       colorPrimary: dark ? ACCENT[400] : ACCENT[500],
+      // Links are the accent itself, not the tint AntD derives from it.
+      // The derived value (#6666d4) measures 4.47:1 against the off-white a
+      // drawer body paints — just under the 4.5:1 body-text threshold (§55),
+      // which axe reports as a serious violation on the record preview. The
+      // token itself is 5.05:1 there and 5.37:1 on white.
+      colorLink: dark ? ACCENT[300] : ACCENT[500],
+      colorLinkHover: dark ? ACCENT[200] : ACCENT[600],
+      colorLinkActive: dark ? ACCENT[400] : ACCENT[700],
       colorInfo: SEMANTIC.info,
       colorSuccess: SEMANTIC.success,
       colorWarning: SEMANTIC.warning,
@@ -99,7 +107,16 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
       },
       Card: { paddingLG: scale.padding + 4 },
       Descriptions: { itemPaddingBottom: scale.padding },
-      Tabs: { horizontalMargin: "0 0 12px 0" },
+      Tabs: {
+        horizontalMargin: "0 0 12px 0",
+        // The selected tab is named explicitly rather than left to the dark
+        // algorithm's derivation, which lands on #6c6cd3 — 3.75:1 against a
+        // charcoal panel, under the 4.5:1 body-text threshold at 13px (§55).
+        // Named, it is 6.5:1 in dark and 5.4:1 in light.
+        itemSelectedColor: dark ? ACCENT[300] : ACCENT[500],
+        itemHoverColor: dark ? ACCENT[200] : ACCENT[600],
+        inkBarColor: dark ? ACCENT[300] : ACCENT[500],
+      },
       Tooltip: { colorBgSpotlight: dark ? INK[700] : NEUTRAL[800] },
       Modal: { borderRadiusLG: RADIUS.modal },
       Drawer: { paddingLG: 16 },

@@ -84,18 +84,52 @@ test.describe("preferences", () => {
     const fresh = await browser.newContext();
     const other = await fresh.newPage();
     try {
-      await signIn(other, "admin", "/admin/audit");
+      await signIn(other, "admin", "/admin/audit?action=UPDATE&resource_type=ticket");
       // Every timestamp in the platform reads the preference, not just the
       // page that set it — an audit row is as far from it as anything gets.
-      const row = other.getByRole("table").last().getByRole("row").nth(1);
+      //
+      // The *entry*, not the table cell: the ledger renders anything younger
+      // than a week as "3d ago", so which format a row shows depends on how
+      // recently somebody happened to edit a ticket. The drawer always prints
+      // the full instant, which is exactly the value a format applies to.
+      await other.getByRole("table").last().getByRole("row").nth(1).click();
+      const entry = other.getByRole("dialog");
+      await expect(entry).toBeVisible();
       // Slashes, not the ISO the seed ships — so the value came from the
       // account rather than from a default this browser has never overridden.
-      await expect(row).toContainText(/\d{1,2}\/\d{1,2}\/\d{4}/);
-      await expect(row).not.toContainText(/\d{4}-\d{2}-\d{2}/);
+      await expect(entry).toContainText(/\d{1,2}\/\d{1,2}\/\d{4}/);
+      await expect(entry.getByText(/\d{4}-\d{2}-\d{2}/)).toHaveCount(0);
     } finally {
       await fresh.close();
       await page.reload();
       await setDateFormat(page, "2026-09-06");
+    }
+  });
+
+  test("collapsing the sidebar is a preference, not a habit of this browser", async ({
+    page,
+    browser,
+  }) => {
+    await signIn(page, "admin", "/dashboard");
+    const sider = page.locator(".nu-sider");
+    await expect(sider).toBeVisible();
+
+    // AntD's own trigger at the foot of the sider — the control a reader uses.
+    await page.locator(".ant-layout-sider-trigger").click();
+    await expect(sider).toHaveClass(/ant-layout-sider-collapsed/);
+
+    const fresh = await browser.newContext();
+    const other = await fresh.newPage();
+    try {
+      // A browser with no storage at all. A collapsed sidebar here came from
+      // the account, which is the whole difference between a preference and a
+      // habit of one machine (§40).
+      await signIn(other, "admin", "/dashboard");
+      await expect(other.locator(".nu-sider")).toHaveClass(/ant-layout-sider-collapsed/);
+    } finally {
+      await fresh.close();
+      await page.locator(".ant-layout-sider-trigger").click();
+      await expect(sider).not.toHaveClass(/ant-layout-sider-collapsed/);
     }
   });
 

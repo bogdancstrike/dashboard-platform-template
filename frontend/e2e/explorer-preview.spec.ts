@@ -26,6 +26,19 @@ test("a narrow table opens full text, metadata and related records, and survives
   await page.reload();
   await expect(dialog.getByRole("article").locator("p")).toHaveText(String(text));
 
+  // Let the drawer finish arriving before measuring it.
+  //
+  // AntD fades and slides the panel in, and a colour sampled mid-transition is
+  // a *blend* of the text and whatever is behind it — which axe then reports
+  // as a serious contrast failure on every element at once, for a frame no
+  // reader ever sees. Measured at rest the same link is 5.4:1 in light mode
+  // and 4.8:1 in dark. So the wait is for the document to stop animating,
+  // not a sleep: a fixed delay is either too short on a loaded machine or
+  // wasted on a fast one.
+  await page.waitForFunction(() =>
+    document.getAnimations().every((animation) => animation.playState !== "running"),
+  );
+
   const accessibility = await new AxeBuilder({ page }).include(".ant-drawer-content").analyze();
   expect(accessibility.violations.filter((violation) => ["serious", "critical"].includes(violation.impact ?? ""))).toEqual([]);
   await page.setViewportSize({ width: 390, height: 844 });

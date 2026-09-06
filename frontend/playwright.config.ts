@@ -21,7 +21,12 @@ export default defineConfig({
   // with two gevent workers and one Keycloak. Test parallelism that outruns
   // the system under test produces flakes that read exactly like product bugs,
   // and chasing those costs more than the minute the cap adds.
-  workers: process.env["CI"] ? 1 : Number(process.env["E2E_WORKERS"] ?? 4),
+  //
+  // Three rather than four since the suite passed a hundred tests: the ones
+  // that failed at four were sign-ins timing out — Keycloak, not the product —
+  // and a suite whose failures are about its own concurrency teaches people to
+  // rerun rather than to read.
+  workers: process.env["CI"] ? 1 : Number(process.env["E2E_WORKERS"] ?? 3),
   reporter: process.env["CI"] ? [["github"], ["html", { open: "never" }]] : [["list"]],
   timeout: 30_000,
   expect: { timeout: 10_000 },

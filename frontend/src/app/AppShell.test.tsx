@@ -8,6 +8,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import { AuthProvider } from "@/auth/AuthProvider";
 import { CommandProvider } from "@/commands/CommandContext";
+import { PreferencesProvider } from "@/settings/PreferencesProvider";
 import { server } from "@/test/server";
 import { currentUser } from "@/test/handlers";
 import { makeQueryClient } from "@/test/render";
@@ -20,16 +21,18 @@ function renderShell(route = "/dashboard") {
       <AppearanceProvider>
         <AntApp>
           <AuthProvider>
-            <MemoryRouter initialEntries={[route]}>
-              <CommandProvider>
-                <Routes>
-                  <Route element={<AppShell />}>
-                    <Route path="dashboard" element={<div>Dashboard content</div>} />
-                    <Route path="admin" element={<div>Admin content</div>} />
-                  </Route>
-                </Routes>
-              </CommandProvider>
-            </MemoryRouter>
+            <PreferencesProvider>
+              <MemoryRouter initialEntries={[route]}>
+                <CommandProvider>
+                  <Routes>
+                    <Route element={<AppShell />}>
+                      <Route path="dashboard" element={<div>Dashboard content</div>} />
+                      <Route path="admin" element={<div>Admin content</div>} />
+                    </Route>
+                  </Routes>
+                </CommandProvider>
+              </MemoryRouter>
+            </PreferencesProvider>
           </AuthProvider>
         </AntApp>
       </AppearanceProvider>
