@@ -11,9 +11,11 @@ from __future__ import annotations
 from typing import Any
 
 from src.core.db import session_scope
+from src.core.auth import requires
 from src.services import dashboard as service
 
 
+@requires("records.view")
 def summary(app=None, operation: str = "", request=None, **_: Any):
     """The overview, for one period.
 
@@ -33,6 +35,7 @@ def summary(app=None, operation: str = "", request=None, **_: Any):
         ), 200
 
 
+@requires("records.view")
 def alerts(app=None, operation: str = "", request=None, **_: Any):
     """Just the alert strip, for the polling the dashboard does between loads."""
     with session_scope() as session:

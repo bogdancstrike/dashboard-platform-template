@@ -14,9 +14,9 @@ Every KPI names the list it drills into, with the filters already applied
 (§44). A tile that shows a number and cannot tell you which rows it counted is
 a tile that starts an investigation instead of ending one.
 
-All of it is one pass over PostgreSQL. The dashboard is the most-loaded screen
-in any platform of this shape, and a screen that issues thirty queries is a
-screen that gets cached badly and then shows stale numbers.
+Aggregates run in PostgreSQL; the browser receives chart-sized results rather
+than downloading whole datasets to count them. Snapshot panels explicitly say
+so because their current state does not represent the selected historical range.
 """
 
 from __future__ import annotations
@@ -26,6 +26,7 @@ from typing import Any
 
 from sqlalchemy import Numeric, and_, case, cast, func, or_, select
 
+from src.core import vocabulary
 from src.core.clock import iso, now, previous_period, resolve_range
 
 #: The named ranges the period picker offers.
@@ -259,8 +260,61 @@ def _series(session, column, value_column, start: datetime, end: datetime, *clau
     ]
 
 
+def _grouped_series(
+    session, column, group_column, start: datetime, end: datetime, *clauses, limit: int = 5
+):
+    """A time series split by a second dimension — the stacked-bar shape.
+
+    Two GROUP BYs rather than one query per group: "orders by channel over
+    twelve weeks" is one statement, and asking it five times because the chart
+    has five stacks is five times the work for the same answer.
+
+    The groups are capped and the tail folded into `Other`, because a stack of
+    twenty is a colour wheel, and because the palette only has ten colours that
+    are distinguishable from one another.
+    """
+    grain = _bucket(start, end)
+    bucket = func.date_trunc(grain, column)
+    statement = (
+        select(bucket.label("bucket"), group_column.label("group"), func.count().label("value"))
+        .where(and_(column >= start, column < end))
+        .group_by(bucket, group_column)
+        .order_by(bucket)
+    )
+    for clause in clauses:
+        statement = statement.where(clause)
+
+    rows = session.execute(statement).all()
+    totals: dict[str, float] = {}
+    for row in rows:
+        name = str(row.group or "—")
+        totals[name] = totals.get(name, 0) + float(row.value or 0)
+
+    kept = [name for name, _ in sorted(totals.items(), key=lambda item: -item[1])[:limit]]
+    # Fold the tail per bucket so chart, table and CSV contain the same cells.
+    cells: dict[tuple[str, str], float] = {}
+    for row in rows:
+        name = str(row.group or "—")
+        key = (iso(row.bucket), name if name in kept else "Other")
+        cells[key] = cells.get(key, 0) + float(row.value or 0)
+    series = [{"bucket": bucket, "group": group, "value": value}
+              for (bucket, group), value in cells.items()]
+    groups = [*kept, "Other"] if len(totals) > len(kept) else kept
+    return series, groups
+
+
 def charts(session, start: datetime, end: datetime) -> dict[str, Any]:
-    from src.models.business import Order, Project, Task, Ticket
+    """Every panel the dashboard draws, aggregated in PostgreSQL.
+
+    The vocabulary is deliberately wide — line, area, bar, horizontal bar,
+    stacked bar, pie, funnel, gauge, scatter and heatmap — because this is a
+    template, and a template that only demonstrates a bar chart teaches people
+    to reach for a bar chart. Each kind is here because a *question* wanted it:
+    a funnel because fulfilment is a sequence with drop-off, a heatmap because
+    "when does support get busy" is two dimensions, a scatter because budget
+    against progress is a correlation and a bar chart of either alone hides it.
+    """
+    from src.models.business import Customer, Device, Order, Project, Task, Ticket
     from src.models.identity import Region
 
     booked = ~Order.status.in_(("CANCELLED", "REFUNDED"))
@@ -270,6 +324,10 @@ def charts(session, start: datetime, end: datetime) -> dict[str, Any]:
     )
     order_series = _series(session, Order.placed_at, func.count(), start, end)
     ticket_series = _series(session, Ticket.created_at, func.count(), start, end)
+    resolved_series = _series(
+        session, Ticket.resolved_at, func.count(), start, end,
+        Ticket.deleted_at.is_(None),
+    )
 
     def grouped(column, label_column=None, *clauses, limit: int = 12):
         target = label_column if label_column is not None else column
@@ -293,6 +351,11 @@ def charts(session, start: datetime, end: datetime) -> dict[str, Any]:
         ).all()
     ]
 
+    channel_series, channels = _grouped_series(
+        session, Order.placed_at, Order.channel, start, end, booked
+    )
+    portfolio = _budget_vs_progress(session, Project)
+
     return {
         "grain": _bucket(start, end),
         "revenue_over_time": {
@@ -310,9 +373,27 @@ def charts(session, start: datetime, end: datetime) -> dict[str, Any]:
             "title": "Tickets raised",
             "series": ticket_series,
         },
+        # Raised against resolved on one axis: the gap *is* the backlog, and
+        # two separate charts leave the reader subtracting by eye.
+        "ticket_flow": {
+            "kind": "multi-line",
+            "title": "Tickets raised against resolved",
+            "groups": ["Raised", "Resolved"],
+            "series": [
+                *({**point, "group": "Raised"} for point in ticket_series),
+                *({**point, "group": "Resolved"} for point in resolved_series),
+            ],
+        },
+        "orders_by_channel": {
+            "kind": "stacked-bar",
+            "title": "Orders by channel",
+            "groups": channels,
+            "series": channel_series,
+        },
         "tickets_by_category": {
             "kind": "bar",
             "title": "Tickets by category",
+            "description": "Current open tickets · all dates",
             "series": grouped(
                 Ticket.category, None, ~Ticket.status.in_(("RESOLVED", "CLOSED"))
             ),
@@ -320,19 +401,196 @@ def charts(session, start: datetime, end: datetime) -> dict[str, Any]:
         "tasks_by_status": {
             "kind": "bar",
             "title": "Tasks by status",
+            "description": "Current task state · all dates",
             "series": grouped(Task.status, None, Task.deleted_at.is_(None)),
         },
         "projects_by_health": {
             "kind": "pie",
             "title": "Projects by health",
-            "series": grouped(Project.health, None, Project.status == "ACTIVE"),
+            "description": "Current active projects · all dates",
+            "series": grouped(Project.health, None, Project.status == "ACTIVE", Project.deleted_at.is_(None)),
         },
         "revenue_by_region": {
             "kind": "bar",
             "title": "Revenue by region",
             "series": revenue_by_region,
         },
+        "top_customers": {
+            # Horizontal, because these are names: a vertical bar chart of ten
+            # company names is ten tilted labels nobody reads.
+            "kind": "hbar",
+            "title": "Largest accounts by lifetime value",
+            "description": "Lifetime value · current accounts",
+            "unit": "currency",
+            "series": _top_customers(session, Customer),
+        },
+        "fulfilment_funnel": {
+            # A sequence with drop-off is a funnel; drawn as bars it is four
+            # numbers the reader has to divide.
+            "kind": "funnel",
+            "title": "From order to delivery",
+            "series": _fulfilment_funnel(session, Order, start, end),
+        },
+        "sla_gauge": {
+            "kind": "gauge",
+            "title": "Tickets without an SLA breach",
+            "description": "Tickets created in the selected period; includes unanswered tickets",
+            "unit": "percent",
+            "series": _sla_gauge(session, Ticket, start, end),
+        },
+        "support_load": {
+            # Two dimensions — day and hour — so a heatmap. A line chart of
+            # this averages Tuesday morning with Sunday night.
+            "kind": "heatmap",
+            "title": "When support gets busy",
+            "description": "Tickets created in the selected period · UTC weekday and hour",
+            "series": _support_load(session, Ticket, start, end),
+        },
+        "budget_vs_progress": {
+            # A correlation. Budget spent and work done are each unremarkable
+            # alone; the projects far from the diagonal are the finding.
+            "kind": "scatter",
+            "title": "Budget spent against work done",
+            "description": "Current projects · bubble size represents budget",
+            "series": portfolio,
+        },
+        "device_health": {
+            "kind": "stacked-hbar",
+            "title": "Fleet state by kind",
+            "description": "Current fleet state · all dates",
+            "groups": list(vocabulary.DEVICE_STATUS),
+            "series": _device_health(session, Device),
+        },
+        "support_profile": {
+            "kind": "radar",
+            "title": "Support demand by priority",
+            "description": "Tickets created in the selected period",
+            "series": grouped(Ticket.priority, None, Ticket.created_at >= start,
+                              Ticket.created_at < end, Ticket.deleted_at.is_(None)),
+        },
+        "portfolio_budget": {
+            "kind": "treemap",
+            "title": "Where the project budget sits",
+            "description": "Current portfolio · area represents budget; grouped by health",
+            "unit": "currency",
+            "series": portfolio,
+        },
     }
+
+
+def _top_customers(session, Customer, limit: int = 10) -> list[dict[str, Any]]:
+    rows = session.execute(
+        select(Customer.name, cast(Customer.lifetime_value, Numeric).label("value"))
+        .where(Customer.deleted_at.is_(None), Customer.lifetime_value.isnot(None))
+        .order_by(cast(Customer.lifetime_value, Numeric).desc())
+        .limit(limit)
+    ).all()
+    return [{"name": str(row.name), "value": float(row.value or 0)} for row in rows]
+
+
+def _fulfilment_funnel(session, Order, start: datetime, end: datetime) -> list[dict[str, Any]]:
+    """Placed → paid → shipped → delivered, each a subset of the one before.
+
+    Counted as *cumulative* stages rather than as current-status buckets: a
+    delivered order is also one that was shipped, and a funnel whose stages do
+    not nest is a bar chart drawn in a suggestive shape.
+    """
+    window = and_(Order.placed_at >= start, Order.placed_at < end)
+    stages = [
+        ("Placed", None),
+        ("Paid", Order.payment_status == "PAID"),
+        ("Shipped", and_(Order.payment_status == "PAID",
+                         Order.fulfilment_status.in_(("SHIPPED", "DELIVERED")))),
+        ("Delivered", and_(Order.payment_status == "PAID",
+                           Order.fulfilment_status == "DELIVERED")),
+    ]
+    out = []
+    for label, clause in stages:
+        statement = select(func.count()).select_from(Order).where(window, Order.deleted_at.is_(None))
+        if clause is not None:
+            statement = statement.where(clause)
+        out.append({"name": label, "value": int(session.scalar(statement) or 0)})
+    return out
+
+
+def _sla_gauge(session, Ticket, start: datetime, end: datetime) -> list[dict[str, Any]]:
+    window = and_(Ticket.created_at >= start, Ticket.created_at < end, Ticket.deleted_at.is_(None))
+    total = int(session.scalar(select(func.count()).select_from(Ticket).where(window)) or 0)
+    breached = int(
+        session.scalar(
+            select(func.count()).select_from(Ticket).where(window, Ticket.sla_breached.is_(True))
+        )
+        or 0
+    )
+    # No observations is an empty panel, not evidence of perfect compliance.
+    if not total:
+        return []
+    within = round(100 * (total - breached) / total, 1)
+    return [{"name": f"of {total:,} tickets", "value": within}]
+
+
+def _support_load(session, Ticket, start: datetime, end: datetime) -> list[dict[str, Any]]:
+    """Tickets by weekday and hour — the two dimensions of "when are we busy".
+
+    `dow`/`hour` come from PostgreSQL rather than from Python so the whole
+    thing is one pass over the index rather than a fetch of every row.
+    """
+    weekday = func.extract("dow", Ticket.created_at).label("weekday")
+    hour = func.extract("hour", Ticket.created_at).label("hour")
+    rows = session.execute(
+        select(weekday, hour, func.count().label("value"))
+        .where(and_(Ticket.created_at >= start, Ticket.created_at < end))
+        .group_by(weekday, hour)
+    ).all()
+    names = ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+    return [
+        {
+            "name": names[int(row.weekday) % 7],
+            "group": f"{int(row.hour):02d}",
+            "value": int(row.value),
+        }
+        for row in rows
+    ]
+
+
+def _budget_vs_progress(session, Project) -> list[dict[str, Any]]:
+    rows = session.execute(
+        select(
+            Project.name,
+            Project.health,
+            cast(Project.budget, Numeric).label("budget"),
+            cast(Project.spent, Numeric).label("spent"),
+            Project.progress,
+        ).where(
+            Project.deleted_at.is_(None),
+            Project.budget.isnot(None),
+            cast(Project.budget, Numeric) > 0,
+        )
+    ).all()
+    return [
+        {
+            "name": str(row.name),
+            "group": str(row.health or "—"),
+            # x is budget burn, y is work done. On the diagonal is healthy;
+            # below it is overspend, above it is underspend.
+            "x": round(100 * float(row.spent or 0) / float(row.budget), 1),
+            "y": float(row.progress or 0),
+            "value": float(row.budget),
+        }
+        for row in rows
+    ]
+
+
+def _device_health(session, Device) -> list[dict[str, Any]]:
+    rows = session.execute(
+        select(Device.kind, Device.status, func.count().label("value"))
+        .where(Device.deleted_at.is_(None))
+        .group_by(Device.kind, Device.status)
+    ).all()
+    return [
+        {"name": str(row.kind or "—"), "group": str(row.status or "—"), "value": int(row.value)}
+        for row in rows
+    ]
 
 
 # ── alerts (§66) ─────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Card, Col, Row, Segmented, Skeleton, Space, Tag, Timeline, Typography } from "antd";
+import { Alert, Button, Card, Col, Grid, Row, Segmented, Select, Skeleton, Space, Tag, Timeline, Typography } from "antd";
 import {
   AlertOutlined,
   ApiOutlined,
@@ -19,11 +19,18 @@ import {
 } from "@ant-design/icons";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { CHART_KEYS, dashboardApi, type ChartPanel, type DashboardAlert } from "@/api/dashboard";
+import {
+  CHART_KEYS,
+  dashboardApi,
+  type ChartKind,
+  type ChartPanel,
+  type DashboardAlert,
+} from "@/api/dashboard";
 import { ChartCard } from "@/components/ChartCard";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { SEMANTIC } from "@/theme/tokens";
+import { ApiError } from "@/api/client";
 
 const { Text } = Typography;
 
@@ -44,6 +51,44 @@ const ICONS: Record<string, React.ReactNode> = {
   shield: <ExclamationCircleOutlined />,
 };
 
+/**
+ * How much room each chart kind needs.
+ *
+ * A twenty-four-column heatmap squeezed into a third of the width is a smear;
+ * a gauge given two thirds is mostly whitespace. Sizing by kind rather than by
+ * position also means adding a panel does not reshuffle the ones after it.
+ */
+const SHAPES: Partial<Record<ChartKind, { span: number; height: number }>> = {
+  area: { span: 16, height: 280 },
+  "stacked-bar": { span: 8, height: 280 },
+  funnel: { span: 8, height: 260 },
+  hbar: { span: 16, height: 260 },
+  "multi-line": { span: 16, height: 260 },
+  gauge: { span: 8, height: 260 },
+  heatmap: { span: 24, height: 260 },
+  scatter: { span: 12, height: 300 },
+  "stacked-hbar": { span: 12, height: 300 },
+  pie: { span: 8, height: 240 },
+  radar: { span: 8, height: 300 },
+  treemap: { span: 16, height: 300 },
+  bar: { span: 8, height: 240 },
+  line: { span: 8, height: 240 },
+};
+
+/**
+ * Which list a chart's category drills into (§44).
+ *
+ * A chart nobody can click through is a picture. Only the panels whose
+ * categories *are* a filter value are listed; a revenue trend has no such
+ * category, and inventing one would send the reader somewhere arbitrary.
+ */
+const DRILL_DOWN: Record<string, string> = {
+  tickets_by_category: "/tickets?f.category=",
+  tasks_by_status: "/tasks?f.status=",
+  projects_by_health: "/projects?f.health=",
+  device_health: "/devices?f.kind=",
+};
+
 const SEVERITY: Record<DashboardAlert["severity"], { color: string; type: "error" | "warning" | "info" }> = {
   CRITICAL: { color: SEMANTIC.danger, type: "error" },
   WARNING: { color: SEMANTIC.warning, type: "warning" },
@@ -52,24 +97,36 @@ const SEVERITY: Record<DashboardAlert["severity"], { color: string; type: "error
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
   const [params, setParams] = useSearchParams();
   // The period lives in the URL, so a dashboard somebody is looking at can be
   // sent to a colleague and arrive showing the same thing (§69).
   const period = params.get("period") ?? "last_30_days";
 
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["dashboard", period],
     queryFn: ({ signal }) => dashboardApi.summary({ period }, signal),
   });
 
   const panels = useMemo(() => {
     if (!data) return [];
-    return CHART_KEYS.map((key) => ({ key, panel: data.charts[key] as ChartPanel | undefined })).filter(
-      (entry) => entry.panel,
+    return CHART_KEYS.map((key) => ({
+      key,
+      panel: data.charts[key] as ChartPanel | undefined,
+    })).flatMap((entry) =>
+      // `flatMap` rather than `filter`: a type predicate that narrows one
+      // property of a tuple element needs the whole element's type restated,
+      // and restating it is how the two drift.
+      entry.panel ? [{ key: entry.key, panel: entry.panel }] : [],
     );
   }, [data]);
 
   const periodOptions = data?.period.options.filter((option) => option.key !== "custom") ?? [];
+  const choosePeriod = (next: string) => {
+    const updated = new URLSearchParams(params);
+    updated.set("period", next);
+    setParams(updated, { replace: true });
+  };
 
   return (
     <>
@@ -84,14 +141,16 @@ export default function DashboardPage() {
         }
         actions={
           periodOptions.length > 0 && (
-            <Segmented
+            screens.md !== false ? <Segmented
               size="middle"
               value={period}
-              onChange={(next) => {
-                const updated = new URLSearchParams(params);
-                updated.set("period", String(next));
-                setParams(updated, { replace: true });
-              }}
+              onChange={choosePeriod}
+              options={periodOptions.map((option) => ({ label: option.label, value: option.key }))}
+            /> : <Select
+              aria-label="Dashboard period"
+              value={period}
+              onChange={choosePeriod}
+              style={{ minWidth: 170 }}
               options={periodOptions.map((option) => ({ label: option.label, value: option.key }))}
             />
           )
@@ -104,7 +163,9 @@ export default function DashboardPage() {
           showIcon
           style={{ marginBottom: 16 }}
           message="The dashboard could not be loaded"
-          description={error instanceof Error ? error.message : "Unknown error"}
+          description={<>{error instanceof Error ? error.message : "Unknown error"}
+            {error instanceof ApiError && <div>Correlation ID: {error.correlationId}</div>}</>}
+          action={<Button onClick={() => void refetch()}>Retry</Button>}
         />
       )}
 
@@ -167,13 +228,34 @@ export default function DashboardPage() {
             ))}
       </Row>
 
-      {/* ── charts (§2, §44) ────────────────────────────────────────────── */}
+      {/* ── charts (§2, §44) ─────────────────────────────────────────────
+          Sized by what each chart needs rather than by a uniform grid: a
+          twenty-four-column heatmap in a third of the width is unreadable, and
+          a gauge in two thirds is mostly whitespace. */}
       <Row gutter={[12, 12]}>
-        {panels.map(({ key, panel }, index) => (
-          <Col key={key} xs={24} lg={index < 2 ? 12 : 8}>
-            <ChartCard id={key} panel={panel} loading={isLoading} height={index < 2 ? 280 : 240} />
+        {isLoading && [16, 8, 8, 16].map((span, index) => (
+          <Col key={`loading-${index}`} xs={24} lg={span}>
+            <Card style={{ minHeight: 330 }}><Skeleton active paragraph={{ rows: 6 }} /></Card>
           </Col>
         ))}
+        {panels.map(({ key, panel }) => {
+          const shape = SHAPES[panel.kind] ?? { span: 8, height: 240 };
+          return (
+            <Col key={key} xs={24} md={shape.span > 8 ? 24 : 12} lg={shape.span}>
+              <ChartCard
+                id={key}
+                panel={panel}
+                loading={isLoading}
+                height={shape.height}
+                onSelect={
+                  DRILL_DOWN[key]
+                    ? (name) => navigate(`${DRILL_DOWN[key]}${encodeURIComponent(name)}`)
+                    : undefined
+                }
+              />
+            </Col>
+          );
+        })}
 
         <Col xs={24} lg={8}>
           <Card size="small" title="Recent activity" className="nu-activity-card">

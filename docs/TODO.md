@@ -81,6 +81,9 @@ An item is `[x]` only when all of these hold:
 6. **Deep-linkable** (§69) and **state-persistent** (§72) if it is a view.
 7. **Docs updated** — this file, plus `README.md` if running or extending changed.
 8. **Committed and pushed.**
+9. **Frontend and backend redeployed after every task**, then verified against
+   the running Compose stack with health probes and browser tests. Record the
+   checks and any remaining limitations here; never mark unverified work done.
 
 ### Engineering standards
 
@@ -139,11 +142,38 @@ vertical slice with its own tests, its own tracker entry and its own commit.
 - [x] **`/settings/preferences` persists through the backend** (§40) — saved
       server-side and applied automatically on the next visit, from any
       browser
-- [ ] **`/dashboard` needs far more charts** (§2, §44) — the full ECharts
+- [x] **`/dashboard` needs far more charts** (§2, §44) — the full ECharts
       vocabulary, following `gif_responder`'s dashboard and going beyond it
 - [ ] **`/explore` needs a record side panel** (§64) — click a row and read the
       record itself: metadata, full text, related items. `rag-poc`'s data
       explorer is the reference
+  - Fetch the complete record independently of visible table columns; show
+    article-style text, labelled metadata, timestamps and related records.
+    Preserve the search, make the selected record shareable in the URL, and
+    support keyboard opening, closing, loading, missing and failed records.
+- [x] **Expand `/dashboard` using Apache ECharts**, informed by
+      `/home/bogdan/workspace/dev/gif_responder` and extending its examples:
+      meaningful charts and statistics from real backend data, readable table
+      alternatives, downloads, light/dark support and responsive layouts.
+  - Shipped 16 panels across 14 kinds: line, area, vertical/horizontal bars,
+    donut, multi-line, vertical/horizontal stacked bars, funnel, gauge, heatmap,
+    scatter, radar and treemap. Snapshots are labelled separately from period
+    totals; CSV/table views retain scatter coordinates and grouped dimensions.
+    Names are escaped in HTML tooltips and spreadsheet formulas neutralized in
+    downloads. Empty SLA samples show no data; funnel stages are nested and
+    ticket resolutions use `resolved_at`. Dashboard APIs require `records.view`.
+  - Verification: 243 backend tests (live PostgreSQL), 181 frontend tests,
+    typecheck and lint (no errors; existing warnings), production Compose build,
+    and 13 deployed browser tests covering real canvases, CSV, persistence and
+    shell smoke checks. Final post-push deployment/full browser run follows.
+- [x] **Clean, documented code is required for all today's work** — follow
+      the engineering standards above: focused modules, clear naming, SOLID
+      where useful, DRY, YAGNI, explicit API contracts, comments explaining
+      decisions, and tests at the level that can detect each regression.
+- [~] **Continue implementation task by task** — update this tracker, commit,
+      push, redeploy both FE/BE and test the deployed result after each task.
+      Current sequence: finish the existing dashboard expansion, then ship
+      the complete Explorer record panel. No destructive database reseeding.
 - [x] **Dark mode is charcoal, not navy** — the slate ramp read as a blue
       theme at low lightness; dark mode now has its own near-neutral ramp
 - [x] **Keep this tracker updated after every task**, and commit and push each
