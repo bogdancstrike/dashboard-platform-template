@@ -39,6 +39,9 @@ export interface Notification {
 export interface NotificationCounts {
   unread: number;
   by_category: Record<string, number>;
+  by_severity: Record<string, number>;
+  /** Unread in the last 24 hours — "what landed while I was away". */
+  recent: number;
 }
 
 export interface NotificationPage extends NotificationCounts {

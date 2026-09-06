@@ -44,3 +44,32 @@ export function absoluteTime(value: string | null | undefined): string {
   const moment = parseInstant(value);
   return moment ? moment.toLocaleString() : "—";
 }
+
+/**
+ * The day a timestamp belongs to, named the way a reader would name it.
+ *
+ * A feed of forty rows each stamped "3d ago" is a wall of text; the same rows
+ * under *Today* / *Yesterday* / *Monday 2 September* are skimmable, because
+ * the eye can find the boundary between "while I was here" and "before I
+ * arrived" without reading a single row.
+ */
+export function dayBucket(value: string | null | undefined, now: Date = new Date()): string {
+  const moment = parseInstant(value);
+  if (!moment) return "Undated";
+
+  const midnight = new Date(now);
+  midnight.setHours(0, 0, 0, 0);
+  const days = Math.floor((midnight.valueOf() - moment.valueOf()) / DAY) + 1;
+
+  if (days <= 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) {
+    return moment.toLocaleDateString(undefined, { weekday: "long" });
+  }
+  return moment.toLocaleDateString(undefined, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    ...(moment.getFullYear() === now.getFullYear() ? {} : { year: "numeric" }),
+  });
+}

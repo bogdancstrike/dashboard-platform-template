@@ -31,6 +31,34 @@ export const NEUTRAL = {
   950: "#020617",
 } as const;
 
+/**
+ * The dark ramp — near-neutral charcoal, deliberately not slate inverted.
+ *
+ * Slate carries a blue cast that is invisible at 95% lightness and unmissable
+ * at 8%: a "dark" surface built from `NEUTRAL[900]` reads as navy, and the
+ * whole product looks like it has a blue theme nobody asked for. These greys
+ * are almost achromatic, so what the eye notices in dark mode is the accent
+ * and the status colours — which is the only thing that should carry hue.
+ *
+ * Numbered by darkness like the light ramp, so `INK[800]` and `NEUTRAL[100]`
+ * play the same structural role in their respective modes.
+ */
+export const INK = {
+  950: "#08090c",
+  900: "#0b0c10",
+  850: "#0e0f14",
+  800: "#15171c",
+  750: "#1b1e24",
+  700: "#232730",
+  650: "#262a33",
+  600: "#343a45",
+  500: "#4a515e",
+  400: "#6b7383",
+  300: "#9aa2b1",
+  200: "#c3c8d2",
+  100: "#e8eaf0",
+} as const;
+
 export const ACCENT = {
   50: "#eeeefc",
   100: "#dcdcf9",
@@ -236,4 +264,18 @@ export const SHADOW = {
   md: "0 2px 8px rgba(15, 23, 42, 0.08)",
   lg: "0 8px 24px rgba(15, 23, 42, 0.12)",
   xl: "0 16px 48px rgba(15, 23, 42, 0.18)",
+} as const;
+
+/**
+ * Shadows for dark mode.
+ *
+ * A translucent-navy shadow over a charcoal surface is invisible; depth in a
+ * dark UI comes from a *darker* shadow, not a lighter one, so these are much
+ * more opaque than their light counterparts.
+ */
+export const SHADOW_DARK = {
+  sm: "0 1px 2px rgba(0, 0, 0, 0.5)",
+  md: "0 4px 16px rgba(0, 0, 0, 0.5)",
+  lg: "0 12px 34px rgba(0, 0, 0, 0.62)",
+  xl: "0 20px 56px rgba(0, 0, 0, 0.7)",
 } as const;

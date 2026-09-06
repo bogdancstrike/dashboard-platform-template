@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
-  Badge,
   Button,
   Card,
   Input,
@@ -32,14 +31,20 @@ import {
   type Notification,
 } from "@/api/notifications";
 import { EmptyState, NoResults } from "@/components/EmptyState";
+import { NotificationDigest } from "@/components/notifications/NotificationDigest";
 import { categoryIcon, humanise, severityColor } from "@/components/notifications/presentation";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import { absoluteTime, relativeTime } from "@/lib/time";
+import { absoluteTime, dayBucket, relativeTime } from "@/lib/time";
 import { useLive, usePollInterval } from "@/live/LiveProvider";
 
 const { Text } = Typography;
+
+/** Severity → the AntD tag colour that already means it elsewhere. */
+function severityTag(severity: string): string {
+  return severity === "CRITICAL" ? "red" : severity === "WARNING" ? "orange" : "default";
+}
 
 const READ_STATES = [
   { value: "all", label: "All" },
@@ -189,6 +194,36 @@ export default function NotificationsPage() {
   const items = listing.data?.items ?? [];
   const total = listing.data?.total ?? 0;
 
+  /**
+   * Rows under the day they arrived on.
+   *
+   * Grouping is a *presentation* of the order the server already returned —
+   * newest first — not a re-sort, so a day header can never appear twice and
+   * the page cannot disagree with the pager about what is on it.
+   */
+  const days = useMemo(() => {
+    const buckets: { label: string; items: Notification[] }[] = [];
+    for (const item of items) {
+      const label = dayBucket(item.created_at);
+      const last = buckets[buckets.length - 1];
+      if (last && last.label === label) last.items.push(item);
+      else buckets.push({ label, items: [item] });
+    }
+    return buckets;
+  }, [items]);
+
+  /** Which digest tile, if any, describes the filter currently applied. */
+  const activeTile =
+    read !== "unread"
+      ? null
+      : severities.includes("CRITICAL")
+        ? "critical"
+        : categories.includes("APPROVAL") && categories.includes("ASSIGNMENT")
+          ? "needs-you"
+          : categories.length === 0 && severities.length === 0
+            ? "unread"
+            : null;
+
   const openItem = (item: Notification) => {
     if (!item.is_read) setRead.mutate({ id: item.id, isRead: true });
     if (item.link) navigate(item.link);
@@ -237,6 +272,12 @@ export default function NotificationsPage() {
             </Button>
           </>
         }
+      />
+
+      <NotificationDigest
+        counts={listing.data}
+        active={activeTile}
+        onFilter={(filter) => set({ ...filter, group_key: null, page: null })}
       />
 
       <Card size="small" className="nu-filter-bar">
@@ -332,102 +373,119 @@ export default function NotificationsPage() {
             />
           )
         ) : (
-          <ul className="nu-notice-list" aria-label="Notifications" aria-live="polite">
-            {items.map((item) => (
-              <li key={item.id}>
-                <article
-                  className={`nu-notice${item.is_read ? "" : " nu-notice--unread"}`}
-                  data-testid="notification-row"
-                >
-                  <span
-                    className="nu-notice-icon"
-                    style={{ color: severityColor(item.severity) }}
-                    aria-hidden
-                  >
-                    {categoryIcon(item.category)}
-                  </span>
-
-                  <div className="nu-notice-body">
-                    <div className="nu-notice-title">
-                      <button
-                        type="button"
-                        className="nu-notice-open"
-                        onClick={() => openItem(item)}
+          <div className="nu-notice-days">
+            {days.map((day) => (
+              <section key={day.label} aria-label={day.label}>
+                <h3 className="nu-notice-day">
+                  <span>{day.label}</span>
+                  <span className="nu-notice-day-count">{day.items.length}</span>
+                </h3>
+                <ul className="nu-notice-list" aria-label="Notifications" aria-live="polite">
+                  {day.items.map((item) => (
+                    <li key={item.id}>
+                      <article
+                        className={`nu-notice${item.is_read ? "" : " nu-notice--unread"}`}
+                        data-testid="notification-row"
                       >
-                        <Text strong={!item.is_read}>{item.title}</Text>
-                      </button>
-                      {!item.is_read && <Badge status="processing" title="Unread" />}
-                      {grouped && (item.group_count ?? 1) > 1 && (
-                        <Tooltip title={`${item.group_count} similar notifications`}>
-                          <Tag
-                            data-testid="group-count"
-                            onClick={() =>
-                              set({ group: null, group_key: item.group_key, page: null })
-                            }
-                            style={{ cursor: "pointer" }}
-                          >
-                            +{(item.group_count ?? 1) - 1} more
-                          </Tag>
-                        </Tooltip>
-                      )}
-                    </div>
+                        {/* The severity is the tint and the category is the
+                            glyph: two channels, so a reader who cannot
+                            separate the colours still reads the kind. */}
+                        <span
+                          className="nu-notice-icon"
+                          style={{
+                            color: severityColor(item.severity),
+                            background: `color-mix(in srgb, ${severityColor(item.severity)} 14%, transparent)`,
+                          }}
+                          aria-hidden
+                        >
+                          {categoryIcon(item.category)}
+                        </span>
 
-                    {item.body && (
-                      <Text type="secondary" className="nu-notice-text">
-                        {item.body}
-                      </Text>
-                    )}
+                        <div className="nu-notice-body">
+                          <div className="nu-notice-title">
+                            <button
+                              type="button"
+                              className="nu-notice-open"
+                              onClick={() => openItem(item)}
+                            >
+                              <Text strong={!item.is_read}>{item.title}</Text>
+                            </button>
+                            {item.severity !== "INFO" && (
+                              <Tag color={severityTag(item.severity)} bordered={false}>
+                                {humanise(item.severity)}
+                              </Tag>
+                            )}
+                            {grouped && (item.group_count ?? 1) > 1 && (
+                              <Tooltip title={`${item.group_count} similar notifications`}>
+                                <Tag
+                                  data-testid="group-count"
+                                  bordered={false}
+                                  onClick={() =>
+                                    set({ group: null, group_key: item.group_key, page: null })
+                                  }
+                                  style={{ cursor: "pointer" }}
+                                >
+                                  +{(item.group_count ?? 1) - 1} more
+                                </Tag>
+                              </Tooltip>
+                            )}
+                          </div>
 
-                    <Space size={6} wrap className="nu-notice-meta">
-                      <Tag color={item.severity === "INFO" ? undefined : "default"}>
-                        {humanise(item.category)}
-                      </Tag>
-                      <Text type="secondary" style={{ color: severityColor(item.severity) }}>
-                        {humanise(item.severity)}
-                      </Text>
-                      {item.actor_label && <Text type="secondary">{item.actor_label}</Text>}
-                      <Text type="secondary" title={absoluteTime(item.created_at)}>
-                        {relativeTime(item.created_at)}
-                      </Text>
-                    </Space>
-                  </div>
+                          {item.body && <p className="nu-notice-text">{item.body}</p>}
 
-                  <Space size={4} className="nu-notice-actions">
-                    {grouped && (item.group_count ?? 1) > 1 && item.group_key ? (
-                      <Tooltip title="Mark this group read">
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={<CheckOutlined />}
-                          aria-label={`Mark the ${item.title} group read`}
-                          onClick={() => markAll.mutate({ group_key: item.group_key ?? undefined })}
-                        />
-                      </Tooltip>
-                    ) : (
-                      <Tooltip title={item.is_read ? "Mark unread" : "Mark read"}>
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={item.is_read ? <UndoOutlined /> : <CheckOutlined />}
-                          aria-label={`Mark ${item.title} as ${item.is_read ? "unread" : "read"}`}
-                          onClick={() => setRead.mutate({ id: item.id, isRead: !item.is_read })}
-                        />
-                      </Tooltip>
-                    )}
-                    <Tooltip title="Delete">
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<DeleteOutlined />}
-                        aria-label={`Delete ${item.title}`}
-                        onClick={() => remove.mutate(item.id)}
-                      />
-                    </Tooltip>
-                  </Space>
-                </article>
-              </li>
+                          <div className="nu-notice-meta">
+                            <span className="nu-notice-chip">{humanise(item.category)}</span>
+                            {item.actor_label && <span>{item.actor_label}</span>}
+                            <span title={absoluteTime(item.created_at)}>
+                              {relativeTime(item.created_at)}
+                            </span>
+                            {item.link && <span className="nu-notice-link">Opens the record</span>}
+                          </div>
+                        </div>
+
+                        <Space size={2} className="nu-notice-actions">
+                          {grouped && (item.group_count ?? 1) > 1 && item.group_key ? (
+                            <Tooltip title="Mark this group read">
+                              <Button
+                                type="text"
+                                size="small"
+                                icon={<CheckOutlined />}
+                                aria-label={`Mark the ${item.title} group read`}
+                                onClick={() =>
+                                  markAll.mutate({ group_key: item.group_key ?? undefined })
+                                }
+                              />
+                            </Tooltip>
+                          ) : (
+                            <Tooltip title={item.is_read ? "Mark unread" : "Mark read"}>
+                              <Button
+                                type="text"
+                                size="small"
+                                icon={item.is_read ? <UndoOutlined /> : <CheckOutlined />}
+                                aria-label={`Mark ${item.title} as ${item.is_read ? "unread" : "read"}`}
+                                onClick={() =>
+                                  setRead.mutate({ id: item.id, isRead: !item.is_read })
+                                }
+                              />
+                            </Tooltip>
+                          )}
+                          <Tooltip title="Delete">
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<DeleteOutlined />}
+                              aria-label={`Delete ${item.title}`}
+                              onClick={() => remove.mutate(item.id)}
+                            />
+                          </Tooltip>
+                        </Space>
+                      </article>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
-          </ul>
+          </div>
         )}
 
         {total > pageSize && (

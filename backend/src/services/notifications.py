@@ -17,6 +17,7 @@ centre becomes something people close rather than read.
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 from uuid import UUID
 
@@ -59,24 +60,46 @@ def _base_query(user_id: UUID):
 
 
 def counts(session, user_id: UUID) -> dict[str, Any]:
-    """Unread totals — overall and per category, for the badge and the filters."""
+    """Unread totals for the badge, the filters and the centre's digest.
+
+    Counted in SQL rather than derived from the loaded page. The centre shows
+    twenty-five rows of a possible three hundred, so "4 critical" computed in
+    the browser would mean "4 critical *on this page*" — a number that is
+    wrong exactly when it matters, which is when there are many.
+    """
     from src.models.platform import Notification
 
+    mine = (Notification.user_id == user_id, Notification.is_read.is_(False))
+
     unread = session.scalar(
-        select(func.count())
-        .select_from(Notification)
-        .where(Notification.user_id == user_id, Notification.is_read.is_(False))
+        select(func.count()).select_from(Notification).where(*mine)
     ) or 0
 
-    per_category = {
-        row.category: int(row.total)
-        for row in session.execute(
-            select(Notification.category, func.count().label("total"))
-            .where(Notification.user_id == user_id, Notification.is_read.is_(False))
-            .group_by(Notification.category)
-        ).all()
+    def _grouped(column) -> dict[str, int]:
+        return {
+            row[0]: int(row[1])
+            for row in session.execute(
+                select(column, func.count()).where(*mine).group_by(column)
+            ).all()
+        }
+
+    # "Since midnight" in the reader's day is a client concern; this is the
+    # last 24 hours, which is what "today" means to somebody who has just
+    # arrived at work and is the only version the server can answer honestly
+    # without knowing their timezone.
+    since = now() - timedelta(hours=24)
+    recent = session.scalar(
+        select(func.count())
+        .select_from(Notification)
+        .where(*mine, Notification.created_at >= since)
+    ) or 0
+
+    return {
+        "unread": int(unread),
+        "by_category": _grouped(Notification.category),
+        "by_severity": _grouped(Notification.severity),
+        "recent": int(recent),
     }
-    return {"unread": int(unread), "by_category": per_category}
 
 
 def _clauses(user_id: UUID, args) -> list:

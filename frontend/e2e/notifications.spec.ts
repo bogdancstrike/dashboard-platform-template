@@ -19,8 +19,23 @@ import { signIn, storageStateFor } from "./auth";
  * running.
  */
 
+/**
+ * Serial, because these tests share one mailbox.
+ *
+ * "Show me the unread ones" and "mark this one read" are correct on their own
+ * and contradictory at the same instant: run in parallel, the first sees the
+ * second's row appear and disappear under it. That failure reads exactly like
+ * a product bug, which is the expensive kind of flake.
+ */
+test.describe.configure({ mode: "serial" });
+
 function centre(page: Page) {
-  return page.getByRole("list", { name: "Notifications" });
+  return page.getByRole("list", { name: "Notifications" }).first();
+}
+
+/** The read-state control, which shares its words with the digest tiles. */
+function readState(page: Page, label: string) {
+  return page.getByTitle(label, { exact: true });
 }
 
 test.describe("notification centre", () => {
@@ -32,6 +47,30 @@ test.describe("notification centre", () => {
     await expect(page.getByTestId("unread-count")).toContainText("unread");
   });
 
+  test("opens on a digest of the whole mailbox, counted by the server", async ({ page }) => {
+    const digest = page.getByTestId("notification-digest");
+    await expect(digest).toBeVisible();
+
+    // Four tiles, each a real aggregate rather than a count of the loaded page.
+    await expect(digest.getByLabel(/\d+ Unread/)).toBeVisible();
+    await expect(digest.getByLabel(/\d+ Critical/)).toBeVisible();
+    await expect(digest.getByLabel(/\d+ Needs you/)).toBeVisible();
+    await expect(digest.getByLabel(/\d+ Last 24 hours/)).toBeVisible();
+
+    // And the feed is grouped by the day things arrived on.
+    await expect(page.getByRole("heading", { level: 3 }).first()).toBeVisible();
+  });
+
+  test("a digest tile is the filter for the thing it counts", async ({ page }) => {
+    await page.getByTestId("notification-digest").getByLabel(/\d+ Needs you/).click();
+
+    await expect(page).toHaveURL(/read=unread/);
+    await expect(page).toHaveURL(/category=APPROVAL%2CASSIGNMENT/);
+    await expect(
+      page.getByTestId("notification-digest").getByLabel(/\d+ Needs you/),
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+
   test("the live channel is connected through nginx, not falling back to polling", async ({
     page,
   }) => {
@@ -41,7 +80,7 @@ test.describe("notification centre", () => {
   });
 
   test("filtering asks the server and round-trips through the URL", async ({ page }) => {
-    await page.getByText("Unread", { exact: true }).click();
+    await readState(page, "Unread").click();
 
     await expect(page).toHaveURL(/read=unread/);
     const rows = centre(page).getByRole("listitem");
@@ -70,19 +109,29 @@ test.describe("notification centre", () => {
   });
 
   test("marking one read and unread again moves the count both ways", async ({ page }) => {
-    await page.getByText("Unread", { exact: true }).click();
+    await readState(page, "Unread").click();
     const before = Number(
       (await page.getByTestId("unread-count").textContent())?.replace(/\D/g, "") ?? "0",
     );
     expect(before).toBeGreaterThan(0);
 
-    await page.getByRole("button", { name: /as read$/ }).first().click();
-    await expect(page.getByTestId("unread-count")).toContainText(`${before - 1} unread`);
+    // The *same* row is put back, addressed by its own title. Reading "the
+    // first read row" instead would restore the count while quietly changing
+    // which rows are unread, and a suite run often enough drains the mailbox
+    // it is testing — which is exactly what happened before this was fixed.
+    const mark = page.getByRole("button", { name: /as read$/ }).first();
+    const subject = (await mark.getAttribute("aria-label"))!
+      .replace(/^Mark /, "")
+      .replace(/ as read$/, "");
 
-    // Put it back, so the next run of this suite starts where this one did.
-    await page.getByText("Read", { exact: true }).click();
-    await page.getByRole("button", { name: /as unread$/ }).first().click();
-    await expect(page.getByTestId("unread-count")).toContainText(`${before} unread`);
+    try {
+      await mark.click();
+      await expect(page.getByTestId("unread-count")).toContainText(`${before - 1} unread`);
+    } finally {
+      await readState(page, "Read").click();
+      await page.getByRole("button", { name: `Mark ${subject} as unread` }).first().click();
+      await expect(page.getByTestId("unread-count")).toContainText(`${before} unread`);
+    }
   });
 
   test("the header bell carries the count and reaches the centre", async ({ page }) => {

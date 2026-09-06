@@ -6,12 +6,12 @@
  * difference is visible precisely where a reader is comparing the two.
  */
 
-import { NEUTRAL, SERIES, FONT, type Density, DENSITY } from "./tokens";
+import { INK, NEUTRAL, SERIES, FONT, type Density, DENSITY } from "./tokens";
 
 export function buildChartTheme(mode: "light" | "dark", density: Density) {
   const dark = mode === "dark";
-  const text = dark ? NEUTRAL[300] : NEUTRAL[600];
-  const axis = dark ? NEUTRAL[700] : NEUTRAL[200];
+  const text = dark ? INK[300] : NEUTRAL[600];
+  const axis = dark ? INK[650] : NEUTRAL[200];
   const scale = DENSITY[density];
 
   return {
@@ -19,8 +19,8 @@ export function buildChartTheme(mode: "light" | "dark", density: Density) {
     backgroundColor: "transparent",
     textStyle: { fontFamily: FONT.family, fontSize: scale.fontSize - 1, color: text },
     title: {
-      textStyle: { color: dark ? NEUTRAL[100] : NEUTRAL[900], fontWeight: 600 },
-      subtextStyle: { color: NEUTRAL[500] },
+      textStyle: { color: dark ? INK[100] : NEUTRAL[900], fontWeight: 600 },
+      subtextStyle: { color: dark ? INK[400] : NEUTRAL[500] },
     },
     grid: { left: 8, right: 8, top: 24, bottom: 8, containLabel: true },
     categoryAxis: {
@@ -44,16 +44,16 @@ export function buildChartTheme(mode: "light" | "dark", density: Density) {
       itemHeight: 10,
     },
     tooltip: {
-      backgroundColor: dark ? NEUTRAL[800] : "#ffffff",
+      backgroundColor: dark ? INK[750] : "#ffffff",
       borderColor: axis,
       borderWidth: 1,
-      textStyle: { color: dark ? NEUTRAL[100] : NEUTRAL[900], fontSize: scale.fontSize },
-      axisPointer: { lineStyle: { color: NEUTRAL[400] }, crossStyle: { color: NEUTRAL[400] } },
+      textStyle: { color: dark ? INK[100] : NEUTRAL[900], fontSize: scale.fontSize },
+      axisPointer: { lineStyle: { color: dark ? INK[500] : NEUTRAL[400] }, crossStyle: { color: dark ? INK[500] : NEUTRAL[400] } },
     },
     line: { smooth: false, symbolSize: 6, lineStyle: { width: 2 } },
     bar: { itemStyle: { borderRadius: [3, 3, 0, 0] } },
     pie: {
-      itemStyle: { borderColor: dark ? NEUTRAL[900] : "#ffffff", borderWidth: 2 },
+      itemStyle: { borderColor: dark ? INK[800] : "#ffffff", borderWidth: 2 },
       label: { color: text },
     },
   };

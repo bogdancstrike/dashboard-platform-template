@@ -661,14 +661,65 @@ mark.nu-mark {
 .nu-bell-empty { padding: 20px 12px; }
 .nu-bell-foot { padding: 6px 8px; border-top: 1px solid var(--nu-border-subtle); text-align: center; }
 
+/* ── The notification centre (§17) ───────────────────────────────────────
+   A feed, not a table. What makes it readable is the day it happened on and
+   the severity of the thing — so those are the two structural elements, and
+   everything else is quiet. */
+
+.nu-digest {
+  display: grid; gap: 12px; margin-bottom: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+.nu-digest-tile { cursor: pointer; transition: border-color 120ms ease, box-shadow 120ms ease; }
+.nu-digest-tile:hover { border-color: var(--nu-accent); }
+.nu-digest-tile:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; }
+/* The applied filter is stated on the tile, so the strip is a set of controls
+   with a current value rather than four numbers and a separate filter bar. */
+.nu-digest-tile.is-active { border-color: var(--nu-accent); box-shadow: inset 0 0 0 1px var(--nu-accent); }
+.nu-digest-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 9px; font-size: 17px;
+  background: var(--nu-surface-raised); border: 1px solid var(--nu-border-subtle);
+}
+.nu-digest-value { font-size: 22px; font-weight: 650; line-height: 1.15; }
+.nu-digest-label { font-size: 12.5px; font-weight: 600; }
+.nu-digest-hint { font-size: 11px; }
+
+.nu-notice-days { display: flex; flex-direction: column; gap: 4px; }
+.nu-notice-day {
+  display: flex; align-items: center; gap: 8px;
+  margin: 12px 0 4px; font-size: 11.5px; font-weight: 650;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--nu-text-tertiary);
+}
+.nu-notice-days section:first-child .nu-notice-day { margin-top: 0; }
+.nu-notice-day::after {
+  content: ""; flex: 1; height: 1px; background: var(--nu-border-subtle);
+}
+.nu-notice-day-count {
+  order: 3; padding: 0 6px; border-radius: 999px; font-size: 11px;
+  background: var(--nu-surface-raised); border: 1px solid var(--nu-border-subtle);
+}
+
 .nu-notice-list { list-style: none; margin: 0; padding: 0; }
 .nu-notice {
   display: flex; align-items: flex-start; gap: 12px;
-  padding: 10px 4px; border-bottom: 1px solid var(--nu-border-subtle);
+  padding: 10px 12px; border-radius: var(--nu-radius-card);
+  border: 1px solid transparent;
+  transition: background 120ms ease, border-color 120ms ease;
 }
-.nu-notice-list li:last-child .nu-notice { border-bottom: none; }
-.nu-notice--unread { box-shadow: inset 2px 0 0 var(--nu-accent); padding-inline-start: 10px; }
-.nu-notice-icon { flex: 0 0 auto; font-size: 16px; line-height: 22px; }
+.nu-notice:hover { background: var(--nu-hover); border-color: var(--nu-border-subtle); }
+/* Unread is a tinted card with an accent edge rather than bold text alone:
+   the state has to survive being skimmed from two feet away. */
+.nu-notice--unread {
+  background: var(--nu-accent-soft);
+  box-shadow: inset 3px 0 0 var(--nu-accent);
+}
+.nu-notice--unread:hover { background: var(--nu-accent-soft); border-color: var(--nu-accent); }
+.nu-notice-icon {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 8px; font-size: 15px;
+}
 .nu-notice-body { flex: 1; min-width: 0; }
 .nu-notice-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .nu-notice-open {
@@ -677,9 +728,27 @@ mark.nu-mark {
 }
 .nu-notice-open:hover .ant-typography { color: var(--nu-accent); }
 .nu-notice-open:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; border-radius: 3px; }
-.nu-notice-text { display: block; font-size: 12.5px; margin-top: 2px; }
-.nu-notice-meta { margin-top: 4px; font-size: 11.5px; }
-.nu-notice-meta .ant-typography { font-size: 11.5px; }
+/* Two lines of body, then an ellipsis: enough to know whether to open it,
+   never enough for one row to push the next one off the screen. */
+.nu-notice-text {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; margin: 3px 0 0; font-size: 12.5px; line-height: 1.45;
+  color: var(--nu-text-secondary);
+}
+.nu-notice-meta {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  margin-top: 6px; font-size: 11.5px; color: var(--nu-text-tertiary);
+}
+.nu-notice-meta > span + span::before {
+  content: "·"; margin-right: 6px; color: var(--nu-border-strong);
+}
+.nu-notice-chip {
+  padding: 1px 7px; border-radius: 999px; font-weight: 600;
+  background: var(--nu-surface-raised); border: 1px solid var(--nu-border-subtle);
+  color: var(--nu-text-secondary);
+}
+.nu-notice-meta > .nu-notice-chip + span::before { content: none; margin-right: 0; }
+.nu-notice-link { color: var(--nu-accent); }
 /* Row actions stay put rather than appearing on hover: a control that is only
    there while the pointer is over it is a control a keyboard never finds. */
 .nu-notice-actions { flex: 0 0 auto; }

@@ -256,6 +256,8 @@ export const notificationRows = [
 export const notificationCounts = {
   unread: 2,
   by_category: { ASSIGNMENT: 1, SECURITY: 1 },
+  by_severity: { INFO: 1, CRITICAL: 1 },
+  recent: 2,
 };
 
 export function notificationPage(items = notificationRows, extra: Record<string, unknown> = {}) {

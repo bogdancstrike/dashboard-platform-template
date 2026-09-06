@@ -149,3 +149,53 @@ describe("the notification centre", () => {
     expect(within(list).queryByText("New sign-in from an unrecognised device")).toBeNull();
   });
 });
+
+describe("the centre's digest", () => {
+  it("summarises the whole mailbox, not the page that happens to be loaded", async () => {
+    renderPage();
+
+    const digest = await screen.findByTestId("notification-digest");
+    // Counts come from the server's aggregates. "1 critical" derived from the
+    // loaded rows would mean "1 critical among these twenty-five".
+    expect(await within(digest).findByLabelText(/2 Unread/)).toBeInTheDocument();
+    expect(within(digest).getByLabelText(/1 Critical/)).toBeInTheDocument();
+    expect(within(digest).getByLabelText(/2 Last 24 hours/)).toBeInTheDocument();
+  });
+
+  it("is a filter as well as a summary, and says which one is applied", async () => {
+    const user = userEvent.setup();
+    const asked: Record<string, string | null>[] = [];
+    server.use(
+      http.get("/platform/notifications", ({ request }) => {
+        const query = new URL(request.url).searchParams;
+        asked.push({ read: query.get("read"), severity: query.get("severity") });
+        return HttpResponse.json(notificationPage([]));
+      }),
+    );
+    renderPage();
+
+    const digest = await screen.findByTestId("notification-digest");
+    await user.click(await within(digest).findByLabelText(/Critical/));
+
+    // The tile drove a navigation the query re-read, rather than filtering
+    // rows the browser already had.
+    await waitFor(() =>
+      expect(asked.at(-1)).toEqual({ read: "unread", severity: "CRITICAL" }),
+    );
+    expect(await within(digest).findByLabelText(/Critical/)).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("puts the rows under the day they arrived on", async () => {
+    renderPage();
+
+    // Two of the three fixtures share a day, one is the day before — so the
+    // feed has two headers and a reader can find the boundary by eye.
+    await screen.findAllByTestId("notification-row");
+    const headings = screen.getAllByRole("heading", { level: 3 });
+    expect(headings.length).toBe(2);
+    expect(headings[0]).toHaveTextContent("2");
+  });
+});

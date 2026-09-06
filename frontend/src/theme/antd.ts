@@ -12,10 +12,12 @@ import {
   ACCENT,
   DENSITY,
   FONT,
+  INK,
   NEUTRAL,
   RADIUS,
   SEMANTIC,
   SHADOW,
+  SHADOW_DARK,
   type Density,
 } from "./tokens";
 
@@ -38,20 +40,22 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
   return {
     algorithm: dark ? theme.darkAlgorithm : theme.defaultAlgorithm,
     token: {
-      colorPrimary: ACCENT[500],
+      // Lighter in dark mode: #5b5bd6 on charcoal is legible but heavy, and
+      // an accent that has to be hunted for stops being an accent.
+      colorPrimary: dark ? ACCENT[400] : ACCENT[500],
       colorInfo: SEMANTIC.info,
       colorSuccess: SEMANTIC.success,
       colorWarning: SEMANTIC.warning,
       colorError: SEMANTIC.danger,
 
-      colorBgLayout: dark ? NEUTRAL[950] : NEUTRAL[100],
-      colorBgContainer: dark ? NEUTRAL[900] : "#ffffff",
-      colorBgElevated: dark ? NEUTRAL[800] : "#ffffff",
-      colorBorder: dark ? NEUTRAL[700] : NEUTRAL[200],
-      colorBorderSecondary: dark ? NEUTRAL[800] : NEUTRAL[100],
-      colorText: dark ? NEUTRAL[100] : NEUTRAL[900],
-      colorTextSecondary: dark ? NEUTRAL[400] : NEUTRAL[600],
-      colorTextTertiary: dark ? NEUTRAL[500] : NEUTRAL[500],
+      colorBgLayout: dark ? INK[900] : NEUTRAL[100],
+      colorBgContainer: dark ? INK[800] : "#ffffff",
+      colorBgElevated: dark ? INK[750] : "#ffffff",
+      colorBorder: dark ? INK[600] : NEUTRAL[200],
+      colorBorderSecondary: dark ? INK[650] : NEUTRAL[100],
+      colorText: dark ? INK[100] : NEUTRAL[900],
+      colorTextSecondary: dark ? INK[300] : NEUTRAL[600],
+      colorTextTertiary: dark ? INK[400] : NEUTRAL[500],
 
       fontFamily: FONT.family,
       fontFamilyCode: FONT.mono,
@@ -63,8 +67,8 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
 
       controlHeight: scale.controlHeight,
 
-      boxShadow: SHADOW.md,
-      boxShadowSecondary: SHADOW.lg,
+      boxShadow: dark ? SHADOW_DARK.md : SHADOW.md,
+      boxShadowSecondary: dark ? SHADOW_DARK.lg : SHADOW.lg,
 
       // AntD's defaults are tuned for consumer apps. This is an operational
       // tool: less air, more rows.
@@ -73,11 +77,11 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
     },
     components: {
       Layout: {
-        headerBg: dark ? NEUTRAL[900] : "#ffffff",
+        headerBg: dark ? INK[850] : "#ffffff",
         headerHeight: 56,
         headerPadding: "0 16px",
-        siderBg: dark ? NEUTRAL[900] : "#ffffff",
-        bodyBg: dark ? NEUTRAL[950] : NEUTRAL[100],
+        siderBg: dark ? INK[850] : "#ffffff",
+        bodyBg: dark ? INK[900] : NEUTRAL[100],
       },
       Menu: {
         itemHeight: scale.controlHeight + 4,
@@ -88,15 +92,15 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
       Table: {
         cellPaddingBlock: (scale.rowHeight - scale.fontSize * 1.5) / 2,
         cellPaddingInline: scale.padding,
-        headerBg: dark ? NEUTRAL[800] : NEUTRAL[50],
+        headerBg: dark ? INK[750] : NEUTRAL[50],
         headerSplitColor: "transparent",
-        rowHoverBg: dark ? NEUTRAL[800] : ACCENT[50],
-        borderColor: dark ? NEUTRAL[800] : NEUTRAL[200],
+        rowHoverBg: dark ? INK[700] : ACCENT[50],
+        borderColor: dark ? INK[650] : NEUTRAL[200],
       },
       Card: { paddingLG: scale.padding + 4 },
       Descriptions: { itemPaddingBottom: scale.padding },
       Tabs: { horizontalMargin: "0 0 12px 0" },
-      Tooltip: { colorBgSpotlight: dark ? NEUTRAL[700] : NEUTRAL[800] },
+      Tooltip: { colorBgSpotlight: dark ? INK[700] : NEUTRAL[800] },
       Modal: { borderRadiusLG: RADIUS.modal },
       Drawer: { paddingLG: 16 },
     },
@@ -115,16 +119,16 @@ export function cssVariables(appearance: Appearance, density: Density): Record<s
   const dark = mode === "dark";
 
   return {
-    "--nu-accent": ACCENT[500],
-    "--nu-accent-soft": dark ? ACCENT[900] : ACCENT[50],
-    "--nu-bg": dark ? NEUTRAL[950] : NEUTRAL[100],
-    "--nu-surface": dark ? NEUTRAL[900] : "#ffffff",
-    "--nu-surface-raised": dark ? NEUTRAL[800] : "#ffffff",
-    "--nu-border": dark ? NEUTRAL[700] : NEUTRAL[200],
-    "--nu-border-subtle": dark ? NEUTRAL[800] : NEUTRAL[100],
-    "--nu-text": dark ? NEUTRAL[100] : NEUTRAL[900],
-    "--nu-text-secondary": dark ? NEUTRAL[400] : NEUTRAL[600],
-    "--nu-text-tertiary": NEUTRAL[500],
+    "--nu-accent": dark ? ACCENT[400] : ACCENT[500],
+    "--nu-accent-soft": dark ? "rgba(124, 124, 245, 0.16)" : ACCENT[50],
+    "--nu-bg": dark ? INK[900] : NEUTRAL[100],
+    "--nu-surface": dark ? INK[800] : "#ffffff",
+    "--nu-surface-raised": dark ? INK[750] : "#ffffff",
+    "--nu-border": dark ? INK[650] : NEUTRAL[200],
+    "--nu-border-subtle": dark ? INK[700] : NEUTRAL[100],
+    "--nu-text": dark ? INK[100] : NEUTRAL[900],
+    "--nu-text-secondary": dark ? INK[300] : NEUTRAL[600],
+    "--nu-text-tertiary": dark ? INK[400] : NEUTRAL[500],
     "--nu-success": SEMANTIC.success,
     "--nu-warning": SEMANTIC.warning,
     "--nu-danger": SEMANTIC.danger,
@@ -141,8 +145,12 @@ export function cssVariables(appearance: Appearance, density: Density): Record<s
     "--nu-radius-control": `${RADIUS.control}px`,
     "--nu-radius-card": `${RADIUS.card}px`,
     "--nu-radius-modal": `${RADIUS.modal}px`,
-    "--nu-shadow-sm": SHADOW.sm,
-    "--nu-shadow-md": SHADOW.md,
-    "--nu-shadow-lg": SHADOW.lg,
+    "--nu-shadow-sm": dark ? SHADOW_DARK.sm : SHADOW.sm,
+    "--nu-shadow-md": dark ? SHADOW_DARK.md : SHADOW.md,
+    "--nu-shadow-lg": dark ? SHADOW_DARK.lg : SHADOW.lg,
+    // A hand-built surface needs the strong border too — the D3 graphs and the
+    // notification rows draw with it.
+    "--nu-border-strong": dark ? INK[600] : NEUTRAL[300],
+    "--nu-hover": dark ? INK[700] : NEUTRAL[100],
   };
 }

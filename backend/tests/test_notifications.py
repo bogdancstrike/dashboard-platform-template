@@ -278,3 +278,8 @@ def test_counts_answer_the_badge_without_the_list(client, monkeypatch, planted):
 
     assert body["unread"] >= 3
     assert body["by_category"]["MENTION"] >= 3
+    # The centre's digest is counted in SQL too. Deriving "4 critical" from the
+    # twenty-five loaded rows would mean "4 critical on this page" — a number
+    # that is wrong precisely when there are many.
+    assert sum(body["by_severity"].values()) == body["unread"]
+    assert body["recent"] >= 3
