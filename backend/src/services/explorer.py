@@ -72,6 +72,44 @@ class Insight:
 
 
 @dataclass(frozen=True, slots=True)
+class Writable:
+    """One field a create or edit form may write, and the limits on it.
+
+    Deliberately a *second* declaration rather than a flag on :class:`Field`:
+    what a column can be filtered by and what a form may put into it are two
+    different questions, and answering both from one place is how a dataset
+    ends up accidentally editable because somebody wanted to sort by it.
+
+    Everything a form needs to *render* the control — label, kind, choices —
+    still comes from the `Field`, so a writable field cannot describe itself
+    differently from the way the same field is filtered.
+    """
+
+    name: str
+    #: Refused as empty on create. An edit may still omit it entirely; what it
+    #: may not do is blank it.
+    required: bool = False
+    #: Inclusive bounds for number fields, enforced server-side. A percentage
+    #: column that accepts 400 is a chart with a bar off the top of the panel.
+    minimum: float | None = None
+    maximum: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Identity:
+    """The human-readable identifier a created record is given.
+
+    Generated, never accepted from the client: `TSK-00042` is the string people
+    quote to each other, and a form that lets two of them be typed produces two
+    records nobody can tell apart in a sentence.
+    """
+
+    field: str
+    prefix: str
+    width: int = 5
+
+
+@dataclass(frozen=True, slots=True)
 class Resource:
     """Everything the generic explorer needs to expose one ORM entity."""
 
@@ -97,6 +135,42 @@ class Resource:
     content_fields: tuple[str, ...] = ()
     #: What this dataset can say about itself above a list (§44).
     insight: Insight = Insight()
+    #: The fields a form may write (§9). Empty means the dataset is read-only,
+    #: and the API says so rather than silently ignoring a payload.
+    editable: tuple[Writable, ...] = ()
+    #: How a created record is named. Absent means the dataset cannot be
+    #: created through the API, only edited.
+    identity: Identity | None = None
+
+    @property
+    def writable(self) -> dict[str, Writable]:
+        """The write declarations by field name, for validation and for the
+        catalogue the form is rendered from."""
+        return {spec.name: spec for spec in self.editable}
+
+    def writability(self, name: str) -> dict[str, Any]:
+        """What a form may do with one field (§9).
+
+        Carried *on* the field wherever fields are published rather than in a
+        list beside them: a form renders the fields it is given, and a separate
+        "editable" array is a second place for the two to disagree about which
+        field `progress` is.
+        """
+        spec = self.writable.get(name)
+        if spec is None:
+            return {"editable": False}
+        field = self.fields.by_name.get(name)
+        return {
+            "editable": True,
+            "required": spec.required,
+            "minimum": spec.minimum,
+            "maximum": spec.maximum,
+            # What a foreign key points at, so a form renders a picker for it
+            # rather than a box somebody has to paste a UUID into. Read off the
+            # column's own ForeignKey, so a new relation gets its picker the
+            # day it is declared.
+            "references": references_of(field) if field else "",
+        }
 
     @property
     def path(self) -> str:
@@ -160,6 +234,20 @@ def _resources() -> dict[str, Resource]:
                 breakdowns=("status", "priority", "kind"),
                 trend="created_at",
             ),
+            editable=(
+                Writable("title", required=True),
+                Writable("description"),
+                Writable("status"),
+                Writable("priority"),
+                Writable("kind"),
+                Writable("due_date"),
+                Writable("progress", minimum=0, maximum=100),
+                Writable("estimate_hours", minimum=0, maximum=10_000),
+                Writable("logged_hours", minimum=0, maximum=10_000),
+                Writable("assignee_id"),
+                Writable("project_id"),
+            ),
+            identity=Identity("reference", "TSK"),
         ),
         "ticket": Resource(
             "ticket", "Tickets", "Support demand, SLA health, severity and ownership.", Ticket,
@@ -200,6 +288,19 @@ def _resources() -> dict[str, Resource]:
                 breakdowns=("severity", "status", "category", "channel"),
                 trend="created_at",
             ),
+            editable=(
+                Writable("subject", required=True),
+                Writable("description"),
+                Writable("status"),
+                Writable("priority"),
+                Writable("severity"),
+                Writable("category"),
+                Writable("channel"),
+                Writable("due_at"),
+                Writable("sla_breached"),
+                Writable("assignee_id"),
+            ),
+            identity=Identity("reference", "TIC"),
         ),
         "project": Resource(
             "project", "Projects", "Portfolio delivery, budget, progress and health.", Project,
@@ -237,6 +338,21 @@ def _resources() -> dict[str, Resource]:
                 trend="start_date",
                 trend_value="budget",
             ),
+            editable=(
+                Writable("name", required=True),
+                Writable("description"),
+                Writable("status"),
+                Writable("phase"),
+                Writable("priority"),
+                Writable("health"),
+                Writable("start_date"),
+                Writable("due_date"),
+                Writable("budget", minimum=0),
+                Writable("spent", minimum=0),
+                Writable("progress", minimum=0, maximum=100),
+                Writable("owner_id"),
+            ),
+            identity=Identity("code", "PRJ", width=4),
         ),
         "customer": Resource(
             "customer", "Customers", "Accounts, lifecycle, value and relationship health.", Customer,
@@ -274,6 +390,21 @@ def _resources() -> dict[str, Resource]:
                 trend="created_at",
                 trend_value="lifetime_value",
             ),
+            editable=(
+                Writable("name", required=True),
+                Writable("email"),
+                Writable("status"),
+                Writable("segment"),
+                Writable("industry"),
+                Writable("lifecycle_stage"),
+                Writable("country"),
+                Writable("city"),
+                Writable("lifetime_value", minimum=0),
+                Writable("satisfaction", minimum=0, maximum=10),
+                Writable("last_contact_at"),
+                Writable("account_manager_id"),
+            ),
+            identity=Identity("code", "CUS"),
         ),
         "order": Resource(
             "order", "Orders", "Commercial transactions, fulfilment and payment state.", Order,
@@ -313,6 +444,19 @@ def _resources() -> dict[str, Resource]:
                 trend="placed_at",
                 trend_value="total",
             ),
+            editable=(
+                Writable("status"),
+                Writable("payment_status"),
+                Writable("fulfilment_status"),
+                Writable("channel"),
+                Writable("placed_at"),
+                Writable("total", minimum=0),
+                Writable("currency"),
+                Writable("item_count", minimum=0, maximum=10_000),
+                Writable("notes"),
+                Writable("customer_id"),
+            ),
+            identity=Identity("reference", "ORD"),
         ),
         "device": Resource(
             "device", "Devices", "Managed hardware, telemetry and operational health.", Device,
@@ -347,6 +491,20 @@ def _resources() -> dict[str, Resource]:
                 breakdowns=("status", "kind", "manufacturer", "location"),
                 trend="last_seen_at",
             ),
+            editable=(
+                Writable("name", required=True),
+                Writable("kind"),
+                Writable("model"),
+                Writable("manufacturer"),
+                Writable("status"),
+                Writable("location"),
+                Writable("last_seen_at"),
+                Writable("battery_percent", minimum=0, maximum=100),
+                Writable("signal_strength", minimum=-120, maximum=0),
+                Writable("uptime_hours", minimum=0),
+                Writable("error_count", minimum=0),
+            ),
+            identity=Identity("serial", "DEV"),
         ),
     }
 
@@ -368,6 +526,29 @@ def resource_for(key: Any, *, principal=None) -> Resource:
     return resource
 
 
+#: Datasets that are pickable but not explorable. People have a directory of
+#: their own (`/api/directory/people`), which is the business card a viewer is
+#: allowed to see rather than the user administration record.
+_PICKABLE_TABLES = {"users": "user"}
+
+
+def references_of(field: Field) -> str:
+    """Which dataset a foreign-key column points at, named as a picker wants it.
+
+    Derived from the schema, never listed here: the column already carries its
+    `ForeignKey`, and a second table-to-dataset mapping kept by hand is wrong
+    the first time anybody adds a relation.
+    """
+    for key in getattr(field.column, "foreign_keys", set()) or set():
+        table = key.column.table.name
+        if table in _PICKABLE_TABLES:
+            return _PICKABLE_TABLES[table]
+        for resource in resources().values():
+            if getattr(resource.model, "__tablename__", "") == table:
+                return resource.key
+    return ""
+
+
 def catalogue(session, *, principal) -> dict[str, Any]:
     """Describe every dataset the caller may explore, including live counts."""
     items = []
@@ -387,7 +568,15 @@ def catalogue(session, *, principal) -> dict[str, Any]:
             "record_count": count_of(session, base),
             "default_columns": list(resource.default_columns),
             "default_sort": resource.default_sort,
-            "fields": resource.fields.describe(),
+            "fields": [
+                {**described, **resource.writability(described["name"])}
+                for described in resource.fields.describe()
+            ],
+            # A create form has no record to read this from, so the catalogue
+            # carries it (§9, §76).
+            "can_create": bool(resource.identity) and principal.can("records.create"),
+            "can_edit": bool(resource.editable) and principal.can("records.update"),
+            "can_delete": principal.can("records.delete"),
         })
     return {"items": items, "view_modes": ["table", "list", "cards", "compact"]}
 

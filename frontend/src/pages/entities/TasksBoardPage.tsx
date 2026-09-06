@@ -1,5 +1,5 @@
 /**
- * Tasks as a board (§7, §18, §33).
+ * Tasks as a board (§7, §18, §33, §73).
  *
  * Work items are the one dataset where the *state* is the organising idea
  * rather than a column, so this is a board and not a table: lanes are the
@@ -12,17 +12,41 @@
  * "in review" column off the screen. Grouping one downloaded page of rows
  * would show "3 in progress" for a project with ninety.
  *
- * Drag is not here yet — writes are §9 — and the board says so rather than
- * offering a handle that silently does nothing.
+ * **A move is a write to the record** (§9). It is applied optimistically —
+ * a card that waits for a round trip before it lands does not feel like a
+ * board — and then reconciled against the server rather than trusted: the
+ * lane totals are aggregates only the database can compute, and a card that
+ * moved on somebody else's screen has to come back to this one. A refused
+ * move snaps back and says why.
+ *
+ * Dragging is not the only way to do it. `Move to` on every card is the same
+ * action from the keyboard (§54, §55), because a board reachable only by
+ * pointer is a board half the readers cannot use.
  */
 
-import { useQueries } from "@tanstack/react-query";
-import { Alert, Button, Card, Empty, Progress, Skeleton, Space, Tag, Tooltip, Typography } from "antd";
-import { AppstoreOutlined, ClockCircleOutlined, TableOutlined } from "@ant-design/icons";
-import { useMemo } from "react";
+import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
+import {
+  Alert,
+  App as AntApp,
+  Button,
+  Card,
+  Dropdown,
+  Empty,
+  Progress,
+  Skeleton,
+  Space,
+  Tag,
+  Tooltip,
+  Typography,
+} from "antd";
+import { ClockCircleOutlined, DragOutlined, PlusOutlined, TableOutlined } from "@ant-design/icons";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { ApiError } from "@/api/client";
 import { explorerApi, type ExplorerRequest } from "@/api/explorer";
+import { recordsApi } from "@/api/records";
+import { RecordForm } from "@/components/records/RecordForm";
 import { usePageCommands } from "@/commands/CommandContext";
 import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
 import { useEntityView } from "@/entities/useEntityView";
@@ -43,6 +67,7 @@ interface TaskRow {
   id: string;
   reference?: string;
   title?: string;
+  status?: string;
   priority?: string;
   kind?: string;
   due_date?: string | null;
@@ -54,8 +79,14 @@ interface TaskRow {
 
 export default function TasksBoardPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { message } = AntApp.useApp();
   const view = useEntityView("task", { columns: COLUMNS, defaultSort: "priority" });
   const { resource, rows, filters, term, setFilter } = view;
+
+  /** The lane a card is being dragged over, so the target is visible. */
+  const [over, setOver] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
   /**
    * The lanes, and their order.
@@ -96,7 +127,66 @@ export default function TasksBoardPage() {
     })),
   });
 
+  /**
+   * Moving a card writes the record's status.
+   *
+   * Optimistic, then reconciled: the card lands immediately, and every lane is
+   * refetched on the way out whether the write succeeded or failed. The totals
+   * beside each lane name are counted over the whole dataset, so they cannot
+   * be adjusted here without lying about the rows nobody has loaded.
+   */
+  const move = useMutation({
+    mutationFn: ({ task, to }: { task: TaskRow; to: string }) =>
+      recordsApi.update("task", task.id, {
+        status: to,
+        expected_updated_at: task.updated_at ?? null,
+      }),
+    onMutate: async ({ task, to }) => {
+      await queryClient.cancelQueries({ queryKey: ["task-lane"] });
+      // Move the card between the two lane caches by hand, so the drop lands
+      // before the round trip. Counts are left alone deliberately — see above.
+      queryClient.setQueryData(["task-lane", task.status ?? "", term, filters], (current: unknown) =>
+        withoutTask(current, task.id),
+      );
+      queryClient.setQueryData(["task-lane", to, term, filters], (current: unknown) =>
+        withTask(current, { ...task, status: to }),
+      );
+    },
+    onError: (error, { task }) => {
+      // A refused move snaps back — `onSettled` refetches every lane — and
+      // says why, because a card that returns to where it was with no
+      // explanation reads as a broken drag rather than a lost race.
+      const conflict = error instanceof ApiError && error.status === 409;
+      message.error(
+        conflict
+          ? `${task.title ?? "That task"} moved on somebody else's screen — reloading the board.`
+          : error instanceof ApiError
+            ? error.message
+            : "That move could not be saved.",
+      );
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["task-lane"] });
+      void queryClient.invalidateQueries({ queryKey: ["entity-rows"] });
+      void queryClient.invalidateQueries({ queryKey: ["entity-insights"] });
+    },
+  });
+
+  const canEdit = resource?.can_edit ?? false;
+  const canCreate = resource?.can_create ?? false;
+
+  const moveTo = (task: TaskRow, to: string) => {
+    if (!canEdit || to === task.status) return;
+    move.mutate({ task, to });
+  };
+
   usePageCommands("entity:task", [
+    {
+      id: "task.new",
+      label: "Create a task",
+      keywords: "new add create",
+      run: () => setCreating(true),
+    },
     {
       id: "task.overdue",
       label: "Show work that is behind",
@@ -119,9 +209,21 @@ export default function TasksBoardPage() {
         view={view}
         subtitle="Where the work is piled up, lane by lane — each column counted by the server."
         actions={
-          <Button icon={<TableOutlined />} onClick={() => navigate("/explore?resource=task")}>
-            As a table
-          </Button>
+          <>
+            <Tooltip title={canCreate ? "" : "Your role does not include records.create"}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                disabled={!canCreate}
+                onClick={() => setCreating(true)}
+              >
+                New task
+              </Button>
+            </Tooltip>
+            <Button icon={<TableOutlined />} onClick={() => navigate("/explore?resource=task")}>
+              As a table
+            </Button>
+          </>
         }
       />
 
@@ -129,14 +231,16 @@ export default function TasksBoardPage() {
       <EntityFilters view={view} only={["priority", "kind"]} />
       <EntityError view={view} />
 
-      <Alert
-        className="nu-block"
-        type="info"
-        showIcon
-        icon={<AppstoreOutlined />}
-        message="This board is read-only for now"
-        description="Moving a card between lanes writes to the record, and record editing (§9) has not shipped yet. Every lane is counted and paged by the server, so the numbers are the whole dataset rather than this page of it."
-      />
+      {!canEdit && (
+        <Alert
+          className="nu-block"
+          type="info"
+          showIcon
+          icon={<DragOutlined />}
+          message="This board is read-only for you"
+          description="Moving a card writes the task's status, which needs the records.update permission. Every lane is still counted and paged by the server, so the numbers are the whole dataset rather than this page of it."
+        />
+      )}
 
       <div className="nu-board" data-testid="task-board">
         {lanes.map((lane, index) => {
@@ -144,7 +248,27 @@ export default function TasksBoardPage() {
           const items = (query?.data?.items ?? []) as TaskRow[];
           const total = query?.data?.total ?? lane.total;
           return (
-            <section key={lane.status} className="nu-lane" aria-label={lane.status}>
+            <section
+              key={lane.status}
+              className={`nu-lane${over === lane.status ? " nu-lane-over" : ""}`}
+              aria-label={lane.status}
+              data-testid={`lane-${lane.status}`}
+              onDragOver={(event) => {
+                if (!canEdit) return;
+                // Preventing the default is what marks this a valid drop
+                // target; without it the browser refuses every drop silently.
+                event.preventDefault();
+                setOver(lane.status);
+              }}
+              onDragLeave={() => setOver((current) => (current === lane.status ? null : current))}
+              onDrop={(event) => {
+                event.preventDefault();
+                setOver(null);
+                const payload = event.dataTransfer.getData("application/x-nucleus-task");
+                if (!payload) return;
+                moveTo(JSON.parse(payload) as TaskRow, lane.status);
+              }}
+            >
               <header className="nu-lane-head">
                 <span
                   className="nu-lane-dot"
@@ -166,46 +290,14 @@ export default function TasksBoardPage() {
                 <ul className="nu-lane-cards">
                   {items.map((task) => (
                     <li key={task.id}>
-                      <Card
-                        size="small"
-                        className="nu-task-card"
-                        hoverable
-                        onClick={() => navigate(`/tasks/${task.id}`)}
-                      >
-                        <Space direction="vertical" size={6} style={{ width: "100%" }}>
-                          <Space size={6} wrap>
-                            <Tag color={knownStatusColor(task.priority ?? "")} bordered={false}>
-                              {task.priority}
-                            </Tag>
-                            <Text type="secondary" className="nu-task-ref">
-                              {task.reference}
-                            </Text>
-                          </Space>
-                          <Text strong className="nu-task-title">
-                            {task.title}
-                          </Text>
-                          <Progress
-                            percent={Number(task.progress ?? 0)}
-                            size="small"
-                            showInfo={false}
-                            strokeColor={knownStatusColor(lane.status)}
-                          />
-                          <Space size={10} className="nu-task-meta">
-                            <Text type="secondary">{task.kind}</Text>
-                            {task.due_date && (
-                              <Tooltip title={absoluteTime(task.due_date)}>
-                                <Text type="secondary">
-                                  <ClockCircleOutlined /> {relativeTime(task.due_date)}
-                                </Text>
-                              </Tooltip>
-                            )}
-                            <Text type="secondary">
-                              {Math.round(Number(task.logged_hours ?? 0))}/
-                              {Math.round(Number(task.estimate_hours ?? 0))}h
-                            </Text>
-                          </Space>
-                        </Space>
-                      </Card>
+                      <TaskCard
+                        task={{ ...task, status: task.status ?? lane.status }}
+                        lane={lane.status}
+                        lanes={lanes.map((item) => item.status)}
+                        canEdit={canEdit}
+                        onOpen={() => navigate(`/tasks/${task.id}`)}
+                        onMove={moveTo}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -225,6 +317,126 @@ export default function TasksBoardPage() {
           );
         })}
       </div>
+
+      <RecordForm
+        open={creating}
+        onClose={() => setCreating(false)}
+        resource={resource}
+        onSaved={(saved) => navigate(`/tasks/${saved.id}`)}
+      />
     </>
   );
+}
+
+/**
+ * One card.
+ *
+ * Draggable with a pointer and movable with the keyboard, by the same call.
+ * The `Move to` menu is not a fallback for the drag — it is the drag, for
+ * anybody not using a mouse, and it names the lanes so the choice does not
+ * depend on seeing where the columns are.
+ */
+function TaskCard({
+  task,
+  lane,
+  lanes,
+  canEdit,
+  onOpen,
+  onMove,
+}: {
+  task: TaskRow;
+  lane: string;
+  lanes: string[];
+  canEdit: boolean;
+  onOpen: () => void;
+  onMove: (task: TaskRow, to: string) => void;
+}) {
+  return (
+    <Card
+      size="small"
+      className="nu-task-card"
+      hoverable
+      draggable={canEdit}
+      data-testid={`task-card-${task.reference ?? task.id}`}
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("application/x-nucleus-task", JSON.stringify(task));
+      }}
+      onClick={onOpen}
+    >
+      <Space direction="vertical" size={6} style={{ width: "100%" }}>
+        <Space size={6} wrap>
+          <Tag color={knownStatusColor(task.priority ?? "")} bordered={false}>
+            {task.priority}
+          </Tag>
+          <Text type="secondary" className="nu-task-ref">
+            {task.reference}
+          </Text>
+          {canEdit && (
+            <Dropdown
+              trigger={["click"]}
+              menu={{
+                items: lanes
+                  .filter((status) => status !== lane)
+                  .map((status) => ({ key: status, label: status.replace(/_/g, " ") })),
+                onClick: ({ key, domEvent }) => {
+                  // The menu is portalled to the body, and a React portal
+                  // still bubbles through the *component* tree — so without
+                  // this the click also opens the card underneath it.
+                  domEvent.stopPropagation();
+                  onMove(task, key);
+                },
+              }}
+            >
+              <Button
+                size="small"
+                type="text"
+                aria-label={`Move ${task.title ?? task.reference} to another lane`}
+                onClick={(event) => event.stopPropagation()}
+              >
+                Move to
+              </Button>
+            </Dropdown>
+          )}
+        </Space>
+        <Text strong className="nu-task-title">
+          {task.title}
+        </Text>
+        <Progress
+          percent={Number(task.progress ?? 0)}
+          size="small"
+          showInfo={false}
+          strokeColor={knownStatusColor(lane)}
+        />
+        <Space size={10} className="nu-task-meta">
+          <Text type="secondary">{task.kind}</Text>
+          {task.due_date && (
+            <Tooltip title={absoluteTime(task.due_date)}>
+              <Text type="secondary">
+                <ClockCircleOutlined /> {relativeTime(task.due_date)}
+              </Text>
+            </Tooltip>
+          )}
+          <Text type="secondary">
+            {Math.round(Number(task.logged_hours ?? 0))}/
+            {Math.round(Number(task.estimate_hours ?? 0))}h
+          </Text>
+        </Space>
+      </Space>
+    </Card>
+  );
+}
+
+/** A lane's cached page, without one card. */
+function withoutTask(current: unknown, id: string) {
+  const page = current as { items?: TaskRow[] } | undefined;
+  if (!page?.items) return current;
+  return { ...page, items: page.items.filter((item) => item.id !== id) };
+}
+
+/** A lane's cached page, with one card at the top of it. */
+function withTask(current: unknown, task: TaskRow) {
+  const page = current as { items?: TaskRow[] } | undefined;
+  if (!page?.items) return current;
+  return { ...page, items: [task, ...page.items.filter((item) => item.id !== task.id)] };
 }

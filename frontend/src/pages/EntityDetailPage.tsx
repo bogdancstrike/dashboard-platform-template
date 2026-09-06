@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
+  App as AntApp,
   Button,
   Card,
   Col,
@@ -13,12 +14,16 @@ import {
   Tooltip,
   Typography,
 } from "antd";
+import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
+import { explorerApi } from "@/api/explorer";
 import { recordsApi, type RecordField } from "@/api/records";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
 import { PageHeader } from "@/components/PageHeader";
+import { RecordForm } from "@/components/records/RecordForm";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { asText } from "@/lib/text";
@@ -39,12 +44,21 @@ const { Text } = Typography;
  * The History tab is the audit timeline (§21, §48), reading the scoped
  * endpoint — so a reader who may open this record can read what happened to it
  * without being granted the whole ledger.
+ *
+ * Editing (§9) is the same story: the drawer is built from the fields the
+ * server marks writable, so the form a reader gets is the form the API will
+ * accept. Both controls are *shown and disabled* when the role does not carry
+ * the permission, with the permission named — a hidden button teaches nobody
+ * that the feature exists (§76).
  */
 export default function EntityDetailPage({ resourceKey }: { resourceKey: string }) {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { message, modal } = AntApp.useApp();
   const [params, setParams] = useSearchParams();
   const tab = params.get("tab") ?? "overview";
+  const [editing, setEditing] = useState(false);
 
   const record = useQuery({
     queryKey: ["record", resourceKey, id],
@@ -52,7 +66,36 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
     enabled: Boolean(id),
   });
 
+  // The form needs the *vocabulary* an enum allows, which only the catalogue
+  // publishes: read off the record, a status select would offer nothing but
+  // the value the record already has.
+  const catalogue = useQuery({
+    queryKey: ["explorer-catalogue"],
+    queryFn: ({ signal }) => explorerApi.catalogue(signal),
+    staleTime: 60_000,
+  });
+  const resource = catalogue.data?.items.find((item) => item.key === resourceKey);
+
+  const remove = useMutation({
+    mutationFn: () => recordsApi.remove(resourceKey, id),
+    onSuccess: (result) => {
+      message.success(`${result.title} deleted`);
+      void queryClient.invalidateQueries({ queryKey: ["entity-rows"] });
+      void queryClient.invalidateQueries({ queryKey: ["entity-insights"] });
+      void queryClient.invalidateQueries({ queryKey: ["task-lane"] });
+      navigate(record.data?.path ?? "/");
+    },
+    onError: (error) =>
+      message.error(error instanceof ApiError ? error.message : "That record could not be deleted."),
+  });
+
   usePageCommands(`record:${resourceKey}`, [
+    {
+      id: "record.edit",
+      label: "Edit this record",
+      keywords: "change update form",
+      run: () => setEditing(true),
+    },
     {
       id: "record.copy-link",
       label: "Copy a link to this record",
@@ -142,6 +185,41 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
             </Tag>
           ) : undefined
         }
+        actions={
+          <>
+            <Tooltip title={data.can_edit ? "" : "Your role does not include records.update"}>
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                disabled={!data.can_edit}
+                onClick={() => setEditing(true)}
+                data-testid="record-edit"
+              >
+                Edit
+              </Button>
+            </Tooltip>
+            <Tooltip title={data.can_delete ? "" : "Your role does not include records.delete"}>
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                disabled={!data.can_delete}
+                loading={remove.isPending}
+                onClick={() =>
+                  modal.confirm({
+                    title: `Delete ${data.title}?`,
+                    content:
+                      "It disappears from every list. The audit trail keeps what it was and who removed it.",
+                    okText: "Delete",
+                    okButtonProps: { danger: true },
+                    onOk: () => remove.mutateAsync(),
+                  })
+                }
+              >
+                Delete
+              </Button>
+            </Tooltip>
+          </>
+        }
       />
 
       <Tabs
@@ -173,6 +251,13 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
             ),
           },
         ]}
+      />
+
+      <RecordForm
+        open={editing}
+        onClose={() => setEditing(false)}
+        resource={resource}
+        record={data}
       />
     </>
   );

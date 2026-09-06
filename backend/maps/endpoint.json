@@ -492,13 +492,29 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "record_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/records/<string:resource_type>",
+      "description": "Create one entity record; the server names it.",
+      "exec_method": {
+        "module_name": "src.api.records",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "record_item",
       "model_name": "Empty",
       "request_method": [
-        "GET"
+        "GET",
+        "PUT",
+        "DELETE"
       ],
       "api_url": "/api/records/<string:resource_type>/<uuid:record_id>",
-      "description": "One entity record, with every field its declaration publishes.",
+      "description": "One entity record: read it, edit it, or remove it.",
       "exec_method": {
         "module_name": "src.api.records",
         "method_name": "item"

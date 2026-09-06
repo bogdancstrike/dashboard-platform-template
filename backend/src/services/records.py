@@ -48,6 +48,7 @@ def detail(session, resource_type: Any, record_id: Any, *, principal) -> dict[st
             "label": spec.title,
             "kind": spec.kind,
             "value": _json_value(getattr(row, spec.name, None)),
+            **resource.writability(spec.name),
         }
         for spec in resource.fields.fields
     ]
@@ -67,6 +68,11 @@ def detail(session, resource_type: Any, record_id: Any, *, principal) -> dict[st
         "metadata": _safe_metadata(getattr(row, "metadata_json", None) or {}),
         "created_at": _json_value(getattr(row, "created_at", None)),
         "updated_at": _json_value(getattr(row, "updated_at", None)),
+        # What this reader may do with it, so the page can show a disabled
+        # control with a reason rather than hiding one and leaving somebody to
+        # wonder whether the feature exists (§76).
+        "can_edit": bool(resource.editable) and principal.can("records.update"),
+        "can_delete": principal.can("records.delete"),
     }
 
 

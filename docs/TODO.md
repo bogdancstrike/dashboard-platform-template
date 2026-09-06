@@ -181,10 +181,53 @@ vertical slice with its own tests, its own tracker entry and its own commit.
       the engineering standards above: focused modules, clear naming, SOLID
       where useful, DRY, YAGNI, explicit API contracts, comments explaining
       decisions, and tests at the level that can detect each regression.
+- [x] **Records can be written, not only read (§9)** — one declaration per
+      dataset now yields create, edit and delete as well as the list and the
+      detail, and `/tasks` is a board a card can actually be moved on
+  - `POST /api/records/<type>` · `PUT` · `DELETE` on the same resource
+    declaration the list, the filters and the detail already read. What a form
+    may write is declared beside the fields (`Writable`), so the API accepts
+    exactly what the form offers and refuses everything else by name
+  - Values are coerced against the declaration: an enum against the vocabulary
+    the filter menu is built from, a number against its declared bounds, a
+    foreign key against the table the column's own `ForeignKey` names — so a
+    dangling `assignee_id` is a 404 about the assignee rather than an
+    `IntegrityError` surfacing as a 500
+  - **An edit that lost a race is refused, not applied.** A client sends the
+    `updated_at` it read; if the row has moved on, the write is a 409 naming
+    both moments (§73). Two people dragging one card cannot silently discard
+    each other's move
+  - The human identifier is generated, never accepted: `TSK-00501` continues
+    the seed's own sequence, from one shared formatter (`core/naming.py`), so
+    a created record is indistinguishable from a seeded one
+  - **Moving a card writes the record.** Optimistic, then reconciled — every
+    lane refetches, because a lane total is an aggregate over the whole
+    dataset and cannot be adjusted in the browser without lying about the rows
+    nobody loaded. A refused move snaps back and says why
+  - Dragging is not the only way: `Move to` on every card is the same call
+    from the keyboard (§54, §55), and the menu names the lanes
+  - The edit form is **derived**, not written per entity: kind → control,
+    vocabulary → select, bounds → spinner, foreign key → a picker that
+    searches the dataset the schema says it points at. It sends only what
+    changed, plus the version it edited, and guards a close that would discard
+    unsaved edits (§74)
+  - Refusals are shown, not hidden: an analyst sees Edit and Delete disabled
+    with the permission named, and the board says it is read-only (§76)
+  - Verification: 265 backend tests on live PostgreSQL (18 new), 196 frontend
+    tests (8 new), typecheck, lint and the endpoint-map check clean, FE/BE
+    rebuilt and redeployed, and 4 new Playwright tests green against the
+    compose stack — a card moved between lanes survives a reload, the move is
+    on the record's own history as a status change, an edit round-trips
+    through the server, and an analyst finds the controls disabled
+- [~] **Every page gets CRUD, not only reads** — the six list pages, not just
+      the board: create from the header, edit and delete per record, on the
+      generic endpoints above
+- [~] **The `ANALYSE` pages** — `/analytics`, `/reports`, `/reports/builder`,
+      `/charts/builder` and `/maps`, which are placeholders today
 - [~] **Continue implementation task by task** — update this tracker, commit,
       push, redeploy both FE/BE and test the deployed result after each task.
-      Current sequence: finish the existing dashboard expansion, then ship
-      the complete Explorer record panel. No destructive database reseeding.
+      Current sequence: CRUD on every entity page, then the Analyse section.
+      No destructive database reseeding.
 - [x] **Dark mode is charcoal, not navy** — the slate ramp read as a blue
       theme at low lightness; dark mode now has its own near-neutral ramp
 - [x] **Keep this tracker updated after every task**, and commit and push each
@@ -409,7 +452,7 @@ section is a cross-cutting rule rather than a page.
 | 6 | Search results, view modes | `/explore` | `/api/explorer/query` | [x] |
 | 7 | Entity list pages | `/{entity}` ×6 | generic list | [x] |
 | 8 | Entity detail page | `/{entity}/:id` | `/api/records/…` | [x] |
-| 9 | Create / edit forms | `/{entity}/:id/edit` | generic CRUD | [ ] |
+| 9 | Create / edit forms | drawer on every entity page | `/api/records/*` | [x] |
 | 10 | Multi-step wizard | `/{entity}/new/wizard` | draft endpoints | [ ] |
 | 11 | Admin area | `/admin` | `/admin/*` | [ ] |
 | 12 | User management, impersonation | `/admin/users` | `/admin/users` | [x] |
@@ -418,7 +461,7 @@ section is a cross-cutting rule rather than a page.
 | 15 | Email detail, threading | `/mail/:id` | `/mail/threads/:id` | [ ] |
 | 16 | Compose email | `/mail/compose` | `/mail/messages` | [ ] |
 | 17 | Notification centre | header + `/notifications` | `/notifications` | [x] |
-| 18 | Tasks / work queue (kanban) | `/tasks` | `/tasks` | [ ] |
+| 18 | Tasks / work queue (kanban) | `/tasks` | `/api/records/task` | [~] board + drag |
 | 19 | Calendar | `/calendar` | `/calendar/events` | [ ] |
 | 20 | File manager | `/files` | `/files` | [ ] |
 | 21 | **Audit logs** | `/admin/audit` | `/admin/audit` | [x] |
@@ -473,8 +516,8 @@ section is a cross-cutting rule rather than a page.
 | 70 | Search within table data | every list | generic list | [ ] |
 | 71 | Server-side data model | — | `core/query.py` | [x] core |
 | 72 | Query state persistence | global | — | [ ] |
-| 73 | Optimistic vs confirmed actions | global | — | [ ] |
-| 74 | Unsaved changes protection | every form | — | [ ] |
+| 73 | Optimistic vs confirmed actions | board, forms | — | [~] |
+| 74 | Unsaved changes protection | every form | — | [~] drawer |
 | 75 | Preview before bulk execution | every bulk action | `/{entity}/bulk/preview` | [ ] |
 | 76 | Security-conscious UX | global | `core/auth.py` masking | [x] core |
 | 77 | Final goal — coherent template | everything | — | [ ] |
@@ -754,11 +797,15 @@ everything else.
   - Cards carry `position` **and** `lane_id`, so a drag is one UPDATE and a
     reload restores exactly what the reader left
 - [ ] Board CRUD, lane CRUD, card CRUD
-- [ ] **Drag a card between lanes and within a lane.** Optimistic on the client,
+- [~] **Drag a card between lanes and within a lane.** Optimistic on the client,
       reconciled against the server's answer (§73)
-  - **Acceptance**: dragging a card and reloading shows it where it was
-    dropped; a failed move snaps back and says why; two people dragging the
-    same card do not corrupt the order
+  - Lane-to-lane ships on `/tasks`, on the task's own `status` rather than a
+    board table: the board is a view of the work queue, and a second copy of
+    "which lane is this in" is a second answer to the question. Ordering
+    *within* a lane waits on `board_position`, which the model already carries
+  - **Acceptance**: met for the lane change and asserted end to end — a card
+    moved and reloaded is where it was dropped, a refused move snaps back and
+    says why, and a stale edit is refused with a 409 rather than applied
 - [ ] Card detail: description, assignee, due date, labels, **to-do checklist**
       with per-item completion, **comments** with mentions, attachments,
       activity timeline
@@ -1140,19 +1187,25 @@ Each endpoint ships with its five-case integration test and the page consuming i
   - **Acceptance**: every KPI links to the list that explains it with the same
     filters applied; "this month" means the same thing to the tile and the chart
     beneath it; drill-down keeps a back-stack (§44)
-- [~] Generic entity **read** ships for all six datasets (§3, §7, §8). One
-      declaration already yields the list, its filters, facets, sort, search and
-      export; `/api/records/<type>/<id>` adds the detail from the same
+- [~] Generic entity **read and write** ship for all six datasets (§3, §7, §8,
+      §9). One declaration yields the list, its filters, facets, sort, search
+      and export; `/api/records/<type>/<id>` adds the detail, the edit and the
+      delete, and `POST /api/records/<type>` the create — all from the same
       declaration, so a field filterable on the list is a field the detail page
-      shows. Create, update, delete and bulk (§9, §43) are next
+      shows and a field the form may write is one the API accepts. Bulk (§43)
+      is next
   - The list endpoint is deliberately the explorer's `POST /api/explorer/query`
     rather than a second implementation. Two list endpoints is two places for
     "case-insensitive" to be decided differently
   - A record of the wrong type is a 404 rather than a redirect or the record:
     an id is not a capability, and whether it exists is itself information
-  - **Acceptance**: partly met. One declaration → list, detail, export, filters
-    and facets in SQL. Bulk, and the per-row partial result it has to report,
-    are open
+  - Writes are declared, not inferred: `Writable` names the fields a form may
+    touch and the bounds on them, `Identity` names the identifier the server
+    generates. A dataset with neither is read-only and says so, rather than
+    accepting a payload and quietly ignoring it
+  - **Acceptance**: partly met. One declaration → list, detail, export, filters,
+    facets, create, edit and delete, all in SQL and all audited. Bulk, and the
+    per-row partial result it has to report, are open
 - [ ] Bulk preview endpoint (§75) — affected count split into "selected
       manually" and "selected by filter", before anything is applied
 - [~] Search: simple and advanced Data Explorer shipped; global and quick
@@ -1261,7 +1314,9 @@ Each endpoint ships with its five-case integration test and the page consuming i
   - Every detail page carries the audit timeline (§21, §48) on its History tab,
     reading the scoped endpoint so a reader who may open the record can read
     its history without the whole ledger
-  - Data table showcase (§3), forms (§9) and the wizard (§10) remain
+  - Forms (§9) ship as one declaration-driven drawer, opened from the detail
+    page and from the board. The data table showcase (§3) and the wizard (§10)
+    remain
 - [~] Search: Data Explorer ships simple/faceted search, nested advanced RAQB,
       backend query inspector, saved searches and four URL-persistent result
       modes; saved views, highlighting, suggestions and preview remain (§4–§6, §51)
@@ -1329,7 +1384,9 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] `docker compose up` clean-boot green — every service healthy from empty
       volumes; seed wrote 15 554 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
-- [~] Backend tests — 203 passing, including Data Explorer query, validation,
+- [~] Backend tests — 265 passing, including Data Explorer query, validation,
+      record create/edit/delete with its declaration, bounds, foreign keys and
+      lost-race refusal,
       JWT/RBAC, saved-search visibility/lifecycle, the notification centre's
       scoping/filtering/grouping contract, the audit ledger's permissions,
       diff semantics, redaction and read-only surface, the export writers' BOM,
@@ -1341,7 +1398,8 @@ Each endpoint ships with its five-case integration test and the page consuming i
     aims at the **running stack** — it silently replaced the demo dataset with a
     small one, so every Playwright run afterwards measured 60 tasks where
     compose had produced 500. Nothing failed; the numbers were quietly different
-- [~] Frontend unit + component tests — 139 passing, including Data Explorer
+- [~] Frontend unit + component tests — 196 passing, including the record form,
+      the board write path and Data Explorer
       backend rendering, debounced search, saved-search module, the
       notification centre's six states, the header bell, the audit explorer,
       the per-record timeline, the authenticated download path, the generic

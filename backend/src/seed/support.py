@@ -23,6 +23,8 @@ from datetime import datetime, timedelta
 from typing import Any, Iterable, Sequence, TypeVar
 from uuid import UUID
 
+from src.core.naming import identifier
+
 T = TypeVar("T")
 
 _SLUG_STRIP = re.compile(r"[^a-z0-9]+")
@@ -169,7 +171,13 @@ def initials_of(name: str) -> str:
 
 
 def reference(prefix: str, number: int, *, width: int = 5) -> str:
-    return f"{prefix}-{number:0{width}d}"
+    """A seeded record's human identifier.
+
+    Delegates to `core.naming` so a row written here and one created from a
+    form later carry the same shape; two spellings of `TSK-00042` is a dataset
+    that visibly splits into "the seeded ones" and "the ones somebody made".
+    """
+    return identifier(prefix, number, width=width)
 
 
 def avatar_data_uri(name: str, color: str) -> str:

@@ -12,6 +12,7 @@
 
 import { http, HttpResponse } from "msw";
 
+import type { ExplorerCatalogue, ExplorerField, FieldKind } from "@/api/explorer";
 import { CORRELATION_HEADER } from "@/config";
 
 export const appMeta = {
@@ -170,7 +171,7 @@ export const dashboardSummary = {
   generated_at: "2026-09-03T12:00:00Z",
 };
 
-export const explorerCatalogue = {
+export const explorerCatalogue: ExplorerCatalogue = {
   items: [{
     key: "task",
     label: "Tasks",
@@ -183,11 +184,14 @@ export const explorerCatalogue = {
     title_field: "title",
     subtitle_field: "reference",
     status_field: "status",
+    can_create: true,
+    can_edit: true,
+    can_delete: true,
     fields: [
       { name: "reference", label: "Reference", kind: "text", sortable: true, filterable: true, searchable: true, facet: false, operators: ["eq", "contains", "starts"], choices: [] },
-      { name: "title", label: "Title", kind: "text", sortable: true, filterable: true, searchable: true, facet: false, operators: ["eq", "contains", "not"], choices: [] },
-      { name: "status", label: "Status", kind: "enum", sortable: true, filterable: true, searchable: false, facet: true, operators: ["eq", "ne", "in", "not_in", "empty", "not_empty"], choices: ["NEW", "IN_PROGRESS", "DONE"] },
-      { name: "priority", label: "Priority", kind: "enum", sortable: true, filterable: true, searchable: false, facet: true, operators: ["eq", "ne", "in", "not_in"], choices: ["NORMAL", "HIGH", "CRITICAL"] },
+      { name: "title", label: "Title", kind: "text", sortable: true, filterable: true, searchable: true, facet: false, operators: ["eq", "contains", "not"], choices: [], editable: true, required: true },
+      { name: "status", label: "Status", kind: "enum", sortable: true, filterable: true, searchable: false, facet: true, operators: ["eq", "ne", "in", "not_in", "empty", "not_empty"], choices: ["NEW", "IN_PROGRESS", "DONE"], editable: true },
+      { name: "priority", label: "Priority", kind: "enum", sortable: true, filterable: true, searchable: false, facet: true, operators: ["eq", "ne", "in", "not_in"], choices: ["NORMAL", "HIGH", "CRITICAL"], editable: true },
       { name: "due_date", label: "Due date", kind: "datetime", sortable: true, filterable: true, searchable: false, facet: false, operators: ["before", "after", "between", "empty"], choices: [] },
       { name: "updated_at", label: "Updated", kind: "datetime", sortable: true, filterable: true, searchable: false, facet: false, operators: ["before", "after"], choices: [] },
     ],
@@ -205,9 +209,9 @@ export const explorerCatalogue = {
 function field(
   name: string,
   label: string,
-  kind: string,
-  extra: Partial<{ facet: boolean; searchable: boolean; choices: string[] }> = {},
-) {
+  kind: FieldKind,
+  extra: Partial<{ facet: boolean; searchable: boolean; choices: string[]; editable: boolean }> = {},
+): ExplorerField {
   return {
     name,
     label,
@@ -218,6 +222,7 @@ function field(
     facet: extra.facet ?? false,
     operators: ["eq", "ne"],
     choices: extra.choices ?? [],
+    editable: extra.editable ?? false,
   };
 }
 
@@ -228,6 +233,7 @@ explorerCatalogue.items.push(
     default_columns: ["code", "name", "status", "health", "progress", "due_date"],
     default_sort: "start_date", path: "/projects",
     title_field: "name", subtitle_field: "code", status_field: "status",
+    can_create: true, can_edit: true, can_delete: true,
     fields: [
       field("code", "Code", "text", { searchable: true }),
       field("name", "Name", "text", { searchable: true }),
@@ -248,6 +254,7 @@ explorerCatalogue.items.push(
     default_columns: ["code", "name", "status", "segment", "lifetime_value"],
     default_sort: "updated_at", path: "/customers",
     title_field: "name", subtitle_field: "code", status_field: "status",
+    can_create: true, can_edit: true, can_delete: true,
     fields: [
       field("code", "Code", "text", { searchable: true }),
       field("name", "Name", "text", { searchable: true }),
@@ -269,6 +276,7 @@ explorerCatalogue.items.push(
     default_columns: ["reference", "status", "total", "placed_at"],
     default_sort: "placed_at", path: "/orders",
     title_field: "reference", subtitle_field: "", status_field: "status",
+    can_create: true, can_edit: true, can_delete: true,
     fields: [
       field("reference", "Reference", "text", { searchable: true }),
       field("status", "Status", "enum", { facet: true, choices: ["CONFIRMED", "CANCELLED"] }),
@@ -287,6 +295,7 @@ explorerCatalogue.items.push(
     default_columns: ["reference", "subject", "status", "severity"],
     default_sort: "updated_at", path: "/tickets",
     title_field: "subject", subtitle_field: "reference", status_field: "status",
+    can_create: true, can_edit: true, can_delete: true,
     fields: [
       field("reference", "Reference", "text", { searchable: true }),
       field("subject", "Subject", "text", { searchable: true }),
@@ -308,6 +317,7 @@ explorerCatalogue.items.push(
     default_columns: ["serial", "name", "status", "last_seen_at"],
     default_sort: "last_seen_at", path: "/devices",
     title_field: "name", subtitle_field: "serial", status_field: "status",
+    can_create: true, can_edit: true, can_delete: true,
     fields: [
       field("serial", "Serial", "text", { searchable: true }),
       field("name", "Name", "text", { searchable: true }),
@@ -609,9 +619,9 @@ export const recordDetail = {
   status_field: "status",
   fields: [
     { name: "reference", label: "Reference", kind: "text", value: "TSK-001" },
-    { name: "title", label: "Title", kind: "text", value: "Review customer migration" },
-    { name: "status", label: "Status", kind: "enum", value: "IN_PROGRESS" },
-    { name: "progress", label: "Progress", kind: "number", value: 45 },
+    { name: "title", label: "Title", kind: "text", value: "Review customer migration", editable: true, required: true },
+    { name: "status", label: "Status", kind: "enum", value: "IN_PROGRESS", editable: true },
+    { name: "progress", label: "Progress", kind: "number", value: 45, editable: true, minimum: 0, maximum: 100 },
     { name: "due_date", label: "Due date", kind: "datetime", value: "2026-09-10T12:00:00Z" },
     { name: "description", label: "Description", kind: "text", value: null },
     { name: "assignee_id", label: "Assignee ID", kind: "uuid", value: "11111111-2222-3333-4444-555555555555" },
@@ -620,6 +630,8 @@ export const recordDetail = {
   ],
   created_at: "2026-08-01T09:00:00Z",
   updated_at: "2026-09-03T09:00:00Z",
+  can_edit: true,
+  can_delete: true,
 };
 
 

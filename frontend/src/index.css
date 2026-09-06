@@ -850,6 +850,13 @@ mark.nu-mark {
   border-radius: var(--nu-radius-card); padding: 10px;
   max-height: 72vh; display: flex; flex-direction: column;
 }
+/* The lane a card is over. A drop target that does not light up is a drop
+   somebody makes twice. */
+.nu-lane-over {
+  border-color: var(--nu-accent);
+  box-shadow: inset 0 0 0 1px var(--nu-accent);
+}
+.nu-task-card[draggable="true"] { cursor: grab; }
 .nu-lane-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .nu-lane-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 .nu-lane-title {

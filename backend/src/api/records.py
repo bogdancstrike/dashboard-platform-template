@@ -1,19 +1,33 @@
-"""Entity record endpoints (§7, §8).
+"""Entity record endpoints (§7, §8, §9).
 
 The list side is the explorer's `POST /api/explorer/query`, deliberately: one
 declaration per entity already yields the list, its filters, its facets, its
 sort and its export, and a second list implementation is a second place for a
 filter to be applied differently. This module is the other half — opening one
-row.
+row, and writing it.
+
+Reading and writing are separate permissions and separate handlers, but one
+declaration: the fields a form may write are declared on the same `Resource`
+that decides which fields the detail page shows, so the API cannot accept a
+field the form never offers or refuse one it does.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from src.core.auth import me, requires
+from src.core.auth import json_body, me, requires
 from src.core.db import session_scope
+from src.services import record_writes as writes
 from src.services import records as service
+
+
+@requires("records.view")
+def collection(app=None, operation: str = "", request=None, resource_type: str = "", **kwargs: Any):
+    """Create one record (§9). The server names it; the client describes it."""
+    kind = resource_type or str(kwargs.get("resource_type") or "")
+    with session_scope() as session:
+        return writes.create(session, kind, json_body(), principal=me()), 201
 
 
 @requires("records.view")
@@ -25,8 +39,21 @@ def item(
     record_id: str = "",
     **kwargs: Any,
 ):
-    """One record, with every field the entity declares."""
+    """One record: read it, edit it, or remove it.
+
+    `records.view` gates the handler because every verb here begins by reading
+    the record; the narrower permission each write needs is required by the
+    service, so a caller who may read but not edit is told which permission is
+    missing rather than which route to use.
+    """
     kind = resource_type or str(kwargs.get("resource_type") or "")
     identifier = record_id or str(kwargs.get("record_id") or "")
+    method = (request.method if request is not None else "GET").upper()
+
     with session_scope() as session:
-        return service.detail(session, kind, identifier, principal=me()), 200
+        principal = me()
+        if method == "PUT":
+            return writes.update(session, kind, identifier, json_body(), principal=principal), 200
+        if method == "DELETE":
+            return writes.delete(session, kind, identifier, principal=principal), 200
+        return service.detail(session, kind, identifier, principal=principal), 200

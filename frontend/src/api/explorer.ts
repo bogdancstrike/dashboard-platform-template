@@ -13,6 +13,14 @@ export interface ExplorerField {
   facet: boolean;
   operators: string[];
   choices: string[];
+  /** Whether a create or edit form may write it (§9). */
+  editable?: boolean;
+  required?: boolean;
+  minimum?: number | null;
+  maximum?: number | null;
+  /** The dataset a foreign key points at — `user`, `project` — so a form can
+   *  render a picker instead of a box for a UUID. Empty when it is not one. */
+  references?: string;
 }
 
 /**
@@ -46,6 +54,11 @@ export interface ExplorerResource {
   title_field: string;
   subtitle_field: string;
   status_field: string;
+  /** What this reader may do with the dataset, so a control can be shown and
+   *  disabled with its reason rather than hidden (§9, §76). */
+  can_create: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
 }
 
 /** One headline number a dataset declares about itself (§44). */
