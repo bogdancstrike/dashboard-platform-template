@@ -110,6 +110,17 @@ test.describe("notification centre", () => {
 
   test("marking one read and unread again moves the count both ways", async ({ page }) => {
     await readState(page, "Unread").click();
+
+    // Make sure there is something unread to work with. The demo mailbox is
+    // shared and finite, and a test that only passes on a fresh seed is a test
+    // people stop running.
+    if ((await page.getByRole("button", { name: /as read$/ }).count()) === 0) {
+      await readState(page, "Read").click();
+      await page.getByRole("button", { name: /as unread$/ }).first().click();
+      await readState(page, "Unread").click();
+    }
+    await expect(page.getByRole("button", { name: /as read$/ }).first()).toBeVisible();
+
     const before = Number(
       (await page.getByTestId("unread-count").textContent())?.replace(/\D/g, "") ?? "0",
     );

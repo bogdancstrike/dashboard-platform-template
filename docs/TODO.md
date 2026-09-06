@@ -35,7 +35,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
 | Endpoints | 39 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×3, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×3, audit ×5, records ×1, roles ×2, users ×3 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 233 backend + 159 frontend + 98 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
+| Tests | 233 backend + 162 frontend + 100 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
 | Frontend | shell, Data Explorer, discovery workspaces and the notification centre; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -133,13 +133,16 @@ vertical slice with its own tests, its own tracker entry and its own commit.
       `/orders` a commercial ledger, `/tickets` a triage queue, `/devices` a
       fleet monitor. The detail pages especially: `/projects/:id`,
       `/tickets/:id` and `/tasks/:id` currently differ only in their data
-- [ ] **`/notifications` should look better** (§17) — it works; it does not
-      yet look like the rest of the platform
+- [x] **`/notifications` should look better** (§17) — a digest strip that is
+      also the filter, rows grouped under the day they arrived on, unread as a
+      tinted card rather than bold text alone
 - [ ] **`/dashboard` needs far more charts** (§2, §44) — the full ECharts
       vocabulary, following `gif_responder`'s dashboard and going beyond it
 - [ ] **`/explore` needs a record side panel** (§64) — click a row and read the
       record itself: metadata, full text, related items. `rag-poc`'s data
       explorer is the reference
+- [x] **Dark mode is charcoal, not navy** — the slate ramp read as a blue
+      theme at low lightness; dark mode now has its own near-neutral ramp
 - [x] **Keep this tracker updated after every task**, and commit and push each
 
 ---
@@ -728,6 +731,23 @@ everything else.
       page" group
 - [x] **Mark one as read** and back again, **mark all as read**, mark one
       collapsed group read, and delete
+- [x] **It reads as a feed, not a table.** Three things do that work:
+  - A **digest strip** — unread, critical, needs-you, last 24 hours — where
+    each tile is also the filter for the thing it counts, so the summary and
+    the way to act on it are one control. Every number is a server-side
+    aggregate over the whole mailbox: "4 critical" computed from the loaded
+    page would mean "4 critical among these twenty-five", which is wrong
+    exactly when there are many
+  - **Rows under the day they arrived on.** Forty rows each stamped "3d ago"
+    is a wall of text; the same rows under *Today* / *Yesterday* / *Monday*
+    let the eye find the boundary between "while I was here" and "before I
+    arrived" without reading one of them. The grouping is a presentation of
+    the order the server already returned, never a re-sort, so a day header
+    cannot appear twice
+  - **Unread is a tinted card with an accent edge**, not bold text alone: the
+    state has to survive being skimmed from two feet away. Severity is the
+    tint and category is the glyph — two channels, so a reader who cannot
+    separate the colours still reads the kind (§55)
 - [x] Filter by category, severity, read state and text; group by `group_key`
       so twelve "assigned you a task" rows collapse into one
   - Grouped **in PostgreSQL**, not in the browser: one statement with window
@@ -761,6 +781,23 @@ everything else.
     work), that marking read and unread moves the count both ways, and that
     one reader cannot reach another's notification by id. A backend
     integration test asserts the scoping directly rather than by inspection
+
+### Appearance — the dark ramp
+
+- [x] Dark mode has its own palette (`INK`) rather than the light slate ramp
+      inverted
+  - Slate's blue cast is invisible at 95% lightness and unmissable at 8%: a
+    surface built from `NEUTRAL[900]` reads as navy, and the whole product
+    looks like it has a blue theme nobody asked for. `INK` is almost
+    achromatic, so the only things carrying hue in dark mode are the accent and
+    the status colours — which is the only thing that should
+  - Shadows have their own dark set. A translucent-navy shadow over a charcoal
+    surface is invisible; depth in a dark UI comes from a *darker* shadow
+  - The accent lightens to `ACCENT[400]` in dark mode. An accent that has to be
+    hunted for is not an accent
+  - One ramp, three consumers: the AntD theme, the CSS custom properties and
+    the ECharts theme all read it, so a table and the chart beside it cannot
+    drift
 
 ### `/profile` — the user's own page (§40, §41)
 
