@@ -18,6 +18,11 @@ import { ApiOutlined, ThunderboltOutlined, WifiOutlined } from "@ant-design/icon
 import { useNavigate } from "react-router-dom";
 
 import { ChartCard } from "@/components/ChartCard";
+import {
+  NewRecordButton,
+  RecordActions,
+  useRecordEditing,
+} from "@/components/records/useRecordEditing";
 import { usePageCommands } from "@/commands/CommandContext";
 import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
 import { useEntityView } from "@/entities/useEntityView";
@@ -106,7 +111,17 @@ export default function DevicesFleetPage() {
   const breakdown = (field: string) =>
     insights?.breakdowns.find((item) => item.field === field);
 
+  const records = useRecordEditing(view.resource, {
+    onCreated: (id) => navigate(`/devices/${id}`),
+  });
+
   usePageCommands("entity:device", [
+    {
+      id: "device.new",
+      label: "Register a device",
+      keywords: "new add create enrol",
+      run: records.create,
+    },
     {
       id: "device.offline",
       label: "Show devices that are offline",
@@ -128,6 +143,7 @@ export default function DevicesFleetPage() {
       <EntityHeader
         view={view}
         subtitle="The fleet at a glance — what is up, what is unwell, and what has stopped talking."
+        actions={<NewRecordButton records={records} resource={view.resource} />}
       />
 
       <MetricStrip view={view} accents={["accent", "success", "warning", "danger"]} />
@@ -211,6 +227,11 @@ export default function DevicesFleetPage() {
                   <Tag color={knownStatusColor(device.status ?? "")} bordered={false}>
                     {device.status}
                   </Tag>
+                  <RecordActions
+                    records={records}
+                    id={device.id}
+                    label={device.serial ?? device.name ?? "this device"}
+                  />
                 </div>
 
                 <Text type="secondary" className="nu-mono nu-device-serial">
@@ -250,6 +271,8 @@ export default function DevicesFleetPage() {
           })}
         </div>
       )}
+
+      {records.drawer}
 
       {(view.rows.data?.total ?? 0) > view.pageSize && (
         <div className="nu-notice-pager">

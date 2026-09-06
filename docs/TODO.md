@@ -219,9 +219,23 @@ vertical slice with its own tests, its own tracker entry and its own commit.
     compose stack — a card moved between lanes survives a reload, the move is
     on the record's own history as a status change, an edit round-trips
     through the server, and an analyst finds the controls disabled
-- [~] **Every page gets CRUD, not only reads** — the six list pages, not just
-      the board: create from the header, edit and delete per record, on the
-      generic endpoints above
+- [x] **Every page gets CRUD, not only reads** — all six list pages create,
+      edit and delete, not only read
+  - The lifecycle is one hook (`useRecordEditing`), not six: create, the edit
+    drawer, the delete confirmation and the cache invalidation live together,
+    and each page decides only *where* the control goes. A board puts it on the
+    card, the ledger in a narrow last column, the triage queue beside the open
+    ticket. Six drawers would be six definitions of what a task is editable in
+  - The record is fetched when the drawer opens rather than taken from the row.
+    A list carries the columns it draws; a form built from those would offer
+    whichever fields that page happened to select
+  - Every control is shown and disabled with the permission named when the role
+    lacks it, on every page, because the capability comes from the catalogue
+    the page already reads (§76)
+  - Verification: a parameterised test asserts all six pages offer create, edit
+    and delete — a page that quietly stayed read-only fails it. 202 frontend
+    tests, typecheck and lint clean, FE redeployed and the full 114-test
+    Playwright suite green
 - [~] **The `ANALYSE` pages** — `/analytics`, `/reports`, `/reports/builder`,
       `/charts/builder` and `/maps`, which are placeholders today
 - [~] **Continue implementation task by task** — update this tracker, commit,
@@ -1398,17 +1412,20 @@ Each endpoint ships with its five-case integration test and the page consuming i
     aims at the **running stack** — it silently replaced the demo dataset with a
     small one, so every Playwright run afterwards measured 60 tasks where
     compose had produced 500. Nothing failed; the numbers were quietly different
-- [~] Frontend unit + component tests — 196 passing, including the record form,
+- [~] Frontend unit + component tests — 202 passing, including the record form,
+      create/edit/delete on all six entity pages,
       the board write path and Data Explorer
       backend rendering, debounced search, saved-search module, the
       notification centre's six states, the header bell, the audit explorer,
       the per-record timeline, the authenticated download path, the generic
       entity list and detail pages, the connection map and the permission matrix
-- [~] Playwright e2e suite — 87 tests green against `docker compose up` on the
+- [~] Playwright e2e suite — 114 tests green against `docker compose up` on the
       full seed, covering the shell, appearance, Data Explorer, saved searches,
       global search, relationships, the catalogue, the notification centre, the
-      audit explorer, a real file download, all six entity lists and the
-      permission matrix. A cold-boot run from empty volumes is still the
+      audit explorer, a real file download, all six entity lists, record
+      writes — a card moved between lanes surviving a reload, an edit
+      round-tripping through the server, a reader refused with the reason — and
+      the permission matrix. A cold-boot run from empty volumes is still the
       outstanding proof
   - Worker count is **capped** rather than left to the machine. Playwright
     defaults to half the cores — sixteen browsers on a 32-core laptop —

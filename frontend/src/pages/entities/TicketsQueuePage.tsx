@@ -34,6 +34,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { recordsApi } from "@/api/records";
 import { asText } from "@/lib/text";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
+import {
+  NewRecordButton,
+  RecordActions,
+  useRecordEditing,
+} from "@/components/records/useRecordEditing";
 import { usePageCommands } from "@/commands/CommandContext";
 import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
 import { useEntityView } from "@/entities/useEntityView";
@@ -87,7 +92,15 @@ export default function TicketsQueuePage() {
     setParams(next, { replace: true });
   };
 
+  const records = useRecordEditing(view.resource, { onCreated: choose });
+
   usePageCommands("entity:ticket", [
+    {
+      id: "ticket.new",
+      label: "Raise a ticket",
+      keywords: "new add create report",
+      run: records.create,
+    },
     {
       id: "ticket.breached",
       label: "Show tickets that have breached their SLA",
@@ -120,6 +133,7 @@ export default function TicketsQueuePage() {
       <EntityHeader
         view={view}
         subtitle="The queue, worst first — work it from here without losing your place."
+        actions={<NewRecordButton records={records} resource={view.resource} />}
       />
 
       <MetricStrip view={view} accents={["accent", "info", "danger", "neutral"]} />
@@ -212,6 +226,12 @@ export default function TicketsQueuePage() {
           extra={
             open.data && (
               <Space>
+                <RecordActions
+                  records={records}
+                  id={open.data.id}
+                  label={open.data.subtitle || open.data.title}
+                  size="middle"
+                />
                 <Button
                   size="small"
                   icon={<ApartmentOutlined />}
@@ -285,6 +305,8 @@ export default function TicketsQueuePage() {
           )}
         </Card>
       </div>
+
+      {records.drawer}
     </>
   );
 }

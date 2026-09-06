@@ -21,6 +21,11 @@ import { Card, Empty, Progress, Skeleton, Space, Tag, Tooltip, Typography } from
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
+import {
+  NewRecordButton,
+  RecordActions,
+  useRecordEditing,
+} from "@/components/records/useRecordEditing";
 import { usePageCommands } from "@/commands/CommandContext";
 import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
 import { useEntityView } from "@/entities/useEntityView";
@@ -110,7 +115,17 @@ export default function ProjectsPortfolioPage() {
     return marks;
   }, [span]);
 
+  const records = useRecordEditing(view.resource, {
+    onCreated: (id) => navigate(`/projects/${id}`),
+  });
+
   usePageCommands("entity:project", [
+    {
+      id: "project.new",
+      label: "Create a project",
+      keywords: "new add create",
+      run: records.create,
+    },
     {
       id: "project.at-risk",
       label: "Show the projects that are at risk",
@@ -132,6 +147,7 @@ export default function ProjectsPortfolioPage() {
       <EntityHeader
         view={view}
         subtitle="Every project on one axis, coloured by the health it reports and measured against its budget."
+        actions={<NewRecordButton records={records} resource={view.resource} />}
       />
 
       <MetricStrip view={view} accents={["accent", "danger", "info", "warning"]} />
@@ -228,6 +244,11 @@ export default function ProjectsPortfolioPage() {
                         format={() => `${Math.round(burn)}%`}
                       />
                     </Tooltip>
+                    <RecordActions
+                      records={records}
+                      id={project.id}
+                      label={project.code ?? project.name ?? "this project"}
+                    />
                   </div>
                 </div>
               );
@@ -235,6 +256,8 @@ export default function ProjectsPortfolioPage() {
           </div>
         )}
       </Card>
+
+      {records.drawer}
     </>
   );
 }

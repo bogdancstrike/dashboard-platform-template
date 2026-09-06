@@ -21,6 +21,11 @@ import { useNavigate } from "react-router-dom";
 import type { SeriesPoint } from "@/api/explorer";
 import { ChartCard } from "@/components/ChartCard";
 import { EmptyState, NoResults } from "@/components/EmptyState";
+import {
+  NewRecordButton,
+  RecordActions,
+  useRecordEditing,
+} from "@/components/records/useRecordEditing";
 import { usePageCommands } from "@/commands/CommandContext";
 import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
 import { useEntityView } from "@/entities/useEntityView";
@@ -55,7 +60,17 @@ export default function OrdersLedgerPage() {
   const rows = (view.rows.data?.items ?? []) as OrderRow[];
   const insights = view.insights.data;
 
+  const records = useRecordEditing(view.resource, {
+    onCreated: (id) => navigate(`/orders/${id}`),
+  });
+
   usePageCommands("entity:order", [
+    {
+      id: "order.new",
+      label: "Create an order",
+      keywords: "new add create",
+      run: records.create,
+    },
     {
       id: "order.unpaid",
       label: "Show orders awaiting payment",
@@ -147,6 +162,17 @@ export default function OrdersLedgerPage() {
         </Text>
       ),
     },
+    {
+      // Last and narrow: the ledger is read left to right for money, and an
+      // actions column early in the scan is a column in the way.
+      title: "",
+      key: "actions",
+      width: 48,
+      fixed: "right",
+      render: (_value: unknown, row) => (
+        <RecordActions records={records} id={row.id} label={row.reference ?? "this order"} />
+      ),
+    },
   ];
 
   const onChange = (
@@ -173,6 +199,7 @@ export default function OrdersLedgerPage() {
       <EntityHeader
         view={view}
         subtitle="Commercial transactions, newest first — with what they are worth and where they are stuck."
+        actions={<NewRecordButton records={records} resource={view.resource} />}
       />
 
       <MetricStrip view={view} accents={["accent", "success", "info", "warning"]} />
@@ -251,6 +278,8 @@ export default function OrdersLedgerPage() {
           }}
         />
       </Card>
+
+      {records.drawer}
     </>
   );
 }

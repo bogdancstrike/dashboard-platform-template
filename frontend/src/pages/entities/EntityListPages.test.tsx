@@ -210,6 +210,32 @@ describe("what every entity page keeps in common", () => {
     expect(within(metrics).getByText("12.5")).toBeInTheDocument();
   });
 
+  it.each([
+    ["tasks", <TasksBoardPage />, "/tasks", "New task"],
+    ["projects", <ProjectsPortfolioPage />, "/projects", "New project"],
+    ["customers", <CustomersPage />, "/customers", "New customer"],
+    ["orders", <OrdersLedgerPage />, "/orders", "New order"],
+    ["tickets", <TicketsQueuePage />, "/tickets", "New ticket"],
+    ["devices", <DevicesFleetPage />, "/devices", "New device"],
+  ])("gives %s create, edit and delete, not only a list (§9)", async (_name, page, route, label) => {
+    const user = userEvent.setup();
+    render(page, route);
+
+    // Create, named after the entity rather than "New record".
+    expect(await screen.findByRole("button", { name: new RegExp(label) })).toBeEnabled();
+
+    // And per record, edit and delete — from the same declaration, so a
+    // dataset cannot be editable on one page and read-only on another.
+    const actions = await screen.findAllByRole("button", { name: /^Actions for / });
+    await user.click(actions[0]!);
+    // Matched loosely: an AntD menu icon carries its own aria-label, so the
+    // accessible name of the item is "edit Edit".
+    expect(await screen.findByRole("menuitem", { name: /Edit/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Delete/ })).toBeInTheDocument();
+    // Longer than the default: the triage queue renders a list *and* opens a
+    // record, and this case runs six whole pages.
+  }, 15_000);
+
   it("says which permission is missing rather than drawing an empty page", async () => {
     server.use(
       http.post("/platform/api/explorer/query", () =>

@@ -1,7 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   Alert,
-  App as AntApp,
   Button,
   Card,
   Col,
@@ -15,7 +14,6 @@ import {
   Typography,
 } from "antd";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
-import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -23,7 +21,7 @@ import { explorerApi } from "@/api/explorer";
 import { recordsApi, type RecordField } from "@/api/records";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
 import { PageHeader } from "@/components/PageHeader";
-import { RecordForm } from "@/components/records/RecordForm";
+import { useRecordEditing } from "@/components/records/useRecordEditing";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { asText } from "@/lib/text";
@@ -54,11 +52,8 @@ const { Text } = Typography;
 export default function EntityDetailPage({ resourceKey }: { resourceKey: string }) {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { message, modal } = AntApp.useApp();
   const [params, setParams] = useSearchParams();
   const tab = params.get("tab") ?? "overview";
-  const [editing, setEditing] = useState(false);
 
   const record = useQuery({
     queryKey: ["record", resourceKey, id],
@@ -76,17 +71,10 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
   });
   const resource = catalogue.data?.items.find((item) => item.key === resourceKey);
 
-  const remove = useMutation({
-    mutationFn: () => recordsApi.remove(resourceKey, id),
-    onSuccess: (result) => {
-      message.success(`${result.title} deleted`);
-      void queryClient.invalidateQueries({ queryKey: ["entity-rows"] });
-      void queryClient.invalidateQueries({ queryKey: ["entity-insights"] });
-      void queryClient.invalidateQueries({ queryKey: ["task-lane"] });
-      navigate(record.data?.path ?? "/");
-    },
-    onError: (error) =>
-      message.error(error instanceof ApiError ? error.message : "That record could not be deleted."),
+  // The same lifecycle every list page uses, so "edit" means one thing across
+  // the product. It reads this record from the cache this page already filled.
+  const records = useRecordEditing(resource, {
+    onDeleted: () => navigate(record.data?.path ?? "/"),
   });
 
   usePageCommands(`record:${resourceKey}`, [
@@ -94,7 +82,7 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
       id: "record.edit",
       label: "Edit this record",
       keywords: "change update form",
-      run: () => setEditing(true),
+      run: () => records.edit(id),
     },
     {
       id: "record.copy-link",
@@ -192,7 +180,7 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
                 type="primary"
                 icon={<EditOutlined />}
                 disabled={!data.can_edit}
-                onClick={() => setEditing(true)}
+                onClick={() => records.edit(id)}
                 data-testid="record-edit"
               >
                 Edit
@@ -203,17 +191,7 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
                 danger
                 icon={<DeleteOutlined />}
                 disabled={!data.can_delete}
-                loading={remove.isPending}
-                onClick={() =>
-                  modal.confirm({
-                    title: `Delete ${data.title}?`,
-                    content:
-                      "It disappears from every list. The audit trail keeps what it was and who removed it.",
-                    okText: "Delete",
-                    okButtonProps: { danger: true },
-                    onOk: () => remove.mutateAsync(),
-                  })
-                }
+                onClick={() => records.remove(id, data.title)}
               >
                 Delete
               </Button>
@@ -253,12 +231,7 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
         ]}
       />
 
-      <RecordForm
-        open={editing}
-        onClose={() => setEditing(false)}
-        resource={resource}
-        record={data}
-      />
+      {records.drawer}
     </>
   );
 }

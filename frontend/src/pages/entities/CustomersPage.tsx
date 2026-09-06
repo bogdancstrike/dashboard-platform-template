@@ -18,6 +18,11 @@ import { MailOutlined, ShopOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
 import { ChartCard } from "@/components/ChartCard";
+import {
+  NewRecordButton,
+  RecordActions,
+  useRecordEditing,
+} from "@/components/records/useRecordEditing";
 import { usePageCommands } from "@/commands/CommandContext";
 import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
 import { useEntityView } from "@/entities/useEntityView";
@@ -76,7 +81,17 @@ export default function CustomersPage() {
   const breakdown = (field: string) =>
     insights?.breakdowns.find((item) => item.field === field);
 
+  const records = useRecordEditing(view.resource, {
+    onCreated: (id) => navigate(`/customers/${id}`),
+  });
+
   usePageCommands("entity:customer", [
+    {
+      id: "customer.new",
+      label: "Create an account",
+      keywords: "new add create customer",
+      run: records.create,
+    },
     {
       id: "customer.at-risk",
       label: "Show accounts with low satisfaction",
@@ -98,6 +113,7 @@ export default function CustomersPage() {
       <EntityHeader
         view={view}
         subtitle="The book of business, richest first — with what each account is worth and how it feels."
+        actions={<NewRecordButton records={records} resource={view.resource} />}
       />
 
       <MetricStrip view={view} accents={["accent", "success", "info", "warning"]} />
@@ -174,6 +190,11 @@ export default function CustomersPage() {
                   <Tag color={knownStatusColor(customer.status ?? "")} bordered={false}>
                     {customer.status}
                   </Tag>
+                  <RecordActions
+                    records={records}
+                    id={customer.id}
+                    label={customer.code ?? customer.name ?? "this account"}
+                  />
                 </div>
 
                 <div className="nu-account-value">
@@ -229,6 +250,8 @@ export default function CustomersPage() {
           />
         </div>
       )}
+
+      {records.drawer}
     </>
   );
 }

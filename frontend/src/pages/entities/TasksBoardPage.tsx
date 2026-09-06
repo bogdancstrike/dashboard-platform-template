@@ -39,14 +39,19 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { ClockCircleOutlined, DragOutlined, PlusOutlined, TableOutlined } from "@ant-design/icons";
+import { ClockCircleOutlined, DragOutlined, TableOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { explorerApi, type ExplorerRequest } from "@/api/explorer";
 import { recordsApi } from "@/api/records";
-import { RecordForm } from "@/components/records/RecordForm";
+import {
+  NewRecordButton,
+  RecordActions,
+  useRecordEditing,
+  type RecordEditing,
+} from "@/components/records/useRecordEditing";
 import { usePageCommands } from "@/commands/CommandContext";
 import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
 import { useEntityView } from "@/entities/useEntityView";
@@ -86,7 +91,9 @@ export default function TasksBoardPage() {
 
   /** The lane a card is being dragged over, so the target is visible. */
   const [over, setOver] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
+  const records = useRecordEditing(resource, {
+    onCreated: (id) => navigate(`/tasks/${id}`),
+  });
 
   /**
    * The lanes, and their order.
@@ -172,8 +179,7 @@ export default function TasksBoardPage() {
     },
   });
 
-  const canEdit = resource?.can_edit ?? false;
-  const canCreate = resource?.can_create ?? false;
+  const canEdit = records.canEdit;
 
   const moveTo = (task: TaskRow, to: string) => {
     if (!canEdit || to === task.status) return;
@@ -185,7 +191,7 @@ export default function TasksBoardPage() {
       id: "task.new",
       label: "Create a task",
       keywords: "new add create",
-      run: () => setCreating(true),
+      run: records.create,
     },
     {
       id: "task.overdue",
@@ -210,16 +216,7 @@ export default function TasksBoardPage() {
         subtitle="Where the work is piled up, lane by lane — each column counted by the server."
         actions={
           <>
-            <Tooltip title={canCreate ? "" : "Your role does not include records.create"}>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                disabled={!canCreate}
-                onClick={() => setCreating(true)}
-              >
-                New task
-              </Button>
-            </Tooltip>
+            <NewRecordButton records={records} resource={resource} />
             <Button icon={<TableOutlined />} onClick={() => navigate("/explore?resource=task")}>
               As a table
             </Button>
@@ -295,6 +292,7 @@ export default function TasksBoardPage() {
                         lane={lane.status}
                         lanes={lanes.map((item) => item.status)}
                         canEdit={canEdit}
+                        records={records}
                         onOpen={() => navigate(`/tasks/${task.id}`)}
                         onMove={moveTo}
                       />
@@ -318,12 +316,7 @@ export default function TasksBoardPage() {
         })}
       </div>
 
-      <RecordForm
-        open={creating}
-        onClose={() => setCreating(false)}
-        resource={resource}
-        onSaved={(saved) => navigate(`/tasks/${saved.id}`)}
-      />
+      {records.drawer}
     </>
   );
 }
@@ -341,6 +334,7 @@ function TaskCard({
   lane,
   lanes,
   canEdit,
+  records,
   onOpen,
   onMove,
 }: {
@@ -348,6 +342,7 @@ function TaskCard({
   lane: string;
   lanes: string[];
   canEdit: boolean;
+  records: RecordEditing;
   onOpen: () => void;
   onMove: (task: TaskRow, to: string) => void;
 }) {
@@ -372,6 +367,11 @@ function TaskCard({
           <Text type="secondary" className="nu-task-ref">
             {task.reference}
           </Text>
+          <RecordActions
+            records={records}
+            id={task.id}
+            label={task.reference ?? task.title ?? "this task"}
+          />
           {canEdit && (
             <Dropdown
               trigger={["click"]}
