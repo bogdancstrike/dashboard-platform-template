@@ -17,7 +17,7 @@ export function RecordRelations({ resourceType, recordId }: { resourceType: stri
 
   return <div className="nu-record-content">{groups.map((group) => (
     <section key={`${group.direction}:${group.relation}`}>
-      <Typography.Title level={5}>{group.label} · {group.total}</Typography.Title>
+      <Typography.Title level={3}>{group.label} · {group.total}</Typography.Title>
       <List size="small" dataSource={group.items} renderItem={(item) => (
         <List.Item key={`${item.entity}:${item.id}`}>
           <List.Item.Meta title={item.explorable

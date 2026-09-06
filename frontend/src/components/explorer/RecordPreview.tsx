@@ -44,10 +44,11 @@ export function RecordPreview({ resourceType, recordId, term = "", onClose }: Re
 
   return (
     <Drawer
+      rootClassName="nu-record-drawer"
       open={Boolean(recordId)}
       width="min(680px, 96vw)"
       onClose={onClose}
-      title={<span className="nu-preview-title">{data?.title ?? "Record preview"}</span>}
+      title={<span role="heading" aria-level={2} className="nu-preview-title">{data?.title ?? "Record preview"}</span>}
       extra={<Space size={4}>
         <Tooltip title="Copy record ID">
           <Button icon={<CopyOutlined />} aria-label="Copy record id"
@@ -65,7 +66,7 @@ export function RecordPreview({ resourceType, recordId, term = "", onClose }: Re
         <Space wrap size={8} className="nu-preview-summary">
           <Typography.Text type="secondary">{data.resource_label}</Typography.Text>
           {data.subtitle && <Typography.Text code>{data.subtitle}</Typography.Text>}
-          {data.status && <Tag color={knownStatusColor(data.status)}>{data.status}</Tag>}
+          {data.status && <Tag style={{ borderInlineStart: `3px solid ${knownStatusColor(data.status) ?? "var(--nu-border)"}` }}>{data.status}</Tag>}
           <Link to={`${data.path}/${data.id}`}><ExportOutlined /> Open full record</Link>
           <Button type="link" aria-label="Show connections" icon={<ApartmentOutlined />}
             onClick={() => navigate(`/find/relationships?resource=${resourceType}&id=${recordId}`)}>

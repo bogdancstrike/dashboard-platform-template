@@ -13,7 +13,7 @@ export function RecordContent({ record, term }: { record: RecordDetail; term: st
 
   return <div className="nu-record-content">
     <section aria-label="Full text">
-      <Typography.Title level={5}>Full text</Typography.Title>
+      <Typography.Title level={3}>Full text</Typography.Title>
       {content.some((field) => field.value) ? content.map((field) => field.value ? (
         <article key={field.name} aria-label={field.label} className="nu-record-prose">
           <Typography.Text type="secondary">{field.label}</Typography.Text>
@@ -24,13 +24,13 @@ export function RecordContent({ record, term }: { record: RecordDetail; term: st
         description="This record has no full text. Its details are shown below." />}
     </section>
     <section aria-label="Metadata">
-      <Typography.Title level={5}>Metadata</Typography.Title>
+      <Typography.Title level={3}>Metadata</Typography.Title>
       <Descriptions className="nu-preview" column={1} size="small" bordered
         items={metadata.map((field) => ({ key: field.name, label: field.label,
           children: <RecordValue field={field} /> }))} />
     </section>
     <section aria-label="Additional metadata">
-      <Typography.Title level={5}>Additional metadata</Typography.Title>
+      <Typography.Title level={3}>Additional metadata</Typography.Title>
       {Object.keys(record.metadata).length > 0 ? <Descriptions column={1} size="small" bordered
         items={Object.entries(record.metadata).map(([name, value]) => ({ key: name, label: name,
           children: <StructuredValue value={value} /> }))} />
@@ -54,6 +54,6 @@ function RecordValue({ field }: { field: RecordField }) {
     return <Typography.Text>{Number.isNaN(date.valueOf()) ? asText(value) : formatDateTime(date)}</Typography.Text>;
   }
   if (kind === "number" && typeof value === "number") return <Typography.Text>{formatNumber(value)}</Typography.Text>;
-  if (kind === "enum") return <Tag color={knownStatusColor(asText(value))}>{asText(value)}</Tag>;
+  if (kind === "enum") return <Tag style={{ borderInlineStart: `3px solid ${knownStatusColor(asText(value)) ?? "var(--nu-border)"}` }}>{asText(value)}</Tag>;
   return <StructuredValue value={value} />;
 }

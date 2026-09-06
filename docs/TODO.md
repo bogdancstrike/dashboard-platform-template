@@ -157,7 +157,10 @@ vertical slice with its own tests, its own tracker entry and its own commit.
     retry/missing/forbidden states. Extension metadata masks nested secret keys.
   - Local verification: 247 backend tests on PostgreSQL, 188 frontend tests,
     typecheck, endpoint-map validation and lint pass (14 existing warnings).
-    Deployed browser verification is in progress before marking this complete.
+    Deployed verification found and fixed low-contrast secondary text, links and
+    filled status badges in the preview. Text now uses the shared readable
+    tokens; status colour is carried by badge borders. Heading levels follow
+    the page hierarchy. The full browser suite is being rerun before completion.
 - [x] **Expand `/dashboard` using Apache ECharts**, informed by
       `/home/bogdan/workspace/dev/gif_responder` and extending its examples:
       meaningful charts and statistics from real backend data, readable table

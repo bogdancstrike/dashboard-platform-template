@@ -977,7 +977,16 @@ mark.nu-mark {
 .nu-setting-control { flex: none; }
 /* Record previews keep document whitespace and long identifiers within the panel. */
 .nu-record-content { display: grid; gap: 24px; }
+.nu-record-content h3.ant-typography { font-size: 16px; }
 .nu-preview-summary { margin-bottom: 12px; }
 .nu-record-prose p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; margin: 8px 0 0; }
 .nu-record-json { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; font-size: 12px; }
 .nu-record-content .ant-descriptions-item-content { overflow-wrap: anywhere; min-width: 0; }
+/* AntD's description/link aliases use dimmer semantic colours in dark mode.
+   Readable text uses the shared text/accent tokens; badge borders carry status. */
+.nu-record-drawer .ant-typography-secondary,
+.nu-record-drawer .ant-empty-description,
+.nu-record-drawer .ant-list-item-meta-description { color: var(--nu-text-secondary); }
+.nu-record-drawer a,
+.nu-record-drawer .ant-btn-link,
+.nu-record-drawer .ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--nu-accent); }

@@ -51,6 +51,24 @@ docs/        Architecture notes and the implementation tracker
 | `src/api/client.ts` | Correlation id on every request, `ApiError` from the error envelope, cancellation, bearer injection |
 | `src/test/` | MSW handlers and the provider-wrapped render helper |
 
+### Extending dashboards and record previews
+
+`/dashboard` displays 16 panels backed by PostgreSQL aggregates. Add a panel
+in `backend/src/services/dashboard.py`, declare its key in
+`frontend/src/api/dashboard.ts`, and use a builder from
+`frontend/src/components/charts/options.ts`. The shared chart card supplies
+the theme, table view and CSV export; additional dimensions belong in
+`charts/data.ts` so downloads retain the values shown by the chart. Label
+current-state snapshots explicitly when they do not follow the period picker.
+
+`/explore?resource=ticket&record=<uuid>` opens a complete record beside the
+results. Preview data comes from `/platform/api/records/<type>/<uuid>` and is
+independent of visible columns. Declare prose fields through `Resource.content_fields`
+in `backend/src/services/explorer.py`; keep those fields in the resource's field
+catalogue. The detail contract also includes structured `metadata`, with known
+secret keys masked recursively. Text is rendered as escaped prose, preserving
+paragraphs. Related records use the existing schema-derived relationship API.
+
 ---
 
 ## Running it

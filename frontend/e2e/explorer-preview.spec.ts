@@ -30,8 +30,9 @@ test("a narrow table opens full text, metadata and related records, and survives
   expect(accessibility.violations.filter((violation) => ["serious", "critical"].includes(violation.impact ?? ""))).toEqual([]);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(dialog).toBeVisible();
-  const bounds = await dialog.boundingBox();
-  expect(bounds?.width).toBeLessThanOrEqual(390);
+  // AntD animates width changes for 300ms; inspect the settled layout.
+  await expect.poll(async () => (await dialog.boundingBox())?.width ?? Infinity)
+    .toBeLessThanOrEqual(390);
   await dialog.screenshot({ path: "test-results/explorer-record-preview-mobile.png" });
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
