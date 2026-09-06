@@ -719,3 +719,17 @@ mark.nu-mark {
   pointer-events: none;
 }
 .nu-cell-lock { margin-inline-start: 6px; color: var(--nu-text-tertiary); font-size: 11px; }
+
+/* ── Impersonation (§12) ──────────────────────────────────────────────────
+   A band across the whole content area rather than a toast: a toast is gone
+   in four seconds, and the thing it was telling you lasts until you end it. */
+
+.nu-impersonation {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 8px 16px;
+  background: var(--nu-warning); color: #1c1917;
+  font-size: 13px;
+}
+.nu-impersonation strong { font-weight: 700; }
+.nu-impersonation .ant-btn { margin-inline-start: auto; }
+.nu-mfa-on { color: var(--nu-success); }

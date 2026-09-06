@@ -8,16 +8,13 @@ import pytest
 from sqlalchemy import func, select
 
 from src.config import Config
+from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX
 
 
 def _claims(username: str, role: str) -> dict:
-    return {
-        "sub": "", "email": f"{username}@nucleus.example",
-        "preferred_username": username, "name": username.title(),
-        "sid": f"explorer-{username}", "realm_access": {"roles": [role]},
-    }
+    return persona_claims(username, role, sid=f"explorer-{username}")
 
 
 def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):

@@ -59,3 +59,31 @@ def has_database() -> bool:
 def _skip_without_database(request, has_database):
     if request.node.get_closest_marker("database") and not has_database:
         pytest.skip("set TEST_DATABASE_URL to run tests that need PostgreSQL")
+
+
+#: The five seeded personas, by the names the realm and the seed give them.
+#:
+#: Test claims have to carry these. `core/auth._sync_user` trusts the identity
+#: provider for a person's display name — correctly, since the IdP owns it — so
+#: a synthetic claim of `name: "Admin"` silently renames Ada Administrator in
+#: the demo database, and the next person to open the app finds a directory of
+#: people called "Admin", "Manager" and "User".
+PERSONA_NAMES: dict[str, str] = {
+    "admin": "Ada Administrator",
+    "manager": "Mara Manager",
+    "operator": "Otto Operator",
+    "analyst": "Ana Analyst",
+    "user": "Uma User",
+}
+
+
+def persona_claims(username: str, role: str, *, sid: str = "") -> dict:
+    """The JWT claims a signed-in persona would actually arrive with."""
+    return {
+        "sub": "",
+        "email": f"{username}@nucleus.example",
+        "preferred_username": username,
+        "name": PERSONA_NAMES.get(username, username.title()),
+        "sid": sid or f"test-{username}",
+        "realm_access": {"roles": [role]},
+    }

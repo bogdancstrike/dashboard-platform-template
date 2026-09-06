@@ -14,16 +14,13 @@ from uuid import uuid4
 import pytest
 
 from src.config import Config
+from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX
 
 
 def _claims(username: str, role: str) -> dict:
-    return {
-        "sub": "", "email": f"{username}@nucleus.example",
-        "preferred_username": username, "name": username.title(),
-        "sid": f"audit-{username}", "realm_access": {"roles": [role]},
-    }
+    return persona_claims(username, role, sid=f"audit-{username}")
 
 
 def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):

@@ -16,6 +16,7 @@ from uuid import uuid4
 import pytest
 
 from src.config import Config
+from tests.conftest import persona_claims
 from src.core import export
 
 PREFIX = Config.API_PREFIX
@@ -24,11 +25,7 @@ COLUMNS = [export.Column("reference", "Reference"), export.Column("title")]
 
 
 def _claims(username: str, role: str) -> dict:
-    return {
-        "sub": "", "email": f"{username}@nucleus.example",
-        "preferred_username": username, "name": username.title(),
-        "sid": f"export-{username}", "realm_access": {"roles": [role]},
-    }
+    return persona_claims(username, role, sid=f"export-{username}")
 
 
 def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):

@@ -33,9 +33,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Backend core (`src/core/`) | **done** — db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
-| Endpoints | 35 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×3, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×2, audit ×5, records ×1, roles ×2 |
+| Endpoints | 38 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×3, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×2, audit ×5, records ×1, roles ×2, users ×3 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 203 backend + 139 frontend + 87 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
+| Tests | 219 backend + 151 frontend + 94 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
 | Frontend | shell, Data Explorer, discovery workspaces and the notification centre; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -270,7 +270,7 @@ function is a slow test that fails for unrelated reasons.
       download the error report
 - [ ] **Export** (§30) — request one above the row limit, watch it become a job
       (§23), download the artefact
-- [ ] **Impersonation** (§12) — admin impersonates a viewer, sees the reduced
+- [x] **Impersonation** (§12) — admin impersonates a viewer, sees the reduced
       UI, and both identities appear on the audit row
 - [ ] **Command palette** (§31) — `Ctrl-K`, navigate to a record, run a page action
 - [ ] **Audit explorer** (§21) — filter by actor and action, open an entry, read
@@ -303,7 +303,7 @@ section is a cross-cutting rule rather than a page.
 | 9 | Create / edit forms | `/{entity}/:id/edit` | generic CRUD | [ ] |
 | 10 | Multi-step wizard | `/{entity}/new/wizard` | draft endpoints | [ ] |
 | 11 | Admin area | `/admin` | `/admin/*` | [ ] |
-| 12 | User management, impersonation | `/admin/users` | `/admin/users` | [ ] |
+| 12 | User management, impersonation | `/admin/users` | `/admin/users` | [x] |
 | 13 | Roles and permission matrix | `/admin/roles` | `/admin/roles` | [x] |
 | 14 | Email inbox | `/mail` | `/mail/threads` | [ ] |
 | 15 | Email detail, threading | `/mail/:id` | `/mail/threads/:id` | [ ] |
@@ -1005,7 +1005,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
       backend query inspector, saved searches and four URL-persistent result
       modes; saved views, highlighting, suggestions and preview remain (§4–§6, §51)
 - [~] **Roles matrix `/admin/roles` (§13)** ships. The admin area itself (§11)
-      and users with impersonation (§12) remain
+      remains
   - Built from the two things that actually decide access: the permission
     catalogue the code checks against, and the `roles` table
     `core/auth._permissions_for` reads on **every** request. So every
@@ -1025,6 +1025,25 @@ Each endpoint ships with its five-case integration test and the page consuming i
     in the UI and refused with a 409 by the server
   - Every edit is audited in the same transaction, with the permissions it
     moved visible in the audit drawer's diff
+- [x] **People and impersonation `/admin/users` (§12)**
+  - The directory filters, sorts and facets in SQL across the `roles` join, so
+    "who are the seven administrators?" is one query and not a narrowed page
+  - A person's **Access** tab is the answer to *why can they do that?* — the
+    role's permissions, the groups' permissions, and the union the API actually
+    enforces, with the group-granted half marked and its source named
+  - **Impersonation** is a request header, not a second session:
+    `X-Impersonate-User` is set on the client, resolved by `core/auth`, and
+    every request made while it is set is audited under **both** identities.
+    Starting one is itself audited, as the administrator, before the header
+    goes on — so the ledger cannot be laundered by the act it records
+  - Refused where it would be a privilege escalation or a lie: nobody may act
+    as somebody of higher rank, as an account that is not `ACTIVE`, or as
+    themselves. The button is shown and disabled with the reason rather than
+    hidden (§76)
+  - You cannot suspend or re-role yourself — the same self-lockout guard the
+    matrix has, disabled in the UI and refused with a 409 by the server
+  - **Acceptance**: met end to end — an e2e test impersonates a viewer, finds
+    `/admin/roles` refused *by the API*, returns, and finds it allowed again
 - [x] **Audit explorer `/admin/audit` + `AuditTimeline` component (§21)**
   - **Acceptance**: met. The table shows who / when / what at a glance, an
     entry opens its diff field by field with added and cleared distinguishable,

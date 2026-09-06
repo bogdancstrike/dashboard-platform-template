@@ -444,6 +444,85 @@ export const roleMatrix = {
   your_role: "ADMINISTRATOR",
 };
 
+
+export const userRows = [
+  {
+    id: "user-1", email: "ada@nucleus.example", username: "admin",
+    full_name: "Ada Administrator", initials: "AA", avatar_url: null,
+    job_title: "Platform Administrator", status: "ACTIVE",
+    role_code: "ADMINISTRATOR", role_name: "Administrator", role_color: "#dc2626",
+    mfa_enabled: true, last_login_at: "2026-09-03T08:00:00Z", login_count: 412,
+    group_names: [], created_at: "2025-01-01T00:00:00Z", updated_at: "2026-09-03T08:00:00Z",
+  },
+  {
+    id: "user-2", email: "uma@nucleus.example", username: "user",
+    full_name: "Uma User", initials: "UU", avatar_url: null,
+    job_title: "Support Analyst", status: "ACTIVE",
+    role_code: "VIEWER", role_name: "Viewer", role_color: "#64748b",
+    mfa_enabled: false, last_login_at: "2026-09-01T10:00:00Z", login_count: 12,
+    group_names: ["On-call"], created_at: "2025-06-01T00:00:00Z", updated_at: "2026-09-01T10:00:00Z",
+  },
+];
+
+export const userDetail = {
+  ...userRows[1]!,
+  phone: "",
+  locale: "en-GB",
+  timezone: "Europe/Bucharest",
+  profile_completeness: 80,
+  organization: { id: "org-1", name: "Northwind Partners" },
+  department: { id: "dep-1", name: "Support" },
+  manager: { id: "user-1", name: "Ada Administrator" },
+  groups: [{ id: "grp-1", name: "On-call", kind: "TEAM", permissions: ["jobs.manage"] }],
+  access: {
+    role_permissions: ["records.view", "reports.view"],
+    group_permissions: { "On-call": ["jobs.manage"] },
+    effective: ["jobs.manage", "records.view", "reports.view"],
+    effective_labels: ["Manage jobs", "View records", "View reports"],
+    from_groups_only: ["jobs.manage"],
+  },
+  sessions: [
+    {
+      id: "s1", device: "Chrome on Linux", ip_address: "10.2.0.4", location: "Bucharest",
+      last_seen_at: "2026-09-03T09:30:00Z", revoked: false, trusted: true,
+    },
+  ],
+  sign_ins: [
+    {
+      id: "l1", result: "SUCCESS", reason: "", ip_address: "10.2.0.4",
+      location: "Bucharest", device: "Chrome on Linux", method: "PASSWORD",
+      at: "2026-09-03T09:30:00Z",
+    },
+  ],
+  can_manage: true,
+  can_impersonate: true,
+  impersonation_blocked_because: "",
+};
+
+export function userPage(items = userRows) {
+  return {
+    items,
+    total: items.length,
+    page: 1,
+    page_size: 25,
+    pages: 1,
+    sort: "full_name",
+    order: "asc",
+    fields: [],
+    facets: {
+      role_code: [
+        { value: "ADMINISTRATOR", count: 1 },
+        { value: "VIEWER", count: 1 },
+      ],
+      status: [{ value: "ACTIVE", count: 2 }],
+    },
+    columns: ["full_name", "email", "role_code", "status", "last_login_at", "mfa_enabled"],
+    statuses: ["ACTIVE", "INVITED", "SUSPENDED", "DISABLED"],
+    can_manage: true,
+    can_impersonate: true,
+  };
+}
+
 export const handlers = [
   http.get("/platform/meta/app", ({ request }) => echo(request, appMeta)),
   http.get("/platform/api/search/global", ({ request }) =>
@@ -494,6 +573,32 @@ export const handlers = [
     echo(request, { marked: 2, read_at: "2026-09-03T12:00:00Z" }),
   ),
 
+  http.get("/platform/admin/users", ({ request }) => {
+    const query = new URL(request.url).searchParams;
+    const role = query.get("role_code");
+    const term = (query.get("q") ?? "").toLowerCase();
+    const items = userRows.filter(
+      (row) =>
+        (!role || row.role_code === role) &&
+        (!term || row.full_name.toLowerCase().includes(term) || row.email.includes(term)),
+    );
+    return echo(request, userPage(items));
+  }),
+  http.get("/platform/admin/users/:id", ({ request }) => echo(request, userDetail)),
+  http.put("/platform/admin/users/:id", async ({ request }) => {
+    const body = (await request.json()) as { status?: string; role_code?: string };
+    return echo(request, { ...userDetail, ...body });
+  }),
+  http.post("/platform/admin/users/:id/impersonate", ({ request, params }) =>
+    echo(request, {
+      id: String(params["id"]),
+      username: "user",
+      full_name: "Uma User",
+      email: "uma@nucleus.example",
+      role: "VIEWER",
+      started_by: "Ada Administrator",
+    }),
+  ),
   http.get("/platform/admin/roles", ({ request }) => echo(request, roleMatrix)),
   http.put("/platform/admin/roles/:code", async ({ request, params }) => {
     const body = (await request.json()) as { permissions?: string[] };

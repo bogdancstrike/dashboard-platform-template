@@ -503,6 +503,49 @@
         "module_name": "src.api.roles",
         "method_name": "item"
       }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "admin_users_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/users",
+      "description": "People, with their role, status and sign-in history.",
+      "exec_method": {
+        "module_name": "src.api.users",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "admin_user_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT"
+      ],
+      "api_url": "/admin/users/<uuid:user_id>",
+      "description": "One person's profile and effective access, or a change to it.",
+      "exec_method": {
+        "module_name": "src.api.users",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "admin_user_impersonate",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/admin/users/<uuid:user_id>/impersonate",
+      "description": "Begin acting as this person; audited with both identities.",
+      "exec_method": {
+        "module_name": "src.api.users",
+        "method_name": "impersonate"
+      }
     }
   ]
 }

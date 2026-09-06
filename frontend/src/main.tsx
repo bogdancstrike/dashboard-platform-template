@@ -11,6 +11,7 @@ import { ApiError } from "@/api/client";
 import { metaApi } from "@/api/meta";
 import { asText } from "@/lib/text";
 import { AuthProvider } from "@/auth/AuthProvider";
+import { ImpersonationProvider } from "@/auth/ImpersonationProvider";
 import { initializeAuth } from "@/auth/keycloak";
 import { CommandProvider } from "@/commands/CommandContext";
 import { LiveProvider } from "@/live/LiveProvider";
@@ -76,13 +77,15 @@ async function start() {
             <AuthProvider>
               {/* Inside AntApp so a delivered notification can raise a toast,
                   and inside AuthProvider so the socket opens with a token. */}
-              <LiveProvider>
-                <BrowserRouter>
-                  <CommandProvider>
-                    <App />
-                  </CommandProvider>
-                </BrowserRouter>
-              </LiveProvider>
+              <ImpersonationProvider>
+                <LiveProvider>
+                  <BrowserRouter>
+                    <CommandProvider>
+                      <App />
+                    </CommandProvider>
+                  </BrowserRouter>
+                </LiveProvider>
+              </ImpersonationProvider>
             </AuthProvider>
           </AntApp>
         </AppearanceProvider>

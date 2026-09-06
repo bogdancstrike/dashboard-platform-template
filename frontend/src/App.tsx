@@ -22,6 +22,8 @@ const DataCatalogPage = lazy(() => import("@/pages/DataCatalogPage"));
 const RelationshipExplorerPage = lazy(() => import("@/pages/RelationshipExplorerPage"));
 const AuditExplorerPage = lazy(() => import("@/pages/AuditExplorerPage"));
 const RolesPage = lazy(() => import("@/pages/RolesPage"));
+const UsersPage = lazy(() => import("@/pages/UsersPage"));
+const UserDetailPage = lazy(() => import("@/pages/UserDetailPage"));
 const EntityListPage = lazy(() => import("@/pages/EntityListPage"));
 const EntityDetailPage = lazy(() => import("@/pages/EntityDetailPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
@@ -347,15 +349,24 @@ export default function App() {
             />
           }
         />
-        <Route
-          path="admin/users"
-          element={
-            <PlaceholderPage
-              section="§12"
-              summary="Users: create, edit, suspend, assign roles, revoke sessions, impersonate."
-            />
-          }
-        />
+        <Route path="admin/users">
+          <Route
+            index
+            element={
+              <Suspense fallback={<Loading />}>
+                <UsersPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path=":id"
+            element={
+              <Suspense fallback={<Loading />}>
+                <UserDetailPage />
+              </Suspense>
+            }
+          />
+        </Route>
         <Route
           path="admin/groups"
           element={<PlaceholderPage section="§11" summary="Groups, and the permissions they add on top of a role." />}

@@ -90,6 +90,25 @@ export function accessToken(): Promise<string | null> {
   return Promise.resolve(tokenProvider());
 }
 
+/**
+ * Who the caller is currently acting as, if anyone (§12).
+ *
+ * A header rather than a second token, deliberately: the administrator's own
+ * identity stays the one Keycloak proved, the server decides whether the
+ * impersonation is allowed, and every audit row carries both sides. A token
+ * minted for the target would lose the first of those and with it the point of
+ * auditing an impersonated action at all.
+ */
+let impersonating: string | null = null;
+
+export function setImpersonation(userId: string | null): void {
+  impersonating = userId;
+}
+
+export function getImpersonation(): string | null {
+  return impersonating;
+}
+
 /** Called whenever a request comes back 401, so the shell can react once. */
 let onUnauthorized: (() => void) | null = null;
 
@@ -138,6 +157,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       [CORRELATION_HEADER]: correlationId,
       ...(body === undefined ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(impersonating ? { "X-Impersonate-User": impersonating } : {}),
       ...headers,
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -201,6 +221,7 @@ export async function download(
       [CORRELATION_HEADER]: correlationId,
       ...(body === undefined ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(impersonating ? { "X-Impersonate-User": impersonating } : {}),
       ...headers,
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),

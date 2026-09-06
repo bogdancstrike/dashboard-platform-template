@@ -21,6 +21,7 @@ import {
   SettingOutlined,
   SunOutlined,
   UserOutlined,
+  UserSwitchOutlined,
 } from "@ant-design/icons";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 
@@ -28,6 +29,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { notificationsApi } from "@/api/notifications";
 import { useAuth } from "@/auth/AuthProvider";
+import { useImpersonation } from "@/auth/ImpersonationProvider";
 import { CommandPalette, CommandTrigger } from "@/components/CommandPalette";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { STORAGE_KEYS } from "@/config";
@@ -59,6 +61,7 @@ export function AppShell() {
   const screens = Grid.useBreakpoint();
   const { mode, setAppearance, appearance } = useAppearance();
   const auth = useAuth();
+  const impersonation = useImpersonation();
 
   const isMobile = screens.lg === false;
   const roomy = screens.xl === true;
@@ -292,6 +295,23 @@ export function AppShell() {
             </Dropdown>
           </Space>
         </Header>
+
+        {/* Impossible to miss, and impossible to dismiss without leaving:
+            an administrator who forgets they are acting as somebody else is
+            the failure mode this feature actually has (§12, §76). */}
+        {impersonation.target && (
+          <div className="nu-impersonation" role="status">
+            <UserSwitchOutlined />
+            <span>
+              You are viewing the platform as{" "}
+              <strong>{impersonation.target.full_name}</strong>. Everything you do is
+              recorded under both names.
+            </span>
+            <Button size="small" onClick={impersonation.stop}>
+              Return to your own account
+            </Button>
+          </div>
+        )}
 
         <Content className="nu-content">
           <a className="nu-skip-link" href="#nu-main">

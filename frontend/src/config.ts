@@ -23,4 +23,6 @@ export const STORAGE_KEYS = {
   sidebarCollapsed: "nucleus.sidebar.collapsed",
   //: Suffixed with the dataset; see hooks/useRecentSearches.
   recentSearches: "nucleus.search.recent",
+  /** Who this *tab* is acting as (§12) — sessionStorage, not localStorage. */
+  impersonating: "nucleus.impersonating",
 } as const;
