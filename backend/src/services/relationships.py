@@ -375,3 +375,434 @@ def _node(row, linkable: Linkable) -> dict[str, Any]:
 def entity_of(model) -> str:
     """The public name of a model's table, for tests and for logging."""
     return sa_inspect(model).local_table.name
+
+
+# ── the record network, clustered ────────────────────────────────────────
+
+#: Nodes past this stop being a picture and start being a hairball. The cap is
+#: on the *answer*, not on a page of it: half a community is a wrong community.
+NETWORK_LIMIT = 320
+#: How many focus records to build the network around.
+NETWORK_ANCHORS = 14
+#: Rows pulled per anchor per relation. Small on purpose — the shape of a
+#: cluster is visible in five members and unreadable in fifty.
+NETWORK_PER_RELATION = 5
+#: People are the connective tissue between clusters, and there are 150 of
+#: them; only the ones that actually appear on a pulled row are included.
+NETWORK_PEOPLE = 60
+
+
+def network(
+    session,
+    *,
+    principal,
+    focus: Any = None,
+    limit: int = NETWORK_LIMIT,
+    anchors: int = NETWORK_ANCHORS,
+) -> dict[str, Any]:
+    """A real slice of the record graph, clustered into communities (§50).
+
+    The connection map above answers *how do the entity types connect?* This
+    answers the question after it — *how do the actual records cluster?* — and
+    that is a question about structure, not about any one row: a customer, the
+    orders and tickets that name them, the project those tickets are against
+    and the people who work them form a community that no single record's page
+    can show.
+
+    Built in three steps, each bounded:
+
+    1. **Anchors** — the focus records the most rows point at.
+    2. **One hop in** — the newest rows pointing at each anchor, capped *per
+       anchor* so one enormous customer cannot spend the whole budget.
+    3. **One hop out** — what those rows themselves point at: the project a
+       ticket is against, the person who owns an order. This step is what
+       produces *bridges*; without it every cluster is an island, and a
+       clustering of islands is arithmetic rather than a finding.
+
+    Edges are then derived from the final node set rather than accumulated on
+    the way in, so an edge exists exactly when both of its ends are on screen.
+
+    The clustering is :mod:`src.core.graph`'s Louvain, computed here so every
+    viewer sees the same partition and the browser only has to draw it.
+    """
+    linkables = _linkables()
+    focus_key = str(focus or "customer")
+    resource = resources().get(focus_key)
+    if resource is None:
+        raise ValidationError(
+            "Unknown dataset.",
+            details={"focus": focus_key, "available": sorted(resources())},
+        )
+    principal.require(resource.permission)
+
+    anchors = max(2, min(int(anchors or NETWORK_ANCHORS), 40))
+    limit = max(20, min(int(limit or NETWORK_LIMIT), 600))
+
+    focus_linkable = linkables[resource.model.__tablename__]
+    inbound = _inbound_relations(resource.model, linkables, principal)
+
+    #: key → (row, linkable). One place, so edges can be derived from it.
+    found: dict[str, tuple[Any, Linkable]] = {}
+
+    anchor_rows = _anchor_records(session, resource, inbound, anchors)
+    for row in anchor_rows:
+        found[_key(focus_linkable, row.id)] = (row, focus_linkable)
+    anchor_ids = [row.id for row in anchor_rows]
+
+    hop_one: list[tuple[Any, Linkable]] = []
+    for linkable, _column_name, column in inbound:
+        for row in _rows_per_anchor(session, linkable, column, anchor_ids):
+            key = _key(linkable, row.id)
+            if key in found or len(found) >= limit:
+                continue
+            found[key] = (row, linkable)
+            hop_one.append((row, linkable))
+
+    for key, (row, linkable) in _hop_out(
+        session, [*hop_one, *((row, focus_linkable) for row in anchor_rows)],
+        linkables, principal, limit - len(found),
+    ).items():
+        found.setdefault(key, (row, linkable))
+
+    nodes = {
+        key: _node_for(row, linkable, anchor=linkable is focus_linkable)
+        for key, (row, linkable) in found.items()
+    }
+    return _cluster(nodes, _edges_within(found, linkables), resource, focus_key, principal)
+
+
+def _hop_out(
+    session,
+    rows: list[tuple[Any, Linkable]],
+    linkables: dict[str, Linkable],
+    principal,
+    budget: int,
+) -> dict[str, tuple[Any, Linkable]]:
+    """What the pulled rows themselves point at, fetched one query per table.
+
+    Deliberately includes people. A shared account manager is often the only
+    honest reason two customers belong in one cluster, and a graph of records
+    without the people on them draws colleagues as strangers.
+    """
+    wanted: dict[str, set[Any]] = {}
+    for row, linkable in rows:
+        for fk in linkable.model.__table__.foreign_keys:
+            target = linkables.get(fk.column.table.name)
+            if target is None or not _may_read(target, principal):
+                continue
+            value = getattr(row, fk.parent.name, None)
+            if value is not None:
+                wanted.setdefault(target.table, set()).add(value)
+
+    reached: dict[str, tuple[Any, Linkable]] = {}
+    for table, identifiers in sorted(wanted.items()):
+        if budget <= 0:
+            break
+        target = linkables[table]
+        cap = NETWORK_PEOPLE if table == "users" else budget
+        found = session.scalars(
+            select(target.model).where(target.model.id.in_(sorted(identifiers)[:cap]))
+        ).unique().all()
+        for row in found[:budget]:
+            reached[_key(target, row.id)] = (row, target)
+            budget -= 1
+    return reached
+
+
+def _edges_within(
+    found: dict[str, tuple[Any, Linkable]], linkables: dict[str, Linkable]
+) -> list[dict[str, Any]]:
+    """Every foreign key whose *both* ends are on screen.
+
+    Derived rather than accumulated, so the picture cannot contain a line to
+    something that was cut for the node budget.
+    """
+    edges: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for key, (row, linkable) in found.items():
+        for fk in sorted(linkable.model.__table__.foreign_keys, key=lambda item: item.parent.name):
+            target = linkables.get(fk.column.table.name)
+            if target is None:
+                continue
+            value = getattr(row, fk.parent.name, None)
+            if value is None:
+                continue
+            other = _key(target, value)
+            if other == key or other not in found:
+                continue
+            signature = (key, other, fk.parent.name)
+            if signature in seen:
+                continue
+            seen.add(signature)
+            edges.append({
+                "source": key,
+                "target": other,
+                "relation": fk.parent.name,
+                "label": _label_for(fk.parent.name),
+            })
+    return edges
+
+
+def _inbound_relations(model, linkables, principal) -> list[tuple[Linkable, str, Any]]:
+    """Every readable dataset that carries a foreign key into `model`."""
+    found = []
+    for linkable in linkables.values():
+        if linkable.resource_key is None or not _may_read(linkable, principal):
+            continue
+        if linkable.model is model:
+            continue
+        for fk in sorted(linkable.model.__table__.foreign_keys, key=lambda item: item.parent.name):
+            if fk.column.table.name != model.__tablename__:
+                continue
+            column = getattr(linkable.model, fk.parent.name, None)
+            if column is not None:
+                found.append((linkable, fk.parent.name, column))
+    return found
+
+
+def _anchor_records(session, resource, inbound, anchors: int) -> list[Any]:
+    """The focus records the most rows point at, across every relation.
+
+    One GROUP BY per relation and a merge in Python: asking "how connected is
+    this?" of every customer one at a time is a query per row for a picture
+    with fourteen of them on it.
+    """
+    scored: dict[Any, int] = {}
+    for linkable, _name, column in inbound:
+        statement = (
+            select(column.label("anchor"), func.count().label("total"))
+            .where(column.isnot(None))
+            .group_by(column)
+            .order_by(func.count().desc())
+            .limit(anchors * 4)
+        )
+        deleted = getattr(linkable.model, "deleted_at", None)
+        if deleted is not None:
+            statement = statement.where(deleted.is_(None))
+        for anchor_id, total in session.execute(statement).all():
+            scored[anchor_id] = scored.get(anchor_id, 0) + int(total)
+
+    top = sorted(scored.items(), key=lambda item: (-item[1], str(item[0])))[:anchors]
+    if not top:
+        return _anchors_by_shared_parent(session, resource, anchors)
+    found = session.scalars(
+        select(resource.model).where(resource.model.id.in_([anchor for anchor, _ in top]))
+    ).unique().all()
+    order = {anchor: index for index, (anchor, _) in enumerate(top)}
+    return sorted(found, key=lambda row: order.get(row.id, len(order)))
+
+
+def _anchors_by_shared_parent(session, resource, anchors: int) -> list[Any]:
+    """Anchors for an entity nothing points at — devices, orders, tickets.
+
+    There is no "most pointed at" record to build around, and the newest rows
+    are the wrong answer: fifty tickets picked by recency share nothing, and
+    the picture comes out as fifty separate islands, which is true and useless.
+
+    So cluster them the way they actually cluster — around the parent they
+    share. The entity's fullest foreign key is found, its busiest values taken,
+    and rows drawn evenly from each. People are skipped when choosing that key:
+    a fleet grouped by *who is on shift* is a rota, not a structure.
+    """
+    columns = [
+        (fk.parent.name, getattr(resource.model, fk.parent.name, None), fk.column.table.name)
+        for fk in sorted(resource.model.__table__.foreign_keys, key=lambda item: item.parent.name)
+    ]
+    candidates = [item for item in columns if item[1] is not None and item[2] != "users"]
+    if not candidates:
+        candidates = [item for item in columns if item[1] is not None]
+
+    deleted = getattr(resource.model, "deleted_at", None)
+    best: tuple[int, Any, list[Any]] | None = None
+    for name, column, _table in candidates:
+        statement = (
+            select(column.label("parent"), func.count().label("total"))
+            .where(column.isnot(None))
+            .group_by(column)
+            .order_by(func.count().desc())
+            .limit(anchors)
+        )
+        if deleted is not None:
+            statement = statement.where(deleted.is_(None))
+        rows = session.execute(statement).all()
+        covered = sum(int(total) for _parent, total in rows)
+        if rows and (best is None or covered > best[0]):
+            best = (covered, column, [parent for parent, _total in rows])
+
+    if best is None:
+        ordering = getattr(resource.model, "updated_at", None) or resource.model.id
+        statement = select(resource.model).order_by(ordering.desc()).limit(anchors * 4)
+        if deleted is not None:
+            statement = statement.where(deleted.is_(None))
+        return list(session.scalars(statement).unique().all())
+
+    _covered, column, parents = best
+    return _rows_per_anchor(session, _SelfLinkable(resource.model), column, parents, per=6)
+
+
+@dataclass(frozen=True, slots=True)
+class _SelfLinkable:
+    """Just enough of a :class:`Linkable` for `_rows_per_anchor` to work."""
+
+    model: type
+
+
+def _rows_per_anchor(session, linkable, column, anchor_ids, *, per: int = NETWORK_PER_RELATION) -> list[Any]:
+    """The newest rows pointing at each anchor, capped *per anchor*.
+
+    A plain `LIMIT` would spend the whole budget on the busiest customer and
+    draw the rest as bare circles. `row_number()` partitioned by the anchor
+    gives every cluster the same number of members, which is what makes the
+    picture comparable across them.
+    """
+    if not anchor_ids:
+        return []
+    ordering = getattr(linkable.model, "updated_at", None) or linkable.model.id
+    ranked = (
+        select(
+            linkable.model.id.label("id"),
+            func.row_number()
+            .over(partition_by=column, order_by=ordering.desc())
+            .label("rank"),
+        )
+        .where(column.in_(anchor_ids))
+    )
+    deleted = getattr(linkable.model, "deleted_at", None)
+    if deleted is not None:
+        ranked = ranked.where(deleted.is_(None))
+    ranked = ranked.subquery()
+
+    wanted = session.scalars(select(ranked.c.id).where(ranked.c.rank <= per)).all()
+    if not wanted:
+        return []
+    return list(
+        session.scalars(select(linkable.model).where(linkable.model.id.in_(wanted)))
+        .unique()
+        .all()
+    )
+
+
+def _key(linkable: Linkable, identifier: Any) -> str:
+    """`customer:9f2c…` — entity-scoped, so two tables cannot collide."""
+    return f"{linkable.resource_key or linkable.table}:{identifier}"
+
+
+def _node_for(row, linkable: Linkable, *, anchor: bool = False) -> dict[str, Any]:
+    node = _node(row, linkable)
+    node["key"] = _key(linkable, row.id)
+    node["entity_label"] = _plural(linkable)
+    node["anchor"] = anchor
+    node["status"] = str(getattr(row, "status", "") or "")
+    return node
+
+
+def _cluster(
+    nodes: dict[str, dict[str, Any]],
+    edges: list[dict[str, Any]],
+    resource,
+    focus_key: str,
+    principal,
+) -> dict[str, Any]:
+    """Detect communities, size the nodes, and describe each cluster."""
+    from src.core import graph as graph_math
+
+    pairs = [(edge["source"], edge["target"]) for edge in edges]
+    keys = sorted(nodes)
+    grouping = graph_math.communities(keys, pairs)
+    degree = graph_math.degrees(keys, pairs)
+    crossing = {
+        (source, target) for source, target in graph_math.bridges(pairs, grouping)
+    }
+
+    for key, node in nodes.items():
+        node["community"] = grouping.get(key, key)
+        node["degree"] = degree.get(key, 0)
+
+    for edge in edges:
+        pair = (edge["source"], edge["target"])
+        edge["bridge"] = pair in crossing or (pair[1], pair[0]) in crossing
+
+    return {
+        "focus": {"key": focus_key, "label": resource.label},
+        "available": [
+            {"key": item.key, "label": item.label}
+            for item in resources().values()
+            if principal.can(item.permission)
+        ],
+        "nodes": [nodes[key] for key in keys],
+        "edges": edges,
+        "communities": _describe_communities(nodes, edges, grouping),
+        "stats": {
+            "nodes": len(nodes),
+            "edges": len(edges),
+            "communities": len(set(grouping.values())),
+            # Newman's Q: above ~0.3 the clustering is structure rather than
+            # noise. Shipped so the page can say how much to trust the picture.
+            "modularity": graph_math.modularity(keys, pairs, grouping),
+            "bridges": len(crossing),
+        },
+    }
+
+
+def _describe_communities(
+    nodes: dict[str, dict[str, Any]],
+    edges: list[dict[str, Any]],
+    grouping: dict[str, str],
+) -> list[dict[str, Any]]:
+    """One row per cluster: what is in it, who leads it, what it touches.
+
+    A coloured blob is not a finding. "Nine records around Northwind Trading —
+    six orders, two tickets, one project — joined to the rest through Ana
+    Analyst" is, and it is readable without looking at the picture at all,
+    which is what makes the analysis accessible (§55).
+    """
+    members: dict[str, list[dict[str, Any]]] = {}
+    for key, node in nodes.items():
+        members.setdefault(grouping.get(key, key), []).append(node)
+
+    summaries = []
+    for community, group in members.items():
+        ranked = sorted(group, key=lambda node: (-node["degree"], node["label"]))
+        mix: dict[str, int] = {}
+        for node in group:
+            mix[node["entity_label"]] = mix.get(node["entity_label"], 0) + 1
+        inside = sum(
+            1
+            for edge in edges
+            if grouping.get(edge["source"]) == community
+            and grouping.get(edge["target"]) == community
+        )
+        summaries.append({
+            "id": community,
+            # Named after its most connected member, which is what a person
+            # would call it: "the Northwind cluster".
+            "label": ranked[0]["label"] if ranked else community,
+            "entity": ranked[0]["entity"] if ranked else "",
+            "size": len(group),
+            "mix": [
+                {"label": label, "count": count}
+                for label, count in sorted(mix.items(), key=lambda item: -item[1])
+            ],
+            "members": [
+                {
+                    "key": node["key"],
+                    "id": node["id"],
+                    "label": node["label"],
+                    "entity": node["entity"],
+                    "entity_label": node["entity_label"],
+                    "degree": node["degree"],
+                    "explorable": node["explorable"],
+                }
+                for node in ranked[:6]
+            ],
+            "internal_links": inside,
+            "external_links": sum(
+                1
+                for edge in edges
+                if edge["bridge"]
+                and community in (grouping.get(edge["source"]), grouping.get(edge["target"]))
+            ),
+        })
+
+    summaries.sort(key=lambda item: (-item["size"], item["label"]))
+    return summaries

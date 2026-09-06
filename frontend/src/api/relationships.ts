@@ -80,4 +80,77 @@ export const relationshipsApi = {
 
   of: (resourceType: string, id: string, signal?: AbortSignal) =>
     api.get<RelationshipGraph>(`/api/relationships/${resourceType}/${id}`, { signal }),
+
+  /** A clustered slice of the record graph, communities detected server-side. */
+  network: (focus: string, signal?: AbortSignal) =>
+    api.get<RecordNetwork>(
+      `/api/relationships/network${focus ? `?focus=${encodeURIComponent(focus)}` : ""}`,
+      { signal },
+    ),
 };
+
+/** One record in the clustered network, as the server placed it. */
+export interface NetworkNode {
+  /** `customer:9f2c…` — entity-scoped, so two tables cannot collide. */
+  key: string;
+  id: string;
+  label: string;
+  summary: string;
+  entity: string;
+  entity_label: string;
+  explorable: boolean;
+  status: string;
+  /** True for the records the network was built around. */
+  anchor: boolean;
+  /** The community's id — the key of its smallest member. */
+  community: string;
+  /** Distinct neighbours, which is what sizes the circle. */
+  degree: number;
+  updated_at: string | null;
+}
+
+export interface NetworkEdge {
+  source: string;
+  target: string;
+  relation: string;
+  label: string;
+  /** True when the two ends are in different communities. */
+  bridge: boolean;
+}
+
+export interface CommunityMember {
+  key: string;
+  id: string;
+  label: string;
+  entity: string;
+  entity_label: string;
+  degree: number;
+  explorable: boolean;
+}
+
+export interface Community {
+  id: string;
+  label: string;
+  entity: string;
+  size: number;
+  mix: { label: string; count: number }[];
+  members: CommunityMember[];
+  internal_links: number;
+  external_links: number;
+}
+
+export interface RecordNetwork {
+  focus: { key: string; label: string };
+  available: { key: string; label: string }[];
+  nodes: NetworkNode[];
+  edges: NetworkEdge[];
+  communities: Community[];
+  stats: {
+    nodes: number;
+    edges: number;
+    communities: number;
+    /** Newman's Q. Above ~0.3 the clustering is structure, not noise. */
+    modularity: number;
+    bridges: number;
+  };
+}

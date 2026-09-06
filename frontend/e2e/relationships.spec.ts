@@ -17,14 +17,69 @@ async function startFrom(page: Page, reference: string): Promise<void> {
   await expect(page.getByRole("heading", { name: reference })).toBeVisible();
 }
 
-test.describe("the connection map", () => {
+test.describe("community analysis", () => {
   test.beforeEach(async ({ page }) => signIn(page, "admin", "/find/relationships"));
 
-  test("opens on an analysis of the whole platform, not an empty search box", async ({
+  test("opens on the clustered record graph, not an empty search box", async ({ page }) => {
+    // The landing state answers the question a reader arrives with — what
+    // does this data look like — rather than asking them to already know.
+    await expect(page.getByTestId("force-graph")).toBeVisible();
+    await expect(page.getByTestId("community-list")).toBeVisible();
+
+    // Clustered on the server over the real rows, and scored so the reader
+    // knows whether to believe the picture.
+    const graph = page.getByRole("img", { name: /records in \d+ communities/ });
+    await expect(graph).toBeVisible();
+    await expect(page.getByTestId("modularity")).toContainText(/Q 0\.\d\d/);
+    await expect(page.locator(".nu-statcard-label", { hasText: "Communities" })).toBeVisible();
+    await expect(page.locator(".nu-statcard-label", { hasText: "Bridges" })).toBeVisible();
+  });
+
+  test("the same slice is clustered the same way twice", async ({ page }) => {
+    // Detected on the server precisely so two people see one picture. A
+    // reload that re-partitioned would make the analysis unciteable.
+    const clusters = page.getByTestId("community-list");
+    await expect(clusters.getByRole("row").nth(1)).toBeVisible();
+    const before = await clusters.getByRole("row").allInnerTexts();
+    const score = await page.getByTestId("modularity").innerText();
+
+    await page.reload();
+
+    await expect(clusters.getByRole("row").nth(1)).toBeVisible();
+    expect(await clusters.getByRole("row").allInnerTexts()).toEqual(before);
+    expect(await page.getByTestId("modularity").innerText()).toBe(score);
+  });
+
+  test("re-clusters around another entity, server-side, and says so in the URL", async ({
     page,
   }) => {
-    // The landing state answers the question a reader arrives with — how does
-    // any of this connect — rather than asking them to already know.
+    await expect(page.getByTestId("force-graph")).toBeVisible();
+    const clusters = page.getByTestId("community-list");
+    const before = await clusters.getByRole("row").allInnerTexts();
+
+    await page.getByTestId("focus-picker").getByText("Projects", { exact: true }).click();
+
+    await expect(page).toHaveURL(/focus=project/);
+    await expect
+      .poll(async () => clusters.getByRole("row").allInnerTexts())
+      .not.toEqual(before);
+  });
+
+  test("focusing one cluster dims the rest rather than hiding them", async ({ page }) => {
+    const clusters = page.getByTestId("community-list");
+    await expect(clusters.getByRole("row").nth(1)).toBeVisible();
+    await clusters.getByRole("row").nth(1).click();
+
+    await expect(page.locator("g.nu-force-node.nu-dimmed").first()).toBeVisible();
+    await page.getByRole("button", { name: /Show every cluster/ }).click();
+    await expect(page.locator("g.nu-force-node.nu-dimmed")).toHaveCount(0);
+  });
+});
+
+test.describe("the connection map", () => {
+  test.beforeEach(async ({ page }) => signIn(page, "admin", "/find/relationships?view=map"));
+
+  test("shows how the entity types connect, not just how records do", async ({ page }) => {
     await expect(page.getByTestId("schema-graph")).toBeVisible();
     await expect(page.getByTestId("relation-strength")).toBeVisible();
     await expect(page.getByTestId("hub-records")).toBeVisible();
@@ -53,6 +108,7 @@ test.describe("the connection map", () => {
     await page.getByPlaceholder("Search a record to start from…").fill("CUS-00001");
 
     await expect(page.getByTestId("schema-graph")).toBeHidden();
+    await expect(page.getByTestId("force-graph")).toBeHidden();
     await expect(page.getByRole("button", { name: "Start here" }).first()).toBeVisible();
   });
 });
@@ -97,7 +153,7 @@ test.describe("relationship explorer", () => {
     const graph = page.getByRole("img", { name: /nearest connections/ });
     await expect(graph).toBeVisible();
     // The root plus one node per connection.
-    await expect(graph.locator(".nu-graph-node")).toHaveCount(connections + 1);
+    await expect(graph.locator("g.nu-force-node")).toHaveCount(connections + 1);
   });
 
   test("hands the record to Data Explorer", async ({ page }) => {

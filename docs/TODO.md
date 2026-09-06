@@ -33,9 +33,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Backend core (`src/core/`) | **done** — db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
-| Endpoints | 38 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×3, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×2, audit ×5, records ×1, roles ×2, users ×3 |
+| Endpoints | 39 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×3, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×3, audit ×5, records ×1, roles ×2, users ×3 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 219 backend + 151 frontend + 94 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
+| Tests | 233 backend + 159 frontend + 98 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
 | Frontend | shell, Data Explorer, discovery workspaces and the notification centre; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -81,6 +81,68 @@ An item is `[x]` only when all of these hold:
 6. **Deep-linkable** (§69) and **state-persistent** (§72) if it is a view.
 7. **Docs updated** — this file, plus `README.md` if running or extending changed.
 8. **Committed and pushed.**
+
+### Engineering standards
+
+These are not aspirations; they are the review criteria. A change that fails
+one of them is not finished, however well it works.
+
+- **Clean code, and code that reads as prose.** Names say what a thing is, not
+  what type it is. Functions do one thing at the level of abstraction their
+  name implies. No dead code, no commented-out code, no "temporary" branch that
+  outlives the sprint.
+- **SOLID where it earns its keep**, not as ceremony. One reason to change per
+  module; extension by declaration (a `Resource`, a `Field`, a row in
+  `endpoint.json`) rather than by editing a switch; depend on the narrow
+  interface, not the concrete class.
+- **DRY, but not at the cost of clarity.** Two things that look alike and
+  change for different reasons are two things. The generic list page is shared
+  because the *query contract* is genuinely one thing; the entity pages are not
+  shared, because a kanban board and a fleet monitor are not one thing.
+- **YAGNI.** No abstraction for a second case that has not arrived.
+- **Documented code.** Every module opens with a docstring saying what it is
+  for and *why it is built the way it is* — the alternative that was rejected
+  and the reason. Comments explain decisions, never restate the line below
+  them. A reader should be able to reconstruct the reasoning without the
+  commit history.
+- **Derived, never duplicated.** The relationship map comes from the schema's
+  foreign keys, the permission matrix from the code's permission catalogue, the
+  field catalogue from the `Resource` declarations. A second, hand-kept
+  description of something the system already knows is wrong the first time
+  anybody changes it.
+- **Every behaviour is asserted at the level that can actually catch it.**
+  Pure logic → unit test. Endpoint → integration test against the seeded
+  database. User-visible flow → Playwright against `docker compose up`.
+- **Errors carry a correlation id, and refusals say which permission is
+  missing.** A screen that fails silently, or that hides a control instead of
+  explaining it, is a bug (§34, §76).
+
+---
+
+## Requested this session (2026-09-06)
+
+Everything asked for today, so nothing is lost between sittings. Each becomes a
+vertical slice with its own tests, its own tracker entry and its own commit.
+
+- [x] **Relationships is a graph-analysis page drawn with D3** (§50) — force
+      layouts, communities detected server-side, entity map and ego network all
+      on the same D3 component
+- [ ] **Records must stop looking alike** (§7, §8) — six entities, six
+      genuinely different pages, list *and* detail. `/tasks` a board,
+      `/projects` a portfolio timeline, `/customers` an account view,
+      `/orders` a commercial ledger, `/tickets` a triage queue, `/devices` a
+      fleet monitor. The detail pages especially: `/projects/:id`,
+      `/tickets/:id` and `/tasks/:id` currently differ only in their data
+- [ ] **`/notifications` should look better** (§17) — it works; it does not
+      yet look like the rest of the platform
+- [ ] **`/dashboard` needs far more charts** (§2, §44) — the full ECharts
+      vocabulary, following `gif_responder`'s dashboard and going beyond it
+- [ ] **`/explore` needs a record side panel** (§64) — click a row and read the
+      record itself: metadata, full text, related items. `rag-poc`'s data
+      explorer is the reference
+- [x] **Keep this tracker updated after every task**, and commit and push each
+
+---
 
 ### Runtime data boundary
 
@@ -586,10 +648,32 @@ everything else.
     "300, here are the newest eight" with a link to all of them in the explorer
   - The trail is in the URL: every hop is pushed, the breadcrumb walks back to
     any earlier record, and the whole path can be pasted to somebody else
-  - The graph is a deterministic radial layout in plain SVG. A force simulation
-    would land somewhere different each time, making two screenshots of one
-    record look like two different records; the list beside it is the
-    accessible and complete equivalent
+  - **The graphs are D3.** One `ForceGraph` component draws all three pictures
+    on the page — the clustered record network, the map of entity types and one
+    record's ego network — with `d3-force` for layout, `d3-zoom` for the camera
+    and `d3-drag` for the hands. React owns the container and nothing inside
+    it, which is the only division of labour between the two that does not
+    fight. The layout is seeded deterministically and settles to the same
+    arrangement twice; under `prefers-reduced-motion` it is solved to
+    convergence before the first paint and never animates
+  - **Communities are detected on the server** (`core/graph.py`, Louvain).
+    Clustering in the browser would give every viewer a different answer to the
+    same question, and a partition nobody can cite is not an analysis. Label
+    propagation was tried first and rejected: on a graph of dense clusters
+    joined by a few shared people, one label wins a tie at a bridge and
+    avalanches until everything is one community — an answer that looks like an
+    answer. `/api/relationships/network?focus=` returns nodes, edges,
+    communities and **Newman's modularity**, so the page can say how much of
+    the structure is real rather than implying certainty
+  - The network is built in three bounded steps — anchors (the records most
+    rows point at), one hop in capped *per anchor* by a window function so one
+    enormous customer cannot spend the whole budget, and one hop out, which is
+    what produces the **bridges** between clusters. Edges are then derived from
+    the final node set, so the picture can never contain a line to something
+    that was cut
+  - Every cluster is also a row in a table: named after its most connected
+    member, with its entity mix, its size and how many links leave it. A
+    coloured blob is not a finding, and not everybody sees colour (§55)
   - **The landing state is an analysis, not a prompt.**
     `/api/relationships/overview` returns the whole map — entities sized by
     record count, every foreign key weighted by how many rows actually carry

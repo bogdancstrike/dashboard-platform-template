@@ -26,7 +26,7 @@ import { useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { relationshipsApi, type HubRecord, type MapEdge } from "@/api/relationships";
-import { SchemaGraph } from "@/components/SchemaGraph";
+import { EntityGraph } from "@/components/graph/EntityGraph";
 import { StatCard } from "@/components/StatCard";
 
 const { Text } = Typography;
@@ -143,11 +143,10 @@ export function ConnectionMapView({
       <Row gutter={[12, 12]}>
         <Col xs={24} xl={14}>
           <Card size="small" title="How the platform connects" data-testid="schema-graph">
-            <SchemaGraph
+            <EntityGraph
               nodes={data.nodes}
               edges={data.edges}
-              selected={selected ? `${selected.source}:${selected.relation}` : undefined}
-              onSelectEdge={setSelected}
+              selected={selected}
               onSelectNode={(node) =>
                 node.explorable && navigate(`/explore?resource=${node.key}`)
               }

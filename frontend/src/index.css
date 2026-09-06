@@ -474,23 +474,43 @@ mark.nu-mark {
 .nu-relation-group { border-color: var(--nu-border); }
 .nu-relation-item .ant-list-item-meta-title { margin-bottom: 2px; }
 
-.nu-graph { margin: 0; text-align: center; }
-.nu-graph svg { width: 100%; max-width: 620px; height: auto; }
+.nu-graph { margin: 0; }
 .nu-graph figcaption { margin-top: 8px; color: var(--nu-text-secondary); font-size: 12px; }
-.nu-graph-edge { stroke: var(--nu-border); stroke-width: 1.5; }
-/* Inbound edges are dashed, so direction is legible without reading a legend. */
-.nu-graph-edge--inbound { stroke-dasharray: 4 4; }
-.nu-graph-node circle { fill: var(--nu-surface-raised); stroke: var(--nu-border); stroke-width: 1.5; }
-.nu-graph-node text {
-  fill: var(--nu-text); font: 600 13px var(--nu-font); text-anchor: middle;
-  dominant-baseline: middle; pointer-events: none;
+
+/* D3 force graphs (§50). The colour of a node is data and comes from the
+   component; everything structural — strokes, dimming, focus — is here, so
+   the two themes stay a stylesheet concern rather than a prop. */
+.nu-force { width: 100%; overflow: hidden; }
+.nu-force svg { display: block; width: 100%; cursor: grab; touch-action: none; }
+.nu-force svg:active { cursor: grabbing; }
+.nu-force-link { stroke: var(--nu-border-strong, var(--nu-border)); stroke-opacity: 0.75; }
+/* A link that crosses between clusters is the finding, so it is dashed rather
+   than merely a different shade — visible in greyscale and in both themes. */
+.nu-force-bridge { stroke-dasharray: 5 4; stroke-opacity: 1; }
+.nu-force-node { cursor: pointer; }
+.nu-force-node circle { stroke: var(--nu-surface); transition: stroke-width 120ms ease; }
+.nu-force-node:hover circle,
+.nu-force-node:focus-visible circle { stroke: var(--nu-text); stroke-width: 3; }
+.nu-force-node:focus-visible { outline: none; }
+.nu-force-label {
+  fill: var(--nu-text-secondary); font: 500 10px var(--nu-font);
+  pointer-events: none; paint-order: stroke;
+  stroke: var(--nu-surface); stroke-width: 3px; stroke-linejoin: round;
 }
-.nu-graph-node .nu-graph-caption { fill: var(--nu-text-secondary); font: 400 11px var(--nu-font); }
-.nu-graph-node--root circle { fill: var(--nu-accent-soft); stroke: var(--nu-accent); stroke-width: 2; }
-.nu-graph-node.is-open { cursor: pointer; }
-.nu-graph-node.is-open:hover circle,
-.nu-graph-node.is-open:focus-visible circle { stroke: var(--nu-accent); stroke-width: 2.5; }
-.nu-graph-node.is-open:focus-visible { outline: none; }
+/* Dimmed, not hidden: a picture that removes what you did not select stops
+   being a picture of the whole. */
+.nu-force-node.nu-dimmed { opacity: 0.14; }
+.nu-force-link.nu-dimmed { stroke-opacity: 0.07; }
+.nu-force-legend { margin-top: 6px; text-align: center; }
+.nu-swatch {
+  display: inline-block; width: 10px; height: 10px; margin-top: 4px;
+  border-radius: 3px; flex: none;
+}
+.nu-chosen { background: var(--nu-accent-soft); border-color: var(--nu-accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .nu-force-node circle { transition: none; }
+}
 
 .nu-person { display: flex; flex-direction: column; line-height: 1.3; }
 .nu-person-role { font-size: 12px; }

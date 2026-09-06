@@ -398,6 +398,82 @@ export const connectionMap = {
 };
 
 
+/**
+ * A small clustered network: two customer clusters joined by one shared
+ * account manager. Small enough to assert on, structured enough that a
+ * component which ignored the community field would visibly fail.
+ */
+export const recordNetwork = {
+  focus: { key: "customer", label: "Customers" },
+  available: [
+    { key: "customer", label: "Customers" },
+    { key: "project", label: "Projects" },
+  ],
+  nodes: [
+    {
+      key: "customer:c1", id: "c1", label: "Northwind Partners", summary: "ENTERPRISE",
+      entity: "customer", entity_label: "Customers", explorable: true, status: "ACTIVE",
+      anchor: true, community: "customer:c1", degree: 3, updated_at: null,
+    },
+    {
+      key: "order:o1", id: "o1", label: "ORD-00001", summary: "",
+      entity: "order", entity_label: "Orders", explorable: true, status: "PAID",
+      anchor: false, community: "customer:c1", degree: 1, updated_at: null,
+    },
+    {
+      key: "ticket:t1", id: "t1", label: "TIC-00001", summary: "Login fails",
+      entity: "ticket", entity_label: "Tickets", explorable: true, status: "OPEN",
+      anchor: false, community: "customer:c1", degree: 1, updated_at: null,
+    },
+    {
+      key: "customer:c2", id: "c2", label: "Stonebridge Group", summary: "MID_MARKET",
+      entity: "customer", entity_label: "Customers", explorable: true, status: "ACTIVE",
+      anchor: true, community: "customer:c2", degree: 2, updated_at: null,
+    },
+    {
+      key: "order:o2", id: "o2", label: "ORD-00002", summary: "",
+      entity: "order", entity_label: "Orders", explorable: true, status: "PAID",
+      anchor: false, community: "customer:c2", degree: 1, updated_at: null,
+    },
+    {
+      key: "users:u1", id: "u1", label: "Ana Analyst", summary: "ana@nucleus.example",
+      entity: "users", entity_label: "Users", explorable: false, status: "ACTIVE",
+      anchor: false, community: "customer:c1", degree: 2, updated_at: null,
+    },
+  ],
+  edges: [
+    { source: "order:o1", target: "customer:c1", relation: "customer_id", label: "Customer", bridge: false },
+    { source: "ticket:t1", target: "customer:c1", relation: "customer_id", label: "Customer", bridge: false },
+    { source: "order:o2", target: "customer:c2", relation: "customer_id", label: "Customer", bridge: false },
+    { source: "customer:c1", target: "users:u1", relation: "account_manager_id", label: "Account manager", bridge: false },
+    { source: "customer:c2", target: "users:u1", relation: "account_manager_id", label: "Account manager", bridge: true },
+  ],
+  communities: [
+    {
+      id: "customer:c1", label: "Northwind Partners", entity: "customer", size: 4,
+      mix: [
+        { label: "Customers", count: 1 }, { label: "Orders", count: 1 },
+        { label: "Tickets", count: 1 }, { label: "Users", count: 1 },
+      ],
+      members: [
+        { key: "customer:c1", id: "c1", label: "Northwind Partners", entity: "customer", entity_label: "Customers", degree: 3, explorable: true },
+        { key: "users:u1", id: "u1", label: "Ana Analyst", entity: "users", entity_label: "Users", degree: 2, explorable: false },
+      ],
+      internal_links: 3, external_links: 1,
+    },
+    {
+      id: "customer:c2", label: "Stonebridge Group", entity: "customer", size: 2,
+      mix: [{ label: "Customers", count: 1 }, { label: "Orders", count: 1 }],
+      members: [
+        { key: "customer:c2", id: "c2", label: "Stonebridge Group", entity: "customer", entity_label: "Customers", degree: 2, explorable: true },
+      ],
+      internal_links: 1, external_links: 1,
+    },
+  ],
+  stats: { nodes: 6, edges: 5, communities: 2, modularity: 0.42, bridges: 1 },
+};
+
+
 export const roleMatrix = {
   items: [
     {
@@ -605,6 +681,14 @@ export const handlers = [
     const role =
       roleMatrix.items.find((item) => item.code === params["code"]) ?? roleMatrix.items[0]!;
     return echo(request, { ...role, permissions: body.permissions ?? role.permissions });
+  }),
+  // Before the `:type/:id` rule below, or "network" is read as a resource type.
+  http.get("/platform/api/relationships/network", ({ request }) => {
+    const focus = new URL(request.url).searchParams.get("focus") ?? "customer";
+    return echo(request, {
+      ...recordNetwork,
+      focus: { key: focus, label: focus === "project" ? "Projects" : "Customers" },
+    });
   }),
   http.get("/platform/api/relationships/overview", ({ request }) => echo(request, connectionMap)),
   http.get("/platform/api/records/:type/:id", ({ request }) => echo(request, recordDetail)),

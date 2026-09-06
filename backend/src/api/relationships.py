@@ -30,3 +30,25 @@ def item(app=None, operation: str = "", request=None, resource_type=None, record
             session, resource_type, record_id, principal=me(),
             **({"sample": int(sample)} if str(sample or "").isdigit() else {}),
         ), 200
+
+
+@requires("records.view")
+def network(app=None, operation: str = "", request=None, **_: Any):
+    """A slice of the record graph, clustered into communities.
+
+    The clustering is computed here rather than in the browser so that every
+    viewer sees the same partition — a force simulation seeded by the client
+    would draw a different answer on every reload.
+    """
+    args = request.args if request is not None else {}
+    with session_scope() as session:
+        return service.network(
+            session,
+            principal=me(),
+            focus=args.get("focus"),
+            **{
+                key: int(args[key])
+                for key in ("limit", "anchors")
+                if str(args.get(key) or "").isdigit()
+            },
+        ), 200

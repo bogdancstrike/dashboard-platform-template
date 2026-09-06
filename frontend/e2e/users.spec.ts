@@ -62,7 +62,7 @@ test.describe("the people directory", () => {
   });
 
   test("opens a person and explains their access by role and by group", async ({ page }) => {
-    (await find(page, "Uma User")).click();
+    await (await find(page, "Uma User")).click();
 
     await expect(page.getByRole("heading", { name: "Uma User" })).toBeVisible();
     const permissions = page.getByTestId("effective-permissions");
@@ -79,7 +79,7 @@ test.describe("impersonation", () => {
 
   test("carries both identities, changes what the API returns, and ends", async ({ page }) => {
     await signIn(page, "admin", "/admin/users");
-    (await find(page, "Uma User")).click();
+    await (await find(page, "Uma User")).click();
 
     await page.getByTestId("impersonate").click();
     await page.getByRole("button", { name: "Start" }).click();
@@ -117,7 +117,7 @@ test.describe("directory permissions", () => {
 
   test("a viewer reads the directory but is offered no way to change it", async ({ page }) => {
     await signIn(page, "viewer", "/admin/users");
-    (await find(page, "Uma User")).click();
+    await (await find(page, "Uma User")).click();
 
     await expect(page.getByRole("heading", { name: "Uma User" })).toBeVisible();
     // `users.view` without `users.manage`: readable, not editable. The

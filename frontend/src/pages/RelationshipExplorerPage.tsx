@@ -13,10 +13,17 @@
  * looking at a picture.
  *
  * With no record chosen it is an *analysis* page rather than an empty search
- * box: the connection map, the strength and coverage of every relation, and
- * the records the most rows point at. An explorer whose landing state asks the
- * reader to already know what they are looking for is an explorer that only
- * helps people who did not need it.
+ * box. Two analyses, because they answer different questions:
+ *
+ * * **Communities** — how the actual records cluster, detected on the server
+ *   and drawn with D3. This is the default: "what does this data look like?"
+ *   is the question people arrive with, and it cannot be answered one record
+ *   at a time.
+ * * **Connection map** — how the entity *types* link, weighted by real row
+ *   counts, with per-relation coverage and the hub records.
+ *
+ * An explorer whose landing state asks the reader to already know what they
+ * are looking for is an explorer that only helps people who did not need it.
  */
 
 import { useMemo, useState } from "react";
@@ -48,7 +55,8 @@ import { relationshipsApi, type RelatedNode } from "@/api/relationships";
 import { searchApi } from "@/api/search";
 import { PageHeader } from "@/components/PageHeader";
 import { ConnectionMapView } from "@/components/relationships/ConnectionMapView";
-import { RelationshipGraph } from "@/components/RelationshipGraph";
+import { NetworkView } from "@/components/relationships/NetworkView";
+import { EgoGraph } from "@/components/graph/EgoGraph";
 import { SimpleSearch } from "@/components/explorer/SimpleSearch";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
@@ -176,7 +184,7 @@ export default function RelationshipExplorerPage() {
 
       {graph.data && graph.data.total > 0 && view === "graph" && (
         <Card size="small">
-          <RelationshipGraph root={graph.data.root} groups={graph.data.groups} onOpen={open} />
+          <EgoGraph root={graph.data.root} groups={graph.data.groups} onOpen={open} />
         </Card>
       )}
 
@@ -252,8 +260,9 @@ export default function RelationshipExplorerPage() {
   );
 }
 
-/** The starting point: any record, found the way anything else is found. */
+/** The starting point: an analysis, with search over the top of it. */
 function StartHere({ onStart }: { onStart: (node: RelatedNode, entity: string) => void }) {
+  const [params, setParams] = useSearchParams();
   const [term, setTerm] = useState("");
   const debounced = useDebouncedValue(term.trim(), 280);
   const results = useQuery({
@@ -263,11 +272,38 @@ function StartHere({ onStart }: { onStart: (node: RelatedNode, entity: string) =
   });
   const searching = debounced.length >= 2;
 
+  // Both the analysis and its focus live in the URL, so "the customer
+  // clusters" is a thing one person can send to another (§69).
+  const analysis = params.get("view") === "map" ? "map" : "communities";
+  const focus = params.get("focus") || "customer";
+  const set = (changes: Record<string, string | null>) =>
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        Object.entries(changes).forEach(([key, value]) =>
+          value === null ? next.delete(key) : next.set(key, value),
+        );
+        return next;
+      },
+      { replace: true },
+    );
+
   return (
     <>
       <PageHeader
         title="Relationships"
-        subtitle="How the platform's records connect — and where it is worth starting."
+        subtitle="How the platform's records cluster, and how its entities connect."
+        actions={
+          <Segmented
+            data-testid="analysis-view"
+            value={analysis}
+            onChange={(next) => set({ view: next === "map" ? "map" : null })}
+            options={[
+              { label: "Communities", value: "communities" },
+              { label: "Connection map", value: "map" },
+            ]}
+          />
+        }
       />
 
       <Card size="small" className="nu-filter-bar">
@@ -322,9 +358,20 @@ function StartHere({ onStart }: { onStart: (node: RelatedNode, entity: string) =
             </Card>
           ))}
         </>
-      ) : (
+      ) : analysis === "map" ? (
         <ConnectionMapView
           onStart={(entity, id) =>
+            onStart(
+              { id, label: "", summary: "", entity, explorable: true, updated_at: null },
+              entity,
+            )
+          }
+        />
+      ) : (
+        <NetworkView
+          focus={focus}
+          onFocus={(next) => set({ focus: next === "customer" ? null : next })}
+          onExplore={(entity, id) =>
             onStart(
               { id, label: "", summary: "", entity, explorable: true, updated_at: null },
               entity,
