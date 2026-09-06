@@ -966,3 +966,12 @@ mark.nu-mark {
   gap: 8px; font-size: 11.5px; margin-top: 2px;
 }
 .nu-device-seen { white-space: nowrap; }
+
+/* Preferences (§40): a labelled control with the reason it exists under it. */
+.nu-setting {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+}
+.nu-setting-text { display: flex; flex-direction: column; gap: 2px; max-width: 60%; }
+.nu-setting-hint { font-size: 11.5px; line-height: 1.4; }
+.nu-setting-control { flex: none; }

@@ -191,7 +191,9 @@ export default function NotificationsPage() {
   ]);
 
   const unread = listing.data?.unread ?? 0;
-  const items = listing.data?.items ?? [];
+  // Memoised because the day grouping below depends on it, and a fresh array
+  // identity every render would regroup the feed on every keystroke.
+  const items = useMemo(() => listing.data?.items ?? [], [listing.data]);
   const total = listing.data?.total ?? 0;
 
   /**

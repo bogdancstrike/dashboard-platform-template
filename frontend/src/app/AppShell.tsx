@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Avatar,
   Badge,
@@ -34,6 +34,7 @@ import { CommandPalette, CommandTrigger } from "@/components/CommandPalette";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { STORAGE_KEYS } from "@/config";
 import { usePollInterval } from "@/live/LiveProvider";
+import { landingPath } from "@/pages/PreferencesPage";
 import { useAppearance } from "@/theme/AppearanceProvider";
 import { NAV_GROUPS, NAV_ITEMS, selectedKeyFor, trailFor } from "./navigation";
 
@@ -80,6 +81,16 @@ export function AppShell() {
   useEffect(() => {
     if (!isMobile) setCollapsed(!roomy);
   }, [isMobile, roomy]);
+
+  // The stored preference wins once, when the profile arrives (§40). Only
+  // once: a reader who expands the sidebar has overridden their own default
+  // for this session, and re-collapsing it on the next render would fight them.
+  const preferenceApplied = useRef(false);
+  useEffect(() => {
+    if (preferenceApplied.current || !auth.profile) return;
+    preferenceApplied.current = true;
+    if (!isMobile && roomy) setCollapsed(auth.profile.preferences.appearance.sidebar_collapsed);
+  }, [auth.profile, isMobile, roomy]);
 
   useEffect(() => {
     try {
@@ -161,7 +172,7 @@ export function AppShell() {
         width={248}
         collapsedWidth={isMobile ? 0 : 72}
       >
-        <div className="nu-logo" onClick={() => navigate("/dashboard")}>
+        <div className="nu-logo" onClick={() => navigate(landingPath(auth.profile?.preferences.defaults.landing_page))}>
           <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden>
             <g transform="translate(32 32)">
               <ellipse rx="26" ry="11" fill="none" stroke="#8b8bf0" strokeWidth="4" transform="rotate(-28)" />

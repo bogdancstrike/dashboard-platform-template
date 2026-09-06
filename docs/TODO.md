@@ -35,7 +35,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
 | Endpoints | 40 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×4, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×3, audit ×5, records ×1, roles ×2, users ×3 |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 238 backend + 171 frontend + 101 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
+| Tests | 238 backend + 178 frontend + 106 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
 | Frontend | shell, Data Explorer, discovery workspaces and the notification centre; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -136,8 +136,8 @@ vertical slice with its own tests, its own tracker entry and its own commit.
 - [x] **`/notifications` should look better** (§17) — a digest strip that is
       also the filter, rows grouped under the day they arrived on, unread as a
       tinted card rather than bold text alone
-- [ ] **`/settings/preferences` must persist through the backend** (§40) —
-      saved server-side and applied automatically on the next visit, from any
+- [x] **`/settings/preferences` persists through the backend** (§40) — saved
+      server-side and applied automatically on the next visit, from any
       browser
 - [ ] **`/dashboard` needs far more charts** (§2, §44) — the full ECharts
       vocabulary, following `gif_responder`'s dashboard and going beyond it
@@ -399,7 +399,7 @@ section is a cross-cutting rule rather than a page.
 | 37 | Tags and labels | `/admin/tags` + inline | `/tags` | [ ] |
 | 38 | Favorites | `/favorites` | `/favorites` | [ ] |
 | 39 | Recent items | sidebar + `/recent` | `/recent` | [ ] |
-| 40 | Personal preferences | `/settings/preferences` | `/api/me/preferences` | [ ] |
+| 40 | Personal preferences | `/settings/preferences` | `/api/me` | [x] |
 | 41 | Security settings, sessions | `/settings/security` | `/api/me/sessions` | [ ] |
 | 42 | Organization settings | `/settings/organization` | `/admin/organizations` | [ ] |
 | 43 | Bulk operations | every list | `/{entity}/bulk` | [ ] |
@@ -812,6 +812,41 @@ everything else.
 - [ ] Their own recent activity, favourites, saved searches and sessions
 - [ ] A public view of another user at `/profile/:username`, showing only what
       the viewer's permissions allow
+
+### `/settings/preferences` — the reader's own settings (§40)
+
+- [x] Stored **on the server**, against the account, and applied automatically
+      on the next visit — from another browser, another machine, or an
+      administrator viewing the platform as that person (§12)
+  - A preferences page that only changes what is on the preferences page is a
+    form. What makes these preferences is that they are read by the parts of
+    the app that never mention them: the timestamp in an audit row, the page
+    size of a list nobody configured, the address the logo points at
+  - **Date, time and number formats** reach every rendered value through
+    `lib/formats`, a module store with exactly one writer. A React context was
+    rejected because half the consumers are not components — `lib/time.ts` is
+    imported by plain functions, and a hook cannot be called from one
+  - `Intl` has no "give me exactly this pattern" mode, so a chosen pattern is
+    rendered by the locale whose conventions *are* that pattern. Hand-rolling
+    the formatting is how applications end up printing `13/13/2026`
+  - **Rows per page** is the default `useEntityView` starts from, unless the
+    page's own shape needs another (a card grid of twenty-five leaves a ragged
+    last row) or the reader has already paged, which the URL records
+  - **Home page** is where `/` lands and where the logo goes. Read from the
+    profile rather than a router constant, and it *waits* for the profile:
+    redirecting to the dashboard and then again once preferences load would put
+    a page in the back button nobody asked for
+  - Changes save on the spot rather than behind a Save button. These are
+    per-reader and instantly reversible, which is the opposite of the
+    permission matrix's staged-then-confirmed edits (§73) — and a Save button
+    on a preferences page is mostly a way to lose a change
+  - Theme and density keep their localStorage fast path so the first paint does
+    not flash the wrong one; the server copy wins the moment the profile loads.
+    One writer each: `AuthProvider` owns appearance, `PreferencesProvider` owns
+    the rest, because two writers of one field is a race
+  - **Acceptance**: met end to end — an e2e test sets a format, opens the
+    account in a browser context with no storage at all, and finds an audit
+    row rendered in it
 
 ### `/files` — object storage on MinIO (§20)
 

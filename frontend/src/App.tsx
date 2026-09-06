@@ -4,6 +4,8 @@ import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
 import { AppShell } from "@/app/AppShell";
+import { useAuth } from "@/auth/AuthProvider";
+import { landingPath } from "@/pages/PreferencesPage";
 import { PlaceholderPage } from "@/pages/PlaceholderPage";
 
 /**
@@ -45,6 +47,7 @@ const TicketsQueuePage = lazy(() => import("@/pages/entities/TicketsQueuePage"))
 const DevicesFleetPage = lazy(() => import("@/pages/entities/DevicesFleetPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 const SystemPage = lazy(() => import("@/pages/SystemPage"));
+const PreferencesPage = lazy(() => import("@/pages/PreferencesPage"));
 
 function Loading() {
   return <Skeleton active paragraph={{ rows: 8 }} />;
@@ -75,11 +78,28 @@ function NotFound() {
   );
 }
 
+/**
+ * Where arriving with no address lands (§40).
+ *
+ * The preference is read rather than a route constant, and it waits for the
+ * profile rather than guessing: redirecting to the dashboard and *then*
+ * redirecting again once preferences load would put a page in the back button
+ * that the reader never asked for.
+ */
+function Home() {
+  const { profile, loading } = useAuth();
+  if (loading) return <Loading />;
+  return <Navigate to={landingPath(profile?.preferences.defaults.landing_page)} replace />;
+}
+
 export default function App() {
   return (
     <Routes>
       <Route element={<AppShell />}>
-        <Route index element={<Navigate to="/dashboard" replace />} />
+        {/* The reader's own home page (§40), not a constant. Somebody who
+            works in the queue all day should not be shown a dashboard every
+            morning on the way to it. */}
+        <Route index element={<Home />} />
         <Route
           path="dashboard"
           element={
@@ -478,7 +498,11 @@ export default function App() {
         {/* Personal */}
         <Route
           path="settings/preferences"
-          element={<PlaceholderPage section="§40" summary="Appearance, formats, defaults and notification preferences." />}
+          element={
+            <Suspense fallback={<Loading />}>
+              <PreferencesPage />
+            </Suspense>
+          }
         />
         <Route
           path="settings/security"

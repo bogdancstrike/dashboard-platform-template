@@ -8,6 +8,8 @@
  * carries the absolute one within reach rather than instead of it.
  */
 
+import { formatDate, formatDateTime } from "./formats";
+
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
@@ -36,13 +38,15 @@ export function relativeTime(value: string | null | undefined, now: Date = new D
   if (delta < HOUR) return `${Math.floor(delta / MINUTE)}m ago`;
   if (delta < DAY) return `${Math.floor(delta / HOUR)}h ago`;
   if (delta < 7 * DAY) return `${Math.floor(delta / DAY)}d ago`;
-  return moment.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return formatDate(moment);
 }
 
 /** The full instant, for tooltips and anything that may be quoted. */
 export function absoluteTime(value: string | null | undefined): string {
   const moment = parseInstant(value);
-  return moment ? moment.toLocaleString() : "—";
+  // The reader's own format (§40), not the browser's locale: somebody who has
+  // asked for ISO dates has asked for them everywhere, including here.
+  return moment ? formatDateTime(moment) : "—";
 }
 
 /**

@@ -862,8 +862,17 @@ export const handlers = [
   ),
   http.get("/platform/api/me", ({ request }) => echo(request, currentUser)),
   http.put("/platform/api/me", async ({ request }) => {
-    const body = (await request.json()) as { preferences: Record<string, unknown> };
-    return echo(request, { preferences: { ...currentUser.preferences, ...body.preferences } });
+    const body = (await request.json()) as {
+      preferences: Record<string, Record<string, unknown>>;
+    };
+    // Merged per *section*, the way the server merges it: a page that sends
+    // `{formats: {date: …}}` must get the other two formats back untouched,
+    // and a handler that replaced the section would hide that bug.
+    const merged = { ...currentUser.preferences } as Record<string, Record<string, unknown>>;
+    for (const [section, values] of Object.entries(body.preferences)) {
+      merged[section] = { ...merged[section], ...values };
+    }
+    return echo(request, { preferences: merged });
   }),
   http.get("/platform/health/status", ({ request }) => echo(request, healthSnapshot)),
   http.get("/platform/dashboard/summary", ({ request }) => echo(request, dashboardSummary)),

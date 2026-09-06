@@ -21,6 +21,7 @@ import { useSearchParams } from "react-router-dom";
 
 import { explorerApi, type ExplorerRequest, type ExplorerResource } from "@/api/explorer";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useDefaultPageSize } from "@/settings/PreferencesProvider";
 
 export interface EntityView {
   /** The dataset declaration, once the catalogue has answered. */
@@ -106,8 +107,13 @@ export function useEntityView(
   const catalogue = useCatalogue();
   const resource = catalogue.data?.items.find((item) => item.key === resourceKey);
 
+  // The reader's own default (§40), unless this page has a shape that needs
+  // its own — a card grid of twenty-five is a ragged last row — and unless
+  // they have already paged, which the URL records.
+  const preferred = useDefaultPageSize();
   const page = Number(params.get("page") ?? 1) || 1;
-  const pageSize = Number(params.get("page_size") ?? options.defaultPageSize ?? 25) || 25;
+  const pageSize =
+    Number(params.get("page_size") ?? options.defaultPageSize ?? preferred) || preferred;
   const term = params.get("q") ?? "";
   const sort = params.get("sort") ?? options.defaultSort ?? resource?.default_sort ?? "updated_at";
   const order = params.get("order") === "asc" ? "asc" : options.defaultOrder ?? "desc";

@@ -15,6 +15,7 @@ import { ImpersonationProvider } from "@/auth/ImpersonationProvider";
 import { initializeAuth } from "@/auth/keycloak";
 import { CommandProvider } from "@/commands/CommandContext";
 import { LiveProvider } from "@/live/LiveProvider";
+import { PreferencesProvider } from "@/settings/PreferencesProvider";
 import App from "@/App";
 import { AppearanceProvider } from "@/theme/AppearanceProvider";
 
@@ -75,17 +76,22 @@ async function start() {
               static `message.*` helpers cannot theme. */}
           <AntApp>
             <AuthProvider>
-              {/* Inside AntApp so a delivered notification can raise a toast,
-                  and inside AuthProvider so the socket opens with a token. */}
-              <ImpersonationProvider>
-                <LiveProvider>
-                  <BrowserRouter>
-                    <CommandProvider>
-                      <App />
-                    </CommandProvider>
-                  </BrowserRouter>
-                </LiveProvider>
-              </ImpersonationProvider>
+              {/* Inside AuthProvider because the preferences arrive with the
+                  profile, and outside everything that renders a value: the
+                  formatters are configured on the way down. */}
+              <PreferencesProvider>
+                {/* Inside AntApp so a delivered notification can raise a toast,
+                    and inside AuthProvider so the socket opens with a token. */}
+                <ImpersonationProvider>
+                  <LiveProvider>
+                    <BrowserRouter>
+                      <CommandProvider>
+                        <App />
+                      </CommandProvider>
+                    </BrowserRouter>
+                  </LiveProvider>
+                </ImpersonationProvider>
+              </PreferencesProvider>
             </AuthProvider>
           </AntApp>
         </AppearanceProvider>

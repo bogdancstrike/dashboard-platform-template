@@ -14,6 +14,7 @@ import type { ReactElement, ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 
 import { AuthProvider } from "@/auth/AuthProvider";
+import { PreferencesProvider } from "@/settings/PreferencesProvider";
 import { AppearanceProvider } from "@/theme/AppearanceProvider";
 
 export function makeQueryClient(): QueryClient {
@@ -43,7 +44,9 @@ export function Providers({
       <AppearanceProvider>
         <AntApp>
           <AuthProvider>
-            <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+            <PreferencesProvider>
+              <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+            </PreferencesProvider>
           </AuthProvider>
         </AntApp>
       </AppearanceProvider>
