@@ -18,6 +18,7 @@ import { PlaceholderPage } from "@/pages/PlaceholderPage";
  * which is what produced a cross-chunk cycle and a blank page last time.
  */
 const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
+const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const DataExplorerPage = lazy(() => import("@/pages/DataExplorerPage"));
 const GlobalSearchPage = lazy(() => import("@/pages/GlobalSearchPage"));
 const DataCatalogPage = lazy(() => import("@/pages/DataCatalogPage"));
@@ -127,15 +128,9 @@ export default function App() {
         <Route
           path="analytics"
           element={
-            <PlaceholderPage
-              section="§2, §44, §53"
-              summary="Explore operational performance across records, teams and time periods."
-              bullets={[
-                "Cross-entity KPIs and trends with a shared period and filter context",
-                "Slice, compare and drill from a chart into the records behind it",
-                "Save an analysis as a report, chart or dashboard widget",
-              ]}
-            />
+            <Suspense fallback={<Loading />}>
+              <AnalyticsPage />
+            </Suspense>
           }
         />
         <Route

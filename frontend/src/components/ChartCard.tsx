@@ -82,6 +82,7 @@ export function ChartCard({
       size="small"
       className="nu-chartcard"
       data-chart-id={id}
+      data-testid={id}
       loading={loading}
       title={panel?.title ?? ""}
       extra={

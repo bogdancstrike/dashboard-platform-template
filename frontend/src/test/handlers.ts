@@ -635,6 +635,111 @@ export const recordDetail = {
 };
 
 
+/**
+ * The analysis catalogue and one result, in the shape `services/analysis.py`
+ * publishes them (§2, §28, §44).
+ *
+ * Written from the same declarations the explorer fixture uses, so a test
+ * cannot group by a column the real catalogue would never offer.
+ */
+export const analysisCatalogue = {
+  datasets: [
+    {
+      key: "order",
+      label: "Orders",
+      description: "Commercial transactions and payment state.",
+      path: "/orders",
+      dimensions: [
+        { name: "status", label: "Status", kind: "enum", choices: ["CONFIRMED", "PENDING"] },
+        { name: "channel", label: "Channel", kind: "enum", choices: ["PORTAL", "DIRECT"] },
+        { name: "placed_at", label: "Placed at", kind: "datetime", choices: [] },
+      ],
+      measures: [{ name: "total", label: "Total" }, { name: "item_count", label: "Items" }],
+      dates: [{ name: "placed_at", label: "Placed at" }],
+      default_date: "placed_at",
+    },
+    {
+      key: "ticket",
+      label: "Tickets",
+      description: "Support demand and SLA health.",
+      path: "/tickets",
+      dimensions: [
+        { name: "severity", label: "Severity", kind: "enum", choices: ["CRITICAL", "MINOR"] },
+        { name: "status", label: "Status", kind: "enum", choices: ["OPEN", "RESOLVED"] },
+      ],
+      measures: [{ name: "resolution_minutes", label: "Resolution minutes" }],
+      dates: [{ name: "created_at", label: "Created" }],
+      default_date: "created_at",
+    },
+  ],
+  aggregations: [
+    { key: "count", label: "Count", format: "number" },
+    { key: "sum", label: "Sum", format: "number" },
+    { key: "avg", label: "Avg", format: "number" },
+  ],
+  granularities: ["day", "week", "month", "quarter", "year"],
+  periods: [
+    { key: "last_30_days", label: "Last 30 days", days: 30 },
+    { key: "last_90_days", label: "Last 90 days", days: 90 },
+    { key: "last_365_days", label: "Last 365 days", days: 365 },
+  ],
+};
+
+/** One analysis result, shaped by the request so a test can assert the query. */
+export function analysisResult(body: {
+  resource_type?: string;
+  dimensions?: (string | { field: string; granularity?: string })[];
+  measures?: { aggregation: string; field?: string }[];
+  period?: string;
+}) {
+  const dataset =
+    analysisCatalogue.datasets.find((item) => item.key === body.resource_type) ??
+    analysisCatalogue.datasets[0]!;
+  const dimensions = (body.dimensions ?? []).map((entry) =>
+    typeof entry === "string" ? { field: entry, granularity: "" } : { field: entry.field, granularity: entry.granularity ?? "" },
+  );
+  const measures = (body.measures ?? [{ aggregation: "count" }]).map((measure) =>
+    measure.aggregation === "count"
+      ? { key: "count", label: "record count", aggregation: "count", field: "", format: "number" }
+      : {
+          key: `${measure.aggregation}:${measure.field ?? ""}`,
+          label: `total ${measure.field ?? ""}`,
+          aggregation: measure.aggregation,
+          field: measure.field ?? "",
+          format: "number",
+        },
+  );
+  const keysFor = (index: number) =>
+    dimensions[0]?.granularity ? ["2026-08-01", "2026-09-01"][index]! : ["CONFIRMED", "PENDING"][index]!;
+  const rows = dimensions.length
+    ? [0, 1].map((index) => ({
+        keys: [keysFor(index), ...(dimensions.length > 1 ? ["PORTAL"] : [])],
+        values: Object.fromEntries(measures.map((m) => [m.key, index === 0 ? 120 : 80])),
+      }))
+    : [{ keys: [], values: Object.fromEntries(measures.map((m) => [m.key, 200])) }];
+
+  return {
+    resource_type: dataset.key,
+    resource_label: dataset.label,
+    path: dataset.path,
+    dimensions: dimensions.map((item) => ({
+      field: item.field,
+      label: dataset.dimensions.find((d) => d.name === item.field)?.label ?? item.field,
+      kind: "enum",
+      granularity: item.granularity,
+    })),
+    measures,
+    rows,
+    totals: Object.fromEntries(measures.map((m) => [m.key, 200])),
+    matched: 200,
+    truncated: false,
+    other: null,
+    period: { key: body.period ?? "all_time", field: dataset.default_date, from: null, to: null },
+    description: `record count of ${dataset.label.toLowerCase()}`,
+    generated_at: "2026-09-06T12:00:00Z",
+  };
+}
+
 export const connectionMap = {
   nodes: [
     { key: "ticket", table: "tickets", label: "Tickets", count: 600, explorable: true },
@@ -891,6 +996,12 @@ export const handlers = [
   http.get("/platform/health/status", ({ request }) => echo(request, healthSnapshot)),
   http.get("/platform/dashboard/summary", ({ request }) => echo(request, dashboardSummary)),
   http.get("/platform/api/explorer/catalog", ({ request }) => echo(request, explorerCatalogue)),
+  http.get("/platform/api/analysis/catalog", ({ request }) => echo(request, analysisCatalogue)),
+  http.post("/platform/api/analysis/run", async ({ request }) =>
+    HttpResponse.json(analysisResult((await request.json()) as Parameters<typeof analysisResult>[0]), {
+      headers: { [CORRELATION_HEADER]: request.headers.get(CORRELATION_HEADER) ?? "" },
+    }),
+  ),
   http.post("/platform/api/explorer/query", async ({ request }) => {
     const body = (await request.json()) as {
       resource_type?: string;

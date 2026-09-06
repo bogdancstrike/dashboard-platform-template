@@ -180,6 +180,34 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "analysis_catalog",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/analysis/catalog",
+      "description": "What each dataset can be grouped by, measured by, and over which periods.",
+      "exec_method": {
+        "module_name": "src.api.analysis",
+        "method_name": "catalogue"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "analysis_run",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/analysis/run",
+      "description": "Group, measure and return — one analysis, computed in SQL.",
+      "exec_method": {
+        "module_name": "src.api.analysis",
+        "method_name": "run"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "explorer_export",
       "model_name": "Empty",
       "request_method": [

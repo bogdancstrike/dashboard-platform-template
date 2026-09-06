@@ -236,8 +236,44 @@ vertical slice with its own tests, its own tracker entry and its own commit.
     and delete — a page that quietly stayed read-only fails it. 202 frontend
     tests, typecheck and lint clean, FE redeployed and the full 114-test
     Playwright suite green
-- [~] **The `ANALYSE` pages** — `/analytics`, `/reports`, `/reports/builder`,
-      `/charts/builder` and `/maps`, which are placeholders today
+- [~] **The `ANALYSE` pages** — `/analytics` ships; `/reports`,
+      `/reports/builder`, `/charts/builder` and `/maps` are next
+  - **One compiler, not four endpoints.** `POST /api/analysis/run` takes
+    *group these rows by these columns and measure them this way* — the
+    question the workspace, both builders and the map all ask. Four endpoints
+    would be four places for "last 30 days" to be decided differently
+  - Everything comes from the declaration: a dimension must be a declared
+    field of a groupable kind, a measure a declared numeric one, and the
+    filters go through the same `apply_filters` and `compile_tree` every list
+    uses. `GET /api/analysis/catalog` publishes exactly what can be asked, so
+    the builder cannot offer a column the compiler will reject
+  - Aggregated in PostgreSQL, and the **totals are computed separately** from
+    the grouped rows rather than summed from them — an average of averages is
+    not an average, and a collapsed tail would be missing from it
+  - **The tail is named, never dropped.** Twelve of forty industries are drawn
+    and the rest become one "Other" row, so the parts still add up to the
+    total beside them. A time series is exempt: its rows are buckets that read
+    in order, and folding the oldest months into "Other" is a hole in the line
+  - `/analytics` holds one context — dataset, period, grouping, granularity,
+    measure and chart kind, all in the URL (§69, §72) — and every panel reads
+    it. Clicking a value leaves for that entity's own page, filtered (§44)
+  - Verification: 14 backend tests (live PostgreSQL) covering the contract,
+    the refusals and the reconciliation; 5 frontend tests asserting the shared
+    period, the URL round-trip and the drill-down; 3 Playwright tests proving
+    the numbers are the database's — hundreds of rows, not the page's
+    twenty-five — and that the period narrows them
+- [ ] **The sidebar's collapsed state is a preference** (§1, §40) — stored on
+      the account beside theme and density, so it follows the reader to another
+      browser rather than living only in this one's localStorage
+- [ ] **Lanes can be created, renamed and removed** (§18) — on `/kanban`, where
+      a lane is a row a person owns. On `/tasks` a lane is the declared status
+      vocabulary and stays that way: the board is a view of the work queue, and
+      a lane somebody invents there would be a status no filter, chart or
+      report has ever heard of
+- [ ] **`/tasks/:id` becomes a work page, not a field dump** (§8, §36, §48) —
+      the shape an issue tracker has: description, checklist, assignee and
+      dates on one side, a conversation with comments on the other, and the
+      activity timeline beneath it
 - [~] **Continue implementation task by task** — update this tracker, commit,
       push, redeploy both FE/BE and test the deployed result after each task.
       Current sequence: CRUD on every entity page, then the Analyse section.
@@ -459,7 +495,7 @@ section is a cross-cutting rule rather than a page.
 | § | Feature | Route / where | API | State |
 | --- | --- | --- | --- | --- |
 | 1 | Application shell, navigation | all | `/meta/*`, `/api/me` | [ ] |
-| 2 | Overview dashboard, KPIs, charts | `/` | `/dashboard/*` | [ ] |
+| 2 | Overview dashboard, KPIs, charts | `/`, `/analytics` | `/dashboard/*`, `/api/analysis/*` | [~] |
 | 3 | Advanced data table | `/showcase/table` + every list | generic list | [ ] |
 | 4 | Advanced search (simple + RAQB) | `/explore` | `/api/explorer/query` | [x] |
 | 5 | Saved searches | `/explore` (panel) | `/api/saved-searches` | [x] |
@@ -501,7 +537,7 @@ section is a cross-cutting rule rather than a page.
 | 41 | Security settings, sessions | `/settings/security` | `/api/me/sessions` | [ ] |
 | 42 | Organization settings | `/settings/organization` | `/admin/organizations` | [ ] |
 | 43 | Bulk operations | every list | `/{entity}/bulk` | [ ] |
-| 44 | Drill-down | dashboard → list | — | [ ] |
+| 44 | Drill-down | dashboard, analytics → list | `/api/analysis/run` | [~] |
 | 45 | Dashboard builder | `/dashboards/:id/edit` | `/dashboards` | [ ] |
 | 46 | Saved views | every list | `/saved-views` | [ ] |
 | 47 | Data comparison | `/{entity}/compare` | generic list | [ ] |
@@ -717,9 +753,15 @@ everything else.
 
 - [x] Navigation and deep-linkable route shells for Analytics, Data Explorer,
       Global Search, Relationship Explorer and Data Catalog
-- [ ] `/analytics` — cross-entity KPIs, trends, comparisons and drill-down with
+- [~] `/analytics` — cross-entity KPIs, trends, comparisons and drill-down with
       one shared period/filter context; analyses can become reports, charts or
       dashboard widgets
+  - Shipped: the workspace, on one analysis endpoint shared with the builders.
+    Dataset, period, grouping, granularity, measure and chart kind live in the
+    URL; the headline, the trend, the breakdown and the composition are four
+    `GROUP BY`s of one query, so they cannot disagree about what they measured
+  - "Save as a report" hands the current context to the report builder (§28),
+    which is the half still to come
 - [~] `/explore` — the canonical home for simple search, nested advanced
       search, query inspection, saved searches, saved views and result modes;
       legacy `/search*` URLs redirect here
@@ -1398,7 +1440,8 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] `docker compose up` clean-boot green — every service healthy from empty
       volumes; seed wrote 15 554 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
-- [~] Backend tests — 265 passing, including Data Explorer query, validation,
+- [~] Backend tests — 279 passing, including the analysis compiler's grouping,
+      refusals and reconciliation, Data Explorer query, validation,
       record create/edit/delete with its declaration, bounds, foreign keys and
       lost-race refusal,
       JWT/RBAC, saved-search visibility/lifecycle, the notification centre's
@@ -1412,14 +1455,15 @@ Each endpoint ships with its five-case integration test and the page consuming i
     aims at the **running stack** — it silently replaced the demo dataset with a
     small one, so every Playwright run afterwards measured 60 tasks where
     compose had produced 500. Nothing failed; the numbers were quietly different
-- [~] Frontend unit + component tests — 202 passing, including the record form,
+- [~] Frontend unit + component tests — 207 passing, including the analytics
+      workspace, the record form,
       create/edit/delete on all six entity pages,
       the board write path and Data Explorer
       backend rendering, debounced search, saved-search module, the
       notification centre's six states, the header bell, the audit explorer,
       the per-record timeline, the authenticated download path, the generic
       entity list and detail pages, the connection map and the permission matrix
-- [~] Playwright e2e suite — 114 tests green against `docker compose up` on the
+- [~] Playwright e2e suite — 117 tests green against `docker compose up` on the
       full seed, covering the shell, appearance, Data Explorer, saved searches,
       global search, relationships, the catalogue, the notification centre, the
       audit explorer, a real file download, all six entity lists, record
