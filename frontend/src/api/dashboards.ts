@@ -95,6 +95,9 @@ export interface SavedDashboard {
   can_edit: boolean;
   members: { id: string; name: string; email: string }[];
   widget_count: number;
+  /** *What* it holds — a reader recognises "alerts, revenue, a heatmap" far
+   *  faster than "7 widgets". */
+  widget_kinds: WidgetKind[];
   created_at: string | null;
   updated_at: string | null;
   /** Present on a single dashboard, absent from the listing. */
@@ -116,6 +119,8 @@ export interface DashboardList {
 
 export interface DashboardInput {
   name?: string;
+  /** Widgets to create it holding. One request, so it is never half-built. */
+  widgets?: { kind: WidgetKind; title?: string; config?: WidgetConfig }[];
   description?: string | null;
   scope?: DashboardScope;
   icon?: string | null;

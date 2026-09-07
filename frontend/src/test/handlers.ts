@@ -744,6 +744,7 @@ function seedDashboards(): void {
       can_edit: true,
       members: [],
       widget_count: 2,
+      widget_kinds: ["BAR_CHART", "KPI"],
       created_at: "2026-08-01T09:00:00Z",
       updated_at: "2026-09-04T09:00:00Z",
       widgets: [
@@ -781,6 +782,7 @@ function seedDashboards(): void {
       can_edit: false,
       members: [],
       widget_count: 0,
+      widget_kinds: [],
       created_at: "2026-08-11T09:00:00Z",
       updated_at: "2026-09-01T09:00:00Z",
       widgets: [],
@@ -1573,12 +1575,29 @@ export const handlers = [
   ),
   http.post("/platform/api/dashboards", async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
+    // Widgets arrive *with* the dashboard, laid out left to right — the fixture
+    // does what the server does, so a wizard that forgot to send them fails.
+    const asked = (body["widgets"] as { kind: string; title?: string }[] | undefined) ?? [];
+    const widgets = asked.map((entry, index) => ({
+      id: `widget-new-${index}`,
+      kind: entry.kind,
+      title: entry.title ?? entry.kind,
+      subtitle: null,
+      x: (index * 3) % 12,
+      y: Math.floor((index * 3) / 12),
+      width: 3,
+      height: 2,
+      position: index,
+      config: {},
+    }));
     const created = {
       ...dashboardById("dash-1"),
       ...body,
       id: `dash-${savedDashboards.length + 1}`,
-      widgets: [],
-      widget_count: 0,
+      widgets,
+      widget_count: widgets.length,
+      widget_kinds: [...new Set(widgets.map((widget) => widget.kind))].sort(),
+      is_home: false,
       can_edit: true,
     };
     savedDashboards.push(created);

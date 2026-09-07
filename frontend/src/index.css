@@ -1227,3 +1227,64 @@ mark.nu-mark {
 .nu-dropzone .ant-upload-drag { padding: 10px 12px; border-radius: var(--nu-radius-card); }
 .nu-dropzone .ant-upload-drag .ant-upload-btn { padding: 0; }
 .nu-dropzone .anticon { font-size: 18px; color: var(--nu-accent); }
+
+/* Choosing what a dashboard will hold (§45). A grid of kinds with counters,
+   because "how many headline numbers" is a real question a checkbox cannot
+   answer — four across the top is the commonest dashboard there is. */
+.nu-kinds {
+  display: grid; gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.nu-kind {
+  border: 1px solid var(--nu-border-subtle); border-radius: var(--nu-radius-card);
+  background: var(--nu-surface); overflow: hidden;
+  transition: border-color 140ms ease-out;
+}
+.nu-kind:hover:not(.is-blocked) { border-color: var(--nu-border-strong); }
+.nu-kind.is-blocked { opacity: 0.55; }
+.nu-kind-face {
+  display: flex; flex-direction: column; gap: 2px; width: 100%;
+  padding: 10px; background: none; border: 0; text-align: left; color: inherit;
+  cursor: pointer;
+}
+.nu-kind-face:disabled { cursor: not-allowed; }
+.nu-kind-icon { font-size: 20px; line-height: 1; }
+.nu-kind-label { font-size: 13px; font-weight: 600; }
+.nu-kind-question {
+  font-size: 11.5px; line-height: 1.35; color: var(--nu-text-secondary);
+}
+.nu-kind-counter {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 4px; padding: 2px 6px; border-top: 1px solid var(--nu-border-subtle);
+}
+.nu-kinds-hint { grid-column: 1 / -1; font-size: 12.5px; }
+
+/* The dashboard gallery (§45). A card rather than a row, because what a
+   reader is choosing between is not a name — it is a layout, and the card
+   says what that layout holds. */
+.nu-boards {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+.nu-board-card {
+  display: flex; flex-direction: column; gap: 6px; padding: 12px;
+  background: var(--nu-surface); color: inherit; text-align: left;
+  border: 1px solid var(--nu-border-subtle); border-radius: var(--nu-radius-card);
+  cursor: pointer; transition: border-color 140ms ease-out, box-shadow 140ms ease-out;
+}
+.nu-board-card:hover { border-color: var(--nu-accent); box-shadow: var(--nu-shadow-sm); }
+.nu-board-card:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; }
+.nu-board-card.is-open {
+  border-color: var(--nu-accent); box-shadow: inset 0 0 0 1px var(--nu-accent);
+}
+.nu-board-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.nu-board-title { flex: 1; min-width: 0; }
+.nu-board-title .ant-typography { font-size: 14px; }
+.nu-board-desc { margin: 0 !important; font-size: 12.5px; min-height: 34px; }
+.nu-board-kinds { display: flex; flex-wrap: wrap; gap: 4px; min-height: 24px; }
+.nu-board-kinds .ant-tag { margin: 0; font-size: 11px; }
+.nu-board-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; padding-top: 6px; border-top: 1px solid var(--nu-border-subtle);
+  font-size: 12px;
+}

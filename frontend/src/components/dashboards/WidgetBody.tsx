@@ -42,6 +42,19 @@ import { knownStatusColor } from "@/theme/tokens";
 
 const { Text } = Typography;
 
+/**
+ * Whether a widget yet knows *what* it is about.
+ *
+ * A kind is a shape; a subject is the dataset, report or search it draws. The
+ * create flow picks the first and leaves the second, so this distinguishes
+ * "unfinished" from "broken" — and only the second is worth an error.
+ */
+function hasSubject(widget: DashboardWidget): boolean {
+  if (widget.kind === "REPORT") return Boolean(widget.config.report_id);
+  if (widget.kind === "SEARCH") return Boolean(widget.config.search_id);
+  return Boolean(widget.config.entity);
+}
+
 /** Which chart the platform's renderer should draw, per widget kind. */
 const CHART_FOR: Partial<Record<DashboardWidget["kind"], ChartKind>> = {
   LINE_CHART: "line",
@@ -76,6 +89,24 @@ export function WidgetBody({
 
   if (widget.kind === "ALERTS") return <AlertsBody />;
   if (widget.kind === "ACTIVITY") return <ActivityBody />;
+
+  // A widget created by the wizard has a shape and no subject yet. Said in
+  // place, with the action, rather than drawn as an empty chart: a card that
+  // looks like a failure and is only unfinished sends somebody debugging
+  // (§34).
+  if (!hasSubject(widget)) {
+    return (
+      <Empty
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+        description={
+          <Text type="secondary">
+            Nothing chosen yet — open this widget&apos;s settings to say what it shows.
+          </Text>
+        }
+      />
+    );
+  }
+
   if (widget.kind === "REPORT") return <ReportBody widget={widget} period={effectivePeriod} />;
   if (widget.kind === "SEARCH") return <SearchBody widget={widget} resources={resources} />;
   if (widget.kind === "KPI" || widget.kind === "GAUGE") {

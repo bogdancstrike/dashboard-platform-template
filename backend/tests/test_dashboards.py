@@ -116,15 +116,33 @@ def test_a_widget_that_would_hang_off_the_grid_is_refused_not_clamped(client, sc
 
 
 @pytest.mark.database
-def test_a_widget_names_a_dataset_it_reads_or_none_at_all(client, scratch):
+def test_a_widget_may_be_created_before_it_has_a_subject(client, scratch):
+    """The create flow picks *shapes*, and each is filled in on the grid.
+
+    Requiring a dataset up front would mean choosing thirteen datasets in a
+    modal before seeing a single card. So an unconfigured widget is stored, and
+    the card says in place that it still needs a subject (§34).
+    """
     dashboard, headers = scratch
 
-    missing = client.post(
+    placeholder = client.post(
         f"{DASHBOARDS}/{dashboard['id']}/widgets",
-        json={"kind": "KPI", "title": "Nothing", "config": {}},
+        json={"kind": "KPI", "title": "Nothing yet", "config": {}},
         headers=headers,
     )
-    assert missing.status_code == 400
+    assert placeholder.status_code == 201, placeholder.get_json()
+    assert placeholder.get_json()["widgets"][0]["config"] == {}
+
+    # What *is* named still has to be askable: a dataset that does not exist is
+    # refused whether it arrives now or later.
+    nonsense = client.post(
+        f"{DASHBOARDS}/{dashboard['id']}/widgets",
+        json={"kind": "KPI", "title": "Wrong", "config": {"entity": "invoice"}},
+        headers=headers,
+    )
+    assert nonsense.status_code == 400
+    assert "available" in nonsense.get_json()["details"]
+
 
     # An alert strip is a platform-wide feed; naming a dataset on one is a
     # config that would be silently ignored.
@@ -335,16 +353,18 @@ def test_a_saved_chart_becomes_a_widget_without_being_rebuilt(client, monkeypatc
 
 
 @pytest.mark.database
-def test_a_referencing_widget_names_what_it_draws(client, scratch):
+def test_a_referencing_widget_takes_its_dataset_from_what_it_names(client, scratch):
     dashboard, headers = scratch
 
+    # Unnamed is a placeholder, like any other kind — the card says it has
+    # nothing to draw yet.
     nameless = client.post(
         f"{DASHBOARDS}/{dashboard['id']}/widgets",
-        json={"kind": "REPORT", "title": "Nothing", "config": {}},
+        json={"kind": "REPORT", "title": "Nothing yet", "config": {}},
         headers=headers,
     )
-    assert nameless.status_code == 400
-    assert nameless.get_json()["details"]["required"] == "report_id"
+    assert nameless.status_code == 201
+    assert "report_id" not in nameless.get_json()["widgets"][0]["config"]
 
     # And it takes its dataset from the thing it names, rather than carrying a
     # second opinion about which dataset that is.
@@ -432,3 +452,89 @@ def test_every_persona_owns_exactly_one_home_dashboard():
     persona_ids = {str(persona.id) for persona in world.personas.values()}
     assert set(homes) == persona_ids
     assert set(homes.values()) == {1}
+
+
+@pytest.mark.database
+def test_a_dashboard_can_be_created_already_holding_something(client, monkeypatch):
+    """A dashboard is created *in order to hold* something.
+
+    An empty one is a thing somebody then has to furnish, and a create flow
+    that ends on an empty grid has stopped one step short. Laid out by the same
+    rule the grid's compaction uses, so the result is tidy without anybody
+    dragging.
+    """
+    headers = _authenticate(monkeypatch)
+    created = client.post(
+        DASHBOARDS,
+        json={
+            "name": f"Populated {uuid4().hex[:6]}",
+            "widgets": [
+                {"kind": "KPI", "title": "Open tickets", "config": {"entity": "ticket"}},
+                {"kind": "KPI", "title": "Revenue", "config": {"entity": "order"}},
+                {"kind": "KPI", "config": {"entity": "task"}},
+                {"kind": "KPI", "config": {"entity": "project"}},
+                {"kind": "ALERTS", "config": {}},
+                {"kind": "BAR_CHART", "config": {"entity": "ticket"}},
+            ],
+        },
+        headers=headers,
+    )
+    assert created.status_code == 201, created.get_json()
+    body = created.get_json()
+
+    try:
+        assert body["widget_count"] == 6
+        widgets = body["widgets"]
+        # Four three-column tiles fill the first row, then the row advances by
+        # the tallest widget in it rather than by the last one placed.
+        assert [w["x"] for w in widgets[:4]] == [0, 3, 6, 9]
+        assert all(w["y"] == 0 for w in widgets[:4])
+        assert widgets[4]["y"] == 1
+
+        # A widget with no title gets one that names its subject rather than
+        # its shape: a card headed "KPI" says nothing.
+        assert widgets[2]["title"] == "Headline number"
+
+        # And the listing says *what* it holds, not only how much.
+        listed = next(
+            item
+            for item in client.get(DASHBOARDS, headers=headers).get_json()["items"]
+            if item["id"] == body["id"]
+        )
+        assert listed["widget_kinds"] == ["ALERTS", "BAR_CHART", "KPI"]
+    finally:
+        client.delete(f"{DASHBOARDS}/{body['id']}", headers=headers)
+
+
+@pytest.mark.database
+def test_creating_with_a_kind_the_platform_cannot_draw_creates_nothing(client, monkeypatch):
+    """All or nothing: a dashboard half-built from a bad request is worse than
+    a request that failed."""
+    headers = _authenticate(monkeypatch)
+    name = f"Refused {uuid4().hex[:6]}"
+    response = client.post(
+        DASHBOARDS,
+        json={"name": name, "widgets": [{"kind": "KPI", "config": {"entity": "task"}},
+                                        {"kind": "SANKEY", "config": {}}]},
+        headers=headers,
+    )
+    assert response.status_code == 400
+    assert "KPI" in response.get_json()["details"]["allowed"]
+
+    listed = client.get(DASHBOARDS, headers=headers).get_json()["items"]
+    assert name not in {item["name"] for item in listed}
+
+
+def test_every_kind_declares_a_size_and_a_name():
+    """The picker offers what the server accepts, at the size it will get.
+
+    A kind added to `WIDGET_KINDS` without either is one the create flow lays
+    out at a guessed size under a heading that names its shape.
+    """
+    from src.services.dashboards import DEFAULT_SIZES, WIDGET_KINDS, _TITLES
+
+    assert WIDGET_KINDS - set(DEFAULT_SIZES) == frozenset()
+    assert WIDGET_KINDS - set(_TITLES) == frozenset()
+    for kind, (width, height) in DEFAULT_SIZES.items():
+        assert 1 <= width <= 12, kind
+        assert 1 <= height <= 8, kind

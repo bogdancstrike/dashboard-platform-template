@@ -35,7 +35,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
 | Endpoints | 62 of ~110 — `maps/endpoint.json` is the list, and `python -m src.api.endpoint_map` prints it; nothing here is kept in step by hand |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 360 backend + 292 frontend + 149 Playwright e2e — all green against `docker compose up`. Scale-independent: they pass on either seed size |
+| Tests | 363 backend + 298 frontend + 149 Playwright e2e — all green against `docker compose up`. Scale-independent: they pass on either seed size |
 | Frontend | shell, Data Explorer, discovery workspaces, the notification centre, six entity lists, three record pages of their own, and the whole ANALYSE section bar dashboards; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack: PostgreSQL, Redis, Keycloak, MinIO, the API and the SPA. Real Keycloak tokens and real presigned uploads verified |
 
@@ -407,6 +407,38 @@ commit — built, committed, pushed, redeployed and verified before the next.
 - [ ] **Redis is used for what a cache is for** — the aggregates that cost a
       `GROUP BY` over the whole dataset, invalidated by the writes that make
       them stale rather than by a timer
+- [x] **The dashboards *look* like QSINT's too** — the grid was not the part
+      that was wrong
+  - **The landing state is a gallery of cards, not a picker.** What a reader is
+    choosing between is not a name — it is a layout — so each card carries the
+    widget kinds it holds. "Alerts, revenue, a heatmap" is recognised far
+    faster than "7 widgets", and a select in a header gave the choice one line
+    of the page and made every dashboard look identical
+  - **Creating one is a wizard** (§10): name it, fill it, check it. Three
+    separate thoughts, and a single form asking all three at once gets a worse
+    answer to each. The middle step is a grid of kind cards with counters —
+    following QSINT — because "how many headline numbers" is a real question a
+    checkbox cannot answer, and four across the top is the commonest dashboard
+    there is
+  - **It cannot be finished empty**, and the widgets arrive *with* it in one
+    request, laid out by the same rule the grid's compaction uses. A create
+    flow that ends on an empty grid has stopped one step short
+  - **An unconfigured widget is a legitimate state, not an error.** The wizard
+    picks *shapes*; each is given its subject on the grid it will live on.
+    Requiring a dataset up front would mean choosing thirteen datasets in a
+    modal before seeing a single card. The card says so in place, with the
+    action (§34) — a panel that looks like a failure and is only unfinished
+    sends somebody debugging
+  - **Creating opens a wizard, editing opens a drawer**, and the difference is
+    the point: a wizard makes a decision that has parts, a drawer edits an
+    object that already exists
+  - One vocabulary for the kinds (`components/dashboards/kinds.tsx`), read by
+    the picker, the configure drawer and the gallery card. Two copies had
+    already drifted — the drawer called a bar chart "Bar comparison" and the
+    picker called it "Bars"
+  - The kind select is searchable, because thirteen options is more than a list
+    somebody reads top to bottom — and the ones past the window were
+    virtualised away, which is how a test found it
 - [x] **The dashboards follow QSINT** (`/home/user/workspace/qsint/frontend/ui-qsint`)
       — `react-grid-layout` with drag, corner resize and vertical
       auto-compaction; a "Tidy up" that applies the same rule on demand; and
@@ -426,11 +458,19 @@ commit — built, committed, pushed, redeployed and verified before the next.
 - [~] **A UI/UX pass over every page** — cleaner and more minimalist, no large
       empty areas, uniform buttons and page furniture, everything easy to read
       and reach
-  - Done so far, on the pages built this session: the dashboard picker moved
-    out of a mostly-empty column into the header strip; widget cards fill the
-    cell the grid gave them, so two widgets of the same declared height are the
-    same height; a KPI's number fits one grid row without scrolling
+  - Done so far: `/dashboards` rebuilt as a card gallery with a create wizard;
+    widget cards fill the cell the grid gave them; a KPI's number fits one grid
+    row without scrolling; `/files` lost a mostly-empty column and its drop
+    panel became a strip, because a permanent element taking a third of the
+    page pushes the files somebody came for below the fold
   - The pass over the remaining pages is still to come
+- [ ] **The collapsed sidebar keeps only its icons**, as QSINT's does
+- [ ] **`/home` is the default landing page** — the platform's name and logo,
+      the reader's own announcements, notifications and preferences, and
+      whatever else is worth seeing on arrival
+- [ ] **Variety in how "create" opens** — a wizard where the decision has
+      parts, a drawer for one object's fields, a plain modal for one question.
+      The dashboard wizard is the first; the rest of the modules follow
 - [~] **Every page in the navigation is implemented**, not a placeholder — the
       list is in [Phase 6](#phase-6--frontend-pages). `/dashboards` is done;
       `/kanban`, `/workflows`, `/calendar`, `/mail`, `/files`, the admin area
@@ -1877,7 +1917,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] `docker compose up` clean-boot green — every service healthy from empty
       volumes; seed wrote 15 554 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
-- [~] Backend tests — 360 passing, including the comment thread's permissions
+- [~] Backend tests — 363 passing, including the comment thread's permissions
       and editing rules, the checklist's validation, saved reports' lifecycle and
       sharing, the analysis compiler's grouping,
       refusals and reconciliation, Data Explorer query, validation,
@@ -1894,7 +1934,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
     aims at the **running stack** — it silently replaced the demo dataset with a
     small one, so every Playwright run afterwards measured 60 tasks where
     compose had produced 500. Nothing failed; the numbers were quietly different
-- [~] Frontend unit + component tests — 292 passing, including the task work
+- [~] Frontend unit + component tests — 298 passing, including the task work
       page and its conversation, saved reports
       and the builder, the analytics
       workspace, the record form,

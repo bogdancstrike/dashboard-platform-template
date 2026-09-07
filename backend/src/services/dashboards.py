@@ -92,6 +92,50 @@ COLUMNS = 12
 MIN_HEIGHT = 1
 MAX_HEIGHT = 8
 
+#: More than this at once is not a dashboard, it is a wall.
+MAX_WIDGETS_AT_ONCE = 24
+
+#: The size each kind wants when nobody has said. Declared beside the kinds
+#: rather than in the page, so a dashboard created through the API is laid out
+#: the same way as one created through the builder.
+DEFAULT_SIZES: dict[str, tuple[int, int]] = {
+    "KPI": (3, 1),
+    "GAUGE": (3, 2),
+    "LINE_CHART": (6, 2),
+    "AREA_CHART": (6, 2),
+    "BAR_CHART": (6, 2),
+    "PIE_CHART": (4, 2),
+    "HEATMAP": (6, 2),
+    "LIST": (4, 2),
+    "TABLE": (6, 2),
+    "ALERTS": (4, 2),
+    "ACTIVITY": (4, 2),
+    "REPORT": (6, 2),
+    "SEARCH": (4, 2),
+}
+
+#: What a widget is called when the caller did not say. A card headed "KPI"
+#: tells a reader the shape and not the subject.
+_TITLES: dict[str, str] = {
+    "KPI": "Headline number",
+    "GAUGE": "Gauge",
+    "LINE_CHART": "Over time",
+    "AREA_CHART": "Over time",
+    "BAR_CHART": "Comparison",
+    "PIE_CHART": "Share of the whole",
+    "HEATMAP": "Where it concentrates",
+    "LIST": "Newest records",
+    "TABLE": "Records",
+    "ALERTS": "What needs attention",
+    "ACTIVITY": "Recent activity",
+    "REPORT": "A saved report",
+    "SEARCH": "A saved search",
+}
+
+
+def _default_title(kind: str) -> str:
+    return _TITLES.get(kind, kind.replace("_", " ").title())
+
 
 def listing(session, *, principal) -> dict[str, Any]:
     """Every dashboard this reader may open, their own first."""
@@ -124,10 +168,19 @@ def get(session, dashboard_id: Any, *, principal) -> dict[str, Any]:
 
 
 def create(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
+    """A dashboard, and whatever it was asked to start with.
+
+    Widgets arrive with it rather than one request at a time, because a
+    dashboard is created *in order to hold* something: an empty one is a thing
+    somebody then has to furnish, and a create flow that ends on an empty grid
+    has stopped one step short. They are laid out here by the same rule the
+    grid's own compaction uses, so the result is tidy without anybody dragging.
+    """
     principal.require(MANAGE_PERMISSION)
     values = _validated(payload, principal=principal, partial=False)
     members = values.pop("member_ids")
     home = values.pop("is_home", False)
+    wanted = _requested_widgets(payload, principal=principal)
 
     row = Dashboard(
         owner_id=principal.user_id,
@@ -136,6 +189,9 @@ def create(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
         **values,
     )
     session.add(row)
+    session.flush()
+    for position, widget in enumerate(wanted):
+        row.widgets.append(DashboardWidget(position=position, **widget))
     session.flush()
     if home:
         _make_home(session, row, principal)
@@ -148,6 +204,55 @@ def create(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
         message=f"created dashboard {row.name}", activity=False,
     )
     return _serialize(session, row, principal)
+
+
+def _requested_widgets(payload: dict[str, Any], *, principal) -> list[dict[str, Any]]:
+    """The widgets a create call asked for, validated and placed left to right.
+
+    Each kind declares the size it wants (`DEFAULT_SIZES`), and the row
+    advances by the *tallest* widget in it — the mistake the seed made, which
+    left every dashboard full of holes the grid then had to push apart.
+    """
+    requested = payload.get("widgets") or []
+    if not isinstance(requested, list):
+        raise ValidationError("widgets must be a list.")
+    if len(requested) > MAX_WIDGETS_AT_ONCE:
+        raise ValidationError(
+            f"A dashboard starts with at most {MAX_WIDGETS_AT_ONCE} widgets.",
+            details={"asked_for": len(requested)},
+        )
+
+    placed: list[dict[str, Any]] = []
+    x = y = row_height = 0
+    for entry in requested:
+        if not isinstance(entry, dict):
+            raise ValidationError("Each widget must be an object.")
+        kind = str(entry.get("kind") or "").strip().upper()
+        if kind not in WIDGET_KINDS:
+            raise ValidationError(
+                "That is not a widget this platform can draw.",
+                details={"kind": kind, "allowed": sorted(WIDGET_KINDS)},
+            )
+        width, height = DEFAULT_SIZES.get(kind, (4, 2))
+        if x + width > COLUMNS:
+            x = 0
+            y += row_height
+            row_height = 0
+        row_height = max(row_height, height)
+
+        placed.append({
+            "kind": kind,
+            "title": str(entry.get("title") or _default_title(kind))[:200],
+            "subtitle": None,
+            "x": x,
+            "y": y,
+            "width": width,
+            "height": height,
+            "config": _config(entry.get("config"), kind=kind, principal=principal),
+        })
+        x += width
+
+    return placed
 
 
 def update(session, dashboard_id: Any, payload: dict[str, Any], *, principal) -> dict[str, Any]:
@@ -380,17 +485,26 @@ def _validated_widget(
     if not partial or "config" in payload:
         out["config"] = _config(payload.get("config"), kind=kind, principal=principal)
 
-    out.update(_geometry(payload, columns=columns, existing=existing, partial=partial))
+    out.update(
+        _geometry(payload, columns=columns, existing=existing, partial=partial, kind=kind)
+    )
     return out
 
 
 def _config(raw: Any, *, kind: str, principal) -> dict[str, Any]:
     """What the widget asks, checked against what may actually be asked.
 
-    Deliberately shallow: the *shape* of the question is validated here — a
-    real dataset, a real period — and the question itself is executed by the
-    endpoint that owns it. Re-deriving which fields are groupable would be a
-    second copy of the analysis catalogue.
+    **An unconfigured widget is a legitimate state, not an error.** The create
+    flow picks *shapes* — four headline numbers, an alert strip, a bar chart —
+    and each is filled in afterwards on the grid it will live on. Requiring a
+    dataset up front would mean choosing thirteen datasets in a modal before
+    seeing a single card, which is the flow this one exists to replace. So what
+    is validated is that whatever *is* named can actually be asked for; the
+    widget itself says, in place, that it still needs a subject (§34).
+
+    Deliberately shallow beyond that: the question is executed by the endpoint
+    that owns it, and re-deriving which fields are groupable would be a second
+    copy of the analysis catalogue.
     """
     config = dict(raw or {})
     entity = str(config.get("entity") or "").strip()
@@ -398,15 +512,14 @@ def _config(raw: Any, *, kind: str, principal) -> dict[str, Any]:
     if kind in REFERENCE_KINDS:
         key, noun = REFERENCE_KINDS[kind]
         reference = str(config.get(key) or "").strip()
-        if not reference:
-            raise ValidationError(
-                f"That widget draws a saved {noun}, so it has to name one.",
-                details={"kind": kind, "required": key},
-            )
-        # Parsed, not resolved: whether the reader may *see* that report is
-        # decided when the widget is drawn, by the endpoint that owns it. A
-        # check here would go stale the moment the owner changed its audience.
-        config[key] = str(parse_uuid(reference, field=key))
+        if reference:
+            # Parsed, not resolved: whether the reader may *see* that report is
+            # decided when the widget is drawn, by the endpoint that owns it. A
+            # check here would go stale the moment the owner changed its
+            # audience.
+            config[key] = str(parse_uuid(reference, field=key))
+        else:
+            config.pop(key, None)
         if entity:
             raise ValidationError(
                 f"That widget takes its dataset from the saved {noun} it names.",
@@ -415,15 +528,14 @@ def _config(raw: Any, *, kind: str, principal) -> dict[str, Any]:
         return config
 
     if kind in DATASET_KINDS:
-        if not entity:
-            raise ValidationError(
-                "That widget reads a dataset, so it has to name one.",
-                details={"kind": kind},
-            )
-        # Checked against the reader's own permissions: a widget pointing at a
-        # dataset they may not read would be a card that always says forbidden.
-        resource_for(entity, principal=principal)
-        config["entity"] = entity
+        if entity:
+            # Checked against the reader's own permissions: a widget pointing
+            # at a dataset they may not read would be a card that always says
+            # forbidden.
+            resource_for(entity, principal=principal)
+            config["entity"] = entity
+        else:
+            config.pop("entity", None)
     elif entity:
         raise ValidationError(
             "That widget is a platform-wide feed and names no dataset.",
@@ -443,9 +555,16 @@ def _geometry(
     columns: int,
     existing: DashboardWidget | None = None,
     partial: bool = True,
+    kind: str = "",
 ) -> dict[str, Any]:
-    """Where the card sits, checked so a grid cannot render on top of itself."""
+    """Where the card sits, checked so a grid cannot render on top of itself.
+
+    A size the caller did not give comes from the *kind*, which is the one
+    place that knows a KPI wants three columns and a heatmap wants six. A
+    client that had to send sizes would be a second copy of that table.
+    """
     out: dict[str, Any] = {}
+    default_width, default_height = DEFAULT_SIZES.get(kind, (4, 2))
 
     def number(key: str, default: int) -> int:
         if key in payload:
@@ -457,8 +576,8 @@ def _geometry(
             return int(getattr(existing, key))
         return default
 
-    width = number("width", 3)
-    height = number("height", 2)
+    width = number("width", default_width)
+    height = number("height", default_height)
     x = number("x", 0)
     y = number("y", 0)
 
@@ -566,6 +685,10 @@ def _serialize(session, row: Dashboard, principal, *, widgets: bool = True) -> d
         "can_edit": can_edit,
         "members": sharing.members(session, KIND, row.id) if can_edit else [],
         "widget_count": len(row.widgets),
+        # *What* it holds, not only how much — a card in a gallery has room for
+        # the kinds and a reader recognises "alerts, revenue, a heatmap" far
+        # faster than "7 widgets".
+        "widget_kinds": sorted({widget.kind for widget in row.widgets}),
         "created_at": row.created_at.isoformat() if row.created_at else None,
         "updated_at": row.updated_at.isoformat() if row.updated_at else None,
     }

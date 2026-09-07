@@ -15,6 +15,16 @@
  * anything, which is why a dashboard and the page it was built from cannot
  * disagree.
  *
+ * **The landing state is a gallery, not a picker.** What a reader is choosing
+ * between is not a *name* — it is a layout — so each card says what its
+ * dashboard holds. A select in a header made every dashboard look identical
+ * and gave the choice one line of the page.
+ *
+ * **Creating one is a wizard; editing one is a drawer.** The distinction is
+ * not decoration: a wizard makes a decision that has parts — what to call it,
+ * what it will hold, who sees it — and a drawer edits an object that already
+ * exists. A single form asking all three at once gets a worse answer to each.
+ *
  * **Editing is a mode, not a separate page.** A builder on its own screen is a
  * builder whose result you cannot see; the reading view *is* the editing view,
  * with the controls turned on. So "add a widget" lands on the grid it will
@@ -48,6 +58,7 @@ import {
   ColumnHeightOutlined,
   PlusOutlined,
   SettingOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -68,6 +79,9 @@ import { reportsApi } from "@/api/reports";
 import { PageHeader } from "@/components/PageHeader";
 import { MemberPicker } from "@/components/PeoplePicker";
 import { WidgetBody } from "@/components/dashboards/WidgetBody";
+import { CreateDashboardWizard } from "@/components/dashboards/CreateDashboardWizard";
+import { KINDS, KIND_ORDER } from "@/components/dashboards/kinds";
+import { DashboardCard } from "@/components/dashboards/DashboardCard";
 import { WidgetCard, type WidgetMoves } from "@/components/dashboards/WidgetCard";
 import { WidgetGrid, compacted } from "@/components/dashboards/WidgetGrid";
 import { usePageCommands } from "@/commands/CommandContext";
@@ -76,38 +90,6 @@ import { relativeTime } from "@/lib/time";
 
 const { Text } = Typography;
 
-/**
- * What each kind is called, how big it wants to be when first added, and what
- * it needs naming.
- *
- * `feed` is a platform-wide feed and names no dataset. `references` names
- * something the reader already saved — a report from the chart builder, a
- * question from the explorer — which is what lets a saved chart become a
- * widget without being described again.
- *
- * Keyed on the whole `WidgetKind` union, so a kind the server offers is a kind
- * this page can describe: adding one to the server without adding it here
- * fails to compile.
- */
-const WIDGETS: Record<
-  WidgetKind,
-  { label: string; width: number; height: number; feed?: true; references?: "report" | "search" }
-> = {
-  KPI: { label: "Headline number", width: 3, height: 1 },
-  GAUGE: { label: "Gauge", width: 3, height: 2 },
-  LINE_CHART: { label: "Line over time", width: 6, height: 2 },
-  AREA_CHART: { label: "Area over time", width: 6, height: 2 },
-  BAR_CHART: { label: "Bar comparison", width: 6, height: 2 },
-  PIE_CHART: { label: "Share of the whole", width: 4, height: 2 },
-  HEATMAP: { label: "Two-dimension heatmap", width: 6, height: 2 },
-  LIST: { label: "Newest records", width: 4, height: 2 },
-  TABLE: { label: "Records as a table", width: 6, height: 2 },
-  ALERTS: { label: "What needs attention", width: 4, height: 2, feed: true },
-  ACTIVITY: { label: "Recent activity", width: 4, height: 2, feed: true },
-  REPORT: { label: "A saved report", width: 6, height: 2, references: "report" },
-  SEARCH: { label: "A saved search", width: 4, height: 2, references: "search" },
-};
-
 export default function DashboardsPage() {
   const queryClient = useQueryClient();
   const { message, modal } = AntApp.useApp();
@@ -115,6 +97,7 @@ export default function DashboardsPage() {
   const [editing, setEditing] = useState(false);
   const [widgetForm, setWidgetForm] = useState<DashboardWidget | "new" | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const listing = useQuery({
     queryKey: ["dashboards"],
@@ -122,9 +105,10 @@ export default function DashboardsPage() {
   });
 
   const items = listing.data?.items ?? [];
-  // The home dashboard first, then whatever the reader last opened — which is
-  // in the URL, so a dashboard can be linked to (§69).
-  const openId = params.get("dashboard") ?? items.find((item) => item.is_home)?.id ?? items[0]?.id ?? "";
+  // Only what the URL names. No dashboard is opened by default, because the
+  // gallery *is* the landing state — and a page that silently opens one is a
+  // page whose address does not describe what is on screen (§69).
+  const openId = params.get("dashboard") ?? "";
 
   const dashboard = useQuery({
     queryKey: ["dashboard", openId],
@@ -145,11 +129,26 @@ export default function DashboardsPage() {
     staleTime: 300_000,
   });
 
+  // Whether the reader has anything to point a `REPORT` or `SEARCH` widget at.
+  // Asked once for the page rather than per card, and only to decide what the
+  // picker may offer.
+  const savedReports = useQuery({
+    queryKey: ["reports"],
+    queryFn: ({ signal }) => reportsApi.list(signal),
+    staleTime: 300_000,
+  });
+  const savedSearches = useQuery({
+    queryKey: ["saved-searches", "all"],
+    queryFn: ({ signal }) => explorerApi.saved(undefined, signal),
+    staleTime: 300_000,
+  });
+
   const open = (id: string) =>
     setParams(
       (current) => {
         const next = new URLSearchParams(current);
-        next.set("dashboard", id);
+        if (id) next.set("dashboard", id);
+        else next.delete("dashboard");
         return next;
       },
       { replace: true },
@@ -163,17 +162,6 @@ export default function DashboardsPage() {
 
   const failed = (error: unknown) =>
     message.error(error instanceof ApiError ? error.message : "That change was not saved.");
-
-  const createBoard = useMutation({
-    mutationFn: (name: string) => dashboardsApi.create({ name }),
-    onSuccess: (saved) => {
-      settled(saved);
-      open(saved.id);
-      setEditing(true);
-      message.success(`${saved.name} created`);
-    },
-    onError: failed,
-  });
 
   const saveBoard = useMutation({
     mutationFn: (input: Parameters<typeof dashboardsApi.update>[1]) =>
@@ -282,7 +270,7 @@ export default function DashboardsPage() {
       id: "dashboards.new",
       label: "Create a dashboard",
       keywords: "add build layout",
-      run: () => createBoard.mutate("New dashboard"),
+      run: () => setWizardOpen(true),
     },
     {
       id: "dashboards.edit",
@@ -329,74 +317,147 @@ export default function DashboardsPage() {
 
   const canCreate = listing.data?.can_create ?? false;
 
+  // The two kinds that draw something the reader already made. Offered and
+  // refused with the reason rather than hidden, so somebody learns that a
+  // saved chart can become a widget (§76).
+  const unavailable: Partial<Record<WidgetKind, string>> = {
+    ...(savedReports.data?.total === 0
+      ? { REPORT: "You have not saved a report yet" }
+      : {}),
+    ...(savedSearches.data?.total === 0
+      ? { SEARCH: "You have not saved a search yet" }
+      : {}),
+  };
+
   return (
     <>
       <PageHeader
-        title="My dashboards"
-        subtitle="Layouts you composed, and the ones colleagues shared with you. Every widget asks the platform the same question the page behind it would."
+        title={openId && board ? board.name : "My dashboards"}
+        onBack={openId ? () => open("") : undefined}
+        subtitle={
+          openId && board
+            ? [
+                board.owner.name,
+                board.scope.toLowerCase(),
+                `${board.widget_count} ${board.widget_count === 1 ? "widget" : "widgets"}`,
+                board.updated_at ? relativeTime(board.updated_at) : "",
+              ]
+                .filter(Boolean)
+                .join(" · ")
+            : "Layouts you composed, and the ones colleagues shared with you. Every widget asks the platform the same question the page behind it would."
+        }
         tag={board?.is_home ? <Tag color="blue">Home</Tag> : undefined}
         actions={
-          <>
-            {board?.can_edit && (
-              <Button
-                type={editing ? "primary" : "default"}
-                icon={<SettingOutlined />}
-                onClick={() => setEditing(!editing)}
-                data-testid="toggle-edit"
-              >
-                {editing ? "Done" : "Rearrange"}
-              </Button>
-            )}
-            {editing && board?.can_edit && (
-              <>
+          openId && board ? (
+            <>
+              {board.can_edit && (
                 <Button
-                  icon={<PlusOutlined />}
-                  onClick={() => setWidgetForm("new")}
-                  data-testid="add-widget"
+                  type={editing ? "primary" : "default"}
+                  icon={<SettingOutlined />}
+                  onClick={() => setEditing(!editing)}
+                  data-testid="toggle-edit"
                 >
-                  Add a widget
+                  {editing ? "Done" : "Rearrange"}
                 </Button>
-                {/* The same rule the grid applies during a drag, on demand: a
-                    dashboard edited for a while accumulates gaps, and closing
-                    them is something a person wants to press. */}
+              )}
+              {editing && board.can_edit && (
+                <>
+                  <Button
+                    icon={<PlusOutlined />}
+                    onClick={() => setWidgetForm("new")}
+                    data-testid="add-widget"
+                  >
+                    Add a widget
+                  </Button>
+                  {/* The same rule the grid applies during a drag, on demand:
+                      a dashboard edited for a while accumulates gaps, and
+                      closing them is something a person wants to press. */}
+                  <Button
+                    icon={<ColumnHeightOutlined />}
+                    loading={arrange.isPending}
+                    disabled={widgets.length === 0}
+                    onClick={() => arrange.mutate(compacted(widgets, columns))}
+                    data-testid="tidy-up"
+                  >
+                    Tidy up
+                  </Button>
+                </>
+              )}
+              <Tooltip title={board.can_edit ? "" : "Only the owner may change a dashboard"}>
+                {/* Addressed by test id, not by name: the icon contributes
+                    its own label, so the accessible name reads "team
+                    Settings" — the same trap the export control documents. */}
                 <Button
-                  icon={<ColumnHeightOutlined />}
-                  loading={arrange.isPending}
-                  disabled={widgets.length === 0}
-                  onClick={() => arrange.mutate(compacted(widgets, columns))}
-                  data-testid="tidy-up"
+                  icon={<TeamOutlined />}
+                  disabled={!board.can_edit}
+                  onClick={() => setSettingsOpen(true)}
+                  data-testid="board-settings"
                 >
-                  Tidy up
+                  Settings
                 </Button>
-              </>
-            )}
+              </Tooltip>
+            </>
+          ) : (
             <Tooltip title={canCreate ? "" : "Your role does not include dashboards.manage"}>
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
                 disabled={!canCreate}
-                loading={createBoard.isPending}
-                onClick={() => createBoard.mutate("New dashboard")}
+                onClick={() => setWizardOpen(true)}
                 data-testid="new-dashboard"
               >
                 New dashboard
               </Button>
             </Tooltip>
-          </>
+          )
         }
       />
 
-      {items.length === 0 ? (
-        <Card size="small">
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="Nothing saved yet. Create one and it will appear here."
-          />
-        </Card>
-      ) : !openId ? (
-        <Card size="small">
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Pick a dashboard" />
-        </Card>
+      {!openId ? (
+        // The gallery: what a reader is choosing between is a layout, so each
+        // card says what its dashboard holds.
+        items.length === 0 ? (
+          <Card size="small">
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="No dashboards yet. One is three steps away."
+            >
+              {canCreate && (
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => setWizardOpen(true)}>
+                  New dashboard
+                </Button>
+              )}
+            </Empty>
+          </Card>
+        ) : (
+          <div className="nu-boards" data-testid="dashboard-gallery">
+            {items.map((item) => (
+              <DashboardCard
+                key={item.id}
+                dashboard={item}
+                open={false}
+                onOpen={() => open(item.id)}
+                onSettings={() => {
+                  open(item.id);
+                  setSettingsOpen(true);
+                }}
+                onDelete={() =>
+                  modal.confirm({
+                    title: `Delete ${item.name}?`,
+                    content: "The layout goes. Nothing it pointed at is affected.",
+                    okText: "Delete",
+                    okButtonProps: { danger: true },
+                    onOk: async () => {
+                      await dashboardsApi.remove(item.id);
+                      message.success(`${item.name} deleted`);
+                      void queryClient.invalidateQueries({ queryKey: ["dashboards"] });
+                    },
+                  })
+                }
+              />
+            ))}
+          </div>
+        )
       ) : dashboard.isLoading ? (
         <Skeleton active paragraph={{ rows: 10 }} />
       ) : dashboard.isError ? (
@@ -408,88 +469,68 @@ export default function DashboardsPage() {
               ? dashboard.error.message
               : "That dashboard could not be opened"
           }
+          action={
+            <Button size="small" onClick={() => open("")}>
+              All dashboards
+            </Button>
+          }
         />
-      ) : (
-        <>
-          {/* One strip: which dashboard, whose it is, and what may be done to
-              it. A column of dashboard names beside the grid spent a sixth of
-              the page on a list of four things and left the rest of that
-              column empty. */}
-          <Card size="small" data-testid="dashboard-header">
-            <Space size={12} wrap>
-              <Select
-                aria-label="Dashboard"
-                style={{ minWidth: 220 }}
-                value={openId}
-                onChange={open}
-                data-testid="dashboard-picker"
-                options={items.map((item) => ({
-                  value: item.id,
-                  label: item.is_home ? `${item.name} · home` : item.name,
-                }))}
-              />
-              {board?.description && <Text type="secondary">{board.description}</Text>}
-              <Text type="secondary">
-                {board?.owner.name} · {board?.scope.toLowerCase()} ·{" "}
-                {board?.widget_count} {board?.widget_count === 1 ? "widget" : "widgets"} ·{" "}
-                {board?.updated_at ? relativeTime(board.updated_at) : "—"}
-              </Text>
-              <Tooltip title={board?.can_edit ? "" : "Only the owner may change a dashboard"}>
-                <Button
-                  size="small"
-                  disabled={!board?.can_edit}
-                  onClick={() => setSettingsOpen(true)}
-                >
-                  Settings
-                </Button>
-              </Tooltip>
-            </Space>
-          </Card>
-
-          {widgets.length === 0 ? (
-            <Card size="small" className="nu-block">
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No widgets yet">
-                {board?.can_edit && (
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={() => {
-                      setEditing(true);
-                      setWidgetForm("new");
-                    }}
-                  >
-                    Add the first one
-                  </Button>
-                )}
-              </Empty>
-            </Card>
-          ) : (
-            <div className="nu-block" data-testid="dashboard-grid">
-              <WidgetGrid
-                widgets={widgets}
-                columns={columns}
-                editable={editing && Boolean(board?.can_edit)}
-                onCommit={(placements) => arrange.mutate(placements)}
+      ) : widgets.length === 0 ? (
+        <Card size="small">
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No widgets yet">
+            {board?.can_edit && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  setEditing(true);
+                  setWidgetForm("new");
+                }}
               >
-                {(widget) => (
-                  <WidgetCard
-                    widget={widget}
-                    editable={editing && Boolean(board?.can_edit)}
-                    moves={moves}
-                  >
-                    <WidgetBody
-                      widget={widget}
-                      period={asText(board?.filters["period"]) || "last_30_days"}
-                      catalogue={catalogue.data}
-                      resources={resources.data?.items ?? []}
-                    />
-                  </WidgetCard>
-                )}
-              </WidgetGrid>
-            </div>
-          )}
-        </>
+                Add the first one
+              </Button>
+            )}
+          </Empty>
+        </Card>
+      ) : (
+        <div data-testid="dashboard-grid">
+          <WidgetGrid
+            widgets={widgets}
+            columns={columns}
+            editable={editing && Boolean(board?.can_edit)}
+            onCommit={(placements) => arrange.mutate(placements)}
+          >
+            {(widget) => (
+              <WidgetCard
+                widget={widget}
+                editable={editing && Boolean(board?.can_edit)}
+                moves={moves}
+              >
+                <WidgetBody
+                  widget={widget}
+                  period={asText(board?.filters["period"]) || "last_30_days"}
+                  catalogue={catalogue.data}
+                  resources={resources.data?.items ?? []}
+                />
+              </WidgetCard>
+            )}
+          </WidgetGrid>
+        </div>
       )}
+
+      <CreateDashboardWizard
+        open={wizardOpen}
+        canShare={listing.data?.can_share ?? false}
+        unavailable={unavailable}
+        onClose={() => setWizardOpen(false)}
+        onCreated={(saved) => {
+          setWizardOpen(false);
+          settled(saved);
+          open(saved.id);
+          setEditing(true);
+          message.success(`${saved.name} created`);
+        }}
+      />
 
       <WidgetDrawer
         open={widgetForm !== null}
@@ -565,17 +606,17 @@ function WidgetDrawer({
 
   // What the reader has already made. Fetched only when a kind that references
   // one is chosen, so opening the drawer for a KPI costs nothing.
-  const shape = WIDGETS[kind];
+  const shape = KINDS[kind];
   const reports = useQuery({
     queryKey: ["reports"],
     queryFn: ({ signal }) => reportsApi.list(signal),
-    enabled: open && shape.references === "report",
+    enabled: open && shape.needs === "report",
     staleTime: 60_000,
   });
   const searches = useQuery({
     queryKey: ["saved-searches", "all"],
     queryFn: ({ signal }) => explorerApi.saved(undefined, signal),
-    enabled: open && shape.references === "search",
+    enabled: open && shape.needs === "search",
     staleTime: 60_000,
   });
 
@@ -618,22 +659,23 @@ function WidgetDrawer({
         }}
         onFinish={(values: Record<string, string>) => {
           const chosen = (values["kind"] ?? "KPI") as WidgetKind;
-          const wanted = WIDGETS[chosen];
+          const wanted = KINDS[chosen];
           onSave({
             kind: chosen,
             title: values["title"] ?? "",
             subtitle: values["subtitle"] || null,
-            // A newly added widget takes the size its kind wants; an edited
-            // one keeps where the reader put it.
-            ...(widget ? {} : { width: wanted.width, height: wanted.height, x: 0 }),
+            // The size a new widget gets comes from the server, which is the
+            // one place that knows a KPI wants three columns. An edited one
+            // keeps where the reader put it.
+            ...(widget ? {} : { x: 0 }),
             // The kind decides what the config may hold, because the server
             // refuses a dataset on a feed and a dataset on a reference — both
             // would be a second opinion about where the data comes from.
-            config: wanted.feed
+            config: wanted.needs === "nothing"
               ? {}
-              : wanted.references === "report"
+              : wanted.needs === "report"
                 ? { report_id: values["report_id"] ?? "" }
-                : wanted.references === "search"
+                : wanted.needs === "search"
                   ? { search_id: values["search_id"] ?? "" }
                   : {
                       entity: values["entity"] ?? "",
@@ -647,9 +689,16 @@ function WidgetDrawer({
         <Form.Item name="kind" label="What kind">
           <Select
             aria-label="Widget kind"
-            options={kinds.map((item) => ({
+            // Searchable, because thirteen kinds is more than a list somebody
+            // reads top to bottom — and typing "heat" is faster than
+            // scrolling past six chart shapes to reach it.
+            showSearch
+            optionFilterProp="label"
+            // Ordered the way the picker orders them, and named the same —
+            // one vocabulary for the kinds, wherever they are offered.
+            options={KIND_ORDER.filter((item) => kinds.includes(item)).map((item) => ({
               value: item,
-              label: WIDGETS[item].label,
+              label: KINDS[item].label,
             }))}
           />
         </Form.Item>
@@ -664,7 +713,7 @@ function WidgetDrawer({
           <Input placeholder="Optional — scope, caveat, period" />
         </Form.Item>
 
-        {shape.references === "report" && (
+        {shape.needs === "report" && (
           <Form.Item
             name="report_id"
             label="Which report"
@@ -685,7 +734,7 @@ function WidgetDrawer({
           </Form.Item>
         )}
 
-        {shape.references === "search" && (
+        {shape.needs === "search" && (
           <Form.Item
             name="search_id"
             label="Which search"
@@ -706,7 +755,7 @@ function WidgetDrawer({
           </Form.Item>
         )}
 
-        {!shape.feed && !shape.references && (
+        {shape.needs === "dataset" && (
           <>
             <Form.Item name="entity" label="Dataset">
               <Select
