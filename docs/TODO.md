@@ -33,10 +33,10 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Backend core (`src/core/`) | **done** — db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
-| Endpoints | 49 of ~110 — `maps/endpoint.json` is the list, and `python -m src.api.endpoint_map` prints it; nothing here is kept in step by hand |
+| Endpoints | 51 of ~110 — `maps/endpoint.json` is the list, and `python -m src.api.endpoint_map` prints it; nothing here is kept in step by hand |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 311 backend + 266 frontend + 135 Playwright e2e — all green against `docker compose up`. Scale-independent: they pass on either seed size |
-| Frontend | shell, Data Explorer, discovery workspaces, the notification centre, six entity lists and three record pages of their own; live WebSocket channel with a polling fallback |
+| Tests | 323 backend + 271 frontend + 139 Playwright e2e — all green against `docker compose up`. Scale-independent: they pass on either seed size |
+| Frontend | shell, Data Explorer, discovery workspaces, the notification centre, six entity lists, three record pages of their own, and the whole ANALYSE section bar dashboards; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
 **Backend and frontend are built in parallel from here**, in vertical slices: an
@@ -279,8 +279,10 @@ vertical slice with its own tests, its own tracker entry and its own commit.
     and delete — a page that quietly stayed read-only fails it. 202 frontend
     tests, typecheck and lint clean, FE redeployed and the full 114-test
     Playwright suite green
-- [~] **The `ANALYSE` pages** — `/analytics`, `/reports`, `/reports/builder`
-      and `/charts/builder` ship; `/maps` is next
+- [x] **The `ANALYSE` pages** — `/analytics`, `/reports`, `/reports/builder`,
+      `/charts/builder` and `/maps` all ship. `/dashboards` (§45) is the
+      section's remaining page, and is what "a saved chart becomes a widget"
+      waits on
   - **One compiler, not four endpoints.** `POST /api/analysis/run` takes
     *group these rows by these columns and measure them this way* — the
     question the workspace, both builders and the map all ask. Four endpoints
@@ -434,8 +436,8 @@ vertical slice with its own tests, its own tracker entry and its own commit.
 - [~] **Continue implementation task by task** — update this tracker, commit,
       push, redeploy both FE/BE and test the deployed result after each task.
       Current sequence: the detail pages that deserve a shape of their own are
-      done, and so is `/charts/builder`; next is `/maps`, then kanban lane
-      CRUD (§18).
+      done, and so is the whole ANALYSE section; next is kanban lane CRUD (§18),
+      then `/dashboards` (§45).
       No destructive database reseeding.
   - The local database holds a **small-scale** seed (8 projects, 30 customers,
     50 tickets, 60 orders), not the full one. Nothing depends on which any
@@ -1199,10 +1201,55 @@ everything else.
 
 ### `/maps` — records on a map (§44, §61)
 
-- [ ] Customers, devices and orders as clustered markers; choropleth by region
-      for revenue, ticket volume and device health
-- [ ] Clicking a region or cluster drills into the filtered list (§44)
-- [ ] Shares the period and filter controls the dashboard uses
+- [x] Customers, devices, orders, tickets and projects as markers on the cities
+      they are in; choropleth by country for the same measure, and both levels
+      added up again by region
+  - **Two layers, because place has two levels.** A shaded Germany does not say
+    whether that is Munich or Berlin; a scatter of dots does not say that
+    Germany is twice France. One picture carries both
+  - **Coordinates come from a gazetteer, not from a column.** Nothing in the
+    schema has a latitude, and adding one would mean a migration and a backfill
+    to store a fact that has not changed since the city was founded. The join
+    is `customers.city = "Amsterdam"`, at query time, against the thirty cities
+    the platform's data uses (`core/geography.py`). The **seed picks from that
+    same list**, so a city that can be generated is a city that can be placed
+  - **This is not the analysis compiler, deliberately.** A place is almost
+    always one join away — an order is drawn at its *customer's* city — and the
+    compiler groups a single table on purpose. `services/maps.py` is the one
+    shape of question it cannot express, and keeps its habits: aggregated in
+    PostgreSQL, everything declared, gated by the dataset's own permission
+  - **What cannot be placed is on the screen, not in the gap.** "60 orders, 4
+    of which we cannot place" is the honest sentence; a map that draws 56 dots
+    and says nothing answers a different question from the list beside it
+- [x] Clicking a region or cluster drills into the filtered list (§44)
+  - Where the data actually is: customers and devices carry their own place, so
+    a click filters their own list. Orders, tickets and projects borrow their
+    customer's city, so a click opens the customers there — and the panel says
+    so rather than pretending the order list can be filtered by a column it
+    does not have
+  - The list is filtered by what the *records* call a country, not by what the
+    map does. They differ ("United States" against "United States of America"),
+    and a mismatch is the one failure a choropleth cannot survive because it
+    looks exactly like a country with no customers. The difference is declared
+    in `core/geography.py:MAP_NAMES` and asserted by a test
+- [x] Shares the period and filter controls the dashboard uses
+  - The analysis vocabulary, so "last 90 days" means one thing across the whole
+    ANALYSE section. Dataset, measure and period all live in the URL (§69, §72)
+- [x] **The basemap is vendored, not fetched** — 177 country outlines at
+      1:110 000 000, 53 KB gzipped, inside the map route's lazy chunk. The
+      stack runs offline behind `docker compose up`, and a map that is blank
+      without a CDN is blank in exactly the environment this template exists to
+      demonstrate. `scripts/vendor-world-map.py` regenerates it and documents
+      the provenance
+  - Natural Earth stores Russia, Fiji and Antarctica as single rings running
+    past ±180°, assuming whatever draws them applies a projection that knows
+    about the seam. ECharts maps longitude to x linearly, so the first version
+    of this asset drew two horizontal lines straight across the world. The
+    script splits those rings at the meridian and closes each half, which is
+    what a projection would have done
+- [ ] Markers do not cluster yet: at thirty cities there is nothing to cluster,
+      and a clustering rule tuned against thirty points is a rule that will be
+      wrong at three thousand
 
 ### `/workflows` — condition → action automation (§49)
 
@@ -1643,7 +1690,9 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [ ] Tasks kanban/table/list with drag (§18), calendar (§19), file manager (§20)
 - [ ] System logs with live tail (§22), jobs (§23), health (§24), API (§25),
       integrations (§26), flags (§27), alert rules (§49)
-- [ ] Reports (§28), import wizard (§29), export flows (§30)
+- [~] Reports (§28) ship, with both builders and the map. The import wizard
+      (§29) and the export *flows* — a request above the row limit becoming a
+      background job (§30) — remain
 - [ ] Component showcase (§60), page template gallery (§61), master/detail (§62),
       split view (§63), row preview drawer (§64), comparison (§47),
       data quality (§65), error pages (§34)
@@ -1654,7 +1703,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] `docker compose up` clean-boot green — every service healthy from empty
       volumes; seed wrote 15 554 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
-- [~] Backend tests — 311 passing, including the comment thread's permissions
+- [~] Backend tests — 323 passing, including the comment thread's permissions
       and editing rules, the checklist's validation, saved reports' lifecycle and
       sharing, the analysis compiler's grouping,
       refusals and reconciliation, Data Explorer query, validation,
@@ -1671,7 +1720,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
     aims at the **running stack** — it silently replaced the demo dataset with a
     small one, so every Playwright run afterwards measured 60 tasks where
     compose had produced 500. Nothing failed; the numbers were quietly different
-- [~] Frontend unit + component tests — 266 passing, including the task work
+- [~] Frontend unit + component tests — 271 passing, including the task work
       page and its conversation, saved reports
       and the builder, the analytics
       workspace, the record form,
@@ -1681,7 +1730,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
       notification centre's six states, the header bell, the audit explorer,
       the per-record timeline, the authenticated download path, the generic
       entity list and detail pages, the connection map and the permission matrix
-- [~] Playwright e2e suite — 135 tests green against `docker compose up` on the
+- [~] Playwright e2e suite — 139 tests green against `docker compose up` on the
       full seed, covering the shell, appearance, Data Explorer, saved searches,
       global search, relationships, the catalogue, the notification centre, the
       audit explorer, a real file download, all six entity lists, record

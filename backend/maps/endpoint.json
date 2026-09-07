@@ -208,6 +208,34 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "maps_catalog",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/maps/catalog",
+      "description": "Which datasets can be mapped, how each reaches a place, and the gazetteer.",
+      "exec_method": {
+        "module_name": "src.api.maps",
+        "method_name": "catalogue"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "maps_places",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/maps/places",
+      "description": "Where one dataset is, measured one way, over one period.",
+      "exec_method": {
+        "module_name": "src.api.maps",
+        "method_name": "places"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "reports_collection",
       "model_name": "Empty",
       "request_method": [

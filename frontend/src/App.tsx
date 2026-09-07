@@ -22,6 +22,7 @@ const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
 const ChartBuilderPage = lazy(() => import("@/pages/ChartBuilderPage"));
+const MapsPage = lazy(() => import("@/pages/MapsPage"));
 const DataExplorerPage = lazy(() => import("@/pages/DataExplorerPage"));
 const GlobalSearchPage = lazy(() => import("@/pages/GlobalSearchPage"));
 const DataCatalogPage = lazy(() => import("@/pages/DataCatalogPage"));
@@ -222,15 +223,9 @@ export default function App() {
         <Route
           path="maps"
           element={
-            <PlaceholderPage
-              section="§44, §61"
-              summary="Records on a map — customers, devices, orders and regions."
-              bullets={[
-                "Cluster markers by region, and drill into the filtered list (§44)",
-                "Choropleth by region for revenue, tickets and device health",
-                "The same period and filter controls the dashboard uses",
-              ]}
-            />
+            <Suspense fallback={<Loading />}>
+              <MapsPage />
+            </Suspense>
           }
         />
         <Route

@@ -69,6 +69,27 @@ catalogue. The detail contract also includes structured `metadata`, with known
 secret keys masked recursively. Text is rendered as escaped prose, preserving
 paragraphs. Related records use the existing schema-derived relationship API.
 
+### Adding a chart kind, and putting records on the map
+
+A chart kind is three declarations: a builder in
+`frontend/src/components/charts/options.ts`, an entry in `ChartKind`
+(`frontend/src/api/dashboard.ts`), and a row in
+`frontend/src/components/charts/shapes.ts` saying what the picture *needs* —
+how many groupings, how many measures, whether the first must be a date. The
+chart builder reads that last one to offer every kind and refuse the ones the
+current question cannot feed, by name. Add the string to `VISUALIZATIONS` in
+`backend/src/services/reports.py` so a saved analysis may name it; a test
+asserts the two lists stay one list.
+
+`/maps` joins records to places through a gazetteer in
+`backend/src/core/geography.py` — the cities this dataset uses, with their
+coordinates — rather than through a latitude column. The seed draws its cities
+from the same list, so a city that can be generated is a city the map can
+place. Which datasets can be mapped, and how each reaches a place, is the
+`MAPPABLE` table in `backend/src/services/maps.py`; a dataset whose own row has
+no city is placed one hop away, at its customer's. Country outlines are
+vendored (`frontend/src/assets/README.md`) because the stack runs offline.
+
 ---
 
 ## Running it

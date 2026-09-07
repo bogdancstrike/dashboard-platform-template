@@ -12,7 +12,7 @@ words in it can change independently. Two rules held throughout:
 
 from __future__ import annotations
 
-from src.core import vocabulary
+from src.core import geography, vocabulary
 from src.core.vocabulary import weighted
 
 # The closed value sets live in `core/vocabulary.py`, shared with the query
@@ -115,34 +115,21 @@ ORG_TIERS: tuple[tuple[str, float], ...] = (
     ("ENTERPRISE", 0.2), ("STANDARD", 0.5), ("STARTER", 0.25), ("TRIAL", 0.05),
 )
 
-#: (name, code, timezone, currency)
-REGIONS: tuple[tuple[str, str, str, str], ...] = (
-    ("Western Europe", "WEU", "Europe/Amsterdam", "EUR"),
-    ("Central Europe", "CEU", "Europe/Bucharest", "EUR"),
-    ("Northern Europe", "NEU", "Europe/Stockholm", "SEK"),
-    ("United Kingdom & Ireland", "UKI", "Europe/London", "GBP"),
-    ("North America", "NAM", "America/New_York", "USD"),
-    ("Asia Pacific", "APA", "Asia/Singapore", "USD"),
+#: (name, code, timezone, currency) — derived from the gazetteer, so a region
+#: the seed creates is a region the map can name.
+REGIONS: tuple[tuple[str, str, str, str], ...] = tuple(
+    (region.name, region.code, region.timezone, region.currency)
+    for region in geography.REGIONS
 )
 
-#: (city, country, region code)
-LOCATIONS: tuple[tuple[str, str, str], ...] = (
-    ("Amsterdam", "Netherlands", "WEU"), ("Rotterdam", "Netherlands", "WEU"),
-    ("Berlin", "Germany", "WEU"), ("Munich", "Germany", "WEU"),
-    ("Paris", "France", "WEU"), ("Lyon", "France", "WEU"),
-    ("Madrid", "Spain", "WEU"), ("Milan", "Italy", "WEU"),
-    ("Bucharest", "Romania", "CEU"), ("Cluj-Napoca", "Romania", "CEU"),
-    ("Timișoara", "Romania", "CEU"), ("Warsaw", "Poland", "CEU"),
-    ("Kraków", "Poland", "CEU"), ("Prague", "Czechia", "CEU"),
-    ("Budapest", "Hungary", "CEU"), ("Vienna", "Austria", "CEU"),
-    ("Stockholm", "Sweden", "NEU"), ("Gothenburg", "Sweden", "NEU"),
-    ("Copenhagen", "Denmark", "NEU"), ("Oslo", "Norway", "NEU"),
-    ("Helsinki", "Finland", "NEU"), ("London", "United Kingdom", "UKI"),
-    ("Manchester", "United Kingdom", "UKI"), ("Dublin", "Ireland", "UKI"),
-    ("New York", "United States", "NAM"), ("Austin", "United States", "NAM"),
-    ("Toronto", "Canada", "NAM"), ("Singapore", "Singapore", "APA"),
-    ("Sydney", "Australia", "APA"), ("Tokyo", "Japan", "APA"),
+#: (city, country, region code) — derived from the gazetteer rather than
+#: written twice. A city that can be seeded is therefore a city the map can
+#: place; two lists would be a map with holes in it the first time anybody
+#: added a city to one of them.
+LOCATIONS: tuple[tuple[str, str, str], ...] = tuple(
+    (place.city, place.country, place.region) for place in geography.PLACES
 )
+
 
 # ── projects, work and customers ─────────────────────────────────────────
 

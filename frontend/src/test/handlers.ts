@@ -640,6 +640,76 @@ export const people = [
   },
 ];
 
+/**
+ * The map's catalogue and one answer, in the shape `services/maps.py`
+ * publishes them (§44, §61).
+ *
+ * Two datasets, because the interesting difference between them is how they
+ * reach a place: a customer carries its own city and an order borrows its
+ * customer's — which is what decides where a click on the map leads.
+ */
+export const mapCatalogue = {
+  datasets: [
+    {
+      key: "customer",
+      label: "Customers",
+      path: "/customers",
+      placed_by: "own city",
+      metrics: [
+        { key: "count", label: "Accounts", field: "" },
+        { key: "value", label: "Lifetime value", field: "lifetime_value" },
+      ],
+    },
+    {
+      key: "order",
+      label: "Orders",
+      path: "/orders",
+      placed_by: "the customer's city",
+      metrics: [
+        { key: "count", label: "Orders", field: "" },
+        { key: "revenue", label: "Revenue", field: "total" },
+      ],
+    },
+  ],
+  places: [
+    { city: "Berlin", country: "Germany", map_name: "Germany", region: "WEU", region_name: "Western Europe", latitude: 52.52, longitude: 13.4 },
+    { city: "Paris", country: "France", map_name: "France", region: "WEU", region_name: "Western Europe", latitude: 48.86, longitude: 2.35 },
+    { city: "New York", country: "United States", map_name: "United States of America", region: "NAM", region_name: "North America", latitude: 40.71, longitude: -74.01 },
+  ],
+};
+
+/** One answer, with rows the gazetteer could not place — which is the point. */
+export function mapPlaces(dataset = "customer") {
+  const entry = mapCatalogue.datasets.find((item) => item.key === dataset) ?? mapCatalogue.datasets[0]!;
+  const points = [
+    { city: "Berlin", country: "Germany", map_name: "Germany", region: "WEU", region_name: "Western Europe", latitude: 52.52, longitude: 13.4, rows: 12, value: 480000 },
+    { city: "Paris", country: "France", map_name: "France", region: "WEU", region_name: "Western Europe", latitude: 48.86, longitude: 2.35, rows: 7, value: 260000 },
+    { city: "New York", country: "United States", map_name: "United States of America", region: "NAM", region_name: "North America", latitude: 40.71, longitude: -74.01, rows: 5, value: 310000 },
+  ];
+  return {
+    dataset: entry.key,
+    dataset_label: entry.label,
+    path: entry.path,
+    metric: entry.metrics[1]!,
+    period: { key: "all_time", from: null, to: null },
+    points,
+    countries: [
+      { name: "Germany", rows: 12, value: 480000, cities: 1 },
+      { name: "United States of America", rows: 5, value: 310000, cities: 1 },
+      { name: "France", rows: 7, value: 260000, cities: 1 },
+    ],
+    regions: [
+      { name: "Western Europe", rows: 19, value: 740000, cities: 2 },
+      { name: "North America", rows: 5, value: 310000, cities: 1 },
+    ],
+    total: 27,
+    measured: 1050000,
+    // Three rows name somewhere the gazetteer does not know. A map that drew
+    // 24 dots and said nothing would answer a different question.
+    unplaced: { rows: 3, value: 90000 },
+  };
+}
+
 export const recordDetail = {
   content_fields: ["description"],
   metadata: { source: "Customer portal", tags: ["migration", "enterprise"] },
@@ -1261,6 +1331,11 @@ export const handlers = [
   http.get("/platform/health/status", ({ request }) => echo(request, healthSnapshot)),
   http.get("/platform/dashboard/summary", ({ request }) => echo(request, dashboardSummary)),
   http.get("/platform/api/explorer/catalog", ({ request }) => echo(request, explorerCatalogue)),
+  http.get("/platform/api/maps/catalog", ({ request }) => echo(request, mapCatalogue)),
+  http.get("/platform/api/maps/places", ({ request }) => {
+    const url = new URL(request.url);
+    return echo(request, mapPlaces(url.searchParams.get("dataset") ?? "customer"));
+  }),
   // Every "pick a person" control reads this — the assignee on a task, the
   // owner on a project, the members of a share. Filtered here the way the
   // server filters it, so a test can type a name and assert what came back

@@ -54,6 +54,16 @@ export default defineConfig({
     alias: {
       // jsdom has no canvas, and a real chart throws inside zrender on dispose.
       // The card around it is what these tests are about.
+      // The more specific entry first: Vite matches an alias by prefix, so
+      // `echarts-for-react` would otherwise swallow `.../lib/core` and rewrite
+      // it to a path inside the stub file.
+      //
+      // The map page imports the *core* build so its chunk carries only the
+      // chart types it draws. Same stub, because jsdom's lack of a canvas is
+      // the same problem whichever build asked for one.
+      "echarts-for-react/lib/core": fileURLToPath(
+        new URL("./src/test/stubs/echarts-for-react.tsx", import.meta.url),
+      ),
       "echarts-for-react": fileURLToPath(
         new URL("./src/test/stubs/echarts-for-react.tsx", import.meta.url),
       ),

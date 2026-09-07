@@ -1114,3 +1114,10 @@ mark.nu-mark {
 .nu-chart-preview--light figcaption { color: #475569; }
 .nu-chart-preview--dark figcaption { color: #9aa2b1; }
 .nu-chart-preview-empty { display: block; }
+
+/* The map page: a canvas that cannot be read by a screen reader or reached by
+   a keyboard, so it names what it shows and points at the tables that carry
+   the same numbers as rows (§54, §55). */
+.nu-map figcaption {
+  margin-top: 6px; font-size: 12px; color: var(--nu-text-secondary);
+}
