@@ -121,6 +121,27 @@ test.describe("preferences", () => {
     await page.locator(".ant-layout-sider-trigger").click();
     await expect(sider).toHaveClass(/ant-layout-sider-collapsed/);
 
+    // Collapsed, the rail is icons and nothing else: a group heading truncated
+    // to "OV…" is a word that has lost the letters that made it a word, and it
+    // costs a row of the rail to say nothing. The headings become rules.
+    //
+    // Asserted on the heading elements rather than on their words: "Overview"
+    // is also the name of an administration *page*, so matching text finds a
+    // menu item and proves nothing.
+    const headings = sider.locator(".ant-menu-item-group-title");
+    expect(await headings.count()).toBeGreaterThan(0);
+    expect(await headings.allInnerTexts()).toEqual(
+      Array.from({ length: await headings.count() }, () => ""),
+    );
+
+    // And an icon is centred on the rail rather than left where a label used
+    // to hold it.
+    const icon = sider.locator(".ant-menu-item .anticon").first();
+    await expect(icon).toBeVisible();
+    const rail = await sider.boundingBox();
+    const box = await icon.boundingBox();
+    expect(Math.abs((box!.x + box!.width / 2) - (rail!.x + rail!.width / 2))).toBeLessThan(3);
+
     const fresh = await browser.newContext();
     const other = await fresh.newPage();
     try {

@@ -35,7 +35,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
 | Endpoints | 62 of ~110 — `maps/endpoint.json` is the list, and `python -m src.api.endpoint_map` prints it; nothing here is kept in step by hand |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 363 backend + 298 frontend + 149 Playwright e2e — all green against `docker compose up`. Scale-independent: they pass on either seed size |
+| Tests | 363 backend + 295 frontend + 149 Playwright e2e — all green against `docker compose up`. Scale-independent: they pass on either seed size |
 | Frontend | shell, Data Explorer, discovery workspaces, the notification centre, six entity lists, three record pages of their own, and the whole ANALYSE section bar dashboards; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack: PostgreSQL, Redis, Keycloak, MinIO, the API and the SPA. Real Keycloak tokens and real presigned uploads verified |
 
@@ -464,7 +464,16 @@ commit — built, committed, pushed, redeployed and verified before the next.
     panel became a strip, because a permanent element taking a third of the
     page pushes the files somebody came for below the fold
   - The pass over the remaining pages is still to come
-- [ ] **The collapsed sidebar keeps only its icons**, as QSINT's does
+- [x] **The collapsed sidebar keeps only its icons**, as QSINT's does
+  - A group heading truncated to "OV…" is a word that has lost the letters
+    that made it a word, and it costs a row of the rail to say nothing. The
+    headings become thin rules instead, so the sections are still separated
+  - AntD sizes a collapsed menu's item inset from its own `collapsedWidth`, so
+    on a narrower rail the icon lands off-centre and the invisible label shoves
+    it further. Re-centred on the rail, and the rail narrowed from 72px to
+    56px — an icon needs no more
+  - Asserted end to end, including that the icon's centre is within three
+    pixels of the rail's
 - [ ] **`/home` is the default landing page** — the platform's name and logo,
       the reader's own announcements, notifications and preferences, and
       whatever else is worth seeing on arrival
@@ -1934,7 +1943,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
     aims at the **running stack** — it silently replaced the demo dataset with a
     small one, so every Playwright run afterwards measured 60 tasks where
     compose had produced 500. Nothing failed; the numbers were quietly different
-- [~] Frontend unit + component tests — 298 passing, including the task work
+- [~] Frontend unit + component tests — 295 passing, including the task work
       page and its conversation, saved reports
       and the builder, the analytics
       workspace, the record form,

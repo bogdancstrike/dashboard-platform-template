@@ -1288,3 +1288,40 @@ mark.nu-mark {
   gap: 8px; padding-top: 6px; border-top: 1px solid var(--nu-border-subtle);
   font-size: 12px;
 }
+
+/* The collapsed sidebar: icons and nothing else.
+   AntD sizes a collapsed menu's padding from its own `collapsedWidth` and
+   derives the item inset from it, so on a narrower rail the icon lands
+   off-centre and the (invisible) label shoves it further. Re-centre on the
+   rail instead, and let a group heading become a rule rather than a truncated
+   word — "OV…" costs a row of the rail to say nothing. */
+.nu-sider.ant-layout-sider-collapsed .ant-menu-inline-collapsed {
+  width: 100%;
+}
+.nu-sider.ant-layout-sider-collapsed .ant-menu-inline-collapsed > .ant-menu-item,
+.nu-sider.ant-layout-sider-collapsed
+  .ant-menu-inline-collapsed
+  > .ant-menu-submenu
+  > .ant-menu-submenu-title {
+  padding-inline: calc(50% - 16px) !important;
+  justify-content: center !important;
+}
+.nu-sider.ant-layout-sider-collapsed .ant-menu-inline-collapsed .ant-menu-title-content {
+  flex: 0 0 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  margin-inline-start: 0 !important;
+}
+.nu-sider.ant-layout-sider-collapsed .ant-menu-inline-collapsed .anticon {
+  margin: 0 !important;
+  font-size: 17px;
+}
+/* An empty group heading is a separator, not a blank row. */
+.nu-sider.ant-layout-sider-collapsed .ant-menu-item-group-title {
+  height: 1px;
+  padding: 0;
+  margin: 6px 12px;
+  overflow: hidden;
+  background: var(--nu-border);
+  opacity: 0.5;
+}

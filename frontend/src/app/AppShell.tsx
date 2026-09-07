@@ -143,7 +143,11 @@ export function AppShell() {
     () =>
       NAV_GROUPS.map((group) => ({
         key: group.key,
-        label: group.label,
+        // Collapsed, a group heading is truncated to "OV…" — a word that has
+        // lost the letters that made it a word, taking a row of the rail to
+        // say nothing. The label is dropped and the group becomes a rule, so
+        // the sections are still separated and nothing is half-said.
+        label: showLabels ? group.label : "",
         type: "group" as const,
         children: group.items
           .filter((item) => auth.can(item.permission))
@@ -165,7 +169,7 @@ export function AppShell() {
           }),
       })).filter((group) => group.children.length > 0),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [auth.can, counts.data?.unread],
+    [auth.can, counts.data?.unread, showLabels],
   );
 
   const trail = trailFor(location.pathname);
@@ -188,7 +192,9 @@ export function AppShell() {
         collapsed={!isMobile && collapsed}
         onCollapse={chooseCollapsed}
         width={248}
-        collapsedWidth={isMobile ? 0 : 72}
+        // 56, not 72: the rail holds a 16px icon, and the extra sixteen
+        // pixels were pure margin on a control that is already a compromise.
+        collapsedWidth={isMobile ? 0 : 56}
       >
         <div className="nu-logo" onClick={() => navigate(landingPath(auth.profile?.preferences.defaults.landing_page))}>
           <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden>
