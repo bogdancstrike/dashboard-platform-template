@@ -179,10 +179,18 @@ test.describe("what the six pages share", () => {
     ).toBeVisible();
   });
 
-  test("a record that does not exist says so", async ({ page }) => {
-    await signIn(page, "admin", "/tickets/00000000-0000-0000-0000-000000000000");
-
-    await expect(page.getByRole("heading", { name: /Record not found/ })).toBeVisible();
+  test("a record that does not exist says so, whichever page was opened", async ({ page }) => {
+    // Both shapes of detail page: the console a ticket gets and the generic
+    // one a customer gets. Each names what it could not find rather than
+    // drawing an empty layout (§34) — a page that failed silently would pass
+    // an assertion written against only one of them.
+    for (const missing of ["/tickets", "/customers"]) {
+      await signIn(page, "admin", `${missing}/00000000-0000-0000-0000-000000000000`);
+      await expect(page.getByRole("heading", { name: /not found/i })).toBeVisible();
+      await expect(
+        page.getByText("It may have been deleted, or the link may be wrong."),
+      ).toBeVisible();
+    }
   });
 
   test("the list exports the filtered records, not the page", async ({ page }) => {

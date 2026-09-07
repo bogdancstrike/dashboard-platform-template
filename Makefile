@@ -80,6 +80,10 @@ reseed: ## Drop every table and seed again
 check-seed: ## Verify the seeded data is referentially consistent
 	$(COMPOSE) run --rm -e SEED_ARGS=--check seed
 
+.PHONY: sync-schema
+sync-schema: ## Add columns the model declares and the database lacks
+	$(COMPOSE) run --rm -e SEED_ARGS=--sync-schema seed
+
 .PHONY: sync-roles
 sync-roles: ## Give the built-in roles any newly declared permissions
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-roles seed

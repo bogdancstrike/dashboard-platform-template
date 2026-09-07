@@ -172,3 +172,80 @@ def test_reading_a_record_requires_the_permission_the_entity_declares(client, mo
 
     assert response.status_code == 403
     assert response.get_json()["details"]["missing"] == ["records.view"]
+
+
+@pytest.mark.database
+def test_a_ticket_carries_the_moments_a_support_desk_is_measured_on(client, monkeypatch):
+    """The ticket console reads its SLA from the record, not a second endpoint.
+
+    When it responded, when it resolved and how often it came back are what a
+    support page is *about*; leaving them undeclared would mean either a second
+    read with its own permission story or a console that shows a due date and
+    calls that an SLA.
+    """
+    ticket = _a_ticket()
+    body = client.get(
+        f"{PREFIX}/api/records/ticket/{ticket.id}", headers=_authenticate(monkeypatch)
+    ).get_json()
+    by_name = {field["name"]: field for field in body["fields"]}
+
+    assert by_name["first_response_at"]["kind"] == "datetime"
+    assert by_name["resolved_at"]["kind"] == "datetime"
+    assert by_name["reopen_count"]["value"] == ticket.reopen_count
+    assert by_name["customer_id"]["value"] == (
+        str(ticket.customer_id) if ticket.customer_id else None
+    )
+
+    # The moments are consequences of what the desk did, so they are read-only;
+    # where a ticket is filed is an everyday correction, so it is writable.
+    assert by_name["resolved_at"]["editable"] is False
+    assert by_name["customer_id"]["editable"] is True
+    assert by_name["customer_id"]["references"] == "customer"
+
+
+@pytest.mark.database
+def test_an_accounts_other_tickets_are_a_filter_rather_than_a_new_endpoint(client, monkeypatch):
+    """"What else has this customer raised" is the declared column, narrowed."""
+    from src.core.db import session_scope
+    from src.models.business import Ticket
+
+    with session_scope() as session:
+        ticket = session.scalars(
+            select(Ticket).where(Ticket.customer_id.isnot(None),
+                                 Ticket.deleted_at.is_(None)).limit(1)
+        ).one()
+        customer_id = str(ticket.customer_id)
+
+    body = client.post(
+        f"{PREFIX}/api/explorer/query",
+        json={
+            "resource_type": "ticket",
+            "filters": {"customer_id": customer_id},
+            "columns": ["reference", "subject", "status", "customer_id"],
+        },
+        headers=_authenticate(monkeypatch),
+    ).get_json()
+
+    assert body["total"] >= 1
+    assert all(row["customer_id"] == customer_id for row in body["items"])
+
+
+@pytest.mark.database
+def test_a_project_carries_the_account_it_is_for_and_the_money_it_is_in(client, monkeypatch):
+    """A budget without its currency is a number nobody can put in a sentence."""
+    from src.core.db import session_scope
+    from src.models.business import Project
+
+    with session_scope() as session:
+        project = session.scalars(
+            select(Project).where(Project.deleted_at.is_(None)).limit(1)
+        ).one()
+
+    body = client.get(
+        f"{PREFIX}/api/records/project/{project.id}", headers=_authenticate(monkeypatch)
+    ).get_json()
+    by_name = {field["name"]: field for field in body["fields"]}
+
+    assert by_name["currency"]["value"] == project.currency
+    assert by_name["completed_at"]["kind"] == "datetime"
+    assert by_name["customer_id"]["references"] == "customer"

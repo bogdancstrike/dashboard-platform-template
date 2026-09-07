@@ -100,6 +100,24 @@ python main.py                                    # development
 gunicorn -k gevent -c gunicorn.conf.py wsgi:application   # production
 ```
 
+### Keeping an existing database in step
+
+`create_all` creates the tables that are missing and says nothing about a table
+that already exists but has since grown a column in the model — so the failure
+arrives as a 500 on somebody's next write rather than as an error on deploy.
+Two commands close that, both additive and neither destructive:
+
+```bash
+python -m src.seed --check         # is the schema behind the model, and does the data hang together
+python -m src.seed --sync-schema   # add the columns that can be added, with their indexes and keys
+python -m src.seed --sync-roles    # give the built-in roles any newly declared permissions
+```
+
+`--sync-schema` refuses to guess: a `NOT NULL` column with no default is
+reported with the reason rather than added, because deciding what existing rows
+get is a migration somebody has to read. Under Compose these are `make
+check-seed`, `make sync-schema` and `make sync-roles`.
+
 Then:
 
 | URL | |

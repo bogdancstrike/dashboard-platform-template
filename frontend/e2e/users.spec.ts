@@ -53,12 +53,25 @@ test.describe("the people directory", () => {
     await expect(page.getByTestId("user-total")).not.toHaveText(total);
     await expect(page).toHaveURL(/role_code=ADMINISTRATOR/);
     await expect(main(page).getByText("Ada Administrator")).toBeVisible();
-    await expect(page.getByTestId("user-total")).toHaveText(/^7 people/);
 
-    // And the filter survives the reload, because it lives in the URL (§69).
+    // The count is the server's answer to the *filtered* question: fewer than
+    // everybody, and matching a table in which every row carries the role that
+    // was asked for. A page that narrowed what it had already downloaded would
+    // still show the same total as before.
+    const narrowed = Number(
+      ((await page.getByTestId("user-total").innerText()) ?? "").replace(/[^\d]/g, ""),
+    );
+    expect(narrowed).toBeGreaterThan(0);
+    expect(narrowed).toBeLessThan(Number(total.replace(/[^\d]/g, "")));
+    const roles = await main(page).getByRole("row").locator(".ant-tag").allTextContents();
+    expect(roles.filter((role) => role === "Administrator")).toHaveLength(narrowed);
+
+    // And the filter survives the reload, because it lives in the URL (§69):
+    // the same narrowed answer, from a page that was told nothing but its own
+    // address.
     await page.reload();
     await expect(main(page).getByText("Ada Administrator")).toBeVisible();
-    await expect(page.getByTestId("user-total")).toHaveText(/^7 people/);
+    await expect(page.getByTestId("user-total")).toHaveText(`${narrowed} people`);
   });
 
   test("opens a person and explains their access by role and by group", async ({ page }) => {

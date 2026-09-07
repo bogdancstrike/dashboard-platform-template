@@ -37,14 +37,26 @@ async function choose(page: Page, label: string, option: string): Promise<void> 
  */
 test.describe("analytics", () => {
   test("measures the whole dataset and moves with the period", async ({ page }) => {
-    await signIn(page, "admin", "/analytics?resource=order&period=all_time");
+    // What the ledger itself says it holds, so the assertion below is the
+    // property — "the analysis counted every order" — rather than a threshold
+    // that only holds at one seed scale.
+    await signIn(page, "admin", "/orders");
+    const everyOrder = Number(
+      (((await page.getByTestId("entity-total").textContent()) ?? "").split("of")[1] ?? "").replace(
+        /[^\d]/g,
+        "",
+      ),
+    );
+    expect(everyOrder).toBeGreaterThan(0);
+
+    await page.goto("/analytics?resource=order&period=all_time");
 
     const matched = page.getByTestId("analysis-matched");
     await expect(matched).toContainText(/\d/);
     const everything = Number(((await matched.textContent()) ?? "").replace(/[^\d]/g, ""));
-    // The seed holds hundreds of orders; a page measuring the twenty-five it
-    // downloaded would say twenty-five.
-    expect(everything).toBeGreaterThan(100);
+    // A page measuring the twenty-five rows it downloaded would say
+    // twenty-five; this one has to say what the database holds.
+    expect(everything).toBe(everyOrder);
 
     await choose(page, "Period", "Last 30 days");
 

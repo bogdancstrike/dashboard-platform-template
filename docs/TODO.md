@@ -33,10 +33,10 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Backend core (`src/core/`) | **done** — db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
-| Endpoints | 40 of ~110 — health ×3, meta ×4, dashboard ×2, notifications ×4, current user ×1, explorer ×4, saved searches ×4, directory ×1, global search ×1, catalogue ×2, relationships ×3, audit ×5, records ×1, roles ×2, users ×3 |
+| Endpoints | 49 of ~110 — `maps/endpoint.json` is the list, and `python -m src.api.endpoint_map` prints it; nothing here is kept in step by hand |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 238 backend + 178 frontend + 106 Playwright e2e — all green against `docker compose up` on the **full** seed (15 551 rows) |
-| Frontend | shell, Data Explorer, discovery workspaces and the notification centre; live WebSocket channel with a polling fallback |
+| Tests | 310 backend + 253 frontend + 130 Playwright e2e — all green against `docker compose up`. Scale-independent: they pass on either seed size |
+| Frontend | shell, Data Explorer, discovery workspaces, the notification centre, six entity lists and three record pages of their own; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
 **Backend and frontend are built in parallel from here**, in vertical slices: an
@@ -130,12 +130,55 @@ vertical slice with its own tests, its own tracker entry and its own commit.
 - [x] **Relationships is a graph-analysis page drawn with D3** (§50) — force
       layouts, communities detected server-side, entity map and ego network all
       on the same D3 component
-- [~] **Records must stop looking alike** (§7, §8) — six entities, six
-      genuinely different pages. The **lists** now differ: `/tasks` a board,
+- [x] **Records must stop looking alike** (§7, §8) — six entities, six
+      genuinely different pages. The **lists** differ: `/tasks` a board,
       `/projects` a portfolio timeline, `/customers` an account grid,
       `/orders` a ledger, `/tickets` a split triage queue, `/devices` a fleet
-      monitor. The **detail** pages are next — `/projects/:id`, `/tickets/:id`
-      and `/tasks/:id` still differ only in their data
+      monitor. The **details** now differ too, where the record has a shape of
+      its own: `/tasks/:id` a work page, `/projects/:id` a delivery review,
+      `/tickets/:id` a support console. `/customers/:id`, `/orders/:id` and
+      `/devices/:id` keep the declaration-driven page, deliberately — a page
+      that is only ever *read* is better served by the field catalogue than by
+      a layout somebody invented for it
+  - **`/projects/:id` answers one question**: *are we all right*. Not in any
+    single column — in the gaps between how much of the schedule has gone, how
+    much of the money has gone and how much has been delivered. Three gauges
+    and a sentence naming the gap, then the work underneath. The seeded
+    portfolio has a project at 85% delivered on 119% of its budget, which is
+    exactly the finding a table of three numbers hides
+  - **The rollup is `POST /api/analysis/run`**, not a count in the browser.
+    "How many tasks are in each state" is *group these rows by this column*,
+    which the platform compiles once (§71); counting the eight rows the page
+    downloaded would give a number that silently means "of the eight I have".
+    Every lane links into `/tasks` already filtered, because a board exists
+    and a second one embedded here would be a second definition of a lane
+  - **`/tickets/:id` is ordered the way the work is**: the SLA standing first,
+    because it decides whether this is the next thing anybody does; the
+    conversation widest, because answering is the action; triage beside it,
+    writing on change. Whether the SLA was *missed* is read from the record —
+    a page recomputing that rule would disagree with every report ever run
+  - **The half the three share is a hook, not a layout.** `useRecordPage`
+    holds what they cannot differ on — which record is open, what a failure
+    says, and what it means to write one field with the version that was read
+    (§73). Written three times, "what does a stale edit do" would have three
+    answers and two of them would be wrong
+  - Both consoles read fields that were not declared: a ticket's
+    `first_response_at`, `resolved_at`, `reopen_count`, `customer_id`; a
+    project's `customer_id`, `completed_at` and `currency`. Declared once, so
+    they reach the explorer, the catalogue and the detail together rather than
+    through a second endpoint with its own permission story
+  - **Two pure functions, unit-tested against a fixed clock**
+    (`entities/delivery.ts`, `entities/sla.ts`). The cases that matter are
+    boundaries — a project with no budget, one already closed, a ticket
+    resolved after its deadline, one nobody has answered — and each is one
+    assertion rather than a rendered page somebody has to read
+  - Verification: 310 backend tests on live PostgreSQL, 253 frontend tests
+    (13 new here, plus 17 for the two pure functions), typecheck, lint and the
+    endpoint-map check clean, FE/BE rebuilt and redeployed, and 130 Playwright
+    tests green — including seven new ones proving the rollup reconciles with
+    the server's own total, that a health and a severity written from either
+    page survive a reload, that an analyst is refused in place, and that both
+    pages are axe-clean in both themes
 - [x] **`/notifications` should look better** (§17) — a digest strip that is
       also the filter, rows grouped under the day they arrived on, unread as a
       tinted card rather than bold text alone
@@ -299,6 +342,56 @@ vertical slice with its own tests, its own tracker entry and its own commit.
       (3.75:1 at 13px). Both are now named from the accent ramp: 5.4:1 and
       6.5:1. Found by the axe assertion on the record preview, which is what
       that assertion is for
+- [x] **Four more, found by pointing axe at a whole page rather than a
+      drawer** (§55) — all four were product-wide, and none was visible to
+      anybody looking at the screen
+  - `Typography type="secondary"` is the most-used text style in the product
+    and was left to AntD's derivation: `#64748b` on the page background is
+    4.34:1, a tenth of a point short of legible. `colorTextDescription` is
+    now named — 6.9:1 light, 7.6:1 dark
+  - A **filled status tag** puts white on the status colour, and AntD picks
+    that white without measuring: 2.9:1 on the amber this platform uses for
+    "warning", 3.3:1 on its green. `StatusTag` moves the colour to a rule down
+    the leading edge instead — same vocabulary, same hue, and the word beside
+    it can be read
+  - In dark mode a **Delete button's label** was the derived `#be2323` at
+    2.94:1, and a **primary button** was white on `#6c6cd3` at 4.45:1. Both
+    named: 6.5:1 and 5.4:1
+  - `SEMANTIC` is tuned for *fills*, where the bar is 3:1; small text has to
+    clear 4.5:1 and the fills do not. `SEMANTIC_INK` is the same four meanings
+    at a readable lightness, per theme, so nothing gets a worse bar to make a
+    caption legible and nothing gets an illegible caption to match a bar
+- [x] **Two rendering bugs the screenshots caught** — an audit entry read
+      "Ada Administratorjust now", because `nu-timeline-head` was a class name
+      nobody had written a rule for; and a progress bar had no accessible name,
+      so a screen reader announced a number with no subject
+- [x] **A running database can be brought up to the model, additively** — found
+      because it had to be: every audited write in the deployed stack had been
+      failing with a 500 since `audit_logs` gained `impersonator_id`, and
+      `create_all` is silent about a table that already exists but has drifted
+  - `src/seed/schema.py` reads the drift out of the same `MetaData` the ORM
+    maps, so a column added to a model is one this knows about the same day. A
+    hand-written ALTER script is a second description of the schema, wrong the
+    first time anybody forgets it
+  - Additive, and it stops at anything that is not: a nullable column arrives
+    with its index and its foreign key; a NOT NULL one with no default is
+    *reported*, with the reason, because deciding what existing rows get is a
+    migration somebody has to read
+  - `python -m src.seed --sync-schema` applies it, `--check` reports it, and
+    the seed's boot path warns rather than silently altering somebody's
+    database. Alembic (below) is still the real answer; this is what closes
+    the common case until it arrives
+  - **Acceptance**: met — four tests against a scratch table on live
+    PostgreSQL, and the deployed stack now answers 201 to the write that was
+    answering 500
+
+- [x] **Three test suites stopped depending on the seed's scale** — the seed
+      offers `--scale small` and four assertions were written against the full
+      one, so they failed for a reason they were never about. Each now compares
+      against what the dataset itself reports: the analysis matches the
+      ledger's own total, the export is bigger than the page it came from, the
+      filtered directory is smaller than the unfiltered one
+
 - [ ] **Lanes can be created, renamed and removed** (§18) — on `/kanban`, where
       a lane is a row a person owns. On `/tasks` a lane is the declared status
       vocabulary and stays that way: the board is a view of the work queue, and
@@ -340,8 +433,13 @@ vertical slice with its own tests, its own tracker entry and its own commit.
     reload, and that an analyst is told rather than refused
 - [~] **Continue implementation task by task** — update this tracker, commit,
       push, redeploy both FE/BE and test the deployed result after each task.
-      Current sequence: CRUD on every entity page, then the Analyse section.
+      Current sequence: the detail pages that deserve a shape of their own are
+      done; next is `/charts/builder` and `/maps`, then kanban lane CRUD (§18).
       No destructive database reseeding.
+  - The local database holds a **small-scale** seed (8 projects, 30 customers,
+    50 tickets, 60 orders), not the full one. Nothing depends on which any
+    more, but a walkthrough of the charts will look thin until somebody
+    reseeds — which is a decision to take deliberately, not on the way past
 - [x] **Dark mode is charcoal, not navy** — the slate ramp read as a blue
       theme at low lightness; dark mode now has its own near-neutral ramp
 - [x] **Keep this tracker updated after every task**, and commit and push each
@@ -1433,10 +1531,15 @@ Each endpoint ships with its five-case integration test and the page consuming i
 ## Phase 6 — Frontend pages
 
 - [ ] Dashboard (§2, §66) + dashboard builder (§45, §67)
-- [~] Entity lists ×6 (§7) and entity detail (§8) ship as **one** generic list
-      page and **one** generic detail page, driven by the resource declarations
-      the explorer and the query builder already read. Adding a column to a
-      resource makes it appear on both with no frontend change
+- [~] Entity lists ×6 (§7) and entity detail (§8) ship on **one** query
+      contract and **six** layouts. The declarations the explorer and the query
+      builder already read decide the fields, facets, sort, export and writable
+      set; what a page does with them is its own. Adding a column to a resource
+      still reaches every page with no frontend change
+  - Three details have a shape of their own — a work page, a delivery review, a
+    support console — and three read the declaration-driven page. The split is
+    the point: a record people *act on* deserves a layout, a record people only
+    read is better served by the catalogue
   - The list is not the Data Explorer, deliberately: the explorer is where a
     question is asked, this is where work is done — the entity's own columns,
     facets from the live counts, a row that opens the record, and a link to the
@@ -1514,7 +1617,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] `docker compose up` clean-boot green — every service healthy from empty
       volumes; seed wrote 15 554 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
-- [~] Backend tests — 303 passing, including the comment thread's permissions
+- [~] Backend tests — 310 passing, including the comment thread's permissions
       and editing rules, the checklist's validation, saved reports' lifecycle and
       sharing, the analysis compiler's grouping,
       refusals and reconciliation, Data Explorer query, validation,
@@ -1531,7 +1634,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
     aims at the **running stack** — it silently replaced the demo dataset with a
     small one, so every Playwright run afterwards measured 60 tasks where
     compose had produced 500. Nothing failed; the numbers were quietly different
-- [~] Frontend unit + component tests — 223 passing, including the task work
+- [~] Frontend unit + component tests — 253 passing, including the task work
       page and its conversation, saved reports
       and the builder, the analytics
       workspace, the record form,
@@ -1541,7 +1644,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
       notification centre's six states, the header bell, the audit explorer,
       the per-record timeline, the authenticated download path, the generic
       entity list and detail pages, the connection map and the permission matrix
-- [~] Playwright e2e suite — 123 tests green against `docker compose up` on the
+- [~] Playwright e2e suite — 130 tests green against `docker compose up` on the
       full seed, covering the shell, appearance, Data Explorer, saved searches,
       global search, relationships, the catalogue, the notification centre, the
       audit explorer, a real file download, all six entity lists, record

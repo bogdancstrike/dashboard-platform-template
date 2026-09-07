@@ -1021,3 +1021,46 @@ mark.nu-mark {
 .nu-record-drawer a,
 .nu-record-drawer .ant-btn-link,
 .nu-record-drawer .ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--nu-accent); }
+
+/* The project delivery review: a rollup of the work under one project (§8).
+   Every cell is a link into the board filtered to that lane, because the
+   board already exists and a second one embedded here would be a second set
+   of rules about what a lane is. */
+.nu-rollup {
+  display: grid; gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+}
+.nu-rollup-cell {
+  display: flex; flex-direction: column; gap: 2px; padding: 8px 10px;
+  border: 1px solid var(--nu-border-subtle); border-radius: var(--nu-radius-card);
+  background: var(--nu-surface-raised); color: inherit;
+  transition: border-color 140ms ease-out;
+}
+.nu-rollup-cell:hover { border-color: var(--nu-accent); }
+.nu-rollup-value { font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.nu-rollup-label {
+  font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--nu-text-secondary);
+}
+
+/* A status carries its colour on its leading edge rather than as a fill (§55).
+   White on the amber and green this platform uses for status is 2.9:1 and
+   3.3:1 — below the bar for text of any size — and the labels most worth
+   reading are the ones that fail worst. See components/StatusTag.tsx. */
+.nu-status-tag {
+  border-inline-start-width: 3px;
+  border-inline-start-style: solid;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A gauge's number keeps the surface's ink. AntD tints it green at 100% and
+   red on "exception", which is 3.3:1 and 4.8:1 on white — and the hue says
+   nothing the bar beside it has not already said. */
+.nu-gauge .ant-progress-text { color: var(--nu-text) !important; }
+
+/* One audit entry's heading: the action, who did it, and when. Laid out
+   rather than left to inline flow — an unstyled span renders the actor and
+   the time as "Ada Administratorjust now". */
+.nu-audit-head {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+}

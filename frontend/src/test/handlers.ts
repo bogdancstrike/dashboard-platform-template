@@ -243,9 +243,13 @@ explorerCatalogue.items.push(
       field("priority", "Priority", "enum", { facet: true, choices: ["HIGH", "NORMAL"] }),
       field("start_date", "Start date", "datetime"),
       field("due_date", "Due date", "datetime"),
+      field("completed_at", "Completed", "datetime"),
       field("budget", "Budget", "number"),
       field("spent", "Spent", "number"),
+      field("currency", "Currency", "enum", { facet: true, choices: ["EUR", "USD"] }),
       field("progress", "Progress", "number"),
+      field("owner_id", "Owner ID", "uuid"),
+      field("customer_id", "Customer ID", "uuid"),
     ],
   },
   {
@@ -308,6 +312,13 @@ explorerCatalogue.items.push(
       field("due_at", "Due", "datetime"),
       field("sla_breached", "SLA breached", "bool", { facet: true }),
       field("resolution_minutes", "Resolution minutes", "number"),
+      field("first_response_at", "First response", "datetime"),
+      field("resolved_at", "Resolved", "datetime"),
+      field("reopen_count", "Reopens", "number"),
+      field("satisfaction", "Satisfaction", "number"),
+      field("assignee_id", "Assignee ID", "uuid"),
+      field("customer_id", "Customer ID", "uuid"),
+      field("project_id", "Project ID", "uuid"),
       field("created_at", "Created", "datetime"),
     ],
   },
@@ -605,6 +616,30 @@ export function auditPage(items = auditRows) {
 }
 
 
+/** The colleagues a picker can offer, as the directory publishes them. */
+export const people = [
+  {
+    id: "11111111-2222-3333-4444-555555555555",
+    name: "Ada Administrator",
+    email: "admin@nucleus.example",
+    username: "admin",
+    job_title: "Platform lead",
+    avatar_url: null,
+    initials: "AA",
+    is_me: true,
+  },
+  {
+    id: "22222222-3333-4444-5555-666666666666",
+    name: "Otto Operator",
+    email: "operator@nucleus.example",
+    username: "operator",
+    job_title: "Support engineer",
+    avatar_url: null,
+    initials: "OO",
+    is_me: false,
+  },
+];
+
 export const recordDetail = {
   content_fields: ["description"],
   metadata: { source: "Customer portal", tags: ["migration", "enterprise"] },
@@ -638,6 +673,120 @@ export const recordDetail = {
   updated_at: "2026-09-03T09:00:00Z",
   can_edit: true,
   can_delete: true,
+};
+
+
+/**
+ * The two records whose detail pages have a shape of their own (§8).
+ *
+ * Written out rather than derived from `entityRows`, because a list row
+ * carries the columns that page drew and a detail carries every declared
+ * field — which is the whole reason the detail is fetched separately. The
+ * numbers are chosen so the interesting answer does not depend on the clock:
+ * the project has spent 95% of its budget to deliver 62%, and the ticket is
+ * marked breached, so both pages say the same thing on any day.
+ */
+export const projectRecord = {
+  id: "project-1",
+  resource_type: "project",
+  resource_label: "Projects",
+  path: "/projects",
+  title: "Billing replatform",
+  subtitle: "PRJ-0001",
+  status: "ACTIVE",
+  title_field: "name",
+  status_field: "status",
+  content_fields: ["description"],
+  metadata: {},
+  fields: [
+    { name: "code", label: "Code", kind: "text", value: "PRJ-0001" },
+    { name: "name", label: "Name", kind: "text", value: "Billing replatform", editable: true, required: true },
+    { name: "description", label: "Description", kind: "text", value: "Replace the billing engine.", editable: true },
+    { name: "status", label: "Status", kind: "enum", value: "ACTIVE", editable: true },
+    { name: "phase", label: "Phase", kind: "enum", value: "BUILD", editable: true },
+    { name: "health", label: "Health", kind: "enum", value: "AT_RISK", editable: true },
+    { name: "priority", label: "Priority", kind: "enum", value: "HIGH", editable: true },
+    { name: "start_date", label: "Start date", kind: "datetime", value: "2026-01-05T00:00:00Z" },
+    { name: "due_date", label: "Due date", kind: "datetime", value: "2026-11-30T00:00:00Z" },
+    { name: "completed_at", label: "Completed", kind: "datetime", value: null },
+    { name: "budget", label: "Budget", kind: "number", value: 400000, editable: true },
+    { name: "spent", label: "Spent", kind: "number", value: 380000, editable: true },
+    { name: "currency", label: "Currency", kind: "enum", value: "EUR", editable: true },
+    { name: "progress", label: "Progress", kind: "number", value: 62, editable: true, minimum: 0, maximum: 100 },
+    { name: "owner_id", label: "Owner ID", kind: "uuid", value: "11111111-2222-3333-4444-555555555555", editable: true, references: "user" },
+    { name: "customer_id", label: "Customer ID", kind: "uuid", value: "customer-1", editable: true, references: "customer" },
+    { name: "created_at", label: "Created", kind: "datetime", value: "2026-01-02T09:00:00Z" },
+    { name: "updated_at", label: "Updated", kind: "datetime", value: "2026-09-03T09:00:00Z" },
+  ],
+  created_at: "2026-01-02T09:00:00Z",
+  updated_at: "2026-09-03T09:00:00Z",
+  can_edit: true,
+  can_delete: true,
+};
+
+export const ticketRecord = {
+  id: "ticket-1",
+  resource_type: "ticket",
+  resource_label: "Tickets",
+  path: "/tickets",
+  title: "Login fails after password reset",
+  subtitle: "TIC-00042",
+  status: "OPEN",
+  title_field: "subject",
+  status_field: "status",
+  content_fields: ["description"],
+  metadata: {},
+  fields: [
+    { name: "reference", label: "Reference", kind: "text", value: "TIC-00042" },
+    { name: "subject", label: "Subject", kind: "text", value: "Login fails after password reset", editable: true, required: true },
+    { name: "description", label: "Description", kind: "text", value: "Customer cannot sign in after resetting.", editable: true },
+    { name: "status", label: "Status", kind: "enum", value: "OPEN", editable: true },
+    { name: "priority", label: "Priority", kind: "enum", value: "HIGH", editable: true },
+    { name: "severity", label: "Severity", kind: "enum", value: "CRITICAL", editable: true },
+    { name: "category", label: "Category", kind: "enum", value: "TECHNICAL", editable: true },
+    { name: "channel", label: "Channel", kind: "enum", value: "EMAIL", editable: true },
+    { name: "due_at", label: "Due", kind: "datetime", value: "2026-09-04T09:00:00Z", editable: true },
+    { name: "sla_breached", label: "SLA breached", kind: "bool", value: true, editable: true },
+    { name: "resolution_minutes", label: "Resolution minutes", kind: "number", value: null },
+    { name: "first_response_at", label: "First response", kind: "datetime", value: "2026-09-03T08:45:00Z" },
+    { name: "resolved_at", label: "Resolved", kind: "datetime", value: null },
+    { name: "reopen_count", label: "Reopens", kind: "number", value: 2 },
+    { name: "satisfaction", label: "Satisfaction", kind: "number", value: null },
+    { name: "assignee_id", label: "Assignee ID", kind: "uuid", value: "11111111-2222-3333-4444-555555555555", editable: true, references: "user" },
+    { name: "customer_id", label: "Customer ID", kind: "uuid", value: "customer-1", editable: true, references: "customer" },
+    { name: "project_id", label: "Project ID", kind: "uuid", value: null, editable: true, references: "project" },
+    { name: "created_at", label: "Created", kind: "datetime", value: "2026-09-03T08:00:00Z" },
+    { name: "updated_at", label: "Updated", kind: "datetime", value: "2026-09-03T09:00:00Z" },
+  ],
+  created_at: "2026-09-03T08:00:00Z",
+  updated_at: "2026-09-03T09:00:00Z",
+  can_edit: true,
+  can_delete: true,
+};
+
+export const customerRecord = {
+  ...projectRecord,
+  id: "customer-1",
+  resource_type: "customer",
+  resource_label: "Customers",
+  path: "/customers",
+  title: "Northwind Partners",
+  subtitle: "CUS-0001",
+  status: "ACTIVE",
+  fields: [
+    { name: "code", label: "Code", kind: "text", value: "CUS-0001" },
+    { name: "name", label: "Name", kind: "text", value: "Northwind Partners", editable: true },
+    { name: "status", label: "Status", kind: "enum", value: "ACTIVE", editable: true },
+    { name: "segment", label: "Segment", kind: "enum", value: "ENTERPRISE", editable: true },
+  ],
+};
+
+/** Every record fixture, by the type the route asks for. */
+export const recordsByType: Record<string, unknown> = {
+  task: recordDetail,
+  project: projectRecord,
+  ticket: ticketRecord,
+  customer: customerRecord,
 };
 
 
@@ -1112,6 +1261,17 @@ export const handlers = [
   http.get("/platform/health/status", ({ request }) => echo(request, healthSnapshot)),
   http.get("/platform/dashboard/summary", ({ request }) => echo(request, dashboardSummary)),
   http.get("/platform/api/explorer/catalog", ({ request }) => echo(request, explorerCatalogue)),
+  // Every "pick a person" control reads this — the assignee on a task, the
+  // owner on a project, the members of a share. Filtered here the way the
+  // server filters it, so a test can type a name and assert what came back
+  // rather than only that a box exists.
+  http.get("/platform/api/directory/people", ({ request }) => {
+    const term = new URL(request.url).searchParams.get("q")?.toLowerCase() ?? "";
+    const items = people.filter(
+      (person) => !term || person.name.toLowerCase().includes(term),
+    );
+    return echo(request, { items, total: items.length, page: 1, page_size: 25, pages: 1 });
+  }),
   http.get("/platform/api/analysis/catalog", ({ request }) => echo(request, analysisCatalogue)),
   http.get("/platform/api/reports", ({ request }) =>
     echo(request, {
@@ -1281,7 +1441,12 @@ export const handlers = [
     });
   }),
   http.get("/platform/api/relationships/overview", ({ request }) => echo(request, connectionMap)),
-  http.get("/platform/api/records/:type/:id", ({ request }) => echo(request, recordDetail)),
+  // Keyed on the type, because three detail pages now read three different
+  // shapes: a handler that answered a task to all of them would let the ticket
+  // console draw a task and still pass.
+  http.get("/platform/api/records/:type/:id", ({ request, params }) =>
+    echo(request, recordsByType[String(params["type"])] ?? recordDetail),
+  ),
   http.get("/platform/api/comments", ({ request }) => {
     const query = new URL(request.url).searchParams;
     const items = recordComments.filter(

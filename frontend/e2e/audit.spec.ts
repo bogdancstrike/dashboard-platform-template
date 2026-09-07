@@ -67,7 +67,13 @@ test.describe("audit explorer", () => {
     // The drawer survives a paste of the URL, which is what makes an
     // investigation shareable (§69).
     const url = page.url();
+    // Land somewhere else *completely* before pasting the link back. The SPA
+    // asks Keycloak to confirm the session on a cold navigation and finishes
+    // on a redirect of its own, so a second `goto` issued while that is in
+    // flight is cancelled by it — which reads as a broken deep link rather
+    // than as the race it is.
     await page.goto("/dashboard");
+    await expect(page).toHaveURL(/\/dashboard$/);
     await page.goto(url);
     await expect(page.getByRole("table", { name: "Field changes" })).toBeVisible();
   });
@@ -102,7 +108,9 @@ test.describe("audit explorer", () => {
   test("exports the filtered ledger as a real file (§30)", async ({ page }) => {
     // A filter over seeded rows only: the count and the file are compared, and
     // another spec's audit write landing between them would break a true page.
-    await page.goto("/admin/audit?action=UPDATE&resource_type=ticket");
+    // Ten rows to a page, so the answer is bigger than the page at every seed
+    // scale — which is the whole point of the assertion at the end.
+    await page.goto("/admin/audit?action=UPDATE&resource_type=ticket&page_size=10");
     await expect(ledger(page).getByRole("row").nth(1)).toBeVisible();
     const filtered = await totalShown(page);
 
@@ -123,9 +131,11 @@ test.describe("audit explorer", () => {
 
     const lines = text.trimEnd().split("\n");
     expect(lines[0]).toContain("Correlation ID");
-    // The file is the *question*, not the twenty-five rows on screen.
+    // The file is the *question*, not the rows on screen — so it has to be
+    // bigger than the page it was exported from.
     expect(lines.length - 1).toBe(filtered);
-    expect(filtered).toBeGreaterThan(25);
+    const onScreen = await ledger(page).getByRole("row").count();
+    expect(filtered).toBeGreaterThan(onScreen);
   });
 
   test("the empty state explains itself rather than showing a blank table", async ({ page }) => {

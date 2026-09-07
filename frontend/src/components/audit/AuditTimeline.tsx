@@ -108,7 +108,7 @@ export function AuditTimeline({
 
 function TimelineHeading({ entry }: { entry: AuditEntry }) {
   return (
-    <span className="nu-timeline-head">
+    <span className="nu-audit-head">
       <Tag color={actionColor(entry.action)}>{humaniseAction(entry.action)}</Tag>
       <Text strong>{entry.actor_label}</Text>
       {entry.impersonated && (

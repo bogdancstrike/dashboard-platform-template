@@ -66,5 +66,12 @@ export default defineConfig({
     // The API is mocked at the network boundary (MSW), so a component test
     // exercises the real fetch path rather than a hand-stubbed module.
     restoreMocks: true,
+    // Vitest's 5s default is a budget for one interaction, and these tests
+    // render whole pages against a mocked network while several other files
+    // do the same on other workers. Every test that has hit it passed in
+    // isolation seconds later, which makes it a measure of how loaded the
+    // machine is rather than of anything the component did — and a suite that
+    // fails differently depending on the machine is a suite nobody trusts.
+    testTimeout: 20_000,
   },
 });

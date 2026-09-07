@@ -24,12 +24,14 @@
  * **The conversation and the history are different things.** Comments are what
  * people said; the audit timeline is what the system recorded. Showing them as
  * one feed makes it impossible to tell a decision from a side effect.
+ *
+ * Loading the record, saying why it will not open, and writing one field with
+ * the version it was read at are `useRecordPage`'s: the delivery review and
+ * the support console answer those three questions too, and they have to
+ * answer them identically.
  */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Alert,
-  App as AntApp,
   Button,
   Card,
   Checkbox,
@@ -39,9 +41,7 @@ import {
   Progress,
   Row,
   Select,
-  Skeleton,
   Space,
-  Tag,
   Tooltip,
   Typography,
 } from "antd";
@@ -49,18 +49,15 @@ import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { ApiError } from "@/api/client";
-import { explorerApi } from "@/api/explorer";
-import { recordsApi } from "@/api/records";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
 import { CommentThread } from "@/components/comments/CommentThread";
 import { PageHeader } from "@/components/PageHeader";
 import { PeoplePicker } from "@/components/PeoplePicker";
-import { useRecordEditing } from "@/components/records/useRecordEditing";
+import { useRecordPage } from "@/components/records/useRecordPage";
+import { StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { asText } from "@/lib/text";
-import { knownStatusColor } from "@/theme/tokens";
 
 const { Text, Paragraph } = Typography;
 
@@ -73,64 +70,21 @@ interface ChecklistItem {
 export default function TaskDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { message } = AntApp.useApp();
   const [newItem, setNewItem] = useState("");
-
-  const record = useQuery({
-    queryKey: ["record", "task", id],
-    queryFn: ({ signal }) => recordsApi.get("task", id, signal),
-    enabled: Boolean(id),
-  });
-
-  // The vocabularies the quick controls offer. Read from the catalogue rather
-  // than hard-coded, so a status added to the domain appears here too.
-  const catalogue = useQuery({
-    queryKey: ["explorer-catalogue"],
-    queryFn: ({ signal }) => explorerApi.catalogue(signal),
-    staleTime: 60_000,
-  });
-  const resource = catalogue.data?.items.find((item) => item.key === "task");
-
-  const records = useRecordEditing(resource, { onDeleted: () => navigate("/tasks") });
-
-  /**
-   * A field written from the page rather than from the drawer.
-   *
-   * Sends the version it read, so an edit written against a task somebody else
-   * has moved is refused rather than silently applied over theirs (§73).
-   */
-  const patch = useMutation({
-    mutationFn: (changes: Record<string, unknown>) =>
-      recordsApi.update("task", id, {
-        ...changes,
-        expected_updated_at: record.data?.updated_at ?? null,
-      }),
-    onSuccess: (saved) => {
-      queryClient.setQueryData(["record", "task", id], saved);
-      void queryClient.invalidateQueries({ queryKey: ["task-lane"] });
-      void queryClient.invalidateQueries({ queryKey: ["entity-rows"] });
-    },
-    onError: (error) => {
-      const stale = error instanceof ApiError && error.status === 409;
-      message.error(
-        stale
-          ? "Somebody else changed this task while you had it open — reloading it."
-          : error instanceof ApiError
-            ? error.message
-            : "That change was not saved.",
-      );
-      if (stale) void record.refetch();
-    },
-  });
+  const page = useRecordPage("task", id, { listPath: "/tasks", noun: "task" });
 
   usePageCommands("record:task", [
-    { id: "task.edit", label: "Edit this task", keywords: "change update", run: () => records.edit(id) },
+    {
+      id: "task.edit",
+      label: "Edit this task",
+      keywords: "change update",
+      run: () => page.editing.edit(id),
+    },
     {
       id: "task.done",
       label: "Mark this task done",
       keywords: "complete finish status",
-      run: () => patch.mutate({ status: "DONE" }),
+      run: () => page.write({ status: "DONE" }),
     },
     {
       id: "task.copy-link",
@@ -140,52 +94,13 @@ export default function TaskDetailPage() {
     },
   ]);
 
-  if (record.isLoading) return <Skeleton active paragraph={{ rows: 10 }} />;
+  if (page.fallback) return page.fallback;
 
-  if (record.isError) {
-    const error = record.error;
-    const missing = error instanceof ApiError && error.isNotFound;
-    return (
-      <>
-        <PageHeader
-          title={missing ? "Task not found" : "Could not open this task"}
-          onBack={() => navigate("/tasks")}
-        />
-        <Alert
-          type={missing ? "warning" : "error"}
-          showIcon
-          message={
-            missing
-              ? "It may have been deleted, or the link may be wrong."
-              : error instanceof ApiError
-                ? error.message
-                : "The request failed."
-          }
-          description={
-            error instanceof ApiError ? (
-              <Text code copyable={{ text: error.correlationId }}>
-                {error.correlationId}
-              </Text>
-            ) : undefined
-          }
-          action={
-            <Button size="small" onClick={() => void record.refetch()}>
-              Retry
-            </Button>
-          }
-        />
-      </>
-    );
-  }
-
-  const task = record.data!;
-  const value = (name: string) => task.fields.find((field) => field.name === name)?.value;
-  const checklist = (value("checklist") as ChecklistItem[] | null) ?? [];
+  const task = page.record!;
+  const checklist = (page.value("checklist") as ChecklistItem[] | null) ?? [];
   const done = checklist.filter((item) => item.done).length;
-  const choices = (name: string) =>
-    resource?.fields.find((field) => field.name === name)?.choices ?? [];
 
-  const writeChecklist = (items: ChecklistItem[]) => patch.mutate({ checklist: items });
+  const writeChecklist = (items: ChecklistItem[]) => page.write({ checklist: items });
 
   return (
     <>
@@ -205,11 +120,7 @@ export default function TaskDetailPage() {
             </Text>
           </Space>
         }
-        tag={
-          <Tag color={knownStatusColor(task.status)} data-testid="record-status">
-            {task.status}
-          </Tag>
-        }
+        tag={<StatusTag status={task.status} data-testid="record-status" />}
         actions={
           <>
             <Tooltip title={task.can_edit ? "" : "Your role does not include records.update"}>
@@ -217,7 +128,7 @@ export default function TaskDetailPage() {
                 type="primary"
                 icon={<EditOutlined />}
                 disabled={!task.can_edit}
-                onClick={() => records.edit(id)}
+                onClick={() => page.editing.edit(id)}
                 data-testid="record-edit"
               >
                 Edit
@@ -228,7 +139,7 @@ export default function TaskDetailPage() {
                 danger
                 icon={<DeleteOutlined />}
                 disabled={!task.can_delete}
-                onClick={() => records.remove(id, task.title)}
+                onClick={() => page.editing.remove(id, task.title)}
               >
                 Delete
               </Button>
@@ -241,7 +152,7 @@ export default function TaskDetailPage() {
         <Col xs={24} xl={16}>
           <Card size="small" title="Description" className="nu-block">
             <Paragraph className="nu-record-prose">
-              {asText(value("description")) || "No description was given."}
+              {asText(page.value("description")) || "No description was given."}
             </Paragraph>
           </Card>
 
@@ -262,9 +173,10 @@ export default function TaskDetailPage() {
           >
             {checklist.length > 0 && (
               <Progress
+                aria-label={`Checklist: ${done} of ${checklist.length} done`}
+                className="nu-block nu-gauge"
                 percent={Math.round((done / checklist.length) * 100)}
                 size="small"
-                className="nu-block"
               />
             )}
             <ul className="nu-checklist">
@@ -272,7 +184,7 @@ export default function TaskDetailPage() {
                 <li key={`${item.text}-${index}`}>
                   <Checkbox
                     checked={item.done}
-                    disabled={!task.can_edit || patch.isPending}
+                    disabled={!task.can_edit || page.writing}
                     onChange={(event) =>
                       writeChecklist(
                         checklist.map((entry, position) =>
@@ -346,9 +258,9 @@ export default function TaskDetailPage() {
                   style={{ width: "100%" }}
                   value={task.status}
                   disabled={!task.can_edit}
-                  loading={patch.isPending}
-                  onChange={(next) => patch.mutate({ status: next })}
-                  options={choices("status").map((choice) => ({
+                  loading={page.writing}
+                  onChange={(next) => page.write({ status: next })}
+                  options={page.choices("status").map((choice) => ({
                     value: choice,
                     label: choice.replace(/_/g, " "),
                   }))}
@@ -359,10 +271,10 @@ export default function TaskDetailPage() {
                 <Select
                   aria-label="Priority"
                   style={{ width: "100%" }}
-                  value={asText(value("priority"))}
+                  value={asText(page.value("priority"))}
                   disabled={!task.can_edit}
-                  onChange={(next) => patch.mutate({ priority: next })}
-                  options={choices("priority").map((choice) => ({ value: choice, label: choice }))}
+                  onChange={(next) => page.write({ priority: next })}
+                  options={page.choices("priority").map((choice) => ({ value: choice, label: choice }))}
                 />
               </Field>
 
@@ -372,23 +284,28 @@ export default function TaskDetailPage() {
                   aria-label="Assignee"
                   placeholder="Nobody yet"
                   disabled={!task.can_edit}
-                  value={value("assignee_id") ? [asText(value("assignee_id"))] : []}
-                  onChange={(ids) => patch.mutate({ assignee_id: ids[0] ?? null })}
+                  value={page.value("assignee_id") ? [asText(page.value("assignee_id"))] : []}
+                  onChange={(ids) => page.write({ assignee_id: ids[0] ?? null })}
                 />
               </Field>
 
               <Field label="Progress">
-                <Progress percent={Number(value("progress") ?? 0)} size="small" />
+                <Progress
+                  aria-label={`Progress: ${Number(page.value("progress") ?? 0)}%`}
+                  className="nu-gauge"
+                  percent={Number(page.value("progress") ?? 0)}
+                  size="small"
+                />
               </Field>
 
               <Descriptions size="small" column={1} bordered>
-                <Descriptions.Item label="Kind">{asText(value("kind")) || "—"}</Descriptions.Item>
+                <Descriptions.Item label="Kind">{asText(page.value("kind")) || "—"}</Descriptions.Item>
                 <Descriptions.Item label="Due">
-                  {value("due_date") ? absoluteTime(asText(value("due_date"))) : "—"}
+                  {page.value("due_date") ? absoluteTime(asText(page.value("due_date"))) : "—"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Effort">
-                  {Math.round(Number(value("logged_hours") ?? 0))} of{" "}
-                  {Math.round(Number(value("estimate_hours") ?? 0))} h
+                  {Math.round(Number(page.value("logged_hours") ?? 0))} of{" "}
+                  {Math.round(Number(page.value("estimate_hours") ?? 0))} h
                 </Descriptions.Item>
                 <Descriptions.Item label="Created">
                   {absoluteTime(task.created_at)}
@@ -399,7 +316,7 @@ export default function TaskDetailPage() {
         </Col>
       </Row>
 
-      {records.drawer}
+      {page.editing.drawer}
     </>
   );
 }

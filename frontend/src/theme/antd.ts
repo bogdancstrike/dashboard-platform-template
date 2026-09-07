@@ -16,6 +16,7 @@ import {
   NEUTRAL,
   RADIUS,
   SEMANTIC,
+  SEMANTIC_INK,
   SHADOW,
   SHADOW_DARK,
   type Density,
@@ -64,6 +65,12 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
       colorText: dark ? INK[100] : NEUTRAL[900],
       colorTextSecondary: dark ? INK[300] : NEUTRAL[600],
       colorTextTertiary: dark ? INK[400] : NEUTRAL[500],
+      // Named rather than left to AntD's derivation, which lands on
+      // `NEUTRAL[500]` — 4.34:1 against the page background, just under the
+      // bar. `Typography type="secondary"` is the most-used text style in the
+      // product, so being a tenth of a point short of legible there is short
+      // everywhere at once (§55).
+      colorTextDescription: dark ? INK[300] : NEUTRAL[600],
 
       fontFamily: FONT.family,
       fontFamilyCode: FONT.mono,
@@ -104,6 +111,20 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
         headerSplitColor: "transparent",
         rowHoverBg: dark ? INK[700] : ACCENT[50],
         borderColor: dark ? INK[650] : NEUTRAL[200],
+      },
+      Button: {
+        // Two colours the dark algorithm derives to just under legible, which
+        // is worth naming because these are the two buttons on every record
+        // page (§55).
+        //
+        // A solid primary is white on the derived indigo `#6c6cd3` — 4.45:1,
+        // a hundredth under the bar. The accent one step darker carries the
+        // same white at 5.37:1 and reads as the same button.
+        colorPrimary: dark ? ACCENT[500] : ACCENT[500],
+        // A dangerous button's label is the derived `#be2323`, which is
+        // 2.94:1 on a charcoal panel — a Delete nobody can read. The ink ramp
+        // is the same meaning at 6.5:1.
+        colorError: dark ? SEMANTIC_INK.dark.danger : SEMANTIC.danger,
       },
       Card: { paddingLG: scale.padding + 4 },
       Descriptions: { itemPaddingBottom: scale.padding },
@@ -150,6 +171,14 @@ export function cssVariables(appearance: Appearance, density: Density): Record<s
     "--nu-warning": SEMANTIC.warning,
     "--nu-danger": SEMANTIC.danger,
     "--nu-info": SEMANTIC.info,
+    // The readable half of the same four meanings, for text rather than fills
+    // — see `SEMANTIC_INK`. Published as variables because the pages that need
+    // them are styled in CSS, and a component resolving the theme in
+    // JavaScript to pick a hex is a second place the mode can be got wrong.
+    "--nu-success-ink": SEMANTIC_INK[mode].success,
+    "--nu-warning-ink": SEMANTIC_INK[mode].warning,
+    "--nu-danger-ink": SEMANTIC_INK[mode].danger,
+    "--nu-info-ink": SEMANTIC_INK[mode].info,
     "--nu-row-height": `${scale.rowHeight}px`,
     "--nu-control-height": `${scale.controlHeight}px`,
     "--nu-font-size": `${scale.fontSize}px`,

@@ -46,6 +46,8 @@ const TasksBoardPage = lazy(() => import("@/pages/entities/TasksBoardPage"));
 // Tasks get their own detail page: it is the record people work *in*, and a
 // generic field list is the wrong shape for that job (§8, §18, §36).
 const TaskDetailPage = lazy(() => import("@/pages/entities/TaskDetailPage"));
+const ProjectDeliveryPage = lazy(() => import("@/pages/entities/ProjectDeliveryPage"));
+const TicketConsolePage = lazy(() => import("@/pages/entities/TicketConsolePage"));
 const ProjectsPortfolioPage = lazy(() => import("@/pages/entities/ProjectsPortfolioPage"));
 const CustomersPage = lazy(() => import("@/pages/entities/CustomersPage"));
 const OrdersLedgerPage = lazy(() => import("@/pages/entities/OrdersLedgerPage"));
@@ -309,11 +311,14 @@ export default function App() {
           />
         </Route>
 
+        {/* Where the record itself has a shape — a delivery review, a support
+            console — the detail is its own page; the rest read the generic
+            one, which renders whatever the declaration publishes (§8). */}
         {[
-          { path: "projects", key: "project", list: <ProjectsPortfolioPage /> },
+          { path: "projects", key: "project", list: <ProjectsPortfolioPage />, detail: <ProjectDeliveryPage /> },
+          { path: "tickets", key: "ticket", list: <TicketsQueuePage />, detail: <TicketConsolePage /> },
           { path: "customers", key: "customer", list: <CustomersPage /> },
           { path: "orders", key: "order", list: <OrdersLedgerPage /> },
-          { path: "tickets", key: "ticket", list: <TicketsQueuePage /> },
           { path: "devices", key: "device", list: <DevicesFleetPage /> },
         ].map((entity) => (
           <Route key={entity.path} path={entity.path}>
@@ -322,7 +327,7 @@ export default function App() {
               path=":id"
               element={
                 <Suspense fallback={<Loading />}>
-                  <EntityDetailPage resourceKey={entity.key} />
+                  {entity.detail ?? <EntityDetailPage resourceKey={entity.key} />}
                 </Suspense>
               }
             />

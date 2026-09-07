@@ -55,6 +55,16 @@ def has_database() -> bool:
     return bool(os.getenv("TEST_DATABASE_URL"))
 
 
+@pytest.fixture(scope="session")
+def engine(has_database):
+    """The configured engine, for the few tests that talk to the schema itself."""
+    if not has_database:
+        pytest.skip("set TEST_DATABASE_URL to run tests that need PostgreSQL")
+    from src.core.db import get_engine
+
+    return get_engine()
+
+
 @pytest.fixture(autouse=True)
 def _skip_without_database(request, has_database):
     if request.node.get_closest_marker("database") and not has_database:

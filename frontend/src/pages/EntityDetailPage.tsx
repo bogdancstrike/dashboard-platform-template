@@ -22,10 +22,10 @@ import { recordsApi, type RecordField } from "@/api/records";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
 import { PageHeader } from "@/components/PageHeader";
 import { useRecordEditing } from "@/components/records/useRecordEditing";
+import { StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { asText } from "@/lib/text";
-import { knownStatusColor } from "@/theme/tokens";
 
 const { Text } = Typography;
 
@@ -148,7 +148,6 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
   }
 
   const data = record.data!;
-  const statusColour = knownStatusColor(data.status);
 
   return (
     <>
@@ -166,13 +165,7 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
             </Text>
           </Space>
         }
-        tag={
-          data.status ? (
-            <Tag color={statusColour} data-testid="record-status">
-              {data.status}
-            </Tag>
-          ) : undefined
-        }
+        tag={<StatusTag status={data.status} data-testid="record-status" />}
         actions={
           <>
             <Tooltip title={data.can_edit ? "" : "Your role does not include records.update"}>
@@ -312,7 +305,7 @@ function FieldValue({ field }: { field: RecordField }) {
   }
 
   if (kind === "enum") {
-    return <Tag color={knownStatusColor(text)}>{text}</Tag>;
+    return <StatusTag status={text} />;
   }
 
   if (kind === "number") {

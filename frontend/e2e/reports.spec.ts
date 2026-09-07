@@ -75,7 +75,17 @@ test("a report built in the browser survives a reload and answers", async ({ pag
   await page.reload();
   await expect(page.locator(".nu-queue-row", { hasText: name }).first()).toBeVisible();
   const measured = await page.getByTestId("report-matched").textContent();
-  expect(Number((measured ?? "").replace(/[^\d]/g, ""))).toBeGreaterThan(100);
+  const rows = Number((measured ?? "").replace(/[^\d]/g, ""));
+  // Every order, not the page the builder previewed — compared against what
+  // the ledger says it holds, so this holds at either seed scale.
+  await page.goto("/orders");
+  const everyOrder = Number(
+    (((await page.getByTestId("entity-total").textContent()) ?? "").split("of")[1] ?? "").replace(
+      /[^\d]/g,
+      "",
+    ),
+  );
+  expect(rows).toBe(everyOrder);
 
   await deleteReports(page, PREFIX);
 });

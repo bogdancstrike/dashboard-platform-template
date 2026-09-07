@@ -74,6 +74,7 @@ def test_the_catalogue_offers_only_what_the_declaration_publishes(client, monkey
 
 @pytest.mark.database
 def test_it_groups_and_measures_in_sql_rather_than_over_a_page(client, monkeypatch):
+    headers = _authenticate(monkeypatch)
     body = client.post(
         RUN,
         json={
@@ -81,10 +82,19 @@ def test_it_groups_and_measures_in_sql_rather_than_over_a_page(client, monkeypat
             "dimensions": ["status"],
             "measures": [{"aggregation": "sum", "field": "total"}, {"aggregation": "count"}],
         },
-        headers=_authenticate(monkeypatch),
+        headers=headers,
     ).get_json()
 
-    assert body["matched"] > 100
+    # Measured against what one page of the list actually returns rather than
+    # against a constant: the seed ships at two scales, and a test that only
+    # holds on the larger one is a test that fails for the reason it was never
+    # about (§57).
+    page = client.post(
+        f"{PREFIX}/api/explorer/query",
+        json={"resource_type": "order", "page_size": 10},
+        headers=headers,
+    ).get_json()
+    assert body["matched"] == page["total"] > page["page_size"]
     # The parts reconcile with the whole: the rows plus the collapsed tail add
     # up to the total the server computed separately.
     drawn = sum(row["values"]["count"] for row in body["rows"])

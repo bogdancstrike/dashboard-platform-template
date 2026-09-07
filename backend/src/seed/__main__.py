@@ -4,6 +4,7 @@
     python -m src.seed --scale small      # a tenth of the data, for iterating
     python -m src.seed --reset            # drop everything first
     python -m src.seed --check            # verify an existing dataset
+    python -m src.seed --sync-schema      # add columns the model has and it lacks
     python -m src.seed --sync-roles       # give built-in roles new permissions
     python -m src.seed --dry-run          # build in memory, write nothing
 
@@ -34,6 +35,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--force", action="store_true", help="seed even if data is already present")
     parser.add_argument("--check", action="store_true", help="verify the existing dataset and exit")
     parser.add_argument(
+        "--sync-schema", action="store_true",
+        help="add columns the model declares and the database lacks, and exit",
+    )
+    parser.add_argument(
         "--sync-roles", action="store_true",
         help="add any newly declared permissions to the built-in roles and exit",
     )
@@ -59,6 +64,18 @@ def main(argv: list[str] | None = None) -> int:
 
     engine = get_engine()
 
+    if args.sync_schema:
+        # Additive only. A column that cannot be added without deciding what
+        # existing rows get is reported rather than guessed at.
+        added = runner.sync_schema(engine)
+        for item in added:
+            print(f"  + {item.table}.{item.column}")
+        blocked = runner.schema_drift(engine)
+        for item in blocked:
+            print(f"  ! {item}")
+        print("database already matches the model" if not added else f"{len(added)} column(s) added")
+        return 1 if blocked else 0
+
     if args.sync_roles:
         # Not part of a seed run: this is what an *existing* database needs
         # when the permission catalogue grows, and seeding refuses to touch a
@@ -71,8 +88,18 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.check:
+        # Two different questions, reported separately: whether the database
+        # has the shape the model expects, and whether the rows in it hang
+        # together. A dataset check that passes on a table missing a column is
+        # a check that answered the easier question.
+        behind = runner.schema_drift(engine)
+        for item in behind:
+            print(f"schema is behind the model: {item}")
         with session_scope() as session:
             problems = runner.verify(session)
+        if behind and not problems:
+            print("run 'python -m src.seed --sync-schema' to add what can be added")
+            return 1
         if problems:
             print("dataset has problems:")
             for problem in problems:

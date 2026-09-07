@@ -25,7 +25,7 @@ from sqlalchemy import select
 
 from src.config import Config
 from src.core.clock import now
-from src.seed import business, content, identity, operations, personal
+from src.seed import business, content, identity, operations, personal, schema
 from src.seed.support import Rng
 from src.seed.world import SCALES, Scale, World
 
@@ -63,10 +63,42 @@ DEFERRED_LINKS: tuple[tuple[str, str], ...] = (
 
 
 def bootstrap_schema(engine) -> None:
-    """Create every table. Importing `src.models` is what registers them."""
+    """Create every table. Importing `src.models` is what registers them.
+
+    `create_all` is silent about a table that already exists but has since
+    grown a column in the model, which is how a running database ends up
+    refusing every INSERT. So the drift is reported here rather than
+    discovered later; applying it is `--sync-schema`, deliberately, because an
+    unannounced ALTER on somebody's database is not a boot step.
+    """
     import src.models as models
 
     models.Base.metadata.create_all(engine)
+
+    remaining = schema_drift(engine)
+    if remaining:
+        from framework.commons.logger import logger as log
+
+        log.warning(
+            "the database is behind the model: "
+            + "; ".join(str(item) for item in remaining)
+            + " — run 'python -m src.seed --sync-schema'",
+            "yellow",
+        )
+
+
+def schema_drift(engine) -> list[schema.Drift]:
+    """What the model declares and the database does not have."""
+    import src.models as models
+
+    return [item for item in schema.drift(engine, models.Base.metadata) if item.column]
+
+
+def sync_schema(engine) -> list[schema.Drift]:
+    """Add the missing columns that can be added without losing data."""
+    import src.models as models
+
+    return schema.reconcile(engine, models.Base.metadata)
 
 
 def drop_schema(engine) -> None:

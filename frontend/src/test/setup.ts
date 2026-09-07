@@ -1,8 +1,16 @@
 import "@testing-library/jest-dom/vitest";
 
+import { configure } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll } from "vitest";
 
 import { server } from "./server";
+
+// Testing Library waits one second for `findBy*` by default, which is a
+// generous budget for a re-render and a thin one for a page that mounts,
+// fetches through MSW and settles — while several other files do the same on
+// other workers. Every timeout this suite has hit passed in isolation moments
+// later, so the number was measuring machine load rather than the component.
+configure({ asyncUtilTimeout: 5_000 });
 
 // jsdom implements neither of these, and AntD's responsive observers and the
 // appearance provider both reach for them on mount.

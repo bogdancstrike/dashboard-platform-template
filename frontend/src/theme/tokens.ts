@@ -81,6 +81,34 @@ export const SEMANTIC = {
 } as const;
 
 /**
+ * The same four meanings, at a lightness that can be *read*.
+ *
+ * `SEMANTIC` is tuned for fills — a bar, a dot, a lane rule — where the bar to
+ * clear is 3:1 against the surface. Small text has to clear 4.5:1, and the
+ * fills do not: amber `#ca8a04` on white is 2.9:1, and green `#16a34a` is
+ * 3.3:1. A page that colours a sentence with them has written a sentence a
+ * third of its readers cannot read.
+ *
+ * So the two are separated rather than compromised. Nothing gets a worse fill
+ * to make a caption legible, and nothing gets an illegible caption to match a
+ * bar. Both carry the same *meaning*, which is what has to agree.
+ */
+export const SEMANTIC_INK = {
+  light: {
+    success: "#15803d",
+    warning: "#a16207",
+    danger: "#dc2626",
+    info: "#0e7490",
+  },
+  dark: {
+    success: "#4ade80",
+    warning: "#fbbf24",
+    danger: "#f87171",
+    info: "#22d3ee",
+  },
+} as const;
+
+/**
  * The categorical series palette for charts.
  *
  * Ordered so that adjacent series are distinguishable by hue *and* by
