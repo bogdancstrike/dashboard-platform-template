@@ -29,6 +29,15 @@ import type { DashboardWidget } from "@/api/dashboards";
 
 const { Text } = Typography;
 
+/**
+ * What may be done to one widget from the card itself.
+ *
+ * Deliberately *not* dragging: `WidgetGrid` owns that, with the pointer, and a
+ * second drag implementation here would be two answers to "where is this
+ * widget". What lives here is the keyboard path — the same moves, as menu
+ * items — because `react-grid-layout` is pointer-only by construction and a
+ * layout only a mouse can change is a layout half the readers cannot (§54).
+ */
 export interface WidgetMoves {
   /** Shift the widget one column or row. */
   nudge: (widget: DashboardWidget, dx: number, dy: number) => void;
@@ -36,43 +45,29 @@ export interface WidgetMoves {
   resize: (widget: DashboardWidget, dWidth: number, dHeight: number) => void;
   edit: (widget: DashboardWidget) => void;
   remove: (widget: DashboardWidget) => void;
-  /** Pointer drag: begun on this widget, and dropped on another. */
-  dragStart: (widget: DashboardWidget) => void;
-  dropOn: (widget: DashboardWidget) => void;
-  dragging: string | null;
 }
 
 export function WidgetCard({
   widget,
-  columns,
   editable,
   moves,
   children,
 }: {
   widget: DashboardWidget;
-  columns: number;
   editable: boolean;
   moves: WidgetMoves;
   children: ReactNode;
 }) {
-  const span = Math.min(widget.width, columns);
-
   return (
     <div
-      className={`nu-widget${moves.dragging === widget.id ? " is-dragging" : ""}`}
-      style={{
-        gridColumn: `span ${span}`,
-        // Rows are a fixed height so two widgets of the same declared height
-        // line up, whatever their contents came back as.
-        gridRow: `span ${widget.height}`,
-      }}
-      draggable={editable}
-      onDragStart={() => moves.dragStart(widget)}
-      onDragOver={(event) => {
-        if (editable && moves.dragging && moves.dragging !== widget.id) event.preventDefault();
-      }}
-      onDrop={() => moves.dropOn(widget)}
+      className="nu-widget"
       data-testid={`widget-${widget.id}`}
+      // The size the *record* declares, stated in the DOM. The grid puts the
+      // card in place with a transform, so nothing else on the page says how
+      // many columns a widget was saved as — which is the thing a reader
+      // changes and a test needs to read back.
+      data-columns={widget.width}
+      data-rows={widget.height}
     >
       <Card
         size="small"
@@ -85,7 +80,7 @@ export function WidgetCard({
         }
         extra={
           editable ? (
-            <Space size={2}>
+            <Space size={2} className="nu-widget-nodrag">
               {/* Every gesture also a control: a grid only a pointer can
                   rearrange is a grid a keyboard cannot (§54). */}
               <Dropdown

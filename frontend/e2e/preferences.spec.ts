@@ -35,7 +35,10 @@ async function choose(page: Page, label: string, option: string): Promise<void> 
   const combo = page.getByRole("combobox", { name: label });
   await combo.focus();
   await combo.press("Enter");
-  await page.getByTitle(option, { exact: true }).click();
+  // The dropdown option, not the closed select's own label: AntD gives both the
+  // same `title`, so this matches twice as soon as the value being chosen is
+  // already the current one — which is the state a re-run leaves behind.
+  await page.locator(".ant-select-item-option").filter({ hasText: option }).first().click();
   await expect(page.getByTestId("save-state")).toHaveText("Saved");
 }
 

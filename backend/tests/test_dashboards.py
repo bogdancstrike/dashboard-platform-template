@@ -292,3 +292,143 @@ def test_home_is_this_readers_home_and_not_the_owners(client, monkeypatch, scrat
         f"{DASHBOARDS}/{dashboard['id']}", headers=_authenticate(monkeypatch, "manager", "manager")
     ).get_json()
     assert theirs["is_home"] is False
+
+
+@pytest.mark.database
+def test_a_saved_chart_becomes_a_widget_without_being_rebuilt(client, monkeypatch, scratch):
+    """The point of the referencing kinds (§45).
+
+    A chart composed in the chart builder is a saved report. Pointing a widget
+    at it inherits its definition, its sharing and its audit trail; describing
+    the same question again in a widget config would be a second copy that
+    drifts the first time either is edited.
+    """
+    dashboard, headers = scratch
+    report = client.post(
+        f"{PREFIX}/api/reports",
+        json={
+            "name": f"Widget source {uuid4().hex[:6]}",
+            "resource_type": "order",
+            "dimensions": ["status"],
+            "metrics": [{"aggregation": "count"}],
+            "visualization": "bar",
+        },
+        headers=headers,
+    ).get_json()
+
+    try:
+        added = client.post(
+            f"{DASHBOARDS}/{dashboard['id']}/widgets",
+            json={
+                "kind": "REPORT",
+                "title": "Orders by status",
+                "width": 6,
+                "height": 2,
+                "config": {"report_id": report["id"]},
+            },
+            headers=headers,
+        )
+        assert added.status_code == 201, added.get_json()
+        assert added.get_json()["widgets"][0]["config"]["report_id"] == report["id"]
+    finally:
+        client.delete(f"{PREFIX}/api/reports/{report['id']}", headers=headers)
+
+
+@pytest.mark.database
+def test_a_referencing_widget_names_what_it_draws(client, scratch):
+    dashboard, headers = scratch
+
+    nameless = client.post(
+        f"{DASHBOARDS}/{dashboard['id']}/widgets",
+        json={"kind": "REPORT", "title": "Nothing", "config": {}},
+        headers=headers,
+    )
+    assert nameless.status_code == 400
+    assert nameless.get_json()["details"]["required"] == "report_id"
+
+    # And it takes its dataset from the thing it names, rather than carrying a
+    # second opinion about which dataset that is.
+    conflicting = client.post(
+        f"{DASHBOARDS}/{dashboard['id']}/widgets",
+        json={
+            "kind": "SEARCH",
+            "title": "Both",
+            "config": {"search_id": str(uuid4()), "entity": "order"},
+        },
+        headers=headers,
+    )
+    assert conflicting.status_code == 400
+
+
+def test_the_seeded_layouts_do_not_overlap():
+    """A seeded dashboard opens as something readable rather than a pile.
+
+    The row used to advance by the *last* widget placed rather than the tallest
+    in it, so a full-width panel three rows tall followed by a row of tiles put
+    the tiles inside it — and the grid then had to push them out, which is what
+    left every seeded dashboard full of holes.
+    """
+    from src.seed import runner
+    from src.seed.world import SCALES
+
+    world = runner.generate(scale=SCALES["small"], seed=1234)
+    by_dashboard: dict[str, list] = {}
+    for widget in world.dashboard_widgets:
+        by_dashboard.setdefault(str(widget.dashboard_id), []).append(widget)
+
+    assert by_dashboard, "the seed produced no dashboards to check"
+    for widgets in by_dashboard.values():
+        # Every cell claimed at most once. A set of occupied (column, row)
+        # pairs is the whole test: two widgets sharing one is an overlap.
+        occupied: set[tuple[int, int]] = set()
+        for widget in widgets:
+            for column in range(widget.x, widget.x + widget.width):
+                for row in range(widget.y, widget.y + widget.height):
+                    cell = (column, row)
+                    assert cell not in occupied, f"{widget.title} overlaps at {cell}"
+                    occupied.add(cell)
+            assert widget.x + widget.width <= 12
+
+
+def test_the_seed_only_writes_scopes_the_sharing_model_knows():
+    """One sharing model means one vocabulary, everywhere that writes a scope.
+
+    The seed carried a broader ladder — `TEAM`, `ORGANIZATION` — for an
+    audience nothing implements. `sharing.visibility` has no branch for either,
+    so a seeded dashboard scoped `TEAM` was invisible to everybody but its
+    owner and any edit touching its scope was refused against a vocabulary it
+    was not in. Silent, and exactly the kind of drift a second vocabulary
+    causes.
+    """
+    from src.core.sharing import SCOPES
+    from src.seed import personal, runner
+    from src.seed.world import SCALES
+
+    assert {scope for scope, _weight in personal.SCOPES} <= SCOPES
+    assert {scope for scope, _weight in personal.SEARCH_SCOPES} <= SCOPES
+
+    world = runner.generate(scale=SCALES["small"], seed=99)
+    for saved in (*world.dashboards, *world.reports, *world.saved_searches):
+        assert saved.scope in SCOPES, f"{saved.name} is scoped {saved.scope}"
+
+
+def test_every_persona_owns_exactly_one_home_dashboard():
+    """§67 is "one dashboard is *your* home page".
+
+    It cannot be demonstrated by signing in as somebody who owns none: the page
+    falls back to a colleague's public one, which is right behaviour and a poor
+    demonstration. So the five personas get the first five dashboards, one
+    each, rather than owners drawn at random.
+    """
+    from src.seed import runner
+    from src.seed.world import SCALES
+
+    world = runner.generate(scale=SCALES["small"], seed=7)
+    homes: dict[str, int] = {}
+    for dashboard in world.dashboards:
+        if dashboard.is_home:
+            homes[str(dashboard.owner_id)] = homes.get(str(dashboard.owner_id), 0) + 1
+
+    persona_ids = {str(persona.id) for persona in world.personas.values()}
+    assert set(homes) == persona_ids
+    assert set(homes.values()) == {1}

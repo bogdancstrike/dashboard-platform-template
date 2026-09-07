@@ -16,15 +16,42 @@ import { signIn, storageStateFor } from "./auth";
  */
 test.describe.configure({ mode: "serial" });
 
+/**
+ * Anything this file created, gone — whether the test that made it passed.
+ *
+ * The first version cleaned up on the happy path only, and a run where one
+ * assertion failed left its dashboard behind. Forty-four of them accumulated
+ * before anybody looked at the page.
+ */
+test.afterEach(async ({ page }) => {
+  await page.goto("/dashboards");
+  const picker = page.getByTestId("dashboard-picker");
+  if ((await picker.count()) === 0) return;
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    await picker.click();
+    const leftover = page.locator(".ant-select-item-option", { hasText: /^E2E / }).first();
+    if ((await leftover.count()) === 0) {
+      await page.keyboard.press("Escape");
+      return;
+    }
+    await leftover.click();
+    await page.getByRole("button", { name: "Settings" }).click();
+    await page.getByTestId("delete-dashboard").click();
+    await page.locator(".ant-modal-confirm").getByRole("button", { name: "Delete" }).click();
+    await expect(page.locator(".ant-modal-confirm")).toBeHidden();
+  }
+});
+
 async function createDashboard(page: Page, name: string): Promise<void> {
   await signIn(page, "admin", "/dashboards");
   await page.getByTestId("new-dashboard").click();
-  await expect(page.getByTestId("dashboard-header")).toContainText("New dashboard");
+  await expect(page.getByTestId("dashboard-picker")).toContainText("New dashboard");
   await page.getByRole("button", { name: "Settings" }).click();
   const drawer = page.getByRole("dialog");
   await drawer.getByRole("textbox", { name: /Name/ }).fill(name);
   await drawer.getByTestId("save-dashboard").click();
-  await expect(page.getByTestId("dashboard-header")).toContainText(name);
+  await expect(page.getByTestId("dashboard-picker")).toContainText(name);
 
   // Creating one lands in edit mode, because an empty dashboard needs widgets
   // before it means anything. Asserted rather than assumed, so a test does not
@@ -94,10 +121,10 @@ test("moving a widget from the keyboard is stored, not just drawn", async ({ pag
   // its session on a cold navigation and the first paint is torn down by the
   // redirect that follows.
   await expect(second).toBeVisible();
-  // Three columns when it was added, four after one Wider — read off the grid
-  // the browser actually laid out, which is what a stored width means. The
-  // browser normalises the two longhands into `grid-area: <rows> / <columns>`.
-  await expect(second).toHaveAttribute("style", /grid-area: span 1 \/ span 4/);
+  // Three columns when it was added, four after one Wider — read off what the
+  // card says it was *saved* as, since the grid places it with a transform and
+  // nothing else in the DOM carries the stored width.
+  await expect(second).toHaveAttribute("data-columns", "4");
 
   await deleteOpenDashboard(page);
 });
@@ -114,7 +141,10 @@ test("one person has one home dashboard", async ({ page }) => {
   // §67: exactly one, whatever the seed left behind — a second home is a
   // preference that cannot be honoured.
   await page.reload();
-  await expect(page.getByTestId("dashboard-list").locator(".anticon-home")).toHaveCount(1);
+  // Exactly one, whatever the seed left behind: the picker marks the home one.
+  await page.getByTestId("dashboard-picker").click();
+  await expect(page.locator(".ant-select-item-option", { hasText: "· home" })).toHaveCount(1);
+  await page.keyboard.press("Escape");
 
   await deleteOpenDashboard(page);
 });
@@ -138,7 +168,8 @@ test("a colleague reads a shared dashboard and is refused the controls", async (
   const context = await browser.newContext({ storageState: storageStateFor("manager") });
   const theirs = await context.newPage();
   await signIn(theirs, "manager", "/dashboards");
-  await theirs.getByTestId("dashboard-list").getByText(name).click();
+  await theirs.getByTestId("dashboard-picker").click();
+  await theirs.locator(".ant-select-item-option", { hasText: name }).click();
 
   await expect(theirs.getByTestId("dashboard-grid").getByText("What just happened")).toBeVisible();
   // §76: shown and refused, never hidden — a reader has to see that editing

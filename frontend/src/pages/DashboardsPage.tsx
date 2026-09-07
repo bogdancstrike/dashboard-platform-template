@@ -31,12 +31,10 @@ import {
   App as AntApp,
   Button,
   Card,
-  Col,
   Drawer,
   Empty,
   Form,
   Input,
-  Row,
   Segmented,
   Select,
   Skeleton,
@@ -46,7 +44,11 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { HomeOutlined, PlusOutlined, SettingOutlined } from "@ant-design/icons";
+import {
+  ColumnHeightOutlined,
+  PlusOutlined,
+  SettingOutlined,
+} from "@ant-design/icons";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -56,23 +58,41 @@ import {
   dashboardsApi,
   type DashboardScope,
   type DashboardWidget,
+  type Placement,
   type SavedDashboard,
   type WidgetInput,
   type WidgetKind,
 } from "@/api/dashboards";
 import { explorerApi } from "@/api/explorer";
+import { reportsApi } from "@/api/reports";
 import { PageHeader } from "@/components/PageHeader";
 import { MemberPicker } from "@/components/PeoplePicker";
 import { WidgetBody } from "@/components/dashboards/WidgetBody";
 import { WidgetCard, type WidgetMoves } from "@/components/dashboards/WidgetCard";
+import { WidgetGrid, compacted } from "@/components/dashboards/WidgetGrid";
 import { usePageCommands } from "@/commands/CommandContext";
 import { asText } from "@/lib/text";
 import { relativeTime } from "@/lib/time";
 
 const { Text } = Typography;
 
-/** What each kind is called, and how big it wants to be when first added. */
-const WIDGETS: Record<WidgetKind, { label: string; width: number; height: number; feed?: true }> = {
+/**
+ * What each kind is called, how big it wants to be when first added, and what
+ * it needs naming.
+ *
+ * `feed` is a platform-wide feed and names no dataset. `references` names
+ * something the reader already saved — a report from the chart builder, a
+ * question from the explorer — which is what lets a saved chart become a
+ * widget without being described again.
+ *
+ * Keyed on the whole `WidgetKind` union, so a kind the server offers is a kind
+ * this page can describe: adding one to the server without adding it here
+ * fails to compile.
+ */
+const WIDGETS: Record<
+  WidgetKind,
+  { label: string; width: number; height: number; feed?: true; references?: "report" | "search" }
+> = {
   KPI: { label: "Headline number", width: 3, height: 1 },
   GAUGE: { label: "Gauge", width: 3, height: 2 },
   LINE_CHART: { label: "Line over time", width: 6, height: 2 },
@@ -84,6 +104,8 @@ const WIDGETS: Record<WidgetKind, { label: string; width: number; height: number
   TABLE: { label: "Records as a table", width: 6, height: 2 },
   ALERTS: { label: "What needs attention", width: 4, height: 2, feed: true },
   ACTIVITY: { label: "Recent activity", width: 4, height: 2, feed: true },
+  REPORT: { label: "A saved report", width: 6, height: 2, references: "report" },
+  SEARCH: { label: "A saved search", width: 4, height: 2, references: "search" },
 };
 
 export default function DashboardsPage() {
@@ -91,7 +113,6 @@ export default function DashboardsPage() {
   const { message, modal } = AntApp.useApp();
   const [params, setParams] = useSearchParams();
   const [editing, setEditing] = useState(false);
-  const [dragging, setDragging] = useState<string | null>(null);
   const [widgetForm, setWidgetForm] = useState<DashboardWidget | "new" | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -200,17 +221,7 @@ export default function DashboardsPage() {
   });
 
   const arrange = useMutation({
-    mutationFn: (widgets: DashboardWidget[]) =>
-      dashboardsApi.arrange(
-        openId,
-        widgets.map((widget) => ({
-          id: widget.id,
-          x: widget.x,
-          y: widget.y,
-          width: widget.width,
-          height: widget.height,
-        })),
-      ),
+    mutationFn: (placements: Placement[]) => dashboardsApi.arrange(openId, placements),
     onSuccess: settled,
     onError: failed,
   });
@@ -221,27 +232,16 @@ export default function DashboardsPage() {
 
   /** The layout with one widget changed, sent whole (§73). */
   const rewrite = (changed: DashboardWidget) =>
-    arrange.mutate(widgets.map((widget) => (widget.id === changed.id ? changed : widget)));
+    arrange.mutate(
+      widgets
+        .map((widget) => (widget.id === changed.id ? changed : widget))
+        .map(({ id, x, y, width, height }) => ({ id, x, y, width, height })),
+    );
 
+  // The keyboard half of the same moves the grid does with a pointer. Both
+  // write the whole layout through one endpoint, so neither is a second
+  // answer to "where is this widget" (§54).
   const moves: WidgetMoves = {
-    dragging,
-    dragStart: (widget) => setDragging(widget.id),
-    dropOn: (target) => {
-      const source = widgets.find((widget) => widget.id === dragging);
-      setDragging(null);
-      if (!source || source.id === target.id) return;
-      // A drop swaps the two positions. Reordering the list rather than
-      // computing pixel geometry keeps the result something a reader can
-      // predict and a keyboard can reproduce.
-      const reordered = widgets.map((widget) =>
-        widget.id === source.id
-          ? { ...widget, x: target.x, y: target.y }
-          : widget.id === target.id
-            ? { ...widget, x: source.x, y: source.y }
-            : widget,
-      );
-      arrange.mutate(reordered);
-    },
     nudge: (widget, dx, dy) =>
       rewrite({
         ...widget,
@@ -348,13 +348,27 @@ export default function DashboardsPage() {
               </Button>
             )}
             {editing && board?.can_edit && (
-              <Button
-                icon={<PlusOutlined />}
-                onClick={() => setWidgetForm("new")}
-                data-testid="add-widget"
-              >
-                Add a widget
-              </Button>
+              <>
+                <Button
+                  icon={<PlusOutlined />}
+                  onClick={() => setWidgetForm("new")}
+                  data-testid="add-widget"
+                >
+                  Add a widget
+                </Button>
+                {/* The same rule the grid applies during a drag, on demand: a
+                    dashboard edited for a while accumulates gaps, and closing
+                    them is something a person wants to press. */}
+                <Button
+                  icon={<ColumnHeightOutlined />}
+                  loading={arrange.isPending}
+                  disabled={widgets.length === 0}
+                  onClick={() => arrange.mutate(compacted(widgets, columns))}
+                  data-testid="tidy-up"
+                >
+                  Tidy up
+                </Button>
+              </>
             )}
             <Tooltip title={canCreate ? "" : "Your role does not include dashboards.manage"}>
               <Button
@@ -372,145 +386,110 @@ export default function DashboardsPage() {
         }
       />
 
-      <Row gutter={[12, 12]}>
-        <Col xs={24} lg={6} xl={5}>
-          <Card size="small" title="Dashboards" data-testid="dashboard-list">
-            {items.length === 0 ? (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="Nothing saved yet. Create one and it will appear here."
+      {items.length === 0 ? (
+        <Card size="small">
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="Nothing saved yet. Create one and it will appear here."
+          />
+        </Card>
+      ) : !openId ? (
+        <Card size="small">
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Pick a dashboard" />
+        </Card>
+      ) : dashboard.isLoading ? (
+        <Skeleton active paragraph={{ rows: 10 }} />
+      ) : dashboard.isError ? (
+        <Alert
+          type="error"
+          showIcon
+          message={
+            dashboard.error instanceof ApiError
+              ? dashboard.error.message
+              : "That dashboard could not be opened"
+          }
+        />
+      ) : (
+        <>
+          {/* One strip: which dashboard, whose it is, and what may be done to
+              it. A column of dashboard names beside the grid spent a sixth of
+              the page on a list of four things and left the rest of that
+              column empty. */}
+          <Card size="small" data-testid="dashboard-header">
+            <Space size={12} wrap>
+              <Select
+                aria-label="Dashboard"
+                style={{ minWidth: 220 }}
+                value={openId}
+                onChange={open}
+                data-testid="dashboard-picker"
+                options={items.map((item) => ({
+                  value: item.id,
+                  label: item.is_home ? `${item.name} · home` : item.name,
+                }))}
               />
-            ) : (
-              <ul className="nu-queue">
-                {items.map((item) => (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      className={`nu-queue-row${item.id === openId ? " is-open" : ""}`}
-                      aria-current={item.id === openId}
-                      onClick={() => open(item.id)}
-                    >
-                      <span className="nu-queue-main">
-                        <span className="nu-queue-title">
-                          <Text strong ellipsis>
-                            {item.name}
-                          </Text>
-                          {item.is_home && <HomeOutlined aria-label="Your home dashboard" />}
-                        </span>
-                        <span className="nu-queue-meta">
-                          <Text type="secondary">
-                            {item.widget_count}{" "}
-                            {item.widget_count === 1 ? "widget" : "widgets"}
-                          </Text>
-                          <Tag bordered={false}>{item.scope}</Tag>
-                          {item.owner.name && !item.can_edit && (
-                            <Text type="secondary">{item.owner.name}</Text>
-                          )}
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        </Col>
-
-        <Col xs={24} lg={18} xl={19}>
-          {!openId ? (
-            <Card size="small">
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="Pick a dashboard, or create one"
-              />
-            </Card>
-          ) : dashboard.isLoading ? (
-            <Skeleton active paragraph={{ rows: 10 }} />
-          ) : dashboard.isError ? (
-            <Alert
-              type="error"
-              showIcon
-              message={
-                dashboard.error instanceof ApiError
-                  ? dashboard.error.message
-                  : "That dashboard could not be opened"
-              }
-            />
-          ) : (
-            <>
-              <Card size="small" className="nu-block" data-testid="dashboard-header">
-                <Space size={12} wrap>
-                  <Text strong>{board?.name}</Text>
-                  {board?.description && <Text type="secondary">{board.description}</Text>}
-                  <Text type="secondary">
-                    {board?.owner.name} · {board?.scope.toLowerCase()} ·{" "}
-                    {board?.updated_at ? relativeTime(board.updated_at) : "—"}
-                  </Text>
-                  {board?.can_edit && (
-                    <Button size="small" onClick={() => setSettingsOpen(true)}>
-                      Settings
-                    </Button>
-                  )}
-                  {!board?.can_edit && (
-                    // Shown, not hidden: a reader has to be able to see that
-                    // editing exists and is not theirs (§76).
-                    <Tooltip title="Only the owner may change a dashboard">
-                      <Button size="small" disabled>
-                        Settings
-                      </Button>
-                    </Tooltip>
-                  )}
-                </Space>
-              </Card>
-
-              {widgets.length === 0 ? (
-                <Card size="small">
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="No widgets yet"
-                  >
-                    {board?.can_edit && (
-                      <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={() => {
-                          setEditing(true);
-                          setWidgetForm("new");
-                        }}
-                      >
-                        Add the first one
-                      </Button>
-                    )}
-                  </Empty>
-                </Card>
-              ) : (
-                <div
-                  className="nu-grid"
-                  style={{ ["--nu-grid-columns" as string]: String(columns) }}
-                  data-testid="dashboard-grid"
+              {board?.description && <Text type="secondary">{board.description}</Text>}
+              <Text type="secondary">
+                {board?.owner.name} · {board?.scope.toLowerCase()} ·{" "}
+                {board?.widget_count} {board?.widget_count === 1 ? "widget" : "widgets"} ·{" "}
+                {board?.updated_at ? relativeTime(board.updated_at) : "—"}
+              </Text>
+              <Tooltip title={board?.can_edit ? "" : "Only the owner may change a dashboard"}>
+                <Button
+                  size="small"
+                  disabled={!board?.can_edit}
+                  onClick={() => setSettingsOpen(true)}
                 >
-                  {widgets.map((widget) => (
-                    <WidgetCard
-                      key={widget.id}
+                  Settings
+                </Button>
+              </Tooltip>
+            </Space>
+          </Card>
+
+          {widgets.length === 0 ? (
+            <Card size="small" className="nu-block">
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No widgets yet">
+                {board?.can_edit && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => {
+                      setEditing(true);
+                      setWidgetForm("new");
+                    }}
+                  >
+                    Add the first one
+                  </Button>
+                )}
+              </Empty>
+            </Card>
+          ) : (
+            <div className="nu-block" data-testid="dashboard-grid">
+              <WidgetGrid
+                widgets={widgets}
+                columns={columns}
+                editable={editing && Boolean(board?.can_edit)}
+                onCommit={(placements) => arrange.mutate(placements)}
+              >
+                {(widget) => (
+                  <WidgetCard
+                    widget={widget}
+                    editable={editing && Boolean(board?.can_edit)}
+                    moves={moves}
+                  >
+                    <WidgetBody
                       widget={widget}
-                      columns={columns}
-                      editable={editing && Boolean(board?.can_edit)}
-                      moves={moves}
-                    >
-                      <WidgetBody
-                        widget={widget}
-                        period={asText(board?.filters["period"]) || "last_30_days"}
-                        catalogue={catalogue.data}
-                        resources={resources.data?.items ?? []}
-                      />
-                    </WidgetCard>
-                  ))}
-                </div>
-              )}
-            </>
+                      period={asText(board?.filters["period"]) || "last_30_days"}
+                      catalogue={catalogue.data}
+                      resources={resources.data?.items ?? []}
+                    />
+                  </WidgetCard>
+                )}
+              </WidgetGrid>
+            </div>
           )}
-        </Col>
-      </Row>
+        </>
+      )}
 
       <WidgetDrawer
         open={widgetForm !== null}
@@ -584,6 +563,22 @@ function WidgetDrawer({
     staleTime: 300_000,
   });
 
+  // What the reader has already made. Fetched only when a kind that references
+  // one is chosen, so opening the drawer for a KPI costs nothing.
+  const shape = WIDGETS[kind];
+  const reports = useQuery({
+    queryKey: ["reports"],
+    queryFn: ({ signal }) => reportsApi.list(signal),
+    enabled: open && shape.references === "report",
+    staleTime: 60_000,
+  });
+  const searches = useQuery({
+    queryKey: ["saved-searches", "all"],
+    queryFn: ({ signal }) => explorerApi.saved(undefined, signal),
+    enabled: open && shape.references === "search",
+    staleTime: 60_000,
+  });
+
   const initial = {
     kind: widget?.kind ?? "KPI",
     title: widget?.title ?? "",
@@ -592,12 +587,10 @@ function WidgetDrawer({
     dimension: widget?.config.dimension ?? "",
     stack: widget?.config.stack ?? "",
     period: widget?.config.period ?? "",
+    report_id: widget?.config.report_id ?? "",
+    search_id: widget?.config.search_id ?? "",
   };
 
-  // Exhaustive by construction: `WIDGETS` is keyed on the whole `WidgetKind`
-  // union, so a kind the server offers is a kind this page can describe — and
-  // adding one to the server without adding it here fails to compile.
-  const shape = WIDGETS[kind];
   const dataset = catalogue.data?.datasets.find(
     (item) => item.key === (form.getFieldValue("entity") ?? initial.entity),
   );
@@ -625,24 +618,29 @@ function WidgetDrawer({
         }}
         onFinish={(values: Record<string, string>) => {
           const chosen = (values["kind"] ?? "KPI") as WidgetKind;
-          const feed = WIDGETS[chosen].feed;
+          const wanted = WIDGETS[chosen];
           onSave({
             kind: chosen,
             title: values["title"] ?? "",
             subtitle: values["subtitle"] || null,
             // A newly added widget takes the size its kind wants; an edited
             // one keeps where the reader put it.
-            ...(widget
+            ...(widget ? {} : { width: wanted.width, height: wanted.height, x: 0 }),
+            // The kind decides what the config may hold, because the server
+            // refuses a dataset on a feed and a dataset on a reference — both
+            // would be a second opinion about where the data comes from.
+            config: wanted.feed
               ? {}
-              : { width: WIDGETS[chosen].width, height: WIDGETS[chosen].height, x: 0 }),
-            config: feed
-              ? {}
-              : {
-                  entity: values["entity"] ?? "",
-                  ...(values["dimension"] ? { dimension: values["dimension"] } : {}),
-                  ...(values["stack"] ? { stack: values["stack"] } : {}),
-                  ...(values["period"] ? { period: values["period"] } : {}),
-                },
+              : wanted.references === "report"
+                ? { report_id: values["report_id"] ?? "" }
+                : wanted.references === "search"
+                  ? { search_id: values["search_id"] ?? "" }
+                  : {
+                      entity: values["entity"] ?? "",
+                      ...(values["dimension"] ? { dimension: values["dimension"] } : {}),
+                      ...(values["stack"] ? { stack: values["stack"] } : {}),
+                      ...(values["period"] ? { period: values["period"] } : {}),
+                    },
           });
         }}
       >
@@ -666,7 +664,49 @@ function WidgetDrawer({
           <Input placeholder="Optional — scope, caveat, period" />
         </Form.Item>
 
-        {!shape.feed && (
+        {shape.references === "report" && (
+          <Form.Item
+            name="report_id"
+            label="Which report"
+            rules={[{ required: true, message: "Pick a report to draw" }]}
+            extra="Drawn the way the report itself says it should be. Editing the report takes its widgets with it."
+          >
+            <Select
+              aria-label="Report"
+              loading={reports.isLoading}
+              options={(reports.data?.items ?? []).map((item) => ({
+                value: item.id,
+                label: `${item.name} · ${item.visualization}`,
+              }))}
+              notFoundContent={
+                reports.isLoading ? "Loading…" : "You have not saved a report yet"
+              }
+            />
+          </Form.Item>
+        )}
+
+        {shape.references === "search" && (
+          <Form.Item
+            name="search_id"
+            label="Which search"
+            rules={[{ required: true, message: "Pick a saved search to answer" }]}
+            extra="Answered through the explorer query, under the same permissions."
+          >
+            <Select
+              aria-label="Saved search"
+              loading={searches.isLoading}
+              options={(searches.data?.items ?? []).map((item) => ({
+                value: item.id,
+                label: `${item.name} · ${item.resource_type}`,
+              }))}
+              notFoundContent={
+                searches.isLoading ? "Loading…" : "You have not saved a search yet"
+              }
+            />
+          </Form.Item>
+        )}
+
+        {!shape.feed && !shape.references && (
           <>
             <Form.Item name="entity" label="Dataset">
               <Select

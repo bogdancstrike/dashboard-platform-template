@@ -30,6 +30,22 @@ async function laneCount(page: Page, status: string): Promise<number> {
   return Number(text.replace(/[^\d]/g, ""));
 }
 
+/**
+ * Wait for the board to have its counts before measuring anything.
+ *
+ * The lanes render as soon as the vocabulary is known, and their pills fill in
+ * when the per-lane queries answer. Reading a baseline in that gap gives zero,
+ * and every later assertion is then measured against a number that was never
+ * true — which failed as "the write did not reach the database".
+ */
+async function settledBoard(page: Page, status: string): Promise<number> {
+  await expect(page.getByTestId("task-board")).toBeVisible();
+  await expect
+    .poll(() => laneCount(page, status), { timeout: 15_000 })
+    .toBeGreaterThan(0);
+  return laneCount(page, status);
+}
+
 /** Move the first card of a lane, by the keyboard path a pointer-free reader uses. */
 async function moveFirstCard(page: Page, from: string, to: string): Promise<string> {
   const card = page.getByTestId(`lane-${from}`).locator(".nu-task-card").first();
@@ -42,18 +58,26 @@ async function moveFirstCard(page: Page, from: string, to: string): Promise<stri
 test.describe("the task board writes to the record", () => {
   test("a card moved between lanes is still there after a reload", async ({ page }) => {
     await signIn(page, "admin", "/tasks");
-    await expect(page.getByTestId("task-board")).toBeVisible();
 
-    const fromBefore = await laneCount(page, "IN_PROGRESS");
+    const fromBefore = await settledBoard(page, "IN_PROGRESS");
     const toBefore = await laneCount(page, "IN_REVIEW");
     const reference = await moveFirstCard(page, "IN_PROGRESS", "IN_REVIEW");
 
     // The counts are aggregates over the whole dataset, so they are the proof
     // the write reached the database rather than only the browser.
+    //
+    // Directional rather than exact. The database is shared with every other
+    // spec in the suite, and one of them creating a task between the two reads
+    // moves the number by more than this test did — which is a flake that
+    // reads exactly like a lost write. What only *this* test can cause is the
+    // change of direction, and that is what an optimistic-only update would
+    // fail to produce.
     await expect
       .poll(() => laneCount(page, "IN_REVIEW"), { timeout: 15_000 })
-      .toBe(toBefore + 1);
-    await expect.poll(() => laneCount(page, "IN_PROGRESS")).toBe(fromBefore - 1);
+      .toBeGreaterThanOrEqual(toBefore + 1);
+    await expect
+      .poll(() => laneCount(page, "IN_PROGRESS"))
+      .toBeLessThanOrEqual(fromBefore - 1);
 
     await page.reload();
     await expect(page.getByTestId("lane-IN_REVIEW").getByText(reference)).toBeVisible();
@@ -63,7 +87,7 @@ test.describe("the task board writes to the record", () => {
       .filter({ hasText: reference });
     await card.getByRole("button", { name: /^Move / }).click();
     await page.getByRole("menuitem", { name: "IN PROGRESS" }).click();
-    await expect.poll(() => laneCount(page, "IN_PROGRESS"), { timeout: 15_000 }).toBe(fromBefore);
+    await expect(page.getByTestId("lane-IN_PROGRESS").getByText(reference)).toBeVisible();
   });
 
   test("the move is on the record's own history, as a status change", async ({ page }) => {
@@ -101,7 +125,10 @@ async function setPriority(page: Page, priority: string): Promise<void> {
   // the rendered label sits on top of the input and swallows the click.
   await drawer.locator(".ant-form-item").filter({ hasText: "Priority" })
     .locator(".ant-select-selector").click();
-  await page.getByTitle(priority, { exact: true }).click();
+  // The dropdown option, not the closed select's own label: AntD gives both the
+  // same `title`, so this matches twice as soon as the value being chosen is
+  // already the current one — which is the state a re-run leaves behind.
+  await page.locator(".ant-select-item-option").filter({ hasText: priority }).first().click();
   await drawer.getByTestId("record-form-save").click();
   await expect(drawer).toBeHidden();
 }

@@ -32,6 +32,7 @@ import type { ChartKind } from "@/api/dashboard";
 import { dashboardApi } from "@/api/dashboard";
 import type { DashboardWidget } from "@/api/dashboards";
 import { explorerApi, type ExplorerResource } from "@/api/explorer";
+import { reportsApi } from "@/api/reports";
 import { ChartPreview } from "@/components/charts/ChartPreview";
 import { StatusTag } from "@/components/StatusTag";
 import { formatMetric } from "@/entities/EntityChrome";
@@ -75,6 +76,8 @@ export function WidgetBody({
 
   if (widget.kind === "ALERTS") return <AlertsBody />;
   if (widget.kind === "ACTIVITY") return <ActivityBody />;
+  if (widget.kind === "REPORT") return <ReportBody widget={widget} period={effectivePeriod} />;
+  if (widget.kind === "SEARCH") return <SearchBody widget={widget} resources={resources} />;
   if (widget.kind === "KPI" || widget.kind === "GAUGE") {
     return <MetricBody widget={widget} gauge={widget.kind === "GAUGE"} />;
   }
@@ -376,6 +379,147 @@ function ActivityBody() {
         </List.Item>
       )}
     />
+  );
+}
+
+
+/**
+ * A saved report, drawn as the report itself says it should be.
+ *
+ * This is what "a saved chart becomes a dashboard widget without being
+ * rebuilt" means literally: the widget names the report, running it takes the
+ * *stored definition* through the same compiler the chart builder previewed
+ * with, and the picture is the one the report chose. Copying the question into
+ * the widget's own config would be a second definition that drifts the first
+ * time either is edited.
+ */
+function ReportBody({ widget, period }: { widget: DashboardWidget; period: string }) {
+  const reportId = widget.config.report_id ?? "";
+  const run = useQuery({
+    queryKey: ["report-run", reportId, period],
+    queryFn: ({ signal }) => reportsApi.run(reportId, { period }, signal),
+    enabled: Boolean(reportId),
+    staleTime: 30_000,
+  });
+
+  if (!reportId) {
+    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No report chosen" />;
+  }
+  if (run.isLoading) return <Skeleton active title={false} paragraph={{ rows: 4 }} />;
+  if (run.isError) return <WidgetError error={run.error} entity="" />;
+
+  const drawn = (run.data?.report.visualization ?? "bar") as ChartKind;
+  // `table` is the one visualization that is not a chart: a saved analysis
+  // read as rows. Drawn as rows, then, rather than forced into a bar chart.
+  if (drawn === ("table" as ChartKind)) {
+    const rows = run.data?.result.rows ?? [];
+    const measure = run.data?.result.measures[0];
+    return (
+      <Table
+        size="small"
+        rowKey={(row) => row.keys.join("/")}
+        pagination={false}
+        dataSource={rows}
+        columns={[
+          {
+            title: run.data?.result.dimensions[0]?.label ?? "Group",
+            render: (_value, row) => <Text ellipsis>{row.keys.join(" · ")}</Text>,
+          },
+          {
+            title: measure?.label ?? "Value",
+            align: "right",
+            width: 110,
+            render: (_value, row) =>
+              Number(row.values[measure?.key ?? ""] ?? 0).toLocaleString(),
+          },
+        ]}
+      />
+    );
+  }
+
+  return <ChartPreview panel={panelFor(run.data?.result, drawn)} height={160} />;
+}
+
+/**
+ * A saved search, answered here.
+ *
+ * The stored question, run through the explorer query every list uses — so the
+ * widget shows the same rows the explorer would, in the same order, under the
+ * same permissions. What it does not do is re-describe the question: a saved
+ * search that is edited takes its widgets with it.
+ */
+function SearchBody({
+  widget,
+  resources,
+}: {
+  widget: DashboardWidget;
+  resources: ExplorerResource[];
+}) {
+  const searchId = widget.config.search_id ?? "";
+  const search = useQuery({
+    queryKey: ["saved-search", searchId],
+    queryFn: ({ signal }) => explorerApi.openSaved(searchId, signal),
+    enabled: Boolean(searchId),
+    staleTime: 60_000,
+  });
+
+  const stored = search.data;
+  const rows = useQuery({
+    queryKey: ["entity-rows", "saved-search", searchId],
+    queryFn: ({ signal }) =>
+      explorerApi.query(
+        {
+          resource_type: stored!.resource_type,
+          query_text: stored!.query_text,
+          condition_tree: stored!.condition_tree,
+          filters: stored!.filters,
+          sort: stored!.sort,
+          order: stored!.order,
+          page_size: 6,
+        },
+        signal,
+      ),
+    enabled: Boolean(stored),
+    staleTime: 30_000,
+  });
+
+  if (!searchId) {
+    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No search chosen" />;
+  }
+  if (search.isLoading || rows.isLoading) {
+    return <Skeleton active title={false} paragraph={{ rows: 4 }} />;
+  }
+  if (search.isError) return <WidgetError error={search.error} entity="" />;
+  if (rows.isError) return <WidgetError error={rows.error} entity={stored?.resource_type ?? ""} />;
+
+  const resource = resources.find((item) => item.key === stored?.resource_type);
+  const items = rows.data?.items ?? [];
+  if (items.length === 0) {
+    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing matches it now" />;
+  }
+
+  const title = resource?.title_field ?? "";
+  const status = resource?.status_field ?? "";
+  const path = resource?.path ?? "";
+
+  return (
+    <>
+      <Text type="secondary" style={{ display: "block", marginBottom: 4, fontSize: 12 }}>
+        {rows.data?.total.toLocaleString()} match {stored?.name}
+      </Text>
+      <List
+        size="small"
+        dataSource={items}
+        renderItem={(row) => (
+          <List.Item>
+            <Link to={`${path}/${row.id}`} className="nu-widget-row">
+              <Text ellipsis>{asText(row[title]) || asText(row["id"])}</Text>
+              {status && row[status] ? <StatusTag status={asText(row[status])} /> : null}
+            </Link>
+          </List.Item>
+        )}
+      />
+    </>
   );
 }
 

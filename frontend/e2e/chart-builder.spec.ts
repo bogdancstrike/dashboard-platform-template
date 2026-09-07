@@ -61,13 +61,13 @@ test.describe("the chart builder", () => {
       .filter({ has: page.getByRole("combobox", { name: "Second aggregation" }) })
       .locator(".ant-select-selector")
       .click();
-    await page.getByTitle("Avg", { exact: true }).click();
+    await page.locator(".ant-select-item-option").filter({ hasText: "Avg" }).first().click();
     await page
       .locator(".ant-select")
       .filter({ has: page.getByRole("combobox", { name: "Second measured column" }) })
       .locator(".ant-select-selector")
       .click();
-    await page.getByTitle("Item count", { exact: true }).click();
+    await page.locator(".ant-select-item-option").filter({ hasText: "Item count" }).first().click();
 
     await expect(page.getByTestId("chart-kind-scatter")).toBeEnabled();
     await page.getByTestId("chart-kind-scatter").click();

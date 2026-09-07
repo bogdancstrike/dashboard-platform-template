@@ -64,12 +64,25 @@ WIDGET_KINDS = frozenset({
     "BAR_CHART",
     "PIE_CHART",
     "HEATMAP",
+    # The two that put something the reader *already made* on the grid, rather
+    # than asking them to describe it again. A chart composed in the chart
+    # builder is a saved report; a question composed in the explorer is a saved
+    # search. Both are shared, audited and permission-checked already, so a
+    # widget that points at one inherits all of that instead of copying it.
+    "REPORT",
+    "SEARCH",
 })
 
-#: Kinds that read a dataset. `ACTIVITY` and `ALERTS` are platform-wide feeds
-#: and name no entity, which is why the entity is required of the rest rather
-#: than of all of them.
-DATASET_KINDS = WIDGET_KINDS - {"ACTIVITY", "ALERTS"}
+#: Kinds that read a dataset directly. The platform-wide feeds name no entity,
+#: and the two that reference a saved thing take their dataset from it — so the
+#: entity is required of these rather than of all of them.
+DATASET_KINDS = WIDGET_KINDS - {"ACTIVITY", "ALERTS", "REPORT", "SEARCH"}
+
+#: What each referencing kind must name, and where that thing lives.
+REFERENCE_KINDS: dict[str, tuple[str, str]] = {
+    "REPORT": ("report_id", "report"),
+    "SEARCH": ("search_id", "saved search"),
+}
 
 #: The widest a dashboard may be. Twelve is the grid every layout in the
 #: product is built on; anything else would need a second set of breakpoints.
@@ -381,6 +394,25 @@ def _config(raw: Any, *, kind: str, principal) -> dict[str, Any]:
     """
     config = dict(raw or {})
     entity = str(config.get("entity") or "").strip()
+
+    if kind in REFERENCE_KINDS:
+        key, noun = REFERENCE_KINDS[kind]
+        reference = str(config.get(key) or "").strip()
+        if not reference:
+            raise ValidationError(
+                f"That widget draws a saved {noun}, so it has to name one.",
+                details={"kind": kind, "required": key},
+            )
+        # Parsed, not resolved: whether the reader may *see* that report is
+        # decided when the widget is drawn, by the endpoint that owns it. A
+        # check here would go stale the moment the owner changed its audience.
+        config[key] = str(parse_uuid(reference, field=key))
+        if entity:
+            raise ValidationError(
+                f"That widget takes its dataset from the saved {noun} it names.",
+                details={"kind": kind, "entity": entity},
+            )
+        return config
 
     if kind in DATASET_KINDS:
         if not entity:

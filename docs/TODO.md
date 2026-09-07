@@ -35,7 +35,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
 | Endpoints | 56 of ~110 — `maps/endpoint.json` is the list, and `python -m src.api.endpoint_map` prints it; nothing here is kept in step by hand |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 336 backend + 279 frontend + 144 Playwright e2e — all green against `docker compose up`. Scale-independent: they pass on either seed size |
+| Tests | 341 backend + 285 frontend + 144 Playwright e2e — all green against `docker compose up`. Scale-independent: they pass on either seed size |
 | Frontend | shell, Data Explorer, discovery workspaces, the notification centre, six entity lists, three record pages of their own, and the whole ANALYSE section bar dashboards; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -405,14 +405,43 @@ commit — built, committed, pushed, redeployed and verified before the next.
 - [ ] **Redis is used for what a cache is for** — the aggregates that cost a
       `GROUP BY` over the whole dataset, invalidated by the writes that make
       them stale rather than by a timer
-- [ ] **The dashboards follow QSINT** (`/home/user/workspace/qsint/frontend/ui-qsint`)
-      — resizeable widgets with handles, auto-arrange, and widgets that are the
-      application's own modules rather than a separate vocabulary
-- [ ] **A UI/UX pass over every page** — cleaner and more minimalist, no large
+- [x] **The dashboards follow QSINT** (`/home/user/workspace/qsint/frontend/ui-qsint`)
+      — `react-grid-layout` with drag, corner resize and vertical
+      auto-compaction; a "Tidy up" that applies the same rule on demand; and
+      two widget kinds that draw what the reader already saved rather than
+      asking them to describe it again
+  - Four defects the deployed page then showed, all fixed: the seeded layouts
+    *overlapped*, because the row advanced by the last widget placed rather
+    than the tallest in it — so the grid had to push them apart and every
+    dashboard opened full of holes; the seed wrote `TEAM` and `ORGANIZATION`
+    scopes that `core/sharing` cannot express, making those rows invisible to
+    everybody but their owner and unwritable by anybody; dashboards were owned
+    at random, so no persona owned one and §67 could not be demonstrated; and
+    the dashboard list spent a sixth of the page on four names, so the picker
+    moved into the header strip
+  - `python -m src.seed --check` now reports a scope the sharing model cannot
+    express, because that failure is otherwise completely silent
+- [~] **A UI/UX pass over every page** — cleaner and more minimalist, no large
       empty areas, uniform buttons and page furniture, everything easy to read
       and reach
-- [ ] **Every page in the navigation is implemented**, not a placeholder — the
-      list is in [Phase 6](#phase-6--frontend-pages)
+  - Done so far, on the pages built this session: the dashboard picker moved
+    out of a mostly-empty column into the header strip; widget cards fill the
+    cell the grid gave them, so two widgets of the same declared height are the
+    same height; a KPI's number fits one grid row without scrolling
+  - The pass over the remaining pages is still to come
+- [~] **Every page in the navigation is implemented**, not a placeholder — the
+      list is in [Phase 6](#phase-6--frontend-pages). `/dashboards` is done;
+      `/kanban`, `/workflows`, `/calendar`, `/mail`, `/files`, the admin area
+      and the system pages remain
+- [x] **Six latent e2e flakes fixed, all the same two mistakes.** Four specs
+      clicked a select option with `getByTitle`, which AntD also puts on the
+      closed select's own label — so the click matched twice as soon as the
+      value being chosen was already the current one, which is the state a
+      re-run leaves behind. And three specs measured a baseline before the
+      thing they were measuring had loaded: a lane count read in the gap
+      between the lanes rendering and their queries answering is zero, and
+      every later assertion is then measured against a number that was never
+      true. Both classes read as product bugs; neither was
 - [x] **`docs/` is generated where it can be** — the RBAC permission matrix was
       typed out by hand and had already drifted: `records.comment` shipped with
       the task work page and never reached the table. It is now rendered from
@@ -1257,8 +1286,32 @@ everything else.
     publishing it raw put a home marker on a colleague's public dashboard —
     telling the reader something false about their own settings. Found by an
     e2e test counting the markers in the list
-- [ ] Auto-arrange, and widgets drawn from the application's own modules —
-      see the QSINT-inspired follow-up in *Requested this session*
+- [x] Auto-arrange, and widgets drawn from what the reader already saved
+  - **`react-grid-layout`, following QSINT** — drag a card to a place, drag its
+    corner to a size, and have the gap it left close behind it. The third is
+    the one that matters: a grid that lets a reader leave a hole fills up with
+    holes. Committed on `onDragStop` and `onResizeStop`, not on every frame of
+    a drag — forty writes and a server deciding what a half-finished gesture
+    means
+  - **The pointer is not the only way.** `react-grid-layout` is pointer-only by
+    construction, so every gesture is also a menu item on the card. Both write
+    the whole layout through one endpoint, so neither is a second answer to
+    "where is this widget" (§54)
+  - **"Tidy up"** applies the same vertical compaction on demand, in reading
+    order, and settles — tidying twice gives the same answer, which is what
+    makes it a button rather than a surprise. Six unit tests, because the cases
+    that matter are a hole above a widget, two widgets competing for one row,
+    and one wider than the grid
+  - **Two kinds put something the reader already made on the grid**: `REPORT`
+    draws a saved report — the chart builder's own output, which is what closes
+    "a saved chart becomes a dashboard widget without being rebuilt" — and
+    `SEARCH` answers a saved search through the explorer query. Both inherit
+    the sharing, the audit trail and the permissions of the thing they name
+    rather than copying its definition
+  - The reference is *parsed*, not resolved, on write: whether the reader may
+    see that report is decided when the widget is drawn, by the endpoint that
+    owns it. A check at save time would go stale the moment its owner changed
+    the audience
 
 ### `/announcements` — system messages (§17)
 
@@ -1771,7 +1824,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] `docker compose up` clean-boot green — every service healthy from empty
       volumes; seed wrote 15 554 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
-- [~] Backend tests — 336 passing, including the comment thread's permissions
+- [~] Backend tests — 341 passing, including the comment thread's permissions
       and editing rules, the checklist's validation, saved reports' lifecycle and
       sharing, the analysis compiler's grouping,
       refusals and reconciliation, Data Explorer query, validation,
@@ -1788,7 +1841,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
     aims at the **running stack** — it silently replaced the demo dataset with a
     small one, so every Playwright run afterwards measured 60 tasks where
     compose had produced 500. Nothing failed; the numbers were quietly different
-- [~] Frontend unit + component tests — 279 passing, including the task work
+- [~] Frontend unit + component tests — 285 passing, including the task work
       page and its conversation, saved reports
       and the builder, the analytics
       workspace, the record form,

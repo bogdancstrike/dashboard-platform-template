@@ -42,8 +42,9 @@ describe("the dashboards page", () => {
     // §67: the home dashboard is where a reader lands, and the URL records it
     // so the layout can be linked to.
     expect(await screen.findByTestId("dashboard-grid")).toBeInTheDocument();
-    const header = screen.getByTestId("dashboard-header");
-    expect(within(header).getByText("Support desk")).toBeInTheDocument();
+    // The picker in the header names the open one — one strip rather than a
+    // column of dashboard names beside the grid.
+    expect(screen.getByTestId("dashboard-picker")).toHaveTextContent("Support desk");
     expect(screen.getByTestId("widget-widget-1")).toBeInTheDocument();
   });
 
@@ -135,7 +136,7 @@ describe("the dashboards page", () => {
     render("/dashboards?dashboard=dash-2");
 
     const header = await screen.findByTestId("dashboard-header");
-    expect(within(header).getByText("Delivery health")).toBeInTheDocument();
+    expect(screen.getByTestId("dashboard-picker")).toHaveTextContent("Delivery health");
     // §76: shown and disabled, with the reason, so a reader can see that
     // editing exists and is not theirs.
     expect(within(header).getByRole("button", { name: "Settings" })).toBeDisabled();

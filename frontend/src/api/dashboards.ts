@@ -28,7 +28,11 @@ export type WidgetKind =
   | "AREA_CHART"
   | "BAR_CHART"
   | "PIE_CHART"
-  | "HEATMAP";
+  | "HEATMAP"
+  /** A saved report — the chart builder's own output, drawn where it was left. */
+  | "REPORT"
+  /** A saved search — a question composed in the explorer, answered here. */
+  | "SEARCH";
 
 /**
  * What one widget asks.
@@ -56,6 +60,8 @@ export interface WidgetConfig {
   filters?: Record<string, string>;
   /** A saved report this widget draws, instead of an inline question. */
   report_id?: string;
+  /** A saved search this widget answers, instead of an inline query. */
+  search_id?: string;
 }
 
 export interface DashboardWidget {

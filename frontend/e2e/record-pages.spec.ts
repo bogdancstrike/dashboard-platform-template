@@ -100,7 +100,7 @@ test.describe("a project reads as a delivery review", () => {
     const after = before === "OFF TRACK" ? "AT RISK" : "OFF TRACK";
 
     await select.locator(".ant-select-selector").click();
-    await page.getByTitle(after, { exact: true }).click();
+    await page.locator(".ant-select-item-option").filter({ hasText: after }).first().click();
 
     // Reloaded, so what is on screen came back from the database rather than
     // from the control that sent it.
@@ -112,7 +112,7 @@ test.describe("a project reads as a delivery review", () => {
 
     await page.goto(url);
     await select.locator(".ant-select-selector").click();
-    await page.getByTitle(before, { exact: true }).click();
+    await page.locator(".ant-select-item-option").filter({ hasText: before }).first().click();
     await expect(page.getByTestId("project-review")).toContainText(before);
   });
 });
@@ -145,12 +145,12 @@ test.describe("a ticket reads as a support console", () => {
     const after = before === "CRITICAL" ? "MAJOR" : "CRITICAL";
 
     await select.locator(".ant-select-selector").click();
-    await page.getByTitle(after, { exact: true }).click();
+    await page.locator(".ant-select-item-option").filter({ hasText: after }).first().click();
     await page.reload();
     await expect(page.getByTestId("ticket-triage")).toContainText(after);
 
     await select.locator(".ant-select-selector").click();
-    await page.getByTitle(before, { exact: true }).click();
+    await page.locator(".ant-select-item-option").filter({ hasText: before }).first().click();
     await expect(page.getByTestId("ticket-triage")).toContainText(before);
   });
 

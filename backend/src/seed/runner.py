@@ -285,6 +285,28 @@ def verify(session) -> list[str]:
         if not session.scalar(select(func.count()).select_from(User).where(User.email == email)):
             problems.append(f"persona {email} is missing")
 
+    # A scope the sharing model cannot express is a row nobody but its owner
+    # can see and nobody at all can edit — and it fails silently, because
+    # `sharing.visibility` simply has no branch for it. Reported here because
+    # `--check` is where a database says what is wrong with it.
+    from src.core.sharing import SCOPES
+    from src.models.personal import Report, SavedView
+
+    for label, model in (
+        ("dashboards", Dashboard), ("reports", Report),
+        ("saved views", SavedView), ("saved searches", SavedSearch),
+    ):
+        unknown = session.execute(
+            select(model.scope, func.count())
+            .where(model.scope.notin_(sorted(SCOPES)))
+            .group_by(model.scope)
+        ).all()
+        for scope, count in unknown:
+            problems.append(
+                f"{count} {label} carry scope {scope}, which the sharing model "
+                f"cannot express — allowed: {', '.join(sorted(SCOPES))}"
+            )
+
     return problems
 
 

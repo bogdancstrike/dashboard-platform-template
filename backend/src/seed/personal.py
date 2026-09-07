@@ -23,10 +23,17 @@ SEARCH_SCOPES: tuple[tuple[str, float], ...] = (
     ("PRIVATE", 0.6), ("SHARED", 0.28), ("PUBLIC", 0.12),
 )
 
-#: Views, dashboards and reports keep the broader ladder, where "everyone in my
-#: department" is the natural audience and naming people one by one is not.
+#: Views, dashboards and reports share the *same* three states, because
+#: `core/sharing` is the one sharing model and it knows three.
+#:
+#: This used to carry a broader ladder — `TEAM` and `ORGANIZATION` — for an
+#: audience nothing implements. The consequence was silent: `sharing.visibility`
+#: has no branch for either, so a seeded dashboard scoped `TEAM` was invisible
+#: to everybody but its owner, and any edit touching its scope was refused
+#: against a vocabulary it was not in. Three states that work beat four where
+#: two are a plan.
 SCOPES: tuple[tuple[str, float], ...] = (
-    ("PRIVATE", 0.5), ("TEAM", 0.24), ("ORGANIZATION", 0.2), ("PUBLIC", 0.06),
+    ("PRIVATE", 0.5), ("SHARED", 0.32), ("PUBLIC", 0.18),
 )
 
 #: Enough of a field set to render `condition_text` through the same code the
@@ -256,8 +263,15 @@ def _dashboards(world: World) -> None:
     if not audience:
         return
 
+    # The five personas get the first five dashboards, one each, in order —
+    # rather than owners drawn at random. §67 is "one dashboard is *your* home
+    # page", and it cannot be demonstrated by signing in as somebody who owns
+    # none: the page correctly falls back to a colleague's public one, which is
+    # right behaviour and a poor demonstration.
+    personas = list(world.personas.values())
+
     for index in range(world.scale.dashboards):
-        owner = rng.pick(audience)
+        owner = personas[index] if index < len(personas) else rng.pick(audience)
         name = rng.pick(
             ("Executive overview", "Operations", "My work", "Support desk",
              "Revenue", "Delivery health", "Field devices", "Security posture")
@@ -271,7 +285,9 @@ def _dashboards(world: World) -> None:
             organization_id=owner.organization_id,
             scope=rng.weighted(SCOPES),
             is_default=index == 0,
-            is_home=index < len(world.personas),
+            # Exactly one per persona, which is what the service enforces on
+            # write and what the page shows in the list.
+            is_home=index < len(personas),
             icon=rng.pick(("layout-dashboard", "activity", "bar-chart", "shield", "package")),
             filters={"period": rng.pick(("last_7_days", "last_30_days", "current_month", "current_year"))},
             columns=12,
@@ -281,8 +297,15 @@ def _dashboards(world: World) -> None:
 
         # A 12-column grid, laid out left to right and wrapped — so the seeded
         # dashboards open as something readable rather than a pile.
+        #
+        # The row advances by the *tallest* widget in it, not by the last one
+        # placed. Advancing by the last one produced overlapping rows: a
+        # full-width panel three rows tall followed by a row of tiles put the
+        # tiles inside it, and the grid then had to push them out — which is
+        # what left the seeded dashboards full of holes.
         x = 0
         y = 0
+        row_height = 0
         for position, (kind, title, entity) in enumerate(
             rng.sample(catalog.DASHBOARD_WIDGETS, rng.integer(4, 8))
         ):
@@ -290,7 +313,9 @@ def _dashboards(world: World) -> None:
             height = 1 if kind == "KPI" else rng.pick((2, 2, 3))
             if x + width > 12:
                 x = 0
-                y += height
+                y += row_height
+                row_height = 0
+            row_height = max(row_height, height)
             world.dashboard_widgets.append(
                 DashboardWidget(
                     id=rng.uuid(),

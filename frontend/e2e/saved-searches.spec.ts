@@ -26,9 +26,15 @@ function uniqueName(prefix: string): string {
  */
 async function openPanel(page: Page): Promise<void> {
   const panel = page.getByRole("dialog").filter({ hasText: "Saved searches" });
-  if (!(await panel.isVisible())) {
-    await page.getByRole("button", { name: "Saved searches" }).click();
-  }
+  if (await panel.isVisible()) return;
+
+  // Waited for, not assumed present. `isVisible` is a point-in-time question
+  // with no retry, and the explorer's toolbar renders after its catalogue
+  // arrives — so on a loaded machine the click used to land before the button
+  // existed, and the failure read as a missing panel rather than as a race.
+  const trigger = page.getByRole("button", { name: "Saved searches" });
+  await expect(trigger).toBeEnabled();
+  await trigger.click();
   await expect(panel).toBeVisible();
 }
 
