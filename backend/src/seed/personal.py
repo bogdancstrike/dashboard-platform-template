@@ -341,6 +341,42 @@ def _dashboards(world: World) -> None:
             x += width
 
 
+def _analysable(resource_type: str) -> tuple[list[str], list[str]]:
+    """Which columns of a dataset can be grouped by, and which can be measured.
+
+    Read from the `Resource` declarations, using the very kinds the analysis
+    compiler uses to decide the same thing — not typed out here. The reason is
+    concrete: this seed used to draw dimensions from a literal
+    ``("region", "status", "owner", "month", "segment", "channel")`` and
+    measures from ``("count", "total", "average", "median", "sum")``. Not one
+    dataset declares `region`, `owner` or `month`; `total`, `average` and
+    `median` are not aggregations the compiler knows. So *every* seeded report
+    named a column or a function that does not exist, and every one of them
+    failed the moment somebody opened `/reports` — which is exactly what a
+    reviewer does first.
+
+    A seed that invents identifiers is a seed that ships broken rows. Derived,
+    it cannot: a field renamed in the declaration is renamed here too.
+    """
+    from src.services.analysis import DIMENSION_KINDS, MEASURE_KINDS
+    from src.services.explorer import resources
+
+    resource = resources().get(resource_type)
+    if resource is None:
+        return [], []
+
+    dimensions = [
+        field.name
+        for field in resource.fields.fields
+        # `datetime` is excluded although the compiler groups by it: a date
+        # needs a granularity to be a series, and a bare date column groups
+        # into one row per timestamp, which is a list rather than an analysis.
+        if field.kind in DIMENSION_KINDS and field.filterable and field.kind != "datetime"
+    ]
+    measures = [field.name for field in resource.fields.fields if field.kind in MEASURE_KINDS]
+    return dimensions, measures
+
+
 def _reports(world: World) -> None:
     from src.models.personal import Report
 
@@ -352,6 +388,21 @@ def _reports(world: World) -> None:
     for index in range(world.scale.reports):
         name, resource_type, visualization = catalog.REPORT_NAMES[index % len(catalog.REPORT_NAMES)]
         owner = rng.pick(audience)
+        groupable, measurable = _analysable(resource_type)
+        if not groupable:
+            # A dataset nothing can be grouped by cannot hold a report. Better
+            # one report fewer than one that answers an error.
+            continue
+
+        # At most two: the compiler refuses a third, and a report stored with
+        # three is a saved question nobody can ever run.
+        dimensions = rng.sample(tuple(groupable), min(rng.integer(1, 2), len(groupable)))
+        # `count` always works; a column measure needs a numeric column, and
+        # the stored form is `aggregation:field` (`services/reports`).
+        metrics = ["count"]
+        if measurable and rng.chance(0.6):
+            metrics = [f"{rng.pick(('sum', 'avg', 'max'))}:{rng.pick(tuple(measurable))}"]
+
         world.reports.append(
             Report(
                 id=rng.uuid(),
@@ -361,11 +412,14 @@ def _reports(world: World) -> None:
                 owner_id=owner.id,
                 organization_id=owner.organization_id,
                 scope=rng.weighted(SCOPES),
-                dimensions=rng.sample(("region", "status", "owner", "month", "segment", "channel"), rng.integer(1, 3)),
-                metrics=rng.sample(("count", "total", "average", "median", "sum"), rng.integer(1, 2)),
+                dimensions=dimensions,
+                metrics=metrics,
                 filters={"period": "last_30_days"},
-                group_by=rng.pick(("region", "status", "month")),
-                sort=rng.pick(("total", "count")),
+                # The first grouping, not a third name: `group_by` that names
+                # a column the dimensions do not is a fourth opinion about the
+                # same question.
+                group_by=dimensions[0],
+                sort=metrics[0].partition(":")[0],
                 order="desc",
                 period=rng.pick(("last_7_days", "last_30_days", "last_90_days", "current_year")),
                 visualization=visualization,

@@ -56,8 +56,14 @@ describe("the reports page", () => {
     render("/reports");
 
     const list = await screen.findByTestId("reports");
-    expect(within(list).getAllByText("Private").length).toBeGreaterThan(0);
-    expect(within(list).getAllByText("Public").length).toBeGreaterThan(0);
+    // In the *list*, only the exceptions are marked. Private is the default
+    // and was tagged on every single row — a label every row shares is a
+    // label nobody reads, and it cost the row the space its name needed.
+    expect(within(list).getAllByLabelText("Public").length).toBeGreaterThan(0);
+    expect(within(list).queryByLabelText("Private")).not.toBeInTheDocument();
+
+    // The open report says it in words, where there is room for words.
+    expect(await within(list).findByText(/^(Private|Shared|Public)$/)).toBeInTheDocument();
   });
 
   it("runs the report through the shared compiler, with its stored definition", async () => {
@@ -152,7 +158,10 @@ describe("the report builder", () => {
     render("/reports/builder?resource=order&group=status&agg=count&period=last_30_days&chart=pie");
     await screen.findByTestId("report-question");
 
-    await user.type(screen.getByLabelText("Name"), "Orders by status");
+    // Saving is a dialog from the header now: on a page whose purpose is to
+    // produce the thing this button saves, the button was below the fold.
+    await user.click(screen.getByTestId("open-save-report"));
+    await user.type(await screen.findByLabelText("Name"), "Orders by status");
     await user.click(screen.getByTestId("save-report"));
 
     await waitFor(() => expect(posted).toHaveLength(1));
@@ -186,12 +195,14 @@ describe("the report builder", () => {
     render("/reports/builder?resource=order&agg=sum");
     await screen.findByTestId("report-question");
 
-    expect(screen.getByTestId("save-report")).toBeDisabled();
+    // Refused at the door: the header's save button is disabled and the page
+    // says what is missing, rather than opening a dialog that cannot succeed.
+    expect(screen.getByTestId("open-save-report")).toBeDisabled();
     expect(screen.getByText("Pick a column to measure")).toBeInTheDocument();
 
     await user.click(screen.getByRole("combobox", { name: "Measured column" }));
     await user.click(await screen.findByTitle("Total"));
 
-    await waitFor(() => expect(screen.getByTestId("save-report")).toBeEnabled());
+    await waitFor(() => expect(screen.getByTestId("open-save-report")).toBeEnabled());
   });
 });

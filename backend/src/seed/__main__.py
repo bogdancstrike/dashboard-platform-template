@@ -7,6 +7,7 @@
     python -m src.seed --sync-schema      # add columns the model has and it lacks
     python -m src.seed --sync-files       # write the bytes seeded files point at
     python -m src.seed --sync-roles       # give built-in roles new permissions
+    python -m src.seed --sync-reports     # make unrunnable saved reports runnable
     python -m src.seed --dry-run          # build in memory, write nothing
 
 It refuses to seed a database that already has data unless `--reset` or
@@ -46,6 +47,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-roles", action="store_true",
         help="add any newly declared permissions to the built-in roles and exit",
+    )
+    parser.add_argument(
+        "--sync-reports", action="store_true",
+        help="rewrite saved reports the analysis compiler would reject, and exit",
     )
     parser.add_argument("--dry-run", action="store_true", help="build in memory, write nothing")
     parser.add_argument("--quiet", action="store_true", help="only print the summary line")
@@ -102,6 +107,18 @@ def main(argv: list[str] | None = None) -> int:
         for code, permissions in sorted(added.items()):
             print(f"  {code}: +{', '.join(permissions)}")
         print("roles already match the catalogue" if not added else "roles updated")
+        return 0
+
+    if args.sync_reports:
+        # Every report seeded before the generator derived its columns from
+        # the declarations names a column that does not exist, and `--check`
+        # reports them. This is the way out that is not a destructive reseed.
+        with session_scope() as session:
+            result = runner.sync_reports(session)
+        print(
+            f"{result['repaired']} report(s) repaired"
+            + (f", {result['orphaned']} on a dataset that no longer exists" if result["orphaned"] else "")
+        )
         return 0
 
     if args.check:

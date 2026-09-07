@@ -1330,6 +1330,49 @@ mark.nu-mark {
   display: flex; flex-direction: column; gap: 2px; font-size: 11.5px;
 }
 
+/* The analysis question as one bar (§28, §44). It was a 700-pixel column of
+   labelled selects with a hint under each; the answer got what was left. The
+   label is a word in front of its control rather than a heading above it,
+   which is what makes a field one row instead of three. */
+.nu-question {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+  padding: 10px 12px; margin-bottom: 12px;
+  background: var(--nu-surface); border: 1px solid var(--nu-border);
+  border-radius: var(--nu-radius-card);
+}
+.nu-question-part { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.nu-question-label {
+  font-size: 12px; white-space: nowrap;
+  /* Dotted, because it carries a tooltip: an underline says "hover me" where
+     a bare word says nothing. */
+  border-bottom: 1px dotted var(--nu-border-strong); cursor: help;
+}
+.nu-question-select { min-width: 150px; }
+.nu-question-select--narrow { min-width: 96px; }
+@media (max-width: 700px) {
+  .nu-question-part { width: 100%; }
+  .nu-question-select { flex: 1; min-width: 0; }
+}
+
+/* A chart that fills the pane it was given rather than a fixed 320 pixels
+   with the rest of the pane blank underneath. ECharts measures its parent
+   once, so the height has to resolve — hence the chain down to the plot. */
+.nu-chartcard--fill { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.nu-chartcard--fill > .ant-card-body { flex: 1 1 auto; min-height: 200px; display: flex; flex-direction: column; }
+.nu-chartcard--fill > .ant-card-body > *:last-child { flex: 1 1 auto; min-height: 0; }
+
+/* One line of provenance and one control, above the answer. */
+.nu-report-meta {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 8px; font-size: 12px;
+}
+.nu-report-description { display: block; margin-bottom: 8px; font-size: 12.5px; }
+
+/* The kind strip in a chart's own header: icons, because seven kind *keys*
+   ("stacked-bar") need four hundred pixels to say what icons say in two. */
+.nu-kind-strip { flex: none; }
+.nu-kind-icon { display: inline-flex; align-items: center; }
+
 /* Choosing what a dashboard will hold (§45). A grid of kinds with counters,
    because "how many headline numbers" is a real question a checkbox cannot
    answer — four across the top is the commonest dashboard there is. */

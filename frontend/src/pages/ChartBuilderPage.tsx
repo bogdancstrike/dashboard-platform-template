@@ -28,40 +28,34 @@
  * `/reports`, runs through the same compiler, and can be opened in either
  * builder. Two stores for one stored object is how "my chart" and "my report"
  * end up disagreeing about the same numbers.
+ *
+ * The layout was rebuilt for the same reason the report builder's was: the
+ * question was an eight-field column, the gallery was squeezed into what was
+ * left, and the button that saves the chart sat below both of them. The
+ * question is now one bar (`components/analysis/QuestionBar`), the gallery
+ * gets the full width, and saving is a dialog from the header — all three
+ * shared with the report builder, which had drifted copies of every one.
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Alert,
-  App as AntApp,
-  Button,
-  Card,
-  Col,
-  Empty,
-  Form,
-  Input,
-  Row,
-  Segmented,
-  Select,
-  Skeleton,
-  Space,
-  Switch,
-  Tooltip,
-  Typography,
-} from "antd";
+import { Alert, App as AntApp, Button, Card, Col, Empty, Row, Skeleton, Space, Tooltip, Typography } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { analysisApi, panelFor, type AnalysisRequest } from "@/api/analysis";
 import type { ChartKind } from "@/api/dashboard";
-import { reportsApi, type ReportInput, type ReportScope } from "@/api/reports";
+import { reportsApi, type ReportInput } from "@/api/reports";
 import { ChartCard } from "@/components/ChartCard";
+import { QuestionBar } from "@/components/analysis/QuestionBar";
+import {
+  SaveAnalysisDialog,
+  type SaveAnalysisValues,
+} from "@/components/analysis/SaveAnalysisDialog";
 import { ChartPreview } from "@/components/charts/ChartPreview";
 import { CHART_SHAPES, missingFor, type ChartShape } from "@/components/charts/shapes";
 import { PageHeader } from "@/components/PageHeader";
-import { MemberPicker } from "@/components/PeoplePicker";
 import { usePageCommands } from "@/commands/CommandContext";
 import {
   DRAFT_KEYS,
@@ -78,7 +72,7 @@ export default function ChartBuilderPage() {
   const queryClient = useQueryClient();
   const { message } = AntApp.useApp();
   const [params, setParams] = useSearchParams();
-  const [form] = Form.useForm();
+  const [saving, setSaving] = useState(false);
 
   const editingId = params.get("id") ?? "";
 
@@ -110,8 +104,6 @@ export default function ChartBuilderPage() {
     period: stored?.period ?? "last_90_days",
     chart: stored?.visualization ?? "bar",
   });
-
-  const dataset = datasets.find((item) => item.key === draft.resource);
 
   const set = (changes: Record<string, string | null>) =>
     setParams(
@@ -160,13 +152,7 @@ export default function ChartBuilderPage() {
   const panel = panelFor(preview.data, draft.chart as ChartKind);
 
   const save = useMutation({
-    mutationFn: (values: {
-      name: string;
-      description?: string;
-      scope: ReportScope;
-      member_ids?: string[];
-      is_favorite?: boolean;
-    }) => {
+    mutationFn: (values: SaveAnalysisValues) => {
       const input: ReportInput = {
         ...values,
         resource_type: draft.resource,
@@ -180,12 +166,13 @@ export default function ChartBuilderPage() {
     onSuccess: (saved) => {
       message.success(editingId ? `${saved.name} saved` : `${saved.name} created`);
       void queryClient.invalidateQueries({ queryKey: ["reports"] });
+      setSaving(false);
       navigate(`/reports?report=${saved.id}`);
     },
   });
 
   usePageCommands("chart-builder", [
-    { id: "chart.save", label: "Save this chart", keywords: "store keep", run: () => void form.submit() },
+    { id: "chart.save", label: "Save this chart", keywords: "store keep", run: () => setSaving(true) },
     {
       id: "chart.report",
       label: "Open this question in the report builder",
@@ -199,9 +186,6 @@ export default function ChartBuilderPage() {
     return <Skeleton active paragraph={{ rows: 10 }} />;
   }
 
-  const groupings = dataset?.dimensions ?? [];
-  const columns = dataset?.measures ?? [];
-
   return (
     <>
       <PageHeader
@@ -209,9 +193,30 @@ export default function ChartBuilderPage() {
         subtitle="Pick a picture and it will tell you what it needs. Every kind is drawn from your own data, in both themes."
         onBack={() => navigate("/reports")}
         actions={
-          <Button onClick={() => navigate(`/reports/builder?${params.toString()}`)}>
-            Open in the report builder
-          </Button>
+          <Space size={8}>
+            <Button onClick={() => navigate(`/reports/builder?${params.toString()}`)}>
+              Open in the report builder
+            </Button>
+            <Tooltip
+              title={
+                !draftIsRunnable(draft)
+                  ? "Pick a column to measure first"
+                  : blocked
+                    ? `${chosen?.label} ${blocked}`
+                    : ""
+              }
+            >
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                disabled={!draftIsRunnable(draft) || Boolean(blocked)}
+                onClick={() => setSaving(true)}
+                data-testid="open-save-chart"
+              >
+                {editingId ? "Save changes" : "Save chart"}
+              </Button>
+            </Tooltip>
+          </Space>
         }
       />
 
@@ -234,302 +239,108 @@ export default function ChartBuilderPage() {
         />
       )}
 
-      <Row gutter={[12, 12]}>
-        <Col xs={24} xl={9}>
-          <Card size="small" title="The data" data-testid="chart-question">
-            <Space direction="vertical" size={12} style={{ width: "100%" }}>
-              <Field label="Dataset">
-                <Select
-                  aria-label="Dataset"
-                  style={{ width: "100%" }}
-                  value={draft.resource}
-                  onChange={(next) =>
-                    set({
-                      [DRAFT_KEYS.resource]: next,
-                      [DRAFT_KEYS.group]: null,
-                      [DRAFT_KEYS.stack]: null,
-                      [DRAFT_KEYS.grain]: null,
-                      [DRAFT_KEYS.measure]: null,
-                      [DRAFT_KEYS.measure2]: null,
-                      [DRAFT_KEYS.aggregation2]: null,
-                    })
-                  }
-                  options={datasets.map((item) => ({ value: item.key, label: item.label }))}
-                />
-              </Field>
+      {/* The question: one bar, so the gallery below gets the full width. */}
+      <div data-testid="chart-question">
+        <QuestionBar
+          catalogue={catalogue.data}
+          draft={draft}
+          onChange={set}
+          // Only here: a scatter is the one picture that reads two measures,
+          // and the report builder offers no scatter.
+          withSecondMeasure
+        />
+      </div>
 
-              <Field label="Group by" hint="The first axis, and the bucket a date is read in.">
-                <Space.Compact style={{ width: "100%" }}>
-                  <Select
-                    aria-label="Group by"
-                    style={{ width: "60%" }}
-                    allowClear
-                    value={draft.group || undefined}
-                    placeholder="Nothing — one row"
-                    onChange={(next: string | undefined) =>
-                      set({ [DRAFT_KEYS.group]: next ?? null, [DRAFT_KEYS.grain]: null })
-                    }
-                    options={groupings.map((item) => ({ value: item.name, label: item.label }))}
-                  />
-                  <Select
-                    aria-label="Granularity"
-                    style={{ width: "40%" }}
-                    allowClear
-                    value={draft.grain || undefined}
-                    placeholder="Bucket"
-                    // Only a date buckets; offering it for an enum would be a
-                    // control that produces an error rather than a result.
-                    disabled={
-                      groupings.find((item) => item.name === draft.group)?.kind !== "datetime"
-                    }
-                    onChange={(next: string | undefined) => set({ [DRAFT_KEYS.grain]: next ?? null })}
-                    options={(catalogue.data?.granularities ?? []).map((item) => ({
-                      value: item,
-                      label: item,
-                    }))}
-                  />
-                </Space.Compact>
-              </Field>
-
-              <Field label="Then by" hint="A second grouping — a stack, a nest, a heatmap's columns.">
-                <Select
-                  aria-label="Then by"
-                  style={{ width: "100%" }}
-                  allowClear
-                  value={draft.stack || undefined}
-                  placeholder="Nothing"
-                  onChange={(next: string | undefined) => set({ [DRAFT_KEYS.stack]: next ?? null })}
-                  options={groupings
-                    .filter((item) => item.name !== draft.group && item.kind !== "datetime")
-                    .map((item) => ({ value: item.name, label: item.label }))}
-                />
-              </Field>
-
-              <Field label="Measure">
-                <Space.Compact style={{ width: "100%" }}>
-                  <Select
-                    aria-label="Aggregation"
-                    style={{ width: "40%" }}
-                    value={draft.aggregation}
-                    onChange={(next) =>
-                      set({
-                        [DRAFT_KEYS.aggregation]: next,
-                        [DRAFT_KEYS.measure]: next === "count" ? null : draft.measure,
-                      })
-                    }
-                    options={(catalogue.data?.aggregations ?? []).map((item) => ({
-                      value: item.key,
-                      label: item.label,
-                    }))}
-                  />
-                  <Select
-                    aria-label="Measured column"
-                    style={{ width: "60%" }}
-                    value={draft.measure || undefined}
-                    placeholder={draft.aggregation === "count" ? "rows" : "Pick a column"}
-                    disabled={draft.aggregation === "count"}
-                    onChange={(next) => set({ [DRAFT_KEYS.measure]: next })}
-                    options={columns.map((item) => ({ value: item.name, label: item.label }))}
-                  />
-                </Space.Compact>
-              </Field>
-
-              <Field
-                label="Against"
-                hint="A second measure, for a scatter. It becomes the vertical axis."
-              >
-                <Space.Compact style={{ width: "100%" }}>
-                  <Select
-                    aria-label="Second aggregation"
-                    style={{ width: "40%" }}
-                    allowClear
-                    value={draft.aggregation2 || undefined}
-                    placeholder="Nothing"
-                    onChange={(next: string | undefined) =>
-                      set({
-                        [DRAFT_KEYS.aggregation2]: next ?? null,
-                        [DRAFT_KEYS.measure2]: next && next !== "count" ? draft.measure2 : null,
-                      })
-                    }
-                    options={(catalogue.data?.aggregations ?? []).map((item) => ({
-                      value: item.key,
-                      label: item.label,
-                    }))}
-                  />
-                  <Select
-                    aria-label="Second measured column"
-                    style={{ width: "60%" }}
-                    value={draft.measure2 || undefined}
-                    placeholder={draft.aggregation2 ? "Pick a column" : "—"}
-                    disabled={!draft.aggregation2 || draft.aggregation2 === "count"}
-                    onChange={(next) => set({ [DRAFT_KEYS.measure2]: next })}
-                    options={columns.map((item) => ({ value: item.name, label: item.label }))}
-                  />
-                </Space.Compact>
-              </Field>
-
-              <Field label="Period">
-                <Select
-                  aria-label="Period"
-                  style={{ width: "100%" }}
-                  value={draft.period}
-                  onChange={(next) => set({ [DRAFT_KEYS.period]: next })}
-                  options={[
-                    ...(catalogue.data?.periods ?? []).map((item) => ({
-                      value: item.key,
-                      label: item.label,
-                    })),
-                    { value: "all_time", label: "All time" },
-                  ]}
-                />
-              </Field>
-            </Space>
-          </Card>
-
-          <Card size="small" title="Save it" className="nu-block">
-            <Form
-              form={form}
-              layout="vertical"
-              initialValues={{
-                name: stored?.name ?? "",
-                description: stored?.description ?? "",
-                scope: stored?.scope ?? "PRIVATE",
-                is_favorite: stored?.is_favorite ?? false,
-                member_ids: stored?.members.map((member) => member.id) ?? [],
-              }}
-              onFinish={(values: {
-                name: string;
-                description?: string;
-                scope: ReportScope;
-                member_ids?: string[];
-                is_favorite?: boolean;
-              }) => save.mutate(values)}
-            >
-              <Form.Item
-                name="name"
-                label="Name"
-                rules={[{ required: true, message: "Give it a name people will recognise" }]}
-              >
-                <Input placeholder="Revenue by channel" />
-              </Form.Item>
-              <Form.Item name="description" label="What it shows">
-                <Input.TextArea rows={2} placeholder="Optional" />
-              </Form.Item>
-              <Form.Item name="scope" label="Who can see it">
-                <Segmented
-                  options={[
-                    { value: "PRIVATE", label: "Only me" },
-                    { value: "SHARED", label: "Named people" },
-                    { value: "PUBLIC", label: "Everyone" },
-                  ]}
-                />
-              </Form.Item>
-              <Form.Item
-                noStyle
-                shouldUpdate={(
-                  before: { scope?: ReportScope },
-                  after: { scope?: ReportScope },
-                ) => before.scope !== after.scope}
-              >
-                {({ getFieldValue }) =>
-                  (getFieldValue("scope") as ReportScope) === "SHARED" ? (
-                    <Form.Item name="member_ids" label="Shared with">
-                      <MemberPicker placeholder="Search colleagues" />
-                    </Form.Item>
-                  ) : null
-                }
-              </Form.Item>
-              <Form.Item name="is_favorite" label="Favourite" valuePropName="checked">
-                <Switch />
-              </Form.Item>
-              <Button
-                type="primary"
-                icon={<SaveOutlined />}
-                htmlType="submit"
-                loading={save.isPending}
-                disabled={!draftIsRunnable(draft) || Boolean(blocked)}
-                data-testid="save-chart"
-              >
-                {editingId ? "Save" : "Create"}
-              </Button>
-              {blocked && (
-                <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
-                  {chosen?.label} {blocked} — it would be saved as a picture that cannot be drawn.
-                </Text>
-              )}
-            </Form>
-          </Card>
-        </Col>
-
-        <Col xs={24} xl={15}>
-          {/* The gallery: every kind, drawn from the reader's own numbers, and
-              the ones this question cannot feed refused with the reason. */}
-          <Card size="small" title="The picture" data-testid="chart-gallery">
-            {!draftIsRunnable(draft) ? (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="Pick a measure and the pictures will draw themselves"
+      {/* Every kind, drawn from the reader's own numbers, and the ones this
+          question cannot feed refused with the reason (§76). */}
+      <Card size="small" title="The picture" data-testid="chart-gallery">
+        {!draftIsRunnable(draft) ? (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="Pick a measure and the pictures will draw themselves"
+          />
+        ) : (
+          <div className="nu-gallery">
+            {CHART_SHAPES.map((shape) => (
+              <Thumbnail
+                key={shape.kind}
+                shape={shape}
+                missing={missingFor(shape, shapeDraft)}
+                chosen={shape.kind === draft.chart}
+                panel={panelFor(preview.data, shape.kind)}
+                onChoose={() => set({ [DRAFT_KEYS.chart]: shape.kind })}
               />
-            ) : (
-              <div className="nu-gallery">
-                {CHART_SHAPES.map((shape) => (
-                  <Thumbnail
-                    key={shape.kind}
-                    shape={shape}
-                    missing={missingFor(shape, shapeDraft)}
-                    chosen={shape.kind === draft.chart}
-                    panel={panelFor(preview.data, shape.kind)}
-                    onChoose={() => set({ [DRAFT_KEYS.chart]: shape.kind })}
-                  />
-                ))}
-              </div>
-            )}
-          </Card>
-
-          {/* The chosen picture at full size, with the chrome every chart in
-              the product has: read it as a table, take the numbers away. */}
-          <div className="nu-block" data-testid="chart-preview">
-            <ChartCard
-              id="chart-builder"
-              panel={blocked ? undefined : panel}
-              height={300}
-              loading={preview.isFetching && !preview.data}
-            />
+            ))}
           </div>
+        )}
+      </Card>
 
-          {/* And the same chart in both appearances, because a chart checked
-              only in the one its author happens to use is a chart nobody
-              checked in the other — and half the readers are in the other. */}
-          <Card size="small" title="In both themes" className="nu-block" data-testid="chart-themes">
-            <Row gutter={[12, 12]}>
-              {(["light", "dark"] as const).map((mode) => (
-                <Col xs={24} md={12} key={mode}>
-                  <ChartPreview
-                    panel={blocked ? undefined : panel}
-                    mode={mode}
-                    height={200}
-                    label={mode === "light" ? "Light" : "Dark"}
-                  />
-                </Col>
-              ))}
-            </Row>
-          </Card>
+      {/* The chosen picture at full size, with the chrome every chart in the
+          product has: read it as a table, take the numbers away. */}
+      <div className="nu-block" data-testid="chart-preview">
+        <ChartCard
+          id="chart-builder"
+          panel={blocked ? undefined : panel}
+          height={300}
+          loading={preview.isFetching && !preview.data}
+          empty={
+            blocked
+              ? {
+                  title: `${chosen?.label ?? "This picture"} ${blocked}`,
+                  hint: "Pick a tile that fits the question, or add what it needs in the bar above.",
+                }
+              : undefined
+          }
+        />
+      </div>
 
-          {preview.error instanceof ApiError && (
-            <Alert
-              className="nu-block"
-              type="error"
-              showIcon
-              message={preview.error.message}
-              description={
-                <Text code copyable={{ text: preview.error.correlationId }}>
-                  {preview.error.correlationId}
-                </Text>
-              }
-            />
-          )}
-        </Col>
-      </Row>
+      {/* And the same chart in both appearances, because a chart checked only
+          in the one its author happens to use is a chart nobody checked in the
+          other — and half the readers are in the other.
+
+          Side by side and full width: stacked into a third of the page they
+          were 128 pixels tall, and a chart that short renders its own axis
+          labels on top of each other — which is illegible in a panel whose
+          only purpose is judging legibility. */}
+      <Card size="small" title="In both themes" className="nu-block" data-testid="chart-themes">
+        <Row gutter={[12, 12]}>
+          {(["light", "dark"] as const).map((mode) => (
+            <Col xs={24} md={12} key={mode}>
+              <ChartPreview
+                panel={blocked ? undefined : panel}
+                mode={mode}
+                height={200}
+                label={mode === "light" ? "Light" : "Dark"}
+              />
+            </Col>
+          ))}
+        </Row>
+      </Card>
+
+      {preview.error instanceof ApiError && (
+        <Alert
+          className="nu-block"
+          type="error"
+          showIcon
+          message={preview.error.message}
+          description={
+            <Text code copyable={{ text: preview.error.correlationId }}>
+              {preview.error.correlationId}
+            </Text>
+          }
+        />
+      )}
+
+      <SaveAnalysisDialog
+        open={saving}
+        noun="chart"
+        existing={stored}
+        saving={save.isPending}
+        blocked={blocked ? `${chosen?.label} ${blocked} — it would be saved as a picture that cannot be drawn.` : null}
+        onClose={() => setSaving(false)}
+        onSave={(values) => save.mutate(values)}
+      />
+
     </>
   );
 }
@@ -582,30 +393,5 @@ function Thumbnail({
         <span className="nu-gallery-label">{shape.label}</span>
       </button>
     </Tooltip>
-  );
-}
-
-/** A labelled control with an optional line of guidance. */
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <Text strong className="nu-field-label">
-        {label}
-      </Text>
-      {children}
-      {hint && (
-        <Text type="secondary" style={{ display: "block", marginTop: 4, fontSize: 12 }}>
-          {hint}
-        </Text>
-      )}
-    </div>
   );
 }

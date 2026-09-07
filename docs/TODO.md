@@ -555,10 +555,68 @@ commit — built, committed, pushed, redeployed and verified before the next.
       — and immediately found a second: the light tertiary cleared 4.5:1 on a
       card and missed it on the page. It also asserts the ramp stays a ramp,
       because the easy way to fix a contrast failure is to flatten it
-- [ ] **`/reports`, `/reports/builder` and `/charts/builder` are cleaner** —
-      the question is a column of airy labelled selects in all three, the
-      primary action is below the fold in two, and the answer gets what is
-      left. The question becomes one compact bar and the answer gets the width
+- [x] **`/reports`, `/reports/builder` and `/charts/builder` are cleaner** —
+      asked for directly
+  - **The question is one bar.** Both builders asked the same thing the same
+    way and wrote it out twice: eight selects in a column, each with a bold
+    label above it and a line of guidance below — seven hundred vertical
+    pixels of form, two hundred lines of near-identical JSX, and the *answer*
+    got what was left. `components/analysis/QuestionBar` reads as a sentence:
+    `Orders · grouped by Status · measuring Sum of Total · over All time`. The
+    label is a word in *front* of its control rather than a heading above it,
+    which is what turns a three-row field into a one-row one, and the
+    permanent hints became the label's tooltip
+  - The copies had already drifted: "Then by" was "drawn as a stack" on one
+    page and "a stack, a nest, a heatmap's columns" on the other, and only one
+    was true for the page it was on
+  - **Saving is a dialog from the header**, where a page's primary action
+    belongs. It was a "Save it" card at the bottom of a column — on the chart
+    builder, below an eight-field question *and* a thirteen-tile gallery, so a
+    reader scrolled past everything they had just decided in order to record
+    it. Also §10: a wizard where a decision has parts, a drawer for one
+    object's fields, a plain dialog for one question — and "what shall I call
+    this and who may see it" is one question
+  - **The kind strip moved into the chart's own header, as icons.** Seven kind
+    *keys* ("bar hbar line area pie stacked-bar treemap") in a segmented
+    control overflowed its card and got cut off at "treemap"; the names are
+    the API's keys rather than anything a person says, and how a thing is
+    drawn is a property of the picture, not a ninth field of the question
+  - **One message where the answer would be.** A card reading "Nothing in this
+    period" above a banner reading "Bar needs a grouping" gives a reader two
+    explanations, and only the second is true. `ChartCard` takes the reason
+    from the caller who knows it
+  - `/reports` fills the window: the list scrolls in its own pane, the answer
+    grows into the space instead of sitting at 320 pixels with a third of the
+    screen blank beneath it, and the provenance is one line rather than four
+    stacked blocks above the chart
+  - Private stopped being tagged on every row. A label every row shares is a
+    label nobody reads, and it cost the row the space its name needed
+- [x] **Every seeded report was unrunnable, and nothing said so** — found by
+      taking a screenshot of `/reports`, which opened on "region cannot be
+      grouped by"
+  - The generator drew dimensions from a literal
+    `("region", "status", "owner", "month", "segment", "channel")` and
+    measures from `("count", "total", "average", "median", "sum")`. No dataset
+    declares `region`, `owner` or `month`; `total`, `average` and `median` are
+    not aggregations. So *every* saved report named something that does not
+    exist and failed the moment it was opened — the first thing a reviewer
+    does
+  - Now derived from the resource declarations, using the same kinds the
+    compiler uses to decide the same thing. A seed that invents identifiers is
+    a seed that ships broken rows
+  - **`--check` finds them** and **`--sync-reports` repairs them**, because
+    seeding refuses to touch a populated database and the rows are already out
+    there. The repair keeps what is valid, drops what is not, and falls back
+    to the dataset's first groupable column with a row count
+  - Two tests: every seeded report is accepted by the compiler's own rules,
+    and the check actually *finds* a report built to be broken — a check that
+    only ever runs against a good dataset is a check that passes whether or
+    not it looked
+- [x] **The health snapshot names the store even when it cannot reach it** —
+      "unavailable" alone tells an operator that something is wrong and
+      nothing about where to look. Found by running the backend suite without
+      the storage environment, where the local fallback's directory is
+      unwritable
 - [ ] **`/home` is the default landing page** — the platform's name and logo,
       the reader's own announcements, notifications and preferences, and
       whatever else is worth seeing on arrival

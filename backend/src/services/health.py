@@ -91,11 +91,22 @@ def probe_storage() -> dict[str, Any]:
     """
     from src.core import storage
 
+    # Named from the configuration rather than from the store object, so the
+    # snapshot still says *which* store failed when building it is what failed.
+    # It reported only "unavailable" before, which tells an operator that
+    # something is wrong and nothing about where to look — and the local
+    # fallback's directory being unwritable is exactly that case.
+    configured = "object" if Config.STORAGE_ENDPOINT else "local"
     try:
         store = storage.for_config()
         return {"store": store.name, **store.health()}
     except Exception as exc:
-        return {"status": "unavailable", "latency_ms": None, "error": str(exc)[:300]}
+        return {
+            "store": configured,
+            "status": "unavailable",
+            "latency_ms": None,
+            "error": str(exc)[:300],
+        }
 
 
 def probe_auth() -> dict[str, Any]:

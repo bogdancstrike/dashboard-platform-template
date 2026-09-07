@@ -26,15 +26,35 @@ export function ChartCard({
   extra,
   onSelect,
   loading = false,
+  className,
+  empty,
 }: {
   /** Stable key — the chosen view is remembered under it. */
   id: string;
   panel: ChartPanel | undefined;
-  height?: number;
+  /**
+   * How tall the plot is.
+   *
+   * A number of pixels, or `"100%"` for a card that has been told to fill its
+   * container — `.nu-chartcard--fill` does the flex half, and ECharts needs an
+   * explicit height either way because it measures its parent once.
+   */
+  height?: number | string;
   extra?: ReactNode;
   /** Clicking a bar, slice or row drills into the records behind it (§44). */
   onSelect?: (name: string) => void;
   loading?: boolean;
+  /** For the callers that need to place the card — spacing, or a fill. */
+  className?: string;
+  /**
+   * What to say when there is nothing to draw.
+   *
+   * The default is "Nothing in this period", which is true when a query came
+   * back empty and a lie when the *picture* is the problem — a builder whose
+   * chosen kind needs a grouping the question does not have has plenty of
+   * data. The caller who knows the reason supplies it.
+   */
+  empty?: { title: string; hint?: string };
 }) {
   const { chartTheme } = useAppearance();
   const [view, setView] = useState<"chart" | "table">(() => {
@@ -80,7 +100,7 @@ export function ChartCard({
   return (
     <Card
       size="small"
-      className="nu-chartcard"
+      className={className ? `nu-chartcard ${className}` : "nu-chartcard"}
       data-chart-id={id}
       data-testid={id}
       loading={loading}
@@ -115,7 +135,11 @@ export function ChartCard({
       </Typography.Paragraph>}
       {rows.length === 0 ? (
         <div style={{ minHeight: height, display: "grid", placeItems: "center" }}>
-          <EmptyState title="Nothing in this period" compact />
+          <EmptyState
+            title={empty?.title ?? "Nothing in this period"}
+            hint={empty?.hint}
+            compact
+          />
         </div>
       ) : view === "chart" ? (
         <ReactECharts
@@ -138,7 +162,10 @@ export function ChartCard({
           rowKey="chartRowKey"
           dataSource={rows.map((row, index) => ({ ...row, chartRowKey: index }))}
           pagination={rows.length > 10 ? { pageSize: 10, size: "small" } : false}
-          scroll={{ y: height - 40 }}
+          // The table view scrolls inside the same box the plot occupies. A
+          // percentage height cannot be arithmetic on, so it is passed
+          // through and the CSS resolves it.
+          scroll={{ y: typeof height === "number" ? height - 40 : height }}
           columns={panel ? chartColumns(panel).map((column) => ({
             title: column.label,
             dataIndex: column.key,

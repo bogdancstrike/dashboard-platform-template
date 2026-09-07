@@ -116,7 +116,11 @@ describe("the chart builder", () => {
 
     render();
     await user.click(await screen.findByTestId("chart-kind-hbar"));
-    await user.type(screen.getByLabelText("Name"), "Orders by status");
+    // Saving is a dialog from the header now: it used to be a form below an
+    // eight-field question *and* a thirteen-tile gallery, which is to say
+    // below the fold on the page that produces the thing it saves.
+    await user.click(screen.getByTestId("open-save-chart"));
+    await user.type(await screen.findByLabelText("Name"), "Orders by status");
     await user.click(screen.getByTestId("save-chart"));
 
     await waitFor(() => expect(bodies).toHaveLength(1));
@@ -137,11 +141,12 @@ describe("the chart builder", () => {
     // page gets to trust.
     render("/charts/builder?resource=order&group=status&agg=count&chart=heatmap");
 
-    await waitFor(() => expect(screen.getByTestId("save-chart")).toBeDisabled());
-    // Said beside the button that is refusing, not only in the gallery: the
-    // reader is looking at Save, not at the thumbnail they never clicked.
+    await waitFor(() => expect(screen.getByTestId("open-save-chart")).toBeDisabled());
+    // Said where the answer would be, not only in the gallery: the reader is
+    // looking at the picture that will not draw, not at the thumbnail they
+    // never clicked.
     expect(
-      screen.getByText(/Heatmap needs a second grouping — it would be saved/),
+      await screen.findByText("Heatmap needs a second grouping"),
     ).toBeInTheDocument();
   });
 });

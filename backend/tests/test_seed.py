@@ -206,6 +206,86 @@ def test_offline_devices_have_not_just_reported(world):
         assert (world.anchor - device.last_seen_at).total_seconds() > 3600
 
 
+def test_every_seeded_report_can_actually_be_run(world):
+    """A saved report the compiler rejects is a row that fails on being opened.
+
+    This is the test that should have existed. The generator drew its
+    dimensions from a literal ``("region", "status", "owner", "month", …)`` and
+    its measures from ``("count", "total", "average", "median", "sum")``; no
+    dataset declares `region`, `owner` or `month`, and `total`, `average` and
+    `median` are not aggregations. So every seeded report named something that
+    does not exist, and `/reports` opened on "region cannot be grouped by" —
+    found by a screenshot, not by the suite.
+
+    Asserted against the same declarations the compiler resolves against, so
+    the test cannot drift from the rule it is checking.
+    """
+    from src.services.analysis import AGGREGATIONS, DIMENSION_KINDS, MEASURE_KINDS
+    from src.services.explorer import resources
+
+    catalogue = resources()
+    assert world.reports, "the seed builds no reports at all"
+
+    for report in world.reports:
+        resource = catalogue.get(report.resource_type)
+        assert resource is not None, f"{report.name} reports on {report.resource_type}"
+
+        groupable = {
+            field.name
+            for field in resource.fields.fields
+            if field.kind in DIMENSION_KINDS and field.filterable
+        }
+        measurable = {
+            field.name for field in resource.fields.fields if field.kind in MEASURE_KINDS
+        }
+
+        # At most two: the compiler refuses a third outright.
+        assert len(report.dimensions) <= 2, f"{report.name} groups by {report.dimensions}"
+        for entry in report.dimensions:
+            name = str(entry).partition(":")[0]
+            assert name in groupable, f"{report.name} cannot group {report.resource_type} by {name}"
+
+        for entry in report.metrics:
+            aggregation, _, field = str(entry).partition(":")
+            assert aggregation in AGGREGATIONS, f"{report.name} uses {aggregation}"
+            if aggregation != "count":
+                assert field in measurable, f"{report.name} cannot {aggregation} {field!r}"
+
+        # `group_by` is a fourth opinion about the same question unless it is
+        # one of the dimensions.
+        assert report.group_by in {str(d).partition(":")[0] for d in report.dimensions}
+
+
+def test_the_dataset_check_names_an_unrunnable_report():
+    """`--check` has to *find* the defect above, not merely be right about it.
+
+    A check nobody can trust is a check nobody runs, so the branch is exercised
+    on a report built to be broken rather than only on a good dataset — where
+    it would pass whether or not it looked.
+    """
+    from src.models.personal import Report
+
+    broken = Report(
+        name="Revenue by region",
+        resource_type="order",
+        dimensions=["region", "status", "channel"],
+        metrics=["median"],
+        group_by="region",
+    )
+
+    class _Session:
+        """Just enough of a session for the check: it only scalars one query."""
+
+        def scalars(self, _statement):
+            return [broken]
+
+    problems = runner._unrunnable_reports(_Session())
+    joined = " | ".join(problems)
+    assert "cannot group order by region" in joined
+    assert "median is not an aggregation" in joined
+    assert "more than two columns" in joined
+
+
 def test_saved_searches_are_private_by_default(world):
     """§5: nothing is shared by accident, so most searches have no audience."""
     scopes = [search.scope for search in world.saved_searches]

@@ -92,6 +92,10 @@ sync-schema: ## Add columns the model declares and the database lacks
 sync-roles: ## Give the built-in roles any newly declared permissions
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-roles seed
 
+.PHONY: sync-reports
+sync-reports: ## Make saved reports the analysis compiler would reject runnable
+	$(COMPOSE) run --rm -e SEED_ARGS=--sync-reports seed
+
 .PHONY: psql
 psql: ## Open a psql shell on the stack's database
 	$(COMPOSE) exec postgres psql -U platform -d platform

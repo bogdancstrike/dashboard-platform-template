@@ -206,8 +206,12 @@ export default function ReportsPage() {
         }
       />
 
-      <div className="nu-split" data-testid="reports">
-        <Card size="small" className="nu-split-list">
+      {/* A workbench: the questions on the left, the answer on the right,
+          filling the window. Sized to its content, the answer left a third of
+          the screen blank under it and the list was capped at two thirds of
+          the viewport whether or not there was room. */}
+      <div className="nu-split nu-fill" data-testid="reports">
+        <Card size="small" className="nu-pane nu-split-list">
           <Input.Search
             allowClear
             placeholder="Filter reports"
@@ -248,12 +252,24 @@ export default function ReportsPage() {
                         <Text strong ellipsis>
                           {report.name}
                         </Text>
+                        {/* Only the exceptions carry a mark. Private is the
+                            default and was tagged on every single row — a
+                            label every row shares is a label nobody reads. */}
+                        {report.scope !== "PRIVATE" && (
+                          <Tooltip title={SCOPES[report.scope]?.label}>
+                            <span className="nu-queue-scope" aria-label={SCOPES[report.scope]?.label}>
+                              {SCOPES[report.scope]?.icon}
+                            </span>
+                          </Tooltip>
+                        )}
                       </span>
                       <span className="nu-queue-meta">
-                        <Tag bordered={false}>{report.resource_type}</Tag>
-                        <ScopeTag report={report} />
+                        <Text type="secondary">{report.resource_type}</Text>
+                        <Text type="secondary">·</Text>
                         <Text type="secondary">
-                          {report.last_run_at ? `run ${relativeTime(report.last_run_at)}` : "never run"}
+                          {report.last_run_at
+                            ? `run ${relativeTime(report.last_run_at)}`
+                            : "never run"}
                         </Text>
                       </span>
                     </span>
@@ -266,7 +282,7 @@ export default function ReportsPage() {
 
         <Card
           size="small"
-          className="nu-split-detail"
+          className="nu-pane nu-split-detail"
           title={open?.name ?? "Pick a report"}
           extra={
             open && (
@@ -334,36 +350,54 @@ export default function ReportsPage() {
               }
             />
           ) : (
-            <Space direction="vertical" size={12} style={{ width: "100%" }}>
-              <Space size={8} wrap>
-                <ScopeTag report={open} />
-                <Text type="secondary">
-                  by {open.owner.name} · run {open.run_count.toLocaleString()} times
+            <>
+              {/* One line of provenance and one control, so the answer starts
+                  as high on the page as it can. This was four stacked blocks
+                  — tags, a description, a period strip, then the chart — and
+                  the chart got what was left. */}
+              <div className="nu-report-meta">
+                <Space size={8} wrap>
+                  <ScopeTag report={open} />
+                  <Text type="secondary">by {open.owner.name}</Text>
+                  <Text type="secondary">·</Text>
+                  <Text type="secondary">
+                    run {open.run_count.toLocaleString()} times
+                  </Text>
+                  <Text type="secondary">·</Text>
+                  <Text type="secondary" data-testid="report-matched">
+                    {(run.data?.result.matched ?? 0).toLocaleString()} rows measured
+                  </Text>
+                  {open.members.length > 0 && (
+                    <Tooltip title={open.members.map((member) => member.name).join(", ")}>
+                      <Tag bordered={false}>{open.members.length} members</Tag>
+                    </Tooltip>
+                  )}
+                </Space>
+
+                <Segmented
+                  size="small"
+                  aria-label="Period"
+                  value={run.data?.result.period.key ?? open.period}
+                  onChange={(next) => void rerun(String(next))}
+                  options={[
+                    { value: "last_30_days", label: "30 days" },
+                    { value: "last_90_days", label: "90 days" },
+                    { value: "last_365_days", label: "A year" },
+                    { value: "all_time", label: "All time" },
+                  ]}
+                />
+              </div>
+
+              {open.description && (
+                <Text type="secondary" className="nu-report-description">
+                  {open.description}
                 </Text>
-                {open.members.length > 0 && (
-                  <Tooltip title={open.members.map((member) => member.name).join(", ")}>
-                    <Tag bordered={false}>{open.members.length} members</Tag>
-                  </Tooltip>
-                )}
-              </Space>
-
-              {open.description && <Text type="secondary">{open.description}</Text>}
-
-              <Segmented
-                aria-label="Period"
-                value={run.data?.result.period.key ?? open.period}
-                onChange={(next) => void rerun(String(next))}
-                options={[
-                  { value: "last_30_days", label: "30 days" },
-                  { value: "last_90_days", label: "90 days" },
-                  { value: "last_365_days", label: "A year" },
-                  { value: "all_time", label: "All time" },
-                ]}
-              />
+              )}
 
               <ChartCard
                 id={`report-${open.id}`}
-                height={320}
+                className="nu-chartcard--fill"
+                height="100%"
                 loading={run.isLoading}
                 panel={panelFor(
                   run.data?.result,
@@ -372,11 +406,7 @@ export default function ReportsPage() {
                   run.data?.result.description,
                 )}
               />
-
-              <Text type="secondary" data-testid="report-matched">
-                {(run.data?.result.matched ?? 0).toLocaleString()} rows measured
-              </Text>
-            </Space>
+            </>
           )}
         </Card>
       </div>

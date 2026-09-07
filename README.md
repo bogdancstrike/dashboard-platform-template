@@ -153,15 +153,26 @@ arrives as a 500 on somebody's next write rather than as an error on deploy.
 Two commands close that, both additive and neither destructive:
 
 ```bash
-python -m src.seed --check         # is the schema behind the model, and does the data hang together
-python -m src.seed --sync-schema   # add the columns that can be added, with their indexes and keys
-python -m src.seed --sync-roles    # give the built-in roles any newly declared permissions
+python -m src.seed --check          # is the schema behind the model, and does the data hang together
+python -m src.seed --sync-schema    # add the columns that can be added, with their indexes and keys
+python -m src.seed --sync-roles     # give the built-in roles any newly declared permissions
+python -m src.seed --sync-reports   # make saved reports the analysis compiler would reject runnable
 ```
 
 `--sync-schema` refuses to guess: a `NOT NULL` column with no default is
 reported with the reason rather than added, because deciding what existing rows
-get is a migration somebody has to read. Under Compose these are `make
-check-seed`, `make sync-schema` and `make sync-roles`.
+get is a migration somebody has to read.
+
+`--sync-reports` exists for a defect worth knowing about if you seeded before
+it was fixed: the generator used to draw a report's groupings and measures from
+a literal list of column names, none of which any dataset declares, so every
+saved report failed the moment somebody opened `/reports`. It is derived from
+the resource declarations now, `--check` reports any row that is still wrong,
+and this repairs them — seeding refuses to touch a populated database, and
+rightly.
+
+Under Compose these are `make check-seed`, `make sync-schema`, `make
+sync-roles` and `make sync-reports`.
 
 Then:
 

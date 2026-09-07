@@ -92,7 +92,10 @@ test.describe("the chart builder", () => {
     await signIn(page, "admin", SIMPLE);
 
     await page.getByTestId("chart-kind-hbar").click();
-    await page.getByRole("textbox", { name: /Name/ }).fill(name);
+    // Saving is a dialog from the header: on the page that produces the thing
+    // this button saves, the button used to be below the gallery.
+    await page.getByTestId("open-save-chart").click();
+    await page.getByRole("dialog").getByRole("textbox", { name: "Name" }).fill(name);
     await page.getByTestId("save-chart").click();
 
     // It lands on the report it just became — one store, one lifecycle, and

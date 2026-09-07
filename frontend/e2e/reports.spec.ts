@@ -48,10 +48,12 @@ test("a report built in the browser survives a reload and answers", async ({ pag
 
   await expect(page.getByTestId("report-question")).toBeVisible();
   await choose(page, "Group by", "Channel");
-  // The chart kind is a segmented control: its radio input is visually
-  // hidden, so the label is what a person actually clicks.
+  // The kind strip lives in the chart's own header now, as icons: its radio
+  // input is visually hidden, so the label is what a person actually clicks,
+  // and the kind key is kept as the icon's `title`.
   await page.locator('label:has([title="pie"])').click();
-  await page.getByLabel("Name").fill(name);
+  await page.getByTestId("open-save-report").click();
+  await page.getByRole("dialog").getByRole("textbox", { name: "Name" }).fill(name);
   await page.getByTestId("save-report").click();
 
   // Lands on the saved report, with its answer already computed.
@@ -77,7 +79,8 @@ test("a report built in the browser survives a reload and answers", async ({ pag
 test("a private report is invisible to somebody else", async ({ page, browser }) => {
   const name = stamp();
   await signIn(page, "admin", "/reports/builder?resource=ticket&period=all_time&group=severity");
-  await page.getByLabel("Name").fill(name);
+  await page.getByTestId("open-save-report").click();
+  await page.getByRole("dialog").getByRole("textbox", { name: "Name" }).fill(name);
   await page.getByTestId("save-report").click();
   await expect(page).toHaveURL(/\/reports\?report=/);
 

@@ -67,6 +67,26 @@ def test_snapshot_reports_each_dependency(client, has_database):
         assert "database" in body["degraded"]
 
 
+def test_the_snapshot_names_the_store_even_when_it_cannot_be_reached(client, monkeypatch):
+    """"unavailable" alone tells an operator nothing about where to look.
+
+    Found by running the suite without the storage environment: the local
+    fallback's directory was unwritable, the probe fell into its `except`, and
+    the snapshot dropped the one field that says *which* store had failed.
+    """
+    from src.core import storage
+    from src.services import health
+
+    monkeypatch.setattr(
+        storage, "for_config", lambda **_kwargs: (_ for _ in ()).throw(OSError("no such directory"))
+    )
+    reported = health.probe_storage()
+
+    assert reported["status"] == "unavailable"
+    assert reported["store"] in ("object", "local")
+    assert "no such directory" in reported["error"]
+
+
 def test_snapshot_leaks_no_configuration(client):
     """It is public, so it must carry status and latency and nothing else."""
     raw = client.get(f"{PREFIX}/health/status").get_data(as_text=True)
