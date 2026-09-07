@@ -390,9 +390,17 @@ function gauge(panel: ChartPanel, theme: Theme): Record<string, unknown> {
   };
 }
 
+/**
+ * Two dimensions and a count, as a grid.
+ *
+ * The axes are the panel's own — `groups` across, `categories` down — rather
+ * than a weekday-by-hour calendar written in here. A renderer that knows one
+ * chart is about weekdays can only ever draw that chart, and "when are we
+ * busy" is one of many two-dimensional questions.
+ */
 function heatmap(panel: ChartPanel, theme: Theme): Record<string, unknown> {
-  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  const hours = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, "0"));
+  const columns = panel.groups ?? groupsOf(panel);
+  const rows = panel.categories ?? categoriesOf(panel);
   const max = Math.max(...panel.series.map((point) => point.value), 1);
 
   return {
@@ -402,18 +410,25 @@ function heatmap(panel: ChartPanel, theme: Theme): Record<string, unknown> {
       trigger: "item",
       formatter: (params: { value?: number[] }) =>
         params.value
-          ? `${days[params.value[1] ?? 0] ?? ""} ${hours[params.value[0] ?? 0] ?? ""}:00 · ${params.value[2] ?? 0}`
+          ? `${format.encodeHTML(rows[params.value[1] ?? 0] ?? "")} · ${format.encodeHTML(
+              columns[params.value[0] ?? 0] ?? "",
+            )} · ${params.value[2] ?? 0}`
           : "",
     },
     grid: { ...theme.grid, top: 10, bottom: 46, left: 44, right: 12 },
     xAxis: {
       ...theme.categoryAxis,
       type: "category",
-      data: hours,
+      data: columns,
       splitArea: { show: true },
-      axisLabel: { ...theme.categoryAxis.axisLabel, interval: 2 },
+      // Every other label once the axis is crowded. Twenty-four hours do not
+      // fit; six channels do, and thinning those would hide half of them.
+      axisLabel: {
+        ...theme.categoryAxis.axisLabel,
+        interval: columns.length > 12 ? 2 : 0,
+      },
     },
-    yAxis: { ...theme.categoryAxis, type: "category", data: days, splitArea: { show: true } },
+    yAxis: { ...theme.categoryAxis, type: "category", data: rows, splitArea: { show: true } },
     visualMap: {
       min: 0,
       max,
@@ -430,8 +445,8 @@ function heatmap(panel: ChartPanel, theme: Theme): Record<string, unknown> {
       {
         type: "heatmap",
         data: panel.series.map((point) => [
-          hours.indexOf(point.group ?? "00"),
-          days.indexOf(point.name ?? "Mon"),
+          columns.indexOf(point.group ?? "—"),
+          rows.indexOf(point.name ?? "—"),
           point.value,
         ]),
         label: { show: false },
@@ -441,9 +456,24 @@ function heatmap(panel: ChartPanel, theme: Theme): Record<string, unknown> {
   };
 }
 
+/**
+ * Two measures against each other, one point per record.
+ *
+ * The axis names and their unit come from the panel. A scatter whose renderer
+ * knows it is about budget and progress is a scatter that can only ever be
+ * about budget and progress — and a correlation is exactly the chart a builder
+ * should be able to point at any two numbers.
+ */
 function scatter(panel: ChartPanel, theme: Theme): Record<string, unknown> {
   const groups = groupsOf(panel);
   const biggest = Math.max(...panel.series.map((point) => point.value), 1);
+  const axes = panel.axes ?? { x: "x", y: "y" };
+  const suffix = axes.format === "percent" ? "%" : "";
+  // A percentage axis is bounded by its own definition; anything else is
+  // bounded by the data, and forcing 0–100 onto revenue draws every point in
+  // the bottom-left corner.
+  const bound = (values: number[]) =>
+    axes.format === "percent" ? Math.max(100, ...values) : undefined;
 
   return {
     ...theme,
@@ -453,32 +483,46 @@ function scatter(panel: ChartPanel, theme: Theme): Record<string, unknown> {
       formatter: (params: { data?: { name?: string; value?: number[] } }) => {
         const value = params.data?.value;
         if (!value) return "";
-        return `${format.encodeHTML(params.data?.name ?? "")}<br/>${value[0]}% of budget spent · ${value[1]}% done`;
+        return `${format.encodeHTML(params.data?.name ?? "")}<br/>${format.encodeHTML(
+          axes.x,
+        )} ${compactNumber(value[0] ?? 0)}${suffix} · ${format.encodeHTML(
+          axes.y,
+        )} ${compactNumber(value[1] ?? 0)}${suffix}`;
       },
     },
-    legend: { ...theme.legend, bottom: 0, data: groups },
-    grid: { ...theme.grid, top: 16, bottom: 34 },
+    // A legend of one unnamed series is a legend that says "—". It appears
+    // when the points are actually grouped and not before.
+    legend:
+      groups.length > 1
+        ? { ...theme.legend, bottom: 0, data: groups }
+        : { show: false },
+    grid: { ...theme.grid, top: 16, bottom: groups.length > 1 ? 34 : 12, left: 56 },
     xAxis: {
       ...theme.valueAxis,
       type: "value",
-      name: "Budget spent",
+      name: axes.x,
       nameLocation: "middle",
       nameGap: 24,
-      max: Math.max(120, ...panel.series.map((point) => point.x ?? 0)),
-      axisLabel: { ...theme.valueAxis.axisLabel, formatter: "{value}%" },
+      max: bound(panel.series.map((point) => point.x ?? 0)),
+      axisLabel: { ...theme.valueAxis.axisLabel, formatter: `{value}${suffix}` },
     },
     yAxis: {
       ...theme.valueAxis,
       type: "value",
-      name: "Work done",
-      max: 100,
-      axisLabel: { ...theme.valueAxis.axisLabel, formatter: "{value}%" },
+      // Along the axis rather than above its corner: ECharts' default parks a
+      // vertical axis name in the top-left, where it is read as a stray word.
+      name: axes.y,
+      nameLocation: "middle",
+      nameRotate: 90,
+      nameGap: 44,
+      max: bound(panel.series.map((point) => point.y ?? 0)),
+      axisLabel: { ...theme.valueAxis.axisLabel, formatter: `{value}${suffix}` },
     },
     series: groups.map((group, index) => ({
       name: group,
       type: "scatter",
-      // Sized by budget: a €4M project off the diagonal matters more than a
-      // €40k one in the same place.
+      // Sized by the third number, when there is one: a €4M project off the
+      // diagonal matters more than a €40k one in the same place.
       symbolSize: (value: number[]) => 8 + Math.sqrt((value[2] ?? 0) / biggest) * 22,
       itemStyle: { color: categoryColor(group, index), opacity: 0.85 },
       data: panel.series

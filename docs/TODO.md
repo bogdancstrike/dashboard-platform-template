@@ -35,7 +35,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
 | Endpoints | 49 of ~110 — `maps/endpoint.json` is the list, and `python -m src.api.endpoint_map` prints it; nothing here is kept in step by hand |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 310 backend + 253 frontend + 130 Playwright e2e — all green against `docker compose up`. Scale-independent: they pass on either seed size |
+| Tests | 311 backend + 266 frontend + 135 Playwright e2e — all green against `docker compose up`. Scale-independent: they pass on either seed size |
 | Frontend | shell, Data Explorer, discovery workspaces, the notification centre, six entity lists and three record pages of their own; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -279,8 +279,8 @@ vertical slice with its own tests, its own tracker entry and its own commit.
     and delete — a page that quietly stayed read-only fails it. 202 frontend
     tests, typecheck and lint clean, FE redeployed and the full 114-test
     Playwright suite green
-- [~] **The `ANALYSE` pages** — `/analytics`, `/reports` and `/reports/builder`
-      ship; `/charts/builder` and `/maps` are next
+- [~] **The `ANALYSE` pages** — `/analytics`, `/reports`, `/reports/builder`
+      and `/charts/builder` ship; `/maps` is next
   - **One compiler, not four endpoints.** `POST /api/analysis/run` takes
     *group these rows by these columns and measure them this way* — the
     question the workspace, both builders and the map all ask. Four endpoints
@@ -434,7 +434,8 @@ vertical slice with its own tests, its own tracker entry and its own commit.
 - [~] **Continue implementation task by task** — update this tracker, commit,
       push, redeploy both FE/BE and test the deployed result after each task.
       Current sequence: the detail pages that deserve a shape of their own are
-      done; next is `/charts/builder` and `/maps`, then kanban lane CRUD (§18).
+      done, and so is `/charts/builder`; next is `/maps`, then kanban lane
+      CRUD (§18).
       No destructive database reseeding.
   - The local database holds a **small-scale** seed (8 projects, 30 customers,
     50 tickets, 60 orders), not the full one. Nothing depends on which any
@@ -1222,10 +1223,46 @@ everything else.
     picked comes from `/api/analysis/catalog` — so the builder cannot offer a
     column the compiler will reject. Scheduling stores its cron string;
     running one on a schedule waits on §23
-- [ ] Chart builder: every ECharts type the platform themes — line, area,
-      stacked area, bar, stacked and horizontal bars, pie, donut, scatter,
-      heatmap, funnel, gauge, timeline — with a live preview in both themes
-- [ ] A saved chart becomes a dashboard widget without being rebuilt
+- [x] Chart builder: every ECharts type the platform themes — line, area,
+      bar, horizontal and stacked bars, multi-line, pie, treemap, funnel,
+      radar, heatmap, scatter and gauge — with a live preview in both themes
+- [ ] A saved chart becomes a dashboard widget without being rebuilt — waits
+      on `/dashboards` (§45), which does not exist yet. The *saving* half is
+      done: a chart is a report, so whatever reads reports will read charts
+  - **It is picture-first, which is the half the report builder is not.**
+    That builder composes a question and then offers seven ways to draw it;
+    somebody who wants a heatmap should not have to discover, after building a
+    one-dimensional question, that heatmaps were never on the menu
+  - **Every kind is offered, and the ones the question cannot feed are refused
+    by name** (§76): "Heatmap — needs a second grouping", "Scatter — needs a
+    second measure". What each kind needs is declared beside the renderer that
+    needs it (`components/charts/shapes.ts`), never listed in the page — these
+    are facts about what `heatmap()` and `scatter()` read
+  - **The gallery is drawn from the reader's own numbers**, fourteen live
+    thumbnails, stripped of every label because at 104px the words are noise
+    and the shape is the answer
+  - **A chart is a saved analysis, which is what a report already is.** No
+    second table, no second sharing model, no second lifecycle: it saves
+    through `reportsApi` with the chosen `visualization`, appears on
+    `/reports`, and opens in either builder. The draft is one URL contract
+    (`entities/analysisDraft.ts`) that the workspace and both builders share,
+    so "open this in the report builder" is a navigation rather than a
+    translation
+  - Two renderer bugs this found and fixed: `panelFor` never set `x`/`y`, so a
+    scatter built from an analysis drew every point at the origin; and the
+    heatmap and scatter renderers had the *dashboard's own questions* baked
+    into them — a weekday-by-hour calendar and a "Budget spent" axis. Both now
+    take their axes from the panel, which is what makes them drawable from any
+    two declared dimensions or measures
+  - `multi-line` was themed by the renderer and refused by the store, so a
+    saved analysis could not name a picture the platform draws. A test now
+    asserts the two lists are one list
+  - Verification: 311 backend tests, 266 frontend (16 new), 135 Playwright
+    (5 new) — including that a thumbnail is a real canvas of the database's
+    numbers, that a refused kind stays refused after a reload because the
+    refusal is derived from the question, that a saved chart answers on
+    `/reports`, that an operator is told which permission is missing, and that
+    the page is axe-clean
 
 ### Dashboard, expanded (§2, §44)
 
@@ -1617,7 +1654,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] `docker compose up` clean-boot green — every service healthy from empty
       volumes; seed wrote 15 554 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
-- [~] Backend tests — 310 passing, including the comment thread's permissions
+- [~] Backend tests — 311 passing, including the comment thread's permissions
       and editing rules, the checklist's validation, saved reports' lifecycle and
       sharing, the analysis compiler's grouping,
       refusals and reconciliation, Data Explorer query, validation,
@@ -1634,7 +1671,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
     aims at the **running stack** — it silently replaced the demo dataset with a
     small one, so every Playwright run afterwards measured 60 tasks where
     compose had produced 500. Nothing failed; the numbers were quietly different
-- [~] Frontend unit + component tests — 253 passing, including the task work
+- [~] Frontend unit + component tests — 266 passing, including the task work
       page and its conversation, saved reports
       and the builder, the analytics
       workspace, the record form,
@@ -1644,7 +1681,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
       notification centre's six states, the header bell, the audit explorer,
       the per-record timeline, the authenticated download path, the generic
       entity list and detail pages, the connection map and the permission matrix
-- [~] Playwright e2e suite — 130 tests green against `docker compose up` on the
+- [~] Playwright e2e suite — 135 tests green against `docker compose up` on the
       full seed, covering the shell, appearance, Data Explorer, saved searches,
       global search, relationships, the catalogue, the notification centre, the
       audit explorer, a real file download, all six entity lists, record

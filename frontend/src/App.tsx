@@ -21,6 +21,7 @@ const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
+const ChartBuilderPage = lazy(() => import("@/pages/ChartBuilderPage"));
 const DataExplorerPage = lazy(() => import("@/pages/DataExplorerPage"));
 const GlobalSearchPage = lazy(() => import("@/pages/GlobalSearchPage"));
 const DataCatalogPage = lazy(() => import("@/pages/DataCatalogPage"));
@@ -213,15 +214,9 @@ export default function App() {
         <Route
           path="charts/builder"
           element={
-            <PlaceholderPage
-              section="§28, §44"
-              summary="Build a chart visually and drop it onto a dashboard."
-              bullets={[
-                "Every ECharts type the platform themes: line, area, stacked area, bar, stacked and horizontal bars, pie, donut, scatter, heatmap, funnel, gauge, timeline",
-                "Live preview against real data, in both themes",
-                "Save it as a widget, or export the underlying rows",
-              ]}
-            />
+            <Suspense fallback={<Loading />}>
+              <ChartBuilderPage />
+            </Suspense>
           }
         />
         <Route

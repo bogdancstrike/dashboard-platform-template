@@ -48,7 +48,7 @@ import type { ChartKind } from "@/api/dashboard";
 import { reportsApi, type ReportInput, type ReportScope } from "@/api/reports";
 import { ChartCard } from "@/components/ChartCard";
 import { PageHeader } from "@/components/PageHeader";
-import { PeoplePicker } from "@/components/PeoplePicker";
+import { MemberPicker } from "@/components/PeoplePicker";
 import { usePageCommands } from "@/commands/CommandContext";
 
 const { Text } = Typography;
@@ -461,22 +461,5 @@ function Field({
         </div>
       )}
     </div>
-  );
-}
-
-/** The audience, picked from the directory rather than typed as ids. */
-function MemberPicker({
-  value,
-  onChange,
-}: {
-  value?: string[];
-  onChange?: (value: string[]) => void;
-}) {
-  return (
-    <PeoplePicker
-      aria-label="Shared with"
-      value={value ?? []}
-      onChange={(ids) => onChange?.(ids)}
-    />
   );
 }

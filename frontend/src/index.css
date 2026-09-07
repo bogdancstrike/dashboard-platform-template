@@ -1064,3 +1064,53 @@ mark.nu-mark {
 .nu-audit-head {
   display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
 }
+
+/* The chart builder's gallery: every kind the platform themes, drawn from the
+   reader's own numbers. A thumbnail of real data answers "is this the right
+   picture" in a way a generic icon never does (§44). */
+.nu-gallery {
+  display: grid; gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.nu-gallery-item {
+  display: flex; flex-direction: column; gap: 4px; padding: 6px;
+  background: var(--nu-surface); color: inherit; text-align: left;
+  border: 1px solid var(--nu-border-subtle); border-radius: var(--nu-radius-card);
+  cursor: pointer; transition: border-color 140ms ease-out;
+}
+.nu-gallery-item:hover:not(:disabled) { border-color: var(--nu-accent); }
+.nu-gallery-item.is-chosen {
+  border-color: var(--nu-accent);
+  box-shadow: inset 0 0 0 1px var(--nu-accent);
+}
+/* Refused in place, never hidden: a kind that is not offered teaches nobody
+   that it exists or what would unlock it (§76). */
+.nu-gallery-item.is-blocked { cursor: not-allowed; background: var(--nu-bg); }
+.nu-gallery-canvas {
+  display: flex; align-items: center; justify-content: center;
+  height: 104px; overflow: hidden; border-radius: var(--nu-radius-control);
+}
+.nu-gallery-missing {
+  padding: 0 8px; text-align: center; font-size: 11.5px; line-height: 1.4;
+  color: var(--nu-text-secondary);
+}
+.nu-gallery-label {
+  font-size: 12px; font-weight: 600; padding: 0 2px;
+}
+.nu-gallery-item:disabled .nu-gallery-label { color: var(--nu-text-secondary); }
+
+/* A chart drawn in a theme it was told to use, on that theme's own ground.
+   Floating a dark chart on a light card is not a preview of anything: the
+   axis labels were chosen to sit on the ground this paints. */
+.nu-chart-preview {
+  border-radius: var(--nu-radius-card); padding: 6px;
+  border: 1px solid var(--nu-border-subtle);
+}
+.nu-chart-preview--light { background: #ffffff; }
+.nu-chart-preview--dark { background: #15171c; }
+.nu-chart-preview figcaption {
+  font-size: 11.5px; padding: 2px 4px 0;
+}
+.nu-chart-preview--light figcaption { color: #475569; }
+.nu-chart-preview--dark figcaption { color: #9aa2b1; }
+.nu-chart-preview-empty { display: block; }

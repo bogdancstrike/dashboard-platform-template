@@ -115,20 +115,55 @@ export function panelFor(
   // total beside it is a pie nobody reconciles twice.
   const rows = result.other ? [...result.rows, result.other] : result.rows;
 
+  const unit =
+    measure.field.includes("value") || measure.field === "total" || measure.field === "budget"
+      ? ("currency" as const)
+      : undefined;
+
+  // A scatter is the one kind that reads *two* measures rather than one, so it
+  // is built from the pair rather than from the row's single value. Without
+  // this it drew every point at the origin — the renderer reads `x` and `y`,
+  // and nothing was setting them.
+  if (kind === "scatter") {
+    const [first, second] = result.measures;
+    if (!first || !second) return undefined;
+    return {
+      kind,
+      title: title ?? capitalise(result.description),
+      axes: { x: first.label, y: second.label },
+      series: rows.map((row) => ({
+        name: row.keys[0] ?? "—",
+        ...(grouped ? { group: row.keys[1] } : {}),
+        x: Number(row.values[first.key] ?? 0),
+        y: Number(row.values[second.key] ?? 0),
+        // The bubble is the third measure when there is one, and a constant
+        // otherwise — an unsized scatter is still a scatter.
+        value: Number(row.values[result.measures[2]?.key ?? first.key] ?? 0),
+      })),
+      unit,
+    };
+  }
+
   const series: ChartPoint[] = rows.map((row) => ({
     ...(overTime ? { bucket: row.keys[0] } : { name: row.keys[0] }),
     ...(grouped ? { group: row.keys[1] } : {}),
     value: Number(row.values[measure.key] ?? 0),
   }));
 
+  const groups = grouped ? [...new Set(rows.map((row) => row.keys[1] ?? ""))] : undefined;
+
   return {
     kind,
     title: title ?? capitalise(result.description),
     series,
-    groups: grouped ? [...new Set(rows.map((row) => row.keys[1] ?? ""))] : undefined,
-    unit: measure.field.includes("value") || measure.field === "total" || measure.field === "budget"
-      ? "currency"
-      : undefined,
+    groups,
+    // A heatmap reads its rows down the side, and the compiler already
+    // returned them in the order it was asked for — first sighting would put
+    // the busiest row wherever it happened to appear.
+    ...(kind === "heatmap"
+      ? { categories: [...new Set(rows.map((row) => row.keys[0] ?? "—"))] }
+      : {}),
+    unit,
   };
 }
 

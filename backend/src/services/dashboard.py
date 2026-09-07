@@ -29,6 +29,15 @@ from sqlalchemy import Numeric, and_, case, cast, func, or_, select
 from src.core import vocabulary
 from src.core.clock import iso, now, previous_period, resolve_range
 
+#: The week as a reader reads it, Monday first. The heatmap's vertical axis.
+WEEKDAYS: tuple[str, ...] = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+
+#: The same names indexed the way PostgreSQL's `extract('dow')` counts, which
+#: starts on Sunday. Kept beside `WEEKDAYS` rather than inline at the call
+#: site, because two orderings of the same seven strings a hundred lines apart
+#: is how a chart ends up one day out.
+_POSTGRES_WEEKDAYS: tuple[str, ...] = ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+
 #: The named ranges the period picker offers.
 PERIODS: tuple[tuple[str, str], ...] = (
     ("today", "Today"),
@@ -441,9 +450,16 @@ def charts(session, start: datetime, end: datetime) -> dict[str, Any]:
         "support_load": {
             # Two dimensions — day and hour — so a heatmap. A line chart of
             # this averages Tuesday morning with Sunday night.
+            #
+            # The axes are declared rather than assumed by the renderer: a
+            # heatmap is a two-dimensional count, and only whoever asked the
+            # question knows that these particular rows read Mon→Sun and 00→23
+            # rather than in whatever order the GROUP BY returned them.
             "kind": "heatmap",
             "title": "When support gets busy",
             "description": "Tickets created in the selected period · UTC weekday and hour",
+            "categories": list(WEEKDAYS),
+            "groups": [f"{hour:02d}" for hour in range(24)],
             "series": _support_load(session, Ticket, start, end),
         },
         "budget_vs_progress": {
@@ -452,6 +468,9 @@ def charts(session, start: datetime, end: datetime) -> dict[str, Any]:
             "kind": "scatter",
             "title": "Budget spent against work done",
             "description": "Current projects · bubble size represents budget",
+            # What the two axes mean, said here rather than known by the
+            # renderer — which draws any two numbers against each other.
+            "axes": {"x": "Budget spent", "y": "Work done", "format": "percent"},
             "series": portfolio,
         },
         "device_health": {
@@ -542,10 +561,9 @@ def _support_load(session, Ticket, start: datetime, end: datetime) -> list[dict[
         .where(and_(Ticket.created_at >= start, Ticket.created_at < end))
         .group_by(weekday, hour)
     ).all()
-    names = ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
     return [
         {
-            "name": names[int(row.weekday) % 7],
+            "name": _POSTGRES_WEEKDAYS[int(row.weekday) % 7],
             "group": f"{int(row.hour):02d}",
             "value": int(row.value),
         }

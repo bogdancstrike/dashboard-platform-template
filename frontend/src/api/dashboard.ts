@@ -59,8 +59,29 @@ export interface ChartPanel {
   kind: ChartKind;
   title: string;
   series: ChartPoint[];
-  /** For the stacked and multi-series kinds: the stacks, in order. */
+  /** For the stacked and multi-series kinds: the stacks, in order. Also the
+   *  heatmap's horizontal axis, which is a second dimension rather than a
+   *  stack — the same field, read the way that kind reads it. */
   groups?: string[];
+  /**
+   * The category axis in the order it should be drawn, when first sighting is
+   * the wrong order.
+   *
+   * A heatmap of weekdays has to read Mon→Sun whatever order the rows arrive
+   * in, and only whoever asked the question knows that. Absent means "the
+   * order the rows came in", which is right for anything the server already
+   * sorted.
+   */
+  categories?: string[];
+  /**
+   * What the two axes of a scatter *mean*.
+   *
+   * Named by the panel because a renderer that knows one chart is about
+   * budget and progress is a renderer that can only ever draw that chart. The
+   * dashboard declares its own; a chart built from an analysis declares the
+   * two measures it chose.
+   */
+  axes?: { x: string; y: string; format?: "percent" | "number" | "currency" };
   /** A formatting hint — `currency`, `percent`. */
   unit?: string;
   /** Scope/caveat displayed alongside the panel, including snapshot metrics. */

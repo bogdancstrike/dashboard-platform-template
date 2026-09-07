@@ -109,3 +109,30 @@ export function PeoplePicker({
     />
   );
 }
+
+/**
+ * The same picker, wearing the shape `Form.Item` injects.
+ *
+ * AntD hands a form control `value` and `onChange` and expects it to cope;
+ * `PeoplePicker` requires both, which is right for the twenty places that pass
+ * them explicitly and wrong inside a form. One adapter rather than one per
+ * builder — two copies of this is how one of them ends up not clearing.
+ */
+export function MemberPicker({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value?: string[];
+  onChange?: (value: string[]) => void;
+  placeholder?: string;
+}) {
+  return (
+    <PeoplePicker
+      aria-label="Shared with"
+      placeholder={placeholder}
+      value={value ?? []}
+      onChange={(ids) => onChange?.(ids)}
+    />
+  );
+}
