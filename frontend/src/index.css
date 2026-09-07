@@ -226,6 +226,41 @@ body {
   overflow: auto; padding: 20px; background: var(--nu-bg);
 }
 
+/* ── pages that fill their window ───────────────────────────────────────
+   `.nu-content` is already a fixed-height scroll container, so a page can
+   claim the height that is left instead of ending wherever its content
+   happens to stop. Three pages needed this for the same reason: a
+   workbench — a list beside what the list is *about* — that sizes itself
+   to its content leaves two thirds of the window empty on a folder with
+   one file in it, and puts the scrollbar on the whole page rather than on
+   the column that is actually long.
+
+   Opt-in rather than default: a page whose content is a document should
+   scroll as a document. `.nu-fill` is the region that takes the leftover
+   height; `.nu-pane` is a card inside it whose *body* is the thing that
+   scrolls, so the card's own title stays put. */
+#nu-main { display: flex; flex-direction: column; min-height: 100%; }
+.nu-fill { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.nu-pane { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+.nu-pane > .ant-card-body {
+  flex: 1 1 auto; min-height: 0; overflow: auto;
+  display: flex; flex-direction: column;
+}
+/* A pane whose body is a table: the table takes the height and the rows
+   scroll under a header that stays. */
+.nu-pane--table > .ant-card-body { padding: 0; }
+.nu-pane--table .ant-table-wrapper { flex: 1 1 auto; min-height: 0; }
+
+/* Below the breakpoint the columns stack, and stacked columns inside a
+   fixed height would each get a scrollbar of their own. The page goes back
+   to scrolling as one document. */
+@media (max-width: 1100px) {
+  #nu-main { display: block; }
+  .nu-fill { display: block; }
+  .nu-pane { height: auto; }
+  .nu-pane > .ant-card-body { overflow: visible; }
+}
+
 @media (max-width: 991px) {
   .nu-header { padding-inline: 10px; gap: 8px; }
   .nu-content { padding: 14px; }
@@ -957,12 +992,24 @@ mark.nu-mark {
 .nu-ledger .ant-table-cell { font-variant-numeric: tabular-nums; }
 .nu-ledger-total > td { background: var(--nu-surface-raised) !important; }
 
-/* Tickets — the split queue (§63). */
-.nu-split { display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 12px; align-items: start; }
+/* A list beside what the list is about — tickets' triage queue (§63),
+   reports, files. `.nu-fill` on the same element makes it claim the window;
+   without it the grid still works and sizes to its content. */
+.nu-split { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: 12px; align-items: start; }
+.nu-split.nu-fill { align-items: stretch; }
+/* A narrower left column, for a list of short names — a folder tree needs a
+   quarter of what a queue of ticket summaries does, and every pixel it does
+   not need is a pixel the table beside it does. */
+.nu-split--rail { grid-template-columns: minmax(180px, 230px) 1fr; }
+.nu-split.nu-fill > * { min-height: 0; }
 @media (max-width: 1100px) { .nu-split { grid-template-columns: 1fr; } }
 .nu-split-list .ant-card-body { padding: 6px; }
 .nu-split-detail { min-height: 420px; }
+.nu-split.nu-fill .nu-split-detail { min-height: 0; }
+/* The queue scrolls inside its pane. The cap is for the pages that do not
+   fill the window; a filling one gets its height from the grid instead. */
 .nu-queue { list-style: none; margin: 0; padding: 0; max-height: 66vh; overflow-y: auto; }
+.nu-fill .nu-queue { max-height: none; flex: 1 1 auto; min-height: 0; }
 .nu-queue-row {
   display: flex; gap: 10px; width: 100%; text-align: start;
   padding: 9px 8px; border: none; background: transparent; cursor: pointer;
@@ -1228,12 +1275,40 @@ mark.nu-mark {
 }
 .nu-transfer-name > .ant-typography:first-child { flex: 1; min-width: 0; }
 
-/* The upload strip (§20). On screen permanently, so it is a line rather than
-   a panel — a third of the page given to a drop target pushes the files
-   somebody came to see below the fold. */
-.nu-dropzone .ant-upload-drag { padding: 10px 12px; border-radius: var(--nu-radius-card); }
-.nu-dropzone .ant-upload-drag .ant-upload-btn { padding: 0; }
-.nu-dropzone .anticon { font-size: 18px; color: var(--nu-accent); }
+/* The tray sits above the list inside the same pane, so it needs its own
+   separation rather than a card of its own. */
+.nu-transfers { padding: 8px 12px; border-bottom: 1px solid var(--nu-border-subtle); }
+.nu-transfers-head { display: flex; align-items: center; justify-content: space-between; }
+
+/* The file list *is* the drop target (§20), and it says so only while
+   something is over it. A permanent panel of instructions is read once and
+   then occupies a tenth of the page forever — which on a folder holding one
+   file made the instructions taller than the content. */
+.nu-drop-area { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.nu-drop-area > .ant-table-wrapper { flex: 1 1 auto; min-height: 0; }
+.nu-drop-area.is-over { outline: 2px dashed var(--nu-accent); outline-offset: -2px; border-radius: var(--nu-radius-card); }
+.nu-drop-hint {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 0 24px; text-align: center;
+  background: color-mix(in srgb, var(--nu-accent) 8%, var(--nu-surface));
+  border-radius: var(--nu-radius-card);
+  color: var(--nu-text-secondary); font-size: 12.5px;
+}
+.nu-drop-hint .anticon { font-size: 20px; color: var(--nu-accent); }
+
+/* A name and the tag that qualifies it, in a cell that may be narrower than
+   both. `min-width: 0` is what lets the name give way rather than push. */
+.nu-file-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.nu-file-name > .ant-typography { min-width: 0; }
+
+/* The foot of a rail: what the whole store holds, pushed to the bottom of the
+   column so a short list does not leave two thirds of it blank. */
+.nu-rail-foot {
+  margin-top: auto; padding: 8px 8px 4px;
+  border-top: 1px solid var(--nu-border-subtle);
+  display: flex; flex-direction: column; gap: 2px; font-size: 11.5px;
+}
 
 /* Choosing what a dashboard will hold (§45). A grid of kinds with counters,
    because "how many headline numbers" is a real question a checkbox cannot

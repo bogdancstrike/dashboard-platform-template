@@ -480,6 +480,39 @@ commit — built, committed, pushed, redeployed and verified before the next.
       item's text baseline, and a 40px-tall trigger next to 32px buttons had
       nothing to align to. The items became flex containers, which takes the
       baseline out of the question, and the trigger matches the buttons' height
+- [~] **Pages fill their window** — one primitive rather than a patch per
+      page. `.nu-content` was already a fixed-height scroll container, so
+      `.nu-fill` claims the height that is left and `.nu-pane` makes a card's
+      *body* the thing that scrolls. Three pages left two thirds of the window
+      empty for the same reason: a workbench sized to its content puts the
+      scrollbar on the whole page rather than on the column that is long
+- [x] **`/files` stopped being three bars of chrome above one row**
+  - The permanent drop panel is gone. The *list* takes the drop and says so
+    only while something is over it; the permanent way to upload is a button
+    in the header. A panel of instructions is read once and then occupies a
+    tenth of the page forever — on a folder holding one file it was taller
+    than the content
+  - **Deleting a folder was the loudest control on the page**: a red button one
+    slip away from a filter somebody types into all day. It moves behind the
+    folder's own menu, and it is *refused in place with the reason* when the
+    folder is not empty — which is the service's rule (a recursive delete of a
+    tree is a mistake somebody makes once and cannot undo), previously
+    discovered as a 409 after the confirmation had been agreed to
+  - The open folder lives in the address (§69), so "look in /contracts" is a
+    link. It was component state, which also made it untestable
+  - What the whole store holds sits at the foot of the folder rail, where a
+    list of thirteen short names left the column two thirds blank
+  - The name column overlapped the one beside it, because AntD lays a table
+    out `auto` until a column asks for fixed
+- [ ] **`/projects` is a table** — asked for directly
+- [ ] **`/tickets` is a table, and `/tickets/:id` says more** — asked for
+      directly. The queue is four large tiles, a filter bar and a split whose
+      preview pane is a second rendering of the record; the table is the shape
+      a queue somebody works through actually wants
+- [ ] **`/reports`, `/reports/builder` and `/charts/builder` are cleaner** —
+      the question is a column of airy labelled selects in all three, the
+      primary action is below the fold in two, and the answer gets what is
+      left. The question becomes one compact bar and the answer gets the width
 - [ ] **`/home` is the default landing page** — the platform's name and logo,
       the reader's own announcements, notifications and preferences, and
       whatever else is worth seeing on arrival

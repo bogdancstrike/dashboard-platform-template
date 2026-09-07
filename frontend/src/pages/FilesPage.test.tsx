@@ -188,6 +188,43 @@ describe("the file manager", () => {
     );
   });
 
+  it("opens the folder the address names", async () => {
+    // Which folder is open is a link, not a set of instructions (§69).
+    render("/files?folder=folder-2");
+    expect(await screen.findByTestId("folder-name")).toHaveTextContent("/contracts/signed");
+  });
+
+  it("refuses to delete a folder that is not empty, in place and with the reason", async () => {
+    const user = userEvent.setup();
+    render("/files?folder=folder-1");
+
+    // Contracts holds a file and a child folder. The service refuses that
+    // deliberately — a recursive delete of a tree is a mistake somebody makes
+    // once and cannot undo — so the page says so *before* the confirmation
+    // rather than discovering it as a 409 afterwards (§76).
+    await user.click(await screen.findByTestId("delete-folder"));
+
+    const refused = await screen.findByRole("menuitem", { name: /Only an empty folder can go/ });
+    expect(refused).toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("offers deleting an empty folder, and asks before doing it", async () => {
+    const user = userEvent.setup();
+    render("/files?folder=folder-2");
+
+    await user.click(await screen.findByTestId("delete-folder"));
+    // A regex: the icon carries an `aria-label` of its own, so the item's
+    // accessible name is "delete Delete this folder".
+    await user.click(await screen.findByRole("menuitem", { name: /Delete this folder$/ }));
+
+    // Destructive, so it is confirmed — the menu is not the deed. Addressed
+    // as the dialog's own title: AntD renders it twice, once for the accessible
+    // name and once as the visible heading.
+    const confirm = await screen.findByRole("dialog");
+    expect(confirm).toHaveTextContent("Delete /contracts/signed?");
+    expect(confirm).toHaveTextContent("It is empty, so nothing is lost with it.");
+  });
+
   it("says which permission uploading needs, rather than hiding the control", async () => {
     const { server } = await import("@/test/server");
     const { http, HttpResponse } = await import("msw");

@@ -30,12 +30,11 @@ import {
   App as AntApp,
   Button,
   Card,
-  Col,
   Empty,
   Input,
+  Dropdown,
   Modal,
   Progress,
-  Row,
   Select,
   Skeleton,
   Space,
@@ -52,8 +51,11 @@ import {
   EditOutlined,
   FolderAddOutlined,
   InboxOutlined,
+  MoreOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import {
@@ -87,10 +89,21 @@ interface Transfer {
 export default function FilesPage() {
   const queryClient = useQueryClient();
   const { message, modal } = AntApp.useApp();
-  // Opened on nothing until the tree answers, then on the first folder — a
-  // file manager that opens on "Unfiled" opens on an empty list, because
-  // almost everything is filed somewhere.
-  const [folderId, setFolderId] = useState<string>("");
+  // Which folder is open lives in the address (§69, §72), so "look in
+  // /contracts" is a link rather than a set of instructions. Empty until the
+  // tree answers, and then the first folder — a file manager that opens on
+  // "Unfiled" opens on an empty list, because almost everything is filed.
+  const [params, setParams] = useSearchParams();
+  const folderId = params.get("folder") ?? "";
+  const setFolderId = (next: string) =>
+    setParams(
+      (current) => {
+        const replacement = new URLSearchParams(current);
+        replacement.set("folder", next);
+        return replacement;
+      },
+      { replace: true },
+    );
   const [search, setSearch] = useState("");
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [renaming, setRenaming] = useState<StoredFile | null>(null);
@@ -259,10 +272,39 @@ export default function FilesPage() {
   }, [tree.data]);
 
   const canManage = tree.data?.can_manage ?? false;
-  const folderName =
-    open === UNFILED
-      ? "Unfiled"
-      : (tree.data?.folders.find((folder) => folder.id === open)?.path ?? "");
+
+  /** What the whole store holds — summed here rather than asked for twice. */
+  const stored = useMemo(() => {
+    const folders = tree.data?.folders ?? [];
+    const unfiled = tree.data?.unfiled ?? { file_count: 0, total_bytes: 0 };
+    return {
+      files: folders.reduce((sum, folder) => sum + folder.file_count, unfiled.file_count),
+      bytes: folders.reduce((sum, folder) => sum + folder.total_bytes, unfiled.total_bytes),
+    };
+  }, [tree.data]);
+
+  const openFolder = tree.data?.folders.find((folder) => folder.id === open);
+  const folderName = open === UNFILED ? "Unfiled" : (openFolder?.path ?? "");
+
+  /**
+   * Why this folder cannot be deleted, when it cannot.
+   *
+   * The service refuses a folder that is not empty, deliberately: a recursive
+   * delete of a tree of files is a mistake somebody makes once and cannot
+   * undo. So the reason is said here rather than discovered as a 409 after the
+   * confirmation has been agreed to (§76). Unfiled is not a folder at all.
+   */
+  const undeletable = useMemo(() => {
+    if (open === UNFILED) return "Unfiled is where loose files live — it is not a folder";
+    if (!openFolder) return "No folder is open";
+    const children = (tree.data?.folders ?? []).filter(
+      (folder) => folder.parent_id === openFolder.id,
+    ).length;
+    if (openFolder.file_count > 0 || children > 0) {
+      return "Only an empty folder can go — move or delete what is in it first";
+    }
+    return null;
+  }, [open, openFolder, tree.data]);
 
   usePageCommands("files", [
     {
@@ -335,7 +377,7 @@ export default function FilesPage() {
     <>
       <PageHeader
         title="Files"
-        subtitle="Uploads and downloads go straight between your browser and object storage — the API hands out a signed URL and records what happened."
+        subtitle="Bytes go straight between your browser and object storage — the API only signs the URL and records what happened."
         tag={
           tree.data?.store === "local" ? (
             <Tooltip title="No object storage is configured, so the API is serving the bytes itself. Fine on a laptop; worth knowing anywhere else.">
@@ -345,102 +387,135 @@ export default function FilesPage() {
         }
         actions={
           <Tooltip title={canManage ? "" : "Your role does not include files.manage"}>
-            <Button
-              icon={<FolderAddOutlined />}
-              disabled={!canManage}
-              onClick={promptForFolder}
-              data-testid="new-folder"
-            >
-              New folder
-            </Button>
+            <Space size={8}>
+              <Button
+                icon={<FolderAddOutlined />}
+                disabled={!canManage}
+                onClick={promptForFolder}
+                data-testid="new-folder"
+              >
+                New folder
+              </Button>
+              {/* The picker lives in the header, so the *permanent* invitation
+                  to upload costs one button rather than a full-width band of
+                  instructions above the files somebody came to read. */}
+              <Upload
+                multiple
+                showUploadList={false}
+                disabled={!canManage}
+                customRequest={({ file }) => void send(file as File)}
+              >
+                <Button type="primary" icon={<UploadOutlined />} disabled={!canManage}>
+                  Upload files
+                </Button>
+              </Upload>
+            </Space>
           </Tooltip>
         }
       />
 
-      <Row gutter={[12, 12]}>
-        <Col xs={24} lg={6} xl={5}>
-          <Card size="small" title="Folders" data-testid="folder-tree">
-            <Tree
-              blockNode
-              defaultExpandAll
-              selectedKeys={[open]}
-              treeData={nodes as never}
-              onSelect={(keys) => setFolderId(String(keys[0] ?? UNFILED))}
-            />
-          </Card>
-        </Col>
+      {/* A workbench: the folders beside what is in them, filling the window.
+          Sized to its content, this page left two thirds of the screen empty
+          on a folder holding one file, and put the scrollbar on the whole page
+          rather than on the column that is actually long. */}
+      <div className="nu-split nu-split--rail nu-fill">
+        <Card size="small" className="nu-pane nu-split-list" title="Folders" data-testid="folder-tree">
+          <Tree
+            blockNode
+            defaultExpandAll
+            selectedKeys={[open]}
+            treeData={nodes as never}
+            onSelect={(keys) => setFolderId(String(keys[0] ?? UNFILED))}
+          />
 
-        <Col xs={24} lg={18} xl={19}>
-          {/* One strip: where you are, what you are looking for, and what may
-              be done here. A full-width danger button in the folder column
-              gave "delete this folder" more of the page than the folders. */}
-          <Card size="small">
-            <Space size={12} wrap>
+          {/* At the foot of the rail rather than in the page header: it is
+              what the *whole* store holds, which is the one fact about this
+              page that belongs nowhere in particular — and thirteen short
+              folder names left the column two thirds empty. */}
+          <div className="nu-rail-foot">
+            <Text type="secondary">
+              {stored.files.toLocaleString()} {stored.files === 1 ? "file" : "files"} ·{" "}
+              {readableSize(stored.bytes)}
+            </Text>
+            <Text type="secondary">
+              {tree.data?.store === "local" ? "served by the API" : "object storage"}
+            </Text>
+          </div>
+        </Card>
+
+        <Card
+          size="small"
+          className="nu-pane nu-pane--table"
+          data-testid="file-list"
+          title={
+            <Space size={8}>
               <Text strong data-testid="folder-name">
                 {folderName}
               </Text>
+              <Text type="secondary" data-testid="file-total">
+                {files.data?.total ?? 0} {files.data?.total === 1 ? "file" : "files"}
+              </Text>
+            </Space>
+          }
+          extra={
+            <Space size={8}>
               <Input.Search
                 allowClear
                 placeholder="Search this folder"
                 aria-label="Search files"
-                style={{ width: 240 }}
+                style={{ width: 220 }}
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
-              <Text type="secondary" data-testid="file-total">
-                {files.data?.total ?? 0} {files.data?.total === 1 ? "file" : "files"}
-              </Text>
-              {canManage && open !== UNFILED && (
+              {/* Behind a menu, not beside the search box. Deleting a folder
+                  was the loudest control on the page — a red button one slip
+                  away from a filter somebody types into all day. */}
+              <Dropdown
+                trigger={["click"]}
+                disabled={!canManage}
+                menu={{
+                  items: [
+                    {
+                      key: "delete",
+                      icon: <DeleteOutlined />,
+                      danger: !undeletable,
+                      disabled: Boolean(undeletable),
+                      label: undeletable
+                        ? `Delete this folder — ${undeletable}`
+                        : "Delete this folder",
+                    },
+                  ],
+                  onClick: () =>
+                    modal.confirm({
+                      title: `Delete ${folderName}?`,
+                      content: "It is empty, so nothing is lost with it.",
+                      okText: "Delete folder",
+                      okButtonProps: { danger: true },
+                      onOk: async () => {
+                        await dropFolder.mutateAsync(open);
+                      },
+                    }),
+                }}
+              >
                 <Button
                   size="small"
-                  danger
+                  icon={<MoreOutlined />}
                   loading={dropFolder.isPending}
-                  onClick={() => dropFolder.mutate(open)}
+                  aria-label={`Actions for ${folderName}`}
                   data-testid="delete-folder"
-                >
-                  Delete folder
-                </Button>
-              )}
+                />
+              </Dropdown>
             </Space>
-          </Card>
-
-          {canManage && (
-            <div className="nu-block nu-dropzone">
-              {/* A strip rather than a panel: it is on screen permanently, and
-                  a permanent element that takes a third of the page pushes the
-                  thing somebody came for below the fold. */}
-              <Upload.Dragger
-                multiple
-                showUploadList={false}
-                // The transfer is ours: AntD's own uploader would POST through
-                // the API, which is the one thing this page exists not to do.
-                customRequest={({ file }) => void send(file as File)}
-                data-testid="dropzone"
-              >
-                <Space size={8}>
-                  <InboxOutlined />
-                  <Text>Drop files here, or click to choose</Text>
-                  <Text type="secondary">
-                    up to {readableSize(tree.data?.max_upload_bytes ?? 0)} each · executables
-                    refused before anything is transferred
-                  </Text>
-                </Space>
-              </Upload.Dragger>
-            </div>
-          )}
-
+          }
+        >
           {transfers.length > 0 && (
-            <Card
-              size="small"
-              className="nu-block"
-              title={active.length > 0 ? `Uploading ${active.length}` : "Uploads"}
-              data-testid="upload-tray"
-              extra={
-                <Button size="small" onClick={() => setTransfers([])}>
+            <div className="nu-transfers" data-testid="upload-tray">
+              <div className="nu-transfers-head">
+                <Text strong>{active.length > 0 ? `Uploading ${active.length}` : "Uploads"}</Text>
+                <Button type="text" size="small" onClick={() => setTransfers([])}>
                   Clear
                 </Button>
-              }
-            >
+              </div>
               {/* Per file, not one bar for the drop: a failure names the file
                   it happened to, and the rest carry on. */}
               {transfers.map((transfer) => (
@@ -468,13 +543,18 @@ export default function FilesPage() {
                   )}
                 </div>
               ))}
-            </Card>
+            </div>
           )}
 
-          <Card size="small" className="nu-block" data-testid="file-list">
+          {/* The whole list is the drop target, and says so only while
+              something is being dragged over it. A permanent band of
+              instructions is chrome that is read once and then occupies a
+              tenth of the page forever. */}
+          <DropArea enabled={canManage} onFiles={send} limit={tree.data?.max_upload_bytes ?? 0}>
             <Table<StoredFile>
               size="small"
               rowKey="id"
+              sticky
               loading={files.isLoading}
               dataSource={files.data?.items ?? []}
               pagination={
@@ -490,7 +570,7 @@ export default function FilesPage() {
                       term
                         ? "Nothing here matches that"
                         : canManage
-                          ? "Nothing here yet — drop a file above"
+                          ? "Nothing here yet — drop files in, or use Upload files"
                           : "Nothing here yet"
                     }
                   />
@@ -500,31 +580,36 @@ export default function FilesPage() {
                 {
                   title: "Name",
                   dataIndex: "name",
+                  // `ellipsis` on the column, not only on the `Text` inside
+                  // it: AntD lays a table out `auto` until a column asks for
+                  // fixed, and in `auto` the name cell simply grew until it
+                  // overlapped the one beside it.
+                  ellipsis: true,
                   render: (name: string, row) => (
-                    <Space size={6}>
-                      <Text ellipsis>{name}</Text>
+                    <span className="nu-file-name">
+                      <Text ellipsis={{ tooltip: name }}>{name}</Text>
                       {row.status !== "READY" && <StatusTag status={row.status} />}
-                    </Space>
+                    </span>
                   ),
                 },
-                { title: "Kind", dataIndex: "kind", width: 130 },
+                { title: "Kind", dataIndex: "kind", width: 120 },
                 {
                   title: "Size",
                   dataIndex: "size_bytes",
-                  width: 100,
+                  width: 90,
                   align: "right",
                   render: (bytes: number) => readableSize(bytes),
                 },
-                { title: "Owner", dataIndex: "owner", width: 160, ellipsis: true },
+                { title: "Owner", dataIndex: "owner", width: 150, ellipsis: true },
                 {
                   title: "Added",
                   dataIndex: "created_at",
-                  width: 120,
+                  width: 110,
                   render: (value: string | null) => relativeTime(value),
                 },
                 {
                   title: "",
-                  width: 140,
+                  width: 112,
                   align: "right",
                   render: (_value, row) => (
                     <Space size={2}>
@@ -575,9 +660,9 @@ export default function FilesPage() {
                 },
               ]}
             />
-          </Card>
-        </Col>
-      </Row>
+          </DropArea>
+        </Card>
+      </div>
 
       <RenameModal
         file={renaming}
@@ -594,6 +679,70 @@ export default function FilesPage() {
         }}
       />
     </>
+  );
+}
+
+/**
+ * The file list, which is also where files are dropped.
+ *
+ * A dedicated drop panel is chrome that is read once and then occupies a tenth
+ * of the page forever — and on a folder with one file in it, the instructions
+ * were taller than the content. So the list itself takes the drop and says so
+ * only while something is being dragged over it, with the *permanent* way to
+ * upload being the button in the header.
+ *
+ * Written here rather than with `Upload.Dragger` because the dragger is a
+ * bordered, centred box with its own padding: everything that makes it a good
+ * panel makes it a bad wrapper for a table. The events are four lines, and the
+ * hidden input a table cannot supply lives on the header's `Upload`.
+ */
+function DropArea({
+  enabled,
+  limit,
+  onFiles,
+  children,
+}: {
+  enabled: boolean;
+  limit: number;
+  onFiles: (file: File) => void;
+  children: React.ReactNode;
+}) {
+  const [over, setOver] = useState(false);
+
+  if (!enabled) return <>{children}</>;
+
+  return (
+    <div
+      className={`nu-drop-area${over ? " is-over" : ""}`}
+      data-testid="dropzone"
+      // `dragover` must be cancelled or the browser navigates to the file.
+      onDragOver={(event) => {
+        event.preventDefault();
+        setOver(true);
+      }}
+      onDragLeave={(event) => {
+        // Only when the pointer has left the area itself: a `dragleave` fires
+        // for every child it crosses, which flickers the hint off and on.
+        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+        setOver(false);
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        setOver(false);
+        for (const file of Array.from(event.dataTransfer.files)) onFiles(file);
+      }}
+    >
+      {children}
+      {over && (
+        <div className="nu-drop-hint" aria-hidden>
+          <InboxOutlined />
+          <span>
+            Drop to upload · up to {readableSize(limit)} each · executables refused before
+            anything is transferred
+          </span>
+        </div>
+      )}
+    </div>
   );
 }
 

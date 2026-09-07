@@ -66,8 +66,12 @@ test("a dropped file goes to storage, not through the API", async ({ page }) => 
   expect(requests.some((url) => url.includes(":9000/"))).toBe(true);
   expect(requests.some((url) => url.includes("/platform/api/"))).toBe(false);
 
-  // Confirmed, so it appears in the list as a file anybody can open.
-  await expect(page.getByTestId("file-list").getByText(name)).toBeVisible();
+  // Confirmed, so it appears as a *row* anybody can open. A row rather than
+  // any text: the upload tray sits in the same pane and names the file too, so
+  // matching text alone would pass on a transfer that was never confirmed.
+  await expect(
+    page.getByTestId("file-list").locator(".ant-table-row").filter({ hasText: name }),
+  ).toBeVisible();
 
   // Downloading hands back a signed URL the browser follows itself. Observed
   // as a *request* rather than by reading a popup's address: a signed
@@ -85,7 +89,9 @@ test("a dropped file goes to storage, not through the API", async ({ page }) => 
   // Put the library back where it was found.
   await page.getByLabel(`Delete ${name}`).click();
   await page.locator(".ant-modal-confirm").getByRole("button", { name: "Delete" }).click();
-  await expect(page.getByTestId("file-list").getByText(name)).toHaveCount(0);
+  await expect(
+    page.getByTestId("file-list").locator(".ant-table-row").filter({ hasText: name }),
+  ).toHaveCount(0);
 });
 
 test("a seeded file downloads as the format it claims to be", async ({ page }) => {
