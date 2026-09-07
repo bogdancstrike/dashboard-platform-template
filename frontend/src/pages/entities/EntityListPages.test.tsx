@@ -83,23 +83,36 @@ describe("tasks — the board", () => {
   });
 });
 
-describe("projects — the portfolio timeline", () => {
-  it("draws a bar per project rather than a row of dates", async () => {
+describe("projects — the portfolio table", () => {
+  /** The row for a named project, so an assertion cannot match another one. */
+  async function rowFor(name: string): Promise<HTMLElement> {
+    const table = await screen.findByTestId("project-table");
+    const cell = await within(table).findByText(name);
+    const row = cell.closest("tr");
+    if (!row) throw new Error(`${name} is not in a table row`);
+    return row as HTMLElement;
+  }
+
+  it("puts delivered, schedule and budget on one row, so the gap can be read", async () => {
     render(<ProjectsPortfolioPage />, "/projects");
 
-    const timeline = await screen.findByTestId("project-timeline");
-    expect(await within(timeline).findByText("Billing replatform")).toBeInTheDocument();
-    // The bar is the point: a table of start and due dates hides the overlap
-    // between two projects, which is the fact the page exists to show.
-    expect(timeline.querySelectorAll(".nu-timeline-bar").length).toBe(2);
+    // 62% delivered on 95% of a €400k budget. Neither number is a finding on
+    // its own; side by side they are the reason the page exists.
+    const row = await rowFor("Billing replatform");
+    expect(within(row).getByText("62%")).toBeInTheDocument();
+    expect(within(row).getByText("95%")).toBeInTheDocument();
   });
 
-  it("puts budget burn beside health, because that is the pair that disagrees", async () => {
+  it("names the finding rather than leaving three numbers to be compared", async () => {
     render(<ProjectsPortfolioPage />, "/projects");
 
-    await screen.findByTestId("project-timeline");
-    // 380k of 400k spent, reported AT_RISK — flagged rather than left at 95%.
-    expect(await screen.findByText("95%")).toBeInTheDocument();
+    // Derived, never stored: "Behind" is what the gaps add up to, by the same
+    // rule the delivery review uses (`entities/delivery.ts`) — and it names
+    // *which* gap, because a column whose every row says one word carries no
+    // information. Matched on the money, whose 33-point gap holds whatever day
+    // the suite runs on; a schedule gap does not.
+    const row = await rowFor("Billing replatform");
+    expect(within(row).getByText(/^Behind · (money|both)$/)).toBeInTheDocument();
   });
 });
 

@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { projectStanding } from "@/entities/delivery";
+import { behindOn, projectStanding } from "@/entities/delivery";
 import { duration, slaStanding } from "@/entities/sla";
 
 const NOW = new Date("2026-09-07T12:00:00Z");
@@ -68,6 +68,26 @@ describe("where a project stands", () => {
     );
     expect(noDates.elapsed).toBeNull();
     expect(noDates.daysLeft).toBeNull();
+  });
+
+  it("says which of the two gaps put a project behind", () => {
+    // A portfolio in which every row says "Behind" has a column that carries
+    // no information. Which gap it is decides who the conversation is with.
+    const money = projectStanding({ ...halfway, spent: 85_000 }, NOW);
+    expect(behindOn(money)).toBe("money");
+
+    const time = projectStanding({ ...halfway, progress: 20 }, NOW);
+    expect(behindOn(time)).toBe("both");
+
+    const scheduleOnly = projectStanding(
+      { ...halfway, budget: null, spent: null, progress: 20 },
+      NOW,
+    );
+    expect(behindOn(scheduleOnly)).toBe("schedule");
+
+    // And nothing at all when it is not behind: the qualifier is not a label
+    // for every state, it is the reason for one of them.
+    expect(behindOn(projectStanding(halfway, NOW))).toBeNull();
   });
 
   it("stops judging a project that is finished", () => {

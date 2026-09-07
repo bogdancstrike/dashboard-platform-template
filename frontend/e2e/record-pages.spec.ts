@@ -31,10 +31,10 @@ async function setTheme(page: Page, theme: "light" | "dark"): Promise<void> {
   await expect(html).toHaveAttribute("data-theme", theme);
 }
 
-/** Open the first project from the portfolio timeline, on its own page. */
+/** Open the first project from the portfolio table, on its own page. */
 async function openFirstProject(page: Page, persona: Persona = "admin"): Promise<string> {
   await signIn(page, persona, "/projects");
-  await page.locator(".nu-timeline-row").first().click();
+  await page.locator(".ant-table-row").first().click();
   await page.waitForURL(/\/projects\/[0-9a-f-]{36}/);
   return page.url();
 }

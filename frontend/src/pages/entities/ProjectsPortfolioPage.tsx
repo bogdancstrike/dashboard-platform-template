@@ -1,42 +1,57 @@
 /**
- * Projects as a portfolio timeline (§7, §48).
+ * Projects as a portfolio table (§7, §48).
  *
- * A project is a thing with a *shape in time* — it starts, it runs, it is due —
- * and a table of dates hides exactly that. Two projects whose bars overlap in
- * March is a fact about capacity that no amount of sorting a `start_date`
- * column reveals.
+ * This page was a Gantt: one bar per project from start to due, coloured by
+ * health, with the budget burn beneath it. The shape was true — a project does
+ * have a shape in time — but a reader could not get a *number* out of it. Two
+ * bars overlapping in March is a fact about capacity; which of the two is
+ * three weeks late and eleven points over its money is the fact somebody acts
+ * on, and no amount of hovering a bar answers it for eight projects at once.
  *
- * So the list is a timeline: one row per project, a bar from start to due,
- * coloured by the health the delivery team reports, with the budget burn drawn
- * underneath it. Health and burn are the two numbers that disagree most often
- * — "on track" at 96% of budget is the finding — and putting them on one row
- * is the whole point of the page.
+ * So it is a table, and the columns are chosen to make the comparison the
+ * timeline was reaching for readable down a column instead of across a row:
+ * delivered, schedule used, budget used, side by side.
  *
- * The axis spans only what the *filtered* set covers, so filtering to one
- * quarter zooms into that quarter rather than leaving a flat line at the end
- * of two years.
+ * **The standing is derived, never stored.** "Behind" is not a field — it is
+ * what the gaps between those three numbers add up to, and the rule lives in
+ * `entities/delivery.ts` with the delivery review that already uses it. Two
+ * copies of "how far behind is too far" is two answers, and one of them would
+ * be wrong the first time anybody changed it.
+ *
+ * Everything else — the metric strip, the filters, sorting, paging, export,
+ * the create drawer — is the shared entity chrome, so this file holds the
+ * project's *columns* and nothing about how a list works.
  */
 
-import { Card, Empty, Progress, Skeleton, Space, Tag, Tooltip, Typography } from "antd";
-import { useMemo } from "react";
+import { Card, Progress, Skeleton, Table, Tag, Tooltip, Typography } from "antd";
+import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
+import type { SorterResult } from "antd/es/table/interface";
 import { useNavigate } from "react-router-dom";
 
+import { EmptyState, NoResults } from "@/components/EmptyState";
 import {
   NewRecordButton,
   RecordActions,
   useRecordEditing,
 } from "@/components/records/useRecordEditing";
 import { usePageCommands } from "@/commands/CommandContext";
+import { behindOn, projectStanding, type ProjectStanding } from "@/entities/delivery";
 import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
 import { useEntityView } from "@/entities/useEntityView";
 import { absoluteTime } from "@/lib/time";
-import { knownStatusColor, SEMANTIC } from "@/theme/tokens";
+import { knownStatusColor } from "@/theme/tokens";
 
 const { Text } = Typography;
 
+/**
+ * `completed_at` and `currency` are asked for although no column shows them:
+ * the standing rule needs to know a project is closed — "40% delivered on 90%
+ * of the budget" is a finding on a live project and history on a finished one
+ * — and money without its currency is a number, not an amount.
+ */
 const COLUMNS = [
   "code", "name", "status", "phase", "health", "priority",
-  "start_date", "due_date", "budget", "spent", "progress",
+  "start_date", "due_date", "completed_at", "budget", "spent", "currency", "progress",
 ];
 
 interface ProjectRow {
@@ -49,71 +64,45 @@ interface ProjectRow {
   priority?: string;
   start_date?: string | null;
   due_date?: string | null;
+  completed_at?: string | null;
   budget?: number;
   spent?: number;
+  currency?: string;
   progress?: number;
 }
 
-const HEALTH_COLOUR: Record<string, string> = {
-  ON_TRACK: SEMANTIC.success,
-  AT_RISK: SEMANTIC.warning,
-  OFF_TRACK: SEMANTIC.danger,
+const SYMBOL: Record<string, string> = { EUR: "€", USD: "$", GBP: "£" };
+
+/**
+ * What the derived standing is called, and how loudly.
+ *
+ * "Behind" carries *what* it is behind on, because a column in which every row
+ * says the same word carries no information — and on this portfolio nearly
+ * every project is over its money while several are ahead of their schedule.
+ * Behind on money is a conversation with finance; behind on schedule is one
+ * with delivery.
+ */
+const STANDING: Record<ProjectStanding["standing"], { label: string; colour?: string }> = {
+  behind: { label: "Behind", colour: "error" },
+  ahead: { label: "Ahead", colour: "success" },
+  even: { label: "On line" },
+  done: { label: "Delivered", colour: "blue" },
+};
+
+const BEHIND_ON: Record<"schedule" | "money" | "both", string> = {
+  schedule: "Behind · time",
+  money: "Behind · money",
+  both: "Behind · both",
 };
 
 export default function ProjectsPortfolioPage() {
   const navigate = useNavigate();
   const view = useEntityView("project", {
     columns: COLUMNS,
-    defaultSort: "start_date",
+    defaultSort: "due_date",
     defaultOrder: "asc",
-    defaultPageSize: 50,
   });
-  // Memoised because two `useMemo`s below depend on it, and a fresh array
-  // identity every render would recompute the axis on every keystroke.
-  const rows = useMemo(
-    () => (view.rows.data?.items ?? []) as ProjectRow[],
-    [view.rows.data],
-  );
-
-  /** The window the bars are drawn in: what the filtered set actually spans. */
-  const span = useMemo(() => {
-    const instants = rows
-      .flatMap((row) => [row.start_date, row.due_date])
-      .map((value) => (value ? new Date(value).valueOf() : Number.NaN))
-      .filter((value) => !Number.isNaN(value));
-    if (instants.length === 0) return null;
-    const from = Math.min(...instants);
-    const to = Math.max(...instants);
-    // A single-day span would divide by zero; give it a week of room.
-    return { from, to: to > from ? to : from + 7 * 86_400_000 };
-  }, [rows]);
-
-  /** Where a bar starts and how wide it is, as percentages of the window. */
-  const place = (row: ProjectRow) => {
-    if (!span || !row.start_date || !row.due_date) return null;
-    const start = new Date(row.start_date).valueOf();
-    const end = new Date(row.due_date).valueOf();
-    const width = span.to - span.from;
-    return {
-      left: `${((start - span.from) / width) * 100}%`,
-      width: `${Math.max(((end - start) / width) * 100, 0.8)}%`,
-    };
-  };
-
-  const months = useMemo(() => {
-    if (!span) return [];
-    const marks: { label: string; left: string }[] = [];
-    const cursor = new Date(span.from);
-    cursor.setDate(1);
-    while (cursor.valueOf() <= span.to) {
-      marks.push({
-        label: cursor.toLocaleDateString(undefined, { month: "short", year: "2-digit" }),
-        left: `${((cursor.valueOf() - span.from) / (span.to - span.from)) * 100}%`,
-      });
-      cursor.setMonth(cursor.getMonth() + (span.to - span.from > 500 * 86_400_000 ? 3 : 1));
-    }
-    return marks;
-  }, [span]);
+  const rows = (view.rows.data?.items ?? []) as ProjectRow[];
 
   const records = useRecordEditing(view.resource, {
     onCreated: (id) => navigate(`/projects/${id}`),
@@ -140,13 +129,199 @@ export default function ProjectsPortfolioPage() {
     },
   ]);
 
+  /** The gaps, computed once per row and read by three columns. */
+  const standingFor = (row: ProjectRow) =>
+    projectStanding({
+      startDate: row.start_date ?? null,
+      dueDate: row.due_date ?? null,
+      completedAt: row.completed_at ?? null,
+      budget: row.budget ?? null,
+      spent: row.spent ?? null,
+      progress: row.progress ?? null,
+    });
+
+  /** An amount with its symbol — used by the budget tooltip. */
+  const money = (value: number | undefined, currency: string | undefined) =>
+    `${SYMBOL[currency ?? "EUR"] ?? ""}${Math.round(Number(value ?? 0)).toLocaleString()}`;
+
+  const columns: ColumnsType<ProjectRow> = [
+    {
+      title: "Code",
+      dataIndex: "code",
+      width: 96,
+      fixed: "left",
+      sorter: true,
+      render: (value: string) => <Text className="nu-mono">{value}</Text>,
+    },
+    {
+      title: "Project",
+      dataIndex: "name",
+      ellipsis: true,
+      sorter: true,
+      render: (value: string) => <Text strong>{value}</Text>,
+    },
+    {
+      title: "Health",
+      dataIndex: "health",
+      width: 116,
+      sorter: true,
+      render: (value: string) => (
+        <Tag color={knownStatusColor(value ?? "")} bordered={false}>
+          {value}
+        </Tag>
+      ),
+    },
+    {
+      title: "Phase",
+      dataIndex: "phase",
+      width: 112,
+      sorter: true,
+      render: (value: string) => (
+        <Tag color={knownStatusColor(value ?? "")} bordered={false}>
+          {value}
+        </Tag>
+      ),
+    },
+    {
+      // Delivered, and the schedule beside it, because the pair is the point:
+      // 40% delivered is neither good nor bad until you know how much of the
+      // calendar has gone.
+      title: "Delivered",
+      dataIndex: "progress",
+      width: 124,
+      sorter: true,
+      render: (_value: number, row) => {
+        const standing = standingFor(row);
+        return (
+          <Tooltip title={standing.summary}>
+            <div className="nu-meter">
+              <Progress
+                percent={standing.progress}
+                size="small"
+                showInfo={false}
+                aria-label={`${row.name ?? "This project"}: ${standing.progress}% delivered`}
+              />
+              <Text className="nu-meter-value">{standing.progress}%</Text>
+            </div>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      title: "Schedule",
+      key: "schedule",
+      width: 96,
+      align: "right",
+      render: (_value: unknown, row) => {
+        const { elapsed, scheduleGap } = standingFor(row);
+        if (elapsed === null) return <Text type="secondary">No dates</Text>;
+        return (
+          <Tooltip title={`${elapsed}% of the schedule has been used`}>
+            <Text style={gapStyle(scheduleGap)}>{elapsed}%</Text>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      title: "Budget used",
+      key: "burn",
+      width: 126,
+      align: "right",
+      sorter: true,
+      render: (_value: unknown, row) => {
+        const { burn, budgetGap } = standingFor(row);
+        if (burn === null) return <Text type="secondary">No budget</Text>;
+        return (
+          <Tooltip title={`${money(row.spent, row.currency)} of ${money(row.budget, row.currency)}`}>
+            <Text style={gapStyle(budgetGap)}>{Math.round(burn)}%</Text>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      // The finding, in a word. Derived from the three columns to its left, so
+      // a reader can always see why it says what it says.
+      title: "Standing",
+      key: "standing",
+      width: 128,
+      render: (_value: unknown, row) => {
+        const standing = standingFor(row);
+        const shown = STANDING[standing.standing];
+        const reason = behindOn(standing);
+        return (
+          <Tooltip title={standing.summary}>
+            <Tag color={shown.colour} bordered={false}>
+              {reason ? BEHIND_ON[reason] : shown.label}
+            </Tag>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      title: "Due",
+      dataIndex: "due_date",
+      width: 124,
+      sorter: true,
+      defaultSortOrder: "ascend",
+      render: (value: string | null, row) => {
+        const { daysLeft, standing } = standingFor(row);
+        if (!value) return <Text type="secondary">—</Text>;
+        const late = daysLeft !== null && daysLeft < 0 && standing !== "done";
+        return (
+          <Tooltip title={absoluteTime(value)}>
+            {/* Two deliberate lines rather than one that wraps wherever the
+                column happens to end. */}
+            <span className="nu-due">
+              <Text type={late ? "danger" : undefined}>
+                {new Date(value).toLocaleDateString()}
+              </Text>
+              {late && daysLeft !== null && (
+                <Text type="danger" className="nu-due-late">
+                  {Math.abs(daysLeft)}d late
+                </Text>
+              )}
+            </span>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      title: "",
+      key: "actions",
+      width: 48,
+      fixed: "right",
+      render: (_value: unknown, row) => (
+        <RecordActions
+          records={records}
+          id={row.id}
+          label={row.code ?? row.name ?? "this project"}
+        />
+      ),
+    },
+  ];
+
+  const onChange = (
+    pagination: TablePaginationConfig,
+    _filters: unknown,
+    sorter: SorterResult<ProjectRow> | SorterResult<ProjectRow>[],
+  ) => {
+    const single = Array.isArray(sorter) ? sorter[0] : sorter;
+    const field = typeof single?.field === "string" ? single.field : view.sort;
+    view.set({
+      page: pagination.current === 1 ? null : (pagination.current ?? null),
+      page_size: pagination.pageSize === 25 ? null : (pagination.pageSize ?? null),
+      sort: single?.order ? field : null,
+      order: single?.order === "ascend" ? "asc" : null,
+    });
+  };
+
   if (view.catalogue.isLoading) return <Skeleton active paragraph={{ rows: 8 }} />;
 
   return (
     <>
       <EntityHeader
         view={view}
-        subtitle="Every project on one axis, coloured by the health it reports and measured against its budget."
+        subtitle="What each project has delivered, against the calendar it has used and the money it has spent."
         actions={<NewRecordButton records={records} resource={view.resource} />}
       />
 
@@ -154,110 +329,57 @@ export default function ProjectsPortfolioPage() {
       <EntityFilters view={view} only={["health", "phase", "status", "priority"]} />
       <EntityError view={view} />
 
-      <Card size="small" className="nu-block" data-testid="project-timeline">
-        {view.rows.isLoading ? (
-          <Skeleton active paragraph={{ rows: 10 }} />
-        ) : rows.length === 0 ? (
-          <Empty description="No projects match these filters" />
-        ) : (
-          <div className="nu-timeline">
-            <div className="nu-timeline-axis" aria-hidden>
-              {months.map((mark) => (
-                <span key={mark.label} className="nu-timeline-tick" style={{ left: mark.left }}>
-                  {mark.label}
-                </span>
-              ))}
-            </div>
-
-            {rows.map((project) => {
-              const bar = place(project);
-              const burn = project.budget ? (Number(project.spent) / Number(project.budget)) * 100 : 0;
-              const health = project.health ?? "";
-              return (
-                <div
-                  key={project.id}
-                  className="nu-timeline-row"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => navigate(`/projects/${project.id}`)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") navigate(`/projects/${project.id}`);
-                  }}
-                >
-                  <div className="nu-timeline-label">
-                    <Text strong ellipsis>
-                      {project.name}
-                    </Text>
-                    <Space size={4} wrap>
-                      <Text type="secondary">{project.code}</Text>
-                      <Tag color={knownStatusColor(project.phase ?? "")} bordered={false}>
-                        {project.phase}
-                      </Tag>
-                    </Space>
-                  </div>
-
-                  <div className="nu-timeline-track">
-                    {bar ? (
-                      <Tooltip
-                        title={
-                          <>
-                            {absoluteTime(project.start_date)} → {absoluteTime(project.due_date)}
-                            <br />
-                            {Math.round(Number(project.progress ?? 0))}% complete ·{" "}
-                            {Math.round(burn)}% of budget spent
-                          </>
-                        }
-                      >
-                        <div
-                          className="nu-timeline-bar"
-                          style={{
-                            ...bar,
-                            background: HEALTH_COLOUR[health] ?? "var(--nu-border-strong)",
-                          }}
-                        >
-                          {/* Progress inside the bar: how far along the work
-                              is, against how far along the calendar is. */}
-                          <span
-                            className="nu-timeline-progress"
-                            style={{ width: `${Number(project.progress ?? 0)}%` }}
-                          />
-                        </div>
-                      </Tooltip>
-                    ) : (
-                      <Text type="secondary" className="nu-timeline-undated">
-                        No dates
-                      </Text>
-                    )}
-                  </div>
-
-                  <div className="nu-timeline-burn">
-                    <Tooltip
-                      title={`€${Math.round(Number(project.spent ?? 0)).toLocaleString()} of €${Math.round(
-                        Number(project.budget ?? 0),
-                      ).toLocaleString()}`}
-                    >
-                      <Progress
-                        percent={Math.min(Math.round(burn), 100)}
-                        size="small"
-                        // Over 90% of budget is worth seeing before it is 100.
-                        status={burn > 90 ? "exception" : "normal"}
-                        format={() => `${Math.round(burn)}%`}
-                      />
-                    </Tooltip>
-                    <RecordActions
-                      records={records}
-                      id={project.id}
-                      label={project.code ?? project.name ?? "this project"}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+      <Card size="small" className="nu-block" data-testid="project-table">
+        <Table<ProjectRow>
+          rowKey="id"
+          size="small"
+          columns={columns}
+          dataSource={rows}
+          loading={view.rows.isLoading}
+          onChange={onChange}
+          scroll={{ x: 1160 }}
+          onRow={(row) => ({
+            onClick: () => navigate(`/projects/${row.id}`),
+            style: { cursor: "pointer" },
+          })}
+          locale={{
+            emptyText: view.rows.isLoading ? (
+              " "
+            ) : view.filterCount > 0 ? (
+              <NoResults filterCount={view.filterCount} onClear={view.clearFilters} />
+            ) : (
+              <EmptyState title="No projects yet" hint="A project is work with a budget and a date." />
+            ),
+          }}
+          pagination={{
+            current: view.rows.data?.page ?? view.page,
+            pageSize: view.rows.data?.page_size ?? view.pageSize,
+            total: view.rows.data?.total ?? 0,
+            showSizeChanger: true,
+            pageSizeOptions: [25, 50, 100],
+            showTotal: (count, range) => `${range[0]}–${range[1]} of ${count.toLocaleString()}`,
+          }}
+        />
       </Card>
 
       {records.drawer}
     </>
   );
+}
+
+/**
+ * Colour a gap only when it is worth reading.
+ *
+ * The threshold is the standing rule's own — a page that reddened a two-point
+ * gap would teach its reader to ignore the colour, which is the one thing a
+ * warning colour cannot survive.
+ *
+ * The theme's *ink* variables rather than its fills, because this is text and
+ * text needs 4.5:1 (§64) — and read through a CSS variable rather than the
+ * token module, so the colour follows the reader's appearance instead of being
+ * fixed to whichever one this file happened to import.
+ */
+function gapStyle(gap: number | null): React.CSSProperties | undefined {
+  if (gap === null || Math.abs(gap) <= 10) return undefined;
+  return { color: gap > 0 ? "var(--nu-danger-ink)" : "var(--nu-success-ink)" };
 }

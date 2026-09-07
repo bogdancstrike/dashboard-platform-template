@@ -33,6 +33,23 @@ export interface ProjectStanding {
   summary: string;
 }
 
+/**
+ * Which gap put a project behind: the schedule, the money, or both.
+ *
+ * `null` when it is not behind at all. This lives with the rule rather than in
+ * the page that shows it because it is the *same* judgement — a portfolio
+ * whose every row says "Behind" has a column that carries no information, and
+ * "behind on money" is the difference between a conversation with delivery and
+ * one with finance.
+ */
+export function behindOn(standing: ProjectStanding): "schedule" | "money" | "both" | null {
+  if (standing.standing !== "behind") return null;
+  const schedule = (standing.scheduleGap ?? -Infinity) > MEANINGFUL_GAP;
+  const money = (standing.budgetGap ?? -Infinity) > MEANINGFUL_GAP;
+  if (schedule && money) return "both";
+  return schedule ? "schedule" : "money";
+}
+
 export interface ProjectFacts {
   startDate: string | null;
   dueDate: string | null;

@@ -504,7 +504,23 @@ commit — built, committed, pushed, redeployed and verified before the next.
     list of thirteen short names left the column two thirds blank
   - The name column overlapped the one beside it, because AntD lays a table
     out `auto` until a column asks for fixed
-- [ ] **`/projects` is a table** — asked for directly
+- [x] **`/projects` is a table** — asked for directly, and right: the Gantt
+      told a reader the *shape* of a project and refused to tell them a
+      number. Two bars overlapping in March is a fact about capacity; which of
+      the two is three weeks late and eleven points over its money is the fact
+      somebody acts on, and no amount of hovering answers that for eight
+      projects at once
+  - Delivered, schedule used and budget used sit side by side as percentages,
+    so the comparison the timeline was reaching for is read down a column
+  - **The standing is derived, never stored** — by the same rule the delivery
+    review uses (`entities/delivery.ts`), because two copies of "how far
+    behind is too far" would be two answers
+  - And it says *which* gap: every row read "Behind" on the seeded portfolio,
+    which is a column carrying no information. `behindOn` distinguishes money
+    from time from both — behind on money is a conversation with finance,
+    behind on time one with delivery. Unit-tested against a fixed clock
+  - The Gantt's 30 lines of CSS went with it; `.nu-timeline` stays, because it
+    is the audit trail's
 - [ ] **`/tickets` is a table, and `/tickets/:id` says more** — asked for
       directly. The queue is four large tiles, a filter bar and a split whose
       preview pane is a second rendering of the record; the table is the shape

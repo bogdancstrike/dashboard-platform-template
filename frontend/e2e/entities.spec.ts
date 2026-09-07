@@ -53,14 +53,33 @@ test.describe("each entity gets the page its data deserves", () => {
     await expect(board.locator(".nu-task-card").first()).toBeVisible();
   });
 
-  test("projects open as a portfolio timeline with budget beside health", async ({ page }) => {
+  test("projects open as a table whose standing is derived from its own columns", async ({
+    page,
+  }) => {
     await signIn(page, "admin", "/projects");
 
-    const timeline = page.getByTestId("project-timeline");
-    await expect(timeline).toBeVisible();
-    await expect(timeline.locator(".nu-timeline-bar").first()).toBeVisible();
-    // The axis is drawn from the range the filtered rows actually span.
-    await expect(timeline.locator(".nu-timeline-tick").first()).toBeVisible();
+    const table = page.getByTestId("project-table");
+    await expect(table).toBeVisible();
+    const row = table.locator(".ant-table-row").first();
+    await expect(row).toBeVisible();
+
+    // The three numbers the page exists to compare, on one row: delivered,
+    // schedule used, budget used — every one a percentage the reader can read
+    // down its column.
+    await expect(row.locator(".nu-meter-value")).toHaveText(/%$/);
+
+    // And the verdict, which is not a stored field: it is what the gaps
+    // between those three add up to, by the rule the delivery review uses.
+    // "Behind" names which gap it is behind on, so the pattern allows the
+    // qualifier — a column whose every row reads the same word carries no
+    // information, and on this portfolio nearly every project is over its
+    // money while several are ahead of their schedule.
+    await expect(
+      table
+        .locator(".ant-table-row")
+        .getByText(/^(Behind · (money|time|both)|Ahead|On line|Delivered)$/)
+        .first(),
+    ).toBeVisible();
   });
 
   test("customers open as account cards, richest first", async ({ page }) => {
