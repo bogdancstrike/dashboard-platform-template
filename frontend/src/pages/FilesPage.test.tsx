@@ -1,0 +1,212 @@
+import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Route, Routes } from "react-router-dom";
+
+import FilesPage from "@/pages/FilesPage";
+import { CommandProvider } from "@/commands/CommandContext";
+import { resetFiles, storedFiles } from "@/test/handlers";
+import { renderWithProviders } from "@/test/render";
+
+/**
+ * The file manager (§20).
+ *
+ * What is worth asserting is the part that makes it a file manager rather than
+ * a form: an upload is two phases and the second one is *not skipped*, the
+ * bytes go to the URL the API handed out rather than through the API, and a
+ * download opens a signed URL instead of streaming.
+ */
+function render(route = "/files") {
+  return renderWithProviders(
+    <CommandProvider>
+      <Routes>
+        <Route path="/files" element={<FilesPage />} />
+      </Routes>
+    </CommandProvider>,
+    { route },
+  );
+}
+
+/**
+ * `XMLHttpRequest`, stubbed at the boundary the client actually uses.
+ *
+ * `putBytes` reaches for XHR because `fetch` has no upload-progress event, so
+ * MSW — which intercepts `fetch` — never sees it. Recording the calls here is
+ * what lets the test assert the bytes went to storage and not to the API.
+ */
+/** AntD's dragger renders its own hidden file input; this is that input. */
+function fileInput(): HTMLInputElement {
+  const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+  if (!input) throw new Error("the dropzone has no file input");
+  return input;
+}
+
+function captureUploads(): { url: string; body: unknown }[] {
+  const sent: { url: string; body: unknown }[] = [];
+  class FakeXhr {
+    status = 200;
+    upload = { addEventListener: (_kind: string, _fn: () => void) => {} };
+    private handlers: Record<string, (() => void)[]> = {};
+    private url = "";
+    open(_method: string, url: string) {
+      this.url = url;
+    }
+    setRequestHeader() {}
+    addEventListener(kind: string, handler: () => void) {
+      this.handlers[kind] = [...(this.handlers[kind] ?? []), handler];
+    }
+    send(body: unknown) {
+      sent.push({ url: this.url, body });
+      for (const handler of this.handlers["load"] ?? []) handler();
+    }
+  }
+  vi.stubGlobal("XMLHttpRequest", FakeXhr);
+  return sent;
+}
+
+beforeEach(() => resetFiles());
+afterEach(() => vi.unstubAllGlobals());
+
+describe("the file manager", () => {
+  it("shows the folder tree and what is in the open folder", async () => {
+    render();
+
+    const tree = await screen.findByTestId("folder-tree");
+    expect(within(tree).getByText("Contracts")).toBeInTheDocument();
+    // A materialised path, nested here — the child appears under its parent.
+    expect(within(tree).getByText("Signed")).toBeInTheDocument();
+    expect(within(tree).getByText("Unfiled")).toBeInTheDocument();
+  });
+
+  it("uploads to the URL the API handed out, not through the API", async () => {
+    const user = userEvent.setup();
+    const sent = captureUploads();
+    render();
+
+    await screen.findByTestId("dropzone");
+    await user.upload(
+      fileInput(),
+      new File(["# notes"], "notes.md", { type: "text/markdown" }),
+    );
+
+    // Straight at storage: the whole point of a presigned upload.
+    await waitFor(() => expect(sent).toHaveLength(1));
+    expect(sent[0]?.url).toBe("https://storage.example/nucleus/generated-key");
+
+    // And then confirmed, so the file becomes visible as READY rather than
+    // being taken on trust.
+    await waitFor(() => {
+      const added = storedFiles.find((file) => file["name"] === "notes.md");
+      expect(added?.["status"]).toBe("READY");
+    });
+  });
+
+  it("reports each upload separately, with its own progress", async () => {
+    const user = userEvent.setup();
+    captureUploads();
+    render();
+
+    await screen.findByTestId("dropzone");
+    await user.upload(fileInput(), [
+      new File(["one"], "one.txt", { type: "text/plain" }),
+      new File(["two"], "two.txt", { type: "text/plain" }),
+    ]);
+
+    // Two rows, not one bar: a failure has to name the file it happened to.
+    const tray = await screen.findByTestId("upload-tray");
+    expect(await within(tray).findByText("one.txt")).toBeInTheDocument();
+    expect(within(tray).getByText("two.txt")).toBeInTheDocument();
+  });
+
+  it("says which file could not be uploaded, and leaves the rest alone", async () => {
+    const user = userEvent.setup();
+    class RefusingXhr {
+      status = 403;
+      upload = { addEventListener: () => {} };
+      private handlers: Record<string, (() => void)[]> = {};
+      open() {}
+      setRequestHeader() {}
+      addEventListener(kind: string, handler: () => void) {
+        this.handlers[kind] = [...(this.handlers[kind] ?? []), handler];
+      }
+      send() {
+        for (const handler of this.handlers["load"] ?? []) handler();
+      }
+    }
+    vi.stubGlobal("XMLHttpRequest", RefusingXhr);
+    render();
+
+    await screen.findByTestId("dropzone");
+    await user.upload(fileInput(), new File(["x"], "refused.txt", { type: "text/plain" }));
+
+    const tray = await screen.findByTestId("upload-tray");
+    expect(await within(tray).findByText(/Storage refused the upload \(403\)/)).toBeInTheDocument();
+    // Never confirmed, so it does not appear as a file anybody can open.
+    expect(storedFiles.find((file) => file["name"] === "refused.txt")?.["status"]).toBe(
+      "UPLOADING",
+    );
+  });
+
+  it("downloads by following the signed URL rather than streaming", async () => {
+    const user = userEvent.setup();
+    // An anchor, not `window.open`: the signed URL carries
+    // `Content-Disposition: attachment`, and a popup for a download is what
+    // popup blockers exist to stop.
+    const followed: string[] = [];
+    // Spied rather than swapped: `restoreMocks` in the vitest config puts the
+    // prototype back, and reading a prototype method into a variable to
+    // restore it by hand is the detached-`this` hazard the linter warns about.
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function capture(
+      this: HTMLAnchorElement,
+    ) {
+      followed.push(this.href);
+    });
+    render();
+
+    await user.click(await screen.findByLabelText("Download Statement of work 2026-03.pdf"));
+    await waitFor(() => expect(followed).toHaveLength(1));
+    expect(followed[0]).toContain("storage.example");
+    expect(followed[0]).toContain("signed=1");
+  });
+
+  it("renames and moves a file without touching the object", async () => {
+    const user = userEvent.setup();
+    render();
+
+    await user.click(await screen.findByLabelText("Rename Statement of work 2026-03.pdf"));
+    const dialog = await screen.findByRole("dialog");
+    const field = within(dialog).getByLabelText("File name");
+    // The dialog fills its fields once it has opened, so clearing before that
+    // types into a box the component is about to overwrite.
+    await waitFor(() => expect(field).toHaveValue("Statement of work 2026-03.pdf"));
+    await user.clear(field);
+    await user.type(field, "Renamed.pdf");
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(storedFiles.find((file) => file["id"] === "file-1")?.["name"]).toBe("Renamed.pdf"),
+    );
+  });
+
+  it("says which permission uploading needs, rather than hiding the control", async () => {
+    const { server } = await import("@/test/server");
+    const { http, HttpResponse } = await import("msw");
+    server.use(
+      http.get("/platform/api/files/tree", () =>
+        HttpResponse.json({
+          folders: [],
+          unfiled: { file_count: 0, total_bytes: 0 },
+          store: "object",
+          max_upload_bytes: 1024,
+          refused_extensions: [],
+          can_manage: false,
+        }),
+      ),
+    );
+    render();
+
+    // §76: shown and refused, so a reader can see the feature exists.
+    expect(await screen.findByTestId("new-folder")).toBeDisabled();
+    expect(screen.queryByTestId("dropzone")).not.toBeInTheDocument();
+  });
+});

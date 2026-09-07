@@ -21,6 +21,7 @@ volumes:
   redis-data: {}
   keycloak-data: {}
   storage-data: {}
+  minio-data: {}
 
 # Every backend process — api and seed — reads the same settings.
 x-backend-env: &backend-env
@@ -43,6 +44,16 @@ x-backend-env: &backend-env
   LOG_LEVEL: "${LOG_LEVEL:-INFO}"
   SECRET_KEY: "${SECRET_KEY:-dev-only-change-me}"
   STORAGE_DIR: "/app/backend/var/storage"
+  # Object storage (§20, §29, §30). Two endpoints, and the distinction is what
+  # makes presigned URLs work in Docker: the API signs and reaches MinIO over
+  # the compose network, and the *browser* follows the URL on an address that
+  # exists outside it. A URL signed for `http://minio:9000` is one no browser
+  # can resolve.
+  STORAGE_ENDPOINT: "http://minio:9000"
+  STORAGE_PUBLIC_ENDPOINT: "http://localhost:${MINIO_PORT:-9000}"
+  STORAGE_BUCKET: "${STORAGE_BUCKET:-nucleus}"
+  STORAGE_ACCESS_KEY: "${MINIO_ROOT_USER:-nucleus}"
+  STORAGE_SECRET_KEY: "${MINIO_ROOT_PASSWORD:-nucleus-dev-secret}"
   SEED_SCALE: "${SEED_SCALE:-full}"
   SEED_RANDOM_SEED: "${SEED_RANDOM_SEED:-20260101}"
 
@@ -91,6 +102,36 @@ services:
       retries: 20
     restart: unless-stopped
 
+  # ── MinIO — object storage, so bytes never pass through the API ──────────
+  #
+  # The bucket is created by the API on boot (`storage.ensure_bucket`) rather
+  # than by an init container: it is idempotent, it is one fewer service to
+  # wait on, and a fresh volume then just works.
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    container_name: nucleus-minio
+    networks: [nucleusnet]
+    ports:
+      # The API address, which the browser also follows presigned URLs on.
+      - "${MINIO_PORT:-9000}:9000"
+      # The console, for looking at what is in there.
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER:-nucleus}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-nucleus-dev-secret}"
+      # The browser uploads and downloads directly, so the bucket's own CORS
+      # has to allow the app's origin — the API is not in the path to add it.
+      MINIO_API_CORS_ALLOW_ORIGIN: "http://localhost:${FRONTEND_PORT:-5174},http://localhost:5174"
+    command: ["server", "/data", "--console-address", ":9001"]
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "mc ready local || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
   # ── Keycloak — identity, with the realm imported from the repo ───────────
   keycloak:
     image: quay.io/keycloak/keycloak:26.1
@@ -133,6 +174,7 @@ services:
     working_dir: /app/backend
     depends_on:
       postgres: {condition: service_healthy}
+      minio: {condition: service_healthy}
     environment:
       <<: *backend-env
       SERVICE_NAME: "nucleus-seed"
@@ -155,6 +197,7 @@ services:
       - "${API_PORT:-5101}:5101"
     depends_on:
       postgres: {condition: service_healthy}
+      minio: {condition: service_healthy}
       redis: {condition: service_healthy}
       keycloak: {condition: service_healthy}
       seed: {condition: service_completed_successfully}

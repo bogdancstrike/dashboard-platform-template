@@ -33,11 +33,11 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Backend core (`src/core/`) | **done** — db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
-| Endpoints | 56 of ~110 — `maps/endpoint.json` is the list, and `python -m src.api.endpoint_map` prints it; nothing here is kept in step by hand |
+| Endpoints | 62 of ~110 — `maps/endpoint.json` is the list, and `python -m src.api.endpoint_map` prints it; nothing here is kept in step by hand |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 341 backend + 285 frontend + 144 Playwright e2e — all green against `docker compose up`. Scale-independent: they pass on either seed size |
+| Tests | 360 backend + 292 frontend + 149 Playwright e2e — all green against `docker compose up`. Scale-independent: they pass on either seed size |
 | Frontend | shell, Data Explorer, discovery workspaces, the notification centre, six entity lists, three record pages of their own, and the whole ANALYSE section bar dashboards; live WebSocket channel with a polling fallback |
-| Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
+| Compose stack | **done** — `docker compose up` reaches a working stack: PostgreSQL, Redis, Keycloak, MinIO, the API and the SPA. Real Keycloak tokens and real presigned uploads verified |
 
 **Backend and frontend are built in parallel from here**, in vertical slices: an
 endpoint ships together with the page that consumes it and the tests for both.
@@ -398,10 +398,12 @@ In the order they were asked for, so nothing is lost between sittings. Each
 becomes a vertical slice with its own tests, its own tracker entry and its own
 commit — built, committed, pushed, redeployed and verified before the next.
 
-- [ ] **Files, imports and exports go through MinIO with presigned URLs**
+- [~] **Files, imports and exports go through MinIO with presigned URLs**
       (§20, §29, §30) — MinIO in the compose stack with its bucket created on
       first boot, one storage interface behind it so it is swappable, and bytes
       that never pass through the API process
+  - `/files` ships on it. The import wizard (§29) and the export-as-a-job flow
+    (§30) are next, and both now have somewhere to put the bytes
 - [ ] **Redis is used for what a cache is for** — the aggregates that cost a
       `GROUP BY` over the whole dataset, invalidated by the writes that make
       them stale rather than by a timer
@@ -1222,17 +1224,68 @@ everything else.
 
 ### `/files` — object storage on MinIO (§20)
 
-- [ ] MinIO added to the compose stack, with a bucket created on first boot
-- [ ] Backend storage service behind one interface, so MinIO is swappable for
+- [x] MinIO added to the compose stack, with a bucket created on first boot
+  - Created by the API on boot (`storage.ensure_bucket`) rather than by an init
+    container: it is idempotent, it is one fewer service to wait on, and a
+    fresh volume then just works
+  - **Two endpoints, and the distinction is what makes presigning work in
+    Docker.** The API signs and reaches MinIO over the compose network; the
+    *browser* follows the URL on an address that exists outside it. Two boto3
+    *clients* rather than one and a string substitution, because an SigV4
+    signature covers the Host header — rewriting the host of a signed URL is
+    how the first version produced `SignatureDoesNotMatch` on every download
+- [x] Backend storage service behind one interface, so MinIO is swappable for
       S3 or a local volume without touching a handler
-- [ ] **Presigned URLs** for upload and download — bytes never pass through the
+  - `core/storage.py` publishes four questions and two implementations.
+    `ObjectStorage` talks S3; `LocalStorage` writes to a directory and signs
+    its own URLs with the application secret, so `python main.py` works with
+    nothing else running and the test suite needs no container
+  - The local one is **not a lesser implementation pretending to be S3**. It
+    answers the same four questions and is honest about the difference: its
+    URLs are served by this process, so the bytes *do* pass through it. The
+    health endpoint reports *which store is answering* for exactly that
+    reason (§24) — a deployment on the fallback by accident should be able to
+    see it
+  - A storage key is **generated, never taken from the client**, and
+    `key_for` refuses a relative segment where every key in the platform is
+    built. A key made from a filename is a key somebody can aim at another
+    object with `../`, and sanitising a path is a game nobody wins twice
+- [x] **Presigned URLs** for upload and download — bytes never pass through the
       API process, which is what keeps a 200MB upload from occupying a gevent
       worker for the duration
-- [ ] Multi-file drag-and-drop upload with per-file progress; move, rename,
-      copy, delete; preview for images, PDF and text
-  - **Acceptance**: uploading a file makes it appear in the folder without a
-    reload; a download link expires; deleting a file removes the object as well
-    as the row; a failed upload leaves neither
+  - **An upload is therefore two phases.** The API cannot see the transfer, so
+    a file is created `UPLOADING` beside its URL and only becomes `READY` when
+    `confirm` has checked the object is there with `stat`. Trusting the
+    client's "done" would mean a file list full of rows with nothing behind
+    them, which is worse than an upload that visibly failed
+  - A refused extension or an oversized file is refused **before a URL is
+    issued** — after 400 MB have moved is the wrong moment to say no
+  - A download is an anchor following a signed URL, not `window.open`: the URL
+    carries `Content-Disposition: attachment`, and a popup for a download is
+    what popup blockers exist to stop
+- [x] Multi-file drag-and-drop upload with per-file progress; move, rename,
+      delete
+  - **Per-file progress, not one spinner.** A drop of forty files with a single
+    indeterminate bar is a page somebody watches for four minutes wondering
+    whether it is stuck. `XMLHttpRequest` in exactly one place in the product,
+    because `fetch` has no upload-progress event
+  - Renaming and moving leave the object where it is: a storage key is an
+    address, not a path, and moving bytes to make a tree look tidy is a copy
+    and a delete for something no reader ever sees
+  - **Acceptance**: met and asserted end to end against the running MinIO — the
+    PUT goes to `:9000` and never to `/platform/api/`, the bytes that come back
+    are the bytes that went in, a delete removes the object as well as the row,
+    a refused upload transfers nothing at all, and a viewer is told which
+    permission uploading needs
+- [x] **The seed writes real bytes**, so a download is a file rather than a 404
+  - `--sync-files` materialises them, idempotently, which also repairs a
+    database seeded before object storage existed
+  - The file-type catalogue was narrowed to formats `seed/blobs.py` can
+    genuinely produce. A `.xlsx` whose bytes are plain text looks fine in a
+    list and fails in the application the reader opens it with — eight formats
+    somebody can actually download beat twelve they cannot
+- [ ] Preview for images, PDF and text, and copy — the preview pane waits on
+      §63, and copy is the one verb of the four not yet wired
 
 ### Configurable dashboards, shared like saved searches (§45, §67)
 
@@ -1824,7 +1877,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] `docker compose up` clean-boot green — every service healthy from empty
       volumes; seed wrote 15 554 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
-- [~] Backend tests — 341 passing, including the comment thread's permissions
+- [~] Backend tests — 360 passing, including the comment thread's permissions
       and editing rules, the checklist's validation, saved reports' lifecycle and
       sharing, the analysis compiler's grouping,
       refusals and reconciliation, Data Explorer query, validation,
@@ -1841,7 +1894,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
     aims at the **running stack** — it silently replaced the demo dataset with a
     small one, so every Playwright run afterwards measured 60 tasks where
     compose had produced 500. Nothing failed; the numbers were quietly different
-- [~] Frontend unit + component tests — 285 passing, including the task work
+- [~] Frontend unit + component tests — 292 passing, including the task work
       page and its conversation, saved reports
       and the builder, the analytics
       workspace, the record form,
@@ -1851,7 +1904,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
       notification centre's six states, the header bell, the audit explorer,
       the per-record timeline, the authenticated download path, the generic
       entity list and detail pages, the connection map and the permission matrix
-- [~] Playwright e2e suite — 144 tests green against `docker compose up` on the
+- [~] Playwright e2e suite — 149 tests green against `docker compose up` on the
       full seed, covering the shell, appearance, Data Explorer, saved searches,
       global search, relationships, the catalogue, the notification centre, the
       audit explorer, a real file download, all six entity lists, record

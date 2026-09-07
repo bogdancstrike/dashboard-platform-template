@@ -25,7 +25,7 @@ from sqlalchemy import select
 
 from src.config import Config
 from src.core.clock import now
-from src.seed import business, content, identity, operations, personal, schema
+from src.seed import blobs, business, content, identity, operations, personal, schema
 from src.seed.support import Rng
 from src.seed.world import SCALES, Scale, World
 
@@ -92,6 +92,18 @@ def schema_drift(engine) -> list[schema.Drift]:
     import src.models as models
 
     return [item for item in schema.drift(engine, models.Base.metadata) if item.column]
+
+
+def sync_files(session) -> dict[str, int]:
+    """Write the bytes for every seeded file that has none.
+
+    Separate from `run` so it also serves an *existing* database — this one
+    predates object storage, and its twenty file rows point at objects that
+    were never written. Idempotent, so it is safe on every seed too.
+    """
+    from src.core import storage
+
+    return blobs.materialise(session, storage.for_config())
 
 
 def sync_schema(engine) -> list[schema.Drift]:

@@ -13,6 +13,7 @@
 import { http, HttpResponse } from "msw";
 
 import type { ExplorerCatalogue, ExplorerField, FieldKind } from "@/api/explorer";
+import { asText } from "@/lib/text";
 import { CORRELATION_HEADER } from "@/config";
 
 export const appMeta = {
@@ -797,6 +798,54 @@ function dashboardById(id: string): Record<string, unknown> {
   return savedDashboards.find((item) => item["id"] === id) ?? savedDashboards[0]!;
 }
 
+/**
+ * The file library, in the shape `services/files.py` publishes it (§20).
+ *
+ * Mutable, because what is worth asserting is the *two-phase upload*: a file
+ * appears as `UPLOADING` with a URL beside it, and only becomes `READY` when
+ * the API has confirmed the object arrived. A fixture that answered `READY`
+ * immediately would let a page that skipped the confirmation pass.
+ */
+export const storedFiles: Record<string, unknown>[] = [];
+
+export const fileFolders = [
+  {
+    id: "folder-1", name: "Contracts", path: "/contracts", parent_id: null, depth: 0,
+    color: null, is_shared: false, file_count: 1, total_bytes: 2048, owner: "Ada Administrator",
+  },
+  {
+    id: "folder-2", name: "Signed", path: "/contracts/signed", parent_id: "folder-1", depth: 1,
+    color: null, is_shared: false, file_count: 0, total_bytes: 0, owner: "Ada Administrator",
+  },
+];
+
+function seedFiles(): void {
+  storedFiles.length = 0;
+  storedFiles.push({
+    id: "file-1",
+    name: "Statement of work 2026-03.pdf",
+    extension: "pdf",
+    mime_type: "application/pdf",
+    kind: "DOCUMENT",
+    size_bytes: 2048,
+    checksum: "abc123",
+    folder_id: "folder-1",
+    status: "READY",
+    version: 1,
+    download_count: 4,
+    preview_text: "Statement of work",
+    owner: "Ada Administrator",
+    created_at: "2026-09-01T09:00:00Z",
+    last_accessed_at: "2026-09-04T09:00:00Z",
+  });
+}
+
+seedFiles();
+
+export function resetFiles(): void {
+  seedFiles();
+}
+
 export const recordDetail = {
   content_fields: ["description"],
   metadata: { source: "Customer portal", tags: ["migration", "enterprise"] },
@@ -1418,6 +1467,97 @@ export const handlers = [
   http.get("/platform/health/status", ({ request }) => echo(request, healthSnapshot)),
   http.get("/platform/dashboard/summary", ({ request }) => echo(request, dashboardSummary)),
   http.get("/platform/api/explorer/catalog", ({ request }) => echo(request, explorerCatalogue)),
+  http.get("/platform/api/files/tree", ({ request }) =>
+    echo(request, {
+      folders: fileFolders,
+      unfiled: { file_count: 0, total_bytes: 0 },
+      store: "object",
+      max_upload_bytes: 512 * 1024 * 1024,
+      refused_extensions: ["exe", "sh"],
+      can_manage: true,
+    }),
+  ),
+  http.get("/platform/api/files", ({ request }) => {
+    const url = new URL(request.url);
+    const folder = url.searchParams.get("folder_id");
+    const term = (url.searchParams.get("q") ?? "").toLowerCase();
+    const items = storedFiles.filter(
+      (file) =>
+        (!folder || folder === "unfiled"
+          ? file["folder_id"] === null
+          : file["folder_id"] === folder) &&
+        (!term || String(file["name"]).toLowerCase().includes(term)),
+    );
+    return echo(request, {
+      items, total: items.length, page: 1, page_size: 50, pages: 1,
+    });
+  }),
+  http.post("/platform/api/files", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const created = {
+      ...storedFiles[0],
+      id: `file-${storedFiles.length + 1}`,
+      name: String(body["name"]),
+      size_bytes: Number(body["size_bytes"] ?? 0),
+      folder_id: (body["folder_id"] as string | null) ?? null,
+      // `UPLOADING` until confirmed — the state the page has to show.
+      status: "UPLOADING",
+      download_count: 0,
+    };
+    storedFiles.push(created);
+    return HttpResponse.json(
+      {
+        file: created,
+        upload: {
+          url: "https://storage.example/nucleus/generated-key",
+          method: "PUT",
+          expires_in: 900,
+          headers: { "Content-Type": asText(body["mime_type"]) },
+        },
+      },
+      { status: 201 },
+    );
+  }),
+  http.post("/platform/api/files/:id/confirm", ({ params }) => {
+    const file = storedFiles.find((item) => item["id"] === String(params["id"]));
+    if (file) file["status"] = "READY";
+    return HttpResponse.json(file);
+  }),
+  http.get("/platform/api/files/:id", ({ request, params }) => {
+    const file = storedFiles.find((item) => item["id"] === String(params["id"]));
+    if (file) file["download_count"] = Number(file["download_count"]) + 1;
+    return echo(request, {
+      file,
+      download: {
+        url: "https://storage.example/nucleus/generated-key?signed=1",
+        method: "GET",
+        expires_in: 900,
+      },
+    });
+  }),
+  http.put("/platform/api/files/:id", async ({ request, params }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const file = storedFiles.find((item) => item["id"] === String(params["id"]));
+    if (file) Object.assign(file, body);
+    return HttpResponse.json(file);
+  }),
+  http.delete("/platform/api/files/:id", ({ params }) => {
+    const index = storedFiles.findIndex((item) => item["id"] === String(params["id"]));
+    const [gone] = index >= 0 ? storedFiles.splice(index, 1) : [storedFiles[0]];
+    return HttpResponse.json({ id: gone!["id"], deleted: true, name: gone!["name"] });
+  }),
+  http.post("/platform/api/files/folders", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const created = {
+      id: `folder-${fileFolders.length + 1}`,
+      name: String(body["name"]),
+      path: `/${String(body["name"])}`,
+      parent_id: (body["parent_id"] as string | null) ?? null,
+      depth: 0, color: null, is_shared: false, file_count: 0, total_bytes: 0, owner: "",
+    };
+    fileFolders.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
   http.get("/platform/api/dashboards", ({ request }) =>
     echo(request, {
       items: savedDashboards.map(({ widgets: _widgets, ...rest }) => rest),

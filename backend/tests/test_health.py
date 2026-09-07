@@ -49,7 +49,11 @@ def test_readiness_does_not_fail_on_a_disabled_cache(client):
 def test_snapshot_reports_each_dependency(client, has_database):
     response = client.get(f"{PREFIX}/health/status")
     body = response.get_json()
-    assert set(body["checks"]) == {"database", "cache", "identity"}
+    assert set(body["checks"]) == {"database", "cache", "storage", "identity"}
+    # Which store is answering, not only whether it is: the local fallback
+    # streams every byte through this process, and a deployment running on it
+    # by accident should be able to see that from the health page (§24).
+    assert body["checks"]["storage"]["store"] in ("object", "local")
     # Keycloak is unreachable in the suite either way, so the snapshot is never
     # fully healthy here — but only the database is fatal.
     assert "identity" in body["degraded"]

@@ -310,6 +310,93 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "files_tree",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/files/tree",
+      "description": "Every folder, what is in it, and what this reader may do.",
+      "exec_method": {
+        "module_name": "src.api.files",
+        "method_name": "tree"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "files_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/files",
+      "description": "The files in one folder, or a presigned place to put a new one.",
+      "exec_method": {
+        "module_name": "src.api.files",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "files_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/files/<uuid:file_id>",
+      "description": "A presigned download, a rename or a move, or a delete.",
+      "exec_method": {
+        "module_name": "src.api.files",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "files_confirm",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/files/<uuid:file_id>/confirm",
+      "description": "Confirm an upload — the object is checked, not taken on trust.",
+      "exec_method": {
+        "module_name": "src.api.files",
+        "method_name": "confirm"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "files_folders",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/files/folders",
+      "description": "Create a folder.",
+      "exec_method": {
+        "module_name": "src.api.files",
+        "method_name": "folders"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "files_folder",
+      "model_name": "Empty",
+      "request_method": [
+        "DELETE"
+      ],
+      "api_url": "/api/files/folders/<uuid:folder_id>",
+      "description": "Remove an empty folder.",
+      "exec_method": {
+        "module_name": "src.api.files",
+        "method_name": "folder"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "reports_collection",
       "model_name": "Empty",
       "request_method": [

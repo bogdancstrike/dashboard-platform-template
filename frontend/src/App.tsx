@@ -24,6 +24,7 @@ const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
 const ChartBuilderPage = lazy(() => import("@/pages/ChartBuilderPage"));
 const MapsPage = lazy(() => import("@/pages/MapsPage"));
 const DashboardsPage = lazy(() => import("@/pages/DashboardsPage"));
+const FilesPage = lazy(() => import("@/pages/FilesPage"));
 const DataExplorerPage = lazy(() => import("@/pages/DataExplorerPage"));
 const GlobalSearchPage = lazy(() => import("@/pages/GlobalSearchPage"));
 const DataCatalogPage = lazy(() => import("@/pages/DataCatalogPage"));
@@ -180,16 +181,11 @@ export default function App() {
         <Route
           path="files"
           element={
-            <PlaceholderPage
-              section="§20"
-              summary="Folders, files, previews and uploads."
-              bullets={["Nested folders with a materialised path", "Grid and list views", "Drag-and-drop upload with progress"]}
-            />
+            <Suspense fallback={<Loading />}>
+              <FilesPage />
+            </Suspense>
           }
         />
-
-
-        {/* Analyse */}
         <Route
           path="dashboards"
           element={

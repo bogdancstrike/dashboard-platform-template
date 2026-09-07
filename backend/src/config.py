@@ -100,7 +100,22 @@ class Config:
         )
 
     # ── Storage (file manager) ───────────────────────────────────────────
+    # ── Object storage (§20, §29, §30) ───────────────────────────────────
+    #
+    # An S3-compatible endpoint when one is configured — MinIO in the compose
+    # stack — and the local directory otherwise, so `python main.py` works
+    # with nothing else running. `core/storage.for_config` picks between them
+    # and nothing above it knows which it got.
     STORAGE_DIR = os.getenv("STORAGE_DIR", "/app/backend/var/storage")
+    STORAGE_ENDPOINT = os.getenv("STORAGE_ENDPOINT", "")
+    #: The address the *browser* uses. A presigned URL signed for
+    #: `http://minio:9000` is a URL no browser outside Docker can resolve —
+    #: the same two-address problem Keycloak has, for the same reason.
+    STORAGE_PUBLIC_ENDPOINT = os.getenv("STORAGE_PUBLIC_ENDPOINT", "")
+    STORAGE_BUCKET = os.getenv("STORAGE_BUCKET", "nucleus")
+    STORAGE_ACCESS_KEY = os.getenv("STORAGE_ACCESS_KEY", "")
+    STORAGE_SECRET_KEY = os.getenv("STORAGE_SECRET_KEY", "")
+    STORAGE_REGION = os.getenv("STORAGE_REGION", "us-east-1")
     MAX_UPLOAD_MB = _int("MAX_UPLOAD_MB", 25)
 
     # ── Seeding ──────────────────────────────────────────────────────────

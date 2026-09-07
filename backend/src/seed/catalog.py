@@ -327,19 +327,21 @@ EXTERNAL_DOMAINS: tuple[str, ...] = (
 # ── files ────────────────────────────────────────────────────────────────
 
 #: (extension, mime type, kind)
+#: Only formats `seed/blobs.py` can genuinely write.
+#:
+#: A `.xlsx` whose bytes are plain text is not a spreadsheet: it looks fine in
+#: a list and fails in the application the reader opens it with, which is worse
+#: than not offering it. So `docx`, `xlsx`, `pptx`, `jpg` and `zip` are gone —
+#: eight formats a reader can actually download beat twelve they cannot.
 FILE_TYPES: tuple[tuple[str, str, str], ...] = (
     ("pdf", "application/pdf", "DOCUMENT"),
-    ("docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "DOCUMENT"),
-    ("xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "SPREADSHEET"),
-    ("pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", "PRESENTATION"),
-    ("csv", "text/csv", "DATA"),
-    ("json", "application/json", "DATA"),
-    ("png", "image/png", "IMAGE"),
-    ("jpg", "image/jpeg", "IMAGE"),
-    ("svg", "image/svg+xml", "IMAGE"),
-    ("zip", "application/zip", "ARCHIVE"),
     ("md", "text/markdown", "DOCUMENT"),
+    ("txt", "text/plain", "DOCUMENT"),
+    ("csv", "text/csv", "SPREADSHEET"),
+    ("json", "application/json", "DATA"),
     ("log", "text/plain", "LOG"),
+    ("png", "image/png", "IMAGE"),
+    ("svg", "image/svg+xml", "IMAGE"),
 )
 
 FILE_SUBJECTS: tuple[str, ...] = (

@@ -69,6 +69,30 @@ catalogue. The detail contract also includes structured `metadata`, with known
 secret keys masked recursively. Text is rendered as escaped prose, preserving
 paragraphs. Related records use the existing schema-derived relationship API.
 
+### Files, and where the bytes live
+
+`/files` never moves bytes through the API. A browser asks for a presigned URL
+(`POST /api/files`), PUTs straight at object storage, and then confirms
+(`POST /api/files/<id>/confirm`) — where the API checks the object arrived with
+`stat` rather than believing the client. A download is a presigned GET the
+browser follows itself.
+
+`backend/src/core/storage.py` publishes one interface with two
+implementations: `ObjectStorage` for anything S3-compatible (MinIO in the
+compose stack) and `LocalStorage` for a directory, so `python main.py` works
+with nothing else running. `GET /platform/health/status` reports **which store
+is answering** — the local one streams every byte through this process, which
+is fine on a laptop and worth knowing anywhere else.
+
+Storage keys are generated, never built from a filename. The name a person gave
+a file is metadata in PostgreSQL.
+
+```bash
+make sync-files    # write the object bytes every seeded file points at
+```
+
+MinIO's console is at <http://localhost:9001> (`nucleus` / `nucleus-dev-secret`).
+
 ### Adding a chart kind, and putting records on the map
 
 A chart kind is three declarations: a builder in
@@ -149,6 +173,7 @@ Then:
 | <http://localhost:5101/platform/health/ready> | Readiness (503 until the database answers) |
 | <http://localhost:5101/platform/health/status> | Every dependency, with latency |
 | <http://localhost:5101/platform/meta/routes> | The API surface this process is serving |
+| <http://localhost:9001> | MinIO console — `nucleus` / `nucleus-dev-secret` |
 
 ### Frontend
 

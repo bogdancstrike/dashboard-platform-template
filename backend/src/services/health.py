@@ -82,6 +82,22 @@ def probe_cache() -> dict[str, Any]:
     return cache.health()
 
 
+def probe_storage() -> dict[str, Any]:
+    """Object storage, and *which* store is answering.
+
+    The name matters as much as the status: the local-directory fallback works
+    on a laptop and streams every byte through this process, which is a trade
+    nobody should be making in a deployment without knowing it.
+    """
+    from src.core import storage
+
+    try:
+        store = storage.for_config()
+        return {"store": store.name, **store.health()}
+    except Exception as exc:
+        return {"status": "unavailable", "latency_ms": None, "error": str(exc)[:300]}
+
+
 def probe_auth() -> dict[str, Any]:
     """Reaches Keycloak for the realm keys, so it is deliberately not part of
     readiness: the API serves cached-key traffic perfectly well while the
@@ -115,7 +131,11 @@ def readiness() -> tuple[dict[str, Any], bool]:
 
 def snapshot(*, include_auth: bool = True) -> dict[str, Any]:
     """Everything §24 renders: each dependency, plus who is reporting it."""
-    checks = {"database": probe_database(), "cache": probe_cache()}
+    checks = {
+        "database": probe_database(),
+        "cache": probe_cache(),
+        "storage": probe_storage(),
+    }
     if include_auth:
         checks["identity"] = probe_auth()
 

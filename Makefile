@@ -80,6 +80,10 @@ reseed: ## Drop every table and seed again
 check-seed: ## Verify the seeded data is referentially consistent
 	$(COMPOSE) run --rm -e SEED_ARGS=--check seed
 
+.PHONY: sync-files
+sync-files: ## Write the object bytes every seeded file points at
+	$(COMPOSE) run --rm -e SEED_ARGS=--sync-files seed
+
 .PHONY: sync-schema
 sync-schema: ## Add columns the model declares and the database lacks
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-schema seed
@@ -101,9 +105,19 @@ test: test-backend test-frontend ## Run every test suite
 test-backend: ## Backend tests (no database needed)
 	cd $(BACKEND) && ../$(PY) -m pytest
 
+# The storage tests upload the way a browser does — straight at MinIO, past
+# the API — so they need the same endpoint the browser uses. Without these the
+# suite falls back to the local directory and the presigned-upload tests skip
+# themselves rather than failing.
+STORAGE_ENV := \
+	STORAGE_ENDPOINT=http://localhost:$${MINIO_PORT:-9000} \
+	STORAGE_PUBLIC_ENDPOINT=http://localhost:$${MINIO_PORT:-9000} \
+	STORAGE_ACCESS_KEY=$${MINIO_ROOT_USER:-nucleus} \
+	STORAGE_SECRET_KEY=$${MINIO_ROOT_PASSWORD:-nucleus-dev-secret}
+
 .PHONY: test-backend-db
-test-backend-db: ## Backend tests including the ones that need PostgreSQL
-	cd $(BACKEND) && TEST_DATABASE_URL=postgresql+psycopg2://platform:platform@localhost:$${POSTGRES_PORT:-5433}/platform ../$(PY) -m pytest
+test-backend-db: ## Backend tests including the ones that need PostgreSQL and MinIO
+	cd $(BACKEND) && TEST_DATABASE_URL=postgresql+psycopg2://platform:platform@localhost:$${POSTGRES_PORT:-5433}/platform $(STORAGE_ENV) ../$(PY) -m pytest
 
 .PHONY: test-frontend
 test-frontend: ## Frontend unit and component tests

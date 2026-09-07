@@ -40,6 +40,12 @@ psycopg2-binary>=2.9.10
 python-jose[cryptography]>=3.3.0
 requests>=2.32.0
 
+# Object storage (§20, §29, §30). S3-compatible, so MinIO in the compose stack
+# and any S3 service in a deployment are the same code path. Presigned URLs
+# are signed locally, which is what makes issuing one per file in a
+# drag-and-drop of forty cost no network calls at all.
+boto3>=1.35.0,<2
+
 # ── Exports (§30) ────────────────────────────────────────────────────────
 # XLSX only. CSV and JSON are written by the standard library, streamed, and
 # need nothing; a spreadsheet is a zip container and does not.

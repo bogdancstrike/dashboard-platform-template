@@ -5,6 +5,7 @@
     python -m src.seed --reset            # drop everything first
     python -m src.seed --check            # verify an existing dataset
     python -m src.seed --sync-schema      # add columns the model has and it lacks
+    python -m src.seed --sync-files       # write the bytes seeded files point at
     python -m src.seed --sync-roles       # give built-in roles new permissions
     python -m src.seed --dry-run          # build in memory, write nothing
 
@@ -37,6 +38,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-schema", action="store_true",
         help="add columns the model declares and the database lacks, and exit",
+    )
+    parser.add_argument(
+        "--sync-files", action="store_true",
+        help="write the object bytes every seeded file points at, and exit",
     )
     parser.add_argument(
         "--sync-roles", action="store_true",
@@ -75,6 +80,18 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  ! {item}")
         print("database already matches the model" if not added else f"{len(added)} column(s) added")
         return 1 if blocked else 0
+
+    if args.sync_files:
+        # A file manager whose every download fails is not a demonstration of
+        # a file manager. Idempotent, so this also repairs a database seeded
+        # before object storage existed.
+        with session_scope() as session:
+            result = runner.sync_files(session)
+        print(
+            f"{result['written']} objects written, "
+            f"{result['already_present']} already there"
+        )
+        return 0
 
     if args.sync_roles:
         # Not part of a seed run: this is what an *existing* database needs
@@ -123,6 +140,9 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         counts = runner.run(session, scale=args.scale, seed=args.seed)
+        # The bytes, not only the rows: a seeded file that points at nothing is
+        # a download that fails on a fresh install.
+        runner.sync_files(session)
         problems = runner.verify(session)
 
     _report(counts, quiet=args.quiet)

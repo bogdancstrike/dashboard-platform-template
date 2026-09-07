@@ -1209,3 +1209,21 @@ mark.nu-mark {
 .ant-tag-error { color: var(--nu-danger-ink) !important; }
 .ant-tag-processing,
 .ant-tag-info { color: var(--nu-info-ink) !important; }
+
+/* The upload tray (§20). One row per file, because a drop of forty with a
+   single indeterminate bar is a page somebody watches for four minutes
+   wondering whether it is stuck. */
+.nu-transfer { padding: 4px 0; }
+.nu-transfer + .nu-transfer { border-top: 1px solid var(--nu-border-subtle); }
+.nu-transfer-name {
+  display: flex; align-items: baseline; gap: 8px; min-width: 0;
+  font-size: 12.5px;
+}
+.nu-transfer-name > .ant-typography:first-child { flex: 1; min-width: 0; }
+
+/* The upload strip (§20). On screen permanently, so it is a line rather than
+   a panel — a third of the page given to a drop target pushes the files
+   somebody came to see below the fold. */
+.nu-dropzone .ant-upload-drag { padding: 10px 12px; border-radius: var(--nu-radius-card); }
+.nu-dropzone .ant-upload-drag .ant-upload-btn { padding: 0; }
+.nu-dropzone .anticon { font-size: 18px; color: var(--nu-accent); }
