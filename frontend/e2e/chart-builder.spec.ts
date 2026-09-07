@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
+import { sweepReports } from "./api";
 import { signIn, storageStateFor } from "./auth";
 
 /**
@@ -17,15 +18,18 @@ import { signIn, storageStateFor } from "./auth";
 const SIMPLE =
   "/charts/builder?resource=order&group=status&agg=sum&measure=total&period=all_time";
 
-async function deleteChart(page: Page, name: string): Promise<void> {
-  await page.goto("/reports");
-  const row = page.locator(".nu-queue-row", { hasText: name }).first();
-  if ((await row.count()) === 0) return;
-  await row.click();
-  await page.getByRole("button", { name: /Delete/ }).first().click();
-  await page.getByRole("dialog").getByRole("button", { name: /Delete/ }).click();
-  await expect(page.locator(".nu-queue-row", { hasText: name })).toHaveCount(0);
-}
+/** Every chart this suite saves is named for it, so the sweep can find them. */
+const PREFIX = "Chart e2e";
+
+/**
+ * Remove them however the test ended.
+ *
+ * Unconditional, and through the API rather than the page: this file used to
+ * delete its chart on the happy path only, so every failed run left one
+ * behind — twenty of them, in the end, filling the `/reports` list somebody
+ * had come to read.
+ */
+test.afterEach(() => sweepReports([PREFIX]));
 
 test.describe("the chart builder", () => {
   test("draws every kind from the database's own numbers, and refuses the rest by name", async ({
@@ -84,7 +88,7 @@ test.describe("the chart builder", () => {
   });
 
   test("a saved chart is a saved analysis, and answers on the reports page", async ({ page }) => {
-    const name = `Chart e2e ${Date.now()}`;
+    const name = `${PREFIX} ${Date.now()}`;
     await signIn(page, "admin", SIMPLE);
 
     await page.getByTestId("chart-kind-hbar").click();
@@ -96,8 +100,6 @@ test.describe("the chart builder", () => {
     await expect(page).toHaveURL(/\/reports\?report=/);
     await expect(page.getByTestId("report-matched")).toContainText(/rows measured/);
     await expect(page.locator(".nu-queue-row", { hasText: name }).first()).toBeVisible();
-
-    await deleteChart(page, name);
   });
 
   test("is legible in both themes, and shows the reader both at once", async ({ page }) => {
