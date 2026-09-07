@@ -485,7 +485,7 @@ export default function FilesPage() {
                         : "Delete this folder",
                     },
                   ],
-                  onClick: () =>
+                  onClick: () => {
                     modal.confirm({
                       title: `Delete ${folderName}?`,
                       content: "It is empty, so nothing is lost with it.",
@@ -494,7 +494,8 @@ export default function FilesPage() {
                       onOk: async () => {
                         await dropFolder.mutateAsync(open);
                       },
-                    }),
+                    });
+                  },
                 }}
               >
                 <Button

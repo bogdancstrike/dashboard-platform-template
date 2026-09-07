@@ -23,7 +23,10 @@ export const NEUTRAL = {
   200: "#e2e8f0",
   300: "#cbd5e1",
   400: "#94a3b8",
-  500: "#64748b",
+  // Darkened from #64748b, which cleared 4.5:1 on a card (4.76) and missed it
+  // on the *page* ground (4.34) — and tertiary text lands on both. See
+  // `theme/contrast.test.ts`, which is what caught it.
+  500: "#5f6e85",
   600: "#475569",
   700: "#334155",
   800: "#1e293b",
@@ -53,7 +56,12 @@ export const INK = {
   650: "#262a33",
   600: "#343a45",
   500: "#4a515e",
-  400: "#6b7383",
+  // Raised from #6b7383, which axe caught on a `Descriptions` label: 3.76:1
+  // against the dark panel, under the 4.5:1 text threshold (§55, §64). AntD
+  // uses `colorTextTertiary` for label text, not only for hints, so the ramp
+  // has to hold at 4.5 all the way down. #7d8595 is 4.83:1 and still a step
+  // quieter than INK[300].
+  400: "#7d8595",
   300: "#9aa2b1",
   200: "#c3c8d2",
   100: "#e8eaf0",

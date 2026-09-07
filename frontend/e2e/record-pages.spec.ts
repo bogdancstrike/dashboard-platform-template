@@ -42,14 +42,13 @@ async function openFirstProject(page: Page, persona: Persona = "admin"): Promise
 /**
  * Open the first ticket from the triage queue, on its own page.
  *
- * Two clicks, because the queue's own split pane is a *preview* — the row
- * opens it beside the list, and "Full record" is the way to the console. That
- * is the path a person takes, so it is the path the test takes.
+ * One click now: the queue is a table and a row *is* the way to the console.
+ * It used to take two, because the queue carried a preview pane of its own
+ * and "Full record" was the way out of it.
  */
 async function openFirstTicket(page: Page, persona: Persona = "admin"): Promise<string> {
   await signIn(page, persona, "/tickets");
-  await page.locator(".nu-queue-row").first().click();
-  await page.getByRole("button", { name: "Full record" }).click();
+  await page.locator(".ant-table-row").first().click();
   await page.waitForURL(/\/tickets\/[0-9a-f-]{36}/);
   return page.url();
 }

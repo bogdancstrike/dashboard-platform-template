@@ -103,22 +103,25 @@ test.describe("each entity gets the page its data deserves", () => {
     await expect(page.getByText(/the server's, not this page's/)).toBeVisible();
   });
 
-  test("tickets open as a split queue that keeps its place", async ({ page }) => {
+  test("tickets open as a table whose loudest column is the clock", async ({ page }) => {
     await signIn(page, "admin", "/tickets");
 
     const queue = page.getByTestId("ticket-queue");
     await expect(queue).toBeVisible();
-    // A ticket is chosen for the reader, and the detail is on the same screen.
-    await expect(queue.locator(".nu-queue-row.is-open")).toHaveCount(1);
-    await expect(page.getByRole("button", { name: "Full record" })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Service level" })).toBeVisible();
 
-    // Choosing another puts it in the URL, so the exact ticket can be pasted.
-    await queue.locator(".nu-queue-row").nth(2).click();
-    await expect(page).toHaveURL(/open=[0-9a-f-]{36}/);
-    const chosen = new URL(page.url()).searchParams.get("open");
-    await page.reload();
-    await expect(queue.locator(".nu-queue-row.is-open")).toHaveCount(1);
-    expect(new URL(page.url()).searchParams.get("open")).toBe(chosen);
+    // The verdict is derived from the record's own timestamps, and it is
+    // written in words rather than left to a colour (§64).
+    await expect(
+      queue.getByText(/^(SLA breached|Resolved|Resolved late|Due|Answered)/).first(),
+    ).toBeVisible();
+
+    // A row opens the console, which is where a ticket is worked on. The
+    // preview pane that used to sit here was a second rendering of a record
+    // that already has a page.
+    await queue.locator(".ant-table-row").first().click();
+    await expect(page).toHaveURL(/\/tickets\/[0-9a-f-]{36}/);
+    await expect(page.getByTestId("ticket-triage")).toBeVisible();
   });
 
   test("devices open as a fleet monitor with two health signals per unit", async ({ page }) => {

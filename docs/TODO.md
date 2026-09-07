@@ -521,10 +521,40 @@ commit — built, committed, pushed, redeployed and verified before the next.
     behind on time one with delivery. Unit-tested against a fixed clock
   - The Gantt's 30 lines of CSS went with it; `.nu-timeline` stays, because it
     is the audit trail's
-- [ ] **`/tickets` is a table, and `/tickets/:id` says more** — asked for
-      directly. The queue is four large tiles, a filter bar and a split whose
-      preview pane is a second rendering of the record; the table is the shape
-      a queue somebody works through actually wants
+- [x] **`/tickets` is a table, and `/tickets/:id` says more** — asked for
+      directly
+  - The split view's right half was a *second rendering* of a record that
+    already has a page: the same description, the same tags, the same history,
+    maintained twice and slightly differently. It is gone, and a row opens the
+    console
+  - The queue was a list of coloured chips in a 380-pixel column, which is the
+    one shape that cannot answer "which of these forty is worst". Now:
+    severity, status, the clock, and a subject wide enough to read
+  - **The service-level column is derived**, by the rule the console already
+    uses (`entities/sla.ts`): "SLA breached · 3d 12h ago" rather than a
+    `due_at` a reader has to subtract from today. Whether the promise was
+    *missed* is still the server's `sla_breached` (§71)
+  - Priority and channel became filters rather than columns, and the breach
+    icon went: on a queue that is 84% breached, a marker on every row marks
+    nothing. Same reasoning as the row tint, which was tried and removed
+  - **The console shows what it had and never said.** The subtitle read
+    "chat · data" — two words a reader has to guess at — and `project_id` was
+    declared and shown nowhere. Both are labelled facts now, in a Filing
+    panel, with satisfaction and the reopen count beside them
+  - **How it has been handled** is the four moments a support desk is measured
+    on, in sequence: raised → first answered → promised by → resolved. Four
+    rows of a `Descriptions` table are four facts; in order they are the
+    *shape* of the response, which is what a review of one looks at. The
+    deadline says what it means ("Missed, and still open") rather than
+    repeating the interval printed beside it
+- [x] **Text contrast is a property of the palette, asserted as one** — axe
+      caught a `Descriptions` label at 3.76:1 in dark, three commits after the
+      colour was chosen, on the one page a spec happened to visit in the one
+      appearance it happened to be in. `theme/contrast.test.ts` asserts every
+      text ink in both appearances against both grounds — the page and a card
+      — and immediately found a second: the light tertiary cleared 4.5:1 on a
+      card and missed it on the page. It also asserts the ramp stays a ramp,
+      because the easy way to fix a contrast failure is to flatten it
 - [ ] **`/reports`, `/reports/builder` and `/charts/builder` are cleaner** —
       the question is a column of airy labelled selects in all three, the
       primary action is below the fold in two, and the answer gets what is

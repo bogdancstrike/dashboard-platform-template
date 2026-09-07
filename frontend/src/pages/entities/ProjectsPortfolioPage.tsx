@@ -166,7 +166,7 @@ export default function ProjectsPortfolioPage() {
       width: 116,
       sorter: true,
       render: (value: string) => (
-        <Tag color={knownStatusColor(value ?? "")} bordered={false}>
+        <Tag color={knownStatusColor(value)} bordered={false}>
           {value}
         </Tag>
       ),
@@ -177,7 +177,7 @@ export default function ProjectsPortfolioPage() {
       width: 112,
       sorter: true,
       render: (value: string) => (
-        <Tag color={knownStatusColor(value ?? "")} bordered={false}>
+        <Tag color={knownStatusColor(value)} bordered={false}>
           {value}
         </Tag>
       ),
@@ -275,7 +275,7 @@ export default function ProjectsPortfolioPage() {
               <Text type={late ? "danger" : undefined}>
                 {new Date(value).toLocaleDateString()}
               </Text>
-              {late && daysLeft !== null && (
+              {late && (
                 <Text type="danger" className="nu-due-late">
                   {Math.abs(daysLeft)}d late
                 </Text>

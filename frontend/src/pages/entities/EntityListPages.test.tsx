@@ -90,7 +90,7 @@ describe("projects — the portfolio table", () => {
     const cell = await within(table).findByText(name);
     const row = cell.closest("tr");
     if (!row) throw new Error(`${name} is not in a table row`);
-    return row as HTMLElement;
+    return row;
   }
 
   it("puts delivered, schedule and budget on one row, so the gap can be read", async () => {
@@ -146,30 +146,21 @@ describe("orders — the ledger", () => {
   });
 });
 
-describe("tickets — the triage queue", () => {
-  it("opens the first ticket beside the queue rather than making you navigate", async () => {
+describe("tickets — the triage table", () => {
+  it("reads a ticket's standing against its clock, not its four timestamps", async () => {
     render(<TicketsQueuePage />, "/tickets");
 
     const queue = await screen.findByTestId("ticket-queue");
-    expect(
-      await within(queue).findByText("Login fails after password reset"),
-    ).toBeInTheDocument();
-    // §63: the detail opens beside the queue rather than replacing the page.
-    expect(within(queue).getByText("Invoice shows the wrong VAT")).toBeInTheDocument();
-  });
+    const row = (await within(queue).findByText("Login fails after password reset"))
+      .closest("tr") as HTMLElement;
 
-  it("keeps the open ticket in the URL so it can be pasted", async () => {
-    const user = userEvent.setup();
-    render(<TicketsQueuePage />, "/tickets");
-
-    const queue = await screen.findByTestId("ticket-queue");
-    await user.click(await within(queue).findByText("Invoice shows the wrong VAT"));
-
-    await waitFor(() =>
-      expect(
-        within(queue).getByText("Invoice shows the wrong VAT").closest("button"),
-      ).toHaveAttribute("aria-current", "true"),
-    );
+    // Breached is the server's answer (`sla_breached`), and how *late* is this
+    // page's arithmetic over it — a deadline read as time rather than as a
+    // timestamp somebody has to subtract from today.
+    expect(within(row).getByText("SLA breached")).toBeInTheDocument();
+    // Scoped to the service-level cell: "Raised" carries a relative time too,
+    // and the claim is about the *deadline*.
+    expect(row.querySelector(".nu-sla-clock")?.textContent).toMatch(/ago$/);
   });
 
   it("gives SLA a control of its own, because it is why the page is open", async () => {
@@ -190,25 +181,6 @@ describe("tickets — the triage queue", () => {
     await waitFor(() =>
       expect(asked.at(-1)?.["filters"]).toEqual({ sla_breached: "true" }),
     );
-  });
-});
-
-describe("devices — the fleet monitor", () => {
-  it("draws two health signals per unit as bars, because a wall is scanned", async () => {
-    render(<DevicesFleetPage />, "/devices");
-
-    const fleet = await screen.findByTestId("device-fleet");
-    expect(await within(fleet).findByText("Gateway Berlin 04")).toBeInTheDocument();
-    expect(fleet.querySelectorAll(".nu-gauge").length).toBe(2);
-    expect(within(fleet).getByText("18")).toBeInTheDocument();
-    expect(within(fleet).getByText("71")).toBeInTheDocument();
-  });
-
-  it("says how stale a reading is, which is a different problem from being unwell", async () => {
-    render(<DevicesFleetPage />, "/devices");
-
-    const fleet = await screen.findByTestId("device-fleet");
-    expect(await within(fleet).findByText(/silent|quiet|reporting/)).toBeInTheDocument();
   });
 });
 

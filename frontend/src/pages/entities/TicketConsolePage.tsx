@@ -41,6 +41,7 @@ import {
   Select,
   Skeleton,
   Space,
+  Tag,
   Tooltip,
   Typography,
 } from "antd";
@@ -94,6 +95,7 @@ export default function TicketConsolePage() {
   const page = useRecordPage("ticket", id, { listPath: "/tickets", noun: "ticket" });
 
   const customerId = asText(page.value("customer_id"));
+  const projectId = asText(page.value("project_id"));
   const account = useQuery({
     queryKey: ["record", "customer", customerId],
     queryFn: ({ signal }) => recordsApi.get("customer", customerId, signal),
@@ -165,10 +167,14 @@ export default function TicketConsolePage() {
             <Text type="secondary" className="nu-mono">
               {ticket.subtitle}
             </Text>
-            <Text type="secondary">
-              {asText(page.value("channel")).toLowerCase() || "unknown channel"} ·{" "}
-              {asText(page.value("category")).replace(/_/g, " ").toLowerCase()}
-            </Text>
+            {/* Labelled, because "chat · data" is two words a reader has to
+                guess the meaning of. */}
+            {Boolean(page.value("channel")) && (
+              <Tag bordered={false}>via {titleCase(asText(page.value("channel")))}</Tag>
+            )}
+            {Boolean(page.value("category")) && (
+              <Tag bordered={false}>{titleCase(asText(page.value("category")))}</Tag>
+            )}
             <Text type="secondary">
               Raised{" "}
               <Tooltip title={absoluteTime(ticket.created_at)}>
@@ -230,6 +236,59 @@ export default function TicketConsolePage() {
             <Paragraph className="nu-record-prose">
               {asText(page.value("description")) || "No description was given."}
             </Paragraph>
+          </Card>
+
+          {/* The four moments a support desk is measured on, in the order they
+              happen. Four rows of a `Descriptions` table are four facts; laid
+              out in sequence they are the *shape* of the response — which is
+              what a review of it is actually looking at. */}
+          <Card size="small" title="How it has been handled" className="nu-block"
+                data-testid="ticket-response">
+            <ol className="nu-moments">
+              <Moment
+                label="Raised"
+                at={ticket.created_at}
+                note={asText(page.value("channel")) ? `via ${titleCase(asText(page.value("channel")))}` : ""}
+                reached
+              />
+              <Moment
+                label="First answered"
+                at={asText(page.value("first_response_at")) || null}
+                note={sla.responseMinutes === null ? "Nobody has answered yet" : `after ${duration(sla.responseMinutes)}`}
+                reached={sla.responseMinutes !== null}
+              />
+              <Moment
+                label="Promised by"
+                at={asText(page.value("due_at")) || null}
+                // What the deadline *means* now, not the same interval twice:
+                // the column beside it already says when it was.
+                note={
+                  sla.minutesLeft === null
+                    ? "No deadline was set"
+                    : sla.minutesLeft < 0
+                      ? page.value("resolved_at")
+                        ? "Passed before it was resolved"
+                        : "Missed, and still open"
+                      : `${duration(sla.minutesLeft)} left`
+                }
+                reached={sla.minutesLeft !== null && sla.minutesLeft < 0}
+                tone={
+                  sla.minutesLeft !== null && sla.minutesLeft < 0 && !page.value("resolved_at")
+                    ? "danger"
+                    : undefined
+                }
+              />
+              <Moment
+                label="Resolved"
+                at={asText(page.value("resolved_at")) || null}
+                note={
+                  sla.resolutionMinutes === null
+                    ? "Still open"
+                    : `after ${duration(sla.resolutionMinutes)}`
+                }
+                reached={Boolean(page.value("resolved_at"))}
+              />
+            </ol>
           </Card>
 
           {/* The widest column, because answering is the job (§36). */}
@@ -299,23 +358,44 @@ export default function TicketConsolePage() {
                 />
               </Field>
 
-              <Descriptions size="small" column={1} bordered>
-                <Descriptions.Item label="Due">
-                  {page.value("due_at") ? absoluteTime(asText(page.value("due_at"))) : "—"}
-                </Descriptions.Item>
-                <Descriptions.Item label="First answered">
-                  {sla.responseMinutes === null ? "Not yet" : duration(sla.responseMinutes)}
-                </Descriptions.Item>
-                <Descriptions.Item label="Resolved in">
-                  {sla.resolutionMinutes === null ? "—" : duration(sla.resolutionMinutes)}
-                </Descriptions.Item>
-                <Descriptions.Item label="Satisfaction">
-                  {page.value("satisfaction") === null
-                    ? "Not rated"
-                    : `${Number(page.value("satisfaction"))}/5`}
-                </Descriptions.Item>
-              </Descriptions>
             </Space>
+          </Card>
+
+          {/* The filing. It matters and it is not the job, which is why it is
+              below the controls rather than in the headline — but "unknown
+              channel · data" in a subtitle was information nobody could read
+              and the record's own `project_id` was not shown at all. */}
+          <Card size="small" title="Filing" className="nu-block" data-testid="ticket-filing">
+            <Descriptions size="small" column={1}>
+              <Descriptions.Item label="Category">
+                {titleCase(asText(page.value("category"))) || "—"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Channel">
+                {titleCase(asText(page.value("channel"))) || "—"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Satisfaction">
+                {page.value("satisfaction") === null
+                  ? "Not rated"
+                  : `${Number(page.value("satisfaction"))}/5`}
+              </Descriptions.Item>
+              <Descriptions.Item label="Reopened">
+                {Number(page.value("reopen_count") ?? 0) === 0
+                  ? "Never"
+                  : formatCount(Number(page.value("reopen_count")))}
+              </Descriptions.Item>
+              <Descriptions.Item label="Project">
+                {projectId ? (
+                  <Link to={`/projects/${projectId}`}>Open the project</Link>
+                ) : (
+                  "Not against a project"
+                )}
+              </Descriptions.Item>
+              <Descriptions.Item label="Last changed">
+                <Tooltip title={absoluteTime(asText(page.value("updated_at")))}>
+                  <span>{relativeTime(asText(page.value("updated_at")))}</span>
+                </Tooltip>
+              </Descriptions.Item>
+            </Descriptions>
           </Card>
 
           <Card
@@ -388,6 +468,53 @@ export default function TicketConsolePage() {
 }
 
 const formatCount = (count: number) => (count === 1 ? "once" : `${count} times`);
+
+/** `WAITING_CUSTOMER` → `Waiting customer`. An enum is not a sentence. */
+function titleCase(value: string): string {
+  if (!value) return "";
+  const words = value.replace(/_/g, " ").toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/**
+ * One moment in the handling of a ticket: when it happened, and how long after
+ * the one before it.
+ *
+ * `reached` rather than a boolean called `done`: a deadline that has *passed*
+ * has been reached and is not an achievement, and the sequence has to be able
+ * to draw both.
+ */
+function Moment({
+  label,
+  at,
+  note,
+  reached,
+  tone,
+}: {
+  label: string;
+  at: string | null;
+  note: string;
+  reached: boolean;
+  tone?: "danger";
+}) {
+  return (
+    <li className={`nu-moment${reached ? " is-reached" : ""}`}>
+      <span className="nu-moment-label">{label}</span>
+      <span className="nu-moment-when">
+        {at ? (
+          <Tooltip title={absoluteTime(at)}>
+            <Text type={tone}>{relativeTime(at)}</Text>
+          </Tooltip>
+        ) : (
+          <Text type="secondary">—</Text>
+        )}
+      </span>
+      <span className="nu-moment-note">
+        <Text type={tone ?? "secondary"}>{note}</Text>
+      </span>
+    </li>
+  );
+}
 
 /** A labelled control in the triage panel. */
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

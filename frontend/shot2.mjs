@@ -1,0 +1,12 @@
+import { chromium } from "@playwright/test";
+const [, , path, out, scroll = "0"] = process.argv;
+const browser = await chromium.launch();
+const context = await browser.newContext({ storageState: ".auth/admin.json", viewport: { width: 1440, height: 900 } });
+const page = await context.newPage();
+await page.goto(`http://localhost:5174${path}`);
+await page.waitForLoadState("networkidle");
+await page.waitForTimeout(1500);
+await page.locator("#nu-main").evaluate((el, y) => { el.closest(".nu-content").scrollTop = Number(y); }, scroll);
+await page.waitForTimeout(400);
+await page.screenshot({ path: out });
+await browser.close();

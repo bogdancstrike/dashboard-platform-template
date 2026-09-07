@@ -88,6 +88,34 @@ describe("the ticket support console", () => {
     expect(within(sla).getByText(/past the deadline it was given/)).toBeInTheDocument();
   });
 
+  it("lays the handling out as a sequence, not four timestamps", async () => {
+    render();
+
+    // The four moments a support desk is measured on, in the order they
+    // happen — and the deadline says what it *means* rather than repeating
+    // the interval printed beside it.
+    const response = await screen.findByTestId("ticket-response");
+    for (const moment of ["Raised", "First answered", "Promised by", "Resolved"]) {
+      expect(within(response).getByText(moment)).toBeInTheDocument();
+    }
+    expect(within(response).getByText("Missed, and still open")).toBeInTheDocument();
+    expect(within(response).getByText("Still open")).toBeInTheDocument();
+  });
+
+  it("shows the filing in words, including the project nothing used to name", async () => {
+    render();
+
+    // "chat · data" in a subtitle is two words a reader has to guess at, and
+    // `project_id` was declared and shown nowhere.
+    // Read off the label cells themselves: "Project" also appears in the row's
+    // *value* when a ticket is filed against none of them.
+    const filing = await screen.findByTestId("ticket-filing");
+    const labels = [...filing.querySelectorAll(".ant-descriptions-item-label")].map(
+      (cell) => cell.textContent,
+    );
+    expect(labels).toEqual(["Category", "Channel", "Satisfaction", "Reopened", "Project", "Last changed"]);
+  });
+
   it("re-triages without opening a form, with the version it read", async () => {
     const user = userEvent.setup();
     const bodies: Record<string, unknown>[] = [];
