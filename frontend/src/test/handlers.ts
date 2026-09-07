@@ -710,6 +710,93 @@ export function mapPlaces(dataset = "customer") {
   };
 }
 
+/**
+ * Dashboards and their widgets, in the shape `services/dashboards.py`
+ * publishes them (§45, §67).
+ *
+ * Mutable, because the interesting assertions are about *writing* a layout:
+ * adding a widget, dragging one, marking a dashboard home. A fixture that
+ * answered the same rows whatever was sent would let a broken save pass.
+ */
+export const savedDashboards: Record<string, unknown>[] = [];
+
+const DASHBOARD_KINDS = [
+  "ACTIVITY", "ALERTS", "AREA_CHART", "BAR_CHART", "GAUGE", "HEATMAP",
+  "KPI", "LINE_CHART", "LIST", "PIE_CHART", "TABLE",
+];
+
+function seedDashboards(): void {
+  savedDashboards.length = 0;
+  savedDashboards.push(
+    {
+      id: "dash-1",
+      name: "Support desk",
+      slug: "support-desk",
+      description: "What the desk is carrying today.",
+      scope: "PRIVATE",
+      icon: null,
+      is_home: true,
+      is_default: true,
+      columns: 12,
+      filters: { period: "last_30_days" },
+      owner: { id: "user-1", name: "Ada Administrator", email: "admin@nucleus.example" },
+      can_edit: true,
+      members: [],
+      widget_count: 2,
+      created_at: "2026-08-01T09:00:00Z",
+      updated_at: "2026-09-04T09:00:00Z",
+      widgets: [
+        {
+          id: "widget-1",
+          kind: "KPI",
+          title: "Open tickets",
+          subtitle: null,
+          x: 0, y: 0, width: 3, height: 1, position: 0,
+          config: { entity: "ticket", metric: "open" },
+        },
+        {
+          id: "widget-2",
+          kind: "BAR_CHART",
+          title: "Tickets by severity",
+          subtitle: "Last 30 days",
+          x: 3, y: 0, width: 6, height: 2, position: 1,
+          config: { entity: "ticket", dimension: "severity" },
+        },
+      ],
+    },
+    {
+      id: "dash-2",
+      name: "Delivery health",
+      slug: "delivery-health",
+      description: null,
+      scope: "PUBLIC",
+      icon: null,
+      is_home: false,
+      is_default: false,
+      columns: 12,
+      filters: {},
+      owner: { id: "user-2", name: "Mara Manager", email: "manager@nucleus.example" },
+      // Somebody else's: readable, and the controls say so rather than hiding.
+      can_edit: false,
+      members: [],
+      widget_count: 0,
+      created_at: "2026-08-11T09:00:00Z",
+      updated_at: "2026-09-01T09:00:00Z",
+      widgets: [],
+    },
+  );
+}
+
+seedDashboards();
+
+export function resetDashboards(): void {
+  seedDashboards();
+}
+
+function dashboardById(id: string): Record<string, unknown> {
+  return savedDashboards.find((item) => item["id"] === id) ?? savedDashboards[0]!;
+}
+
 export const recordDetail = {
   content_fields: ["description"],
   metadata: { source: "Customer portal", tags: ["migration", "enterprise"] },
@@ -1331,6 +1418,95 @@ export const handlers = [
   http.get("/platform/health/status", ({ request }) => echo(request, healthSnapshot)),
   http.get("/platform/dashboard/summary", ({ request }) => echo(request, dashboardSummary)),
   http.get("/platform/api/explorer/catalog", ({ request }) => echo(request, explorerCatalogue)),
+  http.get("/platform/api/dashboards", ({ request }) =>
+    echo(request, {
+      items: savedDashboards.map(({ widgets: _widgets, ...rest }) => rest),
+      total: savedDashboards.length,
+      widget_kinds: DASHBOARD_KINDS,
+      columns: 12,
+      datasets: explorerCatalogue.items.map((item) => ({
+        key: item.key, label: item.label, path: item.path,
+      })),
+      can_create: true,
+      can_share: true,
+    }),
+  ),
+  http.post("/platform/api/dashboards", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const created = {
+      ...dashboardById("dash-1"),
+      ...body,
+      id: `dash-${savedDashboards.length + 1}`,
+      widgets: [],
+      widget_count: 0,
+      can_edit: true,
+    };
+    savedDashboards.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.get("/platform/api/dashboards/:id", ({ request, params }) =>
+    echo(request, dashboardById(String(params["id"]))),
+  ),
+  http.put("/platform/api/dashboards/:id", async ({ request, params }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const found = dashboardById(String(params["id"]));
+    // One home per person, as the server enforces it — a fixture that let two
+    // stand would hide the bug the assertion is looking for.
+    if (body["is_home"]) {
+      for (const item of savedDashboards) item["is_home"] = item["id"] === found["id"];
+    }
+    Object.assign(found, body);
+    return HttpResponse.json(found);
+  }),
+  http.delete("/platform/api/dashboards/:id", ({ params }) => {
+    const index = savedDashboards.findIndex((item) => item["id"] === String(params["id"]));
+    const [gone] = index >= 0 ? savedDashboards.splice(index, 1) : [dashboardById("dash-1")];
+    return HttpResponse.json({ id: gone!["id"], deleted: true, name: gone!["name"] });
+  }),
+  http.post("/platform/api/dashboards/:id/widgets", async ({ request, params }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const found = dashboardById(String(params["id"]));
+    const widgets = found["widgets"] as Record<string, unknown>[];
+    widgets.push({
+      id: `widget-${widgets.length + 1}`,
+      subtitle: null,
+      x: 0, y: 0, width: 3, height: 2,
+      position: widgets.length,
+      config: {},
+      ...body,
+    });
+    found["widget_count"] = widgets.length;
+    return HttpResponse.json(found, { status: 201 });
+  }),
+  http.put("/platform/api/dashboards/:id/widgets/:widgetId", async ({ request, params }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const found = dashboardById(String(params["id"]));
+    const widgets = found["widgets"] as Record<string, unknown>[];
+    const widget = widgets.find((item) => item["id"] === String(params["widgetId"]));
+    if (widget) Object.assign(widget, body);
+    return HttpResponse.json(found);
+  }),
+  http.delete("/platform/api/dashboards/:id/widgets/:widgetId", ({ params }) => {
+    const found = dashboardById(String(params["id"]));
+    const widgets = found["widgets"] as Record<string, unknown>[];
+    const index = widgets.findIndex((item) => item["id"] === String(params["widgetId"]));
+    if (index >= 0) widgets.splice(index, 1);
+    found["widget_count"] = widgets.length;
+    return HttpResponse.json(found);
+  }),
+  http.put("/platform/api/dashboards/:id/arrange", async ({ request, params }) => {
+    const body = (await request.json()) as { widgets: Record<string, unknown>[] };
+    const found = dashboardById(String(params["id"]));
+    const widgets = found["widgets"] as Record<string, unknown>[];
+    // Reordered *and* repositioned, because one drag produces both and a
+    // fixture that only stored the geometry would let the order silently drop.
+    found["widgets"] = body.widgets.map((placement, position) => ({
+      ...widgets.find((item) => item["id"] === placement["id"]),
+      ...placement,
+      position,
+    }));
+    return HttpResponse.json(found);
+  }),
   http.get("/platform/api/maps/catalog", ({ request }) => echo(request, mapCatalogue)),
   http.get("/platform/api/maps/places", ({ request }) => {
     const url = new URL(request.url);

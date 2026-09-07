@@ -87,6 +87,8 @@ This table documents the defaults in `ROLE_DEFAULTS`. The live source is the
 code. A check means the default role carries the permission; a dash means it
 does not.
 
+<!-- generated:permission-matrix -->
+
 | Permission | Administrator | Manager | Operator | Analyst | Viewer |
 | --- | --- | --- | --- | --- | --- |
 | **Records** |  |  |  |  |  |
@@ -94,6 +96,7 @@ does not.
 | `records.create` — Create records | ✓ | ✓ | ✓ | — | — |
 | `records.update` — Update records | ✓ | ✓ | ✓ | — | — |
 | `records.delete` — Delete records | ✓ | — | — | — | — |
+| `records.comment` — Comment on records | ✓ | ✓ | ✓ | — | — |
 | `records.export` — Export records | ✓ | ✓ | ✓ | ✓ | — |
 | `records.import` — Import records | ✓ | ✓ | — | — | — |
 | `records.bulk` — Run bulk operations | ✓ | ✓ | — | — | — |
@@ -126,6 +129,10 @@ does not.
 | `reports.manage` — Build and save reports | ✓ | ✓ | — | ✓ | — |
 | `dashboards.manage` — Customise dashboards | ✓ | ✓ | ✓ | ✓ | — |
 | `searches.share` — Share saved searches and views | ✓ | ✓ | — | ✓ | — |
+
+*34 permissions across 4 areas, generated from `backend/src/core/auth.py` by `scripts/render-rbac-matrix.py`.*
+
+<!-- /generated:permission-matrix -->
 
 ## Groups
 

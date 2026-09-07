@@ -96,8 +96,12 @@ export const SEMANTIC = {
 export const SEMANTIC_INK = {
   light: {
     success: "#15803d",
-    warning: "#a16207",
-    danger: "#dc2626",
+    // A step darker than the ink used on white, because these also land on
+    // AntD's *tinted* backgrounds — a warning tag is amber on `#fffbe6`, and
+    // `#a16207` there is 4.73:1 while the amber it derives is 2.82:1. One
+    // value that clears the bar on both grounds beats two that each clear one.
+    warning: "#854d0e",
+    danger: "#b91c1c",
     info: "#0e7490",
   },
   dark: {

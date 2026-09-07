@@ -23,6 +23,7 @@ const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
 const ChartBuilderPage = lazy(() => import("@/pages/ChartBuilderPage"));
 const MapsPage = lazy(() => import("@/pages/MapsPage"));
+const DashboardsPage = lazy(() => import("@/pages/DashboardsPage"));
 const DataExplorerPage = lazy(() => import("@/pages/DataExplorerPage"));
 const GlobalSearchPage = lazy(() => import("@/pages/GlobalSearchPage"));
 const DataCatalogPage = lazy(() => import("@/pages/DataCatalogPage"));
@@ -192,16 +193,9 @@ export default function App() {
         <Route
           path="dashboards"
           element={
-            <PlaceholderPage
-              section="§45, §67"
-              summary="Your dashboards — build them from widgets, and share them the way saved searches are shared."
-              bullets={[
-                "Add, remove, resize, reorder and configure widgets on a 12-column grid",
-                "KPI, chart, table, activity, alerts, tasks and recent-items widgets",
-                "Private by default · shared with named members · public — only the owner edits",
-                "One of them is your home page (§67)",
-              ]}
-            />
+            <Suspense fallback={<Loading />}>
+              <DashboardsPage />
+            </Suspense>
           }
         />
         <Route

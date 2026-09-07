@@ -33,9 +33,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Backend core (`src/core/`) | **done** — db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
-| Endpoints | 51 of ~110 — `maps/endpoint.json` is the list, and `python -m src.api.endpoint_map` prints it; nothing here is kept in step by hand |
+| Endpoints | 56 of ~110 — `maps/endpoint.json` is the list, and `python -m src.api.endpoint_map` prints it; nothing here is kept in step by hand |
 | Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
-| Tests | 323 backend + 271 frontend + 139 Playwright e2e — all green against `docker compose up`. Scale-independent: they pass on either seed size |
+| Tests | 336 backend + 279 frontend + 144 Playwright e2e — all green against `docker compose up`. Scale-independent: they pass on either seed size |
 | Frontend | shell, Data Explorer, discovery workspaces, the notification centre, six entity lists, three record pages of their own, and the whole ANALYSE section bar dashboards; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack; real Keycloak tokens verified |
 
@@ -280,9 +280,7 @@ vertical slice with its own tests, its own tracker entry and its own commit.
     tests, typecheck and lint clean, FE redeployed and the full 114-test
     Playwright suite green
 - [x] **The `ANALYSE` pages** — `/analytics`, `/reports`, `/reports/builder`,
-      `/charts/builder` and `/maps` all ship. `/dashboards` (§45) is the
-      section's remaining page, and is what "a saved chart becomes a widget"
-      waits on
+      `/charts/builder`, `/maps` and `/dashboards` all ship
   - **One compiler, not four endpoints.** `POST /api/analysis/run` takes
     *group these rows by these columns and measure them this way* — the
     question the workspace, both builders and the map all ask. Four endpoints
@@ -394,6 +392,35 @@ vertical slice with its own tests, its own tracker entry and its own commit.
       ledger's own total, the export is bigger than the page it came from, the
       filtered directory is smaller than the unfiltered one
 
+## Requested this session (2026-09-07)
+
+In the order they were asked for, so nothing is lost between sittings. Each
+becomes a vertical slice with its own tests, its own tracker entry and its own
+commit — built, committed, pushed, redeployed and verified before the next.
+
+- [ ] **Files, imports and exports go through MinIO with presigned URLs**
+      (§20, §29, §30) — MinIO in the compose stack with its bucket created on
+      first boot, one storage interface behind it so it is swappable, and bytes
+      that never pass through the API process
+- [ ] **Redis is used for what a cache is for** — the aggregates that cost a
+      `GROUP BY` over the whole dataset, invalidated by the writes that make
+      them stale rather than by a timer
+- [ ] **The dashboards follow QSINT** (`/home/user/workspace/qsint/frontend/ui-qsint`)
+      — resizeable widgets with handles, auto-arrange, and widgets that are the
+      application's own modules rather than a separate vocabulary
+- [ ] **A UI/UX pass over every page** — cleaner and more minimalist, no large
+      empty areas, uniform buttons and page furniture, everything easy to read
+      and reach
+- [ ] **Every page in the navigation is implemented**, not a placeholder — the
+      list is in [Phase 6](#phase-6--frontend-pages)
+- [x] **`docs/` is generated where it can be** — the RBAC permission matrix was
+      typed out by hand and had already drifted: `records.comment` shipped with
+      the task work page and never reached the table. It is now rendered from
+      `core/auth.PERMISSION_GROUPS` by `scripts/render-rbac-matrix.py`, and
+      `make lint` fails on a stale document
+
+---
+
 - [ ] **Lanes can be created, renamed and removed** (§18) — on `/kanban`, where
       a lane is a row a person owns. On `/tasks` a lane is the declared status
       vocabulary and stays that way: the board is a view of the work queue, and
@@ -436,8 +463,11 @@ vertical slice with its own tests, its own tracker entry and its own commit.
 - [~] **Continue implementation task by task** — update this tracker, commit,
       push, redeploy both FE/BE and test the deployed result after each task.
       Current sequence: the detail pages that deserve a shape of their own are
-      done, and so is the whole ANALYSE section; next is kanban lane CRUD (§18),
-      then `/dashboards` (§45).
+      done, and so is the whole ANALYSE section including `/dashboards`. Next,
+      in the order asked for: MinIO-backed files with presigned URLs (§20) and
+      the import/export flows on top of them (§29, §30), the QSINT-inspired
+      dashboard follow-up, a UI/UX pass over every page, then kanban lane
+      CRUD (§18).
       No destructive database reseeding.
   - The local database holds a **small-scale** seed (8 projects, 30 customers,
     50 tickets, 60 orders), not the full one. Nothing depends on which any
@@ -703,7 +733,7 @@ section is a cross-cutting rule rather than a page.
 | 42 | Organization settings | `/settings/organization` | `/admin/organizations` | [ ] |
 | 43 | Bulk operations | every list | `/{entity}/bulk` | [ ] |
 | 44 | Drill-down | dashboard, analytics → list | `/api/analysis/run` | [~] |
-| 45 | Dashboard builder | `/dashboards/:id/edit` | `/dashboards` | [ ] |
+| 45 | Dashboard builder | `/dashboards` | `/api/dashboards` | [x] |
 | 46 | Saved views | every list | `/saved-views` | [ ] |
 | 47 | Data comparison | `/{entity}/compare` | generic list | [ ] |
 | 48 | Timeline view | detail tabs | `/api/audit/timeline` | [~] |
@@ -725,7 +755,7 @@ section is a cross-cutting rule rather than a page.
 | 64 | Table row preview drawer | every list | — | [ ] |
 | 65 | Data quality indicators | lists + `/admin/quality` | — | [ ] |
 | 66 | Dashboard alerts | `/` | `/dashboard/alerts` | [ ] |
-| 67 | Customisable home page | `/` | `/dashboards` | [ ] |
+| 67 | Customisable home page | `/dashboards` | `/api/dashboards` | [x] |
 | 68 | Navigation history | global | `/recent` | [ ] |
 | 69 | Deep linking | global | — | [ ] |
 | 70 | Search within table data | every list | generic list | [ ] |
@@ -1177,20 +1207,58 @@ everything else.
 
 ### Configurable dashboards, shared like saved searches (§45, §67)
 
-- [ ] `/dashboards` — the reader's own dashboards, plus the ones shared with them
-- [ ] Builder: add · remove · **resize** · **reorder** · configure widgets on a
-      12-column grid; save and reset the layout
-- [ ] Widget kinds: KPI, line/area/bar/pie chart, table, activity feed, alerts,
-      my tasks, recent items — each configured with an entity, a metric, a
+- [x] `/dashboards` — the reader's own dashboards, plus the ones shared with them
+  - **`/dashboard` is *the* dashboard; this is the other thing.** One is a fixed
+    layout the platform designed to demonstrate what it can answer; the other
+    is a layout somebody composed for the job they actually do
+- [x] Builder: add · remove · **resize** · **reorder** · configure widgets on a
+      12-column grid
+  - **Editing is a mode, not a page.** A builder on its own screen is a builder
+    whose result you cannot see; the reading view *is* the editing view with
+    the controls turned on, so a resize is judged against the widgets beside it
+  - **One drag saves the whole layout.** Moving a widget reflows the ones
+    around it, and one request per card lets a reader reload mid-flight and
+    find a layout that never existed (§73)
+  - **Every gesture is also a control** (§54): move, widen, narrow, taller and
+    shorter are menu items, so a grid that can be dragged can also be
+    rearranged from a keyboard — and the scroll inside a widget holds focus,
+    because a scrollable region a keyboard cannot reach has no bottom half
+- [x] Widget kinds: KPI, gauge, line/area/bar/pie chart, heatmap, table, list,
+      activity feed and alerts — each configured with an entity, a grouping, a
       period and its own filters
-- [~] **Sharing reuses `resource_shares`, exactly as saved searches do**:
+  - **A widget names a question; it does not copy one.** The service stores
+    geometry and configuration and computes *nothing*: a KPI is answered by
+    `/api/explorer/insights`, a chart by `/api/analysis/run`, a list by
+    `/api/explorer/query`, the alerts and the feed by `/api/dashboard/*`. Every
+    one of those is already declared, already aggregated in PostgreSQL and
+    already permission-checked — and a dashboard that recomputed any of them
+    would be a second answer to a question the platform already answers
+  - **A widget with no grouping is complete, not broken.** The dataset declares
+    which field is worth grouping by; a chart widget that names none takes that
+    default, read from the catalogue rather than invented in the page
+  - **A widget that cannot be answered says so in place** (§34, §76) — which
+    dataset, which permission, and the correlation id. A dashboard is read at a
+    glance, and a panel that fails quietly is a number somebody will quote
+  - A grid that would render on top of itself is refused on write, not clamped
+    on read: a card silently narrowed on save is a layout the reader did not
+    choose and cannot undo
+- [x] **Sharing reuses `resource_shares`, exactly as saved searches do**:
       private by default · shared with named members · public; only the owner
-      edits, re-shares or deletes; a member who wants their own duplicates it
-  - **Acceptance**: met for saved searches and reports. `core/sharing` holds
-    the visibility predicate, the owner check, the member replacement and the
-    scope vocabulary; both services read it, and adopting it costs one string.
-    Saved views (§46) and dashboards (§45) are the remaining adopters
-- [ ] One dashboard is the reader's home page (§67)
+      edits, re-shares or deletes
+  - `core/sharing` holds the visibility predicate, the owner check, the member
+    replacement and the scope vocabulary. Saved searches, reports and now
+    dashboards all read it, and adopting it cost one string — which was the
+    whole claim. Saved views (§46) are the remaining adopter
+- [x] One dashboard is the reader's home page (§67)
+  - One at a time, cleared in the same transaction: two homes is a preference
+    that cannot be honoured
+  - **`is_home` is published as *this reader's* home, not the owner's.** The
+    column records a preference belonging to whoever owns the dashboard, and
+    publishing it raw put a home marker on a colleague's public dashboard —
+    telling the reader something false about their own settings. Found by an
+    e2e test counting the markers in the list
+- [ ] Auto-arrange, and widgets drawn from the application's own modules —
+      see the QSINT-inspired follow-up in *Requested this session*
 
 ### `/announcements` — system messages (§17)
 
@@ -1703,7 +1771,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] `docker compose up` clean-boot green — every service healthy from empty
       volumes; seed wrote 15 554 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
-- [~] Backend tests — 323 passing, including the comment thread's permissions
+- [~] Backend tests — 336 passing, including the comment thread's permissions
       and editing rules, the checklist's validation, saved reports' lifecycle and
       sharing, the analysis compiler's grouping,
       refusals and reconciliation, Data Explorer query, validation,
@@ -1720,7 +1788,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
     aims at the **running stack** — it silently replaced the demo dataset with a
     small one, so every Playwright run afterwards measured 60 tasks where
     compose had produced 500. Nothing failed; the numbers were quietly different
-- [~] Frontend unit + component tests — 271 passing, including the task work
+- [~] Frontend unit + component tests — 279 passing, including the task work
       page and its conversation, saved reports
       and the builder, the analytics
       workspace, the record form,
@@ -1730,7 +1798,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
       notification centre's six states, the header bell, the audit explorer,
       the per-record timeline, the authenticated download path, the generic
       entity list and detail pages, the connection map and the permission matrix
-- [~] Playwright e2e suite — 139 tests green against `docker compose up` on the
+- [~] Playwright e2e suite — 144 tests green against `docker compose up` on the
       full seed, covering the shell, appearance, Data Explorer, saved searches,
       global search, relationships, the catalogue, the notification centre, the
       audit explorer, a real file download, all six entity lists, record

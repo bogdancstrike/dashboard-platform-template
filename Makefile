@@ -114,10 +114,15 @@ e2e: ## Playwright end-to-end suite against the running stack
 	cd $(FRONTEND) && npm run test:e2e
 
 .PHONY: lint
-lint: ## Typecheck and lint the frontend, and check the endpoint map
+lint: ## Typecheck and lint the frontend, and check the endpoint map and docs
 	cd $(FRONTEND) && npm run typecheck
 	cd $(FRONTEND) && npm run lint
 	cd $(BACKEND) && ../$(PY) -m src.api.endpoint_map
+	$(PY) scripts/render-rbac-matrix.py --check
+
+.PHONY: docs
+docs: ## Regenerate the documents that are derived from the code
+	$(PY) scripts/render-rbac-matrix.py
 
 # ── Local development, outside Docker ────────────────────────────────────
 

@@ -1121,3 +1121,64 @@ mark.nu-mark {
 .nu-map figcaption {
   margin-top: 6px; font-size: 12px; color: var(--nu-text-secondary);
 }
+
+/* A dashboard widget's number. Not `StatCard`, which draws its own card — a
+   card inside a widget card is a border nobody asked for (§45). */
+.nu-widget-metric {
+  display: flex; flex-direction: column; gap: 2px; padding: 4px 0;
+}
+.nu-widget-metric-value {
+  font-size: 28px; font-weight: 650; line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.nu-widget-metric-unit { font-size: 15px; font-weight: 500; margin-left: 2px; }
+/* A widget's list row: the label takes the space, the tag keeps its own. */
+.nu-widget-row {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  min-width: 0; color: inherit;
+}
+.nu-widget-row > .ant-typography:first-child { flex: 1; min-width: 0; }
+
+/* The dashboard grid (§45). A twelve-column bed with fixed row height, so two
+   widgets that declare the same height line up whatever their contents came
+   back as — a grid whose rows are content-sized reflows on every refetch. */
+.nu-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--nu-grid-columns, 12), minmax(0, 1fr));
+  grid-auto-rows: 104px;
+  gap: 12px;
+}
+.nu-widget { min-width: 0; display: flex; }
+.nu-widget-card { width: 100%; display: flex; flex-direction: column; }
+.nu-widget-card > .ant-card-body {
+  flex: 1; min-height: 0; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+/* The scroll is here rather than on the card body, so it can hold focus — a
+   scrollable region a keyboard cannot reach is a region whose bottom half does
+   not exist for anybody not using a mouse (§54, §55). */
+.nu-widget-scroll { flex: 1; min-height: 0; overflow: auto; }
+.nu-widget-scroll:focus-visible {
+  outline: 2px solid var(--nu-accent); outline-offset: -2px; border-radius: 4px;
+}
+.nu-widget[draggable="true"] .nu-widget-grip { cursor: grab; }
+.nu-widget.is-dragging { opacity: 0.5; }
+.nu-widget-subtitle { display: block; font-size: 12px; margin-bottom: 6px; }
+/* One column below the tablet breakpoint: a twelve-column grid on a phone is
+   twelve slivers (§56). */
+@media (max-width: 767px) {
+  .nu-grid { grid-template-columns: 1fr; grid-auto-rows: auto; }
+  .nu-widget { grid-column: 1 / -1 !important; grid-row: auto !important; }
+}
+
+/* A preset-coloured tag's text (§55).
+   `<Tag color="warning">` is amber on pale amber — 2.82:1, and the tags that
+   fail worst are the ones a reader most needs: a breach, a failure, an
+   overdue item. AntD takes that text from the base fill colour rather than
+   from `colorWarningText`, so the readable half of the ramp is named here.
+   The fills and borders are left alone: they are graphics, held to 3:1. */
+.ant-tag-success { color: var(--nu-success-ink) !important; }
+.ant-tag-warning { color: var(--nu-warning-ink) !important; }
+.ant-tag-error { color: var(--nu-danger-ink) !important; }
+.ant-tag-processing,
+.ant-tag-info { color: var(--nu-info-ink) !important; }

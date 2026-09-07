@@ -72,6 +72,19 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
       // everywhere at once (§55).
       colorTextDescription: dark ? INK[300] : NEUTRAL[600],
 
+      // Text on a *tinted* semantic ground — an `Alert type="error"`, a
+      // `Typography.Text type="warning"`. AntD derives these from the fill,
+      // which is tuned for a fill: amber on its own pale amber is 2.82:1, and
+      // the labels that fail worst are the ones a reader most needs (§55).
+      //
+      // AntD's *preset-coloured tags* take their text from the base
+      // `colorWarning` rather than from this, so they are named in the
+      // stylesheet instead — see `.ant-tag-warning` in `index.css`.
+      colorSuccessText: SEMANTIC_INK[mode].success,
+      colorWarningText: SEMANTIC_INK[mode].warning,
+      colorErrorText: SEMANTIC_INK[mode].danger,
+      colorInfoText: SEMANTIC_INK[mode].info,
+
       fontFamily: FONT.family,
       fontFamilyCode: FONT.mono,
       fontSize: scale.fontSize,

@@ -236,6 +236,80 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "dashboards_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/dashboards",
+      "description": "Every dashboard this reader may open, or one more of their own.",
+      "exec_method": {
+        "module_name": "src.api.dashboards",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "dashboards_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/dashboards/<uuid:dashboard_id>",
+      "description": "One dashboard: read it, change it, or remove it.",
+      "exec_method": {
+        "module_name": "src.api.dashboards",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "dashboards_widgets",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/dashboards/<uuid:dashboard_id>/widgets",
+      "description": "Add a widget, and return the layout it now has.",
+      "exec_method": {
+        "module_name": "src.api.dashboards",
+        "method_name": "widgets"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "dashboards_widget",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/dashboards/<uuid:dashboard_id>/widgets/<uuid:widget_id>",
+      "description": "Change what a widget asks and where it sits, or take it off.",
+      "exec_method": {
+        "module_name": "src.api.dashboards",
+        "method_name": "widget"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "dashboards_arrange",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT"
+      ],
+      "api_url": "/api/dashboards/<uuid:dashboard_id>/arrange",
+      "description": "Every widget's geometry at once, which is what one drag produces.",
+      "exec_method": {
+        "module_name": "src.api.dashboards",
+        "method_name": "arrange"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "reports_collection",
       "model_name": "Empty",
       "request_method": [
