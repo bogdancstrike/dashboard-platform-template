@@ -46,6 +46,23 @@ function collectErrors(page: Page): string[] {
 test.describe("the application boots", () => {
   test.beforeEach(async ({ page }) => signIn(page));
 
+  test("every header control sits on one centre line", async ({ page }) => {
+    // Reported from a screenshot: the profile trigger and its avatar rode
+    // above the three circular buttons beside them. `Space` centres its items,
+    // but an inline-level child inside one still sits on that item's text
+    // baseline — so this is measured in a real browser rather than asserted
+    // against a class name that says nothing about where the pixels landed.
+    const controls = ["Notifications", "Toggle theme", "Help", "Open profile menu"];
+    const centres: number[] = [];
+    for (const name of controls) {
+      const box = await page.locator(".nu-header").getByRole("button", { name }).boundingBox();
+      expect(box, `${name} is not in the header`).not.toBeNull();
+      centres.push(box!.y + box!.height / 2);
+    }
+
+    expect(Math.max(...centres) - Math.min(...centres), centres.join(", ")).toBeLessThan(1.5);
+  });
+
   test("renders without a single console error", async ({ page }) => {
     const errors = collectErrors(page);
 

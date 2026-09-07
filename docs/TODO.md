@@ -474,6 +474,12 @@ commit — built, committed, pushed, redeployed and verified before the next.
     56px — an icon needs no more
   - Asserted end to end, including that the icon's centre is within three
     pixels of the rail's
+- [x] **The header sits on one centre line** — the profile trigger rode four
+      and a half pixels above the three icon buttons beside it. `Space` centres
+      its *items*, but an inline-level child inside one still sits on that
+      item's text baseline, and a 40px-tall trigger next to 32px buttons had
+      nothing to align to. The items became flex containers, which takes the
+      baseline out of the question, and the trigger matches the buttons' height
 - [ ] **`/home` is the default landing page** — the platform's name and logo,
       the reader's own announcements, notifications and preferences, and
       whatever else is worth seeing on arrival

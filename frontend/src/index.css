@@ -203,9 +203,16 @@ body {
    room to end above it. */
 .nu-sider .ant-menu { padding-bottom: 56px; }
 
+/* Every header item on the same centre line.
+   `Space` centres its *items*, but an inline-level child inside one still sits
+   on that item's text baseline — which put the profile trigger four and a half
+   pixels above the three circular buttons beside it. Making the items flex
+   containers takes the baseline out of the question entirely. */
+.nu-header .ant-space-item { display: flex; align-items: center; }
+
 .nu-user {
-  display: inline-flex; align-items: center; gap: 8px;
-  min-width: 0; height: 40px; padding: 0 4px;
+  display: flex; align-items: center; gap: 8px;
+  min-width: 0; height: 32px; padding: 0 4px;
   border: 0; background: transparent; color: inherit;
   font: inherit; line-height: 1; cursor: pointer;
 }

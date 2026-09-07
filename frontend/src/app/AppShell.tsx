@@ -247,9 +247,10 @@ export function AppShell() {
 
           <div className="nu-header-spacer" />
 
-          {/* Space's default cross-axis alignment follows the inline baseline.
-              The profile trigger is taller than the icon buttons, so its box
-              sat a few pixels high until the row was explicitly centred. */}
+          {/* `align="center"` centres the *items*; an inline-level child inside
+              one still rides that item's text baseline, which put the profile
+              trigger four and a half pixels above the buttons beside it. The
+              rest of the fix is in `.nu-header .ant-space-item`. */}
           <Space size={isMobile ? 4 : 8} align="center">
             <NotificationBell />
             {!isMobile && (
