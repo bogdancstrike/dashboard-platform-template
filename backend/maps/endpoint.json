@@ -2080,6 +2080,104 @@
         "module_name": "src.api.security",
         "method_name": "event_item"
       }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "favorites_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/favorites",
+      "description": "Every bookmark, in the order this person arranged them.",
+      "exec_method": {
+        "module_name": "src.api.favorites",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "favorites_add",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/favorites",
+      "description": "Bookmark something addressable, checked against the platform's registry.",
+      "exec_method": {
+        "module_name": "src.api.favorites",
+        "method_name": "add"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "favorites_item",
+      "model_name": "Empty",
+      "request_method": [
+        "DELETE"
+      ],
+      "api_url": "/favorites/<uuid:favorite_id>",
+      "description": "Unstar one thing.",
+      "exec_method": {
+        "module_name": "src.api.favorites",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "favorites_arrange",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT"
+      ],
+      "api_url": "/favorites/order",
+      "description": "Put the bookmarks in the order somebody dragged them into.",
+      "exec_method": {
+        "module_name": "src.api.favorites",
+        "method_name": "arrange"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "recents_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/recents",
+      "description": "What this person has looked at lately, most recent first.",
+      "exec_method": {
+        "module_name": "src.api.favorites",
+        "method_name": "recents"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "recents_visit",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/recents",
+      "description": "Record a visit, upserted and trimmed.",
+      "exec_method": {
+        "module_name": "src.api.favorites",
+        "method_name": "visit"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "recents_clear",
+      "model_name": "Empty",
+      "request_method": [
+        "DELETE"
+      ],
+      "api_url": "/recents",
+      "description": "Forget the trail. All of it or none.",
+      "exec_method": {
+        "module_name": "src.api.favorites",
+        "method_name": "clear_recents"
+      }
     }
   ]
 }

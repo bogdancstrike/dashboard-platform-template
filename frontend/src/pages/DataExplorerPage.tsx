@@ -201,6 +201,34 @@ export default function DataExplorerPage() {
     setParams(next);
   };
 
+  /**
+   * A saved search named in the URL and nothing else: load it and apply it.
+   *
+   * What makes a saved search *linkable*, which §5 asks for and which it was
+   * not: `openSaved` writes the whole question into the URL and adds `saved`
+   * as a marker of provenance, but nothing ever read that marker back — so
+   * `/explore?saved=<id>` opened an empty explorer, and `/search/saved/:id`
+   * redirected here while discarding the id entirely. A bookmark to a saved
+   * search therefore opened the explorer and not the search, which
+   * `/favorites` (§38) made visible.
+   *
+   * Guarded on the URL carrying no question of its own, so this only fires
+   * for a bare link — applying it over a question somebody has since edited
+   * would throw their edit away.
+   */
+  const savedInUrl = params.get("saved") ?? "";
+  const hasQuestion = params.has("columns") || params.has("tree") || params.has("q");
+  const savedLink = useQuery({
+    queryKey: ["explorer", "saved-link", savedInUrl],
+    queryFn: ({ signal }) => explorerApi.openSaved(savedInUrl, signal),
+    enabled: Boolean(savedInUrl) && !hasQuestion,
+  });
+
+  useEffect(() => {
+    if (savedLink.data && !hasQuestion) openSaved(savedLink.data);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedLink.data, hasQuestion]);
+
   const clearQuestion = () => {
     const next = new URLSearchParams();
     if (resource) next.set("resource", resource.key);

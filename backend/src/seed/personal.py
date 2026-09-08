@@ -209,7 +209,8 @@ def _saved_searches(world: World) -> None:
                 columns=list(columns),
                 page_size=rng.pick((10, 25, 50, 100)),
                 view_mode=rng.pick(("table", "table", "board", "cards")),
-                is_favorite=rng.chance(0.35),
+                # Not `is_favorite`: a star is a fact about a reader, so it
+                # lives in `favorites` and `_favorites` below writes it (§38).
                 is_default=index == 0,
                 rule_count=rule_count(tree),
                 use_count=rng.integer(0, 240),
@@ -426,7 +427,7 @@ def _reports(world: World) -> None:
                 order="desc",
                 period=rng.pick(("last_7_days", "last_30_days", "last_90_days", "current_year")),
                 visualization=visualization,
-                is_favorite=rng.chance(0.3),
+                # Not `is_favorite` — see the saved-search generator above.
                 last_run_at=rng.maybe(rng.recent(days=14), 0.8),
                 run_count=rng.integer(0, 500),
                 schedule=rng.maybe(rng.pick(("0 7 * * 1", "0 6 1 * *", "0 8 * * *")), 0.3),
@@ -610,10 +611,22 @@ def _favorites(world: World) -> None:
     attempts = 0
     positions: dict = {}
 
+    # Grouped by kind and drawn round-robin, so a bookmark list demonstrates
+    # *several* kinds. A flat uniform draw is dominated by whatever the seed
+    # made most of — tasks and tickets — and would leave the page showing
+    # eleven tickets and nothing else, which demonstrates a list rather than a
+    # shortcut bar. Reports and saved searches in particular are the two the
+    # old design could not put here at all (§38).
+    by_kind: dict[str, list] = {}
+    for target in targets:
+        by_kind.setdefault(target[0], []).append(target)
+    kinds = sorted(by_kind)
+
     while len(world.favorites) < world.scale.favorites and attempts < world.scale.favorites * 6:
         attempts += 1
         user = rng.pick(audience)
-        resource_type, resource_id, label, url, icon = rng.pick(targets)
+        kind = kinds[attempts % len(kinds)]
+        resource_type, resource_id, label, url, icon = rng.pick(by_kind[kind])
         key = (user.id, resource_type, str(resource_id))
         if key in seen:
             continue

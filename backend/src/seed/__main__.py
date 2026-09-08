@@ -9,6 +9,7 @@
     python -m src.seed --sync-exports     # write the file every seeded export claims
     python -m src.seed --sync-imports     # make every seeded import run describe a real file
     python -m src.seed --sync-sessions    # one current session per person, and only a live one
+    python -m src.seed --sync-favorites   # move the old per-row is_favorite flags into one store
     python -m src.seed --sync-roles       # give built-in roles new permissions
     python -m src.seed --sync-reports     # make unrunnable saved reports runnable
     python -m src.seed --sync-automations # make unrunnable automations runnable
@@ -59,6 +60,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-imports", action="store_true",
         help="make every seeded import run describe a file that could exist",
+    )
+    parser.add_argument(
+        "--sync-favorites", action="store_true",
+        help="move the old per-row is_favorite flags into the one favourites store",
     )
     parser.add_argument(
         "--sync-sessions", action="store_true",
@@ -174,6 +179,17 @@ def main(argv: list[str] | None = None) -> int:
         )
         if result["unreadable"]:
             print(f"  ! {result['unreadable']} run(s) name a dataset that cannot be imported into")
+        return 0
+
+    if args.sync_favorites:
+        # Two stores for one fact: the per-row `is_favorite` flags move into
+        # `favorites` and the columns are cleared. Idempotent.
+        with session_scope() as session:
+            result = runner.sync_favorites(session)
+        print(
+            f"{result['moved']} star(s) moved into favourites, "
+            f"{result['already_bookmarked']} already there"
+        )
         return 0
 
     if args.sync_sessions:
@@ -325,6 +341,7 @@ def main(argv: list[str] | None = None) -> int:
         runner.sync_exports(session)
         runner.sync_imports(session)
         runner.sync_sessions(session)
+        runner.sync_favorites(session)
         problems = runner.verify(session)
 
     _report(counts, quiet=args.quiet)

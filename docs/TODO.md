@@ -1621,6 +1621,60 @@ commit — built, committed, pushed, redeployed and verified before the next.
       and lets the label take the click, which `NotificationsPage.test` had
       already documented
 
+- [x] **`/favorites` — and two stores for one fact** (§38, §39)
+  - **The older UI already lied about it.** The saved-search drawer's own
+      tooltip reads "Add to favourites" and wrote `SavedSearch.is_favorite`;
+      the reports page did the same with `Report.is_favorite`; and `favorites`
+      — a table whose docstring reads "a bookmark on anything addressable" —
+      had no service at all. So a reader could star a search, be told exactly
+      where it went, open `/favorites` and find nothing. Two stores for one
+      fact, and the one anybody would act on was whichever they had not looked
+      at. The ninth defect found by building the page that reads the data, and
+      the second that was a lie in shipped copy rather than a wrong number
+  - **A star is a fact about a reader, which a column on the row cannot
+      express.** Two people can disagree about the same *shared* search, and
+      the old design starred it for everybody who could see it — asserted both
+      ways now, in the backend suite and end to end
+  - **`is_favorite` stays in the API and stops being stored.** The reports and
+      saved-search endpoints still publish and accept it, because their pages
+      are built on it and a vanished field would be a needless break; it reads
+      from and writes to the one store. `favorite_ids` answers a whole page in
+      one query, because a lookup per item is how a list of twenty-five
+      becomes twenty-six queries
+  - **The old columns are migrated once and then cleared.**
+      `--sync-favorites` copies each flagged row into a `Favorite` and sets the
+      column false, so `is_favorite = false` everywhere is the steady state and
+      `--check` asserts exactly that. Keeping them in sync would be maintaining
+      the second store the change exists to remove
+  - **And the route a bookmarked search points at was throwing away what it
+      was given.** `/search/saved/:searchId` redirected to a bare `/explore`
+      and *discarded the id*, so every bookmarked saved search opened an empty
+      explorer — a route that existed, answered, and lost the one thing it was
+      for. The explorer now loads a search named in `?saved=`, which is also
+      what makes a saved search *linkable* at all: `openSaved` had been
+      writing that marker into the URL since it was written and nothing ever
+      read it back, so §5's "a shared link reproduces the same question" was
+      true only for a link somebody copied *after* opening one. The tenth
+      defect, and the e2e that caught it is the one that follows a bookmark
+  - **Two lists, kept apart.** A bookmark is a decision and a recent is a
+      by-product, and merging them makes the curated list indistinguishable
+      from the one that accumulated. The recents list is upserted on
+      `(user, type, id)` so a place somebody works gains a visit count rather
+      than fifty rows, trimmed because an unbounded by-product only grows, and
+      cleared all-or-nothing because one entry removed from a trail leaves a
+      misleading trail
+  - **The kept list is arranged, not sorted**, and it offers no sortable
+      column: the order *is* the information, and "sort by name" would invite
+      somebody to destroy the arrangement they made. Moving one is two buttons
+      rather than a drag, because a keyboard-only reader cannot drag (§65), and
+      the whole order goes in one call — applying a drag as a series of single
+      moves is how two moves fight over one position
+  - **The seed drew favourites uniformly from a flat list** dominated by
+      whatever it had made most of, so a bookmark list was eleven tickets and
+      nothing else. Drawn round-robin by kind now, which is what makes the page
+      demonstrate a shortcut bar rather than a list — and reports and saved
+      searches are the two kinds the old design could not put there at all
+
 - [x] **`/settings/security` — and a security control that did nothing** (§41)
   - **`UserSession`'s docstring had been lying since the day it was
       written.** "Revocation is a row update, so a revoked session is refused
@@ -1986,9 +2040,8 @@ commit — built, committed, pushed, redeployed and verified before the next.
       administration index with `/admin/settings`, `/admin/flags`,
       `/admin/logs`, `/admin/jobs`, `/admin/groups`, `/admin/organizations`,
       `/admin/api` and `/admin/integrations` are done, and so are `/exports`
-      (§30), `/import` (§29) and `/settings/security` (§41). Remaining:
-      `/favorites` and the two `/showcase/*` pages — every one of which already
-      has its model and its seeded rows
+      (§30), `/import` (§29), `/settings/security` (§41) and `/favorites`
+      (§38, §39). Remaining: the two `/showcase/*` pages
 - [x] **Six latent e2e flakes fixed, all the same two mistakes.** Four specs
       clicked a select option with `getByTitle`, which AntD also puts on the
       closed select's own label — so the click matched twice as soon as the
@@ -2315,8 +2368,8 @@ section is a cross-cutting rule rather than a page.
 | 35 | Activity feed | `/activity` + detail tabs | `/activity` | [ ] |
 | 36 | Comments | `/tasks/:id`, detail pages | `/api/comments` | [~] |
 | 37 | Tags and labels | `/admin/tags` + inline | `/tags` | [ ] |
-| 38 | Favorites | `/favorites` | `/favorites` | [ ] |
-| 39 | Recent items | sidebar + `/recent` | `/recent` | [ ] |
+| 38 | Favorites | `/favorites` | `/favorites` | [x] |
+| 39 | Recent items | `/favorites` | `/recents` | [x] |
 | 40 | Personal preferences | `/settings/preferences` | `/api/me` | [x] |
 | 41 | Security settings, sessions | `/settings/security` | `/security/*` | [x] |
 | 42 | Organization settings | `/admin/organizations` | `/admin/organizations` | [x] |
@@ -3306,7 +3359,10 @@ Each endpoint ships with its five-case integration test and the page consuming i
       Notification *preferences* (§40) are still open
 - [ ] Email module: threads, messages, drafts, templates, send (§14–§16)
 - [ ] Tasks, calendar, files, comments, tags, activity (§18–§20, §35–§37, §48)
-- [ ] Favorites, recents, dashboards, reports (§38, §39, §45, §67, §28)
+- [x] Favorites, recents, dashboards, reports (§38, §39, §45, §67, §28) — and
+      favourites turned out to be *two* stores for one fact, which is why the
+      saved-search drawer's "Add to favourites" tooltip was writing somewhere
+      `/favorites` could not see
 - [x] Export ships for every list that exists (§30), and an export above the
       row limit now becomes a background job with a downloadable artefact
       rather than a truncated file with a 200 on it. Import (§29) ships too:

@@ -2561,3 +2561,22 @@ mark.nu-mark {
 /* An event already dealt with recedes rather than disappearing — the page
    still has to be able to answer "was this looked at". */
 .nu-sec-row.is-resolved > td { opacity: 0.62; }
+
+/* ── Favorites (§38, §39) ────────────────────────────────────────────────
+   Two lists that must not read as one: the kept list carries its own order
+   and its own controls, the visited list carries a count and a star. */
+.nu-fav > * + * { margin-top: 12px; }
+.nu-fav-what { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.nu-fav-link { font-weight: 500; }
+.nu-fav-kind {
+  font-size: 11px; text-transform: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-fav-capacity,
+.nu-fav-note { display: block; font-size: 11.5px; }
+.nu-fav-capacity { margin-bottom: 8px; }
+.nu-fav-note { margin-top: 10px; }
+/* Already kept: the same glyph as the button that keeps one, so the two read
+   as one state rather than two controls. */
+.nu-fav-kept { color: var(--nu-warning-ink); }
+.nu-fav-card td { font-variant-numeric: tabular-nums; }

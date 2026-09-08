@@ -96,6 +96,10 @@ sync-imports: ## Make every seeded import run describe a file that could exist
 sync-sessions: ## Leave at most one current session per person, and only a live one
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-sessions seed
 
+.PHONY: sync-favorites
+sync-favorites: ## Move the old per-row is_favorite flags into the one favourites store
+	$(COMPOSE) run --rm -e SEED_ARGS=--sync-favorites seed
+
 .PHONY: sync-schema
 sync-schema: ## Add columns the model declares and the database lacks
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-schema seed

@@ -187,6 +187,10 @@ person whose account it is can look at their own sessions and failed sign-ins
 without asking anybody. The end-to-end suite asserts the *least*-privileged
 persona gets the whole page.
 
+`/favorites` and `/recents` (§38, §39) carry the same guard and for the same
+reason: your own bookmarks and your own trail. Somebody else's is a 404, never
+a 403.
+
 The corollary is that it is only ever about you. An administrator reading it
 sees their own sessions, and `DELETE /security/sessions/<id>` on somebody
 else's is a 404 — signing another person out is an administrative act that

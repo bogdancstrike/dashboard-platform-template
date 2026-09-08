@@ -125,6 +125,86 @@ def sync_exports(session) -> dict[str, int]:
     return export_files.materialise(session, storage.for_config())
 
 
+def sync_favorites(session) -> dict[str, int]:
+    """Move the old per-row `is_favorite` flags into the one store (§38).
+
+    There were two stores for one fact. `favorites` is a table whose docstring
+    reads "a bookmark on anything addressable" and which had no service at
+    all, while `Report.is_favorite` and `SavedSearch.is_favorite` were boolean
+    columns — and the saved-search drawer's own tooltip said "Add to
+    favourites" while writing the column, so a reader could star a search, be
+    told it went to their favourites, and find nothing there.
+
+    This copies each flagged row into a `Favorite` and then *clears the
+    column*, so `is_favorite = false` everywhere is the steady state and
+    `--check` can assert exactly that. Keeping the columns in sync would be
+    maintaining the second store the change exists to remove.
+
+    Idempotent: a flag already migrated is already false, and a `Favorite`
+    that exists is left alone.
+    """
+    from sqlalchemy import func as _func
+    from sqlalchemy import select as _select
+
+    from src.models.personal import Favorite, Report, SavedSearch
+
+    moved = 0
+    already = 0
+
+    def _carry(row, *, resource_type: str, url: str, icon: str) -> None:
+        nonlocal moved, already
+        existing = session.scalar(
+            _select(Favorite).where(
+                Favorite.user_id == row.owner_id,
+                Favorite.resource_type == resource_type,
+                Favorite.resource_id == str(row.id),
+            )
+        )
+        if existing is None:
+            highest = session.scalar(
+                _select(_func.max(Favorite.position)).where(Favorite.user_id == row.owner_id)
+            )
+            session.add(
+                Favorite(
+                    user_id=row.owner_id,
+                    resource_type=resource_type,
+                    resource_id=str(row.id),
+                    label=(row.name or resource_type)[:240],
+                    url=url,
+                    icon=icon,
+                    position=int(highest or 0) + 1,
+                    # The star was made when the row was last touched, which is
+                    # the closest true answer available.
+                    created_at=row.updated_at or row.created_at,
+                )
+            )
+            moved += 1
+        else:
+            already += 1
+        # Cleared either way: the column is no longer where the answer lives.
+        row.is_favorite = False
+
+    for report in session.scalars(
+        _select(Report).where(Report.is_favorite.is_(True), Report.owner_id.is_not(None))
+    ):
+        _carry(report, resource_type="report", url=f"/reports/{report.id}", icon="bar-chart")
+
+    for search in session.scalars(
+        _select(SavedSearch).where(
+            SavedSearch.is_favorite.is_(True), SavedSearch.owner_id.is_not(None)
+        )
+    ):
+        _carry(
+            search,
+            resource_type="saved_search",
+            url=f"/search/saved/{search.id}",
+            icon="search",
+        )
+
+    session.flush()
+    return {"moved": moved, "already_bookmarked": already}
+
+
 def sync_sessions(session) -> dict[str, int]:
     """Leave at most one current session per person, and only a live one (§41).
 
@@ -475,6 +555,21 @@ def verify(session) -> list[str]:
     )
     if dead:
         problems.append(f"user_sessions: {dead} revoked session(s) still marked current")
+
+    # The old per-row favourite flags must be empty: `favorites` is the one
+    # store now, and a `true` here is a star `/favorites` cannot see (§38).
+    from src.models.personal import Report as _Report
+    from src.models.personal import SavedSearch as _Search
+
+    for model, label in ((_Report, "reports"), (_Search, "saved_searches")):
+        stale = session.scalar(
+            select(func.count()).select_from(model).where(model.is_favorite.is_(True))
+        )
+        if stale:
+            problems.append(
+                f"{label}: {stale} row(s) still carry the old is_favorite flag — "
+                "run `make sync-favorites`"
+            )
 
     # A share grants read, never write (§5) — editing belongs to the owner.
     writable = session.scalar(

@@ -18,6 +18,7 @@ from src.core.errors import NotFoundError, ValidationError
 from src.core.pagination import parse_uuid
 from src.core.rules import compile_tree, describe_tree, rule_count
 from src.models.personal import SavedSearch
+from src.services import favorites
 from src.services.explorer import resource_for
 
 #: The polymorphic key this kind of saved thing shares under. One string is
@@ -35,14 +36,23 @@ SHARE_PERMISSION = "searches.share"
 
 def list_searches(session, args, *, principal) -> dict[str, Any]:
     statement = _visible_statement(principal).order_by(
-        SavedSearch.is_favorite.desc(), SavedSearch.updated_at.desc(), SavedSearch.name.asc()
+        SavedSearch.updated_at.desc(), SavedSearch.name.asc()
     )
     resource_type = str(args.get("resource_type") or "").strip()
     if resource_type:
         resource_for(resource_type, principal=principal)
         statement = statement.where(SavedSearch.resource_type == resource_type)
     rows = session.scalars(statement).unique().all()
-    return {"items": [_serialize(session, row, principal) for row in rows], "total": len(rows)}
+    # One query for the whole panel's stars, then sorted here: `is_favorite`
+    # lives in `favorites` now (§38), and this drawer's own tooltip has said
+    # "Add to favourites" all along while writing somewhere `/favorites` could
+    # not see.
+    starred = favorites.favorite_ids(session, principal, resource_type=KIND)
+    rows = sorted(rows, key=lambda row: str(row.id) not in starred)
+    return {
+        "items": [_serialize(session, row, principal, starred=starred) for row in rows],
+        "total": len(rows),
+    }
 
 
 def get(session, search_id: Any, *, principal, mark_used: bool = False) -> dict[str, Any]:
@@ -62,6 +72,7 @@ def create(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
     session.add(row)
     session.flush()
     _replace_members(session, row, members, principal=principal)
+    _apply_favorite(session, row, payload, principal=principal)
     audit.record(
         session, action="CREATE", resource_type="saved_search", resource_id=row.id,
         resource_label=row.name, principal=principal, after=_state(row),
@@ -80,6 +91,7 @@ def update(session, search_id: Any, payload: dict[str, Any], *, principal) -> di
     if members is not None:
         _replace_members(session, row, members, principal=principal)
     session.flush()
+    _apply_favorite(session, row, payload, principal=principal)
     action = "SHARE" if "scope" in values or members is not None else "UPDATE"
     audit.record(
         session, action=action, resource_type="saved_search", resource_id=row.id,
@@ -110,7 +122,9 @@ def duplicate(session, search_id: Any, *, principal) -> dict[str, Any]:
         condition_tree=source.condition_tree, condition_text=source.condition_text,
         filters=source.filters, query_text=source.query_text, sort=source.sort,
         order=source.order, columns=source.columns, page_size=source.page_size,
-        view_mode=source.view_mode, is_favorite=False, is_default=False,
+        # No star and not the default: a copy is a new object nobody has
+        # starred, and `is_favorite` is not a column this writes any more.
+        view_mode=source.view_mode, is_default=False,
         rule_count=source.rule_count, use_count=0,
     )
     session.add(row)
@@ -300,9 +314,13 @@ def _validated(
         raise ValidationError("view_mode is not supported", details={"field": "view_mode"})
     if not partial or "view_mode" in payload:
         out["view_mode"] = view_mode
-    for flag in ("is_favorite", "is_default"):
-        if flag in payload or not partial:
-            out[flag] = bool(payload.get(flag, getattr(existing, flag, False)))
+    # `is_default` is a fact about the search; `is_favorite` is a fact about a
+    # reader, and two readers can disagree about the same search — so it goes
+    # in `favorites` rather than in a column here. See `_apply_favorite`.
+    if "is_default" in payload or not partial:
+        out["is_default"] = bool(
+            payload.get("is_default", getattr(existing, "is_default", False))
+        )
 
     if "member_ids" in payload or not partial:
         wanted = sharing.requested_members(payload)
@@ -330,7 +348,39 @@ def _members(session, row: SavedSearch) -> list[dict[str, str]]:
     return sharing.members(session, KIND, row.id)
 
 
-def _serialize(session, row: SavedSearch, principal) -> dict[str, Any]:
+def _apply_favorite(session, row: SavedSearch, payload: Any, *, principal) -> None:
+    """Star or unstar this search, if the payload said anything about it.
+
+    Not a field of the search, for the reason `_validated` no longer accepts
+    it: a star is a fact about a reader, and two readers may disagree about
+    the same shared search. Writing it into a column made the drawer's own
+    "Add to favourites" tooltip a lie (§38).
+    """
+    body = payload if isinstance(payload, dict) else {}
+    if "is_favorite" not in body:
+        return
+    favorites.set_favorite(
+        session,
+        principal,
+        resource_type=KIND,
+        resource_id=row.id,
+        label=row.name,
+        # The route that actually serves one, `/search/saved/:searchId` — not
+        # a query string I would have had to keep in step with the router.
+        url=f"/search/saved/{row.id}",
+        icon="search",
+        wanted=bool(body["is_favorite"]),
+    )
+
+
+def _serialize(
+    session, row: SavedSearch, principal, *, starred: set[str] | None = None
+) -> dict[str, Any]:
+    """One saved search as a reader sees it.
+
+    `starred` is the whole panel's stars, fetched once by `list_searches`.
+    Without it, serialising twenty searches is twenty extra queries.
+    """
     return {
         "id": str(row.id), "name": row.name, "description": row.description,
         "resource_type": row.resource_type, "scope": row.scope,
@@ -345,7 +395,15 @@ def _serialize(session, row: SavedSearch, principal) -> dict[str, Any]:
         "filters": row.filters or {}, "query_text": row.query_text or "",
         "sort": row.sort, "order": row.order, "columns": list(row.columns or []),
         "page_size": row.page_size, "view_mode": row.view_mode,
-        "is_favorite": row.is_favorite, "is_default": row.is_default,
+        # From `favorites`, not from the column.
+        "is_favorite": (
+            str(row.id) in starred
+            if starred is not None
+            else favorites.is_favorite_of(
+                session, principal, resource_type=KIND, resource_id=row.id
+            )
+        ),
+        "is_default": row.is_default,
         "rule_count": row.rule_count, "use_count": row.use_count,
         "last_used_at": iso(row.last_used_at), "created_at": iso(row.created_at),
         "updated_at": iso(row.updated_at),
@@ -358,5 +416,7 @@ def _state(row: SavedSearch) -> dict[str, Any]:
         "scope": row.scope, "condition_tree": row.condition_tree, "filters": row.filters,
         "query_text": row.query_text, "sort": row.sort, "order": row.order,
         "columns": list(row.columns or []), "page_size": row.page_size,
-        "view_mode": row.view_mode, "is_favorite": row.is_favorite,
+        # Not `is_favorite`: an audit diff records what *the search* changed,
+        # and starring one is a fact about a reader rather than about it.
+        "view_mode": row.view_mode,
     }

@@ -95,6 +95,29 @@ make sync-imports  # make every seeded import run describe a file that could exi
 
 MinIO's console is at <http://localhost:9001> (`nucleus` / `nucleus-dev-secret`).
 
+### One store for "what have I starred"
+
+`/favorites` reads `favorites`, and starring a report or a saved search writes
+there too. It used to be two stores: a boolean column on the report, another on
+the saved search, and a `favorites` table nothing read — so the saved-search
+drawer's own "Add to favourites" tooltip wrote somewhere `/favorites` could not
+see. A star is also a fact about a *reader*, which a column on a shared row
+cannot express: one person starring a shared search starred it for everybody
+who could see it.
+
+`is_favorite` is still in the API, because the pages are built on it; what
+changed is where the answer comes from. `--sync-favorites` migrates the old
+columns once and clears them, and `--check` asserts none remain.
+
+```bash
+make sync-favorites  # move the old per-row is_favorite flags into one store
+```
+
+Bookmarks are *arranged*, not sorted — the order is a decision, so the page
+offers no sortable column and sends the whole order in one call. Recents are
+the opposite: a by-product, upserted so a place you work gains a visit count
+rather than fifty rows, trimmed, and cleared all-or-nothing.
+
 ### Sessions, and why revoking one works
 
 Every authenticated request records its session against the token's `sid` and
@@ -254,6 +277,7 @@ python -m src.seed --sync-org          # recount each department's headcount fro
 python -m src.seed --sync-exports      # write the file every seeded export claims, and correct its counts
 python -m src.seed --sync-imports      # make every seeded import run describe a file that could exist
 python -m src.seed --sync-sessions     # one current session per person, and only a live one
+python -m src.seed --sync-favorites    # move the old per-row is_favorite flags into one store
 ```
 
 `--sync-schema` refuses to guess: a `NOT NULL` column with no default is
@@ -341,7 +365,7 @@ add up, and an open run holds the file it is in the middle of.
 Under Compose these are `make check-seed`, `make sync-schema`, `make
 sync-roles`, `make sync-reports`, `make sync-automations`, `make sync-mailboxes`,
 `make sync-settings`, `make sync-jobs`, `make sync-org`, `make sync-exports`,
-`make sync-imports` and `make sync-sessions`.
+`make sync-imports`, `make sync-sessions` and `make sync-favorites`.
 
 Then:
 

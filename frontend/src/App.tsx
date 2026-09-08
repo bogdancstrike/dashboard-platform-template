@@ -1,7 +1,7 @@
 import { Skeleton } from "antd";
 import { Button, Result } from "antd";
 import { Suspense, lazy } from "react";
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
 
 import { AppShell } from "@/app/AppShell";
 import { useAuth } from "@/auth/AuthProvider";
@@ -37,6 +37,7 @@ const IntegrationsPage = lazy(() => import("@/pages/admin/IntegrationsPage"));
 const ExportsPage = lazy(() => import("@/pages/ExportsPage"));
 const ImportPage = lazy(() => import("@/pages/ImportPage"));
 const SecurityPage = lazy(() => import("@/pages/SecurityPage"));
+const FavoritesPage = lazy(() => import("@/pages/FavoritesPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
@@ -117,6 +118,23 @@ function NotFound() {
  * redirecting again once preferences load would put a page in the back button
  * that the reader never asked for.
  */
+/**
+ * `/search/saved/:searchId` — the address a bookmarked saved search carries.
+ *
+ * A redirect that keeps what it was given. The previous version sent every
+ * such link to a bare `/explore`, discarding the id, so a bookmark to a saved
+ * search opened the explorer with no search in it — which `/favorites` (§38)
+ * made visible. `?saved=` is what the explorer loads a search from, so that is
+ * what this hands it.
+ */
+function SavedSearchLink() {
+  const { searchId } = useParams();
+  return (
+    <Navigate to={searchId ? `/explore?saved=${searchId}` : "/explore"} replace />
+  );
+}
+
+
 function Home() {
   const { profile, loading } = useAuth();
   if (loading) return <Loading />;
@@ -346,11 +364,17 @@ export default function App() {
             original addresses because search URLs are routinely bookmarked. */}
         <Route path="search" element={<Navigate to="/explore" replace />} />
         <Route path="search/saved" element={<Navigate to="/explore?panel=saved" replace />} />
-        <Route path="search/saved/:searchId" element={<Navigate to="/explore" replace />} />
+        {/* The id goes with it. This redirect used to drop it, so a bookmark
+            to a saved search opened an empty explorer — the explorer now
+            loads a search named in `?saved=`, which is what makes one
+            linkable at all (§5, §38). */}
+        <Route path="search/saved/:searchId" element={<SavedSearchLink />} />
         <Route
           path="favorites"
           element={
-            <PlaceholderPage section="§38" summary="Everything you have bookmarked, in one place." />
+            <Suspense fallback={<Loading />}>
+              <FavoritesPage />
+            </Suspense>
           }
         />
 

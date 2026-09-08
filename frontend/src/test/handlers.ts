@@ -3389,6 +3389,99 @@ function securityOverview(): Record<string, unknown> {
   };
 }
 
+
+// ── Favorites and recents (§38, §39) ────────────────────────────────────
+//
+// Bookmarks of three kinds, so the page can be seen to keep several — the
+// old design could not put a report or a saved search here at all — plus a
+// recents list where one entry is already kept and one is not, which is the
+// pair the star column has to render differently.
+
+export const bookmarkRows: Record<string, unknown>[] = [];
+export const recentRows: Record<string, unknown>[] = [];
+
+function seedFavorites(): void {
+  bookmarkRows.length = 0;
+  bookmarkRows.push(
+    {
+      id: "fav-ticket", resource_type: "ticket", resource_id: "t-1",
+      label: "Printer on fire", url: "/tickets/t-1", icon: "life-buoy",
+      position: 1, added_at: "2026-09-01T08:00:00Z",
+    },
+    {
+      id: "fav-report", resource_type: "report", resource_id: "r-1",
+      label: "Tickets by severity", url: "/reports/r-1", icon: "bar-chart",
+      position: 2, added_at: "2026-09-02T08:00:00Z",
+    },
+    {
+      id: "fav-search", resource_type: "saved_search", resource_id: "s-1",
+      label: "Open, mine, this week", url: "/search/saved/s-1", icon: "search",
+      position: 3, added_at: "2026-09-03T08:00:00Z",
+    },
+  );
+
+  recentRows.length = 0;
+  recentRows.push(
+    {
+      id: "rec-new", resource_type: "customer", resource_id: "c-9",
+      label: "Globex", url: "/customers/c-9", icon: "building",
+      visited_at: "2026-09-08T09:00:00Z", visit_count: 12, is_favorite: false,
+    },
+    {
+      id: "rec-kept", resource_type: "ticket", resource_id: "t-1",
+      label: "Printer on fire", url: "/tickets/t-1", icon: "life-buoy",
+      visited_at: "2026-09-08T08:00:00Z", visit_count: 3, is_favorite: true,
+    },
+  );
+}
+
+seedFavorites();
+
+export function resetFavorites(): void {
+  seedFavorites();
+}
+
+/** Counts per kind, derived as the service derives them. */
+function bookmarkList(): Record<string, unknown> {
+  const kinds: Record<string, number> = {};
+  for (const row of bookmarkRows) {
+    const key = String(row["resource_type"]);
+    kinds[key] = (kinds[key] ?? 0) + 1;
+  }
+  return {
+    items: [...bookmarkRows].sort(
+      (left, right) => Number(left["position"]) - Number(right["position"]),
+    ),
+    total: bookmarkRows.length,
+    maximum: 100,
+    kinds: Object.keys(kinds)
+      .sort()
+      .map((key) => ({ key, count: kinds[key] })),
+    bookmarkable: [
+      "board", "customer", "dashboard", "device", "order", "project",
+      "report", "saved_search", "task", "ticket",
+    ],
+  };
+}
+
+function recentList(): Record<string, unknown> {
+  // `is_favorite` derived from the bookmarks, as the service derives it: the
+  // page must not have to ask per row.
+  const starred = new Set(
+    bookmarkRows.map((row) => `${String(row["resource_type"])}:${String(row["resource_id"])}`),
+  );
+  return {
+    items: recentRows.map((row) => ({
+      ...row,
+      is_favorite: starred.has(
+        `${String(row["resource_type"])}:${String(row["resource_id"])}`,
+      ),
+    })),
+    total: recentRows.length,
+    kept: 50,
+  };
+}
+
 export const handlers = [
   http.get("/platform/admin/integrations/catalogue", ({ request }) => {
     const states = ["NOT_CONFIGURED", "DISCONNECTED", "CONNECTED", "ERROR"];
@@ -5272,6 +5365,67 @@ export const handlers = [
     const index = recordComments.findIndex((item) => item["id"] === params["id"]);
     if (index >= 0) recordComments.splice(index, 1);
     return HttpResponse.json({ deleted: true, id: params["id"] });
+  }),
+  // ── Favorites and recents (§38, §39) ──────────────────────────────────
+  // `order` before `:id`, for the reason the audit export is: MSW matches
+  // path segments loosely, so `:id` would swallow it.
+  http.put("/platform/favorites/order", async ({ request }) => {
+    const body = (await request.json()) as { order: string[] };
+    body.order.forEach((id, index) => {
+      const found = bookmarkRows.find((row) => row["id"] === id);
+      if (found) found["position"] = index + 1;
+    });
+    return HttpResponse.json(bookmarkList());
+  }),
+  http.get("/platform/favorites", ({ request }) => echo(request, bookmarkList())),
+  http.post("/platform/favorites", async ({ request }) => {
+    const body = (await request.json()) as Record<string, string>;
+    const highest = bookmarkRows.reduce(
+      (top, row) => Math.max(top, Number(row["position"])),
+      0,
+    );
+    // Idempotent on (type, id), as the service is: a star is a toggle
+    // somebody double-clicks.
+    const existing = bookmarkRows.find(
+      (row) =>
+        row["resource_type"] === body["resource_type"] &&
+        row["resource_id"] === body["resource_id"],
+    );
+    if (existing) {
+      existing["label"] = body["label"];
+      existing["url"] = body["url"];
+    } else {
+      bookmarkRows.push({
+        id: `fav-${body["resource_id"]}`,
+        resource_type: body["resource_type"],
+        resource_id: body["resource_id"],
+        label: body["label"],
+        url: body["url"],
+        icon: body["icon"] ?? null,
+        position: highest + 1,
+        added_at: "2026-09-08T10:00:00Z",
+      });
+    }
+    return HttpResponse.json(bookmarkList(), { status: 201 });
+  }),
+  http.delete("/platform/favorites/:id", ({ params }) => {
+    const index = bookmarkRows.findIndex((row) => row["id"] === params["id"]);
+    if (index < 0) {
+      return HttpResponse.json(
+        { error: "not_found", message: "That favourite does not exist.", details: {} },
+        { status: 404 },
+      );
+    }
+    bookmarkRows.splice(index, 1);
+    return HttpResponse.json(bookmarkList());
+  }),
+  http.get("/platform/recents", ({ request }) => echo(request, recentList())),
+  http.delete("/platform/recents", () => {
+    const cleared = recentRows.length;
+    recentRows.length = 0;
+    // The bookmarks are untouched: one was a decision, the other a
+    // by-product.
+    return HttpResponse.json({ cleared, ...recentList() });
   }),
   // ── Security (§41) ────────────────────────────────────────────────────
   http.get("/platform/security/overview", ({ request }) =>

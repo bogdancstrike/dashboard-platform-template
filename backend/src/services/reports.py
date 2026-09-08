@@ -27,6 +27,7 @@ from src.core.errors import NotFoundError, ValidationError
 from src.core.pagination import parse_uuid
 from src.models.personal import Report
 from src.services import analysis
+from src.services import favorites
 from src.services.explorer import resource_for
 
 #: The polymorphic key reports share under.
@@ -56,7 +57,7 @@ def listing(session, args, *, principal) -> dict[str, Any]:
         select(Report)
         .options(selectinload(Report.owner))
         .where(Report.deleted_at.is_(None), sharing.visibility(Report, KIND, principal))
-        .order_by(Report.is_favorite.desc(), Report.updated_at.desc(), Report.name.asc())
+        .order_by(Report.updated_at.desc(), Report.name.asc())
     )
     resource_type = str((args or {}).get("resource_type") or "").strip()
     if resource_type:
@@ -64,8 +65,17 @@ def listing(session, args, *, principal) -> dict[str, Any]:
         statement = statement.where(Report.resource_type == resource_type)
 
     rows = session.scalars(statement).unique().all()
+    # One query for the whole page's stars, then sorted here: `is_favorite`
+    # lives in `favorites` now (§38), so ordering by a column that no longer
+    # holds the answer would put nothing first. A lookup per row would be
+    # twenty-six queries for twenty-five reports.
+    starred = favorites.favorite_ids(session, principal, resource_type=KIND)
+    rows = sorted(
+        rows,
+        key=lambda row: (str(row.id) not in starred, row.updated_at is None),
+    )
     return {
-        "items": [_serialize(session, row, principal) for row in rows],
+        "items": [_serialize(session, row, principal, starred=starred) for row in rows],
         "total": len(rows),
         "visualizations": sorted(VISUALIZATIONS),
         "can_create": principal.can(MANAGE_PERMISSION),
@@ -87,6 +97,7 @@ def create(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
     sharing.replace_members(
         session, KIND, row.id, members, principal=principal, owner_id=row.owner_id,
     )
+    _apply_favorite(session, row, payload, principal=principal)
     audit.record(
         session, action="CREATE", resource_type=KIND, resource_id=row.id,
         resource_label=row.name, principal=principal, after=_state(row),
@@ -108,6 +119,7 @@ def update(session, report_id: Any, payload: dict[str, Any], *, principal) -> di
             session, KIND, row.id, members, principal=principal, owner_id=row.owner_id,
         )
     session.flush()
+    _apply_favorite(session, row, payload, principal=principal)
     audit.record(
         session,
         action="SHARE" if "scope" in values or members is not None else "UPDATE",
@@ -297,8 +309,8 @@ def _validated(
         out["order"] = order
     if "schedule" in payload:
         out["schedule"] = str(payload["schedule"] or "").strip() or None
-    if "is_favorite" in payload or not partial:
-        out["is_favorite"] = bool(payload.get("is_favorite", getattr(existing, "is_favorite", False)))
+    # `is_favorite` is deliberately *not* here: it is no longer a column this
+    # writes. See `_apply_favorite`, which puts it in the one store (§38).
 
     if "member_ids" in payload or not partial:
         wanted = sharing.requested_members(payload)
@@ -374,7 +386,39 @@ def _owned(session, report_id: Any, principal) -> Report:
     return row
 
 
-def _serialize(session, row: Report, principal) -> dict[str, Any]:
+def _apply_favorite(session, row: Report, payload: Any, *, principal) -> None:
+    """Star or unstar this report, if the payload said anything about it.
+
+    Separate from `_validated` because it is not a *field of the report*: a
+    star is a fact about a reader, and two readers can disagree about the same
+    report. Writing it into a column on the report was the old design, and it
+    is why the reports page and `/favorites` gave different answers to "what
+    have I starred" (§38).
+    """
+    body = payload if isinstance(payload, dict) else {}
+    if "is_favorite" not in body:
+        return
+    favorites.set_favorite(
+        session,
+        principal,
+        resource_type=KIND,
+        resource_id=row.id,
+        label=row.name,
+        url=f"/reports/{row.id}",
+        icon="bar-chart",
+        wanted=bool(body["is_favorite"]),
+    )
+
+
+def _serialize(
+    session, row: Report, principal, *, starred: set[str] | None = None
+) -> dict[str, Any]:
+    """One report as a reader sees it.
+
+    `starred` is the whole page's stars, fetched once by `listing`. Passing it
+    is not an optimisation to reach for later: without it, serialising
+    twenty-five reports is twenty-five extra queries.
+    """
     return {
         "id": str(row.id),
         "name": row.name,
@@ -397,7 +441,16 @@ def _serialize(session, row: Report, principal) -> dict[str, Any]:
         "sort": row.sort,
         "order": row.order,
         "schedule": row.schedule,
-        "is_favorite": row.is_favorite,
+        # From `favorites`, not from the column. The field stays in the API
+        # because the page is built on it; what changed is where the answer
+        # comes from.
+        "is_favorite": (
+            str(row.id) in starred
+            if starred is not None
+            else favorites.is_favorite_of(
+                session, principal, resource_type=KIND, resource_id=row.id
+            )
+        ),
         "run_count": row.run_count,
         "last_run_at": iso(row.last_run_at),
         "created_at": iso(row.created_at),
@@ -412,5 +465,7 @@ def _state(row: Report) -> dict[str, Any]:
         "dimensions": list(row.dimensions or []), "metrics": list(row.metrics or []),
         "filters": row.filters, "condition_tree": row.condition_tree,
         "period": row.period, "visualization": row.visualization,
-        "is_favorite": row.is_favorite, "schedule": row.schedule,
+        # Not `is_favorite`: an audit diff records what *the report* changed,
+        # and starring one is a fact about a reader rather than about it.
+        "schedule": row.schedule,
     }
