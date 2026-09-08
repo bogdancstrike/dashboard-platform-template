@@ -224,6 +224,26 @@ place. Which datasets can be mapped, and how each reaches a place, is the
 no city is placed one hop away, at its customer's. Country outlines are
 vendored (`frontend/src/assets/README.md`) because the stack runs offline.
 
+### When a page cannot be shown
+
+Six addresses, `/errors/401` through `/errors/session-expired`, all rendered
+from one declaration in `frontend/src/components/ProblemPage.tsx`. Each says
+what happened and what to do next, in that order, and carries the correlation
+id of the request that failed — which is the only thing on the page somebody
+else can act on. Whether a "Try again" appears is declared per kind, so a
+wrong address is not offered a button that fails identically on the second
+press.
+
+They are addresses because two of the six cannot be reached by asking: a
+session ends when it ends, and the API is down when it is down. A screen
+nobody can look at until the day it matters is a screen whose copy is wrong on
+that day.
+
+`frontend/src/app/ErrorBoundary.tsx` sits inside the shell and around every
+page, so a component that throws becomes the 500 page with the navigation
+still working, rather than a blank tab. It resets on navigation — walking away
+from a broken page is enough to leave it.
+
 ### Picking a shape for a new page
 
 Two pages in the running application document the template to itself, and both

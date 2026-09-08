@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import { meApi, type CurrentUser } from "@/api/me";
+import { markSignedIn } from "@/auth/keycloak";
 import { useAppearance } from "@/theme/AppearanceProvider";
 import { signOut } from "./keycloak";
 
@@ -45,6 +46,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
     },
   });
+
+  // The credential worked end to end, so this tab is not in a sign-in loop.
+  //
+  // The guard in `keycloak.ts` refuses to re-authenticate twice in fifteen
+  // seconds, on the grounds that the second time is a loop. Clearing the mark
+  // on a *successful* profile read is what makes that precise rather than
+  // merely conservative: somebody whose token expires twice in a busy minute
+  // is refreshed silently both times, and only a round trip that comes back
+  // still unauthorised is treated as one (§34).
+  useEffect(() => {
+    if (query.data) markSignedIn();
+  }, [query.data]);
 
   // localStorage painted the first frame without a flash. Once identity
   // resolves, the user's durable server-side preference wins.

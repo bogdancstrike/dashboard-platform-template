@@ -238,9 +238,12 @@ stopping a rule is a containment action, while reading a file is a disclosure.
 
 `AuthProvider` loads `/api/me` and exposes `can(permission)`. The application
 shell and command palette omit destinations the caller cannot use. A direct
-link to a known but forbidden route renders a 403 explanation. This behavior
-is useful, but the backend decorator remains mandatory because browser state
-can be changed by the caller.
+link to a known but forbidden route renders a 403 explanation — the shared
+problem page (§34), which names the missing permission in the same sentence
+every disabled control in the product uses, because a refusal phrased two ways
+reads as two different rules. This behavior is useful, but the backend
+decorator remains mandatory because browser state can be changed by the
+caller.
 
 The production frontend contains no mock role matrix or permission fallback.
 Test fixtures under `frontend/src/test/` simulate HTTP

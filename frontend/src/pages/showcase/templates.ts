@@ -175,6 +175,27 @@ export const LAYOUTS: PageLayout[] = [
     routes: ["admin", "showcase/components", "showcase/templates"],
   },
   {
+    key: "problem",
+    name: "Problem page",
+    shape:
+      "One centred explanation: what happened, what to do about it, and the reference that makes it findable.",
+    when:
+      "The page cannot be shown at all — a wrong address, a missing permission, a fault, an API that is not answering.",
+    unless:
+      "The *data* is missing rather than the page — an empty list is a normal answer to a reasonable question, and dressing it as a failure teaches a reader to ignore both.",
+    // Addressable on purpose: two of the six cannot be reached by asking, so
+    // without a route they would be screens nobody could look at until the day
+    // they mattered (§34).
+    routes: [
+      "errors/401",
+      "errors/403",
+      "errors/404",
+      "errors/500",
+      "errors/maintenance",
+      "errors/session-expired",
+    ],
+  },
+  {
     key: "redirect",
     name: "Not a layout",
     shape: "A route that resolves to another one.",

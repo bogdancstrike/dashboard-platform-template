@@ -7,7 +7,6 @@ import {
   Grid,
   Layout,
   Menu,
-  Result,
   Space,
   Tooltip,
   Typography,
@@ -28,7 +27,9 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import { notificationsApi } from "@/api/notifications";
+import { ErrorBoundary } from "@/app/ErrorBoundary";
 import { PersonAvatar } from "@/components/PersonAvatar";
+import { ProblemPage } from "@/components/ProblemPage";
 import { useAuth } from "@/auth/AuthProvider";
 import { useImpersonation } from "@/auth/ImpersonationProvider";
 import { CommandPalette, CommandTrigger } from "@/components/CommandPalette";
@@ -364,13 +365,19 @@ export function AppShell() {
           </a>
           <div id="nu-main">
             {forbidden ? (
-              <Result
-                status="403"
-                title="Permission required"
-                subTitle={`Your role does not include ${activeItem?.permission}.`}
+              <ProblemPage
+                kind="forbidden"
+                missing={activeItem?.permission ? [activeItem.permission] : []}
               />
             ) : (
-              <Outlet />
+              // Every page renders inside the boundary, and the boundary
+              // inside the shell: a fault in one page must not take the
+              // navigation with it, or the reader's only way out is the
+              // browser's reload button (§34). Reset on the location, so
+              // walking away from a broken page is enough to leave it.
+              <ErrorBoundary resetKey={location.pathname}>
+                <Outlet />
+              </ErrorBoundary>
             )}
           </div>
         </Content>

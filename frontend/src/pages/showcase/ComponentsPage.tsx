@@ -35,12 +35,18 @@ import { Alert, Card, Space, Table, Tag, Typography } from "antd";
 import { InboxOutlined, SearchOutlined, WarningOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
 
 import { EmptyState } from "@/components/EmptyState";
 import { ExportButton } from "@/components/ExportButton";
 import { HighlightedText } from "@/components/HighlightedText";
 import { PageHeader } from "@/components/PageHeader";
 import { PersonAvatar } from "@/components/PersonAvatar";
+import {
+  ERROR_SLUGS,
+  PROBLEMS,
+  PROBLEM_KINDS,
+} from "@/components/ProblemPage";
 import { StatCard } from "@/components/StatCard";
 import { StatusTag } from "@/components/StatusTag";
 import { formatNumber } from "@/lib/formats";
@@ -90,6 +96,7 @@ const DEMONSTRATED = [
   "HighlightedText",
   "PageHeader",
   "PersonAvatar",
+  "ProblemPage",
   "StatCard",
   "StatusTag",
 ] as const;
@@ -347,6 +354,23 @@ export default function ComponentsPage() {
           <HighlightedText text="Printer on fire in the north wing" term="fire" />
           <HighlightedText text="Printer on fire in the north wing" term="" />
           <HighlightedText text="No match for this one" term="zebra" />
+        </div>
+      </Demo>
+
+      <Demo
+        name="ProblemPage"
+        what="The six ways a page can fail to appear (§34). Each says what happened and what to do about it, in that order, and carries the correlation id — which is the only thing on the page somebody else can act on. Whether a retry appears is declared per kind, so a 404 cannot be given a button that fails identically on the second press."
+      >
+        <div className="nu-show-lines">
+          {PROBLEM_KINDS.map((kind) => (
+            <Link key={kind} to={`/errors/${ERROR_SLUGS[kind]}`}>
+              {PROBLEMS[kind].title} — /errors/{ERROR_SLUGS[kind]}
+            </Link>
+          ))}
+          <Text type="secondary">
+            Rendered full-page rather than inline: each is an address, because two
+            of them cannot be reached by asking.
+          </Text>
         </div>
       </Demo>
 

@@ -2,12 +2,13 @@ import "@fontsource-variable/inter";
 import "./index.css";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { App as AntApp, Button, Result, Spin } from "antd";
+import { App as AntApp, Spin } from "antd";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
+import { ProblemPage, problemFor } from "@/components/ProblemPage";
 import { metaApi } from "@/api/meta";
 import { asText } from "@/lib/text";
 import { AuthProvider } from "@/auth/AuthProvider";
@@ -45,14 +46,17 @@ const root = createRoot(container);
 function Boot({ error }: { error?: unknown }) {
   if (error) {
     return (
-      <div className="nu-boot">
-        <Result
-          status="error"
-          title="Could not sign you in"
-          subTitle={error instanceof Error ? error.message : asText(error)}
-          extra={<Button onClick={() => window.location.reload()}>Try again</Button>}
-        />
-      </div>
+      <ProblemPage
+        standalone
+        kind={problemFor(error)}
+        correlationId={error instanceof ApiError ? error.correlationId : undefined}
+        detail={
+          error instanceof ApiError || error instanceof Error ? (
+            <span>{error instanceof Error ? error.message : asText(error)}</span>
+          ) : undefined
+        }
+        onRetry={() => window.location.reload()}
+      />
     );
   }
   return (

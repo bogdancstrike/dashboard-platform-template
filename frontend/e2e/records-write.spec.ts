@@ -6,10 +6,16 @@ import { signIn, storageStateFor } from "./auth";
 /**
  * Writing a record through the real stack (§9, §18, §73).
  *
- * The two assertions worth making about a board are the ones a component test
- * cannot: that a card dropped in another lane is *still there after a reload*,
- * and that the lane counts — which the database computes over the whole
- * dataset, not the page on screen — moved with it.
+ * The assertion worth making about a board is the one a component test cannot:
+ * that a card dropped in another lane is *still there after a reload*, when
+ * every lane has refetched from the database and an optimistic-only update
+ * would have been undone.
+ *
+ * Not the lane counts. They look like the stronger witness — the server
+ * computes them over the whole dataset — and they are the weaker one: the
+ * dataset is shared with every other spec, the specs run in parallel, and a
+ * concurrent move out of the lane this test moved a card into leaves the count
+ * exactly where it started. That reads as a lost write and is not one.
  *
  * Every test puts the record back where it found it. The seeded dataset is
  * what the rest of the suite measures against, and a run that leaves one more
@@ -80,26 +86,25 @@ test.describe("the task board writes to the record", () => {
   test("a card moved between lanes is still there after a reload", async ({ page }) => {
     await signIn(page, "admin", "/tasks");
 
-    const fromBefore = await settledBoard(page, "IN_PROGRESS");
-    const toBefore = await laneCount(page, "IN_REVIEW");
+    await settledBoard(page, "IN_PROGRESS");
     const reference = await moveFirstCard(page, "IN_PROGRESS", "IN_REVIEW");
 
-    // The counts are aggregates over the whole dataset, so they are the proof
-    // the write reached the database rather than only the browser.
-    //
-    // Directional rather than exact. The database is shared with every other
-    // spec in the suite, and one of them creating a task between the two reads
-    // moves the number by more than this test did — which is a flake that
-    // reads exactly like a lost write. What only *this* test can cause is the
-    // change of direction, and that is what an optimistic-only update would
-    // fail to produce.
-    await expect
-      .poll(() => laneCount(page, "IN_REVIEW"), { timeout: 15_000 })
-      .toBeGreaterThanOrEqual(toBefore + 1);
-    await expect
-      .poll(() => laneCount(page, "IN_PROGRESS"))
-      .toBeLessThanOrEqual(fromBefore - 1);
+    // The card moved on screen…
+    await expect(page.getByTestId("lane-IN_REVIEW").getByText(reference)).toBeVisible();
+    await expect(page.getByTestId("lane-IN_PROGRESS").getByText(reference)).toHaveCount(0);
 
+    // …and is still in the new lane after a reload, which is the assertion
+    // that separates a write from an optimistic update: every lane refetches
+    // from the database, so a card only the browser had moved goes back.
+    //
+    // The lane *counts* used to carry this, and they were the wrong witness.
+    // They are aggregates over a dataset shared with every other spec, and
+    // the specs run in parallel — so a concurrent move out of the target lane
+    // cancels this test's move in, and the count is unchanged. It failed
+    // exactly that way: expected 11, got 10, with nothing wrong. Directional
+    // assertions did not save it, because the interference is directional too.
+    // The card's own identity in the lane it was moved to is a fact about this
+    // test alone.
     await page.reload();
     await expect(page.getByTestId("lane-IN_REVIEW").getByText(reference)).toBeVisible();
 

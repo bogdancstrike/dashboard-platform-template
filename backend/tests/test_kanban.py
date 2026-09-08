@@ -114,6 +114,41 @@ def test_the_board_key_prefixes_every_reference(client, monkeypatch):
 
 
 @pytest.mark.database
+def test_a_hundredth_board_with_the_same_initials_can_still_be_created(client, monkeypatch):
+    """The uniquifying suffix is bounded by the column, not by two digits.
+
+    A key is never freed — not even by deleting the board, because the card
+    references of the two would interleave — so the ceiling on one derived key
+    is cumulative over the installation's whole life. The earlier version tried
+    `KEY2` … `KEY99` and then refused, which is 98 boards, ever. The end-to-end
+    suite makes a board with the same name on every run and reached exactly
+    that: `EBS99` existed, and every later run could not create a board at all.
+    The failure a reader saw was a modal that stayed open.
+    """
+    from src.core.db import session_scope
+    from src.models.kanban import Board
+
+    headers = _authenticate(monkeypatch)
+    # The whole space the old bound allowed, filled directly: going through the
+    # endpoint a hundred times would assert the same thing in ninety seconds.
+    stem = "ZZZ"
+    with session_scope() as session:
+        session.add(Board(name="Taken", key=stem, scope="PRIVATE"))
+        for number in range(2, 100):
+            session.add(
+                Board(name=f"Taken {number}", key=f"{stem}{number}", scope="PRIVATE")
+            )
+
+    created = _board(client, headers, name="Zulu Zebra Zoo")
+    # A third digit rather than a refusal, and short enough to store.
+    assert created["key"] == f"{stem}100"
+    assert len(created["key"]) <= Board.key.type.length
+
+    # And it numbers its own cards from one, under its own key.
+    assert _card(client, headers, created["id"], title="One")["reference"] == f"{stem}100-00001"
+
+
+@pytest.mark.database
 def test_a_drop_leaves_the_positions_dense_and_unambiguous(client, monkeypatch):
     """Dense integers, rewritten on a drop.
 

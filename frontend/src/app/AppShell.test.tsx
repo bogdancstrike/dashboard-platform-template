@@ -67,7 +67,12 @@ describe("authenticated application shell", () => {
     renderShell("/admin");
 
     expect(await screen.findByText("Permission required")).toBeInTheDocument();
-    expect(screen.getByText("Your role does not include admin.access.")).toBeInTheDocument();
+    // The permission is *named*, which is the whole point (§76) — "you do not
+    // have permission" tells somebody nothing they can go and ask for. It is
+    // the shared problem surface now (§34), so the shape of the sentence is
+    // asserted where that surface is tested, and this checks the one thing
+    // only the shell knows: which permission the route needed.
+    expect(screen.getByTestId("problem-missing")).toHaveTextContent("admin.access");
     expect(screen.queryByText("Administration")).not.toBeInTheDocument();
     expect(screen.queryByText("Admin content")).not.toBeInTheDocument();
   });

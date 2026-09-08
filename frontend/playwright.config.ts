@@ -35,14 +35,19 @@ export default defineConfig({
   // which aborts the whole serial group and reports four tests as "did not
   // run": one contended request, five red lines, none of them a product bug.
   timeout: 60_000,
-  // 15s rather than 10. Every failure this cap produced was a *timeout* under
-  // load — a sign-in stuck on "Signing you in…", a detail page that had not
-  // rendered — never a wrong value, and each one read like a product bug
-  // until somebody opened the trace. The suite is 156 tests across three
-  // browsers against one API container with two workers and one Keycloak, so
-  // the tail is real; an expectation that passes resolves in milliseconds and
-  // pays nothing for the larger cap.
-  expect: { timeout: 15_000 },
+  // 30s, raised from 15 and before that from 10, and each time for the same
+  // observed reason: every failure this cap has ever produced was a *timeout
+  // under load* — most often a page still showing "Signing you in…" — and
+  // never a wrong value. The suite is now 316 tests against one API container
+  // with two workers and one Keycloak, and most of them boot the application
+  // cold at least once; three of those boots exceeding fifteen seconds in a
+  // three-minute run is the tail of that, not a product bug, and it reported
+  // itself as one in three different specs.
+  //
+  // It costs nothing on the passing path: an expectation that will pass
+  // resolves in milliseconds. What it costs is the speed at which a genuine
+  // hang is reported, and `timeout` above still bounds that.
+  expect: { timeout: 30_000 },
   use: {
     baseURL: process.env["BASE_URL"] ?? "http://localhost:5174",
     trace: "retain-on-failure",

@@ -1,9 +1,9 @@
 import { Skeleton } from "antd";
-import { Button, Result } from "antd";
 import { Suspense, lazy } from "react";
-import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 
 import { AppShell } from "@/app/AppShell";
+import { ProblemPage, type ProblemKind } from "@/components/ProblemPage";
 import { useAuth } from "@/auth/AuthProvider";
 import { landingPath } from "@/pages/PreferencesPage";
 
@@ -87,28 +87,36 @@ function Loading() {
 }
 
 /**
- * Every route the shell navigates to resolves to something.
+ * A problem page as a route (§34).
  *
- * The unbuilt ones render an honest placeholder naming the spec section and
- * what will be there, rather than a blank page or a 404. That is what lets the
- * navigation be complete from the first commit — a shell whose menu is mostly
- * dead ends cannot be reviewed, and neither can a menu that only lists the
- * three screens that happen to exist.
+ * Two of the six cannot be reached by asking for them — a session ends when it
+ * ends, and the API is down when it is down — so without an address they would
+ * be screens nobody could look at until the day they mattered, which is the
+ * day nobody wants to find out the copy is wrong. They are also where the
+ * application *sends* a reader: `keycloak.ts` goes to `/errors/session-expired`
+ * rather than bouncing somebody through a sign-in that has already failed once.
+ *
+ * Written out one route per address rather than as `errors/:kind`, and that is
+ * not verbosity for its own sake: a parameterised route is invisible to the
+ * template gallery's completeness test (§61), which reads concrete paths — so
+ * the six pages would exist and nothing would know they did.
  */
-function NotFound() {
-  const navigate = useNavigate();
+function ProblemRoute({ kind }: { kind: ProblemKind }) {
   return (
-    <Result
-      status="404"
-      title="404"
-      subTitle="No page answers to that address."
-      extra={
-        <Button type="primary" onClick={() => navigate("/")}>
-          Back to the dashboard
-        </Button>
-      }
+    <ProblemPage
+      kind={kind}
+      // Retrying an address that is *demonstrating* a failure is a reload,
+      // which is honest and proves the button does something. The declaration
+      // decides whether the button appears at all.
+      onRetry={() => window.location.reload()}
+      missing={kind === "forbidden" ? ["records.view"] : []}
     />
   );
+}
+
+/** The address nobody meant to ask for. */
+function NotFound() {
+  return <ProblemPage kind="not_found" />;
 }
 
 /**
@@ -550,6 +558,16 @@ export default function App() {
         />
 
         <Route path="system" element={<Navigate to="/admin/health" replace />} />
+        {/* One per address, so the gallery's completeness test can see them. */}
+        <Route path="errors/401" element={<ProblemRoute kind="unauthorized" />} />
+        <Route path="errors/403" element={<ProblemRoute kind="forbidden" />} />
+        <Route path="errors/404" element={<ProblemRoute kind="not_found" />} />
+        <Route path="errors/500" element={<ProblemRoute kind="server" />} />
+        <Route path="errors/maintenance" element={<ProblemRoute kind="maintenance" />} />
+        <Route
+          path="errors/session-expired"
+          element={<ProblemRoute kind="session_expired" />}
+        />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

@@ -109,6 +109,25 @@ export function getImpersonation(): string | null {
   return impersonating;
 }
 
+/**
+ * The correlation id of the most recent failed request.
+ *
+ * Kept because the surface that needs it most cannot be handed it: a component
+ * that throws while rendering a bad response reaches the error boundary with a
+ * `TypeError`, not an `ApiError`, and the boundary has no way back to the call
+ * that supplied the value. Almost always that call is the one that just
+ * failed, or the last one that did — so a page that broke has a reference
+ * somebody can look up instead of "it went white".
+ *
+ * A single slot rather than a list: the id is a hint for a human, and a page
+ * offering six of them has offered none.
+ */
+let lastFailure: string | null = null;
+
+export function lastFailedCorrelationId(): string | null {
+  return lastFailure;
+}
+
 /** Called whenever a request comes back 401, so the shell can react once. */
 let onUnauthorized: (() => void) | null = null;
 
@@ -173,6 +192,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   const parsed: unknown = text ? safeParse(text) : null;
 
   if (!response.ok) {
+    lastFailure = echoed;
     if (response.status === 401) onUnauthorized?.();
     throw new ApiError(response.status, asErrorBody(parsed, response.status), echoed);
   }

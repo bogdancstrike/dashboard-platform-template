@@ -824,11 +824,16 @@ def _board_key(session, requested: Any, name: str) -> str:
     """
     from src.models.kanban import Board
 
+    # Read from the column rather than typed here: it is the real bound on both
+    # the stem and the suffix, and a second copy of "12" is a second place to
+    # change when the column changes.
+    width = Board.key.type.length or 12
+
     raw = str(requested or "").strip().upper()
     if not raw:
         letters = [word[0] for word in name.upper().split() if word[:1].isalpha()]
         raw = ("".join(letters) or name.upper())[:4] or "BOARD"
-    key = "".join(char for char in raw if char.isalnum())[:12] or "BOARD"
+    key = "".join(char for char in raw if char.isalnum())[:width] or "BOARD"
 
     # Every key ever used, including deleted boards'. Two boards may not share
     # a key even across time: their card references would interleave, and a
@@ -837,8 +842,27 @@ def _board_key(session, requested: Any, name: str) -> str:
     taken = set(session.scalars(select(Board.key)).all())
     if key not in taken:
         return key
-    for suffix in range(2, 100):
-        candidate = f"{key[:10]}{suffix}"
+
+    # The suffix grows for as long as it *fits*, trimming the stem only when it
+    # has to, rather than stopping at two digits.
+    #
+    # The earlier version tried `KEY2` … `KEY99` and then refused, which put a
+    # hard ceiling of 98 boards on any one derived key — and because a key is
+    # never freed, not even by deleting the board (see above), the ceiling is
+    # cumulative over the installation's whole life. The end-to-end suite makes
+    # a board called "E2E board start" on every run, so it reached `EBS99` and
+    # every run after that could not create a board at all. The failure was a
+    # modal that stayed open.
+    #
+    # Bounded by the number of keys already taken: the candidates are distinct,
+    # so one of the first `len(taken) + 1` of them is free. That is a proof of
+    # termination rather than an arbitrary limit, and for a three-letter stem in
+    # a twelve-character column it never comes close to the width.
+    for number in range(2, len(taken) + 3):
+        suffix = str(number)
+        if len(suffix) >= width:
+            break
+        candidate = f"{key[: width - len(suffix)]}{suffix}"
         if candidate not in taken:
             return candidate
     raise ConflictError("Could not find a free board key.", details={"key": key})

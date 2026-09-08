@@ -138,7 +138,13 @@ test("no page in the platform is still a placeholder", async ({ page }) => {
   for (const href of hrefs) {
     await page.goto(href);
     const main = page.locator("#nu-main");
-    await expect(main, href).toBeVisible();
+    // A longer wait than the default, and the reason is the shape of this
+    // test: every `goto` is a cold boot of the application behind a real
+    // identity provider, and this does forty-six of them. One of those
+    // exceeding fifteen seconds under a full-suite load is slowness, not a
+    // placeholder — and failing on it reports the wrong thing. Caught exactly
+    // that way, on a page still showing "Signing you in…".
+    await expect(main, href).toBeVisible({ timeout: 45_000 });
     const text = (await main.textContent()) ?? "";
     if (/not built yet|placeholder/i.test(text)) placeholders.push(href);
   }

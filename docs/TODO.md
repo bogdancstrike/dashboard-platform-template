@@ -1638,6 +1638,97 @@ commit — built, committed, pushed, redeployed and verified before the next.
       and lets the label take the click, which `NotificationsPage.test` had
       already documented
 
+- [x] **A board key that ran out, and the e2e that walked into it** (§18)
+  - **Ninety-eight boards, ever, per derived key.** `_board_key` tried `KEY2`
+      … `KEY99` and then refused. A key is deliberately never freed — not even
+      by deleting the board, because the card references of the two would
+      interleave and `PLAT-00042` would have two candidates — so that ceiling
+      is *cumulative over the installation's whole life*. The end-to-end suite
+      makes a board called "E2E board start" on every run; it reached `EBS99`,
+      and after that no run could create a board at all
+  - **The bound is now the column, read from the column.** The suffix grows for
+      as long as it fits and trims the stem only when it has to, and the scan
+      is bounded by the number of keys already taken — the candidates are
+      distinct, so one of the first `len(taken) + 1` is free, which is a proof
+      of termination rather than another round number. `Board.key.type.length`
+      rather than a second copy of `12`
+  - **Found by the end-to-end suite spending its own fixture**, the same way
+      `--sync-jobs` was: a suite that leaves state behind eventually walks into
+      a limit nobody had reason to think about, and the failure it reports is a
+      modal that stays open. The toast underneath it said "Could not find a
+      free board key", which is exactly right and had never been read
+  - The regression test fills the whole space the old bound allowed and asks
+      for one more; it fails against the old `range(2, 100)`, which was checked
+
+- [x] **A lane count was the wrong witness** (§18, §9)
+  - `records-write` proved a card's move had reached the database by watching
+      the lane counts, which the server computes over the whole dataset. That
+      reads like the stronger assertion and is the weaker one: the dataset is
+      shared with every other spec, the specs run in parallel, and a
+      concurrent move *out* of the lane this test moved a card *into* leaves
+      the count exactly where it started. It failed as "expected 11, received
+      10" with nothing wrong. Directional assertions did not save it, because
+      the interference is directional too. The card's own identity in the lane
+      it was moved to, after a reload, is a fact about this test alone
+
+- [x] **One surface for every way a page can fail** (§34)
+  - **There were three, and none of them carried the correlation id.** A bare
+      `404` in the router, a `403` in the shell, and "Could not sign you in" at
+      boot — three tones, three shapes, and the one thing a reader can hand to
+      somebody who could actually help was missing from all of them. There is
+      one declaration now: six kinds, each saying **what happened** and **what
+      to do next**, in that order, because a page that names a status code has
+      told the reader nothing they can act on
+  - **A fourth failure was absent entirely: the white page.** A component that
+      threw unmounted the whole application — no header, no navigation, no
+      message, and the only recovery was knowing to reload. That is the worst
+      failure mode in the product, because it is the one that tells the reader
+      nothing at all and leaves them no way to report it. `ErrorBoundary` now
+      sits inside the shell and around every page, resets on navigation so
+      walking away from a broken page is enough to leave it, and reports the
+      correlation id of the last failed request rather than a stack trace —
+      the stack goes to the console, where the person who can read it looks
+  - **The retry is declared per kind, not offered everywhere.** A "Try again"
+      on a 404 is a button that fails identically on the second press, and a
+      reader who presses one of those stops believing the rest of them. So the
+      route that renders these hands `onRetry` to all six and only two show it
+  - **A verified belief, then deleted.** The boundary keyed its children on an
+      attempt counter to force a remount on retry, with a comment explaining
+      why that was necessary. A test proved the key changed nothing — React
+      unmounts everything below a boundary that catches, so the retry already
+      got a fresh subtree. The code and the comment went; the test stayed,
+      because that behaviour is now something this depends on
+  - **"Could not sign you in" was the wrong answer most of the time.** The
+      commonest boot failure in this stack is the API not being up yet, which
+      is not a sign-in problem, is not the reader's fault, and *is* worth
+      waiting a moment for — telling somebody their credentials failed while a
+      container restarts sends them to reset a password that was fine.
+      `problemFor` classifies by status, and a connection that never answered
+      is maintenance
+  - **And the redirect loop is now a page.** A 401 called `login()`
+      unconditionally, so when the credential Keycloak issues is refused by the
+      API anyway the tab redirected, came back, called the API, and redirected
+      again — forever, showing nothing. A revoked session (§41), a clock skew
+      past the token's leeway and a mismatched audience all produce exactly
+      that, and all three look identical from the browser: a page that flashes.
+      The second attempt inside fifteen seconds stops and says the session
+      ended. `AuthProvider` clears the mark when `/api/me` answers, which is
+      what makes the guard precise rather than merely cautious — two genuine
+      expiries in a busy minute are still refreshed silently
+  - **The permission is named in the sentence every disabled control uses.**
+      The first version wrote "Missing: `audit.view`", which is a fourth
+      phrasing of a refusal the product already words one way in forty
+      tooltips; three end-to-end tests failed on it and they were right to
+  - **Reachable as addresses**, `/errors/401` through `/errors/session-expired`,
+      because two of the six cannot be reached by asking — and a screen nobody
+      can look at until the day it matters is a screen whose copy is wrong on
+      that day. Written out one route per address rather than as
+      `errors/:kind`: a parameterised route is invisible to the gallery's
+      completeness test (§61), so the six pages would have existed and nothing
+      would have known
+  - 24 component tests, 5 for the boundary, 5 for the loop guard, 4 Playwright
+      including axe over all six pages
+
 - [x] **`/showcase/components` and `/showcase/templates` — the last two
       placeholders, and what a gallery is *for*** (§60, §61)
   - **A hand-written gallery is worse than no gallery.** It drifts from the
@@ -2280,10 +2371,13 @@ operational enterprise application, not a marketing website.**
       that creates the first one
 - [ ] **Empty (no results)** — distinct from the above; shows the active filters
       and clears them in one click
-- [ ] **Error** — what failed, the correlation id, and retry
-- [ ] **Forbidden** — which permission is missing, in words
+- [x] **Error** — what failed, the correlation id, and retry
+- [x] **Forbidden** — which permission is missing, in words, and in the same
+      sentence every disabled control in the product uses
 - [ ] **Partial** — a bulk operation that half-succeeded reports both halves
-- [ ] Dedicated pages: 401, 403, 404, 500, maintenance, session expired
+- [x] Dedicated pages: 401, 403, 404, 500, maintenance, session expired — at
+      `/errors/*`, from one declaration, with a boundary that turns a render
+      fault into the 500 rather than a white page
 - **Acceptance**: each state is reachable in the running app and covered by a
   component test
 
@@ -3583,9 +3677,10 @@ Each endpoint ships with its five-case integration test and the page consuming i
       flows (§30) — a request above the row limit becomes a background job with
       a real file — and the import wizard (§29)
 - [~] The component showcase (§60) and the page template gallery (§61) ship,
-      and with them no page in the navigation is a placeholder. Master/detail
-      (§62), split view (§63), row preview drawer (§64), comparison (§47),
-      data quality (§65) and error pages (§34) remain
+      and with them no page in the navigation is a placeholder. The error pages
+      (§34) ship too, as six addresses from one declaration behind a boundary
+      that catches a render fault. Master/detail (§62), split view (§63), row
+      preview drawer (§64), comparison (§47) and data quality (§65) remain
 - [~] Preferences (§40) and security and sessions (§41) ship. Organization
       settings (§42) remain
 
