@@ -1712,6 +1712,77 @@
         "module_name": "src.api.api_clients",
         "method_name": "credential"
       }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "integration_catalogue",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/integrations/catalogue",
+      "description": "Categories and states with counts, and how many need attention.",
+      "exec_method": {
+        "module_name": "src.api.integrations",
+        "method_name": "catalogue"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "integration_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/integrations",
+      "description": "Every integration, filtered and faceted in PostgreSQL.",
+      "exec_method": {
+        "module_name": "src.api.integrations",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "integration_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT"
+      ],
+      "api_url": "/admin/integrations/<string:integration_id>",
+      "description": "One integration with its configuration; secrets come back redacted.",
+      "exec_method": {
+        "module_name": "src.api.integrations",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "integration_enablement",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT"
+      ],
+      "api_url": "/admin/integrations/<string:integration_id>/enabled",
+      "description": "Turn an integration on or off; refused while settings are missing.",
+      "exec_method": {
+        "module_name": "src.api.integrations",
+        "method_name": "enablement"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "integration_check",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/admin/integrations/<string:integration_id>/check",
+      "description": "Verify the configuration, saying it did not contact the provider.",
+      "exec_method": {
+        "module_name": "src.api.integrations",
+        "method_name": "check"
+      }
     }
   ]
 }

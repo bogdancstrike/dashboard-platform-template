@@ -178,11 +178,24 @@ def _integrations(world: World) -> None:
 
     rng = world.rng.derive("integrations")
     for key, name, provider, category, icon in catalog.INTEGRATIONS:
-        enabled = rng.chance(0.45)
-        status = "CONNECTED" if enabled else rng.weighted(
-            (("NOT_CONFIGURED", 0.6), ("DISCONNECTED", 0.25), ("ERROR", 0.15))
-        )
+        # Whether the *settings* are there comes first, because the status
+        # depends on it. The first version drew a status independently and then
+        # always wrote a complete configuration — so `NOT_CONFIGURED` was a
+        # lie on every row it appeared on, three of twelve, contradicting the
+        # very fact the "check" button exists to establish.
+        configured = rng.chance(0.75)
+        if not configured:
+            status = "NOT_CONFIGURED"
+        else:
+            status = rng.weighted(
+                (("CONNECTED", 0.55), ("DISCONNECTED", 0.25), ("ERROR", 0.2))
+            )
         failing = status == "ERROR"
+        # `enabled` is the operator's *intent* and the status is the outcome, so
+        # the interesting row is one somebody switched on that is now failing —
+        # which is exactly the row this page exists for, and the first version
+        # could never produce because it set `enabled` from the status.
+        enabled = status == "CONNECTED" or (failing and rng.chance(0.6))
         world.integrations.append(
             Integration(
                 id=rng.uuid(),
@@ -202,7 +215,13 @@ def _integrations(world: World) -> None:
                 configuration={
                     "base_url": f"https://api.{key}.example",
                     "timeout_seconds": rng.pick((10, 30, 60)),
-                    "secret_ref": f"{key.upper()}_API_TOKEN",
+                    # Left out when the row is meant to be unconfigured, so
+                    # `NOT_CONFIGURED` is a fact rather than a word.
+                    **(
+                        {"secret_ref": f"{key.upper()}_API_TOKEN"}
+                        if configured
+                        else {}
+                    ),
                 },
                 required_settings=["base_url", "secret_ref"],
                 icon=icon,

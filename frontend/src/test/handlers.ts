@@ -108,16 +108,14 @@ export const currentUser = {
 
 /** Echoes the correlation id back, exactly as the real server does. */
 /**
- * A string out of an `unknown`, safely.
+ * A local name for `lib/text.asText`, which these fixtures already imported.
  *
- * These fixtures hold `Record<string, unknown>`, so `String(value)` renders
- * "[object Object]" for anything that is not a primitive — and eslint's
- * `no-base-to-string` has caught that same slip three times in this file
- * alone. One helper is cheaper than a fourth.
+ * They hold `Record<string, unknown>`, and `String(value)` renders
+ * "[object Object]" for anything that is not a primitive — a slip eslint has
+ * caught four times here. The shared helper existed all along; the mistake was
+ * reaching for `String` rather than for it.
  */
-function text(value: unknown, fallback = ""): string {
-  return typeof value === "string" ? value : fallback;
-}
+const text = asText;
 
 function echo<T extends object>(request: Request, body: T, status = 200) {
   return HttpResponse.json(body, {
@@ -2832,7 +2830,223 @@ const API_REQUESTS = [
   },
 ];
 
+/**
+ * Connected systems (§26).
+ *
+ * The fixture carries the four states the page has to draw differently, and
+ * one of them is the row this screen exists for: switched *on* and failing.
+ * `state` and `configured` are computed from `required_settings` against the
+ * configuration exactly as the service computes them, so a page that trusted a
+ * stored word would disagree with the fixture the way it disagreed with the
+ * database.
+ */
+export const integrationRows: Record<string, unknown>[] = [];
+
+const REDACTION = "••••••••";
+
+function integrationOf(overrides: Record<string, unknown>): Record<string, unknown> {
+  const row = {
+    description: null,
+    enabled: false,
+    status: "DISCONNECTED",
+    required_settings: ["base_url", "secret_ref"],
+    configuration: { base_url: "https://api.example", secret_ref: "TOKEN_REF", timeout_seconds: 30 },
+    last_connected_at: null,
+    last_error: null,
+    last_error_at: null,
+    icon: null,
+    docs_url: "https://docs.example/integrations",
+    ...overrides,
+  } as Record<string, unknown>;
+
+  // Derived here, the same way the service derives them.
+  const configuration = row["configuration"] as Record<string, unknown>;
+  const missing = (row["required_settings"] as string[]).filter(
+    (name) => !text(configuration[name]).trim(),
+  );
+  const stored = String(row["status"]);
+  return {
+    ...row,
+    configured: missing.length === 0,
+    missing_settings: missing,
+    state:
+      missing.length > 0
+        ? "NOT_CONFIGURED"
+        : stored === "NOT_CONFIGURED"
+          ? "DISCONNECTED"
+          : stored,
+  };
+}
+
+function seedIntegrations(): void {
+  integrationRows.length = 0;
+  integrationRows.push(
+    integrationOf({
+      id: "int-slack", key: "slack", name: "Slack", provider: "Slack",
+      category: "MESSAGING", enabled: true, status: "CONNECTED",
+      last_connected_at: "2026-09-08T07:00:00Z",
+    }),
+    // The row this page exists for: somebody switched it on, and it is failing.
+    integrationOf({
+      id: "int-github", key: "github", name: "GitHub", provider: "GitHub",
+      category: "SOURCE_CONTROL", enabled: true, status: "ERROR",
+      last_error: "401 from the provider: token expired.",
+      last_error_at: "2026-09-08T06:00:00Z",
+      last_connected_at: "2026-09-01T06:00:00Z",
+    }),
+    // Missing a required setting, so `NOT_CONFIGURED` is a fact.
+    integrationOf({
+      id: "int-stripe", key: "stripe", name: "Stripe", provider: "Stripe",
+      category: "PAYMENTS",
+      configuration: { base_url: "https://api.stripe.example", timeout_seconds: 30 },
+    }),
+    integrationOf({
+      id: "int-okta", key: "okta", name: "Okta", provider: "Okta",
+      category: "IDENTITY", status: "DISCONNECTED",
+    }),
+  );
+}
+
+seedIntegrations();
+
+export function resetIntegrations(): void {
+  seedIntegrations();
+}
+
+/** What the detail endpoint shows: sensitive names redacted, not omitted. */
+function visibleConfiguration(row: Record<string, unknown>): Record<string, unknown> {
+  const configuration = row["configuration"] as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const [name, value] of Object.entries(configuration)) {
+    out[name] = /(secret|token|password|key|credential)/i.test(name) && value ? REDACTION : value;
+  }
+  return out;
+}
+
 export const handlers = [
+  http.get("/platform/admin/integrations/catalogue", ({ request }) => {
+    const states = ["NOT_CONFIGURED", "DISCONNECTED", "CONNECTED", "ERROR"];
+    return echo(request, {
+      fields: [{ name: "name", label: "Name", kind: "text" }],
+      default_columns: ["name", "category", "state", "last_connected_at"],
+      categories: [
+        "MESSAGING", "ISSUE_TRACKING", "SOURCE_CONTROL", "CRM", "PAYMENTS",
+        "EMAIL", "STORAGE", "ANALYTICS", "ALERTING", "IDENTITY",
+      ].map((key) => ({
+        key,
+        count: integrationRows.filter((row) => row["category"] === key).length,
+      })),
+      // Counted on the derived state, so the chips agree with the rows.
+      states: states.map((key) => ({
+        key,
+        count: integrationRows.filter((row) => row["state"] === key).length,
+      })),
+      total: integrationRows.length,
+      needing_attention: integrationRows.filter(
+        (row) => row["enabled"] && row["state"] !== "CONNECTED",
+      ).length,
+      redacted: REDACTION,
+    });
+  }),
+  http.put("/platform/admin/integrations/:id/enabled", async ({ params, request }) => {
+    const row = integrationRows.find((item) => item["id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    const body = (await request.json()) as Record<string, unknown>;
+    const wanted = Boolean(body["enabled"]);
+    // The same refusal the service makes: switching on something that cannot
+    // work produces a failure with no cause to find.
+    if (wanted && (row["missing_settings"] as string[]).length > 0) {
+      return HttpResponse.json(
+        {
+          error: "validation_error",
+          message: `${text(row["name"])} still needs ${(row["missing_settings"] as string[]).join(", ")}.`,
+          details: { missing_settings: row["missing_settings"] },
+        },
+        { status: 400 },
+      );
+    }
+    row["enabled"] = wanted;
+    if (!wanted) {
+      row["status"] = "DISCONNECTED";
+      row["state"] = "DISCONNECTED";
+    }
+    return echo(request, row);
+  }),
+  http.post("/platform/admin/integrations/:id/check", ({ params, request }) => {
+    const row = integrationRows.find((item) => item["id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    const missing = row["missing_settings"] as string[];
+    return echo(request, {
+      ...row,
+      configured: missing.length === 0,
+      missing_settings: missing,
+      // Never true here, and never true in the service either.
+      reached_provider: false,
+      checked_at: "2026-09-08T10:00:00Z",
+      note:
+        missing.length === 0
+          ? `Every required setting is present. This does not contact ${text(row["provider"])} — replace \`services/integrations.check\` with the provider's own ping to make it a real connection test.`
+          : `${missing.join(", ")} must be set before ${text(row["provider"])} can be reached.`,
+    });
+  }),
+  http.get("/platform/admin/integrations/:id", ({ params, request }) => {
+    const row = integrationRows.find((item) => item["id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    const configuration = row["configuration"] as Record<string, unknown>;
+    return echo(request, {
+      ...row,
+      configuration: visibleConfiguration(row),
+      redacted_settings: Object.keys(configuration)
+        .filter((name) => /(secret|token|password|key|credential)/i.test(name) && configuration[name])
+        .sort(),
+    });
+  }),
+  http.put("/platform/admin/integrations/:id", async ({ params, request }) => {
+    const index = integrationRows.findIndex((item) => item["id"] === String(params["id"]));
+    if (index < 0) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    const body = (await request.json()) as Record<string, unknown>;
+    const incoming = (body["configuration"] ?? {}) as Record<string, unknown>;
+    const merged = { ...(integrationRows[index]!["configuration"] as Record<string, unknown>) };
+    for (const [name, value] of Object.entries(incoming)) {
+      // The redaction coming back means "leave it alone" — otherwise showing a
+      // masked token once destroys it.
+      if (value === REDACTION) continue;
+      if (value === null || (typeof value === "string" && !value.trim())) delete merged[name];
+      else merged[name] = value;
+    }
+    integrationRows[index] = integrationOf({ ...integrationRows[index], configuration: merged });
+    return echo(request, {
+      ...integrationRows[index],
+      configuration: visibleConfiguration(integrationRows[index]),
+      redacted_settings: Object.keys(merged)
+        .filter((name) => /(secret|token|password|key|credential)/i.test(name) && merged[name])
+        .sort(),
+    });
+  }),
+  http.get("/platform/admin/integrations", ({ request }) => {
+    const url = new URL(request.url);
+    const term = (url.searchParams.get("q") ?? "").toLowerCase();
+    const category = url.searchParams.get("category") ?? "";
+    const matched = integrationRows.filter((row) => {
+      if (category && row["category"] !== category) return false;
+      if (!term) return true;
+      return [row["name"], row["provider"]]
+        .map((value) => text(value).toLowerCase())
+        .join(" ")
+        .includes(term);
+    });
+    return echo(request, {
+      items: matched,
+      total: matched.length,
+      page: 1,
+      page_size: 100,
+      pages: 1,
+      sort: "name",
+      order: "asc",
+      facets: {},
+      columns: ["name", "category", "state", "last_connected_at"],
+    });
+  }),
   http.get("/platform/admin/api-clients/catalogue", ({ request }) =>
     echo(request, {
       fields: [{ name: "name", label: "Name", kind: "text" }],

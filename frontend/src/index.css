@@ -2423,3 +2423,25 @@ mark.nu-mark {
 .nu-api-request-status { flex: none; font-variant-numeric: tabular-nums; }
 .nu-api-request-path { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nu-api-request-when { flex: none; }
+
+/* ── Integrations (§26) ──────────────────────────────────────────────────
+   A page whose value is telling you which three of twelve are broken, so the
+   rows that need somebody are marked and sorted first. */
+.nu-int-what { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.nu-int-provider,
+.nu-int-category,
+.nu-int-situation {
+  font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-int-category { text-transform: capitalize; }
+.nu-int-tally { font-size: 11.5px; }
+/* Kept under 3%, and never the only carrier: the situation is written out in
+   the cell beside it (§64). */
+.nu-int-row.is-attention > td {
+  background: color-mix(in srgb, var(--nu-warning) 3%, transparent);
+}
+.nu-int-situation-detail { margin: 8px 0 2px; font-size: 14px; font-weight: 600; }
+
+.nu-int-fields { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.nu-int-field { display: flex; flex-direction: column; gap: 3px; }
+.nu-int-field-name { font-family: var(--nu-font-mono); font-size: 11.5px; }

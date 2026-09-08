@@ -33,6 +33,7 @@ const JobsPage = lazy(() => import("@/pages/admin/JobsPage"));
 const GroupsPage = lazy(() => import("@/pages/admin/GroupsPage"));
 const OrganizationsPage = lazy(() => import("@/pages/admin/OrganizationsPage"));
 const ApiClientsPage = lazy(() => import("@/pages/admin/ApiClientsPage"));
+const IntegrationsPage = lazy(() => import("@/pages/admin/IntegrationsPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
@@ -443,7 +444,11 @@ export default function App() {
         />
         <Route
           path="admin/integrations"
-          element={<PlaceholderPage section="§26" summary="Connected systems: status, configuration and test connection." />}
+          element={
+            <Suspense fallback={<Loading />}>
+              <IntegrationsPage />
+            </Suspense>
+          }
         />
         <Route
           path="admin/flags"

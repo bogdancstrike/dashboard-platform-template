@@ -481,7 +481,9 @@ FEATURE_FLAGS: tuple[tuple[str, str, str, str, bool], ...] = (
     ("mobile-layout", "Mobile layout", "Responsive layout below 768px.", "GA", False),
 )
 
-#: (key, name, provider, category, icon)
+#: (key, name, provider, category, icon). The categories are asserted against
+#: the vocabulary below rather than trusted — one spelled only here is one the
+#: page's filter cannot offer.
 INTEGRATIONS: tuple[tuple[str, str, str, str, str], ...] = (
     ("slack", "Slack", "Slack", "MESSAGING", "message"),
     ("teams", "Microsoft Teams", "Microsoft", "MESSAGING", "message"),
@@ -496,6 +498,10 @@ INTEGRATIONS: tuple[tuple[str, str, str, str, str], ...] = (
     ("pagerduty", "PagerDuty", "PagerDuty", "ALERTING", "bell"),
     ("okta", "Okta", "Okta", "IDENTITY", "shield"),
 )
+
+assert {category for _, _, _, category, _ in INTEGRATIONS} <= set(
+    vocabulary.INTEGRATION_CATEGORY
+), "a seeded integration has a category the vocabulary does not declare"
 
 #: (key, name, category)
 MONITORED_SERVICES: tuple[tuple[str, str, str], ...] = (

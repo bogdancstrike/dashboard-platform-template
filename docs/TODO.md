@@ -1550,6 +1550,73 @@ commit — built, committed, pushed, redeployed and verified before the next.
       zero size even when open, so `data-testid` on the component is never
       "visible" — it belongs on the content
 
+- [x] **`/admin/integrations` — what this platform talks to** (§26)
+  - **"Not configured" was a lie on every row it appeared on.** The seed drew a
+      status independently of the settings and *always* wrote a complete
+      configuration, so three of twelve said `NOT_CONFIGURED` while holding
+      every setting they required — contradicting the single fact this page
+      exists to establish. `state()` derives it from `required_settings`
+      against `configuration`, nothing reads the column for that purpose, and
+      the seed now leaves a setting out when it means a row to be unconfigured.
+      A blank counts as missing too: a `secret_ref` set to `""` is one somebody
+      started and abandoned, and treating it as present is how a check passes
+      for something that cannot work
+  - **A check verifies the configuration and says it did not contact the
+      provider.** Nothing in this template holds real Stripe credentials, and a
+      green tick reporting "Connected to Stripe" when no packet left the process
+      would be the worst possible lie on a screen whose whole job is to say
+      whether things work. So the payload carries `reached_provider: false`, the
+      button says "Check settings" rather than "Test connection" — a label is a
+      claim before it is even pressed — and the note names the one function to
+      replace to make it real. A failed check is recorded as a failed *check*,
+      worded so nobody mistakes it for the provider's own message
+  - **`enabled` is intent and `state` is outcome, so "switched on and failing"
+      exists.** The seed used to set `enabled` *from* the status, so that row
+      could never occur — and it is exactly the row an operator opens this
+      screen to find. It is counted at the top, sorted first, and marked. A
+      single badge saying "error" would not tell a reader whether anybody
+      expects the thing to be running
+  - **`situation()` is the page's whole argument in one sentence** and is
+      asserted directly: "On, and working", "Switched on and failing",
+      "Switched on, not connected yet", "Off, and it was failing when it
+      stopped", "Needs secret_ref — one setting away from usable". Five states a
+      reader can act on, where one word would have been four states they
+      cannot
+  - **A secret is a reference, redacted by name and not by shape.** A token is
+      a string like any other, so guessing by shape would redact a base URL
+      that happened to look like one while missing a short key that did not.
+      Sending the redaction back means "leave it alone" — otherwise showing a
+      masked token once destroys it, which is the trap the settings screen had
+      to avoid for the same reason. And the audit row carries the setting
+      *names* only: one holding the values would be the secret store nobody
+      meant to build
+  - **Enabling is refused while settings are missing**, with them named:
+      switching on something that cannot possibly work produces a failure with
+      no cause, and somebody then spends an afternoon on a token nobody
+      entered. Turning one *off* clears a stale CONNECTED, because a screen
+      saying "switched off" and "connected" at once is saying two
+      contradictory things
+  - **`NOT_CONFIGURED` is drawn neutral rather than as a warning.** Eight
+      untouched providers in the same colour as the two that are broken makes
+      the colour useless (§64)
+  - **No create and no delete.** The providers come with the code; an operator
+      extends the list by deploying, not by typing a name, and a button
+      implying otherwise would be a promise the platform cannot keep (§76)
+  - **Four tests were quietly not running.** They looked for a seeded row that
+      happened to be incomplete and skipped when every row was complete. They
+      clear a required setting themselves now — the same act an operator
+      performs — and put it back, which also caught two tests that were editing
+      seeded configuration and leaving it changed: the autouse cleanup deletes
+      rows a test *created* and cannot un-edit one it changed
+  - **And a helper existed all along.** `no-base-to-string` was caught a fourth
+      time; the local `text()` added to the fixtures for the third was itself a
+      duplicate of `lib/text.asText`, which the file already imported and which
+      is *better* — it serialises objects rather than dropping them. The
+      mistake was reaching for `String` rather than for the thing already
+      there. Also: AntD's Segmented puts `pointer-events: none` on the radio
+      and lets the label take the click, which `NotificationsPage.test` had
+      already documented
+
 - [ ] **Variety in how "create" opens** — a wizard where the decision has
       parts, a drawer for one object's fields, a plain modal for one question.
       The dashboard wizard is the first; the rest of the modules follow
@@ -1557,9 +1624,8 @@ commit — built, committed, pushed, redeployed and verified before the next.
       list is in [Phase 6](#phase-6--frontend-pages). `/dashboards`, `/kanban`,
       `/files`, `/workflows`, `/calendar`, `/mail`, `/home` and the
       administration index with `/admin/settings`, `/admin/flags`,
-      `/admin/logs`, `/admin/jobs`, `/admin/groups` and `/admin/organizations`
-      and `/admin/api` are done.
-      Remaining: `/admin/integrations` (§26),
+      `/admin/logs`, `/admin/jobs`, `/admin/groups`, `/admin/organizations`,
+      `/admin/api` and `/admin/integrations` are done. Remaining:
       `/favorites`, `/import` (§29), `/exports` (§30), `/settings/security`
       (§41) and the two `/showcase/*` pages — every one of which already has
       its model and its seeded rows
@@ -1873,7 +1939,7 @@ section is a cross-cutting rule rather than a page.
 | 23 | Background jobs | `/admin/jobs` | `/admin/jobs` | [x] |
 | 24 | System health | `/admin/health` | `/health/status` | [x] API |
 | 25 | API management | `/admin/api` | `/admin/api-clients` | [x] |
-| 26 | Integrations | `/admin/integrations` | `/admin/integrations` | [ ] |
+| 26 | Integrations | `/admin/integrations` | `/admin/integrations` | [x] |
 | 27 | Feature flags | `/admin/flags` | `/admin/flags` | [x] |
 | 28 | Reports | `/reports`, `/reports/builder` | `/api/reports`, `/api/analysis/run` | [x] |
 | 29 | Import wizard | `/import` | `/imports` | [ ] |
