@@ -1192,6 +1192,94 @@
         "module_name": "src.api.calendar",
         "method_name": "respond"
       }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "mail_templates",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/mail/templates",
+      "description": "The composer's wording, or one of them with its placeholders filled.",
+      "exec_method": {
+        "module_name": "src.api.mail",
+        "method_name": "mail_templates"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "mail_bulk",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/mail/threads/bulk",
+      "description": "One action, applied to the threads somebody selected.",
+      "exec_method": {
+        "module_name": "src.api.mail",
+        "method_name": "bulk"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "mail_threads",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/mail/threads",
+      "description": "One folder of this reader's mailbox, newest first.",
+      "exec_method": {
+        "module_name": "src.api.mail",
+        "method_name": "threads"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "mail_thread",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/mail/threads/<uuid:thread_id>",
+      "description": "One conversation with its messages, a change to it, or its removal.",
+      "exec_method": {
+        "module_name": "src.api.mail",
+        "method_name": "thread"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "mail_messages",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/mail/messages",
+      "description": "A new message: a draft, a reply, or one queued to go.",
+      "exec_method": {
+        "module_name": "src.api.mail",
+        "method_name": "messages"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "mail_message",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/mail/messages/<uuid:message_id>",
+      "description": "Edit a draft, send it, or discard it.",
+      "exec_method": {
+        "module_name": "src.api.mail",
+        "method_name": "message"
+      }
     }
   ]
 }

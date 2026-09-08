@@ -314,9 +314,8 @@ EMAIL_LABELS: tuple[str, ...] = (
     "Finance", "Legal", "Customers", "Urgent", "Follow-up", "Internal",
     "Vendors", "Projects", "Reports", "Escalation",
 )
-EMAIL_FOLDERS: tuple[tuple[str, float], ...] = (
-    ("INBOX", 0.58), ("SENT", 0.22), ("ARCHIVE", 0.12), ("DRAFTS", 0.05), ("SPAM", 0.03),
-)
+EMAIL_FOLDERS = weighted(vocabulary.EMAIL_SEEDED_FOLDER, (0.58, 0.22, 0.12, 0.05, 0.03))
+EMAIL_PRIORITIES = weighted(vocabulary.EMAIL_PRIORITY, (0.05, 0.82, 0.13))
 
 EXTERNAL_DOMAINS: tuple[str, ...] = (
     "northwind-group.com", "contoso-systems.eu", "lakeside-logistics.nl",

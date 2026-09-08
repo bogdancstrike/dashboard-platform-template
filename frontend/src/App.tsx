@@ -23,6 +23,7 @@ const AnnouncementsPage = lazy(() => import("@/pages/AnnouncementsPage"));
 const KanbanPage = lazy(() => import("@/pages/KanbanPage"));
 const WorkflowsPage = lazy(() => import("@/pages/WorkflowsPage"));
 const CalendarPage = lazy(() => import("@/pages/CalendarPage"));
+const MailPage = lazy(() => import("@/pages/MailPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
@@ -164,15 +165,9 @@ export default function App() {
         <Route
           path="mail"
           element={
-            <PlaceholderPage
-              section="§14–§16"
-              summary="A threaded mailbox: inbox, detail and composer."
-              bullets={[
-                "Folders, labels, starring and bulk actions",
-                "Threaded conversation view (§63 split view)",
-                "Composer with attachments, templates and scheduled send",
-              ]}
-            />
+            <Suspense fallback={<Loading />}>
+              <MailPage />
+            </Suspense>
           }
         />
         <Route

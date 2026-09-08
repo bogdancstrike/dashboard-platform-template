@@ -100,6 +100,10 @@ sync-reports: ## Make saved reports the analysis compiler would reject runnable
 sync-automations: ## Make automations the engine cannot run runnable, and pause the obsolete
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-automations seed
 
+.PHONY: sync-mailboxes
+sync-mailboxes: ## Give each demo persona an inbox worth opening
+	$(COMPOSE) run --rm -e SEED_ARGS=--sync-mailboxes seed
+
 .PHONY: psql
 psql: ## Open a psql shell on the stack's database
 	$(COMPOSE) exec postgres psql -U platform -d platform

@@ -9,6 +9,7 @@
     python -m src.seed --sync-roles       # give built-in roles new permissions
     python -m src.seed --sync-reports     # make unrunnable saved reports runnable
     python -m src.seed --sync-automations # make unrunnable automations runnable
+    python -m src.seed --sync-mailboxes  # give each demo persona an inbox worth opening
     python -m src.seed --dry-run          # build in memory, write nothing
 
 It refuses to seed a database that already has data unless `--reset` or
@@ -48,6 +49,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-roles", action="store_true",
         help="add any newly declared permissions to the built-in roles and exit",
+    )
+    parser.add_argument(
+        "--sync-mailboxes", action="store_true",
+        help="top each demo persona's inbox up to the guaranteed minimum",
     )
     parser.add_argument(
         "--sync-automations", action="store_true",
@@ -143,6 +148,20 @@ def main(argv: list[str] | None = None) -> int:
         print(
             f"{result['repaired']} automation(s) repaired"
             + (f", {result['paused']} paused for want of a dataset" if result["paused"] else "")
+        )
+        return 0
+
+    if args.sync_mailboxes:
+        # The mailbox generator's folder draw is random and left the
+        # administrator's inbox empty at the small scale — an empty inbox on a
+        # demo reads as a broken feature. Additive and idempotent: it counts
+        # what is there and only inserts what is missing.
+        with session_scope() as session:
+            result = runner.sync_mailboxes(session)
+        print(
+            f"{result['added']} thread(s) added across {result['personas']} persona(s)"
+            if result["added"]
+            else "every persona already has an inbox"
         )
         return 0
 

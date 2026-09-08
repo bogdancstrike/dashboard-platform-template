@@ -2024,7 +2024,286 @@ export function resetCalendar(): void {
   seedCalendar();
 }
 
+
+/**
+ * A mailbox (§14–§16).
+ *
+ * Chosen so the page's own distinctions are exercisable: an unread thread, a
+ * read one, a starred one, a multi-message conversation, one with a draft in
+ * it, and one in another folder — plus a template with a placeholder, because
+ * "this still says {{ name }}" is the warning the composer exists to give.
+ */
+export const mailThreads: Record<string, unknown>[] = [];
+
+function mailMessage(overrides: Record<string, unknown>): Record<string, unknown> {
+  return {
+    reference: "<MAIL-000001@nucleus.local>",
+    subject: "A conversation",
+    from: { name: "Mara Manager", email: "manager@nucleus.example", initials: "MM" },
+    to: [{ name: "Ada Administrator", email: "admin@nucleus.example" }],
+    cc: [],
+    bcc: [],
+    body: "First paragraph.\n\nSecond paragraph.",
+    preview: "First paragraph.",
+    folder: "INBOX",
+    is_read: true,
+    is_starred: false,
+    is_draft: false,
+    priority: "NORMAL",
+    sent_at: "2026-09-06T09:00:00Z",
+    read_at: "2026-09-06T09:05:00Z",
+    attachment_count: 0,
+    attachments: [],
+    ...overrides,
+  };
+}
+
+function mailThread(overrides: Record<string, unknown>): Record<string, unknown> {
+  return {
+    folder: "INBOX",
+    message_count: 1,
+    unread_count: 0,
+    has_attachments: false,
+    is_starred: false,
+    is_important: false,
+    labels: [],
+    last_message_at: "2026-09-06T09:00:00Z",
+    participants: [
+      { name: "Mara Manager", email: "manager@nucleus.example", initials: "MM" },
+      { name: "Ada Administrator", email: "admin@nucleus.example", initials: "AA" },
+    ],
+    snippet: "First paragraph.",
+    created_at: "2026-09-06T09:00:00Z",
+    has_draft: false,
+    messages: [],
+    ...overrides,
+  };
+}
+
+function seedMail(): void {
+  mailThreads.length = 0;
+  mailThreads.push(
+    mailThread({
+      id: "thread-1",
+      subject: "Weekly operations summary",
+      // Unread: the state the list renders as weight *and* a dot, and the one
+      // the folder rail badges.
+      unread_count: 1,
+      labels: ["Escalation"],
+      messages: [
+        mailMessage({ id: "msg-1", thread_id: "thread-1", is_read: false, read_at: null }),
+      ],
+    }),
+    mailThread({
+      id: "thread-2",
+      subject: "Change freeze over the release weekend",
+      is_starred: true,
+      message_count: 3,
+      messages: [
+        mailMessage({ id: "msg-2a", thread_id: "thread-2", body: "Oldest." }),
+        mailMessage({ id: "msg-2b", thread_id: "thread-2", body: "Middle." }),
+        mailMessage({
+          id: "msg-2c", thread_id: "thread-2", body: "Newest.",
+          sent_at: "2026-09-07T09:00:00Z",
+        }),
+      ],
+    }),
+    mailThread({
+      id: "thread-3",
+      subject: "Proposal for the field service rollout",
+      folder: "DRAFTS",
+      has_draft: true,
+      messages: [
+        mailMessage({
+          id: "msg-3", thread_id: "thread-3", folder: "DRAFTS", is_draft: true,
+          sent_at: null, read_at: null, body: "Half written.",
+          from: { name: "Ada Administrator", email: "admin@nucleus.example", initials: "AA" },
+          to: [],
+        }),
+      ],
+    }),
+  );
+}
+
+seedMail();
+
+export function resetMail(): void {
+  seedMail();
+}
+
 export const handlers = [
+  http.get("/platform/api/mail/templates", ({ request }) =>
+    echo(request, {
+      items: [
+        {
+          code: "sla-breach",
+          name: "SLA breach notice",
+          description: "For a ticket that has run out of time.",
+          category: "TRANSACTIONAL",
+          subject: "About your ticket",
+          body: "Dear {{ name }}, we are on it.",
+          variables: ["name"],
+        },
+      ],
+      total: 1,
+    }),
+  ),
+  http.post("/platform/api/mail/templates", async ({ request }) => {
+    const body = (await request.json()) as { code?: string; variables?: Record<string, string> };
+    const known = body.variables ?? {};
+    const fill = (text: string) =>
+      text.replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (whole, name: string) => known[name] ?? whole);
+    return echo(request, {
+      code: body.code ?? "",
+      subject: fill("About your ticket"),
+      body: fill("Dear {{ name }}, we are on it."),
+      unfilled: "name" in known ? [] : ["name"],
+    });
+  }),
+  http.post("/platform/api/mail/threads/bulk", async ({ request }) => {
+    const body = (await request.json()) as {
+      ids?: string[];
+      action?: string;
+      folder?: string;
+      label?: string;
+    };
+    const chosen = mailThreads.filter((item) => (body.ids ?? []).includes(String(item["id"])));
+    for (const thread of chosen) {
+      if (body.action === "READ") thread["unread_count"] = 0;
+      if (body.action === "UNREAD") thread["unread_count"] = 1;
+      if (body.action === "STAR") thread["is_starred"] = true;
+      if (body.action === "UNSTAR") thread["is_starred"] = false;
+      if (body.action === "MOVE") thread["folder"] = body.folder;
+      if (body.action === "LABEL") {
+        thread["labels"] = [...new Set([...(thread["labels"] as string[]), body.label!])];
+      }
+    }
+    return echo(request, { changed: chosen.length, action: body.action });
+  }),
+  http.get("/platform/api/mail/threads", ({ request }) => {
+    const query = new URL(request.url).searchParams;
+    const folder = query.get("folder") ?? "INBOX";
+    const term = (query.get("q") ?? "").toLowerCase();
+    const label = query.get("label") ?? "";
+    const items = mailThreads.filter(
+      (item) =>
+        item["folder"] === folder &&
+        (!term || String(item["subject"]).toLowerCase().includes(term)) &&
+        (!label || (item["labels"] as string[]).includes(label)) &&
+        (query.get("starred") !== "1" || item["is_starred"]) &&
+        (query.get("unread") !== "1" || Number(item["unread_count"]) > 0),
+    );
+    const folders = [
+      "INBOX", "OUTBOX", "SENT", "DRAFTS", "ARCHIVE", "SPAM", "TRASH",
+    ].map((key) => {
+      const own = mailThreads.filter((item) => item["folder"] === key);
+      return {
+        key,
+        total: own.length,
+        unread: own.reduce((sum, item) => sum + Number(item["unread_count"]), 0),
+      };
+    });
+    const labels: Record<string, number> = {};
+    for (const item of mailThreads.filter((entry) => entry["folder"] === folder)) {
+      for (const key of item["labels"] as string[]) labels[key] = (labels[key] ?? 0) + 1;
+    }
+    return echo(request, {
+      items,
+      total: items.length,
+      page: 1,
+      page_size: 40,
+      pages: 1,
+      sort: "last_message_at",
+      order: "desc",
+      folder,
+      folders,
+      labels: Object.entries(labels).map(([key, count]) => ({ key, count })),
+      priorities: ["LOW", "NORMAL", "HIGH"],
+      movable: ["INBOX", "ARCHIVE", "SPAM", "TRASH"],
+    });
+  }),
+  http.get("/platform/api/mail/threads/:id", ({ params, request }) => {
+    const row = mailThreads.find((item) => item["id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    // Reading marks it read, exactly as the server does — which is what makes
+    // the list's refetch worth asserting.
+    if (new URL(request.url).searchParams.get("peek") !== "1") {
+      row["unread_count"] = 0;
+      for (const message of row["messages"] as Record<string, unknown>[]) {
+        message["is_read"] = true;
+      }
+    }
+    return echo(request, row);
+  }),
+  http.put("/platform/api/mail/threads/:id", async ({ params, request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const row = mailThreads.find((item) => item["id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    Object.assign(row, body);
+    return echo(request, row);
+  }),
+  http.delete("/platform/api/mail/threads/:id", ({ params, request }) => {
+    const row = mailThreads.find((item) => item["id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    if (row["folder"] === "TRASH") {
+      mailThreads.splice(mailThreads.indexOf(row), 1);
+      return echo(request, { deleted: true, folder: "TRASH", id: String(params["id"]) });
+    }
+    row["folder"] = "TRASH";
+    return echo(request, { deleted: false, folder: "TRASH", id: String(params["id"]) });
+  }),
+  http.post("/platform/api/mail/messages", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const send = Boolean(body["send"]);
+    // Narrowed rather than stringified: `Record<string, unknown>` makes
+    // `String(x)` render an object as "[object Object]", which is a fixture
+    // that silently answers nonsense.
+    const text = (value: unknown) => (typeof value === "string" ? value : "");
+    const created = mailThread({
+      id: `thread-${mailThreads.length + 1}`,
+      subject: text(body["subject"]),
+      folder: send ? "OUTBOX" : "DRAFTS",
+      has_draft: !send,
+      messages: [
+        mailMessage({
+          id: `msg-${mailThreads.length + 1}`,
+          subject: text(body["subject"]),
+          body: text(body["body"]),
+          folder: send ? "OUTBOX" : "DRAFTS",
+          is_draft: !send,
+          sent_at: send ? "2026-09-08T09:00:00Z" : null,
+        }),
+      ],
+    });
+    mailThreads.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.put("/platform/api/mail/messages/:id", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const row = mailThreads.find((item) =>
+      (item["messages"] as Record<string, unknown>[]).some(
+        (message) => message["is_draft"],
+      ),
+    );
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    const draft = (row["messages"] as Record<string, unknown>[]).find(
+      (message) => message["is_draft"],
+    )!;
+    if (body["subject"]) draft["subject"] = body["subject"];
+    if (body["body"]) draft["body"] = body["body"];
+    if (body["send"]) {
+      draft["is_draft"] = false;
+      draft["folder"] = "OUTBOX";
+      row["folder"] = "OUTBOX";
+      row["has_draft"] = false;
+    }
+    return echo(request, row);
+  }),
+  http.delete("/platform/api/mail/messages/:id", ({ request }) => {
+    const at = mailThreads.findIndex((item) => item["has_draft"]);
+    if (at >= 0) mailThreads.splice(at, 1);
+    return echo(request, { deleted: true, id: "discarded" });
+  }),
   http.get("/platform/api/calendar/events", ({ request }) => {
     const query = new URL(request.url).searchParams;
     const category = query.get("category") ?? "";

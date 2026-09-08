@@ -73,6 +73,21 @@ DEVICE_STATUS: Vocabulary = (
     "ONLINE", "OFFLINE", "DEGRADED", "MAINTENANCE", "DECOMMISSIONED",
 )
 
+# ── mail ─────────────────────────────────────────────────────────────────
+
+#: Where a thread lives. `OUTBOX` is the honest folder for a message the
+#: platform has written and nothing has transported: there is no mail transport
+#: here, and calling it `SENT` would have the mailbox claim delivery it cannot
+#: make. `TRASH` is a folder rather than a flag so "empty the bin" is one
+#: query and a deleted thread is still recoverable until it is not.
+EMAIL_FOLDER: Vocabulary = (
+    "INBOX", "OUTBOX", "SENT", "DRAFTS", "ARCHIVE", "SPAM", "TRASH",
+)
+#: The folders the seed fills. `OUTBOX` and `TRASH` are reached by using the
+#: product, and seeding them would be inventing history.
+EMAIL_SEEDED_FOLDER: Vocabulary = ("INBOX", "SENT", "ARCHIVE", "DRAFTS", "SPAM")
+EMAIL_PRIORITY: Vocabulary = ("LOW", "NORMAL", "HIGH")
+
 # ── calendar ─────────────────────────────────────────────────────────────
 
 EVENT_CATEGORY: Vocabulary = (

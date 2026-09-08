@@ -158,6 +158,7 @@ python -m src.seed --sync-schema    # add the columns that can be added, with th
 python -m src.seed --sync-roles     # give the built-in roles any newly declared permissions
 python -m src.seed --sync-reports   # make saved reports the analysis compiler would reject runnable
 python -m src.seed --sync-automations  # make automations the engine cannot run runnable
+python -m src.seed --sync-mailboxes    # give each demo persona an inbox worth opening
 ```
 
 `--sync-schema` refuses to guess: a `NOT NULL` column with no default is
@@ -179,8 +180,15 @@ of them was unrunnable — and a monitoring rule that cannot run reports quiet,
 which reads exactly like good news. It repairs what it can and *pauses* a rule
 whose dataset is gone, because there is nothing to repair that to.
 
+`--sync-mailboxes` is the third of these and the least dramatic: the mailbox
+generator's folder draw is random, and at the small scale it left the
+*administrator* — the account everybody signs in as first — with two threads
+and neither of them in the inbox. An empty inbox on a demo reads as a broken
+feature. It counts what is there and inserts only what is missing.
+
 Under Compose these are `make check-seed`, `make sync-schema`, `make
-sync-roles`, `make sync-reports` and `make sync-automations`.
+sync-roles`, `make sync-reports`, `make sync-automations` and `make
+sync-mailboxes`.
 
 Then:
 

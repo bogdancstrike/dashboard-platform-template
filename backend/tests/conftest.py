@@ -99,6 +99,11 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     "BoardCard", "BoardLane", "Board",
     "DashboardWidget", "Dashboard",
     "ResourceShare", "SavedSearch", "SavedView", "Report",
+    # Mail before files: an attachment points at a `FileObject`, so it goes
+    # first — and attachments before messages before threads.
+    # `test_cleanup_order_respects_the_foreign_keys` caught both of these,
+    # which is exactly what that test is for.
+    "EmailAttachment", "EmailMessage", "EmailThread",
     "Comment", "FileObject", "Folder",
     # Tasks, because an automation's TASK action creates real ones and the
     # records API creates them too — 296 had accumulated in the development

@@ -226,6 +226,29 @@ export async function sweepCalendarEvents(
   }
 }
 
+/**
+ * Remove mail threads this suite created, by id (§14).
+ *
+ * Twice each: the endpoint bins a thread on the first call and deletes it on
+ * the second, which is the product's own two-press rule. A sweep that pressed
+ * once would leave the bin filling up with every run.
+ */
+export async function sweepMailThreads(
+  ids: string[],
+  persona: Persona = "admin",
+): Promise<void> {
+  if (ids.length === 0) return;
+  const api = await apiAs(persona);
+  try {
+    for (const id of ids) {
+      await api.delete(endpoint(`/mail/threads/${id}`));
+      await api.delete(endpoint(`/mail/threads/${id}`));
+    }
+  } finally {
+    await api.dispose();
+  }
+}
+
 /** Change a board — used to share one so a colleague can try to read it. */
 export async function updateBoard(
   id: string,

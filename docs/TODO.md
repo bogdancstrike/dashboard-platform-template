@@ -919,6 +919,77 @@ commit — built, committed, pushed, redeployed and verified before the next.
       events so a 07:03 standup is not hidden by a grid that starts at 08:00
       and a quiet week is not one row tall. Placed by CSS grid and never by
       pixels: no measurement, nothing to break under a font change
+- [x] **`/mail` is implemented** (§14–§16) — a threaded mailbox, a reading
+      pane and a composer
+  - **A mailbox belongs to exactly one person, and that is the whole access
+      model.** Every query is scoped to `owner_id == me`: no sharing scope, no
+      polymorphic share table, no "public" mailbox — because a mailbox is not
+      that kind of object, and the moment one exists every endpoint needs a
+      second rule about whose mail this is. Somebody else's thread answers
+      **404 and not 403**, because saying "that exists but is not yours" is
+      itself the disclosure
+  - **The thread's summary is recomputed, never adjusted.** `message_count`,
+      `unread_count`, `snippet` and `participants` are denormalised so an
+      inbox list draws without joining messages — but a *decremented* counter
+      drifts the first time two things happen at once, and a wrong unread
+      badge is the single most irritating bug a mail client has. One function
+      recomputes all four from the rows, and nothing else touches those
+      columns
+  - **Sending puts a message in OUTBOX, not SENT.** There is no mail transport
+      here; writing `SENT` would have the mailbox claim a delivery it cannot
+      make, and a demo that lies about the one thing a mail client is for is
+      worse than one that says "queued". The composer says so on the way in
+      and the folder rail's tooltip says why the folder exists
+  - **A draft is a message, in the same table.** `is_draft` and a null
+      `sent_at`, so a draft is searchable, carries attachments, and becomes a
+      sent message by being sent — rather than copied between tables leaving
+      two ids behind. Editable until it goes and never afterwards: a queued
+      message is a record of something that happened
+  - **The bin takes two presses**, because a single irreversible delete is the
+      gesture people most often regret — and a bin a second press empties
+      needs no confirmation dialog to be safe
+  - Bulk actions are one endpoint rather than a loop of `PUT`s in the browser:
+      fifty round trips for one gesture, each able to fail on its own, leaves
+      the list in a state nobody chose. The bar arrives when something is
+      selected, with the count on it
+  - Labels are counted **within the current folder**, because that is the
+      folder the filter searches. A mailbox-wide count beside a folder-scoped
+      filter promises rows the click cannot find, which is worse than no count
+  - A template fills what the composer left blank and never overwrites what
+      was typed, and the *server* does the filling — `{{ name }}` and
+      `{{name}}` are the same placeholder, and a second implementation in the
+      browser would disagree the first time somebody wrote a space
+  - 36 backend tests, 28 component tests, 13 Playwright
+  - **The demo mailbox was nearly empty, and the seed's own docstring promised
+      otherwise.** `_mailbox` says "the personas own most of the mail — an
+      inbox is only worth looking at from an account that has one", and at the
+      small scale ten threads over five personas and five folders left the
+      *administrator* — the account everybody signs in as first — with two
+      threads, neither in the inbox. `_cover_every_persona_inbox` now
+      guarantees six, and `python -m src.seed --sync-mailboxes` tops up an
+      existing database the way `--sync-reports` and `--sync-automations` do.
+      That repair had a bug of its own worth recording: seeded from a
+      *constant*, it regenerated the same UUIDs, so a second run that found
+      one persona short collided with the rows the first had written for
+      another — idempotence by counting is not enough when the number
+      generated varies
+  - **Four more defects the tests found.** `_recount` read the relationship
+      SQLAlchemy had already loaded, so a reply counted as no reply at all.
+      `PUT {"send": true}` on a complete draft was refused, because the
+      recipient check read the *payload* rather than the row it had just
+      written. Collapsing the folder rail to icons below 1280px hid the only
+      accessible name every folder button had — 71 axe violations from one
+      `display: none`. And the page could mark threads read but never unread,
+      though the service supported it: "I have read this and want to come back
+      to it" is half of what the flag is for
+  - **And two the *suite* found in itself.** The first version of
+      `test_mail.py` read the seeded mailbox, and its own earlier tests
+      archived the threads its later ones went looking for — draining the
+      administrator's inbox permanently, because the autouse cleanup removes
+      rows a test *created* and cannot un-archive rows it *edited*. Every test
+      makes its own mail now. And the composer's `validateFields()` rejects on
+      an empty field, which `void submit(true)` swallowed: 445 tests passing
+      and one unhandled rejection in the run
 - [ ] **`/home` is the default landing page** — the platform's name and logo,
       the reader's own announcements, notifications and preferences, and
       whatever else is worth seeing on arrival
@@ -927,7 +998,7 @@ commit — built, committed, pushed, redeployed and verified before the next.
       The dashboard wizard is the first; the rest of the modules follow
 - [~] **Every page in the navigation is implemented**, not a placeholder — the
       list is in [Phase 6](#phase-6--frontend-pages). `/dashboards`, `/kanban`,
-      `/files`, `/workflows` and `/calendar` are done; `/mail`, `/home`, the
+      `/files`, `/workflows`, `/calendar` and `/mail` are done; `/home`, the
       admin area and the system pages remain
 - [x] **Six latent e2e flakes fixed, all the same two mistakes.** Four specs
       clicked a select option with `getByTitle`, which AntD also puts on the
@@ -1197,7 +1268,7 @@ function is a slow test that fails for unrelated reasons.
 - [ ] **Command palette** (§31) — `Ctrl-K`, navigate to a record, run a page action
 - [ ] **Audit explorer** (§21) — filter by actor and action, open an entry, read
       the before → after diff
-- [ ] **Email** (§14–§16) — read a thread, reply, save a draft, send
+- [x] **Email** (§14–§16) — read a thread, reply, save a draft, send
 - [ ] **Kanban drag** (§18) — move a card, reload, it stayed
 - [ ] **Unsaved changes** (§74) — edit a form, navigate away, get the guard
 - [ ] **Deep link** (§69) — paste a filtered-table URL as another user, same view
@@ -1227,9 +1298,9 @@ section is a cross-cutting rule rather than a page.
 | 11 | Admin area | `/admin` | `/admin/*` | [ ] |
 | 12 | User management, impersonation | `/admin/users` | `/admin/users` | [x] |
 | 13 | Roles and permission matrix | `/admin/roles` | `/admin/roles` | [x] |
-| 14 | Email inbox | `/mail` | `/mail/threads` | [ ] |
-| 15 | Email detail, threading | `/mail/:id` | `/mail/threads/:id` | [ ] |
-| 16 | Compose email | `/mail/compose` | `/mail/messages` | [ ] |
+| 14 | Email inbox | `/mail` | `/api/mail/threads` | [x] |
+| 15 | Email detail, threading | `/mail?thread=…` | `/api/mail/threads/:id` | [x] |
+| 16 | Compose email | `/mail` (composer) | `/api/mail/messages` | [x] |
 | 17 | Notification centre | header + `/notifications` | `/notifications` | [x] |
 | 18 | Tasks / work queue (kanban) | `/tasks`, `/tasks/:id` | `/api/records/task` | [~] board, drag, card detail |
 | 19 | Calendar | `/calendar` | `/api/calendar/events` | [x] |
