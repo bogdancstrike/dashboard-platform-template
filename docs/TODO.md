@@ -718,6 +718,44 @@ commit — built, committed, pushed, redeployed and verified before the next.
   - The timeouts moved to 60s (test) and 45s (sign-in), because every failure
     they produced was a *timeout under load* — three workers against one API
     container and one Keycloak — and never a wrong value
+- [x] **`/kanban` is implemented** (§18) — Jira-shaped: boards, lanes, epics,
+      stories, tasks and bugs, with a card page, comments and drag
+  - **Why it is a second board at all.** `/tasks` is a view of the work queue
+    and its lanes are the declared `TASK_STATUS` vocabulary — the same values
+    every filter, chart and report reads. A lane invented there would be a
+    status nothing else has heard of, and a card in it would vanish from every
+    report that counts by status. This is the other thing people mean by a
+    board: columns they name, reorder and put limits on
+  - **The hierarchy is one self-reference and one rule.** Three tables would
+    be three sets of comments, three permission stories and three endpoints
+    that all mean "a piece of work"; one table with a `kind` and a
+    `parent_id`, and `PARENT_OF` stating once what may hold what — because
+    that question is asked on create, on re-parent and on delete
+  - **Order is dense integers, rewritten on a drop.** A float midpoint avoids
+    touching neighbours and drifts into precision nobody can debug; this
+    touches a handful of rows and can never leave two cards claiming one place
+  - **A lane is deleted by moving its cards, never by cascading**, and the
+    dialog says how many move and where. Losing somebody's work to a column
+    they were tidying up is the single worst thing a board can do
+  - **A WIP limit warns and never refuses.** A limit set last month must not
+    stop an urgent card today — a board that argues gets worked around in a
+    spreadsheet, and then nobody can see the work at all. The seed guarantees
+    one lane is over its limit, because the warning is the point of the number
+  - **Drag *and* a keyboard menu, through one mutation.** Drag-and-drop is the
+    least accessible interaction there is; the two paths share a call so the
+    one nobody uses by hand cannot break unnoticed (§64)
+  - The card drawer writes on change, offers as a parent only what the rule
+    permits, and carries the *same* comment thread and audit timeline every
+    record page has — which needed `services/comments` to stop assuming a
+    commentable thing is an explorer resource (a card is not a business
+    record with a field catalogue; the board decides who may read it)
+  - 22 backend tests, 17 component tests, 12 Playwright
+  - **Two defects the tests found.** A board key was freed when a board was
+    deleted, so the next board with that name numbered from 1 and its first
+    card collided with the deleted board's `PLAT-00001` — a 500 on the first
+    card of a new board. And the in-place "add a card" field read React state
+    rather than its own value, so a reader who typed and hit Enter in the same
+    tick submitted nothing at all
 - [ ] **`/home` is the default landing page** — the platform's name and logo,
       the reader's own announcements, notifications and preferences, and
       whatever else is worth seeing on arrival

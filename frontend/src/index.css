@@ -1330,6 +1330,123 @@ mark.nu-mark {
   display: flex; flex-direction: column; gap: 2px; font-size: 11.5px;
 }
 
+/* Kanban boards (§18). A row of columns that scrolls sideways and each column
+   scrolls its own cards — the two axes are independent because a long lane
+   must not push the other lanes off the screen. */
+.nu-board {
+  display: flex; gap: 12px; align-items: flex-start;
+  overflow-x: auto; padding-bottom: 8px;
+}
+.nu-lane-col {
+  /* 264px fits four columns on a 1280 laptop without scrolling, which is the
+     commonest board there is; a fifth scrolls into view. */
+  flex: 0 0 264px; display: flex; flex-direction: column; gap: 8px;
+  max-height: calc(100vh - 320px);
+  padding: 10px; border-radius: var(--nu-radius-card);
+  background: var(--nu-surface-raised); border: 1px solid var(--nu-border);
+}
+.nu-lane-col.is-over { border-color: var(--nu-accent); box-shadow: inset 0 0 0 1px var(--nu-accent); }
+/* Over its limit: a tinted edge and, in the column, a sentence. Colour alone
+   is not a fact (§64), and the sentence is what says nothing is being
+   stopped. */
+.nu-lane-col.is-over-limit { border-inline-start: 3px solid var(--nu-warning); }
+.nu-lane-col-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.nu-lane-col-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.nu-lane-col-count { font-variant-numeric: tabular-nums; margin: 0; }
+.nu-lane-col-warning { margin: 0; font-size: 11.5px; color: var(--nu-warning-ink); }
+.nu-lane-col-cards {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 8px;
+  overflow-y: auto; min-height: 12px;
+}
+.nu-lane-col-new,
+.nu-lane-add {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; padding: 8px; border-radius: var(--nu-radius-control);
+  border: 1px dashed var(--nu-border-strong); background: transparent;
+  color: var(--nu-text-secondary); font: inherit; font-size: 12.5px; cursor: pointer;
+}
+.nu-lane-col-new:hover,
+.nu-lane-add:hover { border-color: var(--nu-accent); color: var(--nu-accent); }
+.nu-lane-col-new:focus-visible,
+.nu-lane-add:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; }
+.nu-lane-add { flex: 0 0 200px; align-self: stretch; min-height: 88px; }
+
+/* A card. The kind is a coloured *edge*, never a coloured tile: a board of
+   tinted cards cannot also use colour for priority or lateness, and body text
+   on a tint is a contrast failure waiting to be reported (§64). */
+.nu-card {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 8px 10px; border-radius: var(--nu-radius-control);
+  background: var(--nu-surface); border: 1px solid var(--nu-border);
+  border-inline-start: 3px solid var(--nu-border-strong);
+  cursor: grab;
+}
+.nu-card:hover { border-color: var(--nu-accent); }
+.nu-card--epic { border-inline-start-color: #7c3aed; }
+.nu-card--story { border-inline-start-color: var(--nu-accent); }
+.nu-card--task { border-inline-start-color: var(--nu-info); }
+.nu-card--bug { border-inline-start-color: var(--nu-danger); }
+.nu-card-head { display: flex; align-items: center; gap: 6px; }
+.nu-card-kind {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 4px; flex: none;
+  background: var(--nu-hover); font-size: 10.5px; font-weight: 700;
+}
+.nu-card-ref,
+.nu-card-title {
+  border: 0; background: transparent; padding: 0; margin: 0;
+  font: inherit; color: inherit; text-align: start; cursor: pointer;
+}
+.nu-card-ref { font-family: var(--nu-font-mono); font-size: 11px; color: var(--nu-text-tertiary); }
+.nu-card-ref:hover,
+.nu-card-title:hover { color: var(--nu-accent); }
+.nu-card-title { font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+.nu-card-grip {
+  margin-inline-start: auto; border: 0; background: transparent; padding: 2px;
+  color: var(--nu-text-tertiary); cursor: pointer; line-height: 1;
+}
+.nu-card-grip:hover { color: var(--nu-accent); }
+.nu-card-grip:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 1px; }
+.nu-card-foot {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  font-size: 11px;
+}
+.nu-card-foot .ant-tag { margin: 0; font-size: 10.5px; }
+.nu-card-points,
+.nu-card-checklist { color: var(--nu-text-secondary); font-variant-numeric: tabular-nums; }
+.nu-card-who {
+  margin-inline-start: auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #475569; color: #fff; font-size: 9.5px; font-weight: 600;
+}
+.nu-card-progress { margin: 0 !important; }
+.nu-card-drawer-title { margin: 0 !important; }
+.nu-card-drawer-grid {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+/* The gallery, for when the address names no board. Cards rather than a
+   select: what somebody is choosing between is a board, not a name. */
+.nu-board-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.nu-board-card-name { display: block; margin-top: 6px; font-size: 14px; }
+.nu-board-card-note { display: block; font-size: 12px; }
+.nu-board-card-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--nu-border-subtle);
+  font-size: 11.5px;
+}
+.nu-board-new {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  min-height: 132px; border-radius: var(--nu-radius-card);
+  border: 1px dashed var(--nu-border-strong); background: transparent;
+  color: var(--nu-text-secondary); font: inherit; cursor: pointer;
+}
+.nu-board-new:hover { border-color: var(--nu-accent); color: var(--nu-accent); }
+.nu-board-new:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; }
+
 /* The noticeboard (§17). A notice is *prose*, so it is laid out as prose
    rather than as a table row: what a maintenance notice says is the reason
    somebody opened the page, and a title truncated into a column with the body

@@ -54,6 +54,7 @@ class Scale:
     dashboards: int
     reports: int
     announcements: int
+    kanban_boards: int
 
 
 FULL = Scale(
@@ -91,6 +92,7 @@ FULL = Scale(
     dashboards=30,
     reports=40,
     announcements=14,
+    kanban_boards=4,
 )
 
 SMALL = Scale(
@@ -128,6 +130,7 @@ SMALL = Scale(
     dashboards=6,
     reports=8,
     announcements=6,
+    kanban_boards=2,
 )
 
 SCALES: dict[str, Scale] = {FULL.name: FULL, SMALL.name: SMALL}
@@ -180,6 +183,9 @@ class World:
     notifications: list[Any] = field(default_factory=list)
     announcements: list[Any] = field(default_factory=list)
     announcement_receipts: list[Any] = field(default_factory=list)
+    kanban_boards: list[Any] = field(default_factory=list)
+    kanban_lanes: list[Any] = field(default_factory=list)
+    kanban_cards: list[Any] = field(default_factory=list)
     background_jobs: list[Any] = field(default_factory=list)
     scheduled_tasks: list[Any] = field(default_factory=list)
     feature_flags: list[Any] = field(default_factory=list)

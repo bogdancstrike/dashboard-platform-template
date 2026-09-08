@@ -208,6 +208,111 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "kanban_boards",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/kanban/boards",
+      "description": "Kanban boards this reader may open, and creating one.",
+      "exec_method": {
+        "module_name": "src.api.kanban",
+        "method_name": "boards"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "kanban_board",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/kanban/boards/<uuid:board_id>",
+      "description": "One board whole \u2014 its lanes and their cards \u2014 or a change to it.",
+      "exec_method": {
+        "module_name": "src.api.kanban",
+        "method_name": "board"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "kanban_lanes",
+      "model_name": "Empty",
+      "request_method": [
+        "POST",
+        "PUT"
+      ],
+      "api_url": "/api/kanban/boards/<uuid:board_id>/lanes",
+      "description": "A new lane on a board, or the whole column order.",
+      "exec_method": {
+        "module_name": "src.api.kanban",
+        "method_name": "lanes"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "kanban_lane",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/kanban/lanes/<uuid:lane_id>",
+      "description": "Rename a lane, change its work-in-progress limit, or remove it.",
+      "exec_method": {
+        "module_name": "src.api.kanban",
+        "method_name": "lane"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "kanban_cards",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/kanban/boards/<uuid:board_id>/cards",
+      "description": "A new card on a board.",
+      "exec_method": {
+        "module_name": "src.api.kanban",
+        "method_name": "cards"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "kanban_card",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/kanban/cards/<uuid:card_id>",
+      "description": "One card with its family, a change to it, or its deletion.",
+      "exec_method": {
+        "module_name": "src.api.kanban",
+        "method_name": "card"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "kanban_card_move",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/kanban/cards/<uuid:card_id>/move",
+      "description": "Put a card in a lane at a position, renumbering what it displaced.",
+      "exec_method": {
+        "module_name": "src.api.kanban",
+        "method_name": "move"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "maps_catalog",
       "model_name": "Empty",
       "request_method": [

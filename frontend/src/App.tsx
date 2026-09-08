@@ -20,6 +20,7 @@ import { PlaceholderPage } from "@/pages/PlaceholderPage";
 const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
 const ActivityPage = lazy(() => import("@/pages/ActivityPage"));
 const AnnouncementsPage = lazy(() => import("@/pages/AnnouncementsPage"));
+const KanbanPage = lazy(() => import("@/pages/KanbanPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
@@ -225,15 +226,9 @@ export default function App() {
         <Route
           path="kanban"
           element={
-            <PlaceholderPage
-              section="§18"
-              summary="Boards, lanes and cards — with checklists, comments and drag."
-              bullets={[
-                "Drag a card between lanes and within a lane; the position survives a reload",
-                "A card carries a to-do checklist, comments, attachments and an activity timeline",
-                "Filter by assignee, label, due date and text, server-side",
-              ]}
-            />
+            <Suspense fallback={<Loading />}>
+              <KanbanPage />
+            </Suspense>
           }
         />
         <Route

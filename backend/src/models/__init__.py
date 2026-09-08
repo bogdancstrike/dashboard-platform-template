@@ -13,6 +13,7 @@ from src.models.content import (  # noqa: F401
     Comment, EmailAttachment, EmailMessage, EmailTemplate, EmailThread,
     FileObject, Folder, Tag, TagLink,
 )
+from src.models.kanban import Board, BoardCard, BoardLane  # noqa: F401
 from src.models.identity import (  # noqa: F401
     Department, Group, LoginEvent, Organization, Region, Role, SecurityEvent,
     Team, User, UserSession, user_groups,

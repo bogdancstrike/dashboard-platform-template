@@ -95,6 +95,7 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     # `test_cleanup_order_respects_the_foreign_keys`, which caught this list
     # having the first two the wrong way round.
     "AnnouncementReceipt", "Announcement",
+    "BoardCard", "BoardLane", "Board",
     "DashboardWidget", "Dashboard",
     "ResourceShare", "SavedSearch", "SavedView", "Report",
     "Comment", "FileObject", "Folder",

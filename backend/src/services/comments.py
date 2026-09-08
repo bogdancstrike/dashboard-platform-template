@@ -20,11 +20,21 @@ way through and rendered beside the body.
 **Mentions are resolved at write time.** The ids of the people named with `@`
 are stored alongside the body, so "what am I mentioned in?" is an indexed
 question rather than a scan that re-parses every comment ever written.
+
+**A commentable thing is not always an explorer resource.** Most are — a
+ticket, a task, a project — and their permission comes from the declaration.
+But a kanban card is not a business record with a field catalogue; who may
+read it is decided by the *board* it is on. So the permission lookup is a
+small registry (`COMMENTABLE`) rather than a hard call into the explorer, and
+adding a screen that wants a conversation still needs no migration — only a
+line saying which rule authorises it.
 """
 
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 from sqlalchemy import select
@@ -52,9 +62,57 @@ PAGE = 200
 _MENTION = re.compile(r"@([\w][\w'’.\-]*(?:\s+[\w][\w'’.\-]*)?)")
 
 
+@dataclass(frozen=True, slots=True)
+class Commentable:
+    """A thing that can be talked about, and how to check who may.
+
+    `authorise` raises if this reader may not see the record — which is the
+    same thing as "may not read its conversation", because a conversation
+    about a record is part of it. `label` is for the audit trail.
+    """
+
+    key: str
+    authorise: Callable[[Any, Any, Any], None]
+    label: Callable[[Any, Any], str]
+
+
+def _kanban_card() -> Commentable:
+    """A card's conversation is gated by the board it is on.
+
+    Written here rather than declared as an explorer resource: a card is not a
+    business record with a field catalogue, and giving it one to unlock
+    comments would put board cards in the query builder, the export and the
+    generic detail page — a great deal of machinery for a thing whose page is
+    a drawer.
+    """
+
+    def authorise(session, record_id, principal) -> None:
+        from src.services import kanban
+
+        # Reading the card is the check; it raises `NotFoundError` for a board
+        # this reader cannot see, which is the right answer — telling somebody
+        # a card exists but is not theirs is itself a disclosure.
+        kanban._card_row(session, record_id, principal)
+
+    def label(session, record_id) -> str:
+        from src.models.kanban import BoardCard
+
+        row = session.get(BoardCard, record_id)
+        return f"{row.reference} {row.title}" if row is not None else str(record_id)
+
+    return Commentable(key="kanban_card", authorise=authorise, label=label)
+
+
+#: The things that are commentable *without* being explorer resources.
+#:
+#: Everything absent from here is resolved through the explorer declarations,
+#: which is where the great majority live.
+COMMENTABLE: dict[str, Commentable] = {"kanban_card": _kanban_card()}
+
+
 def listing(session, args, *, principal) -> dict[str, Any]:
     """The conversation on one record, oldest first."""
-    resource, record_id = _target(args, principal=principal)
+    resource, record_id = _target(session, args, principal=principal)
 
     rows = session.scalars(
         select(Comment)
@@ -85,7 +143,7 @@ def create(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
         raise ValidationError("The comment must be a JSON object.")
     principal.require(WRITE_PERMISSION)
 
-    resource, record_id = _target(payload, principal=principal)
+    resource, record_id = _target(session, payload, principal=principal)
     body = _body(payload)
     parent = _parent(session, payload, resource, record_id)
 
@@ -155,14 +213,39 @@ def remove(session, comment_id: Any, *, principal) -> dict[str, Any]:
 # ── helpers ──────────────────────────────────────────────────────────────
 
 
-def _target(source: Any, *, principal) -> tuple[Any, Any]:
-    """The record a comment belongs to, checked against its own permission."""
+def _target(session, source: Any, *, principal) -> tuple[Any, Any]:
+    """The record a comment belongs to, checked against its own permission.
+
+    Returns a `Commentable` for the non-explorer kinds so the rest of this
+    module keeps talking to one shape — a key, and a way to label a row —
+    rather than branching on the resource type in six places.
+    """
     values = source if isinstance(source, dict) else {}
     if not values and source is not None:
         values = {key: source.get(key) for key in ("resource_type", "resource_id")}
-    resource = resource_for(values.get("resource_type"), principal=principal)
+    key = str(values.get("resource_type") or "")
     identifier = parse_uuid(values.get("resource_id"), field="resource_id")
-    return resource, identifier
+
+    special = COMMENTABLE.get(key)
+    if special is not None:
+        # Its own rule authorises it: for a card that means reading the board,
+        # which raises for one this reader cannot see.
+        special.authorise(session, identifier, principal)
+        return special, identifier
+    return resource_for(key, principal=principal), identifier
+
+
+def _authorise_existing(session, resource_type: str, resource_id: str, *, principal) -> None:
+    """The same check, for a comment that is already stored.
+
+    Reached when somebody edits or deletes one: the record's own permission
+    still applies, because a comment is part of the record.
+    """
+    special = COMMENTABLE.get(resource_type)
+    if special is not None:
+        special.authorise(session, parse_uuid(resource_id, field="resource_id"), principal)
+        return
+    resource_for(resource_type, principal=principal)
 
 
 def _body(payload: dict[str, Any]) -> str:
@@ -212,7 +295,7 @@ def _own(session, comment_id: Any, principal) -> Comment:
     if row is None:
         raise NotFoundError("That comment does not exist.")
     # The record's own permission still applies: a comment is part of it.
-    resource_for(row.resource_type, principal=principal)
+    _authorise_existing(session, row.resource_type, row.resource_id, principal=principal)
     if row.author_id != principal.user_id:
         raise ForbiddenError(
             "Only the author may change a comment.",
@@ -246,6 +329,8 @@ def _mentioned(session, body: str) -> list[str]:
 
 
 def _label(session, resource, record_id) -> str:
+    if isinstance(resource, Commentable):
+        return resource.label(session, record_id)
     row = session.get(resource.model, record_id)
     return resource.label_for(row) if row is not None else str(record_id)
 

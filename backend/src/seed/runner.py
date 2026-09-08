@@ -52,6 +52,9 @@ INSERT_ORDER: tuple[str, ...] = (
     "notification_preferences", "saved_searches", "resource_shares",
     "saved_views", "dashboards", "dashboard_widgets", "reports", "favorites",
     "recent_items",
+    # Boards after their cards' assignees exist, and lanes before the cards
+    # that point at them.
+    "kanban_boards", "kanban_lanes", "kanban_cards",
 )
 
 #: (World attribute, column) pairs whose value points at a row in a table that

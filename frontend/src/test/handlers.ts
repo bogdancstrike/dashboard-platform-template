@@ -1621,7 +1621,274 @@ function announcementCategories() {
   ].map(([key, label]) => ({ key, label, count: counted.get(String(key)) ?? 0 }));
 }
 
+/**
+ * A kanban board (§18).
+ *
+ * One epic with a story under it, a task in another lane, and a lane that is
+ * *over its limit* — so the board's own rules are all exercisable: the
+ * warning, the hierarchy, the derived counts and a drop across lanes.
+ */
+export const kanbanBoards: Record<string, unknown>[] = [];
+export const kanbanLanes: Record<string, unknown>[] = [];
+export const kanbanCards: Record<string, unknown>[] = [];
+
+function card(overrides: Record<string, unknown>): Record<string, unknown> {
+  return {
+    board_id: "board-1",
+    lane_id: "lane-1",
+    kind: "TASK",
+    description: null,
+    parent_id: null,
+    position: 0,
+    priority: "NORMAL",
+    story_points: null,
+    assignee: { id: null, name: null, initials: null },
+    labels: [],
+    due_date: null,
+    started_at: null,
+    completed_at: null,
+    checklist: [],
+    checklist_done: 0,
+    created_at: "2026-09-01T09:00:00Z",
+    updated_at: "2026-09-05T09:00:00Z",
+    ...overrides,
+  };
+}
+
+function seedKanban(): void {
+  kanbanBoards.length = 0;
+  kanbanLanes.length = 0;
+  kanbanCards.length = 0;
+
+  kanbanBoards.push(
+    {
+      id: "board-1", key: "PLAT", name: "Platform delivery",
+      description: "Reviewed on Tuesdays.", scope: "PUBLIC", is_archived: false,
+      owner: { id: "user-1", is_me: true }, lane_count: 3, card_count: 4,
+      can_edit: true, created_at: "2026-08-01T09:00:00Z", updated_at: "2026-09-05T09:00:00Z",
+    },
+    {
+      id: "board-2", key: "SUP", name: "Support improvements",
+      description: null, scope: "PRIVATE", is_archived: false,
+      owner: { id: "user-1", is_me: true }, lane_count: 3, card_count: 0,
+      can_edit: true, created_at: "2026-07-01T09:00:00Z", updated_at: "2026-08-01T09:00:00Z",
+    },
+  );
+
+  kanbanLanes.push(
+    { id: "lane-1", name: "Backlog", position: 0, wip_limit: null, is_done: false },
+    // A limit of one with two cards in it: the warning is the point of a limit.
+    { id: "lane-2", name: "In progress", position: 1, wip_limit: 1, is_done: false },
+    { id: "lane-3", name: "Done", position: 2, wip_limit: null, is_done: true },
+  );
+
+  kanbanCards.push(
+    card({
+      id: "card-1", reference: "PLAT-00001", kind: "EPIC",
+      title: "Self-service reporting", lane_id: "lane-1", story_points: 8,
+      labels: ["backend"],
+    }),
+    card({
+      id: "card-2", reference: "PLAT-00002", kind: "STORY",
+      title: "Save a chart from the builder", lane_id: "lane-2",
+      parent_id: "card-1", position: 0, priority: "HIGH",
+      assignee: { id: "user-2", name: "Mara Manager", initials: "MM" },
+      checklist: [
+        { text: "Reviewed", done: true },
+        { text: "Tested", done: false },
+      ],
+      checklist_done: 1,
+    }),
+    card({
+      id: "card-3", reference: "PLAT-00003", kind: "BUG",
+      title: "Fix the edge case found in review", lane_id: "lane-2", position: 1,
+      priority: "CRITICAL",
+    }),
+    card({
+      id: "card-4", reference: "PLAT-00004", kind: "TASK",
+      title: "Update the documentation", lane_id: "lane-3",
+      completed_at: "2026-09-04T09:00:00Z",
+    }),
+  );
+}
+
+seedKanban();
+
+export function resetKanban(): void {
+  seedKanban();
+}
+
+/** The board as the server assembles it: lanes with their cards and counts. */
+function kanbanDetail(boardId: string, filters: URLSearchParams) {
+  const board = kanbanBoards.find((item) => item["id"] === boardId) ?? kanbanBoards[0];
+  const kind = filters.get("kind") ?? "";
+  const label = filters.get("label") ?? "";
+  const term = (filters.get("q") ?? "").toLowerCase();
+
+  const matching = kanbanCards.filter(
+    (item) =>
+      item["board_id"] === board?.["id"] &&
+      (!kind || item["kind"] === kind) &&
+      (!label || (item["labels"] as string[]).includes(label)) &&
+      (!term || String(item["title"]).toLowerCase().includes(term)),
+  );
+
+  return {
+    board,
+    lanes: kanbanLanes.map((lane) => {
+      const held = matching.filter((item) => item["lane_id"] === lane["id"]);
+      const limit = lane["wip_limit"] as number | null;
+      return {
+        ...lane,
+        // The whole match, and the warning derived from it — both the server's.
+        total: held.length,
+        over_limit: limit !== null && held.length > limit,
+        cards: held,
+      };
+    }),
+    unplaced: [],
+    labels: [...new Set(kanbanCards.flatMap((item) => item["labels"] as string[]))].sort(),
+    kinds: [
+      { key: "EPIC", children: ["STORY"] },
+      { key: "STORY", children: ["TASK", "BUG"] },
+      { key: "TASK", children: [] },
+      { key: "BUG", children: [] },
+    ],
+    priorities: ["LOW", "NORMAL", "HIGH", "CRITICAL"],
+    filters: { assignee_id: "", label, kind, q: filters.get("q") ?? "" },
+  };
+}
+
 export const handlers = [
+  http.get("/platform/api/kanban/boards", ({ request }) =>
+    echo(request, {
+      items: kanbanBoards,
+      total: kanbanBoards.length,
+      can_create: true,
+      kinds: [
+        { key: "EPIC", children: ["STORY"] },
+        { key: "STORY", children: ["TASK", "BUG"] },
+        { key: "TASK", children: [] },
+        { key: "BUG", children: [] },
+      ],
+      priorities: ["LOW", "NORMAL", "HIGH", "CRITICAL"],
+    }),
+  ),
+  http.post("/platform/api/kanban/boards", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const created = {
+      ...kanbanBoards[0],
+      ...body,
+      id: `board-${kanbanBoards.length + 1}`,
+      key: "NEW",
+      lane_count: 5,
+      card_count: 0,
+    };
+    kanbanBoards.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.get("/platform/api/kanban/boards/:id", ({ params, request }) =>
+    echo(request, kanbanDetail(String(params["id"]), new URL(request.url).searchParams)),
+  ),
+  http.post("/platform/api/kanban/boards/:id/cards", async ({ params, request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const created = card({
+      ...body,
+      id: `card-${kanbanCards.length + 1}`,
+      reference: `PLAT-0000${kanbanCards.length + 1}`,
+      board_id: String(params["id"]),
+    });
+    kanbanCards.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.post("/platform/api/kanban/cards/:id/move", async ({ params, request }) => {
+    const body = (await request.json()) as { lane_id: string; position: number };
+    const moving = kanbanCards.find((item) => item["id"] === params["id"]);
+    if (!moving) return new HttpResponse(null, { status: 404 });
+    moving["lane_id"] = body.lane_id;
+    moving["position"] = body.position;
+    // The completion follows the lane, as the service does it: a board whose
+    // `completed_at` disagreed with its columns would report a different
+    // number from the one on screen.
+    const lane = kanbanLanes.find((item) => item["id"] === body.lane_id);
+    moving["completed_at"] = lane?.["is_done"] ? "2026-09-08T09:00:00Z" : null;
+    return echo(request, moving);
+  }),
+  http.get("/platform/api/kanban/cards/:id", ({ params, request }) => {
+    const found = kanbanCards.find((item) => item["id"] === params["id"]);
+    if (!found) return new HttpResponse(null, { status: 404 });
+    const parent = kanbanCards.find((item) => item["id"] === found["parent_id"]);
+    return echo(request, {
+      ...found,
+      board: kanbanBoards[0],
+      lanes: kanbanLanes.map((lane) => ({
+        id: lane["id"],
+        name: lane["name"],
+        is_done: lane["is_done"],
+      })),
+      parent: parent ?? null,
+      children: kanbanCards.filter((item) => item["parent_id"] === found["id"]),
+      // The server's hierarchy rule, so the picker cannot offer a pairing the
+      // write would refuse.
+      parent_options:
+        found["kind"] === "STORY"
+          ? kanbanCards.filter((item) => item["kind"] === "EPIC")
+          : found["kind"] === "TASK" || found["kind"] === "BUG"
+            ? kanbanCards.filter((item) => item["kind"] === "STORY")
+            : [],
+      can_edit: true,
+    });
+  }),
+  http.put("/platform/api/kanban/cards/:id", async ({ params, request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const found = kanbanCards.find((item) => item["id"] === params["id"]);
+    if (!found) return new HttpResponse(null, { status: 404 });
+    Object.assign(found, body);
+    if (Array.isArray(body["checklist"])) {
+      found["checklist_done"] = (body["checklist"] as { done: boolean }[]).filter(
+        (item) => item.done,
+      ).length;
+    }
+    return echo(request, found);
+  }),
+  http.delete("/platform/api/kanban/cards/:id", ({ params, request }) => {
+    const index = kanbanCards.findIndex((item) => item["id"] === params["id"]);
+    if (index >= 0) kanbanCards.splice(index, 1);
+    return echo(request, { id: params["id"], deleted: true, reparented: 0 });
+  }),
+  http.post("/platform/api/kanban/boards/:id/lanes", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const created = {
+      id: `lane-${kanbanLanes.length + 1}`,
+      name: body["name"],
+      position: kanbanLanes.length,
+      wip_limit: null,
+      is_done: false,
+    };
+    kanbanLanes.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.put("/platform/api/kanban/lanes/:id", async ({ params, request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const found = kanbanLanes.find((item) => item["id"] === params["id"]);
+    if (!found) return new HttpResponse(null, { status: 404 });
+    Object.assign(found, body);
+    return echo(request, found);
+  }),
+  http.delete("/platform/api/kanban/lanes/:id", ({ params, request }) => {
+    const index = kanbanLanes.findIndex((item) => item["id"] === params["id"]);
+    if (index < 0) return new HttpResponse(null, { status: 404 });
+    const destination = kanbanLanes[index === 0 ? 1 : index - 1];
+    const moved = kanbanCards.filter((item) => item["lane_id"] === params["id"]);
+    for (const item of moved) item["lane_id"] = destination?.["id"];
+    kanbanLanes.splice(index, 1);
+    return echo(request, {
+      id: params["id"],
+      deleted: true,
+      moved: moved.length,
+      moved_to: { id: destination?.["id"], name: destination?.["name"] },
+    });
+  }),
   http.get("/platform/api/announcements", ({ request }) => {
     const url = new URL(request.url);
     const category = url.searchParams.get("category") ?? "";

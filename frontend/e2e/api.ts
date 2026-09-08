@@ -163,6 +163,42 @@ export async function restoreTaskStatus(
 }
 
 /**
+ * Delete these boards, by id.
+ *
+ * By id and not by name prefix: the same mistake `sweepSavedSearches`
+ * documents. A board takes its lanes and cards with it, which is the one place
+ * a cascade is right — the board is the thing that was created.
+ */
+export async function sweepBoards(ids: string[], persona: Persona = "admin"): Promise<void> {
+  if (ids.length === 0) return;
+  const api = await apiAs(persona);
+  try {
+    for (const id of ids) {
+      await api.delete(endpoint(`/kanban/boards/${id}`));
+    }
+  } finally {
+    await api.dispose();
+  }
+}
+
+/** Change a board — used to share one so a colleague can try to read it. */
+export async function updateBoard(
+  id: string,
+  input: Record<string, unknown>,
+  persona: Persona = "admin",
+): Promise<void> {
+  const api = await apiAs(persona);
+  try {
+    const response = await api.put(endpoint(`/kanban/boards/${id}`), { data: input });
+    if (!response.ok()) {
+      throw new Error(`Could not update the board: ${response.status()} ${await response.text()}`);
+    }
+  } finally {
+    await api.dispose();
+  }
+}
+
+/**
  * Publish a notice, and hand back its id.
  *
  * Written through the API rather than through the drawer because these tests

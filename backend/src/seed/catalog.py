@@ -725,6 +725,106 @@ REPORT_NAMES: tuple[tuple[str, str, str], ...] = (
     ("Sign-in activity", "user", "line"),
 )
 
+#: Kanban boards, and the epics on each (§18).
+#:
+#: `(board name, key, [(epic, [story, ...]), ...])`. Written out because a
+#: board is a *plan*: an epic called "Epic 3" with a story called "Story 7"
+#: under it demonstrates a hierarchy and nothing about why anybody would use
+#: one. These read like work somebody is actually doing.
+KANBAN_BOARDS: tuple[tuple[str, str, tuple[tuple[str, tuple[str, ...]], ...]], ...] = (
+    (
+        "Platform delivery", "PLAT",
+        (
+            (
+                "Self-service reporting",
+                (
+                    "Save a chart from the builder",
+                    "Share a report with named colleagues",
+                    "Schedule a report to arrive on Monday",
+                ),
+            ),
+            (
+                "Single sign-on rollout",
+                (
+                    "Map Keycloak groups to platform roles",
+                    "Retire password sign-in for service accounts",
+                    "Document the break-glass procedure",
+                ),
+            ),
+            (
+                "Performance of the record pages",
+                (
+                    "Index the activity feed's resource lookup",
+                    "Stream exports instead of buffering them",
+                ),
+            ),
+        ),
+    ),
+    (
+        "Support improvements", "SUP",
+        (
+            (
+                "First-response time",
+                (
+                    "Route tickets by category on arrival",
+                    "Alert on a ticket nobody has answered in an hour",
+                ),
+            ),
+            (
+                "Customer self-service",
+                (
+                    "Publish the status page",
+                    "Let a customer reopen their own ticket",
+                ),
+            ),
+        ),
+    ),
+    (
+        "Field operations", "FIELD",
+        (
+            (
+                "Device fleet visibility",
+                (
+                    "Report battery health per site",
+                    "Flag a gateway that has not checked in",
+                ),
+            ),
+            (
+                "Installer handbook",
+                ("Photograph every cabinet layout", "Write the commissioning checklist"),
+            ),
+        ),
+    ),
+    (
+        "Onboarding", "ONB",
+        (
+            (
+                "First week that works",
+                (
+                    "Pre-create the accounts a new starter needs",
+                    "One page that says where everything is",
+                ),
+            ),
+        ),
+    ),
+)
+
+#: The tasks and bugs a story is broken into. Generic on purpose — these are
+#: the small pieces, and their titles are the same shape whatever the story.
+KANBAN_PIECES: tuple[tuple[str, str], ...] = (
+    ("TASK", "Design the change"),
+    ("TASK", "Write it"),
+    ("TASK", "Cover it with tests"),
+    ("TASK", "Update the documentation"),
+    ("BUG", "Fix the edge case found in review"),
+    ("TASK", "Roll it out behind a flag"),
+)
+
+KANBAN_LABELS: tuple[str, ...] = (
+    "backend", "frontend", "infrastructure", "documentation",
+    "customer-request", "tech-debt", "security", "accessibility",
+)
+
 SAVED_SEARCH_NAMES: tuple[tuple[str, str], ...] = (
     ("My overdue tasks", "task"),
     ("Critical open tickets", "ticket"),

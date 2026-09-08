@@ -515,3 +515,90 @@ def test_a_task_that_has_not_started_has_no_start(world):
             assert task.started_at is None, task.reference
         if task.status != "DONE":
             assert task.completed_at is None, task.reference
+
+
+# ── kanban boards (§18) ──────────────────────────────────────────────────
+
+
+def test_every_kanban_lane_holds_cards(world):
+    """A board whose columns are empty demonstrates columns and nothing else."""
+    lanes = {lane.id: lane for lane in world.kanban_lanes}
+    held: dict = {}
+    for card in world.kanban_cards:
+        held[card.lane_id] = held.get(card.lane_id, 0) + 1
+
+    assert world.kanban_boards, "the seed builds no boards"
+    for lane_id, lane in lanes.items():
+        assert held.get(lane_id, 0) > 0, f"{lane.name} is empty"
+
+
+def test_one_lane_is_over_its_work_in_progress_limit(world):
+    """The point of a limit is the moment it is exceeded.
+
+    A dataset where no lane ever passes its limit ships a warning nobody has
+    seen — and the warning is the whole reason the limit is a number rather
+    than a comment.
+    """
+    counted: dict = {}
+    for card in world.kanban_cards:
+        counted[card.lane_id] = counted.get(card.lane_id, 0) + 1
+
+    over = [
+        lane
+        for lane in world.kanban_lanes
+        if lane.wip_limit is not None and counted.get(lane.id, 0) > lane.wip_limit
+    ]
+    assert over, "no lane is over its limit, so the warning is undemonstrable"
+
+
+def test_the_kanban_hierarchy_obeys_its_own_rule(world):
+    """Epics hold stories; stories hold tasks and bugs; nothing holds an epic.
+
+    The *service* refuses anything else, so a seed that produced it would be a
+    dataset the product could not have created — and the first person to move
+    a card would be told their board is invalid.
+    """
+    from src.services.kanban import PARENT_OF
+
+    by_id = {card.id: card for card in world.kanban_cards}
+    for card in world.kanban_cards:
+        if card.parent_id is None:
+            assert card.kind in ("EPIC", "TASK", "BUG"), card.reference
+            continue
+        parent = by_id[card.parent_id]
+        assert card.kind in PARENT_OF[parent.kind], f"{parent.kind} holding {card.kind}"
+        assert parent.board_id == card.board_id, "a card's parent is on another board"
+
+
+def test_a_kanban_card_agrees_with_the_lane_it_is_in(world):
+    """The board computes nothing from these timestamps and every report does.
+
+    A card in "Done" with no `completed_at`, or one in the backlog that was
+    started last Tuesday, is a dataset that makes the reports look broken.
+    """
+    lanes = {lane.id: lane for lane in world.kanban_lanes}
+    for card in world.kanban_cards:
+        lane = lanes[card.lane_id]
+        if lane.is_done:
+            assert card.completed_at is not None, card.reference
+        else:
+            assert card.completed_at is None, card.reference
+        if lane.position == 0:
+            assert card.started_at is None, card.reference
+
+
+def test_kanban_references_are_unique_and_carry_their_board_key(world):
+    """`PLAT-00042` is quotable without naming the board, which only works if
+    the key is the board's and the number is unique."""
+    keys = {board.id: board.key for board in world.kanban_boards}
+    references = [card.reference for card in world.kanban_cards]
+    assert len(references) == len(set(references))
+    for card in world.kanban_cards:
+        assert card.reference.startswith(f"{keys[card.board_id]}-"), card.reference
+
+
+def test_every_persona_owns_a_board(world):
+    """§67 cannot be demonstrated by a dataset whose boards belong to strangers."""
+    owners = {board.owner_id for board in world.kanban_boards}
+    personas = [user.id for user in world.personas.values()]
+    assert owners & set(personas), "no persona owns a board"
