@@ -89,7 +89,7 @@ describe("the noticeboard", () => {
     const board = await screen.findByTestId("announcement-board");
     const maintenance = within(board)
       .getByText("Scheduled maintenance this Sunday")
-      .closest(".nu-notice") as HTMLElement;
+      .closest(".nu-announce") as HTMLElement;
     expect(within(maintenance).queryByTestId("acknowledge")).not.toBeInTheDocument();
   });
 

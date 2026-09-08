@@ -236,7 +236,7 @@ export default function AnnouncementsPage() {
           {/* The strip: one chip per category over the live set, and the
               filter. Counts are the server's — a chip counting the page it
               returned would say "of the twenty I sent" (§71). */}
-          <div className="nu-kindstrip" data-testid="announcement-categories">
+          <div className="nu-kindstrip nu-kindstrip--fill" data-testid="announcement-categories">
             <button
               type="button"
               className={`nu-kindchip${category === "" ? " is-active" : ""}`}
@@ -266,7 +266,7 @@ export default function AnnouncementsPage() {
             ))}
           </div>
 
-          <div className="nu-noticeboard" data-testid="announcement-board">
+          <div className="nu-announce-board" data-testid="announcement-board">
             {items.length === 0 ? (
               <Card size="small">
                 <EmptyState
@@ -297,7 +297,7 @@ export default function AnnouncementsPage() {
             {/* History is one click away rather than on the page: a
                 maintenance window that has passed is worth looking up, not
                 worth being shown every morning. */}
-            <div className="nu-noticeboard-foot">
+            <div className="nu-announce-foot">
               <Button
                 type="text"
                 onClick={() => set({ history: includeExpired ? null : "1" })}
@@ -362,87 +362,108 @@ function Notice({
   return (
     <Card
       size="small"
-      className={`nu-notice nu-notice--${notice.severity.toLowerCase()}${
+      className={`nu-announce nu-announce--${notice.severity.toLowerCase()}${
         notice.read_at === null ? " is-unread" : ""
       }`}
       data-testid="announcement"
     >
-      <div className="nu-notice-head">
-        <Space size={6} wrap>
-          {notice.is_pinned && (
-            <Tooltip title="Pinned to the top of the board">
-              <PushpinFilled className="nu-notice-pin" aria-label="Pinned" />
+      {/* Two columns, because prose and facts want different widths. The text
+          is capped at a readable measure — a hundred-character line is hard to
+          read whatever the window is doing — and the width that measure does
+          not use goes to the notice's own facts rather than being left blank.
+          Before this, half of every card was empty. */}
+      <div className="nu-announce-grid">
+        <div className="nu-announce-main">
+          <Title level={4} className="nu-announce-title">
+            {notice.is_pinned && (
+              <Tooltip title="Pinned to the top of the board">
+                <PushpinFilled className="nu-announce-pin" aria-label="Pinned" />
+              </Tooltip>
+            )}
+            {notice.title}
+          </Title>
+          <Paragraph className="nu-announce-body">{notice.body}</Paragraph>
+
+          <div className="nu-announce-actions">
+            {notice.link && <Link to={notice.link}>Open what this is about</Link>}
+            {/* Agreeing is a decision, so it is a button — and it says what it
+                commits the reader to rather than "OK". */}
+            {needsAgreement && (
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                loading={acknowledging}
+                onClick={onAcknowledge}
+                data-testid="acknowledge"
+              >
+                I have read and understood this
+              </Button>
+            )}
+            {notice.requires_acknowledgement && notice.acknowledged_at !== null && (
+              <Tooltip title={absoluteTime(notice.acknowledged_at)}>
+                <Tag color="success" bordered={false} icon={<CheckCircleOutlined />}>
+                  Acknowledged
+                </Tag>
+              </Tooltip>
+            )}
+          </div>
+        </div>
+
+        <aside className="nu-announce-facts">
+          <Space size={4} wrap>
+            <Tag color={SEVERITY_COLOUR[notice.severity]} bordered={false}>
+              {notice.severity}
+            </Tag>
+            <Tag bordered={false}>{notice.category_label}</Tag>
+            {notice.is_expired && <Tag bordered={false}>Expired</Tag>}
+          </Space>
+
+          <Fact label="Published">
+            <Tooltip title={absoluteTime(notice.publish_at ?? notice.created_at)}>
+              <span>{relativeTime(notice.publish_at ?? notice.created_at)}</span>
             </Tooltip>
+          </Fact>
+          {notice.expires_at && (
+            <Fact label={notice.is_expired ? "Ran out" : "Until"}>
+              <Tooltip title={absoluteTime(notice.expires_at)}>
+                <span>{relativeTime(notice.expires_at)}</span>
+              </Tooltip>
+            </Fact>
           )}
-          <Tag color={SEVERITY_COLOUR[notice.severity]} bordered={false}>
-            {notice.severity}
-          </Tag>
-          <Tag bordered={false}>{notice.category_label}</Tag>
-          {notice.is_expired && <Tag bordered={false}>Expired</Tag>}
-          {notice.audience_roles.length > 0 && (
-            <Tooltip title={`Only ${notice.audience_roles.join(", ")} can see this`}>
-              <Tag bordered={false}>{notice.audience_roles.length} roles</Tag>
-            </Tooltip>
-          )}
-        </Space>
-
-        <Space size={8}>
-          <Tooltip title={absoluteTime(notice.publish_at ?? notice.created_at)}>
-            <Text type="secondary" className="nu-notice-when">
-              {relativeTime(notice.publish_at ?? notice.created_at)}
-            </Text>
-          </Tooltip>
-        </Space>
-      </div>
-
-      <Title level={4} className="nu-notice-title">
-        {notice.title}
-      </Title>
-      <Paragraph className="nu-notice-body">{notice.body}</Paragraph>
-
-      <div className="nu-notice-foot">
-        <Space size={8} wrap>
+          <Fact label="Audience">
+            {notice.audience_roles.length === 0 ? (
+              "Everybody"
+            ) : (
+              <Tooltip title={notice.audience_roles.join(", ")}>
+                <span>{notice.audience_roles.length} roles</span>
+              </Tooltip>
+            )}
+          </Fact>
           {notice.author.name && (
-            <>
-              <Avatar size={20} className="nu-notice-avatar">
-                {notice.author.initials}
-              </Avatar>
-              <Text type="secondary">{notice.author.name}</Text>
-            </>
+            <Fact label="Written by">
+              <span className="nu-announce-author">
+                <Avatar size={18} className="nu-announce-avatar">
+                  {notice.author.initials}
+                </Avatar>
+                {notice.author.name}
+              </span>
+            </Fact>
           )}
-          {notice.expires_at && !notice.is_expired && (
-            <Tooltip title={absoluteTime(notice.expires_at)}>
-              <Text type="secondary">· until {relativeTime(notice.expires_at)}</Text>
-            </Tooltip>
-          )}
-        </Space>
-
-        <Space size={8}>
-          {notice.link && <Link to={notice.link}>Open</Link>}
-          {/* Agreeing is a decision, so it is a button — and it says what it
-              commits the reader to rather than "OK". */}
-          {needsAgreement && (
-            <Button
-              size="small"
-              type="primary"
-              icon={<CheckCircleOutlined />}
-              loading={acknowledging}
-              onClick={onAcknowledge}
-              data-testid="acknowledge"
-            >
-              I have read and understood this
-            </Button>
-          )}
-          {notice.requires_acknowledgement && notice.acknowledged_at !== null && (
-            <Tooltip title={absoluteTime(notice.acknowledged_at)}>
-              <Tag color="success" bordered={false} icon={<CheckCircleOutlined />}>
-                Acknowledged
-              </Tag>
-            </Tooltip>
-          )}
-        </Space>
+        </aside>
       </div>
     </Card>
+  );
+}
+
+/** One fact in a notice's rail: the label, then the value. */
+function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="nu-announce-fact">
+      <Text type="secondary" className="nu-announce-fact-label">
+        {label}
+      </Text>
+      <Text className="nu-announce-fact-value">{children}</Text>
+    </div>
   );
 }
 
@@ -473,19 +494,23 @@ function AuthoringTable({
       title: "Notice",
       dataIndex: "title",
       ellipsis: true,
+      // A flex row and not a `Space`: `Space` wraps each child in an
+      // inline-flex item that never shrinks, so the title measured itself
+      // against its own content, its ellipsis never engaged, and the cell
+      // hard-clipped the longest notice mid-word under the State tag.
       render: (title: string, row) => (
-        <Space size={6}>
+        <div className="nu-announce-cell">
           {row.is_pinned && <PushpinFilled aria-label="Pinned" />}
           <Text strong ellipsis={{ tooltip: title }}>
             {title}
           </Text>
-        </Space>
+        </div>
       ),
     },
     {
       title: "State",
       key: "state",
-      width: 128,
+      width: 112,
       // Derived, so a scheduled notice reads as scheduled and an expired one
       // as expired without either being a stored status (§71).
       render: (_value: unknown, row) => (
@@ -506,18 +531,18 @@ function AuthoringTable({
     {
       title: "Severity",
       dataIndex: "severity",
-      width: 116,
+      width: 108,
       render: (severity: string) => (
         <Tag color={SEVERITY_COLOUR[severity]} bordered={false}>
           {severity}
         </Tag>
       ),
     },
-    { title: "Category", dataIndex: "category_label", width: 124 },
+    { title: "Category", dataIndex: "category_label", width: 116 },
     {
       title: "Audience",
       key: "audience",
-      width: 150,
+      width: 128,
       render: (_value: unknown, row) =>
         row.audience_roles.length === 0 ? (
           <Text type="secondary">Everybody</Text>
@@ -532,7 +557,7 @@ function AuthoringTable({
       // "everybody has seen it" and "eleven agreed to it" are different.
       title: "Reach",
       key: "reach",
-      width: 132,
+      width: 148,
       render: (_value: unknown, row) => (
         <Text type="secondary">
           {row.reach?.read ?? 0} read
@@ -543,7 +568,7 @@ function AuthoringTable({
     {
       title: "Published",
       dataIndex: "publish_at",
-      width: 128,
+      width: 118,
       render: (value: string | null) =>
         value ? (
           <Tooltip title={absoluteTime(value)}>
@@ -581,40 +606,49 @@ function AuthoringTable({
   ];
 
   return (
-    <Card size="small" data-testid="announcement-authoring">
-      <Segmented
-        aria-label="Status"
-        className="nu-block"
-        value={status || "all"}
-        onChange={(next) => onStatus(next === "all" ? null : String(next))}
-        options={[
-          { value: "all", label: "Everything" },
-          ...(drafts.data?.statuses ?? []).map((item) => ({
-            value: item,
-            label: item.charAt(0) + item.slice(1).toLowerCase(),
-          })),
-        ]}
-      />
-
-      <Table<Announcement>
-        rowKey="id"
+    // Filling the window rather than ending where the rows do: ten notices in
+    // a 900-pixel viewport left two thirds of the page blank, and the
+    // scrollbar on the document rather than on the list that is long.
+    <div className="nu-fill">
+      <Card
         size="small"
-        columns={columns}
-        dataSource={rows}
-        loading={drafts.isLoading}
-        pagination={false}
-        scroll={{ x: 1000 }}
-        locale={{
-          emptyText: drafts.isLoading ? (
-            " "
-          ) : (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="Nothing written in this state"
-            />
-          ),
-        }}
-      />
-    </Card>
+        className="nu-pane nu-pane--table"
+        data-testid="announcement-authoring"
+        title={
+          <Segmented
+            aria-label="Status"
+            value={status || "all"}
+            onChange={(next) => onStatus(next === "all" ? null : String(next))}
+            options={[
+              { value: "all", label: "Everything" },
+              ...(drafts.data?.statuses ?? []).map((item) => ({
+                value: item,
+                label: item.charAt(0) + item.slice(1).toLowerCase(),
+              })),
+            ]}
+          />
+        }
+      >
+        <Table<Announcement>
+          rowKey="id"
+          size="small"
+          sticky
+          columns={columns}
+          dataSource={rows}
+          loading={drafts.isLoading}
+          pagination={false}
+          locale={{
+            emptyText: drafts.isLoading ? (
+              " "
+            ) : (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Nothing written in this state"
+              />
+            ),
+          }}
+        />
+      </Card>
+    </div>
   );
 }

@@ -96,13 +96,13 @@ test("acknowledging is a row, so it survives a reload", async ({ page }) => {
   });
 
   await page.reload();
-  const notice = page.locator(".nu-notice").filter({ hasText: title });
+  const notice = page.locator(".nu-announce").filter({ hasText: title });
   await expect(notice).toBeVisible();
   await notice.getByTestId("acknowledge").click();
   await expect(notice.getByText("Acknowledged")).toBeVisible();
 
   await page.reload();
-  const again = page.locator(".nu-notice").filter({ hasText: title });
+  const again = page.locator(".nu-announce").filter({ hasText: title });
   await expect(again.getByText("Acknowledged")).toBeVisible();
   await expect(again.getByTestId("acknowledge")).toHaveCount(0);
 });

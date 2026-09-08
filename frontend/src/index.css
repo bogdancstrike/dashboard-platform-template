@@ -241,7 +241,16 @@ body {
    scrolls, so the card's own title stays put. */
 #nu-main { display: flex; flex-direction: column; min-height: 100%; }
 .nu-fill { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
-.nu-pane { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+/* `flex: 1 1 auto` and not `height: 100%`: a percentage height inside a flex
+   container whose own height came from `flex: 1` resolves against an
+   indefinite size and silently falls back to `auto` — which is why the
+   authoring table's card stopped at its last row while the region around it
+   was 732 pixels tall. `height: 100%` stays for the grid case, where the pane
+   is a stretched grid item rather than a flex child. */
+.nu-pane {
+  display: flex; flex-direction: column;
+  flex: 1 1 auto; min-height: 0; height: 100%;
+}
 .nu-pane > .ant-card-body {
   flex: 1 1 auto; min-height: 0; overflow: auto;
   display: flex; flex-direction: column;
@@ -777,11 +786,16 @@ mark.nu-mark {
   overflow: hidden; margin: 3px 0 0; font-size: 12.5px; line-height: 1.45;
   color: var(--nu-text-secondary);
 }
+/* The kind on the left, the time on the right. Every fact used to huddle at
+   the left edge, which left the other half of a wide row blank — and the time
+   is what a reader scans a list of notifications *by*. */
 .nu-notice-meta {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 6px 12px;
   margin-top: 6px; font-size: 11.5px; color: var(--nu-text-tertiary);
 }
-.nu-notice-meta > span + span::before {
+.nu-notice-meta-kind { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.nu-notice-meta-kind > span + span::before {
   content: "·"; margin-right: 6px; color: var(--nu-border-strong);
 }
 .nu-notice-chip {
@@ -1447,36 +1461,72 @@ mark.nu-mark {
 .nu-board-new:hover { border-color: var(--nu-accent); color: var(--nu-accent); }
 .nu-board-new:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; }
 
-/* The noticeboard (§17). A notice is *prose*, so it is laid out as prose
+/* The noticeboard (§17). Named `nu-announce*` and not `nu-notice*`: the
+   notifications page already owns that prefix, and three of these class names
+   collided with its rows — a notification's title became a flex row and its
+   body grew a `pre-wrap` and an 80ch cap, on a page nobody had touched.
+
+   A notice is *prose*, so it is laid out as prose
    rather than as a table row: what a maintenance notice says is the reason
    somebody opened the page, and a title truncated into a column with the body
    behind a click is a page that has hidden its content. */
-.nu-noticeboard { display: flex; flex-direction: column; gap: 12px; }
-.nu-notice { border-inline-start: 3px solid var(--nu-border-strong); }
+.nu-announce-board { display: flex; flex-direction: column; gap: 12px; }
+/* Prose and facts want different widths. The text keeps a readable measure —
+   a hundred-character line is hard to read whatever the window is doing — and
+   the width it does not use carries the notice's own facts rather than being
+   left blank. Half of every card was empty before this. */
+.nu-announce-grid { display: grid; grid-template-columns: minmax(0, 1fr) 244px; gap: 24px; }
+.nu-announce-main { min-width: 0; }
+.nu-announce-facts {
+  display: flex; flex-direction: column; gap: 5px;
+  padding-inline-start: 18px; border-inline-start: 1px solid var(--nu-border-subtle);
+  font-size: 12px;
+}
+/* Label and value on one line. Stacked, four facts made the rail eight lines
+   tall and the *rail* then set the card's height — so the space under the
+   prose was the new empty space. One line each and they balance. */
+.nu-announce-fact {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+}
+.nu-announce-fact-label {
+  flex: none; font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.nu-announce-fact-value { font-size: 12px; text-align: end; min-width: 0; }
+/* A notice's title in the authoring table. The pin must not shrink and the
+   title must, or `Text ellipsis` measures against its own content, never
+   engages, and the cell clips the longest notice mid-word. */
+.nu-announce-cell { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.nu-announce-cell > .anticon { flex: none; }
+.nu-announce-cell > .ant-typography { flex: 1 1 auto; min-width: 0; margin-bottom: 0; }
+.nu-announce-author { display: inline-flex; align-items: center; gap: 6px; }
+.nu-announce-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+@media (max-width: 900px) {
+  /* Stacked, and the rail becomes a row of facts under the prose. */
+  .nu-announce-grid { grid-template-columns: 1fr; gap: 12px; }
+  .nu-announce-facts {
+    flex-direction: row; flex-wrap: wrap; gap: 12px;
+    padding-inline-start: 0; padding-top: 10px;
+    border-inline-start: 0; border-top: 1px solid var(--nu-border-subtle);
+  }
+}
+.nu-announce { border-inline-start: 3px solid var(--nu-border-strong); }
 /* Severity on the leading edge rather than as a fill: the same device
    `StatusTag` uses, and it clears 3:1 as a border where a tinted card would
    not (§64). */
-.nu-notice--warning { border-inline-start-color: var(--nu-warning); }
-.nu-notice--critical { border-inline-start-color: var(--nu-danger); }
+.nu-announce--warning { border-inline-start-color: var(--nu-warning); }
+.nu-announce--critical { border-inline-start-color: var(--nu-danger); }
 /* Unread is a tint *and* a word — the row also says "unread" through the
    count in the header — because colour alone is not a fact. */
-.nu-notice.is-unread { background: var(--nu-accent-soft); }
-.nu-notice-head {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; flex-wrap: wrap; margin-bottom: 6px;
+.nu-announce.is-unread { background: var(--nu-accent-soft); }
+.nu-announce-pin { color: var(--nu-accent); }
+.nu-announce-when { font-size: 12px; white-space: nowrap; }
+.nu-announce-title {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 0 6px !important; font-size: 16px !important;
 }
-.nu-notice-pin { color: var(--nu-accent); }
-.nu-notice-when { font-size: 12px; white-space: nowrap; }
-.nu-notice-title { margin: 0 0 4px !important; font-size: 16px !important; }
-.nu-notice-body { margin: 0 0 10px !important; white-space: pre-wrap; max-width: 78ch; }
-.nu-notice-foot {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; flex-wrap: wrap;
-  padding-top: 8px; border-top: 1px solid var(--nu-border-subtle);
-  font-size: 12px;
-}
-.nu-notice-avatar { font-size: 10px; }
-.nu-noticeboard-foot { display: flex; justify-content: center; padding-top: 4px; }
+.nu-announce-body { margin: 0 0 12px !important; white-space: pre-wrap; max-width: 80ch; }
+.nu-announce-avatar { font-size: 10px; }
+.nu-announce-foot { display: flex; justify-content: center; padding-top: 4px; }
 
 /* The activity feed's kind strip (§35). One chip per kind of thing that
    happens, each carrying a count the server computed over the whole match —
@@ -1484,6 +1534,10 @@ mark.nu-mark {
    rather than hidden: a kind that vanishes when nothing has happened teaches
    a reader that the platform has stopped recording it (§76). */
 .nu-kindstrip { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+/* Chips that share the row rather than huddling at the left of a wide page.
+   Six chips at their content width used half the strip and left the rest
+   blank, which is a row of the page saying nothing. */
+.nu-kindstrip--fill > .nu-kindchip { flex: 1 1 0; min-width: 104px; }
 .nu-kindchip {
   display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
   min-width: 96px; padding: 7px 12px;
@@ -1520,7 +1574,12 @@ mark.nu-mark {
 .nu-feed-avatar { flex: none; font-size: 11px; }
 .nu-feed-body { min-width: 0; flex: 1; }
 .nu-feed-line { font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
-.nu-feed-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 11.5px; margin-top: 2px; }
+/* What it was on the left, when on the right — see the row's own comment. */
+.nu-feed-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 6px 12px; flex-wrap: wrap; font-size: 11.5px; margin-top: 2px;
+}
+.nu-feed-meta-kind { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 /* The analysis question as one bar (§28, §44). It was a 700-pixel column of
    labelled selects with a hint under each; the answer got what was left. The

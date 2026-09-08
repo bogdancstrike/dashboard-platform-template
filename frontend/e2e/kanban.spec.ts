@@ -175,10 +175,15 @@ test("a lane removed hands its cards to another one", async ({ page }) => {
   await expect(dialog.getByText(/1 card will move\. Nothing is deleted\./)).toBeVisible();
   await dialog.getByRole("button", { name: "Remove the lane" }).click();
 
-  // Losing somebody's work to a column they were tidying up is the single
-  // worst thing a board can do.
+  // The lane going is what the click has to *land*, so it is polled: the card
+  // was already on screen before the removal, so waiting for it waits for
+  // nothing and the lane list was read before the refetch arrived.
+  await expect.poll(() => laneNames(page)).not.toContain("Selected");
+
+  // And losing somebody's work to a column they were tidying up is the single
+  // worst thing a board can do — asserted after the lane is gone, which is
+  // the only moment at which the claim means anything.
   await expect(page.getByText("Must not be lost")).toBeVisible();
-  expect(await laneNames(page)).not.toContain("Selected");
 });
 
 test("the hierarchy rule is the server's, not the picker's", async ({ page }) => {

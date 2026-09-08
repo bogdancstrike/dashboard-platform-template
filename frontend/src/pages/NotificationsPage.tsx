@@ -426,13 +426,23 @@ export default function NotificationsPage() {
 
                           {item.body && <p className="nu-notice-text">{item.body}</p>}
 
+                          {/* The kind on the left, when it arrived on the
+                              right. A row whose every fact huddles at the
+                              left edge leaves the other half of a wide page
+                              blank — and the time is what a reader scans a
+                              list of notifications *by*, so the right edge is
+                              where it belongs. */}
                           <div className="nu-notice-meta">
-                            <span className="nu-notice-chip">{humanise(item.category)}</span>
-                            {item.actor_label && <span>{item.actor_label}</span>}
+                            <span className="nu-notice-meta-kind">
+                              <span className="nu-notice-chip">{humanise(item.category)}</span>
+                              {item.actor_label && <span>{item.actor_label}</span>}
+                              {item.link && (
+                                <span className="nu-notice-link">Opens the record</span>
+                              )}
+                            </span>
                             <span title={absoluteTime(item.created_at)}>
                               {relativeTime(item.created_at)}
                             </span>
-                            {item.link && <span className="nu-notice-link">Opens the record</span>}
                           </div>
                         </div>
 

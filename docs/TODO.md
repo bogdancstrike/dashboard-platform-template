@@ -756,6 +756,33 @@ commit — built, committed, pushed, redeployed and verified before the next.
     card of a new board. And the in-place "add a card" field read React state
     rather than its own value, so a reader who typed and hit Enter in the same
     tick submitted nothing at all
+- [x] **The window is filled, on every page that had a void in it** (§20) —
+      "no big empty spaces, full-width components" applied as a rule rather
+      than page by page
+  - **`.nu-pane` was not filling its region**, which is the defect behind most
+      of them: `height: 100%` inside a flex container whose own height came
+      from `flex: 1` resolves against an *indefinite* size and silently falls
+      back to `auto` — so a table's card stopped at its last row inside a
+      region 732 pixels tall. `flex: 1 1 auto; min-height: 0` states it
+      directly, and the percentage stays for the grid case
+  - A notice is now prose beside a facts rail rather than prose above one:
+      four stacked label/value pairs made the rail eight lines tall, the rail
+      then set the card's height, and the space under the shorter column
+      *was* the new empty space. One line each and the two columns balance
+  - The kind strip's chips share the row (`nu-kindstrip--fill`), and the meta
+      line on a notification and an activity row puts the kind at one end and
+      the time at the other, instead of leaving the right half blank
+  - **A class-name collision I introduced.** The announcement card reused
+      `nu-notice-*`, which `/notifications` already owns — two pages quietly
+      restyling each other. Renamed `nu-announce-*`; the lesson is that a
+      page-scoped prefix is only scoped if it names the page
+  - **A cell that clipped instead of ellipsising.** `Space` wraps each child
+      in an inline-flex item that never shrinks, so a title with `ellipsis`
+      measured itself against its own content, never engaged, and the longest
+      notice was cut mid-word under the tag beside it
+  - One more e2e race of the same family as the earlier six: the lane-removal
+      test waited for a card that was *already* on screen, so it waited for
+      nothing and read the lane list before the refetch arrived
 - [ ] **`/home` is the default landing page** — the platform's name and logo,
       the reader's own announcements, notifications and preferences, and
       whatever else is worth seeing on arrival

@@ -203,7 +203,7 @@ export default function ActivityPage() {
 
       {/* The strip: every kind, its count over the whole match, and the
           filter. A chip at zero is still offered — see the module docstring. */}
-      <div className="nu-kindstrip" data-testid="activity-kinds">
+      <div className="nu-kindstrip nu-kindstrip--fill" data-testid="activity-kinds">
         <button
           type="button"
           className={`nu-kindchip${kind === "" ? " is-active" : ""}`}
@@ -353,20 +353,26 @@ function FeedRow({ entry }: { entry: ActivityEntry }) {
           <Text type="secondary">{entry.summary ?? actionWords(entry.action)}</Text>
         </div>
 
+        {/* What it was on the left, when it happened on the right. Both used
+            to sit at the left edge, which left the other half of every row
+            blank on a wide page — and the time is what a reader scans a feed
+            *by*. */}
         <div className="nu-feed-meta">
-          <Tag color={KIND_COLOUR[entry.kind]} bordered={false}>
-            {entry.kind_label}
-          </Tag>
+          <span className="nu-feed-meta-kind">
+            <Tag color={KIND_COLOUR[entry.kind]} bordered={false}>
+              {entry.kind_label}
+            </Tag>
+            {entry.changed.length > 0 && (
+              <Tooltip title={entry.changed.join(", ")}>
+                <Text type="secondary">
+                  {entry.changed.length} field{entry.changed.length === 1 ? "" : "s"} changed
+                </Text>
+              </Tooltip>
+            )}
+          </span>
           <Tooltip title={absoluteTime(entry.occurred_at)}>
             <Text type="secondary">{relativeTime(entry.occurred_at)}</Text>
           </Tooltip>
-          {entry.changed.length > 0 && (
-            <Tooltip title={entry.changed.join(", ")}>
-              <Text type="secondary">
-                {entry.changed.length} field{entry.changed.length === 1 ? "" : "s"} changed
-              </Text>
-            </Tooltip>
-          )}
         </div>
       </div>
     </>
