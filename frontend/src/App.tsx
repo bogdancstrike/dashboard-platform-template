@@ -28,6 +28,7 @@ const HomePage = lazy(() => import("@/pages/HomePage"));
 const AdminHomePage = lazy(() => import("@/pages/admin/AdminHomePage"));
 const SystemSettingsPage = lazy(() => import("@/pages/admin/SettingsPage"));
 const FlagsPage = lazy(() => import("@/pages/admin/FlagsPage"));
+const LogsPage = lazy(() => import("@/pages/admin/LogsPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
@@ -399,11 +400,9 @@ export default function App() {
         <Route
           path="admin/logs"
           element={
-            <PlaceholderPage
-              section="§22"
-              summary="Application logs, with live tail and a detail pane."
-              bullets={["Filter by level, service and date", "Pause and resume the stream", "Expand a line for its context and stack trace"]}
-            />
+            <Suspense fallback={<Loading />}>
+              <LogsPage />
+            </Suspense>
           }
         />
         <Route

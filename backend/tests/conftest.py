@@ -121,28 +121,54 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     # "1m ago · updated the Viewer role" from a test run is a feed nobody can
     # read.
     "ActivityEntry", "AuditLog",
+    # Written by `core/logsink` for *every* API request, so a database test
+    # that makes one HTTP call leaves a line behind and a suite of five
+    # hundred leaves five hundred. Last in the list because nothing points at
+    # a log line.
+    "SystemLog",
 )
 
+#: The column that says when a row was made, for the models whose is not
+#: `created_at`.
+#:
+#: `SystemLog` carries no `TimestampMixin`: a log line's one timestamp is the
+#: moment it describes, and a second column recording when the row was
+#: *inserted* would be the same value under a different name. Declared here
+#: rather than guessed, and asserted below — a model added to the list without
+#: either `created_at` or an entry here fails at collection instead of erroring
+#: in every test's teardown.
+TEST_OWNED_TIME_COLUMN: dict[str, str] = {"SystemLog": "logged_at"}
 
-def _tables_to_clean() -> list[str]:
+
+def _tables_to_clean() -> list[tuple[str, str]]:
     """The owned tables, children first, resolved from the models.
 
-    The names come from `__tablename__` rather than being typed out — the first
-    version typed them and got `file_objects` wrong, which turned every
-    database test's teardown into an error. The *order* is `TEST_OWNED_MODELS`
-    as written: `metadata.sorted_tables` would derive it, but it warns loudly
-    about a pre-existing cycle between `departments`, `teams` and `users`,
-    and 227 warnings per run to avoid ordering sixteen names is a poor trade.
+    Each entry is `(table, time column)`. The names come from `__tablename__`
+    rather than being typed out — the first version typed them and got
+    `file_objects` wrong, which turned every database test's teardown into an
+    error. The *order* is `TEST_OWNED_MODELS` as written:
+    `metadata.sorted_tables` would derive it, but it warns loudly about a
+    pre-existing cycle between `departments`, `teams` and `users`, and 227
+    warnings per run to avoid ordering sixteen names is a poor trade.
     `test_cleanup_order_respects_the_foreign_keys` is what keeps the order
     honest.
+
+    The column is derived rather than assumed to be `created_at`, because not
+    every model has one — and a `DELETE` naming a column that is not there
+    fails the teardown of every test in the suite at once.
     """
     import src.models as models
 
-    tables: list[str] = []
+    tables: list[tuple[str, str]] = []
     for name in TEST_OWNED_MODELS:
         model = getattr(models, name, None)
         assert model is not None, f"{name} is not exported from src.models"
-        tables.append(model.__tablename__)
+        column = TEST_OWNED_TIME_COLUMN.get(name, "created_at")
+        assert hasattr(model, column), (
+            f"{name} has no {column!r} to bound the cleanup by — give it an "
+            f"entry in TEST_OWNED_TIME_COLUMN"
+        )
+        tables.append((model.__tablename__, column))
     return tables
 
 
@@ -178,9 +204,9 @@ def _remove_what_the_test_created(request, has_database):
     yield
 
     with engine.begin() as connection:
-        for table in _tables_to_clean():
+        for table, column in _tables_to_clean():
             connection.execute(
-                text(f'DELETE FROM "{table}" WHERE created_at > :since'), {"since": started}
+                text(f'DELETE FROM "{table}" WHERE "{column}" > :since'), {"since": started}
             )
 
 

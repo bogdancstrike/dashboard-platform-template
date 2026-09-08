@@ -1131,24 +1131,133 @@ commit — built, committed, pushed, redeployed and verified before the next.
       positive", because nought is the only value the defect it guards against
       could produce
   - Three others failed once each in one parallel sweep and passed both alone
-      and in the next full run, and the line reporter's summary had already
-      scrolled past their error text — so they are recorded rather than
-      "fixed" on a hypothesis: `dashboards.spec.ts` "one person has one home
-      dashboard", `entities.spec.ts` "a reader without export rights is told",
-      and `maps.spec.ts` "clicking a country opens the records that are
-      there". All three assert something global about state that a
-      concurrently-running spec as the same persona can move — a dashboard
-      set as home, a role's permissions, a record count — which is the same
-      shape as the flake above and the likeliest cause. The next sweep that
-      reproduces one should be run with `--reporter=list` kept whole
+      and in the next full run, so they were recorded rather than "fixed" on a
+      hypothesis: `dashboards.spec.ts` "one person has one home dashboard",
+      `entities.spec.ts` "a reader without export rights is told", and
+      `maps.spec.ts` "clicking a country opens the records that are there".
+  - **And the maps one turned out to have nothing to do with parallelism.**
+      Kept whole under `--reporter=list`, the error was a URL assertion
+      failing fifteen seconds after a click that had done nothing:
+      `locator("tbody tr").first()` had matched AntD's *empty state*, which it
+      renders as a `<tr class="ant-table-placeholder">`. That row is visible,
+      so `toBeVisible()` passes on it; its first cell reads "No data", which
+      became the country name; and clicking it does nothing at all. It only
+      appears while the table is still loading — hence green alone and red in
+      a loaded sweep. Every `tbody tr` in the suite now asks for
+      `tbody tr[data-row-key]`, which is the same guess the hypothesis above
+      would never have found: the cause was a locator, not shared state
+  - **And one more correction, this one to the diagnosis rather than the
+      code.** Two later sweeps produced four failures each, all at almost
+      exactly the fifteen-second `expect` timeout and all in *different*
+      specs — which reads as a systemic stall. The log this task had just
+      built is what settled it: no HTTP request in the window exceeded 900ms,
+      and a 60-way concurrency burst answered in 0.28s at 250ms worst. The
+      cause was outside the product entirely — a `make test-backend-db` run
+      against the same PostgreSQL *while the sweep was running*, twice, which
+      starved three browsers and the API. Recorded because it is the mistake
+      to avoid repeating: a suite measured while something else is hammering
+      its dependencies produces failures indistinguishable from real ones,
+      and two rounds were spent chasing them
+- [x] **`/admin/logs` — and the log it reads is the platform's own** (§22)
+  - **The table was fiction, and that was the defect.** The seed writes two
+      hundred plausible lines whose correlation ids match nothing, so the one
+      thing a log console exists for — somebody pastes the id off an error
+      screen and finds the request — could not be done at all. Every response
+      already carried `X-Correlation-ID`, every failure payload already
+      repeated it and the frontend already printed it on its error screens;
+      the half that was missing was anything writing it down
+  - **`core/logsink.py` closes that loop**: one `system_logs` row per API
+      request, with the method, the path, the outcome, the duration, the
+      person and the route. `retention.log_days` had been a seeded setting
+      since the first pass, waiting for rows to bound
+  - **It is the deliberate opposite of the audit rule.** `core/audit` takes the
+      caller's session so a rolled-back update cannot leave an entry claiming
+      it happened; the log sink opens its *own*, because the rolled-back
+      request is precisely the one worth a line and sharing the transaction
+      would delete the evidence with the cause. An audit row is part of the
+      change; a log line is a report about it
+  - **And it cannot fail a request.** Guarded at the writer *and* at the
+      `teardown_request` boundary — not redundantly: an exception in a
+      teardown hook propagates out of `ctx.pop` and fails a response that had
+      already succeeded, which is a defect the test found by monkeypatching
+      the writer to raise. Trusting the callee to be safe leaves the whole
+      application one refactor away from an outage
+  - **Health probes and the log endpoints are excluded.** The container asks
+      for health every few seconds and would bury everything else, and a
+      viewer that wrote a line about each of its own reads is a table that
+      grows while somebody looks at it and a tail that never goes quiet
+  - **The level is derived from the outcome**, never chosen by the caller: a
+      caller-chosen level makes the column a matter of taste and the filter
+      beside it useless. `>=500` is ERROR, `>=400` is WARNING, a *slow*
+      success is WARNING too — so "show me the errors" is a question with one
+      answer
+  - **The level strip is a severity floor, not a set of toggles.** Clicking
+      WARNING means warnings *and worse*, because somebody clicking it is
+      looking for trouble and an ERROR hidden behind the filter chosen to find
+      it is the worst thing a log viewer can do. `LOG_LEVEL` moved into
+      `core/vocabulary` ordered quietest-first and the server slices it, so a
+      level added there is ranked by where it is put — the page never knows
+      the ranking. Asserted arithmetically end to end: under the WARNING floor
+      the total equals the warning, error and critical chip counts added up.
+      The chip says "and worse" out loud, because a filter that quietly did
+      more than its label is one nobody trusts
+  - **The tail is a poll with a cursor, not a socket.** Pausing is simply not
+      asking and resuming asks from the id it stopped at, so nothing repeats
+      and nothing is missed. A socket would need a broadcast from every worker
+      for every request — a log stream costing more than the requests it
+      describes — and a viewer that reconnected across a deploy would show a
+      gap it could not explain. The cursor is a line id rather than a
+      timestamp because two lines can share a millisecond, and a timestamp
+      cursor either repeats them or drops one; the ordering is
+      `(logged_at, id)`, and there is a test that writes four lines at one
+      instant and walks the tail past them
+  - **A cursor whose line is gone is refused, not restarted.** A tail that
+      silently jumped back to the beginning would replay an hour of lines into
+      somebody's viewer
+  - **One line opens onto its whole request**: the context, the stack trace,
+      and the siblings sharing its correlation id — one failure is rarely one
+      line, and reading "permission denied" without the request that caused it
+      is reading half the story. Neither heavy field is in the list, because a
+      list carrying every stack trace is a page weighing megabytes for the
+      sake of the one row somebody expands; the rows carry `has_context` and
+      `has_stack_trace` so the table can still mark what is worth opening
+  - **Pruning takes its bound from the setting, and needs the setting's
+      permission.** No `days` parameter — that would make it an arbitrary
+      delete endpoint wearing a retention policy's name, and there is a test
+      that passes `?days=1` and asserts the declared bound was used instead. A
+      manager may read the log and may not enact the policy on it, which is
+      the same split as anywhere else the bound and the data have different
+      owners
+  - **A third accessibility lesson, and a new kind.** `opacity: 0.55` on the
+      "and worse" hint took secondary text to 2.97:1. Opacity *multiplies*
+      whatever colour it lands on, so it escapes the palette entirely —
+      `theme/contrast.test.ts` cannot see it and no token choice protects
+      against it. Set apart by size now. The other five opacity rules in the
+      stylesheet were checked and are graphics or disabled controls, which
+      WCAG exempts
+  - **`JOB_KIND`, `JOB_STATUS` and `LOG_LEVEL` moved into `core/vocabulary`**
+      with the seed's weights derived positionally, which is the same repair
+      the notification categories needed — a value added to a list in one
+      place and not the other is the bug that made every automation
+      notification unfilterable
+  - **The suite's own teardown had to grow a column.** A row per request means
+      every database test leaves a line behind, so `SystemLog` joins the
+      cleanup registry — and its timestamp is `logged_at`, not `created_at`,
+      because a log line's one timestamp is the moment it describes and a
+      second column recording the *insert* would be the same value twice. The
+      column is derived per model now and asserted, rather than assumed: a
+      `DELETE` naming a column that is not there fails the teardown of every
+      test in the suite at once
+
 - [ ] **Variety in how "create" opens** — a wizard where the decision has
       parts, a drawer for one object's fields, a plain modal for one question.
       The dashboard wizard is the first; the rest of the modules follow
 - [~] **Every page in the navigation is implemented**, not a placeholder — the
       list is in [Phase 6](#phase-6--frontend-pages). `/dashboards`, `/kanban`,
       `/files`, `/workflows`, `/calendar`, `/mail`, `/home` and the
-      administration index with `/admin/settings` and `/admin/flags` are done.
-      Remaining: `/admin/groups`, `/admin/organizations`, `/admin/logs` (§22),
+      administration index with `/admin/settings`, `/admin/flags` and
+      `/admin/logs` are done.
+      Remaining: `/admin/groups`, `/admin/organizations`,
       `/admin/jobs` (§23), `/admin/api` (§25), `/admin/integrations` (§26),
       `/favorites`, `/import` (§29), `/exports` (§30), `/settings/security`
       (§41) and the two `/showcase/*` pages — every one of which already has
@@ -1459,7 +1568,7 @@ section is a cross-cutting rule rather than a page.
 | 19 | Calendar | `/calendar` | `/api/calendar/events` | [x] |
 | 20 | File manager | `/files` | `/api/files` | [x] |
 | 21 | **Audit logs** | `/admin/audit` | `/admin/audit` | [x] |
-| 22 | System logs | `/admin/logs` | `/admin/logs` | [ ] |
+| 22 | System logs | `/admin/logs` | `/admin/logs` | [x] |
 | 23 | Background jobs | `/admin/jobs` | `/admin/jobs` | [ ] |
 | 24 | System health | `/admin/health` | `/health/status` | [x] API |
 | 25 | API management | `/admin/api` | `/admin/api-clients` | [ ] |

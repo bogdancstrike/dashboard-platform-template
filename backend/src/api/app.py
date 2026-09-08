@@ -11,7 +11,9 @@ Boot order is load-bearing:
    rather than surfacing as a 500 on first call;
 2. QF's `create_app` loads `config.Config` onto `app.config`;
 3. correlation and CORS hooks, which read `ALLOWED_ORIGINS` from that config;
-4. error handlers last, on both the app and the Api — Flask-RESTX handles
+4. the request-log sink, which writes the id those hooks assign — so a
+   correlation id on an error screen is one `/admin/logs` can find (§22);
+5. error handlers last, on both the app and the Api — Flask-RESTX handles
    exceptions inside `Resource.dispatch_request`, so an `@app.errorhandler`
    alone never sees anything raised by a mounted endpoint.
 
@@ -40,6 +42,7 @@ def create_application() -> Flask:
 
     from src.api import endpoint_map
     from src.core.correlation import install_flask_hooks
+    from src.core.logsink import install as install_request_log
     from src.core.errors import install_flask_error_handlers, install_restx_error_handlers
 
     # Before anything is mounted: every handler the map names must import, and
@@ -69,6 +72,10 @@ def create_application() -> Flask:
     app = handles.app
 
     install_flask_hooks(app)
+    # After the correlation hooks, because a log line's whole value is the id
+    # they assign — and before the error handlers, so a request that fails
+    # inside one still reaches `teardown_request` with a level of ERROR.
+    install_request_log(app)
     _install_websocket(app)
     install_restx_error_handlers(handles.api)
     install_flask_error_handlers(app)

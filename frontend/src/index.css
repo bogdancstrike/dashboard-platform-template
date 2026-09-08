@@ -2201,3 +2201,61 @@ mark.nu-mark {
      enough room to read. */
   .nu-setting { flex-direction: column; align-items: stretch; gap: 8px; }
 }
+
+/* ── The system log (§22) ────────────────────────────────────────────────
+   A page somebody scans two hundred rows of, so every decision here is in
+   service of scanning: one line per line, a fixed row height, and the
+   monospace columns aligned so the eye can run down them. A table whose row
+   height follows the length of a message cannot be scanned at all. */
+.nu-log .ant-table-tbody > tr > td { padding-block: 3px; }
+.nu-log-when,
+.nu-log-took { font-size: 11.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.nu-log-source,
+.nu-log-message {
+  font-family: var(--nu-font-mono); font-size: 11.5px;
+  display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-log-level { font-variant: small-caps; letter-spacing: 0.02em; }
+/* The level is spelled out in its own cell, so this tint is emphasis and not
+   information (§64) — which is what lets the same table be read with no
+   colour vision at all. Kept under 3% so a hundred rows do not become a
+   striped wall. */
+.nu-log-row.is-error > td,
+.nu-log-row.is-critical > td { background: color-mix(in srgb, var(--nu-danger) 3%, transparent); }
+.nu-log-row.is-warning > td { background: color-mix(in srgb, var(--nu-warning) 3%, transparent); }
+
+/* "and worse" is the whole behaviour of the level chips, so it is on them.
+   Set apart by *size*, not by fading: the first version used
+   `opacity: 0.55`, which took secondary text to 2.97:1 and was caught by axe
+   on this page. Opacity multiplies whatever colour it lands on, so it escapes
+   the palette entirely — `theme/contrast.test.ts` cannot see it, and no token
+   choice protects against it. This is information, not decoration: it says
+   what the filter does. */
+.nu-kindchip-more { font-size: 0.9em; }
+
+.nu-log-detail-message {
+  margin: 8px 0 0; font-family: var(--nu-font-mono); font-size: 12.5px;
+  line-height: 1.5; overflow-wrap: anywhere;
+}
+/* Scrolls inside itself rather than widening the drawer: a stack trace is
+   eighty columns of somebody else's code and must not set the layout. */
+.nu-log-block {
+  margin: 6px 0 0; padding: 10px 12px; max-height: 240px; overflow: auto;
+  background: var(--nu-hover); border: 1px solid var(--nu-border-subtle);
+  border-radius: 6px; font-family: var(--nu-font-mono); font-size: 11.5px;
+  line-height: 1.55; white-space: pre;
+}
+.nu-log-block--trace { max-height: 320px; }
+
+.nu-log-related { margin: 6px 0 0; padding: 0; list-style: none; }
+.nu-log-related > li + li { border-top: 1px solid var(--nu-border-subtle); }
+.nu-log-related button {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 4px;
+  background: none; border: 0; text-align: start; cursor: pointer; color: inherit;
+}
+.nu-log-related button:hover { background: var(--nu-hover); }
+.nu-log-related button:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: -2px; }
+.nu-log-related-message {
+  font-family: var(--nu-font-mono); font-size: 11.5px; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}

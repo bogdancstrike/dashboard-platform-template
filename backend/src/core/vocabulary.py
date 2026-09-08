@@ -122,6 +122,34 @@ EVENT_FREQUENCY: Vocabulary = ("DAILY", "WEEKLY", "MONTHLY")
 
 USER_STATUS: Vocabulary = ("ACTIVE", "INVITED", "SUSPENDED", "DISABLED")
 
+# ── operations ───────────────────────────────────────────────────────────
+
+#: Ordered by severity, quietest first, and *relied upon* to be: the log
+#: viewer's "this level and worse" filter is a slice of this tuple, so the
+#: order is the meaning and not a presentation choice.
+LOG_LEVEL: Vocabulary = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+
+#: What a background job is for. The queue a job runs on is *not* a closed set
+#: — a deployment adds queues — so it is faceted from the data instead.
+JOB_KIND: Vocabulary = (
+    "EXPORT", "IMPORT", "REPORT", "EMAIL", "MAINTENANCE", "SYNC", "REINDEX",
+)
+
+#: A job's lifecycle. RETRYING is deliberately its own state rather than a
+#: flag on FAILED: "failed and will be tried again" and "failed and will not"
+#: are the two answers an operator needs to tell apart at a glance.
+JOB_STATUS: Vocabulary = (
+    "QUEUED", "RUNNING", "RETRYING", "SUCCEEDED", "FAILED", "CANCELLED",
+)
+
+#: The states from which nothing more happens on its own. Retry is offered on
+#: these and refused on the others, because retrying a running job is how one
+#: job becomes two writing the same rows.
+JOB_TERMINAL: Vocabulary = ("SUCCEEDED", "FAILED", "CANCELLED")
+
+#: And the states a cancel can still reach.
+JOB_CANCELLABLE: Vocabulary = ("QUEUED", "RUNNING", "RETRYING")
+
 
 def weighted(values: Vocabulary, weights: tuple[float, ...]) -> tuple[tuple[str, float], ...]:
     """Pair a vocabulary with the seed's distribution, positionally.

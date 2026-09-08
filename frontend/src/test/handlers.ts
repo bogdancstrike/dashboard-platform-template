@@ -2277,7 +2277,181 @@ export function resetFlags(): void {
   seedFlags();
 }
 
+/**
+ * The system log (§22).
+ *
+ * Enough shape to exercise the page's three real behaviours: the severity
+ * floor, the cursor tail, and a line whose detail carries siblings. The tail
+ * is modelled honestly — `after` returns only what follows that id — because a
+ * fixture that always returned the same rows would let the page repeat lines
+ * forever and the test would still pass.
+ */
+export const logRows: Record<string, unknown>[] = [];
+
+const LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] as const;
+
+function logLine(overrides: Record<string, unknown>): Record<string, unknown> {
+  return {
+    service: "platform-api",
+    logger: "api.request",
+    correlation_id: "aaaabbbbccccdddd",
+    trace_id: null,
+    user_id: null,
+    host: "api-7f9c",
+    environment: "production",
+    duration_ms: 24,
+    status_code: 200,
+    has_context: true,
+    has_stack_trace: false,
+    ...overrides,
+  };
+}
+
+function seedLogs(): void {
+  logRows.length = 0;
+  logRows.push(
+    logLine({
+      id: "log-1", logged_at: "2026-09-08T10:00:00Z", level: "INFO",
+      message: "GET /platform/api/me → 200", duration_ms: 19,
+    }),
+    logLine({
+      id: "log-2", logged_at: "2026-09-08T10:00:05Z", level: "WARNING",
+      message: "GET /platform/api/records/nonesuch → 404", status_code: 404, duration_ms: 3,
+    }),
+    // The slow one, and the one with a trace — the two rows the detail pane
+    // and the "Took" column exist for.
+    logLine({
+      id: "log-3", logged_at: "2026-09-08T10:00:09Z", level: "ERROR",
+      message: "POST /platform/api/records/order → 500", status_code: 500,
+      duration_ms: 2410, has_stack_trace: true, correlation_id: "shared-request",
+    }),
+    logLine({
+      id: "log-4", logged_at: "2026-09-08T10:00:08Z", level: "INFO",
+      message: "POST /platform/api/records/order → in", correlation_id: "shared-request",
+      duration_ms: 61,
+    }),
+    logLine({
+      id: "log-5", logged_at: "2026-09-08T10:00:11Z", level: "DEBUG",
+      message: "cache miss for dashboard:kpi", logger: "src.core.cache", duration_ms: 1,
+    }),
+  );
+}
+
+seedLogs();
+
+export function resetLogs(): void {
+  seedLogs();
+}
+
+/** `min_level` is a severity floor, exactly as the server treats it. */
+function atLeast(level: string): string[] {
+  const index = LOG_LEVELS.indexOf(level as (typeof LOG_LEVELS)[number]);
+  return index < 0 ? [...LOG_LEVELS] : LOG_LEVELS.slice(index);
+}
+
+function matchingLogs(url: URL): Record<string, unknown>[] {
+  const term = (url.searchParams.get("q") ?? "").toLowerCase();
+  const minLevel = url.searchParams.get("min_level") ?? "";
+  const service = url.searchParams.get("service") ?? "";
+  const allowed = minLevel ? atLeast(minLevel) : null;
+  return logRows.filter((row) => {
+    if (allowed && !allowed.includes(String(row["level"]))) return false;
+    if (service && String(row["service"]) !== service) return false;
+    if (term) {
+      const haystack = [row["message"], row["logger"], row["correlation_id"]]
+        .map((value) => (typeof value === "string" ? value.toLowerCase() : ""))
+        .join(" ");
+      if (!haystack.includes(term)) return false;
+    }
+    return true;
+  });
+}
+
+function byNewest(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+  return [...rows].sort((left, right) =>
+    String(right["logged_at"]).localeCompare(String(left["logged_at"])),
+  );
+}
+
 export const handlers = [
+  http.get("/platform/admin/logs/catalogue", ({ request }) =>
+    echo(request, {
+      fields: [
+        { name: "level", label: "Level", kind: "enum" },
+        { name: "service", label: "Service", kind: "enum" },
+        { name: "logger", label: "Logger", kind: "enum" },
+        { name: "correlation_id", label: "Correlation ID", kind: "text" },
+        { name: "status_code", label: "Status", kind: "number" },
+      ],
+      default_columns: ["logged_at", "level", "service", "logger", "message"],
+      default_sort: "logged_at",
+      // Every level, including CRITICAL at nought — the page must still offer
+      // it, which is what `test_the_catalogue_offers_every_level` asserts on
+      // the server and the component test asserts here.
+      levels: LOG_LEVELS.map((key) => ({
+        key,
+        count: logRows.filter((row) => row["level"] === key).length,
+      })),
+      retention_days: 30,
+      total: logRows.length,
+    }),
+  ),
+  http.get("/platform/admin/logs/tail", ({ request }) => {
+    const url = new URL(request.url);
+    const matched = matchingLogs(url);
+    // Oldest first, as the server sends it.
+    const ordered = [...matched].sort((left, right) =>
+      String(left["logged_at"]).localeCompare(String(right["logged_at"])),
+    );
+    const after = url.searchParams.get("after");
+    const from = after ? ordered.findIndex((row) => row["id"] === after) + 1 : 0;
+    const items = after ? ordered.slice(from) : ordered;
+    return echo(request, {
+      items,
+      cursor: items.length > 0 ? items[items.length - 1]!["id"] : after,
+      more: false,
+    });
+  }),
+  http.post("/platform/admin/logs/prune", ({ request }) =>
+    echo(request, { removed: 4, retention_days: 30, kept: logRows.length }),
+  ),
+  http.get("/platform/admin/logs/:id", ({ params, request }) => {
+    const row = logRows.find((item) => item["id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    const correlation = row["correlation_id"];
+    return echo(request, {
+      ...row,
+      context: { method: "GET", path: "/platform/api/me", route: "/api/me" },
+      stack_trace: row["has_stack_trace"]
+        ? "Traceback (most recent call last):\n  File \"src/api/records.py\", line 88\n    raise"
+        : null,
+      span_id: null,
+      related: logRows.filter(
+        (item) => item["id"] !== row["id"] && item["correlation_id"] === correlation,
+      ),
+    });
+  }),
+  http.get("/platform/admin/logs", ({ request }) => {
+    const url = new URL(request.url);
+    const matched = byNewest(matchingLogs(url));
+    const facets = {
+      service: [...new Set(logRows.map((row) => String(row["service"])))].map((value) => ({
+        value,
+        count: logRows.filter((row) => row["service"] === value).length,
+      })),
+    };
+    return echo(request, {
+      items: matched,
+      total: matched.length,
+      page: 1,
+      page_size: 50,
+      pages: 1,
+      sort: "logged_at",
+      order: "desc",
+      facets,
+      columns: ["logged_at", "level", "service", "logger", "message"],
+    });
+  }),
   http.get("/platform/admin/settings", ({ request }) => echo(request, settingsPage())),
   http.put("/platform/admin/settings/:key", async ({ params, request }) => {
     const body = (await request.json()) as Record<string, unknown>;

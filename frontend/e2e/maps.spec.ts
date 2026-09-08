@@ -46,14 +46,23 @@ test.describe("maps", () => {
     };
 
     // A map whose levels disagree is a map nobody reconciles twice.
-    await expect(page.getByTestId("map-regions").locator("tbody tr").first()).toBeVisible();
+    await expect(
+      page.getByTestId("map-regions").locator("tbody tr[data-row-key]").first(),
+    ).toBeVisible();
     expect(await sum("map-regions")).toBe(await sum("map-countries"));
   });
 
   test("clicking a country opens the records that are there", async ({ page }) => {
     await signIn(page, "admin", "/maps?dataset=customer&metric=count&period=all_time");
 
-    const row = page.getByTestId("map-countries").locator("tbody tr").first();
+    // `tbody tr[data-row-key]` and not `tbody tr`: AntD renders its empty
+    // state as a `<tr class="ant-table-placeholder">`, which *is* visible — so
+    // the first version of this waited on the placeholder, read "No data" out
+    // of it as the country name, clicked nothing, and failed on the URL
+    // assertion fifteen seconds later. It only shows up when the table is
+    // still loading, which is why it failed in a parallel sweep and passed
+    // alone.
+    const row = page.getByTestId("map-countries").locator("tbody tr[data-row-key]").first();
     await expect(row).toBeVisible();
     const country = ((await row.locator("td").first().textContent()) ?? "").trim();
     await row.click();
@@ -76,8 +85,12 @@ test.describe("maps", () => {
     // A canvas has no text and no tab stop, so the tables carry the same
     // numbers as rows (§54, §55) — and the picture says so.
     await expect(page.getByRole("img", { name: /by place/ })).toBeVisible();
-    await expect(page.getByTestId("map-regions").locator("tbody tr").first()).toBeVisible();
-    await expect(page.getByTestId("map-countries").locator("tbody tr").first()).toBeVisible();
+    await expect(
+      page.getByTestId("map-regions").locator("tbody tr[data-row-key]").first(),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("map-countries").locator("tbody tr[data-row-key]").first(),
+    ).toBeVisible();
 
     await page.waitForFunction(() =>
       document.getAnimations().every((animation) => animation.playState !== "running"),

@@ -34,7 +34,7 @@ docs/        Architecture notes and the implementation tracker
 | `maps/endpoint.json` | **The API surface.** QF mounts every endpoint from here |
 | `src/config.py` | Every runtime knob, read once from the environment |
 | `config.py` | Top-level shim — QF hard-codes `config.Config` |
-| `src/core/` | db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
+| `src/core/` | db, errors, pagination, query, rules, cache, auth, audit, correlation, logsink, clock |
 | `src/models/` | 49 tables across identity, business, content, personal and platform |
 | `src/api/` | Request handlers, plus the loader that checks the endpoint map |
 | `src/services/` | Domain services the handlers compose |
@@ -336,6 +336,32 @@ single INSERT.
 **Audit rows commit with the change they describe.** `core/audit.py` takes the
 caller's session rather than opening its own — otherwise a rolled-back update
 leaves an audit entry claiming it happened.
+
+**The request log is the deliberate opposite, for the same reason.**
+`core/logsink.py` writes one `system_logs` row per API request in a session of
+its *own*, after the response: the rolled-back request is precisely the one
+worth having a line for, and sharing the transaction would delete the evidence
+along with the cause. Two rules that look contradictory and are not — an audit
+row is *part of* the change, a log line is a *report about* it.
+
+That log is what makes a correlation id useful rather than decorative. Every
+response carries `X-Correlation-ID`, every failure payload repeats it, the
+frontend prints it on its error screens — and `/admin/logs` finds the request
+by it. The level is derived from the outcome (`>=500` ERROR, `>=400` WARNING, a
+slow success WARNING too) so that "show me the errors" is a question with one
+answer, and health probes and the log endpoints themselves are excluded, since
+a table that grows while somebody looks at it has a tail that never settles.
+Nothing there can fail a request: the write is wrapped at both the callee and
+the `teardown_request` boundary, because an exception in a teardown hook
+propagates out of the request context and fails a response that had already
+succeeded.
+
+One consequence to expect: the table grows with use, and running the
+end-to-end suite adds a few thousand lines of the suite's own traffic. That is
+the feature working rather than a leak — `retention.log_days` bounds it, and
+"Apply retention" on `/admin/logs` enacts that bound on demand for anybody
+holding `settings.manage`. If a demo database has become noisy, the level chips
+and the correlation-id search are what cut through it.
 
 **Error handlers are installed twice, on purpose.** Flask-RESTX handles
 exceptions inside `Resource.dispatch_request`, so an `@app.errorhandler` alone

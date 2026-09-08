@@ -1340,6 +1340,76 @@
         "module_name": "src.api.settings",
         "method_name": "flag"
       }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "log_catalogue",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/logs/catalogue",
+      "description": "The log's filter vocabulary, per-level counts and retention bound.",
+      "exec_method": {
+        "module_name": "src.api.logs",
+        "method_name": "catalogue"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "log_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/logs",
+      "description": "One page of the system log, filtered and faceted in PostgreSQL.",
+      "exec_method": {
+        "module_name": "src.api.logs",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "log_tail",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/logs/tail",
+      "description": "Whatever has arrived since the caller's cursor \u2014 the live tail.",
+      "exec_method": {
+        "module_name": "src.api.logs",
+        "method_name": "tail"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "log_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/logs/<string:line_id>",
+      "description": "One log line in full: its context, stack trace and sibling lines.",
+      "exec_method": {
+        "module_name": "src.api.logs",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "log_prune",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/admin/logs/prune",
+      "description": "Apply the retention policy now, as `retention.log_days` declares it.",
+      "exec_method": {
+        "module_name": "src.api.logs",
+        "method_name": "prune"
+      }
     }
   ]
 }

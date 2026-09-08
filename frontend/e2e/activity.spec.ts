@@ -44,10 +44,13 @@ test("choosing a kind narrows the feed and leaves the counts alone", async ({ pa
   await signIn(page, "admin", "/activity?period=all_time");
   await expect(page.getByTestId("activity-kinds")).toBeVisible();
 
+  // Polled rather than read once: the strip is *visible* before its numbers
+  // arrive, so reading a count straight after `toBeVisible()` races the
+  // response and fails in about a second with a zero. Waiting for the number
+  // is the difference between asserting the count and asserting the fetch.
+  await expect.poll(async () => chipCount(page, "SECURITY")).toBeGreaterThan(0);
+  await expect.poll(async () => chipCount(page, "RECORD")).toBeGreaterThan(0);
   const before = await chipCount(page, "SECURITY");
-  const others = await chipCount(page, "RECORD");
-  expect(before).toBeGreaterThan(0);
-  expect(others).toBeGreaterThan(0);
 
   await page.getByTestId("activity-kind-SECURITY").click();
   await expect(page).toHaveURL(/kind=SECURITY/);
@@ -75,7 +78,6 @@ test("choosing a kind narrows the feed and leaves the counts alone", async ({ pa
     expect(await chipCount(page, kind)).toBeGreaterThan(0);
   }
   expect(await chipCount(page, "SECURITY")).toBeGreaterThanOrEqual(before);
-  expect(others).toBeGreaterThan(0);
 
   // The question is in the address, so it survives a reload (§69).
   await page.reload();

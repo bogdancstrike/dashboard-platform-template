@@ -475,7 +475,7 @@ def test_cleanup_order_respects_the_foreign_keys():
     from tests.conftest import TEST_OWNED_MODELS, _tables_to_clean
 
     tables = _tables_to_clean()
-    position = {name: index for index, name in enumerate(tables)}
+    position = {name: index for index, (name, _column) in enumerate(tables)}
     assert len(position) == len(TEST_OWNED_MODELS), "a table is listed twice"
 
     for table_name, index in position.items():

@@ -95,9 +95,12 @@ test("a flag's rollout is the same answer on every request", async ({ page }) =>
   // twice — the percentage is a stable hash of the flag and the person, and a
   // flag that flickered would make every bug report about it unreproducible.
   const read = async () =>
-    page.getByTestId("flags-table").locator("tbody tr").evaluateAll((rows) =>
-      rows.map((row) => row.textContent?.includes("yes") ?? false),
-    );
+    page
+      // `[data-row-key]` because AntD's empty state is a `tbody tr` too, and
+      // an empty table would otherwise read as one row saying "no".
+      .getByTestId("flags-table")
+      .locator("tbody tr[data-row-key]")
+      .evaluateAll((rows) => rows.map((row) => row.textContent?.includes("yes") ?? false));
   const first = await read();
   await page.reload();
   await expect(page.getByTestId("flags-table")).toBeVisible();

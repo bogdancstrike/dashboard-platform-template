@@ -426,9 +426,7 @@ LOG_MESSAGES: dict[str, tuple[str, ...]] = {
     ),
 }
 
-LOG_LEVELS: tuple[tuple[str, float], ...] = (
-    ("DEBUG", 0.24), ("INFO", 0.5), ("WARNING", 0.16), ("ERROR", 0.085), ("CRITICAL", 0.015),
-)
+LOG_LEVELS = weighted(vocabulary.LOG_LEVEL, (0.24, 0.5, 0.16, 0.085, 0.015))
 
 LOGGERS: tuple[str, ...] = (
     "src.api.entities", "src.api.search", "src.api.admin", "src.core.auth",
@@ -436,14 +434,12 @@ LOGGERS: tuple[str, ...] = (
     "src.services.import", "src.services.notifications", "gunicorn.access",
 )
 
-JOB_KINDS: tuple[tuple[str, float], ...] = (
-    ("EXPORT", 0.28), ("IMPORT", 0.16), ("REPORT", 0.14), ("EMAIL", 0.12),
-    ("MAINTENANCE", 0.12), ("SYNC", 0.1), ("REINDEX", 0.08),
-)
-JOB_STATUSES: tuple[tuple[str, float], ...] = (
-    ("SUCCEEDED", 0.6), ("FAILED", 0.11), ("RUNNING", 0.08),
-    ("QUEUED", 0.12), ("CANCELLED", 0.05), ("RETRYING", 0.04),
-)
+JOB_KINDS = weighted(vocabulary.JOB_KIND, (0.28, 0.16, 0.14, 0.12, 0.12, 0.1, 0.08))
+#: Weighted in the vocabulary's order (QUEUED, RUNNING, RETRYING, SUCCEEDED,
+#: FAILED, CANCELLED), not in the order a dashboard would list them — the
+#: positional pairing is what makes a new state fail loudly instead of
+#: silently never being generated.
+JOB_STATUSES = weighted(vocabulary.JOB_STATUS, (0.12, 0.08, 0.04, 0.6, 0.11, 0.05))
 JOB_ERRORS: tuple[str, ...] = (
     "Upstream timed out after 30s",
     "Row 412: customer code does not exist",
