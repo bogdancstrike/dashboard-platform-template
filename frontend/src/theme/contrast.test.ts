@@ -21,7 +21,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { INK, NEUTRAL, SEMANTIC_INK } from "@/theme/tokens";
+import { AVATAR_GROUND, INK, NEUTRAL, SEMANTIC_INK } from "@/theme/tokens";
 
 /** WCAG relative luminance. */
 function luminance(hex: string): number {
@@ -83,6 +83,13 @@ describe.each(["light", "dark"] as const)("text is legible in %s", (mode) => {
       expect(contrast(ink, grounds.card)).toBeGreaterThanOrEqual(4.5);
     },
   );
+
+  it("carries white initials on an avatar", () => {
+    // AntD's default ground is #bfbfbf — 1.84:1 with white, which is to say
+    // an avatar nobody can read. One value for both appearances, because an
+    // identity marker should not change colour with the theme.
+    expect(contrast("#ffffff", AVATAR_GROUND)).toBeGreaterThanOrEqual(4.5);
+  });
 
   it("keeps the ramp a ramp: quieter text is quieter, not merely different", () => {
     // The point of three text colours is a hierarchy. Two that measure the

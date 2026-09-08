@@ -30,6 +30,7 @@ from src.core import audit
 from src.core.auth import PERMISSION_LABELS
 from src.core.clock import iso
 from src.core.errors import ConflictError, NotFoundError, ValidationError
+from src.core.naming import initials
 from src.core.pagination import envelope, parse_page, parse_uuid
 from src.core.query import Field, FieldSet, apply_filters, apply_sort, count_of, facets_for
 
@@ -321,7 +322,7 @@ def summarise(user) -> dict[str, Any]:
         "email": user.email,
         "username": user.username,
         "full_name": user.full_name,
-        "initials": _initials(user.full_name),
+        "initials": initials(user.full_name),
         "avatar_url": user.avatar_url,
         "job_title": user.job_title or "",
         "status": user.status,
@@ -412,7 +413,4 @@ def _state(user) -> dict[str, Any]:
     }
 
 
-def _initials(name: str) -> str:
-    parts = [part for part in str(name or "").split() if part]
-    return "".join(part[0].upper() for part in parts[:2]) or "?"
 

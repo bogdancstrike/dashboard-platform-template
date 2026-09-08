@@ -77,3 +77,31 @@ export function dayBucket(value: string | null | undefined, now: Date = new Date
     ...(moment.getFullYear() === now.getFullYear() ? {} : { year: "numeric" }),
   });
 }
+
+/**
+ * Rows in the order they arrived, split into runs that share a day.
+ *
+ * Written here because two pages already needed it and a third was about to
+ * write it again: the notifications page and the activity feed both take a
+ * list the server has already ordered and put a heading in wherever the day
+ * changes. Three copies of a loop like this is three chances to get the
+ * boundary condition wrong, and the mistake — a heading repeated because two
+ * adjacent buckets compared unequal — is one nobody reads a diff to find.
+ *
+ * The list is *not* re-sorted. The server decided the order, and a client that
+ * sorted again would disagree with the pagination that produced it.
+ */
+export function groupByDay<T>(
+  items: readonly T[],
+  instantOf: (item: T) => string | null | undefined,
+  now: Date = new Date(),
+): { label: string; items: T[] }[] {
+  const buckets: { label: string; items: T[] }[] = [];
+  for (const item of items) {
+    const label = dayBucket(instantOf(item), now);
+    const last = buckets[buckets.length - 1];
+    if (last && last.label === label) last.items.push(item);
+    else buckets.push({ label, items: [item] });
+  }
+  return buckets;
+}

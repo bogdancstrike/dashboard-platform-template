@@ -10,6 +10,7 @@ import { theme, type ThemeConfig } from "antd";
 
 import {
   ACCENT,
+  AVATAR_GROUND,
   DENSITY,
   FONT,
   INK,
@@ -139,6 +140,11 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
         // is the same meaning at 6.5:1.
         colorError: dark ? SEMANTIC_INK.dark.danger : SEMANTIC.danger,
       },
+      // An initials avatar's default ground is `#bfbfbf`, which carries white
+      // text at 1.84:1 — every avatar in the product without a photograph was
+      // illegible, and axe only found it on the first page that shows a column
+      // of them. Slate at 7.6:1 (§55, §64), asserted in `contrast.test.ts`.
+      Avatar: { colorTextPlaceholder: AVATAR_GROUND },
       Card: { paddingLG: scale.padding + 4 },
       Descriptions: { itemPaddingBottom: scale.padding },
       Tabs: {

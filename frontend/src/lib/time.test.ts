@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { absoluteTime, parseInstant, relativeTime } from "@/lib/time";
+import { absoluteTime, groupByDay, parseInstant, relativeTime } from "@/lib/time";
 
 const NOW = new Date("2026-09-03T12:00:00Z");
 
@@ -31,5 +31,56 @@ describe("relativeTime", () => {
     expect(relativeTime("not a date", NOW)).toBe("—");
     expect(absoluteTime(undefined)).toBe("—");
     expect(parseInstant("")).toBeNull();
+  });
+});
+
+/** groupByDay's own clock, so its cases read as calendar dates. */
+const THAT_MONDAY = new Date("2026-09-07T12:00:00Z");
+
+describe("groupByDay", () => {
+  const at = (iso: string) => ({ when: iso as string | null });
+
+  it("puts a heading in wherever the day changes, and nowhere else", () => {
+    const grouped = groupByDay(
+      [
+        // Mid-morning throughout, so the buckets do not depend on which
+        // side of midnight the runner's timezone puts them.
+        at("2026-09-07T11:00:00Z"),
+        at("2026-09-07T09:00:00Z"),
+        at("2026-09-06T09:00:00Z"),
+        at("2026-09-04T09:00:00Z"),
+      ],
+      (item) => item.when,
+      THAT_MONDAY,
+    );
+
+    expect(grouped.map((bucket) => bucket.label)).toEqual(["Today", "Yesterday", "Friday"]);
+    expect(grouped.map((bucket) => bucket.items.length)).toEqual([2, 1, 1]);
+  });
+
+  it("keeps the order the server chose rather than sorting again", () => {
+    // A client that re-sorted would disagree with the pagination that
+    // produced the page — the second row here is *older* than the third, and
+    // that is the server's business.
+    const grouped = groupByDay(
+      [at("2026-09-07T09:00:00Z"), at("2026-09-07T11:00:00Z")],
+      (item) => item.when,
+      THAT_MONDAY,
+    );
+
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0]?.items.map((item) => item.when)).toEqual([
+      "2026-09-07T09:00:00Z",
+      "2026-09-07T11:00:00Z",
+    ]);
+  });
+
+  it("gives a row with no timestamp a bucket rather than dropping it", () => {
+    const grouped = groupByDay([at("2026-09-07T09:00:00Z"), { when: null }], (i) => i.when, THAT_MONDAY);
+    expect(grouped.map((bucket) => bucket.label)).toEqual(["Today", "Undated"]);
+  });
+
+  it("is empty for an empty list, not one empty bucket", () => {
+    expect(groupByDay([], () => null, THAT_MONDAY)).toEqual([]);
   });
 });

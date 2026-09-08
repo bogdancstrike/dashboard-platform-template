@@ -18,6 +18,7 @@ import { PlaceholderPage } from "@/pages/PlaceholderPage";
  * which is what produced a cross-chunk cycle and a blank page last time.
  */
 const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
+const ActivityPage = lazy(() => import("@/pages/ActivityPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
@@ -125,15 +126,9 @@ export default function App() {
         <Route
           path="activity"
           element={
-            <PlaceholderPage
-              section="§35, §48"
-              summary="Everything that happened, filterable by activity type."
-              bullets={[
-                "One feed across users, records, comments, uploads and system events",
-                "Filter by activity type, actor, resource and date range",
-                "The same timeline component that renders on every detail page",
-              ]}
-            />
+            <Suspense fallback={<Loading />}>
+              <ActivityPage />
+            </Suspense>
           }
         />
         <Route

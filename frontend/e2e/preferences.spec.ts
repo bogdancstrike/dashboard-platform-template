@@ -117,9 +117,20 @@ test.describe("preferences", () => {
     const sider = page.locator(".nu-sider");
     await expect(sider).toBeVisible();
 
+    // The collapse is stored on the *account*, so this test inherits whatever
+    // the last run left — the same reason the density and theme tests read
+    // before they write. It used to assume the rail started expanded, and
+    // failed for that reason on the run after any run that ended collapsed.
+    const collapsedClass = /ant-layout-sider-collapsed/;
+    const startedCollapsed = ((await sider.getAttribute("class")) ?? "").includes(
+      "ant-layout-sider-collapsed",
+    );
+
     // AntD's own trigger at the foot of the sider — the control a reader uses.
-    await page.locator(".ant-layout-sider-trigger").click();
-    await expect(sider).toHaveClass(/ant-layout-sider-collapsed/);
+    if (!startedCollapsed) {
+      await page.locator(".ant-layout-sider-trigger").click();
+    }
+    await expect(sider).toHaveClass(collapsedClass);
 
     // Collapsed, the rail is icons and nothing else: a group heading truncated
     // to "OV…" is a word that has lost the letters that made it a word, and it
@@ -152,8 +163,11 @@ test.describe("preferences", () => {
       await expect(other.locator(".nu-sider")).toHaveClass(/ant-layout-sider-collapsed/);
     } finally {
       await fresh.close();
-      await page.locator(".ant-layout-sider-trigger").click();
-      await expect(sider).not.toHaveClass(/ant-layout-sider-collapsed/);
+      // Left as it was found, so the next run starts where this one did.
+      if (!startedCollapsed) {
+        await page.locator(".ant-layout-sider-trigger").click();
+        await expect(sider).not.toHaveClass(collapsedClass);
+      }
     }
   });
 

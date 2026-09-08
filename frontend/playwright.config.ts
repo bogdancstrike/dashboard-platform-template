@@ -29,7 +29,14 @@ export default defineConfig({
   workers: process.env["CI"] ? 1 : Number(process.env["E2E_WORKERS"] ?? 3),
   reporter: process.env["CI"] ? [["github"], ["html", { open: "never" }]] : [["list"]],
   timeout: 30_000,
-  expect: { timeout: 10_000 },
+  // 15s rather than 10. Every failure this cap produced was a *timeout* under
+  // load — a sign-in stuck on "Signing you in…", a detail page that had not
+  // rendered — never a wrong value, and each one read like a product bug
+  // until somebody opened the trace. The suite is 156 tests across three
+  // browsers against one API container with two workers and one Keycloak, so
+  // the tail is real; an expectation that passes resolves in milliseconds and
+  // pays nothing for the larger cap.
+  expect: { timeout: 15_000 },
   use: {
     baseURL: process.env["BASE_URL"] ?? "http://localhost:5174",
     trace: "retain-on-failure",

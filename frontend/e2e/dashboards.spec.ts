@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
+import { sweepDashboards } from "./api";
 import { signIn, storageStateFor } from "./auth";
 
 /**
@@ -19,23 +20,17 @@ test.describe.configure({ mode: "serial" });
 /**
  * Anything this file created, gone — whether the test that made it passed.
  *
- * The first version cleaned up on the happy path only, and a run where one
- * assertion failed left its dashboard behind. Forty-four of them accumulated
- * before anybody looked at the page.
+ * Two versions preceded this. The first cleaned up on the happy path only, so
+ * a run where one assertion failed left its dashboard behind; forty-four
+ * accumulated before anybody looked at the page. The second swept through the
+ * page: click Delete, then wait on a confirmation modal — and under the full
+ * suite's load that wait expired often enough to fail tests that had already
+ * passed, which inverts what cleanup is for.
+ *
+ * So it goes through the API (`e2e/api.ts`), where there is no modal to wait
+ * on and one request per leftover.
  */
-test.afterEach(async ({ page }) => {
-  await showGallery(page);
-  const gallery = page.getByTestId("dashboard-gallery");
-  if ((await gallery.count()) === 0) return;
-
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    const leftover = gallery.locator(".nu-board-card").filter({ hasText: /^E2E / }).first();
-    if ((await leftover.count()) === 0) return;
-    await leftover.locator("button[aria-label^='Delete ']").click();
-    await page.locator(".ant-modal-confirm").getByRole("button", { name: "Delete" }).click();
-    await expect(page.locator(".ant-modal-confirm")).toBeHidden();
-  }
-});
+test.afterEach(() => sweepDashboards(["E2E "]));
 
 /**
  * Create one through the wizard, holding what was asked for.
@@ -106,6 +101,14 @@ async function deleteDashboard(page: Page, name: string): Promise<void> {
 }
 
 async function addWidget(page: Page, kind: string, title: string): Promise<void> {
+  // Close whatever layer is open first — `Esc` closes the topmost one (§54).
+  // The wizard and the card menus leave a dropdown fading, and on a loaded
+  // machine it lingers long enough to swallow this click: Playwright reported
+  // "`.ant-dropdown-menu` intercepts pointer events" for thirty seconds and
+  // the failure read as a broken button.
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".ant-dropdown:not(.ant-dropdown-hidden)")).toHaveCount(0);
+
   await page.getByTestId("add-widget").click();
   const drawer = page.getByRole("dialog");
   // Typed rather than scrolled: thirteen kinds is more than a list somebody

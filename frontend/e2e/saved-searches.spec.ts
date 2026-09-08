@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { sweepSavedSearches } from "./api";
 import { signIn, storageStateFor } from "./auth";
 
 /**
@@ -12,10 +13,40 @@ import { signIn, storageStateFor } from "./auth";
  * browsers, because a permission that only the UI enforces is not enforced.
  */
 
-/** Unique per run, so a failed run leaves nothing that breaks the next one. */
-function uniqueName(prefix: string): string {
-  return `${prefix} ${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`;
+/**
+ * A name no other run will produce, remembered so it can be cleaned up.
+ *
+ * Two things went wrong before this. There was no cleanup at all when a test
+ * failed, so leftovers piled up on the panel — until one whose random suffix
+ * contained the letters "ok" made `getByRole("button", {name: "OK"})` match
+ * that row's four buttons as well as the dialog's, because Playwright matches
+ * an accessible name by substring. And the first sweep matched a *prefix*,
+ * which under `fullyParallel` deleted a sibling test's search while it was
+ * still using it: the explorer then showed every record, and the failure read
+ * as "the saved search did not restore its question".
+ *
+ * So each test remembers exactly what it made, and the sweep deletes exactly
+ * that.
+ */
+const created: string[] = [];
+
+function uniqueName(label: string): string {
+  return alsoCreated(
+    `E2E search ${label} ${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`,
+  );
 }
+
+/** Remember a name this test is responsible for, and hand it back. */
+function alsoCreated(name: string): string {
+  created.push(name);
+  return name;
+}
+
+/** Gone however the test ended, so the panel does not fill up (§5). */
+test.afterEach(async () => {
+  const mine = created.splice(0, created.length);
+  await sweepSavedSearches(mine);
+});
 
 /**
  * Show the saved-search panel, whether or not it is already showing.
@@ -61,7 +92,7 @@ async function saveCurrentSearch(page: Page, name: string): Promise<void> {
 async function deleteSearch(page: Page, name: string): Promise<void> {
   await openPanel(page);
   await page.getByRole("button", { name: `Delete ${name}` }).click();
-  await page.getByRole("button", { name: "OK" }).click();
+  await page.getByRole("button", { name: "OK", exact: true }).click();
   await expect(page.getByText("Saved search deleted")).toBeVisible();
 }
 
@@ -93,7 +124,9 @@ test.describe("saved searches", () => {
 
   test("renaming and describing one keeps its question", async ({ page }) => {
     const name = uniqueName("Before");
-    const renamed = `${name} after`;
+    // Registered too: a rename means the sweep is looking for a name that no
+    // longer exists, and the row it left behind would be the next leftover.
+    const renamed = alsoCreated(`${name} after`);
     await saveCurrentSearch(page, name);
 
     await openPanel(page);

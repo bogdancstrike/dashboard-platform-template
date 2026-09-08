@@ -101,6 +101,17 @@ export const SEMANTIC = {
  * to make a caption legible, and nothing gets an illegible caption to match a
  * bar. Both carry the same *meaning*, which is what has to agree.
  */
+/**
+ * The ground an initials avatar is drawn on, in both appearances.
+ *
+ * AntD's default is `#bfbfbf`, which carries white text at 1.84:1 — so every
+ * avatar in the product without a photograph was illegible, and axe found it
+ * only on the first page that draws a column of them. One value for both
+ * appearances on purpose: an avatar is an identity marker and should not
+ * change colour when somebody switches theme.
+ */
+export const AVATAR_GROUND = "#475569";
+
 export const SEMANTIC_INK = {
   light: {
     success: "#15803d",

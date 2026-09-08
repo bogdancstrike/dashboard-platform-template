@@ -17,6 +17,7 @@ from typing import Any
 
 from sqlalchemy import Select, select
 
+from src.core.naming import initials
 from src.core.pagination import envelope, parse_page
 from src.core.query import Field, FieldSet, apply_filters, apply_sort, count_of
 
@@ -70,14 +71,9 @@ def _serialize(user, principal) -> dict[str, Any]:
         "username": user.username,
         "job_title": user.job_title,
         "avatar_url": user.avatar_url,
-        "initials": _initials(user.full_name),
+        "initials": initials(user.full_name),
         #: Lets a picker mark "you" without the caller comparing ids itself.
         "is_me": user.id == principal.user_id,
     }
 
 
-def _initials(name: str) -> str:
-    parts = [part for part in str(name or "").split() if part]
-    if not parts:
-        return "?"
-    return (parts[0][0] + (parts[-1][0] if len(parts) > 1 else "")).upper()

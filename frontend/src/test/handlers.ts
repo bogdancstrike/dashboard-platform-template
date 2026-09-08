@@ -1447,7 +1447,100 @@ export function userPage(items = userRows) {
   };
 }
 
+/**
+ * The activity feed (§35).
+ *
+ * Two things the handler has to model faithfully or the page's tests prove
+ * nothing: the kind counts are over the *whole* match and do not move when a
+ * kind is chosen, and every kind is present even at zero.
+ */
+export const activityEntries = [
+  {
+    id: "activity-1",
+    occurred_at: "2026-09-07T10:30:00Z",
+    kind: "STATUS",
+    kind_label: "Status changes",
+    action: "STATUS_CHANGE",
+    actor: { id: "user-1", name: "Ada Administrator", initials: "AA" },
+    resource_type: "project",
+    resource_id: "project-1",
+    resource_label: "Billing replatform",
+    resource_path: "/projects/project-1",
+    summary: "changed the status of project Billing replatform",
+    changed: ["status"],
+  },
+  {
+    id: "activity-2",
+    occurred_at: "2026-09-07T08:05:00Z",
+    kind: "COMMENT",
+    kind_label: "Comments",
+    action: "COMMENT",
+    actor: { id: "user-2", name: "Mara Manager", initials: "MM" },
+    resource_type: "ticket",
+    resource_id: "ticket-1",
+    resource_label: "Login fails after password reset",
+    resource_path: "/tickets/ticket-1",
+    summary: "commented on ticket Login fails after password reset",
+    changed: [],
+  },
+  {
+    id: "activity-3",
+    occurred_at: "2026-09-05T16:40:00Z",
+    kind: "SECURITY",
+    kind_label: "Sign-ins",
+    action: "IMPERSONATE",
+    actor: { id: "user-1", name: "Ada Administrator", initials: "AA" },
+    resource_type: null,
+    resource_id: null,
+    resource_label: null,
+    // No path: an event about nothing in particular is not a link.
+    resource_path: null,
+    summary: "started acting as Uma User",
+    changed: [],
+  },
+];
+
+/** Counts over the whole match, whichever kind is chosen. */
+const ACTIVITY_KINDS = [
+  { key: "RECORD", label: "Records", count: 12 },
+  { key: "UPDATE", label: "Edits", count: 8 },
+  { key: "STATUS", label: "Status changes", count: 3 },
+  { key: "COMMENT", label: "Comments", count: 2 },
+  { key: "FILE", label: "Files", count: 0 },
+  { key: "ASSIGNMENT", label: "Assignments", count: 0 },
+  { key: "SECURITY", label: "Sign-ins", count: 4 },
+  { key: "SYSTEM", label: "System", count: 1 },
+];
+
 export const handlers = [
+  http.get("/platform/api/activity", ({ request }) => {
+    const url = new URL(request.url);
+    const kind = url.searchParams.get("kind") ?? "";
+    const resourceType = url.searchParams.get("resource_type") ?? "";
+    const actorId = url.searchParams.get("actor_id") ?? "";
+    const items = activityEntries.filter(
+      (entry) =>
+        (!kind || entry.kind === kind) &&
+        (!resourceType || entry.resource_type === resourceType) &&
+        (!actorId || entry.actor.id === actorId),
+    );
+    const matched = ACTIVITY_KINDS.reduce((sum, entry) => sum + entry.count, 0);
+    return echo(request, {
+      items,
+      total: items.length,
+      page: Number(url.searchParams.get("page") ?? 1),
+      page_size: 50,
+      pages: 1,
+      // Unchanged by the kind filter, as the server leaves them: a strip whose
+      // numbers move when it is used cannot be used to compare.
+      kinds: ACTIVITY_KINDS,
+      kind,
+      resource_type: resourceType,
+      actor_id: actorId,
+      period: url.searchParams.get("period") ?? "last_30_days",
+      matched,
+    });
+  }),
   http.get("/platform/meta/app", ({ request }) => echo(request, appMeta)),
   http.get("/platform/api/search/global", ({ request }) =>
     echo(request, { ...globalResults, query: new URL(request.url).searchParams.get("q") ?? "" }),

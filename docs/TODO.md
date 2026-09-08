@@ -617,6 +617,37 @@ commit — built, committed, pushed, redeployed and verified before the next.
       nothing about where to look. Found by running the backend suite without
       the storage environment, where the local fallback's directory is
       unwritable
+- [x] **`/activity` is implemented** (§35, §48) — a feed is worth a page only
+      if it can be *narrowed* faster than it can be read, and everything on it
+      follows from that
+  - **The strip is the filter**: one chip per kind, each carrying a count the
+    server computed over the whole match. Counting the page would give a
+    number that silently means "of the fifty I downloaded" (§71), and the
+    counts do not move when a chip is chosen — a strip whose numbers change as
+    you use it cannot be used to compare
+  - Every kind is offered including the empty ones, refused rather than
+    hidden: a chip that vanishes when nothing has happened teaches a reader
+    that the platform has stopped recording it (§76)
+  - **Not the audit trail.** `/api/audit/timeline` answers "what was done to
+    *this record*, exactly" and the ledger behind `audit.view` is evidence —
+    who, from which address, with which values before and after. This is
+    "what has been going on" at `records.view`, and a viewer reads it while
+    the ledger stays shut
+  - **The sentence is the server's, printed whole.** The first version spliced
+    the actor and the subject back out of it to re-assemble the line, and
+    produced "updated the Viewer role Viewer" — because `core/audit` lets the
+    code that records an event pass a sentence of its own. The row became a
+    link instead: bigger to click than a word inside a line, and it cannot
+    contradict the sentence beside it
+  - `groupByDay` moved into `lib/time` — the notifications page had already
+    written that loop and this would have been the third copy
+  - **Two defects it exposed**, both product-wide: `_initials` was written
+    twice on the server and the copies *disagreed* (the directory took the
+    first and last words, the user endpoint the first two — "Ada Marie
+    Administrator" was `AA` on one screen and `AM` on another); and an
+    initials avatar's default ground carries white text at 1.84:1, so every
+    avatar without a photograph was illegible
+  - 8 backend tests, 7 component tests, 11 Playwright
 - [ ] **`/home` is the default landing page** — the platform's name and logo,
       the reader's own announcements, notifications and preferences, and
       whatever else is worth seeing on arrival

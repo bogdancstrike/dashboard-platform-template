@@ -36,7 +36,7 @@ import { categoryIcon, humanise, severityColor } from "@/components/notification
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import { absoluteTime, dayBucket, relativeTime } from "@/lib/time";
+import { absoluteTime, groupByDay, relativeTime } from "@/lib/time";
 import { useLive, usePollInterval } from "@/live/LiveProvider";
 
 const { Text } = Typography;
@@ -203,16 +203,7 @@ export default function NotificationsPage() {
    * newest first — not a re-sort, so a day header can never appear twice and
    * the page cannot disagree with the pager about what is on it.
    */
-  const days = useMemo(() => {
-    const buckets: { label: string; items: Notification[] }[] = [];
-    for (const item of items) {
-      const label = dayBucket(item.created_at);
-      const last = buckets[buckets.length - 1];
-      if (last && last.label === label) last.items.push(item);
-      else buckets.push({ label, items: [item] });
-    }
-    return buckets;
-  }, [items]);
+  const days = useMemo(() => groupByDay(items, (item) => item.created_at), [items]);
 
   /** Which digest tile, if any, describes the filter currently applied. */
   const activeTile =
