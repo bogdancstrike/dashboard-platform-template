@@ -157,6 +157,7 @@ python -m src.seed --check          # is the schema behind the model, and does t
 python -m src.seed --sync-schema    # add the columns that can be added, with their indexes and keys
 python -m src.seed --sync-roles     # give the built-in roles any newly declared permissions
 python -m src.seed --sync-reports   # make saved reports the analysis compiler would reject runnable
+python -m src.seed --sync-automations  # make automations the engine cannot run runnable
 ```
 
 `--sync-schema` refuses to guess: a `NOT NULL` column with no default is
@@ -171,8 +172,15 @@ the resource declarations now, `--check` reports any row that is still wrong,
 and this repairs them — seeding refuses to touch a populated database, and
 rightly.
 
+`--sync-automations` is its sibling and exists for the same reason: the seeded
+automation rules used to compile their conditions against a hand-made field
+list and to watch three datasets the explorer has never declared, so every one
+of them was unrunnable — and a monitoring rule that cannot run reports quiet,
+which reads exactly like good news. It repairs what it can and *pauses* a rule
+whose dataset is gone, because there is nothing to repair that to.
+
 Under Compose these are `make check-seed`, `make sync-schema`, `make
-sync-roles` and `make sync-reports`.
+sync-roles`, `make sync-reports` and `make sync-automations`.
 
 Then:
 

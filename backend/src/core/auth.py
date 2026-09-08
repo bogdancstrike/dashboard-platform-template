@@ -66,6 +66,11 @@ PERMISSION_GROUPS: dict[str, list[tuple[str, str]]] = {
         # addressed to everybody by definition. Writing one is a broadcast,
         # and that is the privilege.
         ("announcements.manage", "Write and publish announcements"),
+        # An automation reaches other people's inboxes and raises work in a
+        # shared queue, so reading the list is privileged too: a rule's
+        # condition quotes the fields and values of records its reader may
+        # have no other way to see.
+        ("automations.manage", "Write and run automations"),
         ("flags.manage", "Manage feature flags"),
         ("integrations.manage", "Manage integrations"),
         ("api.manage", "Manage API credentials"),
@@ -123,6 +128,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
             "records.view", "records.create", "records.update", "records.export",
             "records.comment", "records.import", "records.bulk",
             "users.view", "users.manage", "announcements.manage",
+            "automations.manage",
             "jobs.view", "jobs.manage", "audit.view", "health.view", "logs.view",
             "tasks.view", "tasks.manage", "mail.access",
             "files.view", "files.manage", "calendar.view", "calendar.manage",

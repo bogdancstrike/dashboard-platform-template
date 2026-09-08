@@ -783,6 +783,86 @@ commit — built, committed, pushed, redeployed and verified before the next.
   - One more e2e race of the same family as the earlier six: the lane-removal
       test waited for a card that was *already* on screen, so it waited for
       nothing and read the lane list before the refetch arrived
+- [x] **`/workflows` is implemented** (§49) — condition → action automation, on
+      the same query tree the advanced search builds
+  - **Nothing here asks a new kind of question or makes a new kind of change.**
+      The condition is the react-awesome-query-builder tree §4 already
+      produces, compiled by `core/rules.py`; the records it matches come
+      through the same `explorer` declaration every list, chart and export
+      reads; the actions write through the services a person writes through.
+      What this adds is the *loop* between them — and the same e2e helpers now
+      drive both editors, so the claim that they are one editor is asserted
+      rather than asserted-in-a-comment
+  - **The cooldown is held per record, not per rule.** This is the difference
+      between the requirement and a thing that looks like it: a rule cooling
+      down as a whole would send forty messages about forty breached tickets
+      in one run and then go quiet about the forty-first, which is the
+      opposite of what §49 asks for. So `alert_rule_fires` is keyed on the
+      pair and upserted — state, not history, bounded by rules × records
+      rather than growing with every run
+  - **A dry run is the same code path with the actions switched off.** Not a
+      second evaluator: a preview that walks different code can disagree with
+      the thing it previews, which is the one thing a preview must not do. A
+      rule is *created paused* and the wizard's last step rehearses it, because
+      the first version of a condition is usually wrong
+  - **An action that fails is recorded, never raised.** A savepoint each, so
+      an unreachable webhook loses neither the notification beside it nor the
+      cooldown — a run that half-happened and rolled back would fire the same
+      actions again next pass
+  - **The run is bounded twice**: `MAX_MATCHES` caps what an evaluation looks
+      at (a rule matching a whole table needs narrowing, not patience), and
+      `MAX_FIRES` caps what one run *acts on*, with the remainder reported as
+      deferred rather than dropped — nothing recorded their cooldown, so the
+      next run picks them up
+  - **The email action writes into the platform's own mailbox, in OUTBOX.**
+      There is no mail transport in the template and an SMTP call would let a
+      rule report success for a message nobody receives; the folder is the
+      whole claim the row makes, and `/mail` is where it shows
+  - Actions are declared beside what executes them and the API publishes that
+      list, so the editor renders from the same declaration the engine runs —
+      a form cannot ask for a field nothing reads, or fail to ask for one the
+      executor requires (§76)
+  - `automations.manage` gates *reading* too, unlike announcements: a rule's
+      condition quotes the fields and values of records its reader may have no
+      other way to see. Editing stays with the author, because an automation
+      reaches other people's inboxes — with `admin.access` as the exception,
+      since somebody has to be able to stop a rule whose author has left
+  - The page is a table filling the window, the rule opens in a drawer, and
+      the loud column is *Firing* beside the state: a rule that has never
+      fired and one that fired forty times yesterday need completely different
+      attention. "Paused" is a switch in the row, never three clicks deep
+  - 33 backend tests, 26 component tests, 11 Playwright
+  - **The same defect the seeded reports had, found by the same means.** Every
+      seeded rule was unrunnable: four compiled their condition against a
+      hand-built `FieldSet` naming `priority` on datasets that do not declare
+      it, three watched `"job"`, `"user"` and `"file"` — keys the explorer has
+      never had — and all ten carried actions in a shape the engine does not
+      read (`{"type": "NOTIFY", "audience": "OWNERS"}`, addressed at nobody).
+      A monitoring rule like that reports quiet, which is indistinguishable
+      from good news. The generator now derives everything from the
+      declarations, `--check` names what is broken, and
+      `python -m src.seed --sync-automations` repairs an existing database
+      without a destructive reseed: a rule whose dataset is gone is *paused*,
+      because there is nothing to repair it to and a monitor that cannot look
+      must not claim to be live
+  - **Three more defects the tests found.** `_recipient_config` read the
+      recipient keys at the action's top level while everything else nested
+      them under `recipients` — one shape, and that was the wrong half. The
+      wizard's dataset select carried both a `for`/`id` label and an
+      `aria-label`, so the field was reachable as "Dataset" and announced as
+      "Which records". And `test_raising_a_task_puts_it_in_the_normal_queue`
+      raises *real* tasks, fifty a run, and `Task` was not in the suite's
+      cleanup registry: 293 of them had accumulated — the same class of leak
+      the announcements work fixed, in the one table a reviewer opens first
+  - **And two pieces of housekeeping the work turned up.** A latent flake in
+      `records-write.spec.ts`: an AntD dropdown is rendered at the body root
+      and outlives whatever opened it, so a menu left over from an earlier step
+      sat above the Edit button while `toBeEnabled()` was perfectly happy —
+      Playwright then retried for a full minute and reported "Edit was never
+      clickable", which reads as a product bug and is not one. And four
+      throwaway screenshot probes (`light.mjs`, `shot.mjs`, `shot2.mjs`,
+      `shot3.mjs`) had reached the repository across as many tasks; removed,
+      and the pattern is ignored now so it stops happening
 - [ ] **`/home` is the default landing page** — the platform's name and logo,
       the reader's own announcements, notifications and preferences, and
       whatever else is worth seeing on arrival
@@ -790,9 +870,9 @@ commit — built, committed, pushed, redeployed and verified before the next.
       parts, a drawer for one object's fields, a plain modal for one question.
       The dashboard wizard is the first; the rest of the modules follow
 - [~] **Every page in the navigation is implemented**, not a placeholder — the
-      list is in [Phase 6](#phase-6--frontend-pages). `/dashboards` is done;
-      `/kanban`, `/workflows`, `/calendar`, `/mail`, `/files`, the admin area
-      and the system pages remain
+      list is in [Phase 6](#phase-6--frontend-pages). `/dashboards`, `/kanban`,
+      `/files` and `/workflows` are done; `/calendar`, `/mail`, `/home`, the
+      admin area and the system pages remain
 - [x] **Six latent e2e flakes fixed, all the same two mistakes.** Four specs
       clicked a select option with `getByTitle`, which AntD also puts on the
       closed select's own label — so the click matched twice as soon as the
@@ -1785,13 +1865,19 @@ everything else.
 
 ### `/workflows` — condition → action automation (§49)
 
-- [ ] Built on the **same RAQB tree** the advanced search produces, so one
-      editor and one compiler serve both
-- [ ] Actions: notify · email · raise a task · call a webhook
-- [ ] Schedule and cooldown, so one breach does not send forty messages
-- [ ] **Dry run** against current data before enabling
-  - **Acceptance**: the rule that fires is provably the rule the inspector
-    showed, because both come from `core/rules.py`
+- [x] Built on the **same RAQB tree** the advanced search produces, so one
+      editor and one compiler serve both — the same `e2e/query.ts` helpers
+      drive both screens, so it is asserted and not merely intended
+- [x] Actions: notify · email · raise a task · call a webhook — declared beside
+      the functions that execute them, and published for the editor to render
+- [x] Schedule and cooldown, so one breach does not send forty messages. The
+      cooldown is **per record**, which is what makes that sentence true; the
+      schedule is stored and nothing runs it unattended yet (§23)
+- [x] **Dry run** against current data before enabling — and a rule is created
+      paused, with the wizard's last step being the rehearsal
+  - **Acceptance met**: the rule that fires is provably the rule the inspector
+    showed, because `describe_tree` renders what `compile_tree` compiles and
+    the page shows the server's rendering rather than one of its own
 
 ### `/reports/builder` and `/charts/builder` (§28, §44)
 

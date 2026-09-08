@@ -1,3 +1,11 @@
 .scratch/
 playwright-report/
 test-results/
+
+# Throwaway screenshot scripts. Four of them (`light.mjs`, `shot.mjs`,
+# `shot2.mjs`, `shot3.mjs`) reached the repository across as many tasks before
+# anybody noticed: they are one-off browser probes for looking at a page, and a
+# committed one is a file the next person has to work out the purpose of.
+shot*.mjs
+light.mjs
+

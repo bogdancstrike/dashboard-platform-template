@@ -181,6 +181,28 @@ export async function sweepBoards(ids: string[], persona: Persona = "admin"): Pr
   }
 }
 
+/**
+ * Withdraw automations this suite created, by id (§49).
+ *
+ * By id and never by name prefix, for the reason `sweepSavedSearches`
+ * documents: under `fullyParallel` a prefix match deletes a sibling test's
+ * fixture mid-test, and the failure reads as a product bug.
+ */
+export async function sweepAutomations(
+  ids: string[],
+  persona: Persona = "admin",
+): Promise<void> {
+  if (ids.length === 0) return;
+  const api = await apiAs(persona);
+  try {
+    for (const id of ids) {
+      await api.delete(endpoint(`/automations/rules/${id}`));
+    }
+  } finally {
+    await api.dispose();
+  }
+}
+
 /** Change a board — used to share one so a colleague can try to read it. */
 export async function updateBoard(
   id: string,

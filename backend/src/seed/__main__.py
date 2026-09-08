@@ -8,6 +8,7 @@
     python -m src.seed --sync-files       # write the bytes seeded files point at
     python -m src.seed --sync-roles       # give built-in roles new permissions
     python -m src.seed --sync-reports     # make unrunnable saved reports runnable
+    python -m src.seed --sync-automations # make unrunnable automations runnable
     python -m src.seed --dry-run          # build in memory, write nothing
 
 It refuses to seed a database that already has data unless `--reset` or
@@ -49,6 +50,10 @@ def _parser() -> argparse.ArgumentParser:
         help="add any newly declared permissions to the built-in roles and exit",
     )
     parser.add_argument(
+        "--sync-automations", action="store_true",
+        help="repair automations whose condition or actions the engine cannot run",
+    )
+    parser.add_argument(
         "--sync-reports", action="store_true",
         help="rewrite saved reports the analysis compiler would reject, and exit",
     )
@@ -83,7 +88,14 @@ def main(argv: list[str] | None = None) -> int:
         blocked = runner.schema_drift(engine)
         for item in blocked:
             print(f"  ! {item}")
-        print("database already matches the model" if not added else f"{len(added)} column(s) added")
+        if not added:
+            print("database already matches the model")
+        else:
+            tables = sum(1 for item in added if not item.column)
+            columns = len(added) - tables
+            parts = [f"{tables} table(s) created"] if tables else []
+            parts += [f"{columns} column(s) added"] if columns else []
+            print(", ".join(parts))
         return 1 if blocked else 0
 
     if args.sync_files:
@@ -118,6 +130,19 @@ def main(argv: list[str] | None = None) -> int:
         print(
             f"{result['repaired']} report(s) repaired"
             + (f", {result['orphaned']} on a dataset that no longer exists" if result["orphaned"] else "")
+        )
+        return 0
+
+    if args.sync_automations:
+        # The report repair's sibling (§49). A rule watching a dataset that
+        # does not exist is paused rather than left claiming to be live: a
+        # monitor that cannot look reports quiet, which is indistinguishable
+        # from good news.
+        with session_scope() as session:
+            result = runner.sync_automations(session)
+        print(
+            f"{result['repaired']} automation(s) repaired"
+            + (f", {result['paused']} paused for want of a dataset" if result["paused"] else "")
         )
         return 0
 

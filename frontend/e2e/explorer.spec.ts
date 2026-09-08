@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { signIn } from "./auth";
+import { RULE, chooseOption } from "./query";
 
 /**
  * Data Explorer against the real stack (§4, §6, §51).
@@ -20,34 +21,9 @@ import { signIn } from "./auth";
  * and the same rows after a reload.
  */
 
-/** RAQB gives its controls no accessible names, so its own classes locate them. */
-const RULE = {
-  field: ".rule--field .ant-select",
-  operator: ".rule--operator .ant-select",
-  value: ".rule--value .ant-select",
-  text: ".rule--value input",
-};
-
 async function openAdvanced(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Advanced" }).click();
   await expect(page.getByRole("button", { name: "Add rule" })).toBeVisible();
-}
-
-/**
- * Choose an option from whichever AntD dropdown is currently open.
- *
- * A string matches the whole label; a pattern is for options that carry a
- * count or a description the test has no reason to spell out.
- */
-async function chooseOption(page: Page, label: string | RegExp): Promise<void> {
-  // AntD renders `role="option"` on single selects but not on multiple ones,
-  // so the open dropdown is located structurally and its items by their text.
-  const option = page
-    .locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option")
-    .filter({
-      has: typeof label === "string" ? page.getByText(label, { exact: true }) : page.getByText(label),
-    });
-  await option.first().click();
 }
 
 /**

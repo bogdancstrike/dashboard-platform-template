@@ -102,7 +102,16 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { key: "/tasks", label: "Tasks", icon: <CheckSquareOutlined />, permission: "tasks.view", badge: "my_tasks" },
       { key: "/kanban", label: "Kanban boards", icon: <ProjectOutlined />, permission: "tasks.view" },
-      { key: "/workflows", label: "Workflows", icon: <NodeIndexOutlined />, permission: "tasks.manage" },
+            // `automations.manage` and not `tasks.manage`: a rule's condition quotes
+      // the fields and values of records its reader may have no other way to
+      // see, so reading the list is privileged — and an operator who triages
+      // tasks is not somebody who may make the platform email forty people.
+      {
+        key: "/workflows",
+        label: "Workflows",
+        icon: <NodeIndexOutlined />,
+        permission: "automations.manage",
+      },
       { key: "/calendar", label: "Calendar", icon: <CalendarOutlined />, permission: "calendar.view" },
       { key: "/mail", label: "Mail", icon: <MailOutlined />, permission: "mail.access", badge: "unread_mail" },
       { key: "/files", label: "Files", icon: <FolderOpenOutlined />, permission: "files.view" },

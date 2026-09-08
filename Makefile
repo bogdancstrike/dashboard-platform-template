@@ -96,6 +96,10 @@ sync-roles: ## Give the built-in roles any newly declared permissions
 sync-reports: ## Make saved reports the analysis compiler would reject runnable
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-reports seed
 
+.PHONY: sync-automations
+sync-automations: ## Make automations the engine cannot run runnable, and pause the obsolete
+	$(COMPOSE) run --rm -e SEED_ARGS=--sync-automations seed
+
 .PHONY: psql
 psql: ## Open a psql shell on the stack's database
 	$(COMPOSE) exec postgres psql -U platform -d platform

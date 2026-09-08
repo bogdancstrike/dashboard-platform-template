@@ -109,6 +109,7 @@ does not.
 | `orgs.manage` — Manage organizations | ✓ | — | — | — | — |
 | `settings.manage` — Manage system settings | ✓ | — | — | — | — |
 | `announcements.manage` — Write and publish announcements | ✓ | ✓ | — | — | — |
+| `automations.manage` — Write and run automations | ✓ | ✓ | — | — | — |
 | `flags.manage` — Manage feature flags | ✓ | — | — | — | — |
 | `integrations.manage` — Manage integrations | ✓ | — | — | — | — |
 | `api.manage` — Manage API credentials | ✓ | — | — | — | — |
@@ -131,7 +132,7 @@ does not.
 | `dashboards.manage` — Customise dashboards | ✓ | ✓ | ✓ | ✓ | — |
 | `searches.share` — Share saved searches and views | ✓ | ✓ | — | ✓ | — |
 
-*35 permissions across 4 areas, generated from `backend/src/core/auth.py` by `scripts/render-rbac-matrix.py`.*
+*36 permissions across 4 areas, generated from `backend/src/core/auth.py` by `scripts/render-rbac-matrix.py`.*
 
 <!-- /generated:permission-matrix -->
 

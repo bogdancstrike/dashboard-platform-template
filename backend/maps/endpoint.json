@@ -1074,6 +1074,79 @@
         "module_name": "src.api.users",
         "method_name": "impersonate"
       }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "automations_catalog",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/automations/catalog",
+      "description": "What an automation may watch and what it may do.",
+      "exec_method": {
+        "module_name": "src.api.workflows",
+        "method_name": "catalog"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "automations_rules",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/automations/rules",
+      "description": "Every automation, or a new one.",
+      "exec_method": {
+        "module_name": "src.api.workflows",
+        "method_name": "rules"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "automations_rule",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/automations/rules/<uuid:rule_id>",
+      "description": "One automation with its recent runs, a change to it, or its withdrawal.",
+      "exec_method": {
+        "module_name": "src.api.workflows",
+        "method_name": "rule"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "automations_rule_run",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/automations/rules/<uuid:rule_id>/run",
+      "description": "Evaluate an automation now, as a dry run or for real.",
+      "exec_method": {
+        "module_name": "src.api.workflows",
+        "method_name": "run"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "automations_rule_runs",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/automations/rules/<uuid:rule_id>/runs",
+      "description": "What this automation has done, most recent first.",
+      "exec_method": {
+        "module_name": "src.api.workflows",
+        "method_name": "runs"
+      }
     }
   ]
 }

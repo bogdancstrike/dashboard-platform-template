@@ -21,6 +21,7 @@ const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
 const ActivityPage = lazy(() => import("@/pages/ActivityPage"));
 const AnnouncementsPage = lazy(() => import("@/pages/AnnouncementsPage"));
 const KanbanPage = lazy(() => import("@/pages/KanbanPage"));
+const WorkflowsPage = lazy(() => import("@/pages/WorkflowsPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
@@ -234,15 +235,9 @@ export default function App() {
         <Route
           path="workflows"
           element={
-            <PlaceholderPage
-              section="§49"
-              summary="Condition → action automation, on the same query tree the search builder produces."
-              bullets={[
-                "When these conditions match, notify, email, raise a task or call a webhook",
-                "Schedule and cooldown, so one breach does not send forty messages",
-                "Dry-run against current data before enabling",
-              ]}
-            />
+            <Suspense fallback={<Loading />}>
+              <WorkflowsPage />
+            </Suspense>
           }
         />
         <Route

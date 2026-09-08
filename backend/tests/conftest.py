@@ -95,10 +95,18 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     # `test_cleanup_order_respects_the_foreign_keys`, which caught this list
     # having the first two the wrong way round.
     "AnnouncementReceipt", "Announcement",
+    "AlertRuleFire", "AlertRuleRun", "AlertRule",
     "BoardCard", "BoardLane", "Board",
     "DashboardWidget", "Dashboard",
     "ResourceShare", "SavedSearch", "SavedView", "Report",
     "Comment", "FileObject", "Folder",
+    # Tasks, because an automation's TASK action creates real ones and the
+    # records API creates them too — 296 had accumulated in the development
+    # database from `test_raising_a_task_puts_it_in_the_normal_queue` alone,
+    # each run raising up to fifty. Nothing in this list points at a task by
+    # foreign key, so its position only has to be before the audit rows that
+    # describe it.
+    "Task",
     "Notification", "Favorite", "RecentItem",
     # Written as a *side effect* of every audited test write, so they
     # accumulate faster than anything else — and a demo `/activity` full of

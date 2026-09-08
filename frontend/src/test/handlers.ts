@@ -1759,7 +1759,243 @@ function kanbanDetail(boardId: string, filters: URLSearchParams) {
   };
 }
 
+
+/**
+ * Automations (§49).
+ *
+ * Three rules, chosen so the page's own distinctions are all exercisable: one
+ * live rule that has fired, one that never has (the state the list has to
+ * distinguish, and the reason the "Firing" column exists), and one somebody
+ * else owns — which is the only way to assert that a control is *absent* for
+ * a reader rather than merely disabled.
+ */
+export const automationRules: Record<string, unknown>[] = [];
+
+function automation(overrides: Record<string, unknown>): Record<string, unknown> {
+  return {
+    description: null,
+    resource_type: "task",
+    resource_label: "Tasks",
+    resource_path: "/tasks",
+    resource_exists: true,
+    enabled: true,
+    severity: "WARNING",
+    condition_tree: {
+      type: "group",
+      conjunction: "AND",
+      children1: {
+        a: {
+          type: "rule",
+          properties: { field: "status", operator: "select_any_in", value: [["NEW"]] },
+        },
+      },
+    },
+    condition_text: "Status in ['NEW']",
+    condition_count: 1,
+    actions: [{ kind: "NOTIFY", recipients: { user_ids: [], role: "MANAGER", owner: true } }],
+    action_summary: ["Notify people"],
+    schedule: "*/15 * * * *",
+    cooldown_minutes: 60,
+    owner: { id: "user-1", name: "Ada Administrator" },
+    last_triggered_at: "2026-09-07T09:00:00Z",
+    trigger_count: 12,
+    last_match_count: 4,
+    created_at: "2026-08-01T09:00:00Z",
+    updated_at: "2026-09-05T09:00:00Z",
+    can_edit: true,
+    ...overrides,
+  };
+}
+
+function seedAutomations(): void {
+  automationRules.length = 0;
+  automationRules.push(
+    automation({ id: "rule-1", name: "New tasks need triage" }),
+    automation({
+      id: "rule-2",
+      name: "Critical tickets breaching",
+      resource_type: "ticket",
+      resource_label: "Tickets",
+      resource_path: "/tickets",
+      severity: "CRITICAL",
+      // Never fired: the state the list exists to distinguish from the one
+      // above it.
+      last_triggered_at: null,
+      trigger_count: 0,
+      action_summary: ["Notify people", "Raise a task"],
+      actions: [
+        { kind: "NOTIFY", recipients: { user_ids: [], role: "MANAGER", owner: false } },
+        { kind: "TASK", title: "Follow up on {record}", priority: "HIGH" },
+      ],
+      cooldown_minutes: 0,
+    }),
+    automation({
+      // A rule that outlived its dataset: paused by `--sync-automations`, and
+      // the state the page has to *explain* rather than report as a fault.
+      id: "rule-4",
+      name: "Failed jobs in the last hour",
+      resource_type: "job",
+      resource_label: "job",
+      resource_path: "",
+      resource_exists: false,
+      enabled: false,
+      action_summary: [],
+      trigger_count: 31,
+    }),
+    automation({
+      id: "rule-3",
+      name: "Somebody else's rule",
+      enabled: false,
+      owner: { id: "user-2", name: "Mara Manager" },
+      can_edit: false,
+      trigger_count: 3,
+    }),
+  );
+}
+
+seedAutomations();
+
+export function resetAutomations(): void {
+  seedAutomations();
+}
+
+/** One evaluation, as `services/workflows.evaluate` returns it. */
+function automationRun(
+  ruleId: string,
+  dryRun: boolean,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    id: `run-${ruleId}-${dryRun ? "dry" : "live"}`,
+    rule_id: ruleId,
+    dry_run: dryRun,
+    started_at: "2026-09-08T09:00:00Z",
+    finished_at: "2026-09-08T09:00:02Z",
+    matched: 3,
+    fired: 2,
+    suppressed: 1,
+    deferred: 0,
+    error: null,
+    capped: false,
+    sample: [
+      {
+        record: "TSK-00001 Review the handbook",
+        record_id: "task-1",
+        path: "/tasks/task-1",
+        state: dryRun ? "WOULD FIRE" : "FIRED",
+        actions: [{ kind: "NOTIFY", ok: true, detail: "notified 2" }],
+      },
+      {
+        record: "TSK-00002 Chase the invoice",
+        record_id: "task-2",
+        path: "/tasks/task-2",
+        state: "SUPPRESSED",
+        since: "2026-09-08T08:30:00Z",
+        actions: [],
+      },
+    ],
+    by_action: { NOTIFY: { ok: 2, failed: 0 } },
+    triggered_by: "Ada Administrator",
+    ...overrides,
+  };
+}
+
 export const handlers = [
+  http.get("/platform/api/automations/catalog", ({ request }) =>
+    echo(request, {
+      resources: [
+        { key: "task", label: "Tasks", path: "/tasks" },
+        { key: "ticket", label: "Tickets", path: "/tickets" },
+      ],
+      roles: [
+        { code: "ADMINISTRATOR", name: "Administrator" },
+        { code: "MANAGER", name: "Manager" },
+      ],
+      actions: [
+        {
+          kind: "NOTIFY", label: "Notify people",
+          description: "An in-app notification.", needs: ["recipients"],
+        },
+        {
+          kind: "EMAIL", label: "Send an email",
+          description: "Queued into the mailbox.", needs: ["recipients"],
+        },
+        { kind: "TASK", label: "Raise a task", description: "In the normal queue.", needs: [] },
+        {
+          kind: "WEBHOOK", label: "Call a webhook",
+          description: "One POST.", needs: ["url"],
+        },
+      ],
+      severities: ["INFO", "WARNING", "CRITICAL"],
+      limits: { max_matches: 500, max_fires: 50, max_rules: 200 },
+    }),
+  ),
+  http.get("/platform/api/automations/rules", ({ request }) => {
+    const state = new URL(request.url).searchParams.get("state") ?? "";
+    const items = automationRules.filter((item) =>
+      state === "ENABLED" ? item["enabled"] : state === "PAUSED" ? !item["enabled"] : true,
+    );
+    return echo(request, {
+      items,
+      total: items.length,
+      counts: {
+        total: automationRules.length,
+        enabled: automationRules.filter((item) => item["enabled"]).length,
+        fires: 15,
+      },
+      can_manage: true,
+    });
+  }),
+  http.post("/platform/api/automations/rules", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const created = automation({
+      ...body,
+      id: `rule-${automationRules.length + 1}`,
+      trigger_count: 0,
+      last_triggered_at: null,
+    });
+    automationRules.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.get("/platform/api/automations/rules/:id", ({ params, request }) => {
+    const rule = automationRules.find((item) => item["id"] === String(params["id"]));
+    if (!rule) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    return echo(request, {
+      ...rule,
+      runs: [automationRun(String(params["id"]), false)],
+      cooling_down:
+        rule["cooldown_minutes"] === 0
+          ? []
+          : [
+              {
+                record_id: "task-2",
+                record: "TSK-00002 Chase the invoice",
+                last_fired_at: "2026-09-08T08:30:00Z",
+                until: "2026-09-08T09:30:00Z",
+                fire_count: 2,
+              },
+            ],
+    });
+  }),
+  http.put("/platform/api/automations/rules/:id", async ({ params, request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const rule = automationRules.find((item) => item["id"] === String(params["id"]));
+    if (!rule) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    Object.assign(rule, body);
+    return echo(request, rule);
+  }),
+  http.delete("/platform/api/automations/rules/:id", ({ params, request }) => {
+    const at = automationRules.findIndex((item) => item["id"] === String(params["id"]));
+    if (at >= 0) automationRules.splice(at, 1);
+    return echo(request, { deleted: true, id: String(params["id"]) });
+  }),
+  http.post("/platform/api/automations/rules/:id/run", async ({ params, request }) => {
+    const body = (await request.json()) as { dry_run?: boolean };
+    return echo(request, automationRun(String(params["id"]), body.dry_run !== false));
+  }),
+  http.get("/platform/api/automations/rules/:id/runs", ({ params, request }) =>
+    echo(request, { items: [automationRun(String(params["id"]), false)], total: 1 }),
+  ),
   http.get("/platform/api/kanban/boards", ({ request }) =>
     echo(request, {
       items: kanbanBoards,

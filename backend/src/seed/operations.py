@@ -402,24 +402,59 @@ def _api_request_logs(world: World) -> None:
         )
 
 
+def _watchable(resource_type: str) -> tuple[str, tuple[str, ...]] | None:
+    """A status-like field of a dataset, and the values it actually takes.
+
+    Derived from the `Resource` declaration and its vocabulary rather than
+    typed out, for the reason the seeded *reports* taught: this function's
+    predecessor built every rule out of a literal `priority` / `status` pair
+    and a hand-made `FieldSet`, and pointed rules at `"job"`, `"user"` and
+    `"file"` — three keys the explorer does not declare. So half the seeded
+    automations watched a dataset that cannot be selected from, and the other
+    half stored a `condition_text` rendered against fields the engine would
+    compile against a *different* set. Every one of them was unrunnable, which
+    is what somebody finds the moment they open the page and press Dry run.
+    """
+    from src.services.explorer import resources
+
+    resource = resources().get(resource_type)
+    if resource is None:
+        return None
+    for name in (resource.status_field, "priority", "status"):
+        field = resource.fields.by_name.get(name) if name else None
+        if field is not None and field.kind == "enum" and field.filterable and field.choices:
+            return field.name, tuple(field.choices)
+    return None
+
+
 def _alert_rules(world: World) -> None:
     """Condition → action automation, on the same tree shape the advanced
-    search builds — one editor serves both (§49, §51)."""
-    from src.core.rules import describe_tree
-    from src.core.query import Field, FieldSet
-    from src.models.business import Task
+    search builds — one editor and one compiler serve both (§49, §51).
+
+    Every seeded rule is *runnable*: its resource is one the explorer declares,
+    its condition names that resource's own fields, its `condition_text` is
+    rendered by the same `describe_tree` the inspector uses, and its actions
+    carry what `services/workflows` reads. A demonstration automation that
+    fails on Dry run demonstrates nothing.
+    """
+    from src.core.rules import compile_tree, describe_tree
     from src.models.platform import AlertRule
+    from src.services.explorer import resources
 
     rng = world.rng.derive("alerts")
-    # A minimal FieldSet, purely so the stored `condition_text` is rendered by
-    # the same code the inspector uses rather than written by hand here.
-    spec = FieldSet(
-        Field("status", Task.status, kind="enum", label="Status"),
-        Field("priority", Task.priority, kind="enum", label="Priority"),
-        Field("due_date", Task.due_date, kind="datetime", label="Due date"),
-    )
+    catalogue = {key: name for name, key, _ in catalog.ALERT_RULES}
 
-    for name, resource_type, severity in catalog.ALERT_RULES:
+    for resource_type, resource in sorted(resources().items()):
+        watchable = _watchable(resource_type)
+        if watchable is None:
+            # A dataset with no state to watch cannot carry an automation.
+            # Better one rule fewer than one that matches nothing forever.
+            continue
+        field, choices = watchable
+        # Two or three of the states, so the rule reads as somebody's actual
+        # worry rather than as "any of them".
+        watched = rng.sample(choices, min(2, len(choices)))
+
         tree = {
             "type": "group",
             "conjunction": "AND",
@@ -429,38 +464,59 @@ def _alert_rules(world: World) -> None:
                 "a": {
                     "type": "rule",
                     "properties": {
-                        "field": "priority",
+                        "field": field,
                         "operator": "select_any_in",
-                        "value": [["CRITICAL", "HIGH"]],
-                    },
-                },
-                "b": {
-                    "type": "rule",
-                    "properties": {
-                        "field": "status",
-                        "operator": "select_not_any_in",
-                        "value": [["DONE"]],
+                        "value": [list(watched)],
                     },
                 },
             },
         }
+        # Compiled here and thrown away: a seed that cannot compile its own
+        # condition has written a rule nobody can run, and the seed is the
+        # right place to find that out.
+        compile_tree(tree, resource.fields)
+
+        name = catalogue.get(resource_type) or f"{resource.label} needing attention"
+        severity = rng.pick(("INFO", "WARNING", "CRITICAL"))
+        owner = rng.pick(world.users) if world.users else None
         world.alert_rules.append(
             AlertRule(
                 id=rng.uuid(),
                 name=name,
-                description=f"{name} — notifies the owning team and raises a task.",
+                description=(
+                    f"Watches {resource.label.lower()} whose {field} is "
+                    f"{' or '.join(watched)}, and tells somebody."
+                ),
                 resource_type=resource_type,
-                enabled=rng.chance(0.8),
+                enabled=rng.chance(0.7),
                 severity=severity,
                 condition_tree=tree,
-                condition_text=describe_tree(tree, spec),
+                condition_text=describe_tree(tree, resource.fields),
+                # The shape `services/workflows` validates and executes. A
+                # role rather than a list of people, because the point of
+                # addressing a role is that the answer changes as a team does.
                 actions=[
-                    {"type": "NOTIFY", "audience": "OWNERS"},
-                    {"type": "EMAIL", "template": "sla-breach"} if rng.chance(0.5) else {"type": "TASK", "assignee": "OWNER"},
+                    {
+                        "kind": "NOTIFY",
+                        "recipients": {"user_ids": [], "role": "MANAGER", "owner": True},
+                        "title": "{rule}: {record}",
+                        "body": "Matched by the automation {rule}.",
+                    },
+                    *(
+                        [
+                            {
+                                "kind": "TASK",
+                                "title": "Follow up on {record}",
+                                "priority": "HIGH" if severity == "CRITICAL" else "NORMAL",
+                            }
+                        ]
+                        if rng.chance(0.4)
+                        else []
+                    ),
                 ],
                 schedule=rng.pick(("*/15 * * * *", "0 * * * *", "*/5 * * * *")),
                 cooldown_minutes=rng.pick((15, 30, 60, 240)),
-                owner_id=rng.pick(world.users).id if world.users else None,
+                owner_id=owner.id if owner else None,
                 organization_id=world.organizations[0].id if world.organizations else None,
                 last_triggered_at=rng.maybe(rng.recent(days=14), 0.7),
                 trigger_count=rng.integer(0, 400),

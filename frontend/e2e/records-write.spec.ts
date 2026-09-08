@@ -147,6 +147,15 @@ test.describe("the task board writes to the record", () => {
 
 /** Edit the open record's priority through the declared form. */
 async function setPriority(page: Page, priority: string): Promise<void> {
+  // Dismiss anything still hanging over the page first. An AntD dropdown is
+  // rendered at the body root and outlives the element that opened it, so a
+  // menu from a step or a test before this one sits above the Edit button —
+  // and `toBeEnabled()` on the button is satisfied while the overlay is still
+  // eating the click. Playwright then retries for the full minute and reports
+  // "Edit was never clickable", which reads as a product bug and is not one.
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".ant-dropdown:not(.ant-dropdown-hidden)")).toHaveCount(0);
+
   await page.getByTestId("record-edit").click();
   const drawer = page.getByRole("dialog");
   // The selector, not the search input inside it: with a value already chosen
