@@ -256,10 +256,9 @@ EVENT_TITLES: tuple[str, ...] = (
     "Onboarding session", "Security walkthrough", "Roadmap workshop",
     "All-hands", "Backlog refinement", "Contract negotiation",
 )
-EVENT_CATEGORIES: tuple[tuple[str, float], ...] = (
-    ("MEETING", 0.46), ("REVIEW", 0.16), ("DEADLINE", 0.12),
-    ("TRAINING", 0.09), ("MAINTENANCE", 0.09), ("HOLIDAY", 0.08),
-)
+EVENT_CATEGORIES = weighted(vocabulary.EVENT_CATEGORY, (0.46, 0.16, 0.12, 0.09, 0.09, 0.08))
+EVENT_STATUSES = weighted(vocabulary.EVENT_STATUS, (0.8, 0.14, 0.06))
+EVENT_RESPONSES = weighted(vocabulary.EVENT_RESPONSE, (0.12, 0.62, 0.16, 0.1))
 MEETING_ROOMS: tuple[str, ...] = (
     "Room Aurora (4)", "Room Basalt (8)", "Room Cinder (12)", "Room Dune (6)",
     "Microsoft Teams", "Google Meet", "Zoom", "Client site", "Remote",

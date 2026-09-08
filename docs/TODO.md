@@ -863,6 +863,62 @@ commit — built, committed, pushed, redeployed and verified before the next.
       throwaway screenshot probes (`light.mjs`, `shot.mjs`, `shot2.mjs`,
       `shot3.mjs`) had reached the repository across as many tasks; removed,
       and the pattern is ignored now so it stops happening
+- [x] **`/calendar` is implemented** (§19) — month, week, day and agenda over
+      one window of time
+  - **A window is the query, and recurrence expands on the server.** The
+      browser asks for `from`/`to` and gets *occurrences*; expanding a series
+      in the browser would be a second implementation of the recurrence rule,
+      and the two would disagree about the last Friday of a month long before
+      anybody noticed. The model already materialised `recurrence_until` for
+      exactly this: a series that cannot reach the window is excluded by a
+      range scan rather than expanded and thrown away
+  - **An occurrence is derived and says so.** Its id is `<event id>:<start>` —
+      stable enough to key a grid on and obviously not a primary key. Editing
+      one edits the *series*, and both the drawer and the editor say so
+      **before** anything is touched, because an editor that silently changed
+      one occurrence, or silently changed all of them, loses an afternoon
+      either way. A per-occurrence exception is a second table and a question
+      nobody has asked yet
+  - **"Who is coming" is a fact about a person, and only they may state it.**
+      `respond()` writes the caller's own entry and refuses any other; an
+      organiser who could accept on somebody's behalf turns an attendance list
+      into a guess, which is worse than an empty one. Answering needs
+      `calendar.view` and not `calendar.manage` — it is not editing a calendar
+  - **A clash is computed, never stored, and it is named.** Two events
+      overlapping is a fact about a *reader*: the same pair is a clash for the
+      two people in both and irrelevant to everybody else. So it is worked out
+      over the window that was asked for, for the person who asked, in one
+      linear pass over the sorted list — and the answer is "clashes with the
+      Design review" rather than "1 conflict", which is a hunt
+  - **Unanswered invitations are the only count that is a to-do list**, so
+      that is the one on the header, and it is a filter rather than a
+      decoration. "17 events this month" is a fact nobody acts on
+  - The date arithmetic is a module of its own (`lib/calendarGrid.ts`) with 15
+      tests, because every mistake in it is invisible in a screenshot and
+      obvious to whoever misses a meeting: a grid starting on the wrong
+      weekday, a "next month" that skips February from the 31st, a day parsed
+      as UTC midnight and shown a day early
+  - The event vocabulary moved into `core/vocabulary.py` — categories,
+      statuses, responses and the frequencies the expander understands — so the
+      seed, the API and the editor all read one list. The editor's kinds now
+      come from the server for the same reason
+  - 40 backend tests (the expander tested as the pure function it is), 33
+      component tests, 12 Playwright
+  - **A defect the tests found, in a control rather than in the logic.** The
+      answer control was a `Segmented` with `value={undefined}` for an
+      unanswered invitation — and AntD's Segmented has no unselected state:
+      given no value it highlights the *first* option. So every invitation
+      nobody had answered rendered as **Going**, directly beside the sentence
+      "You have not answered yet". A control that cannot say "no answer" is
+      the wrong control for a question whose commonest answer is silence; it
+      is three buttons now, shared by the agenda and the drawer
+  - **And one layout defect fixed before it shipped.** The week view was seven
+      full-height columns of chips, which left six hundred pixels of nothing
+      below a fortnight's meetings — the exact "big empty space" the layout
+      rules exist to remove (§20). It is an hour band now, derived from the
+      events so a 07:03 standup is not hidden by a grid that starts at 08:00
+      and a quiet week is not one row tall. Placed by CSS grid and never by
+      pixels: no measurement, nothing to break under a font change
 - [ ] **`/home` is the default landing page** — the platform's name and logo,
       the reader's own announcements, notifications and preferences, and
       whatever else is worth seeing on arrival
@@ -871,7 +927,7 @@ commit — built, committed, pushed, redeployed and verified before the next.
       The dashboard wizard is the first; the rest of the modules follow
 - [~] **Every page in the navigation is implemented**, not a placeholder — the
       list is in [Phase 6](#phase-6--frontend-pages). `/dashboards`, `/kanban`,
-      `/files` and `/workflows` are done; `/calendar`, `/mail`, `/home`, the
+      `/files`, `/workflows` and `/calendar` are done; `/mail`, `/home`, the
       admin area and the system pages remain
 - [x] **Six latent e2e flakes fixed, all the same two mistakes.** Four specs
       clicked a select option with `getByTitle`, which AntD also puts on the
@@ -1176,8 +1232,8 @@ section is a cross-cutting rule rather than a page.
 | 16 | Compose email | `/mail/compose` | `/mail/messages` | [ ] |
 | 17 | Notification centre | header + `/notifications` | `/notifications` | [x] |
 | 18 | Tasks / work queue (kanban) | `/tasks`, `/tasks/:id` | `/api/records/task` | [~] board, drag, card detail |
-| 19 | Calendar | `/calendar` | `/calendar/events` | [ ] |
-| 20 | File manager | `/files` | `/files` | [ ] |
+| 19 | Calendar | `/calendar` | `/api/calendar/events` | [x] |
+| 20 | File manager | `/files` | `/api/files` | [x] |
 | 21 | **Audit logs** | `/admin/audit` | `/admin/audit` | [x] |
 | 22 | System logs | `/admin/logs` | `/admin/logs` | [ ] |
 | 23 | Background jobs | `/admin/jobs` | `/admin/jobs` | [ ] |
@@ -1206,7 +1262,7 @@ section is a cross-cutting rule rather than a page.
 | 46 | Saved views | every list | `/saved-views` | [ ] |
 | 47 | Data comparison | `/{entity}/compare` | generic list | [ ] |
 | 48 | Timeline view | detail tabs | `/api/audit/timeline` | [~] |
-| 49 | Alerts and rules | `/admin/alerts` | `/admin/alert-rules` | [ ] |
+| 49 | Alerts and rules | `/workflows` | `/api/automations/rules` | [x] |
 | 50 | Data relationships | detail tabs + `/find/relationships` | `/api/relationships/*` | [~] |
 | 51 | Query inspector | `/explore` | — (`core/rules.py`) | [x] |
 | 52 | Pagination patterns | various | `core/pagination.py` | [x] core |

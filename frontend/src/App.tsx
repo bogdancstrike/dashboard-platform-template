@@ -22,6 +22,7 @@ const ActivityPage = lazy(() => import("@/pages/ActivityPage"));
 const AnnouncementsPage = lazy(() => import("@/pages/AnnouncementsPage"));
 const KanbanPage = lazy(() => import("@/pages/KanbanPage"));
 const WorkflowsPage = lazy(() => import("@/pages/WorkflowsPage"));
+const CalendarPage = lazy(() => import("@/pages/CalendarPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
@@ -155,11 +156,9 @@ export default function App() {
         <Route
           path="calendar"
           element={
-            <PlaceholderPage
-              section="§19"
-              summary="Month, week, day and agenda views over the same events."
-              bullets={["Drag and resize events", "Recurring series", "Participants and responses"]}
-            />
+            <Suspense fallback={<Loading />}>
+              <CalendarPage />
+            </Suspense>
           }
         />
         <Route

@@ -73,6 +73,21 @@ DEVICE_STATUS: Vocabulary = (
     "ONLINE", "OFFLINE", "DEGRADED", "MAINTENANCE", "DECOMMISSIONED",
 )
 
+# ── calendar ─────────────────────────────────────────────────────────────
+
+EVENT_CATEGORY: Vocabulary = (
+    "MEETING", "REVIEW", "DEADLINE", "TRAINING", "MAINTENANCE", "HOLIDAY",
+)
+EVENT_STATUS: Vocabulary = ("CONFIRMED", "TENTATIVE", "CANCELLED")
+#: What a person has said about an invitation. `NEEDS_ACTION` is the state an
+#: invitation starts in and is deliberately not "declined": an unanswered
+#: invitation and a refused one are different facts about the same person.
+EVENT_RESPONSE: Vocabulary = ("NEEDS_ACTION", "ACCEPTED", "TENTATIVE", "DECLINED")
+#: The recurrence frequencies the expander understands. Stored on the event as
+#: an RRULE-shaped document; anything outside this list is refused on write
+#: rather than silently producing a series nobody sees.
+EVENT_FREQUENCY: Vocabulary = ("DAILY", "WEEKLY", "MONTHLY")
+
 # ── identity ─────────────────────────────────────────────────────────────
 
 USER_STATUS: Vocabulary = ("ACTIVE", "INVITED", "SUSPENDED", "DISABLED")

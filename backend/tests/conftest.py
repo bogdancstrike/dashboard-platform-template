@@ -106,7 +106,10 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     # each run raising up to fifty. Nothing in this list points at a task by
     # foreign key, so its position only has to be before the audit rows that
     # describe it.
-    "Task",
+    # `calendar_events` points at `tasks`, so it goes first —
+    # `test_cleanup_order_respects_the_foreign_keys` caught this pair the wrong
+    # way round, which is exactly what that test is for.
+    "CalendarEvent", "Task",
     "Notification", "Favorite", "RecentItem",
     # Written as a *side effect* of every audited test write, so they
     # accumulate faster than anything else — and a demo `/activity` full of

@@ -122,14 +122,20 @@ export function MemberPicker({
   value,
   onChange,
   placeholder,
+  // Defaulted rather than fixed: this adapter was written for the sharing
+  // controls and the calendar's "who is invited" is the same control asking a
+  // different question. A second copy of the adapter to change one string is
+  // how one of them ends up not clearing.
+  "aria-label": label = "Shared with",
 }: {
   value?: string[];
   onChange?: (value: string[]) => void;
   placeholder?: string;
+  "aria-label"?: string;
 }) {
   return (
     <PeoplePicker
-      aria-label="Shared with"
+      aria-label={label}
       placeholder={placeholder}
       value={value ?? []}
       onChange={(ids) => onChange?.(ids)}

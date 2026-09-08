@@ -1900,7 +1900,196 @@ function automationRun(
   };
 }
 
+
+/**
+ * The calendar (§19).
+ *
+ * A fixed window rather than "whatever today is": the page asks for a range it
+ * computes from the address, and a fixture keyed on the real clock would make
+ * every assertion depend on the day the suite ran. The handler answers any
+ * window with the same events, which is what lets a test say "March 2026" and
+ * mean it.
+ *
+ * The events are chosen so the page's own distinctions are exercisable: one
+ * this reader organises, one they were invited to and have *not answered*, one
+ * that clashes with it, one recurring series, one all-day marker, and one
+ * cancelled.
+ */
+export const calendarEvents: Record<string, unknown>[] = [];
+
+function occurrence(overrides: Record<string, unknown>): Record<string, unknown> {
+  const start =
+    typeof overrides["starts_at"] === "string"
+      ? overrides["starts_at"]
+      : "2026-03-10T09:00:00Z";
+  return {
+    description: null,
+    category: "MEETING",
+    status: "CONFIRMED",
+    location: "Room Aurora (4)",
+    all_day: false,
+    organizer: { id: "user-1", name: "Ada Administrator" },
+    project_id: null,
+    task_id: null,
+    participants: [
+      {
+        user_id: "user-1",
+        name: "Ada Administrator",
+        email: "admin@nucleus.example",
+        initials: "AA",
+        response: "ACCEPTED",
+      },
+    ],
+    recurrence: null,
+    recurrence_until: null,
+    recurrence_text: "",
+    reminder_minutes: null,
+    color: "#5b5bd6",
+    involves_me: true,
+    my_response: "ACCEPTED",
+    can_edit: true,
+    day: start.slice(0, 10),
+    minutes: 60,
+    is_occurrence: false,
+    clashes_with: [],
+    ...overrides,
+  };
+}
+
+function seedCalendar(): void {
+  calendarEvents.length = 0;
+  calendarEvents.push(
+    occurrence({
+      id: "event-1:2026-03-10T09:00:00+00:00",
+      event_id: "event-1",
+      title: "Delivery review",
+      starts_at: "2026-03-10T09:00:00Z",
+      ends_at: "2026-03-10T10:00:00Z",
+      description: "Agenda is on the project page.",
+      // Clashes with the standup below — named, because "1 conflict" is a hunt.
+      clashes_with: ["Morning standup"],
+    }),
+    occurrence({
+      id: "event-2:2026-03-10T09:30:00+00:00",
+      event_id: "event-2",
+      title: "Morning standup",
+      starts_at: "2026-03-10T09:30:00Z",
+      ends_at: "2026-03-10T09:45:00Z",
+      minutes: 15,
+      // Invited and unanswered: the state the header count exists for.
+      my_response: "NEEDS_ACTION",
+      can_edit: false,
+      organizer: { id: "user-2", name: "Mara Manager" },
+      clashes_with: ["Delivery review"],
+    }),
+    occurrence({
+      id: "event-3:2026-03-12T14:00:00+00:00",
+      event_id: "event-3",
+      title: "Weekly sync",
+      starts_at: "2026-03-12T14:00:00Z",
+      ends_at: "2026-03-12T14:30:00Z",
+      minutes: 30,
+      recurrence: { freq: "WEEKLY", interval: 1, byday: ["TH"] },
+      recurrence_until: "2026-06-30T00:00:00Z",
+      recurrence_text: "every week on Thursday, until 2026-06-30",
+      is_occurrence: true,
+    }),
+    occurrence({
+      id: "event-4:2026-03-16T00:00:00+00:00",
+      event_id: "event-4",
+      title: "Public holiday",
+      category: "HOLIDAY",
+      starts_at: "2026-03-16T00:00:00Z",
+      ends_at: "2026-03-17T00:00:00Z",
+      all_day: true,
+      minutes: 1440,
+      location: null,
+    }),
+    occurrence({
+      id: "event-5:2026-03-11T11:00:00+00:00",
+      event_id: "event-5",
+      title: "Cancelled workshop",
+      status: "CANCELLED",
+      starts_at: "2026-03-11T11:00:00Z",
+      ends_at: "2026-03-11T12:00:00Z",
+      involves_me: false,
+      my_response: null,
+    }),
+  );
+}
+
+seedCalendar();
+
+export function resetCalendar(): void {
+  seedCalendar();
+}
+
 export const handlers = [
+  http.get("/platform/api/calendar/events", ({ request }) => {
+    const query = new URL(request.url).searchParams;
+    const category = query.get("category") ?? "";
+    const mine = query.get("mine") === "1";
+    const items = calendarEvents.filter(
+      (item) =>
+        (!category || item["category"] === category) && (!mine || item["involves_me"]),
+    );
+    const byCategory: Record<string, number> = {};
+    for (const item of items) {
+      const key = String(item["category"]);
+      byCategory[key] = (byCategory[key] ?? 0) + 1;
+    }
+    return echo(request, {
+      from: query.get("from") ?? "",
+      to: query.get("to") ?? "",
+      items,
+      total: items.length,
+      counts: {
+        total: items.length,
+        mine: items.filter((item) => item["involves_me"]).length,
+        awaiting_response: items.filter((item) => item["my_response"] === "NEEDS_ACTION")
+          .length,
+        by_category: byCategory,
+      },
+      categories: ["MEETING", "REVIEW", "DEADLINE", "TRAINING", "MAINTENANCE", "HOLIDAY"],
+      statuses: ["CONFIRMED", "TENTATIVE", "CANCELLED"],
+      responses: ["NEEDS_ACTION", "ACCEPTED", "TENTATIVE", "DECLINED"],
+      can_manage: true,
+    });
+  }),
+  http.get("/platform/api/calendar/events/:id", ({ params, request }) => {
+    const row = calendarEvents.find((item) => item["event_id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    return echo(request, row);
+  }),
+  http.post("/platform/api/calendar/events", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const created = occurrence({
+      ...body,
+      id: `event-${calendarEvents.length + 1}:new`,
+      event_id: `event-${calendarEvents.length + 1}`,
+    });
+    calendarEvents.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.put("/platform/api/calendar/events/:id", async ({ params, request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const row = calendarEvents.find((item) => item["event_id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    Object.assign(row, body);
+    return echo(request, row);
+  }),
+  http.delete("/platform/api/calendar/events/:id", ({ params, request }) => {
+    const at = calendarEvents.findIndex((item) => item["event_id"] === String(params["id"]));
+    if (at >= 0) calendarEvents.splice(at, 1);
+    return echo(request, { deleted: true, id: String(params["id"]) });
+  }),
+  http.post("/platform/api/calendar/events/:id/respond", async ({ params, request }) => {
+    const body = (await request.json()) as { response?: string };
+    const row = calendarEvents.find((item) => item["event_id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    row["my_response"] = body.response;
+    return echo(request, row);
+  }),
   http.get("/platform/api/automations/catalog", ({ request }) =>
     echo(request, {
       resources: [

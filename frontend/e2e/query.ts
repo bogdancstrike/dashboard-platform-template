@@ -45,7 +45,20 @@ export async function chooseOption(page: Page, label: string | RegExp): Promise<
  * had already resolved.
  */
 export async function openSelect(page: Page, label: string): Promise<void> {
-  const input = page.getByLabel(label);
+  // By role, not by label: AntD puts the accessible name on both the wrapper
+  // and the inner input, so `getByLabel` matches twice. Only the input is a
+  // combobox.
+  const input = page.getByRole("combobox", { name: label });
   await expect(input).toBeAttached();
-  await input.locator("xpath=ancestor::div[contains(@class,'ant-select')][1]").click();
+  // And the *selector*, not the input: `Form.Item` labels a zero-height search
+  // input inside the control, and Playwright waits forever for that to be
+  // "stable" — a click that never lands, reported as a timeout.
+  //
+  // `ant-select-selector` and not `ant-select`: `contains()` is a substring
+  // test, so the nearest ancestor "containing ant-select" is the zero-height
+  // `ant-select-selection-search` wrapper — the same unclickable element by a
+  // longer route.
+  await input
+    .locator("xpath=ancestor::div[contains(@class,'ant-select-selector')][1]")
+    .click();
 }

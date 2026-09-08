@@ -103,11 +103,40 @@ def _kanban_card() -> Commentable:
     return Commentable(key="kanban_card", authorise=authorise, label=label)
 
 
+def _calendar_event() -> Commentable:
+    """An event's conversation is gated by being able to read the calendar.
+
+    Not an explorer resource either, and for the same reason as a card: an
+    event is not a business record with a field catalogue. Its read rule is
+    simply `calendar.view` — an event sits in other people's weeks, so anybody
+    who may look at the calendar may read what was said about a meeting in it.
+    """
+
+    def authorise(session, record_id, principal) -> None:
+        from src.services import calendar
+
+        # Reading the event is the check, and it raises `NotFoundError` for one
+        # that has been cancelled — the same answer the drawer gets.
+        principal.require(calendar.VIEW)
+        calendar._event(session, record_id)
+
+    def label(session, record_id) -> str:
+        from src.models.business import CalendarEvent
+
+        row = session.get(CalendarEvent, record_id)
+        return row.title if row is not None else str(record_id)
+
+    return Commentable(key="calendar_event", authorise=authorise, label=label)
+
+
 #: The things that are commentable *without* being explorer resources.
 #:
 #: Everything absent from here is resolved through the explorer declarations,
 #: which is where the great majority live.
-COMMENTABLE: dict[str, Commentable] = {"kanban_card": _kanban_card()}
+COMMENTABLE: dict[str, Commentable] = {
+    "kanban_card": _kanban_card(),
+    "calendar_event": _calendar_event(),
+}
 
 
 def listing(session, args, *, principal) -> dict[str, Any]:

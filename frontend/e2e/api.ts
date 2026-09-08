@@ -203,6 +203,29 @@ export async function sweepAutomations(
   }
 }
 
+/**
+ * Cancel calendar events this suite created, by id (§19).
+ *
+ * By id and never by title prefix, for the reason `sweepSavedSearches`
+ * documents. Cancelling rather than deleting is what the endpoint does — the
+ * row is kept for the audit trail — which is enough: a cancelled event is out
+ * of the reader's way.
+ */
+export async function sweepCalendarEvents(
+  ids: string[],
+  persona: Persona = "admin",
+): Promise<void> {
+  if (ids.length === 0) return;
+  const api = await apiAs(persona);
+  try {
+    for (const id of ids) {
+      await api.delete(endpoint(`/calendar/events/${id}`));
+    }
+  } finally {
+    await api.dispose();
+  }
+}
+
 /** Change a board — used to share one so a colleague can try to read it. */
 export async function updateBoard(
   id: string,

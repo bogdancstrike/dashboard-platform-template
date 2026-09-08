@@ -1147,6 +1147,51 @@
         "module_name": "src.api.workflows",
         "method_name": "runs"
       }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "calendar_events",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/calendar/events",
+      "description": "Everything in a window of time, expanded from its series, or a new event.",
+      "exec_method": {
+        "module_name": "src.api.calendar",
+        "method_name": "events"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "calendar_event",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/calendar/events/<uuid:event_id>",
+      "description": "One event, a change to the whole series, or its cancellation.",
+      "exec_method": {
+        "module_name": "src.api.calendar",
+        "method_name": "event"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "calendar_event_respond",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/calendar/events/<uuid:event_id>/respond",
+      "description": "Say whether you are coming.",
+      "exec_method": {
+        "module_name": "src.api.calendar",
+        "method_name": "respond"
+      }
     }
   ]
 }

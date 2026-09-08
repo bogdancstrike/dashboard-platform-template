@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+from src.core import vocabulary
 from src.seed import catalog
 from src.seed.support import reference, slugify
 from src.seed.world import World
@@ -527,7 +528,7 @@ def _calendar(world: World) -> None:
                 title=rng.pick(catalog.EVENT_TITLES),
                 description=rng.maybe("Agenda and prior notes are linked from the project page.", 0.5),
                 category=category,
-                status=rng.weighted((("CONFIRMED", 0.8), ("TENTATIVE", 0.14), ("CANCELLED", 0.06))),
+                status=rng.weighted(catalog.EVENT_STATUSES),
                 location=rng.pick(catalog.MEETING_ROOMS),
                 starts_at=starts,
                 ends_at=ends,
@@ -541,15 +542,13 @@ def _calendar(world: World) -> None:
                         "user_id": str(person.id),
                         "name": person.full_name,
                         "email": person.email,
-                        "response": rng.weighted(
-                            (("ACCEPTED", 0.62), ("TENTATIVE", 0.16), ("DECLINED", 0.1), ("NEEDS_ACTION", 0.12))
-                        ),
+                        "response": rng.weighted(catalog.EVENT_RESPONSES),
                     }
                     for person in attendees
                 ] or None,
                 recurrence=(
                     {
-                        "freq": rng.pick(("DAILY", "WEEKLY", "MONTHLY")),
+                        "freq": rng.pick(vocabulary.EVENT_FREQUENCY),
                         "interval": rng.integer(1, 3),
                         "byday": rng.sample(("MO", "TU", "WE", "TH", "FR"), rng.integer(1, 3)),
                     }
