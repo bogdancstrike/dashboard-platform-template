@@ -2482,3 +2482,46 @@ mark.nu-mark {
 }
 .nu-exp-log-line { display: flex; gap: 10px; }
 .nu-exp-log-line > .ant-typography:first-child { flex: none; }
+
+/* ── Import wizard (§29) ─────────────────────────────────────────────────
+   A page whose job is to let somebody see their own spreadsheet, so the
+   preview keeps the file's shape — one column per column, the values as
+   written — and everything else stays out of its way. */
+.nu-imp > * + * { margin-top: 12px; }
+.nu-imp-steps { max-width: 640px; }
+.nu-imp-choose { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.nu-imp-target { min-width: 200px; }
+.nu-imp-drop { padding: 8px 0; }
+.nu-imp-dialect { margin-top: 10px; }
+.nu-imp-outcome,
+.nu-imp-missing { margin-top: 10px; }
+/* One control per column, wrapping — a file with twenty columns is a real
+   file, and a single long list would put the last one below the fold. */
+.nu-imp-columns {
+  display: grid; gap: 10px 14px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+}
+.nu-imp-column { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.nu-imp-column-head { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.nu-imp-samples {
+  font-size: 11px; font-family: var(--nu-font-mono);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-imp-field { width: 100%; }
+.nu-imp-counts { font-size: 12.5px; margin-bottom: 10px; }
+.nu-imp-line { font-family: var(--nu-font-mono); font-variant-numeric: tabular-nums; }
+.nu-imp-cell { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+/* The reason is under the value rather than in a tooltip: the question is
+   "what is wrong with this line", and a hover cannot be scanned down a
+   column (§64, §76). */
+.nu-imp-why { font-size: 11px; }
+.nu-imp-table td { vertical-align: top; }
+/* Kept under 4% and never the only carrier — the message is in the cell. */
+.nu-imp-row.is-wrong > td {
+  background: color-mix(in srgb, var(--nu-warning) 4%, transparent);
+}
+.nu-imp-more { font-size: 11.5px; margin: 10px 0 0; }
+.nu-imp-open {
+  padding: 0; height: auto; font-family: var(--nu-font-mono); font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}

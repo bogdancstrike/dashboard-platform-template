@@ -115,6 +115,31 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     # `test_cleanup_order_respects_the_foreign_keys` caught this pair the wrong
     # way round, which is exactly what that test is for.
     "CalendarEvent", "Task",
+    # Written as a *side effect* of every audited test write, so they
+    # accumulate faster than anything else — and a demo `/activity` full of
+    # "1m ago · updated the Viewer role" from a test run is a feed nobody can
+    # read.
+    #
+    # Here rather than at the end, which is where they used to be, because an
+    # `ActivityEntry` points at a *project* and a project points at a
+    # *department*: leaving these last put `Project` after `Department` and
+    # `Department` after `ActivityEntry`, which is a cycle no ordering
+    # satisfies. Nothing in this list points at an audit or activity row, so
+    # they are free to move — and position here is about foreign keys, not
+    # about how fast a table fills up.
+    "ActivityEntry", "AuditLog",
+    # The business records, added when `/import` (§29) started creating them in
+    # bulk: an import test that loads three customers leaves three customers,
+    # and the demo dataset gained "Import Test Customer 1" the first time
+    # anybody ran the suite.
+    #
+    # Children first, as always: `devices` and `tickets` reference `projects`,
+    # and `orders`, `projects` and `tickets` all reference `customers`. And the
+    # whole block precedes `Department`, because an order and a project both
+    # name one. `test_cleanup_order_respects_the_foreign_keys` found three
+    # wrong placements of this block in a row, which is the clearest case yet
+    # for it existing.
+    "Device", "Order", "Ticket", "Project", "Customer",
     "Notification", "Favorite", "RecentItem",
     # `test_groups` makes its own groups. The `user_groups` association has no
     # timestamps of its own, so it is cleared by the service's own writes —
@@ -132,11 +157,11 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     # `test_jobs` makes its own jobs rather than editing seeded ones, so they
     # have to be swept — and before the audit rows that describe them.
     "BackgroundJob",
-    # Written as a *side effect* of every audited test write, so they
-    # accumulate faster than anything else — and a demo `/activity` full of
-    # "1m ago · updated the Viewer role" from a test run is a feed nobody can
-    # read.
-    "ActivityEntry", "AuditLog",
+    # `test_imports` begins a run per test and discards it, and a discard
+    # *keeps the record* — deliberately, because the attempt is worth having
+    # recorded (§29). Which meant 200 cancelled runs in the demo database
+    # before this line existed. Nothing points at an import run.
+    "ImportRun",
     # Written by `core/logsink` for *every* API request, so a database test
     # that makes one HTTP call leaves a line behind and a suite of five
     # hundred leaves five hundred. Last in the list because nothing points at

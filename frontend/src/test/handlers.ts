@@ -3072,6 +3072,187 @@ function exportCatalogue(): Record<string, unknown> {
   };
 }
 
+
+// ── Import wizard (§29) ─────────────────────────────────────────────────
+//
+// A draft mid-mapping, one checked with rows to fix, and one finished — the
+// three states the wizard has to render differently. Every derived field is
+// computed the way `services/imports.py` computes it, so a fixture cannot
+// assert something the server would never send. The lesson from `/exports`:
+// a fixture that derives a field its own way hides exactly the bug it was
+// written to catch.
+
+export const importRows: Record<string, unknown>[] = [];
+
+const importColumns = [
+  { index: 0, name: "Name", samples: ["Acme Ltd", "Globex", "Initech"] },
+  { index: 1, name: "Email", samples: ["a@acme.test", "b@globex.test"] },
+  { index: 2, name: "Segment", samples: ["SMB", "ENTERPRISE"] },
+  { index: 3, name: "legacy_ref", samples: ["L-001", "L-002"] },
+];
+
+const importStaged = [
+  { Name: "Acme Ltd", Email: "a@acme.test", Segment: "SMB", legacy_ref: "L-001" },
+  { Name: "Globex", Email: "b@globex.test", Segment: "NOT-A-SEGMENT", legacy_ref: "L-002" },
+  { Name: "", Email: "", Segment: "", legacy_ref: "L-003" },
+];
+
+function importOf(overrides: Record<string, unknown>): Record<string, unknown> {
+  const row = {
+    filename: "customers.csv",
+    target_entity: "customer",
+    target_label: "Customers",
+    delimiter: ",",
+    total_rows: 3,
+    valid_rows: 0,
+    invalid_rows: 0,
+    skipped_rows: 0,
+    imported_rows: 0,
+    detected_columns: importColumns,
+    column_mapping: { Name: "name", Email: "email", Segment: "segment" },
+    unmapped_required: [],
+    errors: [],
+    created_at: "2026-09-08T09:00:00Z",
+    completed_at: null,
+    ...overrides,
+  } as Record<string, unknown>;
+
+  // Derived exactly as the service derives them.
+  row["error_count"] = (row["errors"] as unknown[]).length;
+  row["can_execute"] =
+    row["status"] === "VALIDATED" &&
+    Number(row["valid_rows"]) > 0 &&
+    (row["unmapped_required"] as string[]).length === 0;
+  // Letting it go does something unless it is writing — a finished run's
+  // record can still be removed. And `holds_file` is what decides which of
+  // the two presses the next one is, said rather than inferred.
+  row["can_discard"] = row["status"] !== "RUNNING";
+  row["holds_file"] = ((row["staged"] as unknown[] | undefined) ?? []).length > 0;
+  return row;
+}
+
+function seedImports(): void {
+  importRows.length = 0;
+  importRows.push(
+    importOf({
+      id: "imp-draft", reference: "IMP-000201", status: "DRAFT", step: "MAPPING",
+      staged: importStaged,
+    }),
+    importOf({
+      id: "imp-checked", reference: "IMP-000202", status: "VALIDATED", step: "PREVIEW",
+      valid_rows: 1, invalid_rows: 1, skipped_rows: 1,
+      errors: [
+        {
+          line: 3, column: "Segment", field: "segment", value: "NOT-A-SEGMENT",
+          message: "NOT-A-SEGMENT is not a segment this record can have.",
+        },
+      ],
+      staged: importStaged,
+    }),
+    // Required field with no column: the state the execute must refuse.
+    importOf({
+      id: "imp-unmapped", reference: "IMP-000203", status: "DRAFT", step: "MAPPING",
+      column_mapping: { Email: "email" },
+      unmapped_required: ["name"],
+      staged: importStaged,
+    }),
+    importOf({
+      id: "imp-done", reference: "IMP-000204", status: "COMPLETED", step: "DONE",
+      valid_rows: 2, invalid_rows: 1, skipped_rows: 0, imported_rows: 2,
+      completed_at: "2026-09-08T09:05:00Z",
+      // Finished, so it no longer holds the file — the rows became records.
+      staged: [],
+    }),
+  );
+}
+
+seedImports();
+
+export function resetImports(): void {
+  seedImports();
+}
+
+/** The preview the detail endpoint builds, derived from the staged rows. */
+function importDetail(row: Record<string, unknown>): Record<string, unknown> {
+  const staged = (row["staged"] as Record<string, string>[] | undefined) ?? [];
+  const mapping = row["column_mapping"] as Record<string, string>;
+  const errors = row["errors"] as Array<Record<string, unknown>>;
+  const structural = errors.filter((problem) => !problem["column"]);
+  return {
+    ...row,
+    // On every read, as the service derives it: attaching it only to the
+    // answer that created the run made the page's note vanish at the first
+    // refetch.
+    dialect: {
+      delimiter: row["delimiter"],
+      label: "comma",
+      consistent: structural.length === 0,
+      note: structural.length
+        ? `Read as comma-separated, but ${structural.length} lines disagree about how many columns there are.`
+        : `Read as comma-separated, ${(row["detected_columns"] as unknown[]).length} columns.`,
+    },
+    preview: staged.map((source, index) => ({
+      // The header is line 1, so the first data row is 2 — the number
+      // somebody needs to find it in the spreadsheet.
+      line: index + 2,
+      source,
+      values: Object.fromEntries(
+        Object.entries(mapping).map(([column, field]) => [field, source[column]]),
+      ),
+      problems: errors.filter((problem) => problem["line"] === index + 2),
+    })),
+    preview_total: staged.length,
+  };
+}
+
+const importCatalogue = {
+  targets: [
+    {
+      key: "customer",
+      label: "Customers",
+      description: "Accounts and their owners.",
+      required: ["name"],
+      fields: [
+        { name: "name", label: "Name", kind: "text", required: true, choices: [],
+          minimum: null, maximum: null, references: "" },
+        { name: "email", label: "Email", kind: "text", required: false, choices: [],
+          minimum: null, maximum: null, references: "" },
+        { name: "segment", label: "Segment", kind: "enum", required: false,
+          choices: ["SMB", "MID_MARKET", "ENTERPRISE"], minimum: null, maximum: null,
+          references: "" },
+      ],
+    },
+    {
+      key: "project",
+      label: "Projects",
+      description: "Delivery work.",
+      required: ["name"],
+      fields: [
+        { name: "name", label: "Name", kind: "text", required: true, choices: [],
+          minimum: null, maximum: null, references: "" },
+      ],
+    },
+  ],
+  delimiters: [
+    { key: ",", label: "comma" },
+    { key: ";", label: "semicolon" },
+    { key: "\t", label: "tab" },
+    { key: "|", label: "pipe" },
+  ],
+  max_rows: 5000,
+  max_bytes: 10 * 1024 * 1024,
+  preview_rows: 50,
+  open_limit: 5,
+  open: 3,
+  statuses: [
+    { key: "DRAFT", count: 2 },
+    { key: "VALIDATED", count: 1 },
+    { key: "COMPLETED", count: 1 },
+  ],
+  steps: ["UPLOAD", "MAPPING", "PREVIEW", "EXECUTE", "DONE"],
+  total: 4,
+};
+
 export const handlers = [
   http.get("/platform/admin/integrations/catalogue", ({ request }) => {
     const states = ["NOT_CONFIGURED", "DISCONNECTED", "CONNECTED", "ERROR"];
@@ -4955,6 +5136,173 @@ export const handlers = [
     const index = recordComments.findIndex((item) => item["id"] === params["id"]);
     if (index >= 0) recordComments.splice(index, 1);
     return HttpResponse.json({ deleted: true, id: params["id"] });
+  }),
+  // ── Import wizard (§29) ───────────────────────────────────────────────
+  // `catalogue` before `:id`, for the reason the audit export is: MSW matches
+  // path segments loosely, so `:id` would swallow it.
+  http.get("/platform/imports/catalogue", ({ request }) => echo(request, importCatalogue)),
+  http.put("/platform/imports/:id/mapping", async ({ request, params }) => {
+    const body = (await request.json()) as { column_mapping: Record<string, string> };
+    const index = importRows.findIndex((item) => item["id"] === params["id"]);
+    if (index < 0) {
+      return HttpResponse.json(
+        { error: "not_found", message: "That import does not exist.", details: {} },
+        { status: 404 },
+      );
+    }
+    const mapping = Object.fromEntries(
+      Object.entries(body.column_mapping).filter(([, field]) => field),
+    );
+    // Validation the way the service does it: a mapped `Segment` makes the
+    // second row wrong, and a row with nothing in any mapped column is
+    // skipped rather than counted either way.
+    const staged = (importRows[index]!["staged"] as Record<string, string>[]) ?? [];
+    const errors: Array<Record<string, unknown>> = [];
+    let skipped = 0;
+    staged.forEach((source, position) => {
+      const values = Object.keys(mapping).map((column) => source[column] ?? "");
+      if (!values.some((value) => value.trim())) {
+        skipped += 1;
+        return;
+      }
+      for (const [column, field] of Object.entries(mapping)) {
+        if (field === "segment" && source[column] && source[column] !== "SMB") {
+          errors.push({
+            line: position + 2,
+            column,
+            field,
+            value: source[column],
+            message: `${source[column]} is not a segment this record can have.`,
+          });
+        }
+      }
+    });
+    const invalid = new Set(errors.map((problem) => problem["line"])).size;
+    const required = ["name"].filter((name) => !Object.values(mapping).includes(name));
+    const updated = importOf({
+      ...importRows[index],
+      column_mapping: mapping,
+      unmapped_required: required,
+      total_rows: staged.length,
+      skipped_rows: skipped,
+      invalid_rows: invalid,
+      valid_rows: staged.length - skipped - invalid,
+      errors,
+      step: "PREVIEW",
+      status: staged.length - skipped - invalid > 0 ? "VALIDATED" : "DRAFT",
+    });
+    importRows[index] = updated;
+    return HttpResponse.json(importDetail(updated));
+  }),
+  http.post("/platform/imports/:id/execute", ({ params }) => {
+    const index = importRows.findIndex((item) => item["id"] === params["id"]);
+    if (index < 0) {
+      return HttpResponse.json(
+        { error: "not_found", message: "That import does not exist.", details: {} },
+        { status: 404 },
+      );
+    }
+    const row = importRows[index]!;
+    if (!row["can_execute"]) {
+      return HttpResponse.json(
+        {
+          error: "conflict",
+          message: "That import cannot be run yet.",
+          details: { status: row["status"] },
+        },
+        { status: 409 },
+      );
+    }
+    // All-or-nothing, and finished by the time the answer comes back: the
+    // staged file goes, because the rows have become records.
+    const done = importOf({
+      ...row,
+      status: "COMPLETED",
+      step: "DONE",
+      imported_rows: row["valid_rows"],
+      completed_at: "2026-09-08T09:10:00Z",
+      staged: [],
+    });
+    importRows[index] = done;
+    return HttpResponse.json(importDetail(done), { status: 202 });
+  }),
+  http.get("/platform/imports/:id/problems", () =>
+    HttpResponse.text(
+      "\ufeffLine,Column,Value,Problem\n3,Segment,NOT-A-SEGMENT,not a segment\n",
+      {
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": 'attachment; filename="IMP-000202-problems.csv"',
+        },
+      },
+    ),
+  ),
+  http.get("/platform/imports/:id", ({ request, params }) => {
+    const row = importRows.find((item) => item["id"] === params["id"]);
+    return row
+      ? echo(request, importDetail(row))
+      : HttpResponse.json(
+          { error: "not_found", message: "That import does not exist.", details: {} },
+          { status: 404 },
+        );
+  }),
+  // Two presses, as the endpoint has: the staged file on the first, the record
+  // on the second, and `removed` says which happened.
+  http.delete("/platform/imports/:id", ({ params }) => {
+    const index = importRows.findIndex((item) => item["id"] === params["id"]);
+    if (index < 0) {
+      return HttpResponse.json(
+        { error: "not_found", message: "That import does not exist.", details: {} },
+        { status: 404 },
+      );
+    }
+    const row = importRows[index]!;
+    if (!["DRAFT", "VALIDATED"].includes(String(row["status"]))) {
+      importRows.splice(index, 1);
+      return HttpResponse.json({ ...row, removed: true });
+    }
+    const dropped = importOf({
+      ...row,
+      status: "CANCELLED",
+      step: "DONE",
+      staged: [],
+    });
+    importRows[index] = dropped;
+    return HttpResponse.json({ ...dropped, removed: false });
+  }),
+  http.post("/platform/imports", async ({ request }) => {
+    const body = (await request.json()) as {
+      target_entity: string;
+      filename: string;
+      content: string;
+    };
+    const made = importOf({
+      id: "imp-new",
+      reference: "IMP-000300",
+      status: "DRAFT",
+      step: "MAPPING",
+      filename: body.filename,
+      target_entity: body.target_entity,
+      target_label: body.target_entity === "project" ? "Projects" : "Customers",
+      staged: importStaged,
+      blank_rows: 0,
+    });
+    importRows.unshift(made);
+    return HttpResponse.json(importDetail(made), { status: 201 });
+  }),
+  http.get("/platform/imports", ({ request }) => {
+    const query = new URL(request.url).searchParams;
+    const status = query.get("status") ?? "";
+    const items = importRows.filter((row) => !status || row["status"] === status);
+    return echo(request, {
+      items,
+      total: items.length,
+      page: 1,
+      page_size: 25,
+      pages: 1,
+      facets: {},
+      columns: ["reference", "filename", "target_entity", "status", "created_at"],
+    });
   }),
   // ── Exports (§30) ─────────────────────────────────────────────────────
   // `catalogue` and `estimate` before the `:id` rule, for the reason the audit

@@ -35,6 +35,7 @@ const OrganizationsPage = lazy(() => import("@/pages/admin/OrganizationsPage"));
 const ApiClientsPage = lazy(() => import("@/pages/admin/ApiClientsPage"));
 const IntegrationsPage = lazy(() => import("@/pages/admin/IntegrationsPage"));
 const ExportsPage = lazy(() => import("@/pages/ExportsPage"));
+const ImportPage = lazy(() => import("@/pages/ImportPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
@@ -472,10 +473,9 @@ export default function App() {
         <Route
           path="import"
           element={
-            <PlaceholderPage
-              section="§29"
-              summary="The import wizard: upload, map columns, validate, preview, execute."
-            />
+            <Suspense fallback={<Loading />}>
+              <ImportPage />
+            </Suspense>
           }
         />
         <Route

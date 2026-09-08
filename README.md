@@ -90,9 +90,35 @@ a file is metadata in PostgreSQL.
 ```bash
 make sync-files    # write the object bytes every seeded file points at
 make sync-exports  # write the file every seeded export claims, and make its counts describe it
+make sync-imports  # make every seeded import run describe a file that could exist
 ```
 
 MinIO's console is at <http://localhost:9001> (`nucleus` / `nucleus-dev-secret`).
+
+### Imports, and why the validation is the form's
+
+`/import` is four steps because the decision has four parts: which dataset,
+which column is which field, what is wrong with which rows, and then do it.
+
+The part worth knowing is that **a row is validated by the same function a form
+uses**. `record_writes.coerce` reads the `Writable` declarations an edit form is
+rendered from, so a value the form refuses is refused here with the same
+sentence — asserted end to end by sending one bad value to both endpoints and
+comparing the answers. An importer with its own validation drifts, and the
+first anybody hears of it is a 500 halfway through writing five thousand rows.
+
+The CSV arrives as text in the request body rather than through a presigned
+upload, because the API has to parse it: object storage would move the same
+bytes through the same worker twice. `core/importer` finds the separator by
+*consistency* rather than frequency (a description with six commas in it makes
+the comma the most common character on the line and the wrong answer), strips
+the byte-order mark Excel writes, drops blank lines, reports ragged ones with
+their line number, and shows what it decided — a reader whose file came back
+as one column needs to see why.
+
+Then nothing is written until the preview has been seen, and the execute is
+all-or-nothing inside one transaction. Half an import is what makes somebody
+load the same file twice.
 
 ### Exports, and what happens when one is too big for a response
 
@@ -204,6 +230,7 @@ python -m src.seed --sync-settings     # add newly declared settings, refit any 
 python -m src.seed --sync-jobs         # top every background-job status up to its guaranteed minimum
 python -m src.seed --sync-org          # recount each department's headcount from the people in it
 python -m src.seed --sync-exports      # write the file every seeded export claims, and correct its counts
+python -m src.seed --sync-imports      # make every seeded import run describe a file that could exist
 ```
 
 `--sync-schema` refuses to guess: a `NOT NULL` column with no default is
@@ -277,9 +304,21 @@ exists. It also gives every persona holding `records.export` one finished
 export, because a page whose every download fails demonstrates nothing. If a
 download on `/exports` 404s, that is what it means.
 
+`--sync-imports` is the third of the content repairs and had the most to fix.
+The seeded import runs wrote `valid = total - invalid` beside a separate
+non-zero `skipped`, so three of the four counts could not all be true; gave
+every run the same five column names whatever it imported into and mapped four
+of them onto fields `order` and `task` do not accept, so the wizard could not
+describe a single seeded run; claimed up to 25,000 rows against a cap of
+5,000; and left every open draft with no staged rows, so resuming one — the
+thing the wizard exists for — showed an empty preview. The columns now come
+from the target's own writable declarations, the counts are re-derived so they
+add up, and an open run holds the file it is in the middle of.
+
 Under Compose these are `make check-seed`, `make sync-schema`, `make
 sync-roles`, `make sync-reports`, `make sync-automations`, `make sync-mailboxes`,
-`make sync-settings`, `make sync-jobs`, `make sync-org` and `make sync-exports`.
+`make sync-settings`, `make sync-jobs`, `make sync-org`, `make sync-exports`
+and `make sync-imports`.
 
 Then:
 

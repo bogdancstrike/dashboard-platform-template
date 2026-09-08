@@ -196,6 +196,39 @@ JOB_TERMINAL: Vocabulary = ("SUCCEEDED", "FAILED", "CANCELLED")
 #: And the states a cancel can still reach.
 JOB_CANCELLABLE: Vocabulary = ("QUEUED", "RUNNING", "RETRYING")
 
+#: Where one run of the import wizard stands (§29).
+#:
+#: DRAFT and VALIDATED are the two the wizard moves between — a mapping change
+#: sends a validated run back to DRAFT when it leaves nothing valid, because
+#: "validated" has to mean "there is something to import". COMPLETED, FAILED
+#: and CANCELLED are the three ways it ends, and they are kept apart because
+#: the questions differ: what was written, what went wrong, and who stopped it.
+IMPORT_STATUS: Vocabulary = (
+    "DRAFT", "VALIDATED", "RUNNING", "COMPLETED", "FAILED", "CANCELLED",
+)
+
+#: The states from which the wizard can still be worked on. A run in one of
+#: these holds a copy of somebody's file, which is why the limit on how many a
+#: person may have at once is expressed over this set rather than over rows.
+IMPORT_OPEN: Vocabulary = ("DRAFT", "VALIDATED")
+
+#: The states in which a run's four row counts are facts about something.
+#:
+#: `total = valid + invalid + skipped` holds here and nowhere else. A DRAFT has
+#: been *read* and not yet checked, so its outcome counts are zero because
+#: nothing has decided them — and a CANCELLED run may have been abandoned from
+#: either side of that line, which is why "not DRAFT" was the wrong way to say
+#: this and briefly made every discarded draft look broken.
+IMPORT_COUNTED: Vocabulary = ("VALIDATED", "RUNNING", "COMPLETED", "FAILED")
+
+#: Which step of the wizard a run is on, in order.
+#:
+#: Stored as well as derivable because a *resumed* draft has to reopen where it
+#: was left, and "wherever the data implies" is not the same thing: a run whose
+#: mapping is complete but which the person had not looked at yet should reopen
+#: on the preview, not skip past it.
+IMPORT_STEP: Vocabulary = ("UPLOAD", "MAPPING", "PREVIEW", "EXECUTE", "DONE")
+
 
 def weighted(values: Vocabulary, weights: tuple[float, ...]) -> tuple[tuple[str, float], ...]:
     """Pair a vocabulary with the seed's distribution, positionally.

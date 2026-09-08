@@ -88,6 +88,10 @@ sync-files: ## Write the object bytes every seeded file points at
 sync-exports: ## Write the file every seeded export claims, and make its counts describe it
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-exports seed
 
+.PHONY: sync-imports
+sync-imports: ## Make every seeded import run describe a file that could exist
+	$(COMPOSE) run --rm -e SEED_ARGS=--sync-imports seed
+
 .PHONY: sync-schema
 sync-schema: ## Add columns the model declares and the database lacks
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-schema seed

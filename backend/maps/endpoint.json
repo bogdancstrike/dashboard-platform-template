@@ -1882,6 +1882,105 @@
         "module_name": "src.api.exports",
         "method_name": "again"
       }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "import_catalogue",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/imports/catalogue",
+      "description": "What can be imported into, what each field accepts, and the limits.",
+      "exec_method": {
+        "module_name": "src.api.imports",
+        "method_name": "catalogue"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "import_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/imports",
+      "description": "My imports, newest first, filtered and faceted in PostgreSQL.",
+      "exec_method": {
+        "module_name": "src.api.imports",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "import_begin",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/imports",
+      "description": "Accept a CSV, read it, and propose a column mapping.",
+      "exec_method": {
+        "module_name": "src.api.imports",
+        "method_name": "begin"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "import_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "DELETE"
+      ],
+      "api_url": "/imports/<uuid:import_id>",
+      "description": "One import with its preview; DELETE discards a draft and its staged file.",
+      "exec_method": {
+        "module_name": "src.api.imports",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "import_mapping",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT"
+      ],
+      "api_url": "/imports/<uuid:import_id>/mapping",
+      "description": "Set which column is which field, and validate every row.",
+      "exec_method": {
+        "module_name": "src.api.imports",
+        "method_name": "mapping"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "import_execute",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/imports/<uuid:import_id>/execute",
+      "description": "Write the valid rows in one transaction, off the request.",
+      "exec_method": {
+        "module_name": "src.api.imports",
+        "method_name": "execute"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "import_problems",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/imports/<uuid:import_id>/problems",
+      "description": "The row-level error report as a CSV, to fix in the spreadsheet.",
+      "exec_method": {
+        "module_name": "src.api.imports",
+        "method_name": "problems"
+      }
     }
   ]
 }

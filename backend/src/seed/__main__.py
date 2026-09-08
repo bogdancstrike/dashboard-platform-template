@@ -7,6 +7,7 @@
     python -m src.seed --sync-schema      # add columns the model has and it lacks
     python -m src.seed --sync-files       # write the bytes seeded files point at
     python -m src.seed --sync-exports     # write the file every seeded export claims
+    python -m src.seed --sync-imports     # make every seeded import run describe a real file
     python -m src.seed --sync-roles       # give built-in roles new permissions
     python -m src.seed --sync-reports     # make unrunnable saved reports runnable
     python -m src.seed --sync-automations # make unrunnable automations runnable
@@ -53,6 +54,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-exports", action="store_true",
         help="write the file every seeded export claims, and make its counts describe it",
+    )
+    parser.add_argument(
+        "--sync-imports", action="store_true",
+        help="make every seeded import run describe a file that could exist",
     )
     parser.add_argument(
         "--sync-roles", action="store_true",
@@ -150,6 +155,20 @@ def main(argv: list[str] | None = None) -> int:
         )
         if result["unreadable"]:
             print(f"  ! {result['unreadable']} export(s) name a query that cannot be read")
+        return 0
+
+    if args.sync_imports:
+        # A seeded import run used to claim counts that could not all be true
+        # and a mapping onto fields its target does not have. Idempotent.
+        with session_scope() as session:
+            result = runner.sync_imports(session)
+        print(
+            f"{result['repaired']} import run(s) repaired "
+            f"({result['staged']} hold their file, {result['cleared']} error lists rebuilt), "
+            f"{result['already_true']} already true"
+        )
+        if result["unreadable"]:
+            print(f"  ! {result['unreadable']} run(s) name a dataset that cannot be imported into")
         return 0
 
     if args.sync_roles:
@@ -288,6 +307,7 @@ def main(argv: list[str] | None = None) -> int:
         # wrote (§30).
         runner.sync_files(session)
         runner.sync_exports(session)
+        runner.sync_imports(session)
         problems = runner.verify(session)
 
     _report(counts, quiet=args.quiet)

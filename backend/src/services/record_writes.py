@@ -88,6 +88,63 @@ def create(session, resource_type: Any, payload: dict[str, Any], *, principal) -
     return detail(session, resource.key, row.id, principal=principal)
 
 
+def create_many(
+    session, resource_type: Any, payloads: list[dict[str, Any]], *, principal
+) -> list[Any]:
+    """Create several records by exactly the rules that create one (§29).
+
+    What the import wizard's execute calls. Three things it does differently
+    from `create` in a loop, and each is the reason it exists:
+
+    **It re-coerces.** The importer has already validated every row, so a
+    failure here is either a bug or a race — a foreign key that was valid at
+    the preview step and deleted before the execute. Re-checking costs almost
+    nothing beside the INSERT and means staged JSON that has been tampered with
+    between wizard steps cannot write something the rules refuse.
+
+    **It does not read each record back.** `create` answers with `detail`,
+    which is right for a form that is about to render the result and wrong five
+    thousand times over. The caller gets the rows.
+
+    **It raises rather than continuing.** Callers wanting a partial result must
+    say so by validating first, which the wizard does: the preview is where a
+    bad row is reported, and by the execute the contract is all-or-nothing.
+    Half an import is the outcome §29 exists to prevent — a spreadsheet loaded
+    twice because nobody could tell how much of it landed the first time.
+    """
+    resource = resource_for(resource_type, principal=principal)
+    principal.require(CREATE_PERMISSION)
+    if resource.identity is None:
+        raise ValidationError(
+            f"{resource.label} cannot be created here.",
+            details={"resource_type": resource.key},
+        )
+
+    rows = []
+    for index, payload in enumerate(payloads):
+        values = _coerced(session, resource, _object(payload), creating=True)
+        row = _insert(session, resource, values)
+        audit.record(
+            session,
+            action="CREATE",
+            resource_type=resource.key,
+            resource_id=row.id,
+            resource_label=resource.label_for(row),
+            principal=principal,
+            after=_state(resource, row),
+            message=f"created {resource.label_for(row)}",
+            # One activity entry for the import as a whole, written by the
+            # caller: five thousand lines of "created CUS-01234" is a feed
+            # nobody can read (§48).
+            activity=False,
+            metadata={"import_row": index + 1},
+        )
+        rows.append(row)
+
+    session.flush()
+    return rows
+
+
 def update(
     session, resource_type: Any, record_id: Any, payload: dict[str, Any], *, principal
 ) -> dict[str, Any]:
@@ -163,6 +220,98 @@ def _object(payload: Any) -> dict[str, Any]:
     return payload
 
 
+def coerce(
+    session, resource: Resource, payload: dict[str, Any], *, creating: bool
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Every writable field the payload names, converted — and every problem.
+
+    The same loop `_coerced` uses, differing only in what it does with a
+    failure: this collects them all, that raises the first. Both exist because
+    a form and an import want opposite things from the same rules.
+
+    A form wants the first error and wants it now: the person is looking at the
+    field, and thirty messages about a payload they sent one field of would be
+    noise. An import wants every error on every row *before* anything is
+    written — "row 14 has a bad status" followed by "row 14 also has a bad
+    date" one execute later is a wizard somebody goes round twice.
+
+    What must not happen is two sets of rules. An importer that validated a CSV
+    itself would accept rows a form refuses, and the first anybody would hear
+    of it is a 500 during the execute — so this is the one place the coercion
+    lives, and `services/imports` calls exactly this.
+    """
+    writable = resource.writable
+    if not writable:
+        return {}, [
+            {
+                "field": "",
+                "message": f"{resource.label} are read-only.",
+                "details": {"resource_type": resource.key},
+            }
+        ]
+
+    problems: list[dict[str, Any]] = []
+    unknown = sorted(set(payload) - set(writable) - {CONCURRENCY_KEY})
+    if unknown:
+        # Not a per-field problem: a payload naming a field that does not exist
+        # is a caller that has the wrong idea about the resource, and answering
+        # per field would bury that.
+        return {}, [
+            {
+                "field": "",
+                "message": "Those fields cannot be written.",
+                "details": {"fields": unknown, "editable": sorted(writable)},
+            }
+        ]
+
+    values: dict[str, Any] = {}
+    for name, spec in writable.items():
+        field = resource.fields.by_name[name]
+        if name not in payload:
+            if creating and spec.required:
+                problems.append(
+                    {
+                        "field": name,
+                        "message": f"{field.title} is required.",
+                        "details": {"field": name},
+                    }
+                )
+            continue
+        try:
+            value = _value(session, field, spec, payload[name])
+        except ValidationError as problem:
+            # Every value error already names its field and carries the value,
+            # so a row-level report needs nothing this loop has to invent.
+            problems.append(
+                {
+                    "field": name,
+                    "message": problem.message,
+                    "details": dict(problem.details),
+                }
+            )
+            continue
+        if value is None and spec.required:
+            problems.append(
+                {
+                    "field": name,
+                    "message": f"{field.title} cannot be empty.",
+                    "details": {"field": name},
+                }
+            )
+            continue
+        values[name] = value
+
+    if not values and not problems:
+        problems.append(
+            {
+                "field": "",
+                "message": "Nothing to write.",
+                "details": {"editable": sorted(writable)},
+            }
+        )
+    return values, problems
+
+
 def _coerced(
     session, resource: Resource, payload: dict[str, Any], *, creating: bool
 ) -> dict[str, Any]:
@@ -171,40 +320,13 @@ def _coerced(
     Unknown keys are an error rather than a silent omission: a form that posts
     `assignee` where the field is `assignee_id` otherwise appears to save and
     changes nothing, which is the most expensive kind of bug to report.
+
+    The first problem wins, because that is what a form wants — see `coerce`.
     """
-    writable = resource.writable
-    if not writable:
-        raise ValidationError(
-            f"{resource.label} are read-only.", details={"resource_type": resource.key}
-        )
-
-    unknown = sorted(set(payload) - set(writable) - {CONCURRENCY_KEY})
-    if unknown:
-        raise ValidationError(
-            "Those fields cannot be written.",
-            details={"fields": unknown, "editable": sorted(writable)},
-        )
-
-    values: dict[str, Any] = {}
-    for name, spec in writable.items():
-        field = resource.fields.by_name[name]
-        if name not in payload:
-            if creating and spec.required:
-                raise ValidationError(
-                    f"{field.title} is required.", details={"field": name}
-                )
-            continue
-        value = _value(session, field, spec, payload[name])
-        if value is None and spec.required:
-            raise ValidationError(
-                f"{field.title} cannot be empty.", details={"field": name}
-            )
-        values[name] = value
-
-    if not values:
-        raise ValidationError(
-            "Nothing to write.", details={"editable": sorted(writable)}
-        )
+    values, problems = coerce(session, resource, payload, creating=creating)
+    if problems:
+        first = problems[0]
+        raise ValidationError(first["message"], details=first["details"])
     return values
 
 

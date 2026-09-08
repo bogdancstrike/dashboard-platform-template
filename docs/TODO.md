@@ -404,8 +404,10 @@ commit — built, committed, pushed, redeployed and verified before the next.
       that never pass through the API process
   - `/files` ships on it, and so does the export-as-a-job flow (§30): a queued
     export's artefact is a real object, signed on the way out so the bytes
-    never pass through a worker twice. The import wizard (§29) is next, and it
-    already has somewhere to put the bytes
+    never pass through a worker twice. The import wizard (§29) deliberately
+    does *not* use it — a CSV has to be parsed by the API, so routing it
+    through object storage and fetching it back would move the same bytes
+    through the same worker twice for no benefit
 - [ ] **Redis is used for what a cache is for** — the aggregates that cost a
       `GROUP BY` over the whole dataset, invalidated by the writes that make
       them stale rather than by a timer
@@ -1619,6 +1621,82 @@ commit — built, committed, pushed, redeployed and verified before the next.
       and lets the label take the click, which `NotificationsPage.test` had
       already documented
 
+- [x] **`/import` — the wizard, and the seventh data defect** (§29)
+  - **The rules are the form's rules, and that is the whole design.** A row is
+      validated by `record_writes.coerce` — the same function
+      `POST /api/records/<type>` calls, against the same `Writable`
+      declarations an edit form is rendered from. So the test that matters is
+      the one that sends the same bad value to *both* endpoints and asserts the
+      same sentence comes back. An importer with its own validation would
+      eventually accept a status no form would, and the first anybody would
+      hear of it is a 500 halfway through an execute
+  - **`coerce` collects every problem; `_coerced` raises the first.** One loop,
+      two callers, because a form and an import want opposite things from the
+      same rules: a form wants the first error *now*, since the person is
+      looking at that field, and an import wants every error on every row
+      before anything is written. A wizard that reported one problem per round
+      trip is a wizard somebody goes round four times
+  - **The awkward file is the normal file.** A BOM, semicolons, a ragged line
+      and a trailing newline are what Excel produces on a Windows machine in
+      Europe, and each has its own test. The separator is chosen by
+      *consistency* rather than frequency — a description containing six commas
+      makes the comma the most common character on the line and the wrong
+      answer — and the detection is *shown*, because a reader whose file came
+      back as one column needs to see why
+  - **The seeded import runs were wrong in five ways at once**, which is the
+      seventh data-integrity defect this project has found by building the page
+      that reads the data, and the most comprehensively wrong yet. `valid =
+      total - invalid` was written beside a separate non-zero `skipped`, so a
+      run reported 24,234 + 619 + 1,055 out of 24,853 — three numbers, no two
+      of which agreed. Every run got the same five column names whatever it
+      imported into, four of them mapped onto `code`, `country`, `email` and
+      `name`, which `order` and `task` do not accept — so the wizard could not
+      describe a single seeded run and an execute would have been refused on
+      every row. Up to 25,000 rows against a cap of 5,000. Errors keyed as
+      `row` with no value, so three of the report's four columns would have
+      been blank. And every open draft held no rows, so resuming one — the
+      thing the whole wizard exists for — showed an empty preview
+  - **I clamped instead of scaling. Again.** Reducing a run's total from 21,202
+      to 60 beside an `invalid` of 2,360 left every row invalid and none valid:
+      a VALIDATED run with nothing to import. The identical mistake I had made
+      an hour earlier repairing an export's progress, and it took two more
+      attempts to state the rule properly — `min(invalid, total)` "fits" at
+      sixty of sixty, which is still a validated run with nothing in it. The
+      counts are now re-derived at the generator's own proportions in one
+      place, and the condition is "no room left for a valid row" rather than
+      "does not fit"
+  - **`--sync-imports`, `--check` and the generator all state the same
+      invariants**, and `vocabulary.IMPORT_COUNTED` names the states in which
+      the four counts are facts about anything. "Not DRAFT" was the first
+      attempt and was wrong: a CANCELLED run may have been abandoned from
+      either side of the validation line, which briefly made every discarded
+      draft look broken
+  - **The dialect note lasted exactly one render.** It was attached to
+      `begin`'s answer only, so the page's promise to show the detected
+      separator held until the first refetch and then vanished. Derived on
+      every read now, from the stored delimiter and the structural problems —
+      found by the end-to-end walkthrough, which reads the run rather than the
+      response that created it
+  - **Letting one go takes two presses**, the third use of that rule after
+      `/mail` and `/exports`, and for the third time the end-to-end suite was
+      the thing that proved it: it discards what it creates and left
+      thirty-three cancelled runs behind, with no product path to remove them.
+      The file goes first, the record second, `holds_file` says which press the
+      next one is — said by the server, because inferring it is what made the
+      `/exports` page unable to reach its own second press
+  - **And the sweep was silently deleting nothing.** The e2e cleanup removed
+      its imported records as the *manager*, and `records.delete` is
+      administrator-only — so it got a 403 per record and reported success.
+      Seven `E2E Import …` customers had accumulated. It now runs as the
+      administrator and *throws* on a failed delete, because a cleanup that
+      cannot delete looks exactly like a clean run
+  - **The business records were not in the conftest sweep at all**, which only
+      showed up once something created them in bulk. Adding them took four
+      attempts because the delete order has a genuine cycle: `activity_entries`
+      → `projects` → `departments`, and the audit rows were last in the list.
+      Moving them up broke it; position there is about foreign keys, not about
+      how fast a table fills up
+
 - [x] **Two more latent e2e flakes, both of a class already recorded here**
   - `/analytics` read a table's row count in the gap between the table
       rendering and its query answering, so `drawn` was 0 while the tile beside
@@ -1841,10 +1919,10 @@ commit — built, committed, pushed, redeployed and verified before the next.
       `/files`, `/workflows`, `/calendar`, `/mail`, `/home` and the
       administration index with `/admin/settings`, `/admin/flags`,
       `/admin/logs`, `/admin/jobs`, `/admin/groups`, `/admin/organizations`,
-      `/admin/api` and `/admin/integrations` are done, and so is `/exports`
-      (§30). Remaining: `/favorites`, `/import` (§29), `/settings/security`
-      (§41) and the two `/showcase/*` pages — every one of which already has
-      its model and its seeded rows
+      `/admin/api` and `/admin/integrations` are done, and so are `/exports`
+      (§30) and `/import` (§29). Remaining: `/favorites`,
+      `/settings/security` (§41) and the two `/showcase/*` pages — every one of
+      which already has its model and its seeded rows
 - [x] **Six latent e2e flakes fixed, all the same two mistakes.** Four specs
       clicked a select option with `getByTitle`, which AntD also puts on the
       closed select's own label — so the click matched twice as soon as the
@@ -2104,8 +2182,10 @@ function is a slow test that fails for unrelated reasons.
 - [ ] **Wizard** (§10) — save a draft midway, resume it, complete it
 - [ ] **Bulk operation** (§43, §75) — select across pages, see the affected-count
       preview, confirm, read the partial result
-- [ ] **Import** (§29) — upload CSV, map columns, preview errors, execute,
-      download the error report
+- [x] **Import** (§29) — upload CSV, map columns, preview errors, execute,
+      download the error report. The e2e sends the same bad value to the
+      import and to the *form's* endpoint and asserts the same sentence comes
+      back, which is the claim the shared `coerce` exists to make
 - [x] **Export** (§30) — request one above the row limit, watch it become a job
       (§23), download the artefact. The e2e suite fetches the signed URL and
       counts the lines, so "the artefact exists" is asserted against MinIO
@@ -2160,7 +2240,7 @@ section is a cross-cutting rule rather than a page.
 | 26 | Integrations | `/admin/integrations` | `/admin/integrations` | [x] |
 | 27 | Feature flags | `/admin/flags` | `/admin/flags` | [x] |
 | 28 | Reports | `/reports`, `/reports/builder` | `/api/reports`, `/api/analysis/run` | [x] |
-| 29 | Import wizard | `/import` | `/imports` | [ ] |
+| 29 | Import wizard | `/import` | `/imports` | [x] |
 | 30 | Export | every list, `/exports` | `/exports`, `/{list}/export` | [x] |
 | 31 | Command palette (`cmdk`) | global | `/search/quick` | [ ] |
 | 32 | Global search | header + `/find/global` | `/api/search/global` | [x] |
@@ -3055,8 +3135,10 @@ there was only one. The point of a template is the opposite.
     at it
   - Still open: **selection** (export these twelve rows) waits on bulk
     selection, and the row cap becoming a background job waits on §23
-- [ ] `core/importer.py` — column detection, mapping, row validation, staged
-      preview, transactional execute (§29)
+- [x] `core/importer.py` — delimiter detection, column naming, mapping
+      suggestion, and the row/byte caps. Row *validation* is deliberately not
+      here: it is `record_writes.coerce`, the same function a form uses, and a
+      second implementation would be the defect this module exists to avoid
 
 ## Phase 2 — Data model
 
@@ -3161,7 +3243,9 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [ ] Favorites, recents, dashboards, reports (§38, §39, §45, §67, §28)
 - [x] Export ships for every list that exists (§30), and an export above the
       row limit now becomes a background job with a downloadable artefact
-      rather than a truncated file with a 200 on it. Import (§29) is open
+      rather than a truncated file with a 200 on it. Import (§29) ships too:
+      a four-step wizard whose validation is the form's own, previewing every
+      row before anything is written and applying the whole file or none of it
   - **Acceptance**: an export above the row limit becomes a background job with
     a downloadable artefact; an import previews per-row errors before executing
     and never half-applies a batch
@@ -3291,9 +3375,9 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [ ] Tasks kanban/table/list with drag (§18), calendar (§19), file manager (§20)
 - [ ] System logs with live tail (§22), jobs (§23), health (§24), API (§25),
       integrations (§26), flags (§27), alert rules (§49)
-- [~] Reports (§28) ship, with both builders and the map, and so do the export
+- [x] Reports (§28) ship, with both builders and the map, and so do the export
       flows (§30) — a request above the row limit becomes a background job with
-      a real file. The import wizard (§29) remains
+      a real file — and the import wizard (§29)
 - [ ] Component showcase (§60), page template gallery (§61), master/detail (§62),
       split view (§63), row preview drawer (§64), comparison (§47),
       data quality (§65), error pages (§34)

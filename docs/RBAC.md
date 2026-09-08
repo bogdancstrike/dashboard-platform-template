@@ -193,11 +193,20 @@ because "that belongs to somebody else" confirms a reference exists. Job
 *metadata* stays visible to `jobs.view` on `/admin/jobs` — a queue console that
 cannot see its own queue is useless — but the artefact does not.
 
+**A staged import belongs to whoever uploaded it** (§29), for exactly the
+export's reason turned around: an `ImportRun` holds the *contents of somebody's
+spreadsheet* in `staged_rows` — names, emails, whatever was in it — until the
+rows become records or the run is discarded. So `/import` lists your own,
+`GET /imports/<id>` checks `created_by_id` including for an administrator, and
+the refusal is 404. `records.import` is also deliberately narrower than
+`records.create`: creating one record is a form somebody filled in and can see,
+while importing five thousand is an act nobody reads row by row.
+
 **An automation rule belongs to its author** (§49): holding
 `automations.manage` does not permit editing a colleague's rule. Here
 `admin.access` *is* an exception, because somebody has to be able to stop a
-rule whose author has left — the difference from exports is that stopping a
-rule is a containment action, while fetching a file is a disclosure.
+rule whose author has left — the difference from exports and imports is that
+stopping a rule is a containment action, while reading a file is a disclosure.
 
 ## Frontend behavior
 
@@ -246,7 +255,7 @@ Relevant automated coverage:
   HTTP boundary.
 - `frontend/src/app/AppShell.test.tsx` — hidden forbidden navigation and direct
   deep-link denial.
-- `backend/tests/test_exports.py` — the ownership rule above, asserted as a 404
-  for an administrator against an analyst's export, and a 403 for a role
-  without `records.export`.
+- `backend/tests/test_exports.py` and `test_imports.py` — the ownership rules
+  above, each asserted as a 404 for an administrator against another persona's
+  row, plus a 403 for a role holding neither privilege.
 - `frontend/e2e/` — real Keycloak sign-in and persona-level journeys.
