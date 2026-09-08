@@ -47,7 +47,11 @@ test("every card links to the page it summarises", async ({ page }) => {
 
 test("a count on the strip finds exactly the rows it counted", async ({ page }) => {
   await signIn(page, "admin", "/home");
-  await expect(page.getByTestId("waiting")).toBeVisible();
+  // Waited for the strip to have *answered*, not merely appeared: sampling it
+  // mid-flight reads an empty strip, takes the "nothing is waiting" branch and
+  // then waits fifteen seconds for a sentence the data has already ruled out.
+  // Which is what happened, and the page was telling a reader the same thing.
+  await expect(page.getByTestId("waiting")).toHaveAttribute("data-settled", "yes");
 
   // The strip is either the reassuring sentence or a set of links. Both are
   // correct answers, and which one depends on the state of the demo — so the

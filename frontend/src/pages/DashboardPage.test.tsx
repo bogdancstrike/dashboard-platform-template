@@ -18,15 +18,26 @@ describe("the dashboard", () => {
 
   it("colours a rise in SLA breaches as bad news, not good", async () => {
     // The polarity comes from the server per metric. A tile that paints every
-    // increase green reports a record number of outages as a success.
+    // increase green reports a record number of outages as a success — so the
+    // two directions are asserted together, or the test passes on a constant.
     renderWithProviders(<DashboardPage />);
 
-    const label = await screen.findByText("SLA breaches");
-    const tile = label.closest(".nu-statcard") as HTMLElement;
-    const delta = within(tile).getByText("128.0%").closest("span") as HTMLElement;
+    const breaches = (await screen.findByText("SLA breaches")).closest(
+      ".nu-statcard",
+    ) as HTMLElement;
+    const revenue = screen.getByText("Revenue").closest(".nu-statcard") as HTMLElement;
 
-    // #dc2626 — the danger token.
-    expect(delta.style.color).toBe("rgb(220, 38, 38)");
+    // The *ink* half of the ramp rather than the fill: the delta is 11.5px
+    // text on a tint of its own colour, and `SEMANTIC.danger` scored 3.94:1
+    // there while `SEMANTIC.success` scored 2.85:1 — found by axe on
+    // `/showcase/components`, wrong on every dashboard until then (§55, §60).
+    // A variable rather than a hex, so the dark appearance follows the theme.
+    expect(
+      (within(breaches).getByText("128.0%").closest("span") as HTMLElement).style.color,
+    ).toBe("var(--nu-danger-ink)");
+    expect(
+      (within(revenue).getByText("154.4%").closest("span") as HTMLElement).style.color,
+    ).toBe("var(--nu-success-ink)");
   });
 
   it("shows only the alerts that are actually firing", async () => {

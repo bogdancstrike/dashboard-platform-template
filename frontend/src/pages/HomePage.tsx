@@ -254,6 +254,17 @@ export default function HomePage() {
       row["status"] !== "CANCELLED",
   ).length;
 
+  // The strip must not answer before it knows. Five queries feed it, and
+  // treating "no data yet" as "nothing waiting" made the page open on a green
+  // "Nothing is waiting for you" that a moment later became "1 task past its
+  // due date" — the opposite of the truth, told reassuringly, to a reader who
+  // may well have glanced and moved on. `isLoading` rather than `isPending`,
+  // because a query disabled for want of a permission is pending forever and
+  // a viewer would wait on a skeleton that never resolves.
+  const settling = [notices, notifications, events, mail, tasks].some(
+    (query) => query.isLoading,
+  );
+
   const waiting = whatIsWaiting({
     // A notice that needs agreeing to is the one thing here that somebody
     // else is waiting on, which is why it sorts first.
@@ -306,8 +317,18 @@ export default function HomePage() {
 
       {/* Only what is actually waiting, each one a link to the rows it
           counted. A strip of zeroes teaches a reader to ignore the strip. */}
-      <section aria-label="Waiting for you" data-testid="waiting">
-        {waiting.length === 0 ? (
+      <section
+        aria-label="Waiting for you"
+        data-testid="waiting"
+        // Published so a test can wait for the answer rather than sample the
+        // strip mid-flight and believe whichever branch it caught — which is
+        // how the flake that found this read an empty strip and then waited
+        // fifteen seconds for a sentence the data had already ruled out.
+        data-settled={settling ? "no" : "yes"}
+      >
+        {settling ? (
+          <Skeleton active paragraph={{ rows: 1 }} title={false} />
+        ) : waiting.length === 0 ? (
           <Alert
             type="success"
             showIcon

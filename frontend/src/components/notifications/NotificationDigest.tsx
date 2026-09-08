@@ -22,7 +22,6 @@ import {
 import type { ReactNode } from "react";
 
 import type { NotificationCounts } from "@/api/notifications";
-import { SEMANTIC } from "@/theme/tokens";
 
 const { Text } = Typography;
 
@@ -32,6 +31,12 @@ interface Tile {
   hint: string;
   value: number;
   icon: ReactNode;
+  /**
+   * A theme variable, not a hex: the count is drawn in it at 22px/650, which
+   * is text and held to 3:1, and the *fill* half of the ramp does not clear
+   * that — amber is 2.87:1. The `-ink` variables are the readable half, and
+   * reading them from the theme keeps the dark appearance right too (§55).
+   */
   color: string;
   /** What clicking it filters the list down to. */
   filter: Record<string, string | null>;
@@ -66,7 +71,7 @@ export function NotificationDigest({
       hint: "unread, highest severity",
       value: severity["CRITICAL"] ?? 0,
       icon: <AlertOutlined />,
-      color: SEMANTIC.danger,
+      color: "var(--nu-danger-ink)",
       filter: { read: "unread", severity: "CRITICAL", category: null },
     },
     {
@@ -75,7 +80,7 @@ export function NotificationDigest({
       hint: "approvals and assignments",
       value: (category["APPROVAL"] ?? 0) + (category["ASSIGNMENT"] ?? 0),
       icon: <CheckCircleOutlined />,
-      color: SEMANTIC.warning,
+      color: "var(--nu-warning-ink)",
       filter: { read: "unread", category: "APPROVAL,ASSIGNMENT", severity: null },
     },
     {
@@ -84,7 +89,7 @@ export function NotificationDigest({
       hint: "arrived while you were away",
       value: counts?.recent ?? 0,
       icon: <ClockCircleOutlined />,
-      color: SEMANTIC.info,
+      color: "var(--nu-info-ink)",
       filter: { read: "unread", severity: null, category: null },
     },
   ];

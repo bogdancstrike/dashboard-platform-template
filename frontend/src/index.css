@@ -2580,3 +2580,59 @@ mark.nu-mark {
    as one state rather than two controls. */
 .nu-fav-kept { color: var(--nu-warning-ink); }
 .nu-fav-card td { font-variant-numeric: tabular-nums; }
+
+/* ── Showcase (§60, §61) ─────────────────────────────────────────────────
+   Documentation pages, so the layout gives the *explanation* as much room as
+   the thing being explained: a component demonstrated without saying which of
+   its states are decisions teaches nothing worth knowing. */
+.nu-show > * + *,
+.nu-tmpl > * + * { margin-top: 12px; }
+.nu-show-gap,
+.nu-tmpl-note { margin-bottom: 4px; }
+.nu-show-gap-note { font-size: 12px; margin-bottom: 10px !important; }
+.nu-show-section { margin: 18px 0 6px !important; font-size: 15px !important; }
+.nu-show-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; }
+.nu-show-what { font-size: 12px; line-height: 1.5; max-width: 78ch; }
+/* The stage is inset and neutral, so the component's own surface is what a
+   reader compares rather than the card it sits on. */
+.nu-show-stage {
+  padding: 14px; border-radius: 6px; background: var(--nu-bg);
+  border: 1px solid var(--nu-border-subtle);
+}
+.nu-show-grid {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+.nu-show-pair {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+.nu-show-inset {
+  padding: 10px 12px; border-radius: 6px; background: var(--nu-surface);
+  border: 1px solid var(--nu-border-subtle);
+}
+.nu-show-lines { display: flex; flex-direction: column; gap: 6px; }
+.nu-show-path { font-family: var(--nu-font-mono); font-size: 11.5px; }
+.nu-show-note { margin-top: 16px; }
+
+.nu-tmpl-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+}
+.nu-tmpl-shape { font-size: 12.5px; margin-bottom: 10px !important; }
+.nu-tmpl-rules { display: flex; flex-direction: column; gap: 8px; }
+.nu-tmpl-rule { display: flex; flex-direction: column; gap: 1px; }
+.nu-tmpl-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+/* The half a gallery usually omits gets the warning ink, so it is read
+   rather than skipped — and it is text, never colour alone (§64). */
+.nu-tmpl-unless { color: var(--nu-warning-ink); }
+.nu-tmpl-rule .ant-typography:last-child { font-size: 12px; line-height: 1.5; }
+.nu-tmpl-links {
+  display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 12px;
+  padding-top: 10px; border-top: 1px solid var(--nu-border-subtle);
+}
+.nu-tmpl-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--nu-font-mono); font-size: 11.5px;
+}
+.nu-tmpl-section { display: block; margin-top: 18px; }

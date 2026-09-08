@@ -247,6 +247,16 @@ Test fixtures under `frontend/src/test/` simulate HTTP
 responses for isolated component tests only and are excluded from the runtime
 module graph. Playwright tests exercise the real Keycloak, API and database.
 
+That exclusion is enforced by `frontend/src/test/isolation.test.ts` rather than
+merely intended, because it was once broken: a page that derived a list of
+components with `import.meta.glob("../../components/*.tsx")` matched the test
+files too, and Vite builds a dynamic import per match — so the mock HTTP layer,
+which will answer `/api/me` with whatever permissions it is asked for, entered
+the module graph of the shipped bundle. The test asserts two rules: no shipped
+module imports from `@/test/`, and no glob pattern matches a `.test.` file. A
+filter applied to the matched names is too late. `make lint` also runs the
+production build, which is what noticed the original.
+
 ## Impersonation
 
 An administrator with `users.impersonate` may send `X-Impersonate-User` with a

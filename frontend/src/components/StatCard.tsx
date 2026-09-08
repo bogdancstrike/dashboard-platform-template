@@ -21,11 +21,23 @@ const ACCENTS: Record<string, string> = {
  * the metric and not of the direction: more revenue is good, more SLA breaches
  * is not, and a tile that paints every increase green reports a record number
  * of outages as a success.
+ *
+ * The *ink* variables rather than `SEMANTIC`, and the difference is not
+ * cosmetic: the delta is 11.5px text on a tint of its own colour, so it is
+ * held to 4.5:1, and the fills score 2.85:1 (success) and 3.94:1 (danger)
+ * there — a caption a third of readers cannot read. `SEMANTIC_INK` is the
+ * readable half of the same four meanings and exists for exactly this. Read
+ * as CSS variables rather than resolved here, because the mode lives in the
+ * theme and a component picking a hex for itself is a second place to get it
+ * wrong.
+ *
+ * Found by `/showcase/components` (§60), which is the first page to mount this
+ * tile in both polarities side by side; it was wrong on every dashboard.
  */
 function movementColor(trend: Trend, polarity: Polarity): string {
-  if (trend === "flat" || polarity === "neutral") return NEUTRAL[500];
+  if (trend === "flat" || polarity === "neutral") return "var(--nu-text-tertiary)";
   const good = polarity === "up_is_good" ? trend === "up" : trend === "down";
-  return good ? SEMANTIC.success : SEMANTIC.danger;
+  return good ? "var(--nu-success-ink)" : "var(--nu-danger-ink)";
 }
 
 function formatValue(value: number, unit: string): string {
@@ -80,7 +92,7 @@ export function StatCard({
 }) {
   const color = ACCENTS[accent] ?? ACCENT[500];
   const moved = trend !== undefined && changePercent !== undefined;
-  const movement = moved ? movementColor(trend, polarity) : NEUTRAL[500];
+  const movement = moved ? movementColor(trend, polarity) : "var(--nu-text-tertiary)";
   const Arrow = trend === "up" ? ArrowUpOutlined : trend === "down" ? ArrowDownOutlined : MinusOutlined;
 
   return (

@@ -6,7 +6,6 @@ import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-do
 import { AppShell } from "@/app/AppShell";
 import { useAuth } from "@/auth/AuthProvider";
 import { landingPath } from "@/pages/PreferencesPage";
-import { PlaceholderPage } from "@/pages/PlaceholderPage";
 
 /**
  * Chart-heavy pages load on demand.
@@ -38,6 +37,8 @@ const ExportsPage = lazy(() => import("@/pages/ExportsPage"));
 const ImportPage = lazy(() => import("@/pages/ImportPage"));
 const SecurityPage = lazy(() => import("@/pages/SecurityPage"));
 const FavoritesPage = lazy(() => import("@/pages/FavoritesPage"));
+const ShowcaseComponentsPage = lazy(() => import("@/pages/showcase/ComponentsPage"));
+const ShowcaseTemplatesPage = lazy(() => import("@/pages/showcase/TemplatesPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
@@ -515,11 +516,19 @@ export default function App() {
         {/* Template showcase */}
         <Route
           path="showcase/components"
-          element={<PlaceholderPage section="§60" summary="Every reusable component, in one place." />}
+          element={
+            <Suspense fallback={<Loading />}>
+              <ShowcaseComponentsPage />
+            </Suspense>
+          }
         />
         <Route
           path="showcase/templates"
-          element={<PlaceholderPage section="§61" summary="Every page layout the template offers." />}
+          element={
+            <Suspense fallback={<Loading />}>
+              <ShowcaseTemplatesPage />
+            </Suspense>
+          }
         />
 
         {/* Personal */}

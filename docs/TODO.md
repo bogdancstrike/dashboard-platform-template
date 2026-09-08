@@ -1014,7 +1014,24 @@ commit — built, committed, pushed, redeployed and verified before the next.
   - `landing_page` now defaults to `home` on the server, and `landingPath`
       falls back to it: somebody who has expressed no preference is somebody
       arriving for the first time, and the dashboard is one click away
-  - 10 component tests, 11 Playwright
+  - **And it said "nothing is waiting for you" before it knew.** Five queries
+      feed the strip and the page treated "no data yet" as "no work": it opened
+      on a reassuring green sentence that a moment later became "1 of your
+      tasks is past its due date". A reader who glanced was told the opposite
+      of the truth, gently. The section renders nothing until all five have
+      answered — `isLoading` rather than `isPending`, because a query disabled
+      for want of a permission stays pending forever and a viewer would wait on
+      a skeleton that never resolved — and publishes `data-settled` so a test
+      waits for the answer instead of sampling mid-flight, which is how the
+      flake that found this read an empty strip and then spent fifteen seconds
+      waiting for a sentence the data had already ruled out
+  - **The test that should have caught it asserted nothing.** "Says so in a
+      sentence when nothing is waiting" checked only that the *section*
+      existed — true in every state, including the fixture's own, where a
+      notice is waiting to be agreed to. It arranges the state it names now,
+      and its opposite is asserted beside it. A test whose name describes a
+      state it never arranged is a test that passes on the opposite of its claim
+  - 13 component tests, 11 Playwright
 - [x] **A pass over every page for hardcoded data and missing CRUD**, asked for
       directly. What it found:
   - **Four vocabularies were typed into the browser** that the server already
@@ -1621,6 +1638,67 @@ commit — built, committed, pushed, redeployed and verified before the next.
       and lets the label take the click, which `NotificationsPage.test` had
       already documented
 
+- [x] **`/showcase/components` and `/showcase/templates` — the last two
+      placeholders, and what a gallery is *for*** (§60, §61)
+  - **A hand-written gallery is worse than no gallery.** It drifts from the
+      code it documents and then somebody trusts it. So neither page keeps a
+      list: the component inventory is read from `src/components` with
+      `import.meta.glob`, the layout gallery declares every route it
+      classifies, and `templates.test.ts` asserts that set *equals* the
+      router's. A page added to `App.tsx` and not classified fails a test,
+      which is the only mechanism by which a document like this stays true
+  - **The coverage gap is published rather than implied.** `/showcase/components`
+      names, with their files, every shared component it does *not*
+      demonstrate, and prints "N of M demonstrated" as a fact. A gallery that
+      shows seven of nineteen and says nothing has claimed to show nineteen
+  - **Every layout says when it is the wrong answer.** `unless` is on all
+      twelve cards and given the same weight as `when`, because a gallery
+      listing only what each shape is *for* invites somebody to reach for the
+      most impressive one; the useful half is knowing that a split view of a
+      twelve-section record is worse than a table. Each card links to real
+      pages built that way rather than to mockups — the fastest way to judge a
+      layout is to open one already carrying data
+  - **The completeness test passed by not looking.** Its first version matched
+      `path="…"` in `App.tsx` and the six entity routes are declared as
+      `{ path: "tickets", … }` *data*, so it certified a gallery blind to
+      `/projects`, `/tickets`, `/customers`, `/orders` and `/devices`. A
+      completeness test that reads one syntax is worse than no test: it
+      certifies the hole. It matches both forms now, and the count it proves is
+      asserted to be greater than thirty so it cannot pass on an empty read
+  - **The inventory glob would have shipped MSW.** `import.meta.glob(
+      "../../components/*.tsx")` matched `ExportButton.test.tsx`, which imports
+      the mock server, which imports MSW — Vite builds a dynamic import per
+      match, so filtering the *names* afterwards is too late. `npm run build`
+      failed outright, which was luck: the quiet version of that mistake is a
+      production bundle carrying a mock HTTP layer that will answer `/api/me`
+      with whatever permissions it likes. The exclusion is in the pattern now;
+      `src/test/isolation.test.ts` enforces both halves of the promise
+      `docs/RBAC.md` had been making unenforced since it was written; and
+      `make lint` runs the production build, without which nothing here would
+      have been noticed by a test suite at all
+  - **And it found a contrast defect in a shared component, which is the
+      point of a component showcase.** `StatCard` painted its delta with
+      `SEMANTIC.success`/`SEMANTIC.danger` — the *fill* half of the ramp — as
+      11.5px text on a tint of itself: 2.85:1 and 3.94:1 where 4.5 is the bar.
+      It was wrong on every dashboard in the product and axe had never seen it,
+      because no page before this one mounts the tile in both polarities side
+      by side. `SEMANTIC_INK` exists for exactly this and the theme publishes it
+      as `--nu-success-ink`/`--nu-danger-ink`, so the fix is a variable rather
+      than a hex and the dark appearance follows. The same sweep found two
+      more of the same class: the notification digest drew its 22px count in
+      the fills (amber at 2.87:1, which fails even the large-text bar), and the
+      dashboard's alert tags passed a custom colour to `Tag`, which makes AntD
+      write **white** on it — 2.87:1 on our amber, on the one tag on the page a
+      reader most needs to read. They are presets now, whose ink `index.css`
+      already names
+  - **No page in the navigation is a placeholder any more.** `PlaceholderPage`
+      and its file are gone, and an e2e walks every route the gallery lists and
+      asserts none of them says otherwise — walked from the *gallery* rather
+      than the sidebar, which is the interesting part: the sidebar is an AntD
+      menu that navigates on click rather than a list of anchors, so there are
+      no hrefs in it to harvest, as the first version of that test discovered
+      by finding zero
+
 - [x] **`/favorites` — and two stores for one fact** (§38, §39)
   - **The older UI already lied about it.** The saved-search drawer's own
       tooltip reads "Add to favourites" and wrote `SavedSearch.is_favorite`;
@@ -2034,14 +2112,11 @@ commit — built, committed, pushed, redeployed and verified before the next.
 - [ ] **Variety in how "create" opens** — a wizard where the decision has
       parts, a drawer for one object's fields, a plain modal for one question.
       The dashboard wizard is the first; the rest of the modules follow
-- [~] **Every page in the navigation is implemented**, not a placeholder — the
-      list is in [Phase 6](#phase-6--frontend-pages). `/dashboards`, `/kanban`,
-      `/files`, `/workflows`, `/calendar`, `/mail`, `/home` and the
-      administration index with `/admin/settings`, `/admin/flags`,
-      `/admin/logs`, `/admin/jobs`, `/admin/groups`, `/admin/organizations`,
-      `/admin/api` and `/admin/integrations` are done, and so are `/exports`
-      (§30), `/import` (§29), `/settings/security` (§41) and `/favorites`
-      (§38, §39). Remaining: the two `/showcase/*` pages
+- [x] **Every page in the navigation is implemented**, not a placeholder — the
+      list is in [Phase 6](#phase-6--frontend-pages). `PlaceholderPage` and its
+      file are gone, and `e2e/showcase.spec.ts` walks every route the template
+      gallery lists — a set `templates.test.ts` proves equal to the router's —
+      and asserts that none of them says it is not built yet
 - [x] **Six latent e2e flakes fixed, all the same two mistakes.** Four specs
       clicked a select option with `getByTitle`, which AntD also puts on the
       closed select's own label — so the click matched twice as soon as the
@@ -2124,13 +2199,20 @@ commit — built, committed, pushed, redeployed and verified before the next.
       permissions and page data come from backend APIs.
       MSW remains test-only infrastructure at the HTTP boundary; it is never
       imported by the application bundle
+  - **And that is now a test rather than a promise.** `src/test/isolation.test.ts`
+      asserts both halves: no shipped module imports from `@/test/`, and no
+      `import.meta.glob` pattern matches a test file. The second is the one
+      that was actually broken — `/showcase/components` (§60) globbed
+      `src/components/*.tsx` and pulled the mock server into the module graph,
+      and only the production build noticed. `make lint` runs that build now
 
 ### Housekeeping
 
-- [ ] Fix the stale `§` references in code comments — `core/cache.py` cites §53
-      (that is Data Refresh; caching is unnumbered), `models/business.py` cites
-      §61 for monitoring (that is the Page Template Gallery). Harmless today,
-      misleading in six months
+- [x] Fixed the stale `§` references in code comments — `models/business.py`
+      cited §61 for monitoring, which is the page template gallery; now that
+      §61 is a page somebody can open, the citation stopped being harmless and
+      started pointing somewhere real and wrong. `core/cache.py`'s §53 had
+      already gone
 
 ---
 
@@ -2390,8 +2472,8 @@ section is a cross-cutting rule rather than a page.
 | 57 | Realistic demo data | — | `src/seed/` | [x] |
 | 58 | Demo roles / personas | — | `core/auth.py` | [x] core |
 | 59 | UX quality bar | global | — | [ ] |
-| 60 | Component showcase | `/showcase/components` | — | [ ] |
-| 61 | Page template gallery | `/showcase/templates` | — | [ ] |
+| 60 | Component showcase | `/showcase/components` | — | [x] |
+| 61 | Page template gallery | `/showcase/templates` | — | [x] |
 | 62 | Master / detail layout | `/showcase/master-detail` | — | [ ] |
 | 63 | Split view | mail, logs, files, tasks | — | [ ] |
 | 64 | Table row preview drawer | every list | — | [ ] |
@@ -3500,9 +3582,10 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] Reports (§28) ship, with both builders and the map, and so do the export
       flows (§30) — a request above the row limit becomes a background job with
       a real file — and the import wizard (§29)
-- [ ] Component showcase (§60), page template gallery (§61), master/detail (§62),
-      split view (§63), row preview drawer (§64), comparison (§47),
-      data quality (§65), error pages (§34)
+- [~] The component showcase (§60) and the page template gallery (§61) ship,
+      and with them no page in the navigation is a placeholder. Master/detail
+      (§62), split view (§63), row preview drawer (§64), comparison (§47),
+      data quality (§65) and error pages (§34) remain
 - [~] Preferences (§40) and security and sessions (§41) ship. Organization
       settings (§42) remain
 

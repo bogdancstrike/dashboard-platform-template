@@ -224,6 +224,26 @@ place. Which datasets can be mapped, and how each reaches a place, is the
 no city is placed one hop away, at its customer's. Country outlines are
 vendored (`frontend/src/assets/README.md`) because the stack runs offline.
 
+### Picking a shape for a new page
+
+Two pages in the running application document the template to itself, and both
+are derived rather than written, because a hand-kept gallery is worse than none
+— somebody trusts it after it has drifted.
+
+`/showcase/templates` lists the twelve page layouts this template offers: what
+each looks like, the question it answers, **when it is the wrong answer**, and
+links to the real pages built that way. The route list is a declaration in
+`frontend/src/pages/showcase/templates.ts`, and `templates.test.ts` asserts it
+equals the router's own — so a page added to `App.tsx` and not classified fails
+a test. That is the only mechanism by which a document like this stays true.
+
+`/showcase/components` demonstrates the shared components in the states that
+are actually decisions — a rise that reads as bad news beside the same arrow
+reading as good — and publishes what it is *not* showing, by name and file,
+read from the directory rather than from a list. The feature components under
+`components/mail`, `components/kanban` and so on are deliberately absent, and
+the page says why: they only make sense inside their page.
+
 ---
 
 ## Running it

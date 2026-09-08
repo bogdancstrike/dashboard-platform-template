@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Route, Routes } from "react-router-dom";
 import { HttpResponse, http } from "msw";
@@ -153,11 +153,64 @@ describe("the page", () => {
   });
 
   it("says so in a sentence when nothing is waiting", async () => {
+    // The state is *established* here rather than assumed of the fixture. This
+    // test used to assert only that the section existed — true in every state,
+    // including the one the fixture actually has, where a notice is waiting to
+    // be agreed to. A test whose name describes a state it never arranged is a
+    // test that passes on the opposite of its claim.
+    server.use(
+      http.get("/platform/api/announcements", () =>
+        HttpResponse.json({
+          items: [],
+          total: 0,
+          page: 1,
+          page_size: 25,
+          pages: 0,
+          categories: [],
+          unread: 0,
+          can_manage: true,
+          category: "",
+          include_expired: false,
+        }),
+      ),
+      // Both sources, because "nothing is waiting" is a claim about all five
+      // and silencing one of them only reveals the next.
+      http.get("/platform/notifications/counts", () =>
+        HttpResponse.json({ unread: 0, by_category: {}, by_severity: {}, recent: 0 }),
+      ),
+    );
     render();
 
-    // The fixture's administrator has no unread anything, so the strip is the
-    // reassuring sentence rather than a row of noughts.
     const strip = await screen.findByTestId("waiting");
-    expect(strip).toBeInTheDocument();
+    await waitFor(() => expect(strip).toHaveAttribute("data-settled", "yes"));
+    expect(within(strip).getByText("Nothing is waiting for you")).toBeInTheDocument();
+  });
+
+  it("names what is waiting, and links it to the rows it counted", async () => {
+    // The other half, on the fixture's own state: a notice needs agreeing to,
+    // so the strip is a link to the noticeboard and not the green sentence.
+    render();
+
+    const strip = await screen.findByTestId("waiting");
+    await waitFor(() => expect(strip).toHaveAttribute("data-settled", "yes"));
+    expect(within(strip).queryByText("Nothing is waiting for you")).not.toBeInTheDocument();
+    expect(within(strip).getByTestId("waiting-acknowledgements")).toHaveAttribute(
+      "href",
+      "/announcements",
+    );
+  });
+
+  it("says nothing at all until it knows", async () => {
+    // The green "nothing is waiting for you" is a claim, and the page made it
+    // before any of its five queries had answered — so it opened by telling a
+    // reader with an overdue task the opposite, reassuringly, and corrected
+    // itself a moment later.
+    render();
+
+    const strip = await screen.findByTestId("waiting");
+    if (strip.getAttribute("data-settled") === "no") {
+      expect(within(strip).queryByText("Nothing is waiting for you")).not.toBeInTheDocument();
+    }
+    await waitFor(() => expect(strip).toHaveAttribute("data-settled", "yes"));
   });
 });

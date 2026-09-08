@@ -29,7 +29,6 @@ import {
 import { ChartCard } from "@/components/ChartCard";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
-import { SEMANTIC } from "@/theme/tokens";
 import { ApiError } from "@/api/client";
 
 const { Text } = Typography;
@@ -89,10 +88,21 @@ const DRILL_DOWN: Record<string, string> = {
   device_health: "/devices?f.kind=",
 };
 
-const SEVERITY: Record<DashboardAlert["severity"], { color: string; type: "error" | "warning" | "info" }> = {
-  CRITICAL: { color: SEMANTIC.danger, type: "error" },
-  WARNING: { color: SEMANTIC.warning, type: "warning" },
-  INFO: { color: SEMANTIC.info, type: "info" },
+/**
+ * Severity → the AntD tag preset that carries it.
+ *
+ * A *preset* rather than one of our own hexes, and that is the fix rather than
+ * the shortcut: a custom `color` makes AntD paint the fill and write white on
+ * it, and white on our amber is 2.87:1 — an alert tag a reader cannot read,
+ * which is the one tag on the page that matters. The presets are tinted
+ * grounds with ink text, and `index.css` already names the readable half of
+ * the ramp for each of them (§55). `processing` is the preset for informational
+ * blue; there is no `info` one.
+ */
+const SEVERITY: Record<DashboardAlert["severity"], string> = {
+  CRITICAL: "error",
+  WARNING: "warning",
+  INFO: "processing",
 };
 
 export default function DashboardPage() {
@@ -173,14 +183,14 @@ export default function DashboardPage() {
       {data && data.alerts.length > 0 && (
         <Card size="small" className="nu-alert-strip" style={{ marginBottom: 16 }}>
           <Space size={6} wrap>
-            <AlertOutlined style={{ color: SEMANTIC.warning }} />
+            <AlertOutlined style={{ color: "var(--nu-warning-ink)" }} />
             <Text strong style={{ marginRight: 4 }}>
               Needs attention
             </Text>
             {data.alerts.map((alert) => (
               <Tag
                 key={alert.key}
-                color={SEVERITY[alert.severity].color}
+                color={SEVERITY[alert.severity]}
                 className="nu-alert-tag"
                 onClick={() => navigate(alert.link)}
                 role="button"

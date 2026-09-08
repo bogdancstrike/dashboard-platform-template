@@ -197,7 +197,7 @@ class Task(Base, TimestampMixin, SoftDeleteMixin, MetadataMixin):
 
 class Device(Base, TimestampMixin, SoftDeleteMixin, MetadataMixin):
     """Managed hardware — the entity list with live telemetry and a health
-    state, which is what makes the monitoring layouts of §61 concrete."""
+    state, which is what gives `/devices` a fleet view worth building (§7)."""
 
     __tablename__ = "devices"
 

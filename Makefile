@@ -178,9 +178,16 @@ e2e-only: ## The suite without topping up the fixtures it spends
 	cd $(FRONTEND) && npm run test:e2e
 
 .PHONY: lint
-lint: ## Typecheck and lint the frontend, and check the endpoint map and docs
+lint: ## Typecheck, lint and *build* the frontend, and check the endpoint map and docs
 	cd $(FRONTEND) && npm run typecheck
 	cd $(FRONTEND) && npm run lint
+	# The production build, because it is the only step that catches a
+	# *bundling* mistake. `/showcase/components` globbed `src/components/*.tsx`
+	# to derive its inventory, which made Vite pull `ExportButton.test.tsx` —
+	# and MSW with it — into the production module graph. Typecheck and lint
+	# were both perfectly happy; the build was not. Finding that in
+	# `docker compose build` rather than here cost a redeploy.
+	cd $(FRONTEND) && npm run build
 	cd $(BACKEND) && ../$(PY) -m src.api.endpoint_map
 	$(PY) scripts/render-rbac-matrix.py --check
 
