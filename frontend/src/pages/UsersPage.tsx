@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   Alert,
-  Avatar,
   Button,
   Card,
   Input,
@@ -26,6 +25,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { knownStatusColor } from "@/theme/tokens";
+import { PersonAvatar } from "@/components/PersonAvatar";
 
 const { Text } = Typography;
 
@@ -118,13 +118,12 @@ export default function UsersPage() {
       defaultSortOrder: order === "asc" ? "ascend" : "descend",
       render: (name: string, row) => (
         <Space size={10}>
-          <Avatar
+          <PersonAvatar
             size="small"
-            src={row.avatar_url ?? undefined}
+            src={row.avatar_url}
+            initials={row.initials}
             icon={!row.avatar_url ? <UserOutlined /> : undefined}
-          >
-            {row.initials}
-          </Avatar>
+          />
           <Space direction="vertical" size={0} style={{ lineHeight: 1.3 }}>
             <Text>{name}</Text>
             <Text type="secondary">{row.email}</Text>

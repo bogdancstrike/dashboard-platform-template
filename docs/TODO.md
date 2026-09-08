@@ -990,15 +990,72 @@ commit — built, committed, pushed, redeployed and verified before the next.
       makes its own mail now. And the composer's `validateFields()` rejects on
       an empty field, which `void submit(true)` swallowed: 445 tests passing
       and one unhandled rejection in the run
-- [ ] **`/home` is the default landing page** — the platform's name and logo,
-      the reader's own announcements, notifications and preferences, and
-      whatever else is worth seeing on arrival
+- [x] **`/home` is the default landing page** (§40) — what is waiting for
+      *this reader*, rather than the organisation's numbers
+  - **It is not the dashboard, and that is the whole point.** `/dashboard`
+      answers "how is the business doing"; this answers "what is waiting for
+      me". A landing page that opened on revenue is one somebody scrolls past
+      every morning to find the three things they have to do
+  - **It adds no endpoint.** Every number comes from the endpoint its own page
+      uses — notices, notification counts, the calendar's window, the
+      mailbox's list, the same explorer query the task board runs. A
+      `/api/home/summary` would be a second place each of those is computed,
+      and the first time two disagreed nobody would know which was right
+  - **Only actionable things are counted, and a count of nought is not drawn
+      at all.** "1,284 tasks exist" is a fact nobody acts on; a row of zeroes
+      teaches a reader to ignore the strip, and then the one that is not zero
+      is invisible too. When everything is clear it says so in a sentence
+  - **A card for a feature the reader cannot use is absent, not empty** (§76),
+      and the gate is asserted in both directions
+  - `landing_page` now defaults to `home` on the server, and `landingPath`
+      falls back to it: somebody who has expressed no preference is somebody
+      arriving for the first time, and the dashboard is one click away
+  - 10 component tests, 11 Playwright
+- [x] **A pass over every page for hardcoded data and missing CRUD**, asked for
+      directly. What it found:
+  - **Four vocabularies were typed into the browser** that the server already
+      owned: the kanban card drawer's priorities, the automation editor's task
+      priority, the mail composer's priority, and the notification centre's
+      categories *and* severities. Each now comes from the payload that
+      already carried it, or from a payload that now does
+  - **And one of those was wrong.** The notification categories were written
+      out in three places — `services/notifications`, the seed's catalogue and
+      a frontend constant — and `ALERT` had been added to none of them. So
+      every notification an automation sent (§49) was **unfilterable**:
+      present in the list, absent from the only control that narrows it. Both
+      lists moved into `core/vocabulary`, and the seed's icon map now asserts
+      it covers the vocabulary rather than raising a `KeyError` mid-run, which
+      is how this was found
+  - **Every avatar in the platform was a serious accessibility violation.**
+      AntD renders an `<img>` when `src` is set, the seed gives every user an
+      avatar data URI, and none of them had alternative text — the shell, the
+      people picker, every comment thread, the user list and the user page.
+      One `PersonAvatar` now decides it once: empty alt and `aria-hidden`,
+      because an avatar here always sits beside the name it would otherwise
+      make a screen reader read twice
+  - **Roles had no create and no delete.** `is_system` had been on the model
+      from the beginning and every screen rendered it, but there was no way to
+      make a role that was not one: an administrator could edit the five the
+      seed writes and nothing else. For an application *template*, "these are
+      the only five roles you may ever have" is the wrong answer. A custom role
+      can now be created (never as a system role, whatever the payload says)
+      and deleted — refused while anybody holds it, with the number named,
+      because a cascade would silently leave people with no permissions at all
+  - **Users deliberately have no delete**, and that is the CRUD being
+      complete rather than short: the write path sets `status`
+      (ACTIVE/INVITED/SUSPENDED/DISABLED), and hard-deleting somebody who
+      organised meetings, wrote comments and owns a mailbox would either
+      cascade through half the database or orphan it
+  - The read-only modules — activity, audit, health, maps, meta, search, the
+      relationship and analysis endpoints — are read-only because they are
+      *views*, and a POST to any of them would be a second way to write
+      something that already has one
 - [ ] **Variety in how "create" opens** — a wizard where the decision has
       parts, a drawer for one object's fields, a plain modal for one question.
       The dashboard wizard is the first; the rest of the modules follow
 - [~] **Every page in the navigation is implemented**, not a placeholder — the
       list is in [Phase 6](#phase-6--frontend-pages). `/dashboards`, `/kanban`,
-      `/files`, `/workflows`, `/calendar` and `/mail` are done; `/home`, the
+      `/files`, `/workflows`, `/calendar`, `/mail` and `/home` are done; the
       admin area and the system pages remain
 - [x] **Six latent e2e flakes fixed, all the same two mistakes.** Four specs
       clicked a select option with `getByTitle`, which AntD also puts on the

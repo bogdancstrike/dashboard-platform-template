@@ -48,7 +48,25 @@ export interface RoleUpdate {
   description?: string;
 }
 
+/** A role an installation adds. `is_system` is never sent — the server sets it. */
+export interface RoleInput {
+  code: string;
+  name: string;
+  description?: string;
+  permissions?: string[];
+  color?: string;
+}
+
 export const rolesApi = {
   matrix: (signal?: AbortSignal) => api.get<RoleMatrix>("/admin/roles", { signal }),
   update: (code: string, body: RoleUpdate) => api.put<RoleRow>(`/admin/roles/${code}`, body),
+  /**
+   * A role of this installation's own. Never a system role: that flag protects
+   * the five the seed writes, and a request that could set it could opt out of
+   * the protection.
+   */
+  create: (body: RoleInput) => api.post<RoleRow>("/admin/roles", body),
+  /** Only a role this installation added, and only when nobody holds it. */
+  remove: (code: string) =>
+    api.delete<{ deleted: boolean; code: string }>(`/admin/roles/${code}`),
 };

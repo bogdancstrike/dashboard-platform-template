@@ -1,6 +1,12 @@
 import { api } from "./client";
 
-/** The categories the centre filters by. Free strings are still accepted. */
+/**
+ * The categories the *type system* knows.
+ *
+ * Not what the filter renders from: that list comes from the server with the
+ * listing. Kept because a union type has to be written somewhere, and a wrong
+ * type fails the build rather than a control.
+ */
 export const NOTIFICATION_CATEGORIES = [
   "MENTION",
   "ASSIGNMENT",
@@ -10,6 +16,15 @@ export const NOTIFICATION_CATEGORIES = [
   "REPORT",
 ] as const;
 
+/**
+ * The severities the *type system* knows, for narrowing a payload.
+ *
+ * Deliberately not what the filter is rendered from any more: the list a
+ * control offers comes from the server with the listing (`severities`), because
+ * a hard-coded one goes stale the day a value is added — which is exactly what
+ * happened to the `ALERT` category. This stays because a union type has to be
+ * written somewhere, and a wrong *type* fails the build rather than a filter.
+ */
 export const NOTIFICATION_SEVERITIES = ["INFO", "WARNING", "CRITICAL"] as const;
 
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
@@ -53,6 +68,15 @@ export interface NotificationPage extends NotificationCounts {
   sort: string;
   order: string;
   grouped: boolean;
+  /**
+   * What the filter may offer, from `core/vocabulary`. Published with the list
+   * because a hard-coded copy in the browser goes stale the day a value is
+   * added — which is what happened to `ALERT`: automations were writing
+   * notifications in a category the only control that narrows them had never
+   * heard of.
+   */
+  categories: string[];
+  severities: string[];
 }
 
 export interface NotificationQuery {

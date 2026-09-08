@@ -2092,3 +2092,64 @@ mark.nu-mark {
   .nu-mailrail { flex-direction: row; overflow-x: auto; }
   .nu-mailrail-row { width: auto; justify-content: flex-start; }
 }
+
+/* ── Home (§40) ─────────────────────────────────────────────────────── */
+
+/* Generous, and deliberately so: this is the page somebody sees before they
+   have decided what to do, and a crowded one makes that decision harder. Four
+   cards, a strip and a greeting — nothing competes for attention with the
+   thing that is actually waiting. */
+.nu-home { display: flex; flex-direction: column; gap: 20px; }
+.nu-home-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 20px; flex-wrap: wrap;
+}
+.nu-home-greeting { margin: 0 !important; }
+.nu-home-env { margin-inline-start: 6px; text-transform: uppercase; font-size: 10px; }
+
+/* The one strip on the page, and only the things with a number above nought.
+   `auto-fit` so one waiting item is one wide card rather than a fifth of a
+   row — a lonely tile in a five-column grid reads as four broken ones. */
+.nu-home-waiting {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+.nu-waitcard {
+  display: grid; grid-template-columns: auto auto 1fr; align-items: center;
+  column-gap: 10px; padding: 14px 16px;
+  border: 1px solid var(--nu-border); border-radius: 10px;
+  background: var(--nu-surface); color: var(--nu-text);
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+.nu-waitcard:hover { border-color: var(--nu-accent); background: var(--nu-accent-soft); }
+.nu-waitcard-icon { color: var(--nu-accent); font-size: 18px; line-height: 1; }
+.nu-waitcard-count { font-size: 26px; font-weight: 650; line-height: 1; }
+.nu-waitcard-label { font-size: 12.5px; color: var(--nu-text-secondary); }
+
+/* Two columns of cards on a wide screen, one below. Not four across: this
+   page is read, not scanned, and four narrow columns of prose is the crowded
+   version of the same information. */
+/* `align-items: start`, so each card is as tall as its own contents. Stretched
+   to the tallest in the row, an empty "Today" beside a full "Your work" became
+   a large panel of nothing — which is the crowded-looking version of a calm
+   page (§20). */
+.nu-home-grid {
+  display: grid; gap: 16px; align-items: start;
+  /* 420 and not 340: at 340 a wide screen fits three columns, four cards land
+     as three-plus-one, and the fourth sits alone beside a hole. Two columns
+     take the same cards as two-plus-two — balanced, and each card wide enough
+     to read a sentence in. */
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+}
+
+.nu-home-event, .nu-home-task, .nu-home-feed {
+  display: flex; align-items: baseline; gap: 10px; min-width: 0;
+}
+.nu-home-event-when { flex: none; width: 76px; font-variant-numeric: tabular-nums; font-size: 12.5px; }
+.nu-home-event-what, .nu-home-task-title {
+  flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-home-task { justify-content: space-between; }
+.nu-home-feed { justify-content: space-between; font-size: 13px; }
+.nu-home-feed-when { flex: none; font-size: 11.5px; }
+.nu-home-notice-body { margin: 4px 0 0 !important; font-size: 12.5px; }

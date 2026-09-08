@@ -477,6 +477,7 @@ export default function KanbanPage() {
 
       <CardDrawer
         cardId={openCard}
+        priorities={board.data?.priorities ?? boards.data?.priorities ?? []}
         onClose={() => setOpenCard(null)}
         onChanged={invalidate}
       />

@@ -60,6 +60,7 @@ from src.core.errors import ForbiddenError, NotFoundError, ValidationError
 from src.core.naming import identifier, sequence_of
 from src.core.pagination import parse_uuid
 from src.core.rules import MAX_RULES, compile_tree, describe_tree, rule_count
+from src.core.vocabulary import PRIORITY
 from src.models.business import Task
 from src.models.content import EmailMessage, EmailTemplate
 from src.models.identity import User
@@ -345,6 +346,10 @@ def catalogue(session, *, principal) -> dict[str, Any]:
             for action in ACTIONS.values()
         ],
         "severities": list(SEVERITIES),
+        # The priorities a TASK action may set, from the vocabulary the task
+        # table itself uses — so the editor cannot offer one the record
+        # endpoint would refuse.
+        "priorities": list(PRIORITY),
         "limits": {
             "max_matches": MAX_MATCHES,
             "max_fires": MAX_FIRES,
@@ -732,6 +737,12 @@ def run_now(session, rule_id: Any, payload: dict[str, Any] | None, *, principal)
             principal=principal,
             metadata={"matched": answer["matched"], "fired": answer["fired"]},
             message=f"{answer['fired']} of {answer['matched']} matches acted on",
+            # Audited, but not in the human feed (§35). An automation firing is
+            # the platform doing its job, not a person doing something — and a
+            # feed of "3 of 11 matches acted on" every quarter of an hour
+            # drowns everything a colleague actually did. The run history on
+            # the rule is where this belongs, and it is already there.
+            activity=False,
         )
     return answer
 

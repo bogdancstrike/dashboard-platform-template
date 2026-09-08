@@ -536,9 +536,25 @@ SYSTEM_SETTINGS: tuple[tuple[str, str, str, str, object, str], ...] = (
     ("features.self_service_signup", "features", "Self-service sign-up", "boolean", False, "Allow registration without an invite."),
 )
 
-NOTIFICATION_CATEGORIES: tuple[str, ...] = (
-    "MENTION", "ASSIGNMENT", "APPROVAL", "SYSTEM", "SECURITY", "REPORT",
+NOTIFICATION_CATEGORIES = vocabulary.NOTIFICATION_CATEGORY
+
+#: One icon per category, keyed by the vocabulary so a category added there
+#: without an icon fails *here* rather than raising a `KeyError` in the middle
+#: of a seed run — which is what happened when `ALERT` was added.
+NOTIFICATION_ICONS: dict[str, str] = {
+    "MENTION": "at",
+    "ASSIGNMENT": "user-check",
+    "APPROVAL": "check-circle",
+    "ALERT": "bell",
+    "SYSTEM": "settings",
+    "SECURITY": "shield",
+    "REPORT": "bar-chart",
+}
+assert set(NOTIFICATION_ICONS) == set(vocabulary.NOTIFICATION_CATEGORY), (
+    "every notification category needs an icon: "
+    f"{sorted(set(vocabulary.NOTIFICATION_CATEGORY) - set(NOTIFICATION_ICONS))} missing"
 )
+NOTIFICATION_SEVERITIES = weighted(vocabulary.NOTIFICATION_SEVERITY, (0.72, 0.2, 0.08))
 
 SECURITY_EVENT_KINDS: tuple[tuple[str, str, str], ...] = (
     ("NEW_DEVICE_SIGN_IN", "INFO", "Sign-in from a new device"),

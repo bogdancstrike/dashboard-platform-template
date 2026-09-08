@@ -547,6 +547,7 @@ export default function MailPage() {
         thread={replyTo}
         draft={editing}
         meEmail={meEmail}
+        priorities={data.priorities}
         onClose={() => {
           setComposing(false);
           setReplyTo(null);

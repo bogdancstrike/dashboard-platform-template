@@ -53,10 +53,17 @@ const { Text, Title } = Typography;
 
 export function CardDrawer({
   cardId,
+  /**
+   * The priorities the board published. Passed in rather than listed here:
+   * `core/vocabulary.PRIORITY` is the one place, and a drawer offering a fifth
+   * value the record endpoint refuses is a drawer that fails on save.
+   */
+  priorities,
   onClose,
   onChanged,
 }: {
   cardId: string | null;
+  priorities: string[];
   onClose: () => void;
   /** The board behind the drawer has to hear about every write. */
   onChanged: () => void;
@@ -215,7 +222,7 @@ export function CardDrawer({
                 value={detail.priority}
                 disabled={!canEdit}
                 onChange={(next: string) => write.mutate({ priority: next })}
-                options={["LOW", "NORMAL", "HIGH", "CRITICAL"].map((item) => ({
+                options={priorities.map((item) => ({
                   value: item,
                   label: item.charAt(0) + item.slice(1).toLowerCase(),
                 }))}

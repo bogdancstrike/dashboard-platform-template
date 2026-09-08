@@ -115,6 +115,18 @@ export function endpoint(path: string): string {
 }
 
 /**
+ * An address under the *namespace* rather than under `/api`.
+ *
+ * The administration and notification endpoints live at `/platform/admin/…`
+ * and `/platform/notifications`, not under `/platform/api` — so they need the
+ * prefix without the `/api` on the end, and computing that inline was a
+ * `String.replace` in the middle of a sweep.
+ */
+export function namespaced(path: string): string {
+  return `${API.replace(/\/api$/, "")}${path}`;
+}
+
+/**
  * Put a task back in the lane it was taken from.
  *
  * The board spec moves a card between lanes and moved it back at the end of
@@ -243,6 +255,27 @@ export async function sweepMailThreads(
     for (const id of ids) {
       await api.delete(endpoint(`/mail/threads/${id}`));
       await api.delete(endpoint(`/mail/threads/${id}`));
+    }
+  } finally {
+    await api.dispose();
+  }
+}
+
+/**
+ * Remove roles this suite created, by code (§13).
+ *
+ * A built-in role is refused by the endpoint, so this cannot damage the five
+ * the seed writes even if a test passes one by mistake.
+ */
+export async function sweepRoles(
+  codes: string[],
+  persona: Persona = "admin",
+): Promise<void> {
+  if (codes.length === 0) return;
+  const api = await apiAs(persona);
+  try {
+    for (const code of codes) {
+      await api.delete(namespaced(`/admin/roles/${code}`));
     }
   } finally {
     await api.dispose();

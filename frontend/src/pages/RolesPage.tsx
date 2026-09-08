@@ -15,11 +15,12 @@ import {
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { LockOutlined, UndoOutlined } from "@ant-design/icons";
+import { DeleteOutlined, LockOutlined, PlusOutlined, UndoOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
 
 import { ApiError } from "@/api/client";
 import { rolesApi, type RoleMatrix, type RoleRow } from "@/api/roles";
+import { NewRoleModal } from "@/components/roles/NewRoleModal";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 
@@ -51,6 +52,7 @@ const cellKey = (cell: Cell) => `${cell.role}:${cell.permission}`;
 const SELF_LOCKOUT_GUARD = new Set(["roles.manage", "admin.access"]);
 
 export default function RolesPage() {
+  const [creating, setCreating] = useState(false);
   const { message } = AntApp.useApp();
   const queryClient = useQueryClient();
   const [term, setTerm] = useState("");
@@ -60,6 +62,18 @@ export default function RolesPage() {
   const matrix = useQuery({
     queryKey: ["admin", "roles"],
     queryFn: ({ signal }) => rolesApi.matrix(signal),
+  });
+
+  const remove = useMutation({
+    mutationFn: (code: string) => rolesApi.remove(code),
+    onSuccess: async (answer) => {
+      message.success(`The ${answer.code} role is gone`);
+      await queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
+    },
+    onError: (error) =>
+      message.error(
+        error instanceof ApiError ? error.message : "That role could not be removed.",
+      ),
   });
 
   const save = useMutation({
@@ -203,6 +217,7 @@ export default function RolesPage() {
                 <Tag color="gold">yours</Tag>
               </Tooltip>
             )}
+            {!role.is_system && <Tag bordered={false}>added here</Tag>}
           </Space>
           <Text type="secondary">
             {role.user_count} {role.user_count === 1 ? "person" : "people"}
@@ -266,6 +281,13 @@ export default function RolesPage() {
         }
         actions={
           <>
+            <Button
+              icon={<PlusOutlined />}
+              onClick={() => setCreating(true)}
+              data-testid="new-role"
+            >
+              New role
+            </Button>
             {pendingCells > 0 && (
               <Button icon={<UndoOutlined />} onClick={() => setStaged({})}>
                 Discard
@@ -296,6 +318,54 @@ export default function RolesPage() {
           </>
         }
       />
+
+      {/* The roles this installation added, with the one destructive control on
+          the page. Not in the column headings: those are 150 pixels wide
+          inside a table that scrolls sideways, so a red icon there is both
+          cramped and — once the table is scrolled — unreachable. A short strip
+          is calmer and says what it is. */}
+      {data!.items.some((role) => !role.is_system) && (
+        <Card size="small" className="nu-block" data-testid="custom-roles">
+          <Space size={12} wrap>
+            <Text type="secondary">Roles added here:</Text>
+            {data!.items
+              .filter((role) => !role.is_system)
+              .map((role) => (
+                <Space key={role.code} size={4}>
+                  <Tag color={role.color} style={{ marginInlineEnd: 0 }}>
+                    {role.name}
+                  </Tag>
+                  <Text type="secondary">
+                    {role.user_count} {role.user_count === 1 ? "person" : "people"}
+                  </Text>
+                  <Popconfirm
+                    title={`Delete ${role.name}?`}
+                    description={
+                      role.user_count > 0
+                        ? `${role.user_count} ${role.user_count === 1 ? "person holds" : "people hold"} it — move them to another role first.`
+                        : "Nobody holds it, and it is not one of the built-in roles."
+                    }
+                    okText="Delete"
+                    okButtonProps={{ danger: true }}
+                    disabled={role.user_count > 0}
+                    onConfirm={() => remove.mutate(role.code)}
+                  >
+                    <Button
+                      type="text"
+                      size="small"
+                      danger
+                      icon={<DeleteOutlined />}
+                      loading={remove.isPending}
+                      disabled={role.user_count > 0}
+                      aria-label={`Delete the ${role.name} role`}
+                      data-testid={`delete-role-${role.code}`}
+                    />
+                  </Popconfirm>
+                </Space>
+              ))}
+          </Space>
+        </Card>
+      )}
 
       {data!.items.some((role) => role.customised) && (
         <Alert
@@ -340,6 +410,16 @@ export default function RolesPage() {
           locale={{ emptyText: `No permission matches “${term}”.` }}
         />
       </Card>
+
+      <NewRoleModal
+        open={creating}
+        roles={data!.items}
+        onClose={() => setCreating(false)}
+        onCreated={() => {
+          setCreating(false);
+          void queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
+        }}
+      />
     </>
   );
 }

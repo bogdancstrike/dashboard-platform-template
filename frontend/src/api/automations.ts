@@ -118,6 +118,8 @@ export interface AutomationCatalogue {
   roles: Array<{ code: string; name: string }>;
   actions: Array<{ kind: string; label: string; description: string; needs: string[] }>;
   severities: string[];
+  /** What a TASK action may set, from the vocabulary the task table uses. */
+  priorities: string[];
   limits: { max_matches: number; max_fires: number; max_rules: number };
 }
 

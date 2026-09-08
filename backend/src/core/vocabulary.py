@@ -73,6 +73,21 @@ DEVICE_STATUS: Vocabulary = (
     "ONLINE", "OFFLINE", "DEGRADED", "MAINTENANCE", "DECOMMISSIONED",
 )
 
+# ── notifications ────────────────────────────────────────────────────────
+
+#: What a notification is *about*. `ALERT` is here because an automation
+#: writes one when it fires (§49) — and it was missing from the filter
+#: vocabulary for a while, which made every notification an automation had
+#: sent unfilterable: present in the list, absent from the only control that
+#: narrows it.
+NOTIFICATION_CATEGORY: Vocabulary = (
+    "MENTION", "ASSIGNMENT", "APPROVAL", "ALERT", "SYSTEM", "SECURITY", "REPORT",
+)
+#: Deliberately not `SEVERITY`. That vocabulary grades an *incident*
+#: (MINOR…CRITICAL); this grades how loudly to say something, and the two have
+#: only the last value in common.
+NOTIFICATION_SEVERITY: Vocabulary = ("INFO", "WARNING", "CRITICAL")
+
 # ── mail ─────────────────────────────────────────────────────────────────
 
 #: Where a thread lives. `OUTBOX` is the honest folder for a message the

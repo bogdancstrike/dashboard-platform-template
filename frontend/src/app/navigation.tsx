@@ -16,6 +16,7 @@ import {
   ContainerOutlined,
   ControlOutlined,
   DashboardOutlined,
+  HomeOutlined,
   DatabaseOutlined,
   DeploymentUnitOutlined,
   ExperimentOutlined,
@@ -78,6 +79,10 @@ export const NAV_GROUPS: NavGroup[] = [
     key: "overview",
     label: "Overview",
     items: [
+      // First, and above the dashboard, because it is where arriving with no
+      // preference lands: a navigation whose first item is not the default
+      // landing page is a navigation that disagrees with the logo.
+      { key: "/home", label: "Home", icon: <HomeOutlined /> },
       { key: "/dashboard", label: "Dashboard", icon: <DashboardOutlined /> },
       { key: "/dashboards", label: "My dashboards", icon: <LayoutOutlined />, permission: "dashboards.manage" },
       { key: "/activity", label: "Activity", icon: <BranchesOutlined /> },

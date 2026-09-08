@@ -22,7 +22,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   App as AntApp,
-  Avatar,
   Button,
   Empty,
   Input,
@@ -37,6 +36,7 @@ import { useMemo, useState } from "react";
 import { ApiError } from "@/api/client";
 import { commentsApi, type RecordComment } from "@/api/comments";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { PersonAvatar } from "@/components/PersonAvatar";
 
 const { Text, Paragraph } = Typography;
 
@@ -247,9 +247,11 @@ function CommentLine({
 }) {
   return (
     <article className="nu-comment">
-      <Avatar size={28} src={comment.author.avatar_url}>
-        {initials(comment.author.name)}
-      </Avatar>
+      <PersonAvatar
+        size={28}
+        src={comment.author.avatar_url}
+        initials={initials(comment.author.name)}
+      />
       <div className="nu-comment-body">
         <Space size={8} wrap className="nu-comment-head">
           <Text strong>{comment.author.name}</Text>

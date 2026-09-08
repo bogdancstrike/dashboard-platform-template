@@ -789,11 +789,10 @@ def _notifications(world: World) -> None:
                 id=rng.uuid(),
                 user_id=user.id,
                 category=category,
-                severity=rng.weighted((("INFO", 0.7), ("WARNING", 0.2), ("CRITICAL", 0.1))),
+                severity=rng.weighted(catalog.NOTIFICATION_SEVERITIES),
                 title=title,
                 body=body,
-                icon={"MENTION": "at", "ASSIGNMENT": "user-check", "APPROVAL": "check-circle",
-                      "SYSTEM": "settings", "SECURITY": "shield", "REPORT": "bar-chart"}[category],
+                icon=catalog.NOTIFICATION_ICONS[category],
                 is_read=read,
                 read_at=rng.between(created, world.anchor) if read else None,
                 link=link,
@@ -978,6 +977,15 @@ def _notification_for(rng, world: World, category: str, actor):
             "/settings/security",
             "user",
             actor.id,
+        )
+    if category == "ALERT" and world.alert_rules:
+        rule = rng.pick(world.alert_rules)
+        return (
+            f"{rule.name} fired",
+            "An automation matched something worth telling you about.",
+            "/workflows",
+            "alert_rule",
+            rule.id,
         )
     if category == "REPORT" and world.background_jobs:
         job = rng.pick(world.background_jobs)

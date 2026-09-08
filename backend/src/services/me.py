@@ -31,7 +31,7 @@ PREFERENCE_DEFAULTS: dict[str, dict[str, Any]] = {
     },
     "defaults": {
         "page_size": 25,
-        "landing_page": "dashboard",
+        "landing_page": "home",
     },
 }
 
@@ -43,6 +43,7 @@ _CHOICES: dict[tuple[str, str], set[Any]] = {
     ("formats", "number"): {"1 234,56", "1,234.56"},
     ("defaults", "page_size"): {10, 25, 50, 100},
     ("defaults", "landing_page"): {
+        "home",
         "dashboard",
         "analytics",
         "tasks",

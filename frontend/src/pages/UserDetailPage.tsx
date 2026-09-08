@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   App as AntApp,
-  Avatar,
   Button,
   Card,
   Col,
@@ -35,6 +34,7 @@ import { useImpersonation } from "@/auth/ImpersonationProvider";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { knownStatusColor } from "@/theme/tokens";
+import { PersonAvatar } from "@/components/PersonAvatar";
 
 const { Text } = Typography;
 
@@ -140,12 +140,11 @@ export default function UserDetailPage() {
       <PageHeader
         title={
           <Space size={10}>
-            <Avatar
-              src={user.avatar_url ?? undefined}
+            <PersonAvatar
+              src={user.avatar_url}
+              initials={user.initials}
               icon={!user.avatar_url ? <UserOutlined /> : undefined}
-            >
-              {user.initials}
-            </Avatar>
+            />
             {user.full_name}
           </Space>
         }

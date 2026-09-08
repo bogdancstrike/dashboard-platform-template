@@ -1009,10 +1009,11 @@
       "operation_name": "admin_roles_collection",
       "model_name": "Empty",
       "request_method": [
-        "GET"
+        "GET",
+        "POST"
       ],
       "api_url": "/admin/roles",
-      "description": "The roles in force, the permissions each grants, and who holds them.",
+      "description": "The roles in force, or a new one of this installation's own.",
       "exec_method": {
         "module_name": "src.api.roles",
         "method_name": "collection"
@@ -1023,10 +1024,11 @@
       "operation_name": "admin_role_item",
       "model_name": "Empty",
       "request_method": [
-        "PUT"
+        "PUT",
+        "DELETE"
       ],
       "api_url": "/admin/roles/<string:code>",
-      "description": "Change what a role grants; applies on the holder's next request.",
+      "description": "Change what a role grants, or remove one this installation added.",
       "exec_method": {
         "module_name": "src.api.roles",
         "method_name": "item"

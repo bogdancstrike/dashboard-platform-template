@@ -79,6 +79,13 @@ export function Composer({
   /** The draft being edited, when there is one. */
   draft,
   meEmail,
+  /**
+   * The priorities the server declares, published with every folder listing.
+   * Passed in rather than listed here: `core/vocabulary.EMAIL_PRIORITY` is the
+   * one place, and a composer offering a fourth value the server refuses is a
+   * composer that fails on save.
+   */
+  priorities,
   onClose,
   onSaved,
 }: {
@@ -86,6 +93,7 @@ export function Composer({
   thread: MailThread | null;
   draft: MailMessage | null;
   meEmail: string | null;
+  priorities: string[];
   onClose: () => void;
   onSaved: (thread: MailThread) => void;
 }) {
@@ -271,7 +279,7 @@ export function Composer({
           <Form.Item name="priority" label="Priority">
             <Select
               aria-label="Priority"
-              options={["LOW", "NORMAL", "HIGH"].map((item) => ({
+              options={priorities.map((item) => ({
                 value: item,
                 label: item.charAt(0) + item.slice(1).toLowerCase(),
               }))}

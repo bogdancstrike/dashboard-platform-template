@@ -218,7 +218,7 @@ export function ActionListEditor({
                     value={action.priority ?? "HIGH"}
                     disabled={disabled}
                     onChange={(priority: string) => replace(index, { priority })}
-                    options={["LOW", "NORMAL", "HIGH", "CRITICAL"].map((item) => ({
+                    options={catalogue.priorities.map((item) => ({
                       value: item,
                       label: item.charAt(0) + item.slice(1).toLowerCase(),
                     }))}

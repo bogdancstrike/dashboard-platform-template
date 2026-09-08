@@ -10,10 +10,11 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Avatar, Select, Space, Typography } from "antd";
+import { Select, Space, Typography } from "antd";
 
 import { directoryApi, type Person } from "@/api/directory";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { PersonAvatar } from "@/components/PersonAvatar";
 
 const { Text } = Typography;
 
@@ -95,7 +96,7 @@ export function PeoplePicker({
         // "Mara ManagerMarketing Manager", and the name stays addressable.
         return (
           <Space>
-            <Avatar size={22} src={person.avatar_url}>{person.initials}</Avatar>
+            <PersonAvatar size={22} src={person.avatar_url} initials={person.initials} />
             <span className="nu-person">
               <span className="nu-person-name">{person.name}</span>
               {person.is_me && <Text type="secondary"> (you)</Text>}

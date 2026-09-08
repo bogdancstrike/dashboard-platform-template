@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Avatar,
   Badge,
   Breadcrumb,
   Button,
@@ -28,6 +27,7 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import { notificationsApi } from "@/api/notifications";
+import { PersonAvatar } from "@/components/PersonAvatar";
 import { useAuth } from "@/auth/AuthProvider";
 import { useImpersonation } from "@/auth/ImpersonationProvider";
 import { CommandPalette, CommandTrigger } from "@/components/CommandPalette";
@@ -315,13 +315,12 @@ export function AppShell() {
               }}
             >
               <button className="nu-user" type="button" aria-label="Open profile menu">
-                <Avatar
+                <PersonAvatar
                   size="small"
-                  src={auth.profile?.user.avatar_url ?? undefined}
+                  src={auth.profile?.user.avatar_url}
+                  initials={auth.profile?.user.initials}
                   icon={!auth.profile?.user.avatar_url ? <UserOutlined /> : undefined}
-                >
-                  {auth.profile?.user.initials}
-                </Avatar>
+                />
                 {!isMobile && (
                   <Typography.Text strong>
                     {auth.profile?.user.full_name ?? (auth.loading ? "Signing in…" : "Unavailable")}

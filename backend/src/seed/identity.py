@@ -339,7 +339,13 @@ def _users(world: World) -> None:
                 },
                 "defaults": {
                     "page_size": rng.pick((10, 25, 50, 100)),
-                    "landing_page": rng.pick(("dashboard", "tasks", "inbox", "projects")),
+                    # `home` included, and first: it is the platform's own
+                    # default now, so a seeded population where nobody has it
+                    # would be a population that never exercises the page
+                    # everybody actually arrives on.
+                    "landing_page": rng.pick(
+                        ("home", "dashboard", "tasks", "inbox", "projects")
+                    ),
                 },
             },
         )

@@ -24,7 +24,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   App as AntApp,
-  Avatar,
   Button,
   Drawer,
   Skeleton,
@@ -45,6 +44,7 @@ import { AuditTimeline } from "@/components/audit/AuditTimeline";
 import { CommentThread } from "@/components/comments/CommentThread";
 import { clock } from "@/components/calendar/MonthGrid";
 import { ResponseButtons } from "@/components/calendar/ResponseButtons";
+import { PersonAvatar } from "@/components/PersonAvatar";
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -235,7 +235,7 @@ export function EventDrawer({
               {detail.participants.map((person) => (
                 <div key={person.user_id} className="nu-attendee">
                   <Space size={8}>
-                    <Avatar size="small">{person.initials}</Avatar>
+                    <PersonAvatar size="small" initials={person.initials} />
                     <Text>{person.name ?? person.email ?? "Somebody"}</Text>
                     {detail.organizer.id === person.user_id && (
                       <Tag bordered={false}>organiser</Tag>

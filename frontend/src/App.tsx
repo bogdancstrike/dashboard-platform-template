@@ -24,6 +24,7 @@ const KanbanPage = lazy(() => import("@/pages/KanbanPage"));
 const WorkflowsPage = lazy(() => import("@/pages/WorkflowsPage"));
 const CalendarPage = lazy(() => import("@/pages/CalendarPage"));
 const MailPage = lazy(() => import("@/pages/MailPage"));
+const HomePage = lazy(() => import("@/pages/HomePage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
@@ -118,6 +119,14 @@ export default function App() {
             works in the queue all day should not be shown a dashboard every
             morning on the way to it. */}
         <Route index element={<Home />} />
+        <Route
+          path="home"
+          element={
+            <Suspense fallback={<Loading />}>
+              <HomePage />
+            </Suspense>
+          }
+        />
         <Route
           path="dashboard"
           element={

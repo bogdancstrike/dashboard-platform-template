@@ -546,6 +546,11 @@ export function notificationPage(items = notificationRows, extra: Record<string,
     sort: "created_at",
     order: "desc",
     grouped: false,
+    // The filter's choices, as the server publishes them — including `ALERT`,
+    // which automations write and which the hard-coded browser list had never
+    // heard of.
+    categories: ["MENTION", "ASSIGNMENT", "APPROVAL", "ALERT", "SYSTEM", "SECURITY", "REPORT"],
+    severities: ["INFO", "WARNING", "CRITICAL"],
     ...notificationCounts,
     ...extra,
   };
@@ -1322,7 +1327,7 @@ export const recordNetwork = {
 };
 
 
-export const roleMatrix = {
+const SEEDED_ROLES = {
   items: [
     {
       id: "role-admin", code: "ADMINISTRATOR", name: "Administrator",
@@ -1367,6 +1372,21 @@ export const roleMatrix = {
   },
   your_role: "ADMINISTRATOR",
 };
+
+/**
+ * The matrix the handlers serve, and a way back to how it started.
+ *
+ * A copy rather than the seed itself: the create handler pushes into `items`,
+ * and without a reset the test that asserts "nothing was added here" ran after
+ * the one that adds something and saw it. The same fixture hygiene the kanban
+ * and mail fixtures needed.
+ */
+export const roleMatrix = { ...SEEDED_ROLES, items: [...SEEDED_ROLES.items] };
+
+export function resetRoles(): void {
+  roleMatrix.items = [...SEEDED_ROLES.items];
+}
+
 
 
 export const userRows = [
@@ -2395,6 +2415,7 @@ export const handlers = [
         },
       ],
       severities: ["INFO", "WARNING", "CRITICAL"],
+      priorities: ["LOW", "NORMAL", "HIGH", "CRITICAL"],
       limits: { max_matches: 500, max_fires: 50, max_rules: 200 },
     }),
   ),
@@ -3082,6 +3103,39 @@ export const handlers = [
     }),
   ),
   http.get("/platform/admin/roles", ({ request }) => echo(request, roleMatrix)),
+  http.post("/platform/admin/roles", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    // Narrowed rather than stringified: `String(unknown)` renders an object as
+    // "[object Object]", which is a fixture that answers nonsense.
+    const text = (value: unknown) => (typeof value === "string" ? value : "");
+    const created = {
+      ...roleMatrix.items[0]!,
+      id: `role-${roleMatrix.items.length + 1}`,
+      code: text(body["code"]),
+      name: text(body["name"]),
+      description: text(body["description"]),
+      permissions: Array.isArray(body["permissions"]) ? (body["permissions"] as string[]) : [],
+      user_count: 0,
+      // Never a system role, whatever was asked for — the server decides this.
+      is_system: false,
+      is_yours: false,
+    };
+    roleMatrix.items.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.delete("/platform/admin/roles/:code", ({ request, params }) => {
+    const at = roleMatrix.items.findIndex((item) => item.code === String(params["code"]));
+    const role = roleMatrix.items[at];
+    if (!role) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    if (role.is_system) {
+      return HttpResponse.json(
+        { message: `${role.name} is a built-in role.` },
+        { status: 409 },
+      );
+    }
+    roleMatrix.items.splice(at, 1);
+    return echo(request, { deleted: true, code: role.code });
+  }),
   http.put("/platform/admin/roles/:code", async ({ request, params }) => {
     const body = (await request.json()) as { permissions?: string[] };
     const role =

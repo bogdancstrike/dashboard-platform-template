@@ -19,7 +19,7 @@
  * a template.
  */
 
-import { Alert, Avatar, Button, Collapse, Space, Tag, Tooltip, Typography } from "antd";
+import { Alert, Button, Collapse, Space, Tag, Tooltip, Typography } from "antd";
 import { DeleteOutlined, EditOutlined, PaperClipOutlined } from "@ant-design/icons";
 
 import type { MailMessage, MailThread } from "@/api/mail";
@@ -28,6 +28,7 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 // decides how many decimals a size gets, and two answers to "how big is
 // this" is one too many.
 import { readableSize } from "@/api/files";
+import { PersonAvatar } from "@/components/PersonAvatar";
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -118,7 +119,7 @@ function Message({
     <div className="nu-message">
       <div className="nu-message-head">
         <Space size={8} align="start">
-          <Avatar size="small">{message.from.initials}</Avatar>
+          <PersonAvatar size="small" initials={message.from.initials} />
           <div>
             <Text strong>{message.from.name ?? message.from.email}</Text>
             <Text type="secondary" className="nu-message-addresses">

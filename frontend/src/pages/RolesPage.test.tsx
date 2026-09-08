@@ -1,12 +1,15 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import RolesPage from "@/pages/RolesPage";
 import { CommandProvider } from "@/commands/CommandContext";
 import { renderWithProviders } from "@/test/render";
 import { server } from "@/test/server";
+import { roleMatrix, resetRoles } from "@/test/handlers";
+
+afterEach(() => resetRoles());
 
 function renderPage() {
   return renderWithProviders(
@@ -153,5 +156,56 @@ describe("the permission matrix", () => {
     // The Administrator has both Records permissions; the Viewer has one.
     expect(within(row).getByText("2/2")).toBeInTheDocument();
     expect(within(row).getByText("1/2")).toBeInTheDocument();
+  });
+});
+
+describe("roles an installation adds", () => {
+  it("creates one, deriving its code from the name and showing it", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await screen.findByTestId("new-role");
+    await user.click(screen.getByTestId("new-role"));
+
+    const form = await screen.findByTestId("role-form");
+    await user.type(within(form).getByLabelText("Role name"), "External auditor");
+    // The code follows the name, because it is the identifier the audit trail
+    // quotes years later and a reader should see it before agreeing to it.
+    await waitFor(() =>
+      expect(within(form).getByLabelText("Role code")).toHaveValue("EXTERNAL_AUDITOR"),
+    );
+
+    await user.click(screen.getByTestId("create-role"));
+    await waitFor(() =>
+      expect(roleMatrix.items.some((role) => role.code === "EXTERNAL_AUDITOR")).toBe(true),
+    );
+  });
+
+  it("stops deriving the code once somebody edits it themselves", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await screen.findByTestId("new-role");
+    await user.click(screen.getByTestId("new-role"));
+    const form = await screen.findByTestId("role-form");
+
+    const code = within(form).getByLabelText("Role code");
+    await user.type(code, "AUDIT");
+    await user.type(within(form).getByLabelText("Role name"), "Something else");
+
+    // A field that keeps overwriting what was typed is a field people fight.
+    expect(code).toHaveValue("AUDIT");
+  });
+
+  it("offers no delete on a built-in role, and no strip when nothing was added", async () => {
+    renderPage();
+
+    await screen.findByTestId("new-role");
+    // The five the seed writes can have their permissions changed and cannot
+    // be removed: a deleted one comes back on the next deploy.
+    expect(screen.queryByTestId("delete-role-ADMINISTRATOR")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("delete-role-VIEWER")).not.toBeInTheDocument();
+    // And the strip is absent rather than empty.
+    expect(screen.queryByTestId("custom-roles")).not.toBeInTheDocument();
   });
 });

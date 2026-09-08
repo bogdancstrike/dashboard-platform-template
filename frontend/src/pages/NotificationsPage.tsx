@@ -25,8 +25,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import {
-  NOTIFICATION_CATEGORIES,
-  NOTIFICATION_SEVERITIES,
   notificationsApi,
   type Notification,
 } from "@/api/notifications";
@@ -288,7 +286,7 @@ export default function NotificationsPage() {
             style={{ minWidth: 200 }}
             aria-label="Category"
             value={categories}
-            options={NOTIFICATION_CATEGORIES.map((value) => ({ value, label: humanise(value) }))}
+            options={(listing.data?.categories ?? []).map((value) => ({ value, label: humanise(value) }))}
             onChange={(values: string[]) =>
               set({ category: values.join(",") || null, page: null })
             }
@@ -300,7 +298,7 @@ export default function NotificationsPage() {
             style={{ minWidth: 180 }}
             aria-label="Severity"
             value={severities}
-            options={NOTIFICATION_SEVERITIES.map((value) => ({ value, label: humanise(value) }))}
+            options={(listing.data?.severities ?? []).map((value) => ({ value, label: humanise(value) }))}
             onChange={(values: string[]) =>
               set({ severity: values.join(",") || null, page: null })
             }

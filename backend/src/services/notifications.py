@@ -24,13 +24,18 @@ from uuid import UUID
 from sqlalchemy import String, case, cast, distinct, func, or_, select, update
 from sqlalchemy.orm import aliased
 
+from src.core import vocabulary
 from src.core.clock import iso, now
 from src.core.errors import NotFoundError, ValidationError
 from src.core.pagination import Page, envelope, parse_uuid
 
 #: Categories the filter offers. Free strings are still accepted on write.
-CATEGORIES = ("MENTION", "ASSIGNMENT", "APPROVAL", "SYSTEM", "SECURITY", "REPORT")
-SEVERITIES = ("INFO", "WARNING", "CRITICAL")
+#: Read from `core/vocabulary` rather than written here. These two lists were
+#: in three places — this module, the seed's catalogue and a constant in the
+#: frontend — and `ALERT` had been added to none of them, so every
+#: notification an automation sent was unfilterable.
+CATEGORIES = vocabulary.NOTIFICATION_CATEGORY
+SEVERITIES = vocabulary.NOTIFICATION_SEVERITY
 
 
 def serialize(row) -> dict[str, Any]:
@@ -179,6 +184,12 @@ def listing(session, user_id: UUID, args, page: Page) -> dict[str, Any]:
         total,
         page,
         grouped=False,
+        # Published with the list, so the filter's choices are the *server's*
+        # vocabulary. A hard-coded list in the browser is a filter that goes
+        # stale the day a category is added — which is exactly what happened
+        # to `ALERT`.
+        categories=list(CATEGORIES),
+        severities=list(SEVERITIES),
         **counts(session, user_id),
     )
 
@@ -228,7 +239,17 @@ def _grouped(session, user_id: UUID, clauses: list, page: Page) -> dict[str, Any
         item["group_unread"] = int(group_unread or 0)
         items.append(item)
 
-    return envelope(items, total, page, grouped=True, **counts(session, user_id))
+    # The same vocabularies as the flat listing: the filter is one control and
+    # the two views must offer it the same choices.
+    return envelope(
+        items,
+        total,
+        page,
+        grouped=True,
+        categories=list(CATEGORIES),
+        severities=list(SEVERITIES),
+        **counts(session, user_id),
+    )
 
 
 def mark_read(session, user_id: UUID, notification_id: str) -> dict[str, Any]:

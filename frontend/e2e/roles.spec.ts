@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { sweepRoles } from "./api";
 import { signIn, storageStateFor } from "./auth";
 
 /**
@@ -117,5 +118,77 @@ test.describe("matrix permissions", () => {
     // …and the deep link says which permission is missing.
     await page.goto("/admin/roles");
     await expect(page.getByText("Your role does not include roles.manage.")).toBeVisible();
+  });
+});
+
+test.describe("roles an installation adds", () => {
+  // Serial: these two share the `roles` table, and in parallel the one that
+  // asserts "nothing was added here" ran while the other's role existed.
+  test.describe.configure({ mode: "serial" });
+
+  /** Roles this file made, removed however the test ended. */
+  const made: string[] = [];
+
+  test.afterEach(async () => {
+    await sweepRoles(made.splice(0, made.length));
+  });
+
+  test("a custom role is created, is in force at once, and can be removed", async ({
+    page,
+  }) => {
+    await signIn(page, "admin", "/admin/roles");
+    await expect(page.getByTestId("new-role")).toBeVisible();
+
+    const name = `E2E auditor ${Date.now()}`;
+    const code = name.toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+    await page.getByTestId("new-role").click();
+    await page.getByLabel("Role name").fill(name);
+    // The code follows the name, because it is the identifier the audit trail
+    // quotes years later.
+    await expect(page.getByLabel("Role code")).toHaveValue(code);
+    await page.getByTestId("create-role").click();
+    made.push(code);
+
+    // In force immediately: the matrix reads the `roles` table, which
+    // `_permissions_for` also reads on every request — no re-login, no cache.
+    // `.first()` throughout: AntD renders the header of a table with a fixed
+    // column *twice* — once in the fixed layer and once in the scrolling one —
+    // so every control in a column heading has two copies in the DOM.
+    await expect(
+      page.getByRole("columnheader", { name: new RegExp(name) }).first(),
+    ).toBeVisible();
+
+    // From the strip above the matrix, which is where the one destructive
+    // control on this page lives — the column headings are 150 pixels wide
+    // inside a table that scrolls sideways, and a control there is both
+    // cramped and, once scrolled, unreachable.
+    await expect(page.getByTestId("custom-roles")).toBeVisible();
+    await page.getByTestId(`delete-role-${code}`).click();
+    await expect(page.getByText(`Delete ${name}?`)).toBeVisible();
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
+
+    // Asserted after a reload, and on the *control* rather than the column
+    // heading: the fixed-column table keeps a heading in its DOM through a
+    // re-render, so a count of headings is a claim about AntD's internals.
+    // Whether the role exists is whether it can still be deleted.
+    await page.reload();
+    await expect(page.getByTestId("new-role")).toBeVisible();
+    await expect(page.getByTestId(`delete-role-${code}`)).toHaveCount(0);
+    made.length = 0;
+  });
+
+  test("a built-in role offers no delete at all", async ({ page }) => {
+    await signIn(page, "admin", "/admin/roles");
+    await expect(page.getByTestId("new-role")).toBeVisible();
+
+    // The seed writes these five and `--sync-roles` maintains them, so a
+    // deleted one comes back on the next deploy. Absent, not disabled: it is
+    // not a thing anybody may do.
+    for (const code of ["ADMINISTRATOR", "MANAGER", "OPERATOR", "ANALYST", "VIEWER"]) {
+      await expect(page.getByTestId(`delete-role-${code}`)).toHaveCount(0);
+    }
+    // And with nothing added, the strip is not drawn at all rather than drawn
+    // empty.
+    await expect(page.getByTestId("custom-roles")).toHaveCount(0);
   });
 });
