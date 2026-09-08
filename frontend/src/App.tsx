@@ -30,6 +30,7 @@ const SystemSettingsPage = lazy(() => import("@/pages/admin/SettingsPage"));
 const FlagsPage = lazy(() => import("@/pages/admin/FlagsPage"));
 const LogsPage = lazy(() => import("@/pages/admin/LogsPage"));
 const JobsPage = lazy(() => import("@/pages/admin/JobsPage"));
+const GroupsPage = lazy(() => import("@/pages/admin/GroupsPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
@@ -376,7 +377,11 @@ export default function App() {
         </Route>
         <Route
           path="admin/groups"
-          element={<PlaceholderPage section="§11" summary="Groups, and the permissions they add on top of a role." />}
+          element={
+            <Suspense fallback={<Loading />}>
+              <GroupsPage />
+            </Suspense>
+          }
         />
         <Route
           path="admin/roles"

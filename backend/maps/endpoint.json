@@ -1494,6 +1494,79 @@
         "module_name": "src.api.jobs",
         "method_name": "allow_attempts"
       }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "group_catalogue",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/groups/catalogue",
+      "description": "Group kinds, the permission catalogue, and what the reader may change.",
+      "exec_method": {
+        "module_name": "src.api.groups",
+        "method_name": "catalogue"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "group_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/admin/groups",
+      "description": "Every group, filtered and faceted \u2014 or a new one, granting nothing.",
+      "exec_method": {
+        "module_name": "src.api.groups",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "group_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/admin/groups/<string:group_id>",
+      "description": "One group and its members: read, rename, or retire it.",
+      "exec_method": {
+        "module_name": "src.api.groups",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "group_members",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT"
+      ],
+      "api_url": "/admin/groups/<string:group_id>/members",
+      "description": "Set who is in a group. Effective on their next request.",
+      "exec_method": {
+        "module_name": "src.api.groups",
+        "method_name": "members"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "group_grants",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT"
+      ],
+      "api_url": "/admin/groups/<string:group_id>/grants",
+      "description": "Set what being in a group grants. Needs roles.manage.",
+      "exec_method": {
+        "module_name": "src.api.groups",
+        "method_name": "grants"
+      }
     }
   ]
 }

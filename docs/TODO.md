@@ -1346,6 +1346,75 @@ commit — built, committed, pushed, redeployed and verified before the next.
       on the button it described. The tooltip now lives only on the disabled
       path, which is the only place it carries information
 
+- [x] **`/admin/groups` — sets of people, and what being in one adds** (§11)
+  - **The page has two privilege levels, because two of its fields do.**
+      `core/auth._permissions_for` unions a group's permissions onto its
+      members' roles, so whoever may edit them may grant any permission to
+      anybody — themselves included. Editing *membership* therefore needs
+      `users.manage`; editing what a group *grants* needs `roles.manage`, the
+      same permission that governs the role matrix. Without that split
+      `users.manage` would quietly be worth every permission in the catalogue:
+      a manager holds it, does not hold `roles.manage`, and could otherwise add
+      `roles.manage` to a group containing themselves and have it on their next
+      request
+  - **Asserted from both sides, in three places.** The service refuses the
+      grants endpoint to a manager *and* refuses `permissions` on the plain
+      update endpoint rather than silently dropping it — silently dropping a
+      field somebody submitted is how a UI comes to believe it saved
+      something. The component test checks the page offers one panel and not
+      the other, and the e2e checks the *server* refuses both routes, because
+      a gate enforced only in the browser is not a gate
+  - **And the whole point, which only a real stack can show**: a viewer who
+      cannot open the audit ledger is put in a group granting `audit.view` and
+      can read it *on the next request* — no re-login, no cache to bust — and
+      loses it again when taken out. The direction a security review asks
+      about is the second half
+  - **A retired group stops granting.** Soft-delete is a flag and
+      `_permissions_for` walks the relationship, so `remove` empties the
+      membership as well as setting the flag — otherwise a group nothing lists
+      any more would go on granting everything it granted, invisibly. There is
+      a test that grants, joins, deletes, and checks the access is gone
+  - **A grant is checked against the permission catalogue**, with the
+      near-misses named: a group granting `records.expport` grants nothing at
+      all and looks in every screen exactly like one that works, which is the
+      quietest possible way to believe somebody has access they do not. The
+      editor renders its options from the same catalogue, so it cannot offer
+      one no endpoint requires
+  - **A new group grants nothing, whatever the payload says.** Otherwise
+      creating one would need two privileges, and the create form would be one
+      level or two depending on what somebody typed into it. Said on the way
+      in, too, because a group that arrived granting something would grant it
+      at the moment it was made
+  - **Membership is set as a whole list, not a delta**, so the request says
+      what the group *is* and two administrators editing at once cannot
+      interleave into a state neither chose
+  - **What a group grants is named on the row, not counted.** "3 permissions"
+      does not answer whether being in this group lets somebody export the
+      customer list; the names do, and the count is only the overflow. Same
+      reasoning for the removal confirmation, which names how many people are
+      in it and which permissions they lose — the whole hazard of this screen
+      is quietly reducing somebody's access
+  - **Deleting is allowed while occupied**, unlike a role: a role is somebody's
+      identity and there is exactly one, a group is a set and the model is
+      soft-delete, so refusing would only mean emptying a group of forty by
+      hand first
+  - **The slug is derived and follows a rename**, because a URL and an
+      integration hold on to it — and a rename that would collide is refused
+      rather than silently breaking whatever holds the old one
+  - `GROUP_KIND` joins `core/vocabulary`, and `seed/catalog` now asserts its
+      groups against it *and* against the permission catalogue at import: the
+      kinds were literals in seed rows, and a kind spelled only there is one
+      the page's filter has never heard of. Member `initials` come from
+      `core/naming` rather than the browser, since that helper exists precisely
+      because the rule was once written twice and the two copies disagreed
+      about middle names
+  - Two more AntD lessons, both already learned once in this session and both
+      re-learned here: `getByLabelText` finds two elements because the
+      accessible name lands on the wrapper *and* the inner input
+      (`getByRole("combobox")` is the fix), and an option must be *filtered to*
+      before it can be clicked, because rc-virtual-list renders only the
+      visible window and the real catalogue is forty-odd permissions long
+
 - [ ] **Variety in how "create" opens** — a wizard where the decision has
       parts, a drawer for one object's fields, a plain modal for one question.
       The dashboard wizard is the first; the rest of the modules follow
@@ -1353,8 +1422,8 @@ commit — built, committed, pushed, redeployed and verified before the next.
       list is in [Phase 6](#phase-6--frontend-pages). `/dashboards`, `/kanban`,
       `/files`, `/workflows`, `/calendar`, `/mail`, `/home` and the
       administration index with `/admin/settings`, `/admin/flags`,
-      `/admin/logs` and `/admin/jobs` are done.
-      Remaining: `/admin/groups`, `/admin/organizations`,
+      `/admin/logs`, `/admin/jobs` and `/admin/groups` are done.
+      Remaining: `/admin/organizations`,
       `/admin/api` (§25), `/admin/integrations` (§26),
       `/favorites`, `/import` (§29), `/exports` (§30), `/settings/security`
       (§41) and the two `/showcase/*` pages — every one of which already has

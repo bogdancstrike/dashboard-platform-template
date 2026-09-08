@@ -116,6 +116,11 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     # way round, which is exactly what that test is for.
     "CalendarEvent", "Task",
     "Notification", "Favorite", "RecentItem",
+    # `test_groups` makes its own groups. The `user_groups` association has no
+    # timestamps of its own, so it is cleared by the service's own writes —
+    # `remove` empties the membership before retiring the row, which is what
+    # stops a soft-deleted group going on granting its permissions.
+    "Group",
     # `test_jobs` makes its own jobs rather than editing seeded ones, so they
     # have to be swept — and before the audit rows that describe them.
     "BackgroundJob",

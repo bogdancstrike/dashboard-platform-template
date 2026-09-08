@@ -2497,7 +2497,251 @@ export function setJobsCanManage(value: boolean): void {
   jobsCanManage = value;
 }
 
+/**
+ * Groups (§11).
+ *
+ * The fixture models the *two privileges* rather than one, because that is the
+ * whole shape of the page: `groupsCanMembers` and `groupsCanGrants` are set
+ * independently, and the grants handler refuses when the second is off — so a
+ * page that drew the grants editor for a manager fails here rather than only
+ * against the real server.
+ */
+export const groupRows: Record<string, unknown>[] = [];
+
+const GROUP_KINDS = ["TEAM", "OPERATIONAL", "GOVERNANCE", "BUSINESS"] as const;
+
+function group(overrides: Record<string, unknown>): Record<string, unknown> {
+  return {
+    description: null,
+    kind: "TEAM",
+    color: "#0891b2",
+    permissions: [],
+    member_count: 0,
+    created_at: "2026-08-01T09:00:00Z",
+    updated_at: "2026-09-01T09:00:00Z",
+    ...overrides,
+  };
+}
+
+function seedGroups(): void {
+  groupRows.length = 0;
+  groupRows.push(
+    group({
+      id: "grp-oncall", name: "On-call", slug: "on-call", kind: "OPERATIONAL",
+      description: "Who to page when a release goes wrong.",
+      permissions: ["health.view", "jobs.manage", "logs.view"],
+      member_count: 3,
+    }),
+    // Four grants, so the row has to start counting the overflow.
+    group({
+      id: "grp-stewards", name: "Data stewards", slug: "data-stewards", kind: "GOVERNANCE",
+      permissions: ["audit.view", "records.export", "records.import", "logs.view"],
+      member_count: 2,
+    }),
+    // Grants nothing and has nobody: the two "empty" cases the page must draw
+    // as facts rather than as prompts.
+    group({
+      id: "grp-buddies", name: "Onboarding buddies", slug: "onboarding-buddies",
+      permissions: [], member_count: 0,
+    }),
+  );
+}
+
+seedGroups();
+
+export function resetGroups(): void {
+  seedGroups();
+  groupsCanMembers = true;
+  groupsCanGrants = true;
+}
+
+/** The two privileges, flipped independently by a test. */
+export let groupsCanMembers = true;
+export let groupsCanGrants = true;
+
+export function setGroupPrivileges(members: boolean, grants: boolean): void {
+  groupsCanMembers = members;
+  groupsCanGrants = grants;
+}
+
+const GROUP_MEMBERS: Record<string, Array<Record<string, unknown>>> = {
+  "grp-oncall": [
+    {
+      id: "usr-1", full_name: "Ada Administrator", initials: "AA",
+      email: "ada@nucleus.local", username: "admin", avatar_url: null,
+      status: "ACTIVE", role_code: "ADMINISTRATOR", job_title: "Head of Platform",
+    },
+    {
+      id: "usr-2", full_name: "Otto Operator", initials: "OO",
+      email: "otto@nucleus.local", username: "operator", avatar_url: null,
+      status: "ACTIVE", role_code: "OPERATOR", job_title: "Site Reliability Engineer",
+    },
+  ],
+  "grp-stewards": [
+    {
+      id: "usr-3", full_name: "Ana Analyst", initials: "AA",
+      email: "ana@nucleus.local", username: "analyst", avatar_url: null,
+      status: "ACTIVE", role_code: "ANALYST", job_title: "Data Analyst",
+    },
+  ],
+  "grp-buddies": [],
+};
+
 export const handlers = [
+  http.get("/platform/admin/groups/catalogue", ({ request }) =>
+    echo(request, {
+      fields: [
+        { name: "name", label: "Name", kind: "text" },
+        { name: "kind", label: "Kind", kind: "enum" },
+      ],
+      default_columns: ["name", "kind", "permissions", "members"],
+      kinds: GROUP_KINDS.map((key) => ({
+        key,
+        count: groupRows.filter((row) => row["kind"] === key).length,
+      })),
+      // A slice of the real catalogue, enough to prove the editor renders from
+      // it rather than from a list of its own.
+      permissions: [
+        { code: "audit.view", label: "View the audit log" },
+        { code: "records.export", label: "Export records" },
+        { code: "records.import", label: "Import records" },
+        { code: "logs.view", label: "View system logs" },
+        { code: "jobs.manage", label: "Retry and cancel jobs" },
+        { code: "health.view", label: "View system health" },
+        { code: "roles.manage", label: "Manage roles and permissions" },
+      ],
+      total: groupRows.length,
+      can_manage_members: groupsCanMembers,
+      can_manage_grants: groupsCanGrants,
+    }),
+  ),
+  http.put("/platform/admin/groups/:id/members", async ({ params, request }) => {
+    if (!groupsCanMembers) {
+      return HttpResponse.json({ message: "forbidden" }, { status: 403 });
+    }
+    const row = groupRows.find((item) => item["id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    const body = (await request.json()) as Record<string, unknown>;
+    const ids = Array.isArray(body["user_ids"]) ? (body["user_ids"] as string[]) : [];
+    const before = (GROUP_MEMBERS[String(params["id"])] ?? []).map((p) => String(p["id"]));
+    GROUP_MEMBERS[String(params["id"])] = ids.map((id) => ({
+      id, full_name: `Person ${id}`, initials: "PP", email: `${id}@nucleus.local`,
+      username: id, avatar_url: null, status: "ACTIVE", role_code: "VIEWER",
+      job_title: null,
+    }));
+    row["member_count"] = ids.length;
+    return echo(request, {
+      ...row,
+      added: ids.filter((id) => !before.includes(id)).length,
+      removed: before.filter((id) => !ids.includes(id)).length,
+    });
+  }),
+  http.put("/platform/admin/groups/:id/grants", async ({ params, request }) => {
+    // The privilege the page must respect, enforced here so a page that drew
+    // the editor without it fails in the component test.
+    if (!groupsCanGrants) {
+      return HttpResponse.json({ message: "forbidden" }, { status: 403 });
+    }
+    const row = groupRows.find((item) => item["id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    const body = (await request.json()) as Record<string, unknown>;
+    const wanted = Array.isArray(body["permissions"])
+      ? [...new Set(body["permissions"] as string[])].sort()
+      : [];
+    const before = (row["permissions"] as string[]) ?? [];
+    row["permissions"] = wanted;
+    return echo(request, {
+      ...row,
+      added: wanted.filter((code) => !before.includes(code)),
+      removed: before.filter((code) => !wanted.includes(code)),
+    });
+  }),
+  http.get("/platform/admin/groups/:id", ({ params, request }) => {
+    const row = groupRows.find((item) => item["id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    const members = GROUP_MEMBERS[String(params["id"])] ?? [];
+    return echo(request, { ...row, members, member_overflow: 0 });
+  }),
+  http.put("/platform/admin/groups/:id", async ({ params, request }) => {
+    const row = groupRows.find((item) => item["id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    const body = (await request.json()) as Record<string, unknown>;
+    if ("permissions" in body) {
+      return HttpResponse.json(
+        {
+          error: "validation_error",
+          message: "What a group grants is changed on its own, and needs `roles.manage`.",
+        },
+        { status: 400 },
+      );
+    }
+    Object.assign(row, body);
+    return echo(request, row);
+  }),
+  http.delete("/platform/admin/groups/:id", ({ params, request }) => {
+    const index = groupRows.findIndex((item) => item["id"] === String(params["id"]));
+    if (index < 0) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    const [row] = groupRows.splice(index, 1);
+    return echo(request, {
+      deleted: true,
+      name: String(row!["name"]),
+      members_affected: Number(row!["member_count"]),
+      permissions_withdrawn: (row!["permissions"] as string[]) ?? [],
+    });
+  }),
+  http.get("/platform/admin/groups", ({ request }) => {
+    const url = new URL(request.url);
+    const term = (url.searchParams.get("q") ?? "").toLowerCase();
+    const wantedKind = url.searchParams.get("kind") ?? "";
+    const matched = groupRows.filter((row) => {
+      if (wantedKind && String(row["kind"]) !== wantedKind) return false;
+      if (term) {
+        const haystack = [row["name"], row["description"], row["slug"]]
+          .map((value) => (typeof value === "string" ? value.toLowerCase() : ""))
+          .join(" ");
+        if (!haystack.includes(term)) return false;
+      }
+      return true;
+    });
+    return echo(request, {
+      items: matched,
+      total: matched.length,
+      page: 1,
+      page_size: 100,
+      pages: 1,
+      sort: "name",
+      order: "asc",
+      facets: {
+        kind: GROUP_KINDS.map((value) => ({
+          value,
+          count: groupRows.filter((row) => row["kind"] === value).length,
+        })),
+      },
+      columns: ["name", "kind", "permissions", "members"],
+      can_manage_members: groupsCanMembers,
+      can_manage_grants: groupsCanGrants,
+    });
+  }),
+  http.post("/platform/admin/groups", async ({ request }) => {
+    if (!groupsCanMembers) {
+      return HttpResponse.json({ message: "forbidden" }, { status: 403 });
+    }
+    const body = (await request.json()) as Record<string, unknown>;
+    const name = typeof body["name"] === "string" ? body["name"] : "";
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const row = group({
+      id: `grp-${slug}`,
+      name,
+      slug,
+      kind: typeof body["kind"] === "string" ? body["kind"] : "TEAM",
+      description: typeof body["description"] === "string" ? body["description"] : null,
+      // Never on creation, whatever was sent — the same rule the service has.
+      permissions: [],
+    });
+    groupRows.push(row);
+    GROUP_MEMBERS[String(row["id"])] = [];
+    return HttpResponse.json(row, { status: 201 });
+  }),
   http.get("/platform/admin/jobs/catalogue", ({ request }) =>
     echo(request, {
       fields: [
