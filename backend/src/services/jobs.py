@@ -13,6 +13,12 @@ was built to supervise. `JOB_TERMINAL` and `JOB_CANCELLABLE` in
 `core/vocabulary` are the two sets that decide it, and both are named in the
 refusal so a disabled button can say why (§76).
 
+**Not every kind is this console's to retry.** An export is re-*requested*
+rather than retried, because its stored query would run against rows that have
+moved on — `NOT_OURS_TO_RETRY` names the kinds and the refusal names where the
+right action lives. Two screens giving opposite answers about the same row is
+worse than either answer.
+
 **A retry is a new attempt on the same job, not a new job.** `attempt` goes up,
 the outcome fields are cleared, and the history is kept: `attempt 3 of 3` is the
 fact an operator needs, and a queue that made a fresh row per retry would lose
@@ -105,19 +111,38 @@ def _statement() -> Select:
     return select(BackgroundJob)
 
 
+#: Job kinds this console will not retry, because something else owns them.
+#:
+#: An export (§30) is the only one so far, and the reason is a decision made in
+#: `services/exports`: a retry would re-run the stored query against rows that
+#: have moved on since it was asked for, and hand somebody a file whose
+#: reference says one moment and whose contents say another. `/exports` offers
+#: "Request again" instead, which produces a new export and leaves the old
+#: record alone. Two screens offering opposite answers about the same row is
+#: the defect this constant exists to prevent.
+NOT_OURS_TO_RETRY: dict[str, str] = {
+    "EXPORT": "Exports are re-requested rather than retried, on /exports.",
+}
+
+
 def can_retry(row) -> bool:
     """Whether this job may be tried again.
 
-    Two conditions, and both matter. Only a *terminal* job can be retried —
-    retrying a RUNNING one puts two runs on the same rows, which is how a queue
-    console corrupts what it supervises. And only within `max_attempts`, or the
-    bound the model declares is one nothing enforces.
+    Three conditions. Only a *terminal* job can be retried — retrying a RUNNING
+    one puts two runs on the same rows, which is how a queue console corrupts
+    what it supervises. Only within `max_attempts`, or the bound the model
+    declares is one nothing enforces. And only a kind this console owns: see
+    `NOT_OURS_TO_RETRY`.
 
     A pure function of the row so the API, the page and the test all get the
     same answer from the same rule: a button that offers a retry the server
     refuses is worse than no button.
     """
-    return row.status in vocabulary.JOB_TERMINAL and row.attempt < row.max_attempts
+    return (
+        row.kind not in NOT_OURS_TO_RETRY
+        and row.status in vocabulary.JOB_TERMINAL
+        and row.attempt < row.max_attempts
+    )
 
 
 def can_cancel(row) -> bool:
@@ -263,6 +288,12 @@ def retry(session, job_id: str, *, principal) -> dict[str, Any]:
     principal.require(VIEW_PERMISSION, MANAGE_PERMISSION)
     row = _job(session, job_id)
 
+    if row.kind in NOT_OURS_TO_RETRY:
+        raise ConflictError(
+            f"{row.reference} is an {row.kind.lower()} and this console does not "
+            f"retry those. {NOT_OURS_TO_RETRY[row.kind]}",
+            details={"kind": row.kind, "instead": NOT_OURS_TO_RETRY[row.kind]},
+        )
     if row.status not in vocabulary.JOB_TERMINAL:
         raise ConflictError(
             f"{row.reference} is {row.status.lower()} and has not finished — "

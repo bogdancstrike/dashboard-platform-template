@@ -1783,6 +1783,105 @@
         "module_name": "src.api.integrations",
         "method_name": "check"
       }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "export_catalogue",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/exports/catalogue",
+      "description": "What can be exported, the ceilings that apply, and where mine stand.",
+      "exec_method": {
+        "module_name": "src.api.exports",
+        "method_name": "catalogue"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "export_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/exports",
+      "description": "My exports, newest first, filtered and faceted in PostgreSQL.",
+      "exec_method": {
+        "module_name": "src.api.exports",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "export_estimate",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/exports/estimate",
+      "description": "How many rows a query has, and whether it streams or must be queued.",
+      "exec_method": {
+        "module_name": "src.api.exports",
+        "method_name": "estimate"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "export_queue",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/exports",
+      "description": "Accept an export and start producing it off the request.",
+      "exec_method": {
+        "module_name": "src.api.exports",
+        "method_name": "queue"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "export_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "DELETE"
+      ],
+      "api_url": "/exports/<uuid:export_id>",
+      "description": "One export with its log lines; DELETE drops the file and keeps the record.",
+      "exec_method": {
+        "module_name": "src.api.exports",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "export_download",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/exports/<uuid:export_id>/download",
+      "description": "A signed URL for the finished file, so the bytes bypass this worker.",
+      "exec_method": {
+        "module_name": "src.api.exports",
+        "method_name": "download"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "export_again",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/exports/<uuid:export_id>/again",
+      "description": "Queue a new export from an existing one's stored query.",
+      "exec_method": {
+        "module_name": "src.api.exports",
+        "method_name": "again"
+      }
     }
   ]
 }

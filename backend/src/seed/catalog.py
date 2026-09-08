@@ -565,6 +565,11 @@ SYSTEM_SETTINGS: tuple[tuple[str, str, str, str, object, str, dict], ...] = (
      "Days a system log line is kept.", {"minimum": 1, "maximum": 365, "unit": "days"}),
     ("retention.notification_days", "retention", "Notification retention", "duration", 90,
      "Days a read notification is kept.", {"minimum": 7, "maximum": 730, "unit": "days"}),
+    # An export artefact is a copy of production rows sitting in object
+    # storage, so it has the shortest window here by some distance (§30).
+    ("retention.export_days", "retention", "Export retention", "duration", 7,
+     "Days a finished export's file is kept for download.",
+     {"minimum": 1, "maximum": 90, "unit": "days"}),
     ("limits.max_upload_mb", "limits", "Maximum upload size", "integer", 25,
      "Per-file limit, in megabytes.",
      {"minimum": 1, "maximum": 1024, "unit": "MB", "restart": True}),

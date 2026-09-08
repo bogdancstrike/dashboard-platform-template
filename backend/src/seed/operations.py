@@ -300,10 +300,24 @@ def background_job(rng, *, index: int, status: str, users, scheduled_tasks, fres
     in a repair whose whole purpose is to provide something actionable. A
     repair that fixed the problem ninety-three per cent of the time is one
     somebody runs twice and still does not trust.
+
+    `fresh` also keeps the *kind* to one the queue console will retry. An
+    EXPORT is re-requested rather than retried (`services/jobs.NOT_OURS_TO_RETRY`),
+    so a top-up that drew one produced a row that satisfied the repair's count
+    and none of its purpose — which is exactly what happened: `--sync-jobs`
+    reported "2 added" and the end-to-end suite went on failing for want of a
+    retryable cancelled job.
     """
     from src.models.platform import BackgroundJob
+    from src.services.jobs import NOT_OURS_TO_RETRY
 
-    kind = rng.weighted(catalog.JOB_KINDS)
+    kinds = (
+        tuple((kind, weight) for kind, weight in catalog.JOB_KINDS
+               if kind not in NOT_OURS_TO_RETRY)
+        if fresh
+        else catalog.JOB_KINDS
+    )
+    kind = rng.weighted(kinds)
     initiator = rng.pick(users) if users else None
     scheduled = rng.pick(scheduled_tasks) if scheduled_tasks and rng.chance(0.3) else None
 
@@ -340,7 +354,13 @@ def background_job(rng, *, index: int, status: str, users, scheduled_tasks, fres
 
     return BackgroundJob(
         id=rng.uuid(),
-        reference=reference("JOB", index + 1, width=6),
+        # An export carries the prefix `/exports` shows, because that is the
+        # string somebody quotes back ("EXP-000012 downloaded empty") — and
+        # because an export a person requests has to be indistinguishable from
+        # a seeded one or the demo splits into "the real ones and mine".
+        # Sparse within its own prefix, which `core/naming` is fine with: the
+        # next one is `MAX(reference) + 1`, not a count.
+        reference=reference("EXP" if kind == "EXPORT" else "JOB", index + 1, width=6),
         name=f"{kind.title()} — {rng.pick(('projects', 'orders', 'tickets', 'customers', 'tasks', 'audit log'))}",
         kind=kind,
         queue=rng.weighted((("default", 0.6), ("exports", 0.2), ("imports", 0.12), ("maintenance", 0.08))),
@@ -361,11 +381,18 @@ def background_job(rng, *, index: int, status: str, users, scheduled_tasks, fres
         organization_id=initiator.organization_id if initiator else None,
         scheduled_task_id=scheduled.id if scheduled else None,
         error_message=failure,
-        payload={"entity": rng.pick(("project", "order", "ticket", "customer")), "format": rng.pick(("csv", "xlsx", "json"))},
-        result=(
-            {"rows": processed, "artifact": f"exports/{reference('JOB', index + 1, width=6)}.csv"}
-            if status == "SUCCEEDED" else None
-        ),
+        # A resource key and a format, which for an EXPORT is a real
+        # `explorer.Plan` — `seed/exports.py` fills in the rest and produces
+        # the file. The old payload named an "entity" nothing could resolve and
+        # claimed an artefact nobody had written, so every download 404'd.
+        payload={
+            "resource_type": rng.pick(("project", "order", "ticket", "customer")),
+            "format": rng.pick(("csv", "xlsx", "json")),
+        },
+        # Deliberately empty. What a finished export produced is written by
+        # whatever produced it, and a seeded `{"rows": …, "artifact": …}` was a
+        # claim about bytes that did not exist.
+        result=None,
         # Inline log lines so the job drawer needs no join.
         log_lines=[
             {

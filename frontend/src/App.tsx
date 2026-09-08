@@ -34,6 +34,7 @@ const GroupsPage = lazy(() => import("@/pages/admin/GroupsPage"));
 const OrganizationsPage = lazy(() => import("@/pages/admin/OrganizationsPage"));
 const ApiClientsPage = lazy(() => import("@/pages/admin/ApiClientsPage"));
 const IntegrationsPage = lazy(() => import("@/pages/admin/IntegrationsPage"));
+const ExportsPage = lazy(() => import("@/pages/ExportsPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
@@ -479,7 +480,11 @@ export default function App() {
         />
         <Route
           path="exports"
-          element={<PlaceholderPage section="§30" summary="Exports, and the jobs that produce the large ones." />}
+          element={
+            <Suspense fallback={<Loading />}>
+              <ExportsPage />
+            </Suspense>
+          }
         />
 
         {/* Template showcase */}

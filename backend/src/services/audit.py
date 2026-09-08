@@ -156,6 +156,10 @@ def export(args, *, principal):
         writer.Column(name, fields.by_name[name].title)
         for name in _export_columns(args, fields)
     ]
+    # Counted before a byte is written. This is the export the truncation was
+    # first noticed on: 1042 rows arriving as 1001 one run and 1008 the next.
+    # That cause was fixed; a *ceiling* silently cutting the file was not.
+    writer.refuse_if_truncated(statement, fmt=fmt, what="audit entries")
     rows = writer.stream_rows(statement, limit=writer.limit_for(fmt))
     return writer.response(
         (summarise(row) for row in rows), columns, fmt=fmt, stem="audit-log"

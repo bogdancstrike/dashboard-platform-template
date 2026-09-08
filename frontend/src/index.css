@@ -2445,3 +2445,40 @@ mark.nu-mark {
 .nu-int-fields { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
 .nu-int-field { display: flex; flex-direction: column; gap: 3px; }
 .nu-int-field-name { font-family: var(--nu-font-mono); font-size: 11.5px; }
+
+/* ── Exports (§30) ───────────────────────────────────────────────────────
+   A short personal list, so the layout gives the two facts a reader came for
+   — where each one stands, and whether there is a file — the width, and keeps
+   the reference and the numbers narrow and monospaced enough to compare down
+   the column. */
+.nu-exp-notice { margin-bottom: 12px; }
+.nu-exp-filter { margin-bottom: 12px; }
+.nu-exp-what { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.nu-exp-question {
+  font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* The link is the reference, so it reads as one: no padding of its own, and
+   the same tabular figures as the counts beside it. */
+.nu-exp-open {
+  padding: 0; height: auto; font-family: var(--nu-font-mono); font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.nu-exp-state { flex-wrap: nowrap; min-width: 0; }
+.nu-exp-state .ant-typography {
+  font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-exp-table td { font-variant-numeric: tabular-nums; }
+/* Narrow, because it stands in for a number in a right-aligned column and a
+   full-width bar would make that column jump between rows. */
+.nu-exp-progress { width: 64px; margin: 0; }
+.nu-exp-limits { font-size: 11.5px; margin-top: 12px; }
+.nu-exp-actions { display: flex; justify-content: flex-end; width: 100%; }
+.nu-exp-detail { display: flex; flex-direction: column; gap: 14px; }
+.nu-exp-facts .ant-descriptions-item-label { width: 130px; }
+.nu-exp-log {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 10px 12px; border: 1px solid var(--nu-border-subtle); border-radius: 6px;
+  background: var(--nu-bg); font-family: var(--nu-font-mono); font-size: 11.5px;
+}
+.nu-exp-log-line { display: flex; gap: 10px; }
+.nu-exp-log-line > .ant-typography:first-child { flex: none; }

@@ -50,6 +50,9 @@ afterEach(() => {
 const asJob = (overrides: Partial<Job>): Job =>
   ({
     status: "FAILED",
+    // A kind this console owns, so a case that does not say otherwise is
+    // testing the status and attempt rules rather than the kind rule (§30).
+    kind: "REPORT",
     attempt: 1,
     max_attempts: 3,
     can_retry: true,
@@ -73,6 +76,33 @@ describe("why a control is unavailable", () => {
     expect(
       whyNot(asJob({ status: "FAILED", attempt: 3, max_attempts: 3, can_retry: false }), "retry"),
     ).toContain("All 3 attempts");
+  });
+
+  it("sends an export to the page that owns it, whatever its attempts say", () => {
+    // Two screens must not give opposite answers about the same row: `/exports`
+    // re-requests rather than retries, because the rows have moved on. Checked
+    // *before* the attempt count, or somebody would be told to grant more
+    // attempts — a fix that would change nothing here.
+    const answer = whyNot(
+      asJob({ kind: "EXPORT", status: "CANCELLED", can_retry: false }),
+      "retry",
+    );
+    expect(answer).toContain("re-requested rather than retried");
+    expect(answer).toContain("Exports page");
+
+    // Even out of attempts, the kind is still the reason to give.
+    expect(
+      whyNot(
+        asJob({
+          kind: "EXPORT",
+          attempt: 3,
+          max_attempts: 3,
+          can_retry: false,
+          can_allow_attempts: true,
+        }),
+        "retry",
+      ),
+    ).toContain("re-requested");
   });
 
   it("points at the grant when one is possible, and does not when it is not", () => {

@@ -34,7 +34,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
 | Endpoints | 62 of ~110 — `maps/endpoint.json` is the list, and `python -m src.api.endpoint_map` prints it; nothing here is kept in step by hand |
-| Seed (`src/seed/`) | **done** — 15 454 rows, deterministic, `--check` verifies referential consistency |
+| Seed (`src/seed/`) | **done** — 16 504 rows across 50 tables, deterministic, `--check` verifies referential consistency |
 | Tests | 363 backend + 295 frontend + 149 Playwright e2e — all green against `docker compose up`. Scale-independent: they pass on either seed size |
 | Frontend | shell, Data Explorer, discovery workspaces, the notification centre, six entity lists, three record pages of their own, and the whole ANALYSE section bar dashboards; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack: PostgreSQL, Redis, Keycloak, MinIO, the API and the SPA. Real Keycloak tokens and real presigned uploads verified |
@@ -402,8 +402,10 @@ commit — built, committed, pushed, redeployed and verified before the next.
       (§20, §29, §30) — MinIO in the compose stack with its bucket created on
       first boot, one storage interface behind it so it is swappable, and bytes
       that never pass through the API process
-  - `/files` ships on it. The import wizard (§29) and the export-as-a-job flow
-    (§30) are next, and both now have somewhere to put the bytes
+  - `/files` ships on it, and so does the export-as-a-job flow (§30): a queued
+    export's artefact is a real object, signed on the way out so the bytes
+    never pass through a worker twice. The import wizard (§29) is next, and it
+    already has somewhere to put the bytes
 - [ ] **Redis is used for what a cache is for** — the aggregates that cost a
       `GROUP BY` over the whole dataset, invalidated by the writes that make
       them stale rather than by a timer
@@ -1617,6 +1619,220 @@ commit — built, committed, pushed, redeployed and verified before the next.
       and lets the label take the click, which `NotificationsPage.test` had
       already documented
 
+- [x] **Two more latent e2e flakes, both of a class already recorded here**
+  - `/analytics` read a table's row count in the gap between the table
+      rendering and its query answering, so `drawn` was 0 while the tile beside
+      it said 4. The *fourth* time this suite has measured a baseline before
+      the thing it was measuring had loaded — so the wait now lives inside
+      `readAsTable` rather than in each caller, which is where a rule that
+      keeps being forgotten belongs
+  - And the jobs spec drained its retryable jobs again, which is not a flake
+      but the documented ratchet: it spends an attempt per run, the guard says
+      "run 'make sync-jobs'", and that is exactly what it means. Four runs
+      today emptied two statuses. **So `make e2e` now depends on `sync-jobs`**
+      — a suite that spends a fixture should provision it, the top-up is
+      additive and idempotent so it costs nothing on a stocked queue, and
+      `make e2e-only` is there for when you want to watch the guard fire.
+      Three sessions of "run the repair, re-run the sweep" was the signal that
+      the *target* was missing a dependency, not that the guard was wrong
+
+- [x] **A latent e2e flake in `/admin/logs`, and why polling could not fix it**
+  - The level-floor test read three chip counts, clicked the filter, then read
+      the total and asserted the arithmetic. `core/logsink` writes a line for
+      *every* API request, so the suite is itself a writer: the two numbers
+      were taken at different instants, and the gap became a failure the moment
+      `/exports` started making more requests. It had been passing by luck
+  - **Polling was the wrong fix and I tried it first.** Re-reading the DOM
+      cannot help when the two numbers come from two responses — the chips from
+      the catalogue, the total from the listing — so they are never taken
+      together whatever the timeout
+  - The listing carries its own `facets` computed over the same statement it
+      counted, so **one response** holds both: `total` equals the sum of its
+      level facets exactly, and the facet set is exactly WARNING, ERROR and
+      CRITICAL. Which is also the server's own arithmetic, and the test is
+      named for the server being the one that slices it
+
+- [x] **`/exports` — the export that is too big to be a response** (§30)
+  - **The ceiling had been aspirational for as long as it had existed.**
+      `MAX_ROWS`'s own comment read "rows above which an export must become a
+      background job (§23) rather than a request somebody's browser is holding
+      open" — and `stream_rows` applied it as a SQL `LIMIT`. So an export of
+      200,000 rows produced 50,000 of them with a `200` on it and nothing
+      anywhere indicating the file was a fragment: the worst shape a data bug
+      can take, because it is quiet, plausible, and impossible for the person
+      holding the file to notice. `refuse_if_truncated` counts first and
+      refuses, and the refusal says to queue one instead — which named a path
+      the product did not have until this page, and *that* is the other worst
+      kind of error message: one that tells somebody to do something the
+      product does not offer
+  - **A queued export is provably the same question as the download would have
+      been.** Both build their statement from one `explorer.Plan`, stored on
+      the job as JSONB and re-validated when it runs. The test that matters is
+      the one that queues a *filtered* export and checks every produced row
+      satisfies the filter — an export that quietly widened its query because
+      it took the slow path would pass every other assertion. And a plan whose
+      column no longer exists is a 400 at queue time rather than a 500 inside a
+      background job
+  - **`core/background` says which of three things "background" means.** There
+      is no worker in this stack and this does not pretend there is one: under
+      gunicorn the work is a *greenlet*, under `python main.py` a daemon
+      *thread*, and `synchronous()` runs it *inline* so a test can assert on a
+      finished job rather than on a race. Which one ran is recorded on the row
+      and shown on the page, because an operator reading a slow export needs to
+      know whether they are looking at a greenlet on a busy worker or a thread
+      in a dev server. Verified in the deployed stack: `ran_as: greenlet`, a
+      `QUEUED` response, and a file three seconds later
+  - **Stalled is a state, and deriving it was not optional.** `spawn`'s own
+      docstring says in-flight work is lost when the process restarts — so a
+      deployment mid-export leaves a row saying QUEUED that nothing will ever
+      pick up, and so do the seeded pending exports, which were never running.
+      Without this the page shows a spinner forever and three such rows exhaust
+      `MAX_PENDING_PER_PERSON` *permanently*. Found by a test: the analyst's
+      first queued export was refused because a seeded row had been holding a
+      slot since the database was built
+  - **The seeded exports were the sixth data-integrity defect this project has
+      found by building the page that reads the data**, and the most brazen:
+      three SUCCEEDED rows claimed `{"rows": 184203, "artifact":
+      "exports/JOB-000004.csv"}` for bytes nobody had written, `rows` was a
+      progress counter over a `total_units` drawn at random up to 250,000, the
+      extension was `.csv` on payloads whose format said `xlsx`, and the
+      payload named an `entity` no code could resolve — so not one seeded
+      export could describe its own query. `--sync-exports` runs the real
+      `produce` for each one, so the artefact, the size, the checksum and the
+      counts all describe a file that exists. The same argument `seed/blobs`
+      settled for files, which is why that module's docstring is the one this
+      one cites
+  - **A clamped repair produced a new contradiction, and the test caught it.**
+      Rescaling `processed_units` to a real total by `min(processed, total)`
+      turned "30,144 of 87,289" into "50 of 50" — a *failed* export reporting
+      itself completely processed. It keeps the proportion instead, held below
+      the total, because something that stopped part-way has by definition not
+      finished; and a FAILED row must have failed at least one unit
+  - **`stream_rows` had a correctness bug that only a caller like this could
+      surface.** It opens its own session, which is right for a streamed
+      response — the handler's is closed by the time the generator runs — and
+      wrong for `produce`, which consumes every row before returning. A
+      separate session reads a separate transaction, so the seed produced an
+      export of *zero* rows over a table whose fifty rows were sitting
+      uncommitted in the session it had been handed, and wrote that down as a
+      finished export of fifty units. It now takes an optional `session`
+  - **The person who asked is the person who may fetch it — administrators
+      included, deliberately.** An export is a copy of whatever rows its
+      requester could see, filtered however they filtered them, so `/exports`
+      lists your own and a download checks the initiator rather than a
+      permission. 404 and not 403, because "that belongs to somebody else" is a
+      way to confirm a reference exists. An administrator who needs the data
+      can run the query in their own name, which leaves an audit entry that a
+      download of somebody else's row would not
+  - **An artefact expires; the record needs a second press.**
+      `retention.export_days` (7, new) bounds the bytes, and they are dropped
+      at the moment an expired one is asked for — lazy, because there is no
+      sweeper to be honest about, and cheap because it happens exactly where
+      the fact is discovered. `expires_at` is derived from `finished_at` and
+      the setting rather than stored, so changing the setting changes it
+  - **Keeping the record forever was wrong, and the end-to-end suite proved
+      it.** The first design took `/admin/jobs` as the precedent — a cancelled
+      job's row is how somebody answers "why did the nightly export not run
+      last Tuesday" — and that analogy does not transfer: a queue console shows
+      *scheduled* work nobody asked for personally, while `/exports` is a list
+      of one person's own requests, and four hundred discarded ones answer
+      nothing. The suite made the argument concrete by *being* the ratchet: it
+      left eight rows per run, `--check` started reporting them, and there was
+      no product path to remove them. So `forget` takes two presses, which is
+      this platform's own rule for the shape — `/mail` bins a thread on the
+      first delete and removes it on the second, and `e2e/api.sweepMailThreads`
+      already documented pressing twice. The file goes first, the record second,
+      the button reads "Discard" then "Remove", and the confirmation copy
+      changes between them: a dialog that promised to keep something and then
+      removed it on the next press would be the page contradicting itself. The
+      history is not lost — the audit trail carries `export.queue`,
+      `export.download`, `export.forget` and `export.remove`, and unlike the
+      row its requester cannot edit it
+  - **And `--check` called every discarded export broken.** "A finished export
+      with no file" is exactly what a discarded one is, and it says so in
+      `result.artifact_removed`. Found because the suite discards what it
+      creates, which is the same reason it found the ratchet: a cleanup that
+      exercises the product tests the product
+  - **There is no retry, and `again` is why.** Retrying would re-run the old
+      job against rows that have moved on, and a file whose reference says one
+      moment and whose contents say another is worse than no file. So the
+      stored question is asked afresh — new reference, new file, old record
+      untouched — and the button says "Request again" rather than "Retry",
+      because the label is a claim about what is coming back
+  - **The refusal became the offer, once, in the one place every list exports
+      through.** `ExportButton` gained an `onQueue`: a `queue_instead: true`
+      refusal opens a dialog with the row count that was too large and one
+      press to produce the whole set. Wired at `EntityChrome` and the Data
+      Explorer, which is every list in the platform, and *not* offered for a
+      permission refusal — that would send somebody round a loop ending in the
+      same 403
+  - **Three pages had each written their own error sentence, and they had
+      drifted**: one said "Unknown error", one named the missing permission,
+      one appended the correlation id — and only the third is any use in a
+      support ticket. `lib/errors.errorText` states the rules once and takes an
+      `action` so a refusal can say "permission to export" rather than
+      "permission to do that". One helper replacing three, found while fixing a
+      lint error rather than by looking for it
+  - **`has_file` had to be said, not inferred.** The page keyed the second
+      press off `size_bytes === null`, and the MSW fixture obligingly nulled
+      `rows` and `size_bytes` on a discard — so thirty component tests passed
+      while the real page could never reach its own second press. The server
+      *keeps* those numbers, because "1,284 rows, 88 KB" is the history the
+      record exists for. Only the end-to-end run showed it, and the lesson is
+      the fixture's: a fixture that derives a field differently from the
+      service is a fixture that hides exactly the bug it was written to catch
+  - **Two mistakes of my own worth recording.** My stall tests backdated
+      `created_at` — which is exactly how the autouse sweep decides what a test
+      created, so two test rows leaked into the demo database and I found them
+      while reading the seeded exports. And a presigned URL fetched through
+      `apiAs` gets a 400: the context carries a bearer token on every request,
+      and S3 refuses two authentication mechanisms for one request. The signed
+      URL is now fetched with no credentials at all, which is the better
+      assertion anyway — it is what lets the bytes bypass the API
+  - **And it exposed a contradiction between two screens.** Giving exports
+      their own prefix made the jobs spec's `[data-testid^="retry-JOB-"]`
+      locator blind to half the queue — but the locator was the symptom. The
+      real problem was that `/admin/jobs` would happily *retry* an export while
+      `/exports` refuses to, on the deliberate grounds that the stored query
+      would run against rows that have moved on. Two screens giving opposite
+      answers about the same row is worse than either answer, so
+      `jobs.NOT_OURS_TO_RETRY` names the kinds this console does not own,
+      `can_retry` reads it, the refusal points at `/exports`, and the page's
+      `whyNot` gives that reason *before* the attempt count — otherwise
+      somebody is told to grant more attempts, a fix that would change nothing.
+      `--sync-jobs` now keeps its fresh top-ups to a retryable kind too: EXPORT
+      is 28% of the kind draw, so a repair could report "2 added" and leave the
+      suite failing for want of a retryable job, which is exactly what happened
+      twice before I read the locator properly
+  - **And the repair was counting a different thing from the guard.** Its
+      "fresh" tally was `attempt < max_attempts`, which counted three cancelled
+      *exports* — so it reported "0 added — every status already has the
+      guaranteed minimum" while `can_retry` was false for every cancelled job
+      in the queue. The tally now uses the console's own rule, and a test
+      compares the repair's SQL predicate against `can_retry` row by row over
+      the terminal statuses, which is where the two must coincide. **The
+      failure mode to watch for in every one of these repairs**: a repair that
+      measures a different thing from the guard it exists to satisfy reports
+      success and changes nothing, three times in a row, and each time the
+      symptom points somewhere else
+  - **The `EXP-` prefix exposed a latent bug in `--sync-jobs`.** It numbered
+      new references from `COUNT(background_jobs)` while its own comment said
+      "past the highest existing reference" — and a count is only
+      coincidentally the highest number in a unique column. Exports now carry
+      their own prefix *and* their records can be removed, so the count can
+      *fall* while `JOB-001034` still exists, and the next top-up would have
+      collided on a unique constraint. It reads `MAX(reference)` per prefix
+      now, as `core/naming` prescribes and every other reference generator in
+      the platform already did
+  - **And I ran `make test-backend-db` during a live e2e sweep for the third
+      time.** Five specs failed in modules I had not touched — files, reports,
+      records-write, saved-searches — because the pytest suite's autouse
+      cleanup deletes rows created after each test started, which includes the
+      rows the browser had just created. The tell is the shape: failures spread
+      across unrelated modules, all of them "the thing I just made is not
+      there". Re-running the sweep alone left two real failures, both worth
+      having found
+
 - [ ] **Variety in how "create" opens** — a wizard where the decision has
       parts, a drawer for one object's fields, a plain modal for one question.
       The dashboard wizard is the first; the rest of the modules follow
@@ -1625,8 +1841,8 @@ commit — built, committed, pushed, redeployed and verified before the next.
       `/files`, `/workflows`, `/calendar`, `/mail`, `/home` and the
       administration index with `/admin/settings`, `/admin/flags`,
       `/admin/logs`, `/admin/jobs`, `/admin/groups`, `/admin/organizations`,
-      `/admin/api` and `/admin/integrations` are done. Remaining:
-      `/favorites`, `/import` (§29), `/exports` (§30), `/settings/security`
+      `/admin/api` and `/admin/integrations` are done, and so is `/exports`
+      (§30). Remaining: `/favorites`, `/import` (§29), `/settings/security`
       (§41) and the two `/showcase/*` pages — every one of which already has
       its model and its seeded rows
 - [x] **Six latent e2e flakes fixed, all the same two mistakes.** Four specs
@@ -1890,8 +2106,10 @@ function is a slow test that fails for unrelated reasons.
       preview, confirm, read the partial result
 - [ ] **Import** (§29) — upload CSV, map columns, preview errors, execute,
       download the error report
-- [ ] **Export** (§30) — request one above the row limit, watch it become a job
-      (§23), download the artefact
+- [x] **Export** (§30) — request one above the row limit, watch it become a job
+      (§23), download the artefact. The e2e suite fetches the signed URL and
+      counts the lines, so "the artefact exists" is asserted against MinIO
+      rather than against the row that claims it
 - [x] **Impersonation** (§12) — admin impersonates a viewer, sees the reduced
       UI, and both identities appear on the audit row
 - [ ] **Command palette** (§31) — `Ctrl-K`, navigate to a record, run a page action
@@ -1943,7 +2161,7 @@ section is a cross-cutting rule rather than a page.
 | 27 | Feature flags | `/admin/flags` | `/admin/flags` | [x] |
 | 28 | Reports | `/reports`, `/reports/builder` | `/api/reports`, `/api/analysis/run` | [x] |
 | 29 | Import wizard | `/import` | `/imports` | [ ] |
-| 30 | Export | every list | `/{list}/export` | [~] |
+| 30 | Export | every list, `/exports` | `/exports`, `/{list}/export` | [x] |
 | 31 | Command palette (`cmdk`) | global | `/search/quick` | [ ] |
 | 32 | Global search | header + `/find/global` | `/api/search/global` | [x] |
 | 33 | Drawers and modals | — | — | [ ] |
@@ -2783,8 +3001,16 @@ there was only one. The point of a template is the opposite.
     variable a service declares, so `make reseed` was silently a no-op against
     a database that already had data — which is every database it would ever
     be aimed at
-- [ ] `docs/architecture.md` — the request path, the auth flow across the two
-      Keycloak URLs, the layering rule, why QF is wired the way it is
+- [~] `docs/architecture.svg` — the request path, the auth flow across the two
+      Keycloak URLs, the four lanes and the three stores. Now includes **MinIO**,
+      which it had never shown despite object storage being how every file,
+      import and export moves; a tenth numbered step for the presigned fetch
+      that bypasses the API; `core/`'s `storage`, `export` and `background`
+      chips; and counts taken from the model and a `--dry-run` rather than from
+      memory (58 tables, 496 indexes, 131 foreign keys, 16 504 seeded rows —
+      the diagram had said 50, 499, 113 and 15 554). A prose
+      `docs/architecture.md` on the layering rule and why QF is wired as it is
+      remains
 - [ ] `docs/features.md` — the §1–§77 catalogue mapped to routes and endpoints,
       as a developer's index into the template (§77)
 - [x] `docs/RBAC.md` — JWT/Redis verification flow, exact default role/access
@@ -2851,7 +3077,7 @@ there was only one. The point of a template is the opposite.
 
 - [x] Deterministic generator: 20 orgs, 150 users, 50 projects, 500 tasks,
       1 000 audit rows, 200 emails, 100 files, 100 jobs, thousands of records —
-      15 454 rows across 49 tables, `python -m src.seed`
+      16 504 rows across 50 tables, `python -m src.seed`
 - [x] Referential consistency across all modules — `--check` verifies it
 - [x] The five Keycloak personas seeded with the realm's emails, so signing in
       adopts a populated profile instead of provisioning an empty one
@@ -2933,8 +3159,9 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [ ] Email module: threads, messages, drafts, templates, send (§14–§16)
 - [ ] Tasks, calendar, files, comments, tags, activity (§18–§20, §35–§37, §48)
 - [ ] Favorites, recents, dashboards, reports (§38, §39, §45, §67, §28)
-- [~] Export ships for every list that exists (§30). Import (§29) and the
-      "an export above the row limit becomes a background job" half are open
+- [x] Export ships for every list that exists (§30), and an export above the
+      row limit now becomes a background job with a downloadable artefact
+      rather than a truncated file with a 200 on it. Import (§29) is open
   - **Acceptance**: an export above the row limit becomes a background job with
     a downloadable artefact; an import previews per-row errors before executing
     and never half-applies a batch
@@ -3064,9 +3291,9 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [ ] Tasks kanban/table/list with drag (§18), calendar (§19), file manager (§20)
 - [ ] System logs with live tail (§22), jobs (§23), health (§24), API (§25),
       integrations (§26), flags (§27), alert rules (§49)
-- [~] Reports (§28) ship, with both builders and the map. The import wizard
-      (§29) and the export *flows* — a request above the row limit becoming a
-      background job (§30) — remain
+- [~] Reports (§28) ship, with both builders and the map, and so do the export
+      flows (§30) — a request above the row limit becomes a background job with
+      a real file. The import wizard (§29) remains
 - [ ] Component showcase (§60), page template gallery (§61), master/detail (§62),
       split view (§63), row preview drawer (§64), comparison (§47),
       data quality (§65), error pages (§34)
@@ -3075,7 +3302,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
 ## Phase 7 — Verification
 
 - [x] `docker compose up` clean-boot green — every service healthy from empty
-      volumes; seed wrote 15 554 rows and refused to run twice
+      volumes; seed wrote 16 504 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
 - [~] Backend tests — 363 passing, including the comment thread's permissions
       and editing rules, the checklist's validation, saved reports' lifecycle and

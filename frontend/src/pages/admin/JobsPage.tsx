@@ -6,8 +6,10 @@
  * **Every control asks the server whether it is allowed.** `can_retry` and
  * `can_cancel` arrive on each row; this page never decides for itself whether a
  * job may be retried. The rules are stateful — terminal or not, within
- * `max_attempts` or not — and a browser re-deriving them would eventually draw
- * a button the endpoint refuses, which is worse than no button.
+ * `max_attempts` or not, a kind this console owns or not — and a browser
+ * re-deriving them would eventually draw a button the endpoint refuses, which
+ * is worse than no button. `whyNot` only *explains* the answer; it never
+ * decides it.
  *
  * **A refusal is a disabled control with the reason, not a missing one.**
  * Retrying a running job is something an operator will reasonably *try*; the
@@ -102,6 +104,13 @@ export function toneFor(status: JobStatus): string | undefined {
 export function whyNot(job: Job, action: "retry" | "cancel"): string | null {
   if (action === "retry") {
     if (job.can_retry) return null;
+    // Checked before the attempt count, because it is the reason that stands
+    // whatever the attempts say: an export is re-requested rather than
+    // retried, and telling somebody to grant it more attempts would send them
+    // after a fix that changes nothing (§30).
+    if (job.kind === "EXPORT") {
+      return "Exports are re-requested rather than retried — the rows have moved on since this one was asked for. Ask again on the Exports page.";
+    }
     if (job.attempt >= job.max_attempts) {
       return job.can_allow_attempts
         ? `All ${job.max_attempts} attempts have been used. Grant it more to run it again.`

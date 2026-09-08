@@ -106,4 +106,83 @@ describe("the export control", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/Export records/)).toBeInTheDocument();
   });
+
+  it("turns a refusal for size into the offer the message names", async () => {
+    // `refuse_if_truncated` says "queue it as an export instead", and for a
+    // long time that named a path the product did not have. This is the half
+    // that makes the sentence true.
+    const user = userEvent.setup();
+    const onExport = vi.fn().mockRejectedValue(
+      new ApiError(
+        400,
+        {
+          error: "validation_error",
+          message: "That is 184,203 tickets, and a download stops at 50,000.",
+          details: { total: 184203, maximum: 50000, format: "csv", queue_instead: true },
+        },
+        "c0ffee",
+      ),
+    );
+    const onQueue = vi.fn().mockResolvedValue(undefined);
+    renderWithProviders(<ExportButton onExport={onExport} onQueue={onQueue} />);
+
+    await user.click(screen.getByRole("button", { name: /Export/ }));
+    await user.click(await screen.findByText("CSV — for a spreadsheet"));
+
+    // The numbers, because "too large" alone leaves somebody guessing how much
+    // to narrow it by.
+    expect(await screen.findByText(/184,203 rows/)).toBeInTheDocument();
+    expect(screen.getByText(/a download stops at 50,000/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Queue it as an export" }));
+    // The same format that was refused, so the queued file is the question
+    // that was asked.
+    await waitFor(() => expect(onQueue).toHaveBeenCalledWith("csv"));
+  });
+
+  it("does not offer the queue for a refusal that queueing cannot fix", async () => {
+    const user = userEvent.setup();
+    const onExport = vi.fn().mockRejectedValue(
+      new ApiError(
+        403,
+        { error: "forbidden", message: "refused", details: { missing: ["records.export"] } },
+        "c0ffee",
+      ),
+    );
+    const onQueue = vi.fn();
+    renderWithProviders(<ExportButton onExport={onExport} onQueue={onQueue} />);
+
+    await user.click(screen.getByRole("button", { name: /Export/ }));
+    await user.click(await screen.findByText("CSV — for a spreadsheet"));
+
+    // Only `queue_instead` earns the dialog. Offering it on a permission
+    // refusal would send somebody round a loop that ends in the same 403.
+    expect(await screen.findByText(/You do not have permission/)).toBeInTheDocument();
+    expect(screen.queryByText("Queue it as an export")).not.toBeInTheDocument();
+    expect(onQueue).not.toHaveBeenCalled();
+  });
+
+  it("leaves the download alone when there is nowhere to queue it", async () => {
+    // Pages that have not been given `onQueue` must report the refusal rather
+    // than offering an action that does nothing.
+    const user = userEvent.setup();
+    const onExport = vi.fn().mockRejectedValue(
+      new ApiError(
+        400,
+        {
+          error: "validation_error",
+          message: "That is 184,203 tickets, and a download stops at 50,000.",
+          details: { total: 184203, maximum: 50000, queue_instead: true },
+        },
+        "c0ffee",
+      ),
+    );
+    renderWithProviders(<ExportButton onExport={onExport} />);
+
+    await user.click(screen.getByRole("button", { name: /Export/ }));
+    await user.click(await screen.findByText("CSV — for a spreadsheet"));
+
+    expect(await screen.findByText(/a download stops at 50,000/)).toBeInTheDocument();
+    expect(screen.queryByText("Queue it as an export")).not.toBeInTheDocument();
+  });
 });

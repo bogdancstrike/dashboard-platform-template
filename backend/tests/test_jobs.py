@@ -28,6 +28,7 @@ from sqlalchemy import select
 
 from src.config import Config
 from src.core import vocabulary
+from src.core.clock import now
 from src.core.db import session_scope
 from src.services import jobs as service
 from tests.conftest import persona_claims
@@ -53,8 +54,11 @@ def _job(**overrides) -> str:
 
     row = {
         "reference": f"JOB-T{uuid.uuid4().hex[:8]}",
-        "name": "Export — projects",
-        "kind": "EXPORT",
+        "name": "Report — projects",
+        # Not EXPORT: this console does not retry those (§30), so a fixture of
+        # that kind would test the refusal rather than the retry. The export
+        # refusal has its own test below.
+        "kind": "REPORT",
         "queue": "default",
         "status": "FAILED",
         "priority": "NORMAL",
@@ -86,12 +90,29 @@ def _read(client, headers, job_id: str) -> dict:
 
 
 class _Row:
-    """The three fields `can_retry` and `can_cancel` read, and nothing else."""
+    """The four fields `can_retry` and `can_cancel` read, and nothing else."""
 
-    def __init__(self, status: str, attempt: int = 1, max_attempts: int = 3):
+    def __init__(
+        self,
+        status: str,
+        attempt: int = 1,
+        max_attempts: int = 3,
+        kind: str = "REPORT",
+    ):
         self.status = status
         self.attempt = attempt
         self.max_attempts = max_attempts
+        # A kind this console owns, so these cases test the status and attempt
+        # rules rather than the kind rule (§30). The kind rule has its own
+        # parametrised case below.
+        self.kind = kind
+
+
+@pytest.mark.parametrize("kind", sorted(service.NOT_OURS_TO_RETRY))
+def test_a_kind_another_screen_owns_is_never_retryable_here(kind):
+    # Terminal and within its attempts, so the kind is the only thing left to
+    # refuse it — which is the point.
+    assert service.can_retry(_Row("CANCELLED", kind=kind)) is False
 
 
 @pytest.mark.parametrize("status", vocabulary.JOB_TERMINAL)
@@ -151,8 +172,13 @@ def test_every_row_carries_the_servers_answer_about_what_may_be_done(client, mon
 
     assert answer["items"], "the seed should carry jobs"
     for row in answer["items"]:
-        expected_retry = row["status"] in vocabulary.JOB_TERMINAL and (
-            row["attempt"] < row["max_attempts"]
+        # The rule restated here rather than imported, so a change to
+        # `can_retry` has to be a deliberate change to this line too — all
+        # three clauses, including the kind this console does not own (§30).
+        expected_retry = (
+            row["kind"] not in service.NOT_OURS_TO_RETRY
+            and row["status"] in vocabulary.JOB_TERMINAL
+            and row["attempt"] < row["max_attempts"]
         )
         assert row["can_retry"] is expected_retry, row["reference"]
         assert row["can_cancel"] is (row["status"] in vocabulary.JOB_CANCELLABLE)
@@ -545,3 +571,116 @@ def test_granting_needs_jobs_manage(client, monkeypatch):
     headers = _authenticate(monkeypatch, "analyst", "analyst")
     answer = client.put(f"{JOBS}/{job_id}/attempts", headers=headers, json={"max_attempts": 5})
     assert answer.status_code == 403
+
+
+# ── the kinds this console does not own ─────────────────────────────────
+
+
+def test_an_export_is_not_retried_here_but_re_requested_there(client, monkeypatch):
+    """Two screens must not give opposite answers about the same row (§30).
+
+    `/exports` refuses a retry deliberately: the stored query would run against
+    rows that have moved on, and a file whose reference says one moment and
+    whose contents say another is worse than no file. A queue console that
+    retried the same row anyway would be the platform contradicting itself.
+    """
+    headers = _authenticate(monkeypatch, "admin", "administrator")
+    job_id = _job(kind="EXPORT", status="CANCELLED", attempt=1, max_attempts=3)
+
+    row = _read(client, headers, job_id)
+    # Terminal and within its attempts, so the *only* reason it cannot be
+    # retried is the kind — which is what makes this a test of the rule.
+    assert row["status"] == "CANCELLED"
+    assert row["attempt"] < row["max_attempts"]
+    assert row["can_retry"] is False
+
+    answer = client.post(f"{JOBS}/{job_id}/retry", headers=headers)
+    assert answer.status_code == 409
+    details = answer.get_json()["details"]
+    assert details["kind"] == "EXPORT"
+    # The refusal names where the right action lives, rather than leaving
+    # somebody to guess or to grant attempts that would change nothing.
+    assert "/exports" in details["instead"]
+    assert service.NOT_OURS_TO_RETRY["EXPORT"] == details["instead"]
+
+
+def test_a_kind_this_console_owns_is_still_retryable(client, monkeypatch):
+    # The other half: the new rule must not have made everything unretryable.
+    headers = _authenticate(monkeypatch, "admin", "administrator")
+    job_id = _job(kind="REPORT", status="CANCELLED", attempt=1, max_attempts=3)
+
+    assert _read(client, headers, job_id)["can_retry"] is True
+    assert client.post(f"{JOBS}/{job_id}/retry", headers=headers).status_code == 200
+
+
+def test_a_top_up_only_adds_jobs_this_console_can_retry():
+    """`--sync-jobs` exists to provide something *actionable*.
+
+    It drew its kind at random, EXPORT is 28% of that draw, and an export is
+    not retryable — so a top-up could report "2 added" and leave the end-to-end
+    suite failing for want of a retryable cancelled job. Which is exactly what
+    happened, twice.
+    """
+    from src.seed.operations import background_job
+    from src.seed.support import Rng
+    from src.services.jobs import NOT_OURS_TO_RETRY
+
+    rng = Rng(1234, now())
+    kinds = {
+        background_job(
+            rng, index=i, status="CANCELLED", users=[], scheduled_tasks=[], fresh=True
+        ).kind
+        for i in range(200)
+    }
+    assert kinds, "the generator produced nothing"
+    assert not (kinds & set(NOT_OURS_TO_RETRY)), (
+        f"a fresh top-up drew a kind this console cannot retry: {kinds & set(NOT_OURS_TO_RETRY)}"
+    )
+
+
+def test_the_repair_counts_what_the_console_can_actually_retry():
+    """The repair and the guard must measure the same thing.
+
+    `--sync-jobs` counted `attempt < max_attempts` and called that "fresh",
+    which counted three cancelled *exports* the console will not retry — so it
+    reported "every status already has the guaranteed minimum" while the queue
+    had nothing retryable in it, twice. The count now uses the console's own
+    rule.
+    """
+    from sqlalchemy import func, select as _select
+
+    from src.models.platform import BackgroundJob
+    from src.seed import runner
+
+    with session_scope() as session:
+        # The repair's own predicate, read from the database, against
+        # `can_retry` applied row by row. They have to agree.
+        counted = dict(
+            session.execute(
+                _select(BackgroundJob.status, func.count())
+                .where(
+                    BackgroundJob.attempt < BackgroundJob.max_attempts,
+                    BackgroundJob.kind.notin_(tuple(service.NOT_OURS_TO_RETRY)),
+                )
+                .group_by(BackgroundJob.status)
+            ).all()
+        )
+        rows = session.scalars(_select(BackgroundJob)).all()
+
+    by_status: dict[str, int] = {}
+    for row in rows:
+        if service.can_retry(row):
+            by_status[row.status] = by_status.get(row.status, 0) + 1
+
+    # Compared only where retrying is possible at all. The repair's predicate
+    # deliberately omits the terminal check — for QUEUED it means "not spent",
+    # and demanding retryable QUEUED jobs would be a top-up that never ends —
+    # so the two rules coincide exactly on `JOB_TERMINAL`, which is where the
+    # guard reads them.
+    terminal = {
+        status: count
+        for status, count in counted.items()
+        if count and status in vocabulary.JOB_TERMINAL
+    }
+    assert terminal == by_status
+    assert runner.sync_jobs is not None, "the repair this test is about"

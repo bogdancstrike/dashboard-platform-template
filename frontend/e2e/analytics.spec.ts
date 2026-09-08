@@ -16,7 +16,14 @@ async function readAsTable(page: Page, panel: string) {
   await card.locator('label:has([title="Table"])').click();
   // `.ant-table-row` rather than `tbody tr`: AntD renders a zero-height
   // measurement row first, and reading that one finds the headings.
-  return card.locator(".ant-table-row");
+  const rows = card.locator(".ant-table-row");
+  // Waited for here rather than by each caller, because *not* waiting is the
+  // flake this suite has already been bitten by three times: a count read in
+  // the gap between the table rendering and its query answering is zero, and
+  // every later assertion is then measured against a number that was never
+  // true. It surfaced again as "Values in view 4" against a count of 0.
+  await rows.first().waitFor({ state: "visible" });
+  return rows;
 }
 
 async function choose(page: Page, label: string, option: string): Promise<void> {

@@ -6,6 +6,7 @@
     python -m src.seed --check            # verify an existing dataset
     python -m src.seed --sync-schema      # add columns the model has and it lacks
     python -m src.seed --sync-files       # write the bytes seeded files point at
+    python -m src.seed --sync-exports     # write the file every seeded export claims
     python -m src.seed --sync-roles       # give built-in roles new permissions
     python -m src.seed --sync-reports     # make unrunnable saved reports runnable
     python -m src.seed --sync-automations # make unrunnable automations runnable
@@ -48,6 +49,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-files", action="store_true",
         help="write the object bytes every seeded file points at, and exit",
+    )
+    parser.add_argument(
+        "--sync-exports", action="store_true",
+        help="write the file every seeded export claims, and make its counts describe it",
     )
     parser.add_argument(
         "--sync-roles", action="store_true",
@@ -128,6 +133,23 @@ def main(argv: list[str] | None = None) -> int:
             f"{result['written']} objects written, "
             f"{result['already_present']} already there"
         )
+        return 0
+
+    if args.sync_exports:
+        # A seeded export used to claim `{"rows": 184203, "artifact": …}` for a
+        # file nobody had written. This produces the file and makes the counts
+        # describe it. Idempotent.
+        with session_scope() as session:
+            result = runner.sync_exports(session)
+        print(
+            f"{result['written']} export files written "
+            f"({result['guaranteed']} for personas who had none), "
+            f"{result['corrected']} row(s) corrected, "
+            f"{result['renamed']} renamed, "
+            f"{result['already_present']} already there"
+        )
+        if result["unreadable"]:
+            print(f"  ! {result['unreadable']} export(s) name a query that cannot be read")
         return 0
 
     if args.sync_roles:
@@ -261,8 +283,11 @@ def main(argv: list[str] | None = None) -> int:
 
         counts = runner.run(session, scale=args.scale, seed=args.seed)
         # The bytes, not only the rows: a seeded file that points at nothing is
-        # a download that fails on a fresh install.
+        # a download that fails on a fresh install, and a seeded export that
+        # claims one is worse — it says how many rows are in a file nobody
+        # wrote (§30).
         runner.sync_files(session)
+        runner.sync_exports(session)
         problems = runner.verify(session)
 
     _report(counts, quiet=args.quiet)

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Alert,
+  App as AntApp,
   Badge,
   Button,
   Card,
@@ -23,8 +24,9 @@ import {
   FolderOpenOutlined,
   SaveOutlined,
 } from "@ant-design/icons";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
+import { exportsApi, type ExportRequest } from "@/api/exports";
 import {
   explorerApi,
   type ExplorerRequest,
@@ -42,6 +44,7 @@ import { SavedSearchForm } from "@/components/explorer/SavedSearchForm";
 import { ExportButton } from "@/components/ExportButton";
 import { PageHeader } from "@/components/PageHeader";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { errorText } from "@/lib/errors";
 import { asText } from "@/lib/text";
 
 const { Text } = Typography;
@@ -59,6 +62,8 @@ const VIEW_OPTIONS = [
  * reproduce the same question and presentation for another authorized user.
  */
 export default function DataExplorerPage() {
+  const { message } = AntApp.useApp();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
@@ -231,12 +236,26 @@ export default function DataExplorerPage() {
               Saved searches
             </Button>
             {/* Exports the question, not the page — the same request the
-                results came from, without its LIMIT. */}
+                results came from, without its LIMIT. And when that question
+                is too large to download, `onQueue` asks it again as a
+                background export rather than leaving the refusal as the
+                answer (§30). Both take the same request, which is what makes
+                the queued file provably the query on screen. */}
             <ExportButton
               disabled={!request}
               onExport={(format) =>
                 explorerApi.export({ ...request!, page: 1, format })
               }
+              onQueue={async (format) => {
+                const made = await exportsApi.queue({
+                  ...(request as unknown as ExportRequest),
+                  format,
+                });
+                message.success(
+                  `${made.reference} queued. It will appear on the Exports page.`,
+                );
+                navigate("/exports");
+              }}
             />
             <Button
               type="primary"
@@ -507,6 +526,3 @@ function positiveInt(value: string | null, fallback: number): number {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function errorText(error: unknown): string {
-  return error instanceof Error ? error.message : "Unknown error";
-}

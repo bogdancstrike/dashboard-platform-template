@@ -84,6 +84,10 @@ check-seed: ## Verify the seeded data is referentially consistent
 sync-files: ## Write the object bytes every seeded file points at
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-files seed
 
+.PHONY: sync-exports
+sync-exports: ## Write the file every seeded export claims, and make its counts describe it
+	$(COMPOSE) run --rm -e SEED_ARGS=--sync-exports seed
+
 .PHONY: sync-schema
 sync-schema: ## Add columns the model declares and the database lacks
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-schema seed
@@ -147,8 +151,18 @@ test-backend-db: ## Backend tests including the ones that need PostgreSQL and Mi
 test-frontend: ## Frontend unit and component tests
 	cd $(FRONTEND) && npm run test
 
+# The suite *spends* fixtures, so it provisions them first. A retry consumes an
+# attempt irreversibly — `attempt` is a record of what happened and nothing
+# rewrites it — so one full sweep leaves the queue with one fewer retryable job
+# per status, and after two or three the jobs spec fails on its own guard,
+# which says to run exactly this. Provisioning is additive and idempotent, so
+# doing it every time costs nothing on a queue that is already stocked.
 .PHONY: e2e
-e2e: ## Playwright end-to-end suite against the running stack
+e2e: sync-jobs ## Playwright end-to-end suite against the running stack
+	cd $(FRONTEND) && npm run test:e2e
+
+.PHONY: e2e-only
+e2e-only: ## The suite without topping up the fixtures it spends
 	cd $(FRONTEND) && npm run test:e2e
 
 .PHONY: lint

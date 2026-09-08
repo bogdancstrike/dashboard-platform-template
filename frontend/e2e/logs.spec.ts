@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
+import { apiAs, namespaced } from "./api";
 import { signIn, storageStateFor } from "./auth";
 
 /**
@@ -96,32 +97,46 @@ test("the level filter is a floor, and the server is the one that slices it", as
           .textContent()) ?? "0"
       ).replace(/[^\d]/g, ""),
     );
-  const [warning, error, critical] = [
-    await counted("WARNING"),
-    await counted("ERROR"),
-    await counted("CRITICAL"),
-  ];
-  expect(warning).toBeGreaterThan(0);
-  expect(error).toBeGreaterThan(0);
+  expect(await counted("WARNING")).toBeGreaterThan(0);
+  expect(await counted("ERROR")).toBeGreaterThan(0);
 
   await page.getByTestId("log-level-WARNING").click();
   await expect(page).toHaveURL(/min_level=WARNING/);
 
-  // The claim stated as arithmetic rather than sampled from the first page:
-  // asking for WARNING returns warnings *plus* errors *plus* criticals, which
-  // is exactly what distinguishes a floor from a toggle. Sampling page one
-  // cannot show it — the newest lines on a live stack are frequently all of
-  // one level, which is what made the first version of this test fail.
-  await expect(page.getByText(`${(warning + error + critical).toLocaleString()} lines`))
-    .toBeVisible();
+  // The claim stated as arithmetic: asking for WARNING returns warnings *plus*
+  // errors *plus* criticals, which is exactly what distinguishes a floor from
+  // a toggle. Sampling page one cannot show it — the newest lines on a live
+  // stack are frequently all of one level, which is what made the first
+  // version of this test fail.
+  //
+  // Asked of **one response**, which is what the second version got wrong.
+  // `core/logsink` writes a line for every API request, so this suite is
+  // itself a writer: reading three chip counts and then a total compares two
+  // instants, and the gap became a failure the moment another spec started
+  // making more requests. No amount of polling fixes that, because the two
+  // numbers are never taken together. The listing carries its own facets over
+  // the same statement it counted, so `total` and the facet sum are one
+  // instant and agree exactly — and it is the server's arithmetic, which is
+  // what this test is named for.
+  const api = await apiAs("admin");
+  const sliced = await (
+    await api.get(namespaced("/admin/logs?min_level=WARNING&page_size=1"))
+  ).json();
+  const levels = sliced.facets.level as Array<{ value: string; count: number }>;
+  expect(levels.map((entry) => entry.value).sort()).toEqual([
+    "CRITICAL",
+    "ERROR",
+    "WARNING",
+  ]);
+  expect(levels.reduce((sum, entry) => sum + entry.count, 0)).toBe(sliced.total);
 
   // And every row on the page is still at or above the floor.
-  const levels = await page
+  const shown = await page
     .getByTestId("log-table")
-    .locator("tbody tr td:nth-child(2)")
+    .locator("tbody tr[data-row-key] td:nth-child(2)")
     .allInnerTexts();
-  expect(levels.length).toBeGreaterThan(0);
-  for (const level of levels) {
+  expect(shown.length).toBeGreaterThan(0);
+  for (const level of shown) {
     expect(["warning", "error", "critical"]).toContain(level.trim());
   }
 });

@@ -89,9 +89,48 @@ a file is metadata in PostgreSQL.
 
 ```bash
 make sync-files    # write the object bytes every seeded file points at
+make sync-exports  # write the file every seeded export claims, and make its counts describe it
 ```
 
 MinIO's console is at <http://localhost:9001> (`nucleus` / `nucleus-dev-secret`).
+
+### Exports, and what happens when one is too big for a response
+
+Every list exports the **question**, not the page: the same statement the list
+endpoint built, minus its `LIMIT`. Below 50 000 rows (20 000 for a workbook,
+which a zip container forces) the file streams back in the response.
+
+Above that, a download would have to hold a request open past a proxy timeout,
+so the API **refuses rather than truncating** — for a long time it applied the
+ceiling as a SQL `LIMIT` instead, which handed somebody 50 000 rows of a
+200 000-row export with a `200` on it and nothing to indicate the file was a
+fragment. The refusal carries `queue_instead: true`, and every list's Export
+control turns that into an offer: one press produces the whole set in the
+background and it appears on `/exports` with a real file.
+
+There is no worker in this stack and `backend/src/core/background.py` does not
+pretend there is one. It runs the work off the request *inside the API
+process* and names which of three mechanisms did it — a **greenlet** under
+gunicorn, a **thread** under `python main.py`, or **inline** when a test asks
+for determinism. Which one ran is on the row and on the page, because
+"background" hides three quite different things. Swapping in a real queue is a
+change to that module and to nothing above it.
+
+Two consequences worth knowing. In-flight work is lost when the process
+restarts, so a queued export that nothing will ever pick up is a state this
+platform genuinely produces: `/exports` derives **stalled** from how long a row
+has been pending, says so instead of spinning forever, and offers to ask the
+question again. And an export's file is a copy of production rows in object
+storage, so `retention.export_days` bounds how long it lives, the bytes are
+dropped the moment an expired one is asked for, and a download is checked
+against the person who requested it — administrators included, who can run the
+query themselves and leave an audit entry in their own name.
+
+Letting one go takes two presses, the same rule `/mail` uses for a thread: the
+first `DELETE` removes the file, the second removes the record. The two acts
+are different sizes — one takes a copy of production data out of object
+storage, the other tidies away somebody's own note — and the audit trail keeps
+the history of both, where the requester cannot edit it.
 
 ### Adding a chart kind, and putting records on the map
 
@@ -164,6 +203,7 @@ python -m src.seed --sync-mailboxes    # give each demo persona an inbox worth o
 python -m src.seed --sync-settings     # add newly declared settings, refit any that no longer fit
 python -m src.seed --sync-jobs         # top every background-job status up to its guaranteed minimum
 python -m src.seed --sync-org          # recount each department's headcount from the people in it
+python -m src.seed --sync-exports      # write the file every seeded export claims, and correct its counts
 ```
 
 `--sync-schema` refuses to guess: a `NOT NULL` column with no default is
@@ -200,7 +240,8 @@ generator's folder draw is random, and at the small scale it left the
 and neither of them in the inbox. An empty inbox on a demo reads as a broken
 feature. It counts what is there and inserts only what is missing.
 
-`--sync-jobs` is the one the *test suite* wears out. `/admin/jobs` builds its
+`--sync-jobs` is the one the *test suite* wears out — which is why `make e2e`
+depends on it, so the sweep provisions the fixture it is about to spend. `/admin/jobs` builds its
 filters from `JOB_STATUS`, and RETRYING is weighted at 0.04 — so at the small
 scale the draw leaves it empty about half the time, and a console offering a
 filter that can never match anything is the same defect an empty kanban lane
@@ -211,7 +252,9 @@ three jobs per status so no filter is dead, and at least one per status still
 *within its attempts* so there is something to retry. The second is the one
 that ran dry: topping up by row count alone kept finding five cancelled jobs
 and never noticed every one of them had spent its attempts. If the jobs spec
-starts saying "run 'make sync-jobs'", that is what it means.
+starts saying "run 'make sync-jobs'", that is what it means — and `make e2e`
+does it for you. `make e2e-only` is the suite without the top-up, for when you
+want to see the guard fire.
 
 `--sync-org` is the only one of these that *edits* rather than inserts, and it
 is safe precisely because what it edits is derived. `departments.headcount` was
@@ -221,9 +264,22 @@ the fiction. `users.department_id` is the truth, `services/organizations` counts
 it rather than reading the column, and this stops the cached copy contradicting
 it. `--check` reports the drift, so a database that has it says so.
 
+`--sync-exports` is the other one that edits, and it is the most thorough of
+them because the rows it repairs were wrong in four ways at once. A seeded
+export said `{"rows": 184203, "artifact": "exports/JOB-000004.csv"}` for bytes
+nobody had written; `rows` was a progress counter over a `total_units` drawn at
+random up to 250,000; the extension was `.csv` whatever the payload's format
+said; and the payload named an `entity` no code could resolve, so not one
+seeded export could describe its own query. This runs the *real* export for
+each one — the same `services/exports.produce` a request runs — so the
+artefact, its size, its checksum and the unit counts all describe a file that
+exists. It also gives every persona holding `records.export` one finished
+export, because a page whose every download fails demonstrates nothing. If a
+download on `/exports` 404s, that is what it means.
+
 Under Compose these are `make check-seed`, `make sync-schema`, `make
 sync-roles`, `make sync-reports`, `make sync-automations`, `make sync-mailboxes`,
-`make sync-settings`, `make sync-jobs` and `make sync-org`.
+`make sync-settings`, `make sync-jobs`, `make sync-org` and `make sync-exports`.
 
 Then:
 

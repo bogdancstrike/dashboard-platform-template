@@ -656,6 +656,145 @@ def run(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
     )
 
 
+@dataclass(frozen=True, slots=True)
+class Plan:
+    """A validated export question, in a form a database row can hold (§30).
+
+    An export that is small enough to stream is answered inside the request; one
+    that is not becomes a background job, and the job has to be able to build
+    *the same query* minutes later from a JSONB column. A plan is that column's
+    content: every part of the question, normalised, and nothing that cannot
+    survive `json.dumps`.
+
+    What is deliberately **not** here is who asked. A permission set frozen into
+    a row is a stale grant — it would still be true after the person lost the
+    privilege — so authorisation happens when the plan is made and again when
+    the file is fetched, never from the plan itself.
+    """
+
+    resource_type: str
+    fmt: str
+    columns: tuple[str, ...]
+    filters: dict[str, Any]
+    query_text: str
+    condition_tree: dict[str, Any] | None
+    sort: str
+    order: str
+
+    def stored(self) -> dict[str, Any]:
+        """The plan as a job payload. Round-trips through `replan`."""
+        return {
+            "resource_type": self.resource_type,
+            "format": self.fmt,
+            "columns": list(self.columns),
+            "filters": dict(self.filters),
+            "query_text": self.query_text,
+            "condition_tree": self.condition_tree,
+            "sort": self.sort,
+            "order": self.order,
+        }
+
+    @property
+    def resource(self) -> Resource:
+        return resource_for(self.resource_type)
+
+    def describe(self) -> str:
+        """What this export is, in a sentence somebody can read in a list."""
+        resource = self.resource
+        parts = [resource.label]
+        narrowed = describe_tree(self.condition_tree, resource.fields)
+        if self.query_text:
+            parts.append(f'matching "{self.query_text}"')
+        if narrowed:
+            parts.append(f"where {narrowed}")
+        elif self.filters:
+            named = ", ".join(sorted(self.filters))
+            parts.append(f"filtered by {named}")
+        return " ".join(parts)
+
+
+def plan_for(payload: dict[str, Any], *, principal) -> Plan:
+    """Validate and authorise an export request. The only way to make a plan."""
+    plan = _plan(payload)
+    resource_for(plan.resource_type, principal=principal)
+    principal.require(EXPORT_PERMISSION)
+    return plan
+
+
+def replan(stored: dict[str, Any] | None) -> Plan:
+    """Rebuild a plan that was authorised when it was stored.
+
+    Re-validated rather than trusted: a column can be removed from a resource
+    between queueing an export and running it, and a plan naming a field that
+    no longer exists must fail as a bad request rather than as a 500 inside a
+    background job.
+    """
+    if not isinstance(stored, dict):
+        raise ValidationError("That export has no query recorded on it.")
+    return _plan(stored)
+
+
+def _plan(payload: dict[str, Any]) -> Plan:
+    from src.core import export as writer
+
+    if not isinstance(payload, dict):
+        raise ValidationError("The query must be a JSON object.")
+    resource = resource_for(payload.get("resource_type"))
+    page = parse_page(payload, default_sort=resource.default_sort)
+    args = _query_args(payload)
+    tree = payload.get("condition_tree")
+    # Compiled here and thrown away: a tree that cannot compile is a bad
+    # request, and finding that out when the file is being written is finding
+    # it out too late.
+    compile_tree(tree, resource.fields)
+
+    return Plan(
+        resource_type=resource.key,
+        fmt=writer.parse_format(payload.get("format")),
+        columns=tuple(_columns(payload.get("columns"), resource)),
+        filters={key: value for key, value in args.items() if key != "q"},
+        query_text=str(args.get("q") or ""),
+        condition_tree=tree if isinstance(tree, dict) and tree else None,
+        sort=page.sort,
+        order=page.order,
+    )
+
+
+def statement_of(plan: Plan) -> Select:
+    """The rows a plan asks for, unpaged.
+
+    Shared by the streamed download and the background job so the two cannot
+    drift: an export that queued because it was large must be the same question
+    as the one that would have streamed had it been small.
+    """
+    resource = plan.resource
+    args = dict(plan.filters)
+    if plan.query_text:
+        args["q"] = plan.query_text
+
+    statement = apply_filters(_base_statement(resource), args, resource.fields)
+    predicate = compile_tree(plan.condition_tree, resource.fields)
+    if predicate is not None:
+        statement = statement.where(predicate)
+    page = parse_page({"sort": plan.sort, "order": plan.order}, default_sort=resource.default_sort)
+    return apply_sort(statement, page, resource.fields, default=resource.default_sort)
+
+
+def columns_of(plan: Plan) -> list[Any]:
+    """The file's header, labelled as the field catalogue labels it."""
+    from src.core import export as writer
+
+    fields = plan.resource.fields.by_name
+    return [writer.Column(name, fields[name].title) for name in plan.columns]
+
+
+def rows_of(plan: Plan, rows: Any) -> Any:
+    """Each row as the file wants it: a generator, so nothing is accumulated."""
+    resource = plan.resource
+    names = list(plan.columns)
+    return (_serialize(row, resource, names) for row in rows)
+
+
 def export(payload: dict[str, Any], *, principal):
     """The current exploration as a file (§30).
 
@@ -666,28 +805,18 @@ def export(payload: dict[str, Any], *, principal):
     """
     from src.core import export as writer
 
-    if not isinstance(payload, dict):
-        raise ValidationError("The query must be a JSON object.")
-    resource = resource_for(payload.get("resource_type"), principal=principal)
-    principal.require(EXPORT_PERMISSION)
-
-    fmt = writer.parse_format(payload.get("format"))
-    page = parse_page(payload, default_sort=resource.default_sort)
-
-    statement = apply_filters(_base_statement(resource), _query_args(payload), resource.fields)
-    predicate = compile_tree(payload.get("condition_tree"), resource.fields)
-    if predicate is not None:
-        statement = statement.where(predicate)
-    statement = apply_sort(statement, page, resource.fields, default=resource.default_sort)
-
-    names = _columns(payload.get("columns"), resource)
-    columns = [writer.Column(name, resource.fields.by_name[name].title) for name in names]
-    rows = writer.stream_rows(statement, limit=writer.limit_for(fmt))
+    plan = plan_for(payload, principal=principal)
+    statement = statement_of(plan)
+    # Counted before a byte is written: a download that stopped at the ceiling
+    # used to arrive as a plausible-looking fragment with a 200 on it. Above the
+    # ceiling this raises, and the message says to queue it instead (§30).
+    writer.refuse_if_truncated(statement, fmt=plan.fmt, what=plan.resource.label.lower())
+    rows = writer.stream_rows(statement, limit=writer.limit_for(plan.fmt))
     return writer.response(
-        (_serialize(row, resource, names) for row in rows),
-        columns,
-        fmt=fmt,
-        stem=resource.key,
+        rows_of(plan, rows),
+        columns_of(plan),
+        fmt=plan.fmt,
+        stem=plan.resource_type,
     )
 
 

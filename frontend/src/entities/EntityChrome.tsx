@@ -11,12 +11,13 @@
  * that knows what it is looking at.
  */
 
-import { Alert, Button, Card, Input, Select, Space, Tag, Typography } from "antd";
+import { Alert, App as AntApp, Button, Card, Input, Select, Space, Tag, Typography } from "antd";
 import { ClearOutlined, SearchOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { explorerApi, type ExplorerRequest, type InsightMetric } from "@/api/explorer";
+import { exportsApi, type ExportRequest } from "@/api/exports";
 import { ExportButton } from "@/components/ExportButton";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
@@ -36,6 +37,7 @@ export function EntityHeader({
   subtitle?: string;
   actions?: React.ReactNode;
 }) {
+  const { message } = AntApp.useApp();
   const navigate = useNavigate();
   const { resource, rows, request, filterCount, clearFilters } = view;
 
@@ -64,11 +66,24 @@ export function EntityHeader({
           >
             Ask a wider question
           </Button>
+          {/* Both take the same request, so an export that had to be queued
+              because it was large is provably the question on screen (§30).
+              Every entity list gets this by being here. */}
           <ExportButton
             disabled={!request}
             onExport={(format) =>
               explorerApi.export({ ...(request as ExplorerRequest), page: 1, format })
             }
+            onQueue={async (format) => {
+              const made = await exportsApi.queue({
+                ...(request as unknown as ExportRequest),
+                format,
+              });
+              message.success(
+                `${made.reference} queued. It will appear on the Exports page.`,
+              );
+              navigate("/exports");
+            }}
           />
         </>
       }

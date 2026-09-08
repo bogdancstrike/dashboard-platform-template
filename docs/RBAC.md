@@ -177,6 +177,28 @@ the operation is allowed in principle; organization ownership, resource
 sharing, assignment or other row scope must still be included in the SQL query.
 Never fetch broad data and filter it in the browser.
 
+### Where ownership overrides a permission entirely
+
+Two places check *who* rather than only *what*, and both are deliberate.
+
+**An export's file belongs to whoever requested it** (§30). `records.export`
+lets somebody produce an export; it does not let them fetch another person's.
+`/exports` lists your own, and `GET /exports/<id>/download` checks
+`initiated_by_id` — **including for an administrator**. An export is a copy of
+whatever rows its requester could see, filtered however they filtered them, so
+a link to it is a link to those rows; an administrator who needs the data runs
+the query themselves, which leaves an audit entry in their own name that a
+download of somebody else's row would not. The refusal is 404 and not 403,
+because "that belongs to somebody else" confirms a reference exists. Job
+*metadata* stays visible to `jobs.view` on `/admin/jobs` — a queue console that
+cannot see its own queue is useless — but the artefact does not.
+
+**An automation rule belongs to its author** (§49): holding
+`automations.manage` does not permit editing a colleague's rule. Here
+`admin.access` *is* an exception, because somebody has to be able to stop a
+rule whose author has left — the difference from exports is that stopping a
+rule is a containment action, while fetching a file is a disclosure.
+
 ## Frontend behavior
 
 `AuthProvider` loads `/api/me` and exposes `can(permission)`. The application
@@ -224,4 +246,7 @@ Relevant automated coverage:
   HTTP boundary.
 - `frontend/src/app/AppShell.test.tsx` — hidden forbidden navigation and direct
   deep-link denial.
+- `backend/tests/test_exports.py` — the ownership rule above, asserted as a 404
+  for an administrator against an analyst's export, and a 403 for a role
+  without `records.export`.
 - `frontend/e2e/` — real Keycloak sign-in and persona-level journeys.

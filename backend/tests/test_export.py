@@ -8,6 +8,7 @@ name in Excel, and it hands Excel a formula somebody typed into a text box.
 
 from __future__ import annotations
 
+import contextlib
 import csv
 import io
 import json
@@ -261,3 +262,82 @@ def test_an_export_of_nothing_is_a_file_with_only_headings(client, monkeypatch):
     assert response.status_code == 200
     assert len(rows) == 1
     assert rows[0][0] == "When"
+
+
+# ── a download is never a plausible-looking fragment (§30) ───────────────
+
+
+@contextlib.contextmanager
+def _null_scope():
+    """A session that is never used: `count_of` is stubbed above it."""
+    yield None
+
+
+def test_an_export_above_the_ceiling_is_refused_rather_than_truncated():
+    """The defect this closes.
+
+    `stream_rows` applies a `LIMIT`, so an export of 200,000 rows produced
+    50,000 of them with a `200` on it and nothing anywhere saying the file was
+    a fragment — quiet, plausible, and impossible for the person holding it to
+    notice. The comment on `MAX_ROWS` had said since it was written that such
+    an export "must become a background job"; nothing made that true.
+    """
+    import pytest
+
+    from src.core import export as writer
+    from src.core.errors import ValidationError
+
+    class _Counted:
+        """A statement whose count is whatever the test needs."""
+
+        def __init__(self, total):
+            self.total = total
+
+    def counted(_session, statement):
+        return statement.total
+
+    monkey = pytest.MonkeyPatch()
+    try:
+        monkey.setattr("src.core.query.count_of", counted)
+        monkey.setattr("src.core.db.session_scope", _null_scope)
+
+        # Under the ceiling: allowed, and the count comes back.
+        assert writer.refuse_if_truncated(_Counted(10), fmt="csv") == 10
+
+        # Over it: refused, with both numbers and the queued path named.
+        with pytest.raises(ValidationError) as raised:
+            writer.refuse_if_truncated(_Counted(writer.MAX_ROWS + 1), fmt="csv")
+        details = raised.value.details
+        assert details["total"] == writer.MAX_ROWS + 1
+        assert details["maximum"] == writer.MAX_ROWS
+        assert details["queue_instead"] is True
+    finally:
+        monkey.undo()
+
+
+def test_the_xlsx_ceiling_is_the_one_that_applies_to_xlsx():
+    """XLSX has to be finished before the first byte goes out, so its bound is
+    lower — and using the CSV one for it would hand a worker a file it should
+    never have been asked to hold."""
+    import pytest
+
+    from src.core import export as writer
+    from src.core.errors import ValidationError
+
+    class _Counted:
+        def __init__(self, total):
+            self.total = total
+
+    monkey = pytest.MonkeyPatch()
+    try:
+        monkey.setattr("src.core.query.count_of", lambda _s, statement: statement.total)
+        monkey.setattr("src.core.db.session_scope", _null_scope)
+
+        # Between the two ceilings: fine as CSV, refused as XLSX.
+        between = writer.MAX_XLSX_ROWS + 1
+        assert writer.refuse_if_truncated(_Counted(between), fmt="csv") == between
+        with pytest.raises(ValidationError) as raised:
+            writer.refuse_if_truncated(_Counted(between), fmt="xlsx")
+        assert raised.value.details["maximum"] == writer.MAX_XLSX_ROWS
+    finally:
+        monkey.undo()

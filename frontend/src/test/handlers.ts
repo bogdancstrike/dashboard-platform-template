@@ -2923,6 +2923,155 @@ function visibleConfiguration(row: Record<string, unknown>): Record<string, unkn
   return out;
 }
 
+
+// ── Exports (§30) ───────────────────────────────────────────────────────
+//
+// The four situations this page has to keep apart, one row each: a file ready
+// to download, one still being produced, one that failed, and one that stalled.
+// The last is the one worth having a fixture for — it is what a restart
+// mid-export leaves behind, and it looks like the second unless the page says
+// otherwise.
+//
+// Every derived field is computed here the way `services/exports.py` computes
+// it, so a fixture cannot assert something the server would never send.
+
+export const exportRows: Record<string, unknown>[] = [];
+
+function exportOf(overrides: Record<string, unknown>): Record<string, unknown> {
+  const row = {
+    resource_type: "ticket",
+    format: "csv",
+    description: "Tickets",
+    columns: ["reference", "status"],
+    rows: null,
+    size_bytes: null,
+    checksum: null,
+    requested_at: "2026-09-08T09:00:00Z",
+    started_at: null,
+    finished_at: null,
+    duration_ms: null,
+    progress: 0,
+    attempt: 1,
+    max_attempts: 1,
+    error_message: null,
+    ran_as: "greenlet",
+    expires_at: null,
+    expired: false,
+    stalled: false,
+    log_lines: [],
+    ...overrides,
+  } as Record<string, unknown>;
+
+  // Derived exactly as the service derives it. Two separate questions: whether
+  // there is a file, and whether asking for it now would give one. A discard
+  // clears the first and keeps `rows`/`size_bytes`, which are the history — so
+  // a fixture that nulled them drifted from the server and hid a bug in the
+  // page's second press until the end-to-end suite found it.
+  row["has_file"] = row["has_file"] ?? row["status"] === "SUCCEEDED";
+  row["downloadable"] =
+    row["has_file"] === true && row["status"] === "SUCCEEDED" && !row["expired"];
+  return row;
+}
+
+function seedExports(): void {
+  exportRows.length = 0;
+  exportRows.push(
+    exportOf({
+      id: "exp-ready", reference: "EXP-000101", name: "Tickets — CSV",
+      status: "SUCCEEDED", rows: 1284, size_bytes: 90_112,
+      description: "Tickets where status is OPEN",
+      finished_at: "2026-09-08T09:01:00Z", duration_ms: 4200, progress: 100,
+      expires_at: "2026-09-15T09:01:00Z",
+      log_lines: [
+        { at: "2026-09-08T09:00:00Z", level: "INFO", message: "accepted: 1,284 rows to write" },
+        { at: "2026-09-08T09:01:00Z", level: "INFO", message: "finished" },
+      ],
+    }),
+    exportOf({
+      id: "exp-working", reference: "EXP-000102", name: "Orders — XLSX",
+      status: "RUNNING", format: "xlsx", resource_type: "order",
+      description: "Orders", progress: 40, has_file: false,
+      started_at: "2026-09-08T09:05:00Z",
+    }),
+    exportOf({
+      id: "exp-failed", reference: "EXP-000103", name: "Projects — JSON",
+      status: "FAILED", format: "json", resource_type: "project", has_file: false,
+      description: "Projects",
+      error_message: "RuntimeError: the bucket said no",
+      finished_at: "2026-09-08T09:06:00Z",
+      log_lines: [
+        { at: "2026-09-08T09:06:00Z", level: "ERROR", message: "failed: the bucket said no" },
+      ],
+    }),
+    // Queued, and old enough that nothing is going to pick it up. The row a
+    // spinner would misrepresent forever.
+    exportOf({
+      id: "exp-stalled", reference: "EXP-000104", name: "Customers — CSV",
+      status: "QUEUED", resource_type: "customer", description: "Customers",
+      requested_at: "2026-09-07T09:00:00Z", stalled: true, has_file: false,
+    }),
+    // Finished, and its file has passed the retention window.
+    exportOf({
+      id: "exp-expired", reference: "EXP-000105", name: "Tickets — CSV",
+      status: "SUCCEEDED", rows: 90, size_bytes: 4_096, description: "Tickets",
+      finished_at: "2026-08-01T09:00:00Z", expires_at: "2026-08-08T09:00:00Z",
+      expired: true, progress: 100,
+    }),
+  );
+}
+
+seedExports();
+
+export function resetExports(): void {
+  seedExports();
+}
+
+const exportDatasets = [
+  {
+    key: "ticket", label: "Tickets", description: "Support queue.",
+    columns: ["reference", "status"],
+    fields: [
+      { name: "reference", label: "Reference", kind: "text" },
+      { name: "status", label: "Status", kind: "enum" },
+    ],
+  },
+  {
+    key: "order", label: "Orders", description: "Sales orders.",
+    columns: ["reference", "total"],
+    fields: [{ name: "reference", label: "Reference", kind: "text" }],
+  },
+];
+
+/** The row count a dataset answers with, so `estimate` is not one constant. */
+const exportSizes: Record<string, number> = { ticket: 1284, order: 184_203 };
+
+function exportCatalogue(): Record<string, unknown> {
+  const statuses = [...new Set(exportRows.map((row) => String(row["status"])))].sort();
+  return {
+    datasets: exportDatasets,
+    formats: [
+      { key: "csv", label: "CSV", content_type: "text/csv; charset=utf-8", maximum: 100_000 },
+      { key: "json", label: "JSON", content_type: "application/json", maximum: 100_000 },
+      { key: "xlsx", label: "XLSX", content_type: "application/vnd.ms-excel", maximum: 20_000 },
+    ],
+    max_rows: 100_000,
+    streams_up_to: 50_000,
+    retention_days: 7,
+    pending_limit: 3,
+    pending: exportRows.filter(
+      (row) => !row["stalled"] && ["QUEUED", "RUNNING"].includes(String(row["status"])),
+    ).length,
+    stalled: exportRows.filter((row) => row["stalled"]).length,
+    statuses: statuses.map((key) => ({
+      key,
+      count: exportRows.filter((row) => row["status"] === key).length,
+    })),
+    total: exportRows.length,
+    expired: exportRows.filter((row) => row["expired"]).length,
+    ready: exportRows.filter((row) => row["downloadable"]).length,
+  };
+}
+
 export const handlers = [
   http.get("/platform/admin/integrations/catalogue", ({ request }) => {
     const states = ["NOT_CONFIGURED", "DISCONNECTED", "CONNECTED", "ERROR"];
@@ -4806,6 +4955,126 @@ export const handlers = [
     const index = recordComments.findIndex((item) => item["id"] === params["id"]);
     if (index >= 0) recordComments.splice(index, 1);
     return HttpResponse.json({ deleted: true, id: params["id"] });
+  }),
+  // ── Exports (§30) ─────────────────────────────────────────────────────
+  // `catalogue` and `estimate` before the `:id` rule, for the reason the audit
+  // export is: MSW matches segments loosely, so `:id` would swallow both.
+  http.get("/platform/exports/catalogue", ({ request }) => echo(request, exportCatalogue())),
+  http.post("/platform/exports/estimate", async ({ request }) => {
+    const body = (await request.json()) as { resource_type?: string; format?: string };
+    const dataset = String(body.resource_type ?? "ticket");
+    const format = String(body.format ?? "csv");
+    const rows = exportSizes[dataset] ?? 0;
+    const ceiling = format === "xlsx" ? 20_000 : 100_000;
+    return HttpResponse.json({
+      resource_type: dataset,
+      format,
+      description: exportDatasets.find((entry) => entry.key === dataset)?.label ?? dataset,
+      columns: exportDatasets.find((entry) => entry.key === dataset)?.columns ?? [],
+      rows,
+      maximum: ceiling,
+      streams_up_to: 50_000,
+      // Derived from the counts, not asserted: the whole point of `estimate`
+      // is that these two follow from the number of rows.
+      can_stream: rows <= (format === "xlsx" ? 20_000 : 50_000),
+      can_queue: rows <= ceiling,
+      too_large: rows > ceiling,
+    });
+  }),
+  http.post("/platform/exports/:id/again", ({ params }) => {
+    const source = exportRows.find((row) => row["id"] === params["id"]);
+    const made = exportOf({
+      ...source,
+      id: `again-${String(params["id"])}`,
+      reference: "EXP-000199",
+      status: "QUEUED",
+      rows: null,
+      size_bytes: null,
+      progress: 0,
+      stalled: false,
+      expired: false,
+      finished_at: null,
+    });
+    exportRows.unshift(made);
+    return HttpResponse.json(made, { status: 201 });
+  }),
+  http.get("/platform/exports/:id/download", ({ params }) => {
+    const row = exportRows.find((item) => item["id"] === params["id"]);
+    if (!row || !row["downloadable"]) {
+      return HttpResponse.json(
+        { error: "conflict", message: "That export has no file.", details: {} },
+        { status: 409 },
+      );
+    }
+    return HttpResponse.json({
+      url: "https://storage.example/exports/EXP-000101.csv?signature=x",
+      method: "GET",
+      expires_in: 900,
+      filename: "ticket-2026-09-08-0901.csv",
+      content_type: "text/csv; charset=utf-8",
+      size_bytes: row["size_bytes"],
+      rows: row["rows"],
+    });
+  }),
+  http.get("/platform/exports/:id", ({ request, params }) => {
+    const row = exportRows.find((item) => item["id"] === params["id"]);
+    return row
+      ? echo(request, row)
+      : HttpResponse.json(
+          { error: "not_found", message: "That export does not exist.", details: {} },
+          { status: 404 },
+        );
+  }),
+  // Two presses, as the endpoint has: the file on the first, the record on the
+  // second, and `removed` says which happened.
+  http.delete("/platform/exports/:id", ({ params }) => {
+    const index = exportRows.findIndex((item) => item["id"] === params["id"]);
+    if (index < 0) {
+      return HttpResponse.json(
+        { error: "not_found", message: "That export does not exist.", details: {} },
+        { status: 404 },
+      );
+    }
+    const row = exportRows[index]!;
+    if (!row["has_file"]) {
+      exportRows.splice(index, 1);
+      return HttpResponse.json({ ...row, removed: true });
+    }
+    // `rows` and `size_bytes` stay, as the server keeps them: the record is
+    // what was exported, and the file going does not unmake that.
+    const dropped = exportOf({ ...row, has_file: false });
+    exportRows[index] = dropped;
+    return HttpResponse.json({ ...dropped, removed: false });
+  }),
+  http.post("/platform/exports", async ({ request }) => {
+    const body = (await request.json()) as { resource_type?: string; format?: string };
+    const dataset = String(body.resource_type ?? "ticket");
+    const made = exportOf({
+      id: "exp-new",
+      reference: "EXP-000200",
+      name: `${dataset} — ${String(body.format ?? "csv").toUpperCase()}`,
+      status: "QUEUED",
+      resource_type: dataset,
+      format: String(body.format ?? "csv"),
+      description: exportDatasets.find((entry) => entry.key === dataset)?.label ?? dataset,
+      ran_as: "greenlet",
+    });
+    exportRows.unshift(made);
+    return HttpResponse.json(made, { status: 201 });
+  }),
+  http.get("/platform/exports", ({ request }) => {
+    const query = new URL(request.url).searchParams;
+    const status = query.get("status") ?? "";
+    const items = exportRows.filter((row) => !status || row["status"] === status);
+    return echo(request, {
+      items,
+      total: items.length,
+      page: 1,
+      page_size: 50,
+      pages: 1,
+      facets: {},
+      columns: ["reference", "name", "status", "rows", "created_at"],
+    });
   }),
   http.get("/platform/admin/audit/catalog", ({ request }) => echo(request, auditCatalogue)),
   // Before the `:id` rule: MSW matches path segments loosely, so `:id`

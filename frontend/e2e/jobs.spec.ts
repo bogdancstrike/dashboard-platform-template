@@ -98,7 +98,12 @@ test("a retry is the same job with the next attempt, in the database", async ({ 
   await signIn(page, "admin", "/admin/jobs?status=CANCELLED");
   await expect(rows(page).first()).toBeVisible();
 
-  const retryable = page.locator('[data-testid^="retry-JOB-"]:not([disabled])');
+  // Any reference prefix, not only `JOB-`: exports carry `EXP-` (§30), and
+  // hardcoding one prefix meant this locator silently stopped seeing half the
+  // queue the day that changed. Exports are not retryable anyway, so the
+  // `:not([disabled])` is what excludes them — by the server's rule rather
+  // than by a string match here.
+  const retryable = page.locator('[data-testid^="retry-"]:not([disabled])');
   const available = await retryable.count();
   expect(
     available,

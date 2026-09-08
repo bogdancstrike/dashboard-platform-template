@@ -26,6 +26,7 @@ from sqlalchemy import select
 from src.config import Config
 from src.core.clock import now
 from src.seed import blobs, business, content, identity, operations, personal, schema
+from src.seed import exports as export_files
 from src.seed.support import Rng
 from src.seed.world import SCALES, Scale, World
 
@@ -108,6 +109,19 @@ def sync_files(session) -> dict[str, int]:
     from src.core import storage
 
     return blobs.materialise(session, storage.for_config())
+
+
+def sync_exports(session) -> dict[str, int]:
+    """Make every seeded export true, and write the file it claims (§30).
+
+    Separate from `run` for the same reason `sync_files` is: it also serves an
+    existing database, whose export rows claimed an artefact nobody had written
+    and a row count that was a progress counter. Idempotent — an export whose
+    object is already there is left alone.
+    """
+    from src.core import storage
+
+    return export_files.materialise(session, storage.for_config())
 
 
 def sync_schema(engine) -> list[schema.Drift]:
@@ -252,6 +266,41 @@ def verify(session) -> list[str]:
     _orphans("messages.thread_id", EmailMessage, EmailMessage.thread_id, EmailThread)
 
     _orphans("resource_shares.user_id", ResourceShare, ResourceShare.user_id, User)
+
+    # An export must not claim a file. Every one of these was true on this
+    # installation before `--sync-exports` existed: three SUCCEEDED exports
+    # named `exports/JOB-00000N.csv` for bytes nobody had written, and their
+    # `result.rows` was a progress counter over a `total_units` drawn at
+    # random — so a "finished" export reported 184,203 of 250,000 rows in a
+    # file that did not exist (§30).
+    claiming = [
+        row
+        for row in session.scalars(select(BackgroundJob).where(BackgroundJob.kind == "EXPORT"))
+    ]
+    for row in claiming:
+        payload = row.payload or {}
+        result = row.result or {}
+        if not payload.get("resource_type"):
+            problems.append(f"{row.reference}: export names no dataset it can be run against")
+        if (
+            row.status == "SUCCEEDED"
+            and not result.get("artifact")
+            # A discarded or expired export legitimately has no file, and says
+            # which. Without this the check called every one of them broken —
+            # found by the end-to-end suite, which discards what it creates.
+            and not result.get("artifact_removed")
+        ):
+            problems.append(f"{row.reference}: a finished export with no file")
+        if row.status != "SUCCEEDED" and result.get("artifact"):
+            problems.append(f"{row.reference}: an unfinished export claiming a file")
+        if row.processed_units > row.total_units:
+            problems.append(
+                f"{row.reference}: {row.processed_units} of {row.total_units} units processed"
+            )
+        if row.status == "SUCCEEDED" and row.processed_units != row.total_units:
+            problems.append(f"{row.reference}: finished without processing every unit")
+        if row.status in ("FAILED", "RETRYING") and not row.failed_units:
+            problems.append(f"{row.reference}: a failed export that failed nothing")
 
     # A share grants read, never write (§5) — editing belongs to the owner.
     writable = session.scalar(
@@ -832,13 +881,16 @@ def sync_jobs(session) -> dict[str, int]:
     *spends* these: it retries a job and cancels another, and a retry spends an
     attempt irreversibly, so the states drain with use.
 
-    One invariant: `GUARANTEED_PER_STATUS` jobs per status that are still
-    *within their attempts*. Stated that way because it subsumes the row count
-    — a fresh job is a row — and because the two things it guarantees are what
+    One invariant: `GUARANTEED_PER_STATUS` jobs per status that the console can
+    actually *retry*. Stated that way because it subsumes the row count — a
+    retryable job is a row — and because the two things it guarantees are what
     the console and the suite each need: no filter that can never match, and
     something left to retry. Counting rows alone kept finding five cancelled
-    jobs and never noticed every one had spent its attempts; guaranteeing a
-    single fresh one then made the suite green for exactly one run per repair.
+    jobs and never noticing every one had spent its attempts; then counting
+    `attempt < max_attempts` alone counted three *exports*, which this console
+    does not retry at all (§30). Both times the repair reported success and
+    changed nothing, which is the failure mode to watch for here: the count has
+    to be of the same thing the guard checks.
 
     Additive by construction: it counts what is there and inserts only what is
     short. Never edits an existing job, because a job's status and its attempt
@@ -850,10 +902,12 @@ def sync_jobs(session) -> dict[str, int]:
 
     from src.core import vocabulary
     from src.core.clock import now
+    from src.core.naming import sequence_of
     from src.models.identity import User
     from src.models.platform import BackgroundJob, ScheduledTask
     from src.seed.operations import background_job
     from src.seed.support import Rng
+    from src.services.jobs import NOT_OURS_TO_RETRY
 
     anchor = now()
     # Seeded from the clock for the same reason `sync_mailboxes` is: a fixed
@@ -882,7 +936,19 @@ def sync_jobs(session) -> dict[str, int]:
     fresh = dict(
         session.execute(
             _select(BackgroundJob.status, func.count())
-            .where(BackgroundJob.attempt < BackgroundJob.max_attempts)
+            .where(
+                BackgroundJob.attempt < BackgroundJob.max_attempts,
+                # The console's own rule, not a looser one. `can_retry` also
+                # refuses a kind another screen owns — an export is
+                # re-requested on `/exports`, not retried here (§30) — and
+                # counting those as "fresh" is how the repair came to report
+                # "0 added — every status already has the guaranteed minimum"
+                # while three of the queue's four retryable-looking cancelled
+                # jobs were exports the console would not touch. A repair that
+                # measures a different thing from the guard it exists to
+                # satisfy is a repair that reports success and changes nothing.
+                BackgroundJob.kind.notin_(tuple(NOT_OURS_TO_RETRY)),
+            )
             .group_by(BackgroundJob.status)
         ).all()
     )
@@ -906,9 +972,27 @@ def sync_jobs(session) -> dict[str, int]:
 
     users = session.scalars(_select(User).where(User.deleted_at.is_(None)).limit(50)).all()
     tasks = session.scalars(_select(ScheduledTask).limit(20)).all()
-    # Numbered past the highest existing reference, so `JOB-000123` stays
-    # unique without a retry loop.
-    highest = session.scalar(_select(func.count()).select_from(BackgroundJob)) or 0
+    # Numbered past the highest existing reference — the *reference*, not the
+    # row count, which is what this used to read. `reference` is unique in the
+    # schema, and a count is only coincidentally related to the highest number
+    # in it: exports carry their own `EXP-` prefix (§30) and their records can
+    # be removed, so the count can *fall* while `JOB-001034` still exists.
+    # `MAX(reference)` per prefix is what `core/naming` prescribes and what
+    # every other reference generator in the platform does.
+    #
+    # Both prefixes, because `background_job` draws its kind and an EXPORT one
+    # is numbered `EXP-` from the same index.
+    highest = max(
+        sequence_of(
+            session.scalar(
+                _select(func.max(BackgroundJob.reference)).where(
+                    BackgroundJob.reference.like(f"{prefix}-%")
+                )
+            ),
+            prefix=prefix,
+        )
+        for prefix in ("JOB", "EXP")
+    )
 
     offset = 0
     for status, short in missing:

@@ -452,14 +452,31 @@ def scratch_database(has_database):
 
 
 @pytest.mark.database
-def test_seed_writes_and_verifies(scratch_database):
+def test_seed_writes_and_verifies(scratch_database, tmp_path):
+    """A seeded installation is consistent — as `python -m src.seed` leaves it.
+
+    `run` writes rows; two passes after it write the *bytes* those rows point
+    at, and `verify` checks both. So the test performs both, as the command
+    does — a seeded export whose file was never written is a download button
+    that 404s, which is exactly the class of defect `verify` is here to catch.
+
+    The stores are local and under `tmp_path`, so a scratch database's
+    artefacts never reach the bucket a real installation shares.
+    """
     from src.core.db import session_scope
+    from src.core.storage import LocalStorage
+    from src.seed import blobs
+    from src.seed import exports as export_files
+
+    store = LocalStorage(str(tmp_path / "objects"), secret="test", prefix="/files")
 
     runner.drop_schema(scratch_database)
     runner.bootstrap_schema(scratch_database)
     with session_scope() as session:
         runner.run(session, scale="small", seed=SEED)
-        assert runner.verify(session) == []
+        blobs.materialise(session, store)
+        export_files.materialise(session, store)
+        assert runner.verify(session) == [], runner.verify(session)
 
 
 def test_cleanup_order_respects_the_foreign_keys():
