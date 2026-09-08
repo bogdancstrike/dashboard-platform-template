@@ -2377,3 +2377,49 @@ mark.nu-mark {
    `@media (hover: none)` escape hatch for touch on top. Small icon buttons
    cost less noise than that costs correctness. */
 .nu-orgnode-acts { flex: none; }
+
+/* ── API clients (§25) ───────────────────────────────────────────────────
+   A list read for two things: what a machine may do, and whether it can
+   still call at all. */
+.nu-api-what { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.nu-api-id,
+.nu-api-scopes {
+  display: block; font-family: var(--nu-font-mono); font-size: 11.5px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-api-count { font-size: 11.5px; font-variant-numeric: tabular-nums; line-height: 1.45; }
+.nu-api-stats { display: flex; flex-wrap: wrap; gap: 26px; }
+.nu-api-stats .ant-statistic-content { font-size: 18px; }
+
+/* The secret, once. Big, monospace and selectable, because the reader is
+   about to copy it and will not get another chance. */
+.nu-api-secret {
+  margin: 12px 0; padding: 12px 14px; background: var(--nu-hover);
+  border: 1px solid var(--nu-border-subtle); border-radius: 6px;
+  font-family: var(--nu-font-mono); font-size: 13px; overflow-wrap: anywhere;
+}
+
+.nu-api-keys, .nu-api-requests { margin: 8px 0 0; padding: 0; list-style: none; }
+.nu-api-keys > li {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 7px 10px; border: 1px solid var(--nu-border-subtle); border-radius: 6px;
+  min-width: 0;
+}
+.nu-api-keys > li + li { margin-top: 6px; }
+.nu-api-key-what { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.nu-api-key-story { font-size: 11.5px; }
+
+/* Scrolls inside itself: fifty request lines must not set the drawer's
+   height. */
+.nu-api-requests {
+  max-height: 260px; overflow: auto; border: 1px solid var(--nu-border-subtle);
+  border-radius: 6px;
+}
+.nu-api-requests > li {
+  display: flex; align-items: baseline; gap: 10px; padding: 4px 10px;
+  font-family: var(--nu-font-mono); font-size: 11.5px; min-width: 0;
+}
+.nu-api-requests > li + li { border-top: 1px solid var(--nu-border-subtle); }
+.nu-api-request-status { flex: none; font-variant-numeric: tabular-nums; }
+.nu-api-request-path { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nu-api-request-when { flex: none; }

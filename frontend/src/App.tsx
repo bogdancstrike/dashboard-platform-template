@@ -32,6 +32,7 @@ const LogsPage = lazy(() => import("@/pages/admin/LogsPage"));
 const JobsPage = lazy(() => import("@/pages/admin/JobsPage"));
 const GroupsPage = lazy(() => import("@/pages/admin/GroupsPage"));
 const OrganizationsPage = lazy(() => import("@/pages/admin/OrganizationsPage"));
+const ApiClientsPage = lazy(() => import("@/pages/admin/ApiClientsPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
@@ -435,11 +436,9 @@ export default function App() {
         <Route
           path="admin/api"
           element={
-            <PlaceholderPage
-              section="§25"
-              summary="API clients, credentials, scopes, rate limits and usage."
-              bullets={["A secret is shown once, at creation, and never again (§76)"]}
-            />
+            <Suspense fallback={<Loading />}>
+              <ApiClientsPage />
+            </Suspense>
           }
         />
         <Route

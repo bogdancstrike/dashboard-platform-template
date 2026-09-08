@@ -1639,6 +1639,79 @@
         "module_name": "src.api.organizations",
         "method_name": "department"
       }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "api_client_catalogue",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/api-clients/catalogue",
+      "description": "Statuses and the scopes this caller may grant.",
+      "exec_method": {
+        "module_name": "src.api.api_clients",
+        "method_name": "catalogue"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "api_client_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/admin/api-clients",
+      "description": "Every API client \u2014 or a new one, whose secret is shown once.",
+      "exec_method": {
+        "module_name": "src.api.api_clients",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "api_client_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/admin/api-clients/<string:client_id>",
+      "description": "One client with its credentials and recent requests; edit or retire it.",
+      "exec_method": {
+        "module_name": "src.api.api_clients",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "api_client_rotate",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/admin/api-clients/<string:client_id>/rotate",
+      "description": "Mint a new credential and put the old one on a deadline.",
+      "exec_method": {
+        "module_name": "src.api.api_clients",
+        "method_name": "rotate"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "api_credential_item",
+      "model_name": "Empty",
+      "request_method": [
+        "DELETE"
+      ],
+      "api_url": "/admin/api-credentials/<string:credential_id>",
+      "description": "Revoke one credential now, keeping the row.",
+      "exec_method": {
+        "module_name": "src.api.api_clients",
+        "method_name": "credential"
+      }
     }
   ]
 }

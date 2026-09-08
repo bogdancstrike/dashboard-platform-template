@@ -1484,6 +1484,72 @@ commit — built, committed, pushed, redeployed and verified before the next.
       instead of ninety-nine hand-written `String(...)` calls waiting to be
       the fourth
 
+- [x] **`/admin/api` — the machines that call this platform** (§25)
+  - **A secret is shown once, and that is a *property* rather than a policy.**
+      Only `secret_hash` is stored, so there is nothing to show a second time —
+      which changes what is worth testing: not "the second request is refused"
+      but that the plaintext is in no row and no later response. The e2e mints
+      one, then asks every endpoint that returns that credential in turn and
+      greps the database for it
+  - **The page is built around losing it being hard.** A modal, not a toast: a
+      notification that scrolls away takes the key with it, and the recovery is
+      minting another and redeploying whatever held the old one. It cannot be
+      dismissed by clicking the mask, and confirming asks again with a way
+      back
+  - **A client cannot be scoped beyond what its creator holds.** Scopes come
+      from the permission catalogue, so granting one to a machine is granting a
+      permission — a client scoped `users.impersonate` is a machine that can
+      become anybody. Without the ceiling `api.manage` would be worth
+      everything in the catalogue, the same escalation `/admin/groups` had to
+      close. Only ADMINISTRATOR holds `api.manage` today; the rule is there so
+      that stays true if a narrower role ever gets it, and it is asserted with
+      a synthetic caller holding `api.manage` and little else. The *form*
+      offers only the caller's own scopes and counts what it withheld, since a
+      form offering the whole catalogue and refusing half on save is a form
+      that produces an error on purpose
+  - **Rotation issues a new credential and gives the old one a deadline.** A
+      rotation that killed the previous secret the instant a new one was minted
+      is not a rotation, it is an outage with extra steps — every caller
+      holding the old key fails until somebody redeploys them. Seven days is
+      long enough for a deploy and short enough to be a deadline, and it never
+      *extends* a key that already expires sooner. `rotated_from` records the
+      chain, which is what makes "how old is the key this service uses" a
+      question with an answer
+  - **A revoked credential is kept**, because the question after a leak is
+      always when and by whom and a row that vanished answers neither. Revoking
+      twice is refused: "revoke" succeeding twice suggests the first did not
+      take. And retiring a client revokes every live key it holds — a
+      soft-deleted client whose credentials stayed live would be a consumer
+      nothing lists any more, still able to call, which is exactly the shape of
+      bug a retired *group* had
+  - **A credential's state is derived from its dates, not read from its
+      column.** A key whose `expires_at` passed last Tuesday is expired
+      whatever `status` says, and revoked beats expired: a key revoked before
+      it ran out was revoked
+  - **`requests_total` was checked against the request log before assuming a
+      defect.** Three point seven million lifetime against twelve logged rows
+      looks like the `headcount` problem and is not: the counter is a lifetime
+      figure and the log is a recent window the gateway keeps. So the fix was
+      *labelling* rather than recomputing — "Requests (lifetime)" beside "In
+      the log below", because a screen that put them together unlabelled would
+      read as one answer that happens to be wrong (§71)
+  - **A date is not an answer**, so `credentialStory` says "Expires in 7 days"
+      and "Expires today — redeploy now" rather than printing a date the reader
+      has to subtract from today. EXPIRED gets a warning tone and REVOKED none:
+      expiry is usually a rotation nobody finished, revocation is a decision
+      somebody made, and colouring the second red would put every deliberate
+      act on the same footing as a fault (§64)
+  - **Two defects the tests found.** After minting a key the page was supposed
+      to open the client it had just made, and did not: `set({ client: id })`
+      ran *after* an `await`, and the navigation was lost — so somebody who had
+      just minted a secret landed back on the list. And the spec's own cleanup
+      matched clients by name prefix with `find()`, which swept an *earlier*
+      run's row and left the new one behind three times over; it takes the id
+      out of the address now
+  - Also: an AntD `Modal` forwards unknown props to a wrapper that exists at
+      zero size even when open, so `data-testid` on the component is never
+      "visible" — it belongs on the content
+
 - [ ] **Variety in how "create" opens** — a wizard where the decision has
       parts, a drawer for one object's fields, a plain modal for one question.
       The dashboard wizard is the first; the rest of the modules follow
@@ -1492,8 +1558,8 @@ commit — built, committed, pushed, redeployed and verified before the next.
       `/files`, `/workflows`, `/calendar`, `/mail`, `/home` and the
       administration index with `/admin/settings`, `/admin/flags`,
       `/admin/logs`, `/admin/jobs`, `/admin/groups` and `/admin/organizations`
-      are done.
-      Remaining: `/admin/api` (§25), `/admin/integrations` (§26),
+      and `/admin/api` are done.
+      Remaining: `/admin/integrations` (§26),
       `/favorites`, `/import` (§29), `/exports` (§30), `/settings/security`
       (§41) and the two `/showcase/*` pages — every one of which already has
       its model and its seeded rows
@@ -1806,7 +1872,7 @@ section is a cross-cutting rule rather than a page.
 | 22 | System logs | `/admin/logs` | `/admin/logs` | [x] |
 | 23 | Background jobs | `/admin/jobs` | `/admin/jobs` | [x] |
 | 24 | System health | `/admin/health` | `/health/status` | [x] API |
-| 25 | API management | `/admin/api` | `/admin/api-clients` | [ ] |
+| 25 | API management | `/admin/api` | `/admin/api-clients` | [x] |
 | 26 | Integrations | `/admin/integrations` | `/admin/integrations` | [ ] |
 | 27 | Feature flags | `/admin/flags` | `/admin/flags` | [x] |
 | 28 | Reports | `/reports`, `/reports/builder` | `/api/reports`, `/api/analysis/run` | [x] |

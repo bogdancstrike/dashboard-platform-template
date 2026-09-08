@@ -2725,7 +2725,267 @@ const ORG_TREES: Record<string, Record<string, unknown>> = {
   },
 };
 
+/**
+ * API clients and their credentials (§25).
+ *
+ * The fixture mints a *different* secret each call and never stores it, so a
+ * page that tried to read one back finds nothing — the same property the
+ * service has. And it carries one client with no live key at all, which is the
+ * state the page has to warn about rather than draw as "0 of 3".
+ */
+export const apiClientRows: Record<string, unknown>[] = [];
+
+let mintCounter = 0;
+
+function mintedSecret(): { secret: string; prefix: string } {
+  mintCounter += 1;
+  const secret = `nuc_fixture${String(mintCounter).padStart(4, "0")}abcdefghijklmnop`;
+  return { secret, prefix: secret.slice(0, 12) };
+}
+
+function credential(overrides: Record<string, unknown>): Record<string, unknown> {
+  return {
+    label: "Initial key",
+    state: "ACTIVE",
+    created_at: "2026-08-01T09:00:00Z",
+    expires_at: null,
+    last_used_at: "2026-09-07T09:00:00Z",
+    revoked_at: null,
+    rotated_from_id: null,
+    ...overrides,
+  };
+}
+
+function apiClient(overrides: Record<string, unknown>): Record<string, unknown> {
+  return {
+    description: null,
+    status: "ACTIVE",
+    scopes: [],
+    rate_limit_per_minute: 600,
+    quota_per_day: 100000,
+    requests_today: 0,
+    requests_total: 0,
+    error_rate: 0,
+    last_used_at: null,
+    allowed_ips: [],
+    credential_count: 0,
+    live_credentials: 0,
+    created_at: "2026-08-01T09:00:00Z",
+    ...overrides,
+  };
+}
+
+const API_CREDENTIALS: Record<string, Array<Record<string, unknown>>> = {};
+
+function seedApiClients(): void {
+  apiClientRows.length = 0;
+  mintCounter = 0;
+  for (const key of Object.keys(API_CREDENTIALS)) delete API_CREDENTIALS[key];
+
+  apiClientRows.push(
+    apiClient({
+      id: "cli-warehouse", name: "Warehouse sync", client_id: "nuc-warehouse01",
+      scopes: ["records.view", "records.update"],
+      requests_total: 3_778_870, requests_today: 4_120, error_rate: 0.028,
+      last_used_at: "2026-09-08T08:00:00Z",
+      credential_count: 2, live_credentials: 1,
+    }),
+    // Every key gone: the page must say it cannot call at all, not "0 of 1".
+    apiClient({
+      id: "cli-retired", name: "Old importer", client_id: "nuc-importer01",
+      status: "SUSPENDED", scopes: ["records.import"],
+      credential_count: 1, live_credentials: 0,
+    }),
+  );
+
+  API_CREDENTIALS["cli-warehouse"] = [
+    credential({ id: "cred-live", prefix: "nuc_live0001", label: "Current key" }),
+    credential({
+      id: "cred-old", prefix: "nuc_old00001", label: "Rotated out",
+      state: "REVOKED", revoked_at: "2026-09-01T09:00:00Z",
+    }),
+  ];
+  API_CREDENTIALS["cli-retired"] = [
+    credential({
+      id: "cred-expired", prefix: "nuc_exp00001", label: "Expired key",
+      state: "EXPIRED", expires_at: "2026-08-20T09:00:00Z",
+    }),
+  ];
+}
+
+seedApiClients();
+
+export function resetApiClients(): void {
+  seedApiClients();
+}
+
+const API_REQUESTS = [
+  {
+    id: "req-1", requested_at: "2026-09-08T08:00:00Z", method: "GET",
+    path: "/platform/api/records/project", status_code: 200, duration_ms: 42,
+    ip_address: "10.0.0.4", bytes_out: 8120,
+  },
+  {
+    id: "req-2", requested_at: "2026-09-08T07:59:00Z", method: "POST",
+    path: "/platform/api/records/order", status_code: 422, duration_ms: 12,
+    ip_address: "10.0.0.4", bytes_out: 210,
+  },
+];
+
 export const handlers = [
+  http.get("/platform/admin/api-clients/catalogue", ({ request }) =>
+    echo(request, {
+      fields: [{ name: "name", label: "Name", kind: "text" }],
+      default_columns: ["name", "status", "scopes", "requests_total", "last_used_at"],
+      statuses: ["ACTIVE", "SUSPENDED", "REVOKED"],
+      scopes: [
+        { code: "records.view", label: "View records" },
+        { code: "records.update", label: "Edit records" },
+        { code: "records.import", label: "Import records" },
+        { code: "audit.view", label: "View the audit log" },
+      ],
+      // Two the caller cannot grant, so the form can say why they are absent.
+      withheld_scopes: ["roles.manage", "users.impersonate"],
+      rotation_grace_days: 7,
+      total: apiClientRows.length,
+    }),
+  ),
+  http.post("/platform/admin/api-clients/:id/rotate", async ({ params, request }) => {
+    const id = String(params["id"]);
+    const row = apiClientRows.find((item) => item["id"] === id);
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    const body = (await request.json()) as Record<string, unknown>;
+    const replacingId = text(body["credential_id"]);
+
+    const list = API_CREDENTIALS[id] ?? [];
+    let replaced: Record<string, unknown> | null = null;
+    if (replacingId) {
+      replaced = list.find((item) => item["id"] === replacingId) ?? null;
+      if (replaced) {
+        // A deadline, not a death: the whole point of the grace period.
+        replaced["expires_at"] = "2026-09-15T09:00:00Z";
+      }
+    }
+
+    const { secret, prefix } = mintedSecret();
+    const fresh = credential({
+      id: `cred-${prefix}`, prefix, label: "Rotated",
+      rotated_from_id: replaced ? String(replaced["id"]) : null,
+    });
+    list.unshift(fresh);
+    API_CREDENTIALS[id] = list;
+    row["credential_count"] = list.length;
+    row["live_credentials"] = list.filter((item) => item["state"] === "ACTIVE").length;
+
+    return HttpResponse.json(
+      {
+        credential: fresh,
+        // Minted fresh each time and stored nowhere: the fixture has the same
+        // property the service does.
+        secret,
+        secret_shown_once: true,
+        replaced,
+        grace_days: replaced ? 7 : null,
+      },
+      { status: 201 },
+    );
+  }),
+  http.delete("/platform/admin/api-credentials/:id", ({ params, request }) => {
+    const id = String(params["id"]);
+    for (const [clientId, list] of Object.entries(API_CREDENTIALS)) {
+      const found = list.find((item) => item["id"] === id);
+      if (!found) continue;
+      if (found["state"] === "REVOKED") {
+        return HttpResponse.json(
+          { error: "conflict", message: "That key was already revoked." },
+          { status: 409 },
+        );
+      }
+      found["state"] = "REVOKED";
+      found["revoked_at"] = "2026-09-08T10:00:00Z";
+      const row = apiClientRows.find((item) => item["id"] === clientId);
+      if (row) {
+        row["live_credentials"] = list.filter((item) => item["state"] === "ACTIVE").length;
+      }
+      return echo(request, found);
+    }
+    return HttpResponse.json({ message: "not found" }, { status: 404 });
+  }),
+  http.get("/platform/admin/api-clients/:id", ({ params, request }) => {
+    const id = String(params["id"]);
+    const row = apiClientRows.find((item) => item["id"] === id);
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    const credentials = API_CREDENTIALS[id] ?? [];
+    const requests = id === "cli-warehouse" ? API_REQUESTS : [];
+    return echo(request, {
+      ...row,
+      credentials,
+      recent_requests: requests,
+      recent_window: requests.length,
+      recent_failures: requests.filter((item) => item.status_code >= 400).length,
+    });
+  }),
+  http.put("/platform/admin/api-clients/:id", async ({ params, request }) => {
+    const row = apiClientRows.find((item) => item["id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    Object.assign(row, (await request.json()) as Record<string, unknown>);
+    return echo(request, row);
+  }),
+  http.delete("/platform/admin/api-clients/:id", ({ params, request }) => {
+    const id = String(params["id"]);
+    const index = apiClientRows.findIndex((item) => item["id"] === id);
+    if (index < 0) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    const [row] = apiClientRows.splice(index, 1);
+    const live = (API_CREDENTIALS[id] ?? []).filter((item) => item["state"] === "ACTIVE");
+    for (const item of live) item["state"] = "REVOKED";
+    return echo(request, {
+      deleted: true,
+      name: text(row!["name"]),
+      credentials_revoked: live.length,
+    });
+  }),
+  http.get("/platform/admin/api-clients", ({ request }) => {
+    const url = new URL(request.url);
+    const term = (url.searchParams.get("q") ?? "").toLowerCase();
+    const matched = apiClientRows.filter((row) => {
+      if (!term) return true;
+      return [row["name"], row["client_id"]]
+        .map((value) => text(value).toLowerCase())
+        .join(" ")
+        .includes(term);
+    });
+    return echo(request, {
+      items: matched,
+      total: matched.length,
+      page: 1,
+      page_size: 100,
+      pages: 1,
+      sort: "name",
+      order: "asc",
+      facets: {},
+      columns: ["name", "status", "scopes", "requests_total", "last_used_at"],
+    });
+  }),
+  http.post("/platform/admin/api-clients", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const { secret, prefix } = mintedSecret();
+    const id = `cli-${prefix}`;
+    const fresh = credential({ id: `cred-${prefix}`, prefix });
+    const row = apiClient({
+      id,
+      name: text(body["name"]),
+      client_id: `nuc-${prefix}`,
+      scopes: Array.isArray(body["scopes"]) ? (body["scopes"] as string[]).sort() : [],
+      credential_count: 1,
+      live_credentials: 1,
+    });
+    apiClientRows.push(row);
+    API_CREDENTIALS[id] = [fresh];
+    return HttpResponse.json(
+      { ...row, credential: fresh, secret, secret_shown_once: true },
+      { status: 201 },
+    );
+  }),
   http.get("/platform/admin/organizations/catalogue", ({ request }) =>
     echo(request, {
       fields: [{ name: "name", label: "Name", kind: "text" }],
