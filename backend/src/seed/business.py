@@ -232,7 +232,44 @@ def _tasks(world: World) -> None:
         parent = rng.pick(parents)
         world.tasks.append(_make(projects_by_id[parent.project_id], parent=parent))
 
+    _cover_every_task_status(world, rng)
     _roll_up_task_counts(world)
+
+
+def _cover_every_task_status(world: World, rng) -> None:
+    """Make sure every declared status has at least one task.
+
+    The statuses are weighted, so at a small scale one can come out empty —
+    and `/tasks` is a *board*, where an empty lane is not a quirk of the data
+    but a column of nothing next to six columns of something. It is also a
+    ratchet: the end-to-end suite moves a card between lanes and puts it back
+    only when it passes, so a run that fails drains the lane it took from.
+    `NEW` reached zero that way, after which every later run failed for want
+    of a card to drag.
+
+    Reassigns from the fullest lane rather than inventing tasks: the volume
+    targets are what the scale asked for, and a seed that quietly builds extra
+    rows to satisfy a property is a seed whose counts cannot be relied on.
+    """
+    from collections import Counter
+
+    from src.core import vocabulary
+
+    for status in vocabulary.TASK_STATUS:
+        counted = Counter(task.status for task in world.tasks)
+        if counted.get(status, 0) > 0:
+            continue
+        fullest, _count = counted.most_common(1)[0]
+        donor = next(task for task in world.tasks if task.status == fullest)
+        donor.status = status
+        # The moments have to follow the status, or the board shows a task
+        # that is `NEW` and was started last Tuesday.
+        if status == "NEW":
+            donor.started_at = None
+        if status != "DONE":
+            donor.completed_at = None
+        elif donor.completed_at is None:
+            donor.completed_at = rng.between(donor.started_at or donor.created_at, world.anchor)
 
 
 def _roll_up_task_counts(world: World) -> None:

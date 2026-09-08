@@ -648,6 +648,76 @@ commit — built, committed, pushed, redeployed and verified before the next.
     initials avatar's default ground carries white text at 1.84:1, so every
     avatar without a photograph was illegible
   - 8 backend tests, 7 component tests, 11 Playwright
+- [x] **`/announcements` is implemented** (§17, §34) — the platform talking to
+      the people using it
+  - **Not a notification, and modelled as neither.** A notification is one
+    person's: addressed, read once, gone. An announcement is a *notice* —
+    written once for many readers, true for a window, and whether a given
+    person has seen it is a fact about that person. So: the notice in
+    `announcements`, the reader's side in `announcement_receipts`, written on
+    the reader's *action* rather than at publish time (a row per reader up
+    front grows with notices × people and makes editing a published notice a
+    write to thousands of rows)
+  - **"Live" is computed, never stored.** A `status` swept to `EXPIRED` by a
+    job is wrong between sweeps, and the sweep is exactly the thing nobody
+    notices has stopped
+  - **The audience is what a reader *is*.** An empty `audience_roles` means
+    everybody; a role code means anybody holding it. A notice addressed by
+    enumerating recipients silently misses whoever joined after it was
+    written — which for a maintenance window is the population that most
+    needs it. Filtered in SQL: a page that downloaded it and chose not to draw
+    it has published it to anybody with a debugger
+  - **Reading and acknowledging are separate columns**, because "everybody has
+    seen it" and "eleven people agreed to it" are different questions.
+    Reading is recorded on arrival — the notice *was* on screen — and
+    acknowledging takes a button that says what it commits the reader to
+  - Two audiences on one route: a reader gets prose (what a maintenance notice
+    *says* is why they opened the page), an author gets a table of states and
+    reach (they are comparing twenty). One click apart, and the second is
+    absent without `announcements.manage`
+  - 15 backend tests, 12 component tests, 6 Playwright, and `--sync-roles`
+    carries the new permission to existing installations
+- [x] **A missing *table* can now be added without a destructive reseed** —
+      `--sync-schema` reported one and refused to create it, advising "run the
+      seed", which is advice a populated database cannot take. `CREATE TABLE`
+      touches no existing row, so it belongs on the additive side of that
+      line. Found by needing it: announcements are two new tables
+- [x] **The backend suite cleans up after itself** — 560 dashboards, 151
+      reports and 38 announcements had accumulated in the development
+      database, one `database`-marked test run at a time. Every one was
+      invisible in the suite's output and perfectly visible on the pages a
+      reviewer opens. An autouse fixture now deletes what a test created and
+      nothing older; a transaction rollback would be the textbook answer and
+      cannot work here, because the app opens and commits its own sessions —
+      which is the behaviour under test
+- [x] **The audit export was silently truncating past ~1000 rows** — a 1042-row
+      ledger wrote 1001 one run and 1008 the next, with a 200 on it: the
+      truncated download `core/export` exists to prevent, arriving by a route
+      nobody had thought of. `yield_per` holds a server-side cursor open across
+      a response that is generated *after* the view returns; `partitions`
+      materialises each chunk instead. Found because adding announcements
+      pushed the table past the threshold
+- [x] **Five e2e leaks and load flakes, none of them the product** — the
+      suite is now green twice over at 162 tests
+  - The e2e helpers asked Keycloak for a token in every `afterEach`; the realm
+    is brute-force protected, so a few hundred direct grants started returning
+    401 on whichever spec happened to be running. `signIn` now hands the
+    browser's own token to the sweeps, which costs nothing
+  - The board spec put its card back at the end of the happy path, so a failed
+    run left it in the lane it had dragged it to. `NEW` lost one task per
+    failed run until it held none — after which every run failed for want of a
+    card to drag, taking another one with it. Restored unconditionally now,
+    and the *seed* guarantees every declared status has a task, because an
+    empty lane on a board is a column of nothing
+  - The saved-search and announcement sweeps matched a title *prefix*, which
+    under `fullyParallel` deleted a sibling test's fixture mid-test; both
+    sweep exactly what they created. The saved-search sweep also has to use
+    the *owning* persona, since only an owner may delete one (§5)
+  - Five tests ended by driving the delete UI as cleanup and flaked on the
+    panel's re-render; one asserts the delete flow, the rest use the sweep
+  - The timeouts moved to 60s (test) and 45s (sign-in), because every failure
+    they produced was a *timeout under load* — three workers against one API
+    container and one Keycloak — and never a wrong value
 - [ ] **`/home` is the default landing page** — the platform's name and logo,
       the reader's own announcements, notifications and preferences, and
       whatever else is worth seeing on arrival

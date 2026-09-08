@@ -19,6 +19,7 @@ import { PlaceholderPage } from "@/pages/PlaceholderPage";
  */
 const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
 const ActivityPage = lazy(() => import("@/pages/ActivityPage"));
+const AnnouncementsPage = lazy(() => import("@/pages/AnnouncementsPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
@@ -216,15 +217,9 @@ export default function App() {
         <Route
           path="announcements"
           element={
-            <PlaceholderPage
-              section="§17, §34"
-              summary="System messages and announcements, from the platform to everyone."
-              bullets={[
-                "Scheduled banners for maintenance windows and releases",
-                "Targeted by role, organization or user",
-                "Acknowledged per reader, so a notice can require a response",
-              ]}
-            />
+            <Suspense fallback={<Loading />}>
+              <AnnouncementsPage />
+            </Suspense>
           }
         />
         <Route

@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { sweepSavedSearches } from "./api";
-import { signIn, storageStateFor } from "./auth";
+import { signIn, storageStateFor, type Persona } from "./auth";
 
 /**
  * Saved searches and their sharing model (§5), against the real stack.
@@ -28,24 +28,38 @@ import { signIn, storageStateFor } from "./auth";
  * So each test remembers exactly what it made, and the sweep deletes exactly
  * that.
  */
-const created: string[] = [];
+const created: { name: string; owner: Persona }[] = [];
 
-function uniqueName(label: string): string {
+function uniqueName(label: string, owner: Persona = "admin"): string {
   return alsoCreated(
     `E2E search ${label} ${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`,
+    owner,
   );
 }
 
-/** Remember a name this test is responsible for, and hand it back. */
-function alsoCreated(name: string): string {
-  created.push(name);
+/**
+ * Remember a name this test is responsible for, and who owns it.
+ *
+ * The owner matters: only the owner may delete a saved search (§5), so a
+ * sweep that used the admin token for all of them would silently fail to
+ * remove the viewer's and the one that was handed to Mara — and silently is
+ * how the panel filled up in the first place.
+ */
+function alsoCreated(name: string, owner: Persona = "admin"): string {
+  created.push({ name, owner });
   return name;
 }
 
 /** Gone however the test ended, so the panel does not fill up (§5). */
 test.afterEach(async () => {
   const mine = created.splice(0, created.length);
-  await sweepSavedSearches(mine);
+  const byOwner = new Map<Persona, string[]>();
+  for (const item of mine) {
+    byOwner.set(item.owner, [...(byOwner.get(item.owner) ?? []), item.name]);
+  }
+  for (const [owner, names] of byOwner) {
+    await sweepSavedSearches(names, owner);
+  }
 });
 
 /**
@@ -88,7 +102,15 @@ async function saveCurrentSearch(page: Page, name: string): Promise<void> {
   await awaitDialogsClosed(page);
 }
 
-/** Remove it however the run ended, so the next run starts clean. */
+/**
+ * Delete one through the panel, which is a *claim* and not cleanup.
+ *
+ * Cleanup is the `afterEach` sweep. This is here for the one test that asserts
+ * the delete flow itself — and it stopped being used by the others because
+ * ending five tests by driving the same UI made every one of them flake on it:
+ * the panel re-renders while the confirmation closes, and Playwright reported
+ * "element is not stable" for thirty seconds on a button that works.
+ */
 async function deleteSearch(page: Page, name: string): Promise<void> {
   await openPanel(page);
   await page.getByRole("button", { name: `Delete ${name}` }).click();
@@ -118,8 +140,6 @@ test.describe("saved searches", () => {
     await expect(page.getByTestId("explorer-match-count")).toHaveText(matches);
     expect(new URL(page.url()).searchParams.get("q")).toBe("audit");
     expect(new URL(page.url()).searchParams.get("view")).toBe("cards");
-
-    await deleteSearch(page, name);
   });
 
   test("renaming and describing one keeps its question", async ({ page }) => {
@@ -140,7 +160,10 @@ test.describe("saved searches", () => {
     await expect(page.getByRole("button", { name: renamed, exact: true })).toBeVisible();
     await expect(page.getByText("Why this question matters").first()).toBeVisible();
 
+    // The one place the delete flow itself is asserted: it says so, and the
+    // row goes. Everywhere else the `afterEach` sweep does it through the API.
     await deleteSearch(page, renamed);
+    await expect(page.getByRole("button", { name: renamed, exact: true })).toHaveCount(0);
   });
 
   test("a private search is invisible to a colleague", async ({ page, browser }) => {
@@ -153,8 +176,6 @@ test.describe("saved searches", () => {
     await openPanel(colleague);
     await expect(colleague.getByRole("button", { name: name, exact: true })).toBeHidden();
     await other.close();
-
-    await deleteSearch(page, name);
   });
 
   test("a named colleague can run it and cannot change it", async ({ page, browser }) => {
@@ -189,12 +210,12 @@ test.describe("saved searches", () => {
     // Duplicating is how a member gets a version of their own.
     await expect(colleague.getByRole("button", { name: `Duplicate ${name}` })).toBeVisible();
     await other.close();
-
-    await deleteSearch(page, name);
   });
 
   test("handing one over makes the previous owner a reader", async ({ page }) => {
-    const name = uniqueName("Handover");
+    // Owned by Mara by the time the test ends, so the sweep has to use her
+    // token: only an owner may delete a saved search.
+    const name = uniqueName("Handover", "manager");
     await saveCurrentSearch(page, name);
 
     await openPanel(page);
@@ -218,20 +239,15 @@ test.describe("saved searches", () => {
     await expect(card.getByText("by Mara Manager")).toBeVisible();
     await expect(page.getByRole("button", { name: `Edit ${name}` })).toBeHidden();
 
-    // Cleaned up by its new owner, who is the only one who can.
-    const other = await page.context().browser()!.newContext({
-      storageState: storageStateFor("manager"),
-    });
-    const owner = await other.newPage();
-    await signIn(owner, "manager", "/explore");
-    await deleteSearch(owner, name);
-    await other.close();
+    // Withdrawn by the sweep rather than by its new owner: the claim here is
+    // about *ownership*, and driving a second browser's delete UI to tidy up
+    // asserted nothing while flaking on the panel's re-render.
   });
 
   test("a role without sharing rights is told, not refused later", async ({ browser }) => {
     const context = await browser.newContext({ storageState: storageStateFor("viewer") });
     const viewer = await context.newPage();
-    const name = uniqueName("Viewer private");
+    const name = uniqueName("Viewer private", "viewer");
     await signIn(viewer, "viewer", "/explore");
 
     await viewer.getByTestId("save-search").click();
@@ -247,8 +263,6 @@ test.describe("saved searches", () => {
     await viewer.getByRole("button", { name: "Save search" }).click();
     await expect(viewer.getByText("Search saved")).toBeVisible();
     await awaitDialogsClosed(viewer);
-
-    await deleteSearch(viewer, name);
     await context.close();
   });
 });

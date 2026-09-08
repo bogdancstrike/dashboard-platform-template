@@ -22,9 +22,10 @@ from src.models.personal import (  # noqa: F401
     Report, ResourceShare, SavedSearch, SavedView,
 )
 from src.models.platform import (  # noqa: F401
-    ActivityEntry, AlertRule, ApiClient, ApiCredential, ApiRequestLog, AuditLog,
-    BackgroundJob, FeatureFlag, ImportRun, Integration, Notification,
-    ScheduledTask, ServiceHealth, SystemLog, SystemSetting,
+    ActivityEntry, AlertRule, Announcement, AnnouncementReceipt, ApiClient,
+    ApiCredential, ApiRequestLog, AuditLog, BackgroundJob, FeatureFlag,
+    ImportRun, Integration, Notification, ScheduledTask, ServiceHealth,
+    SystemLog, SystemSetting,
 )
 
 __all__ = ["Base"]

@@ -638,6 +638,80 @@ DASHBOARD_WIDGETS: tuple[tuple[str, str, str], ...] = (
     ("HEATMAP", "Activity by day", "activity"),
 )
 
+#: Announcements, as the platform would actually word them (§17).
+#:
+#: `(title, category, severity, body)`. Written out rather than generated
+#: because a notice is *prose* — a maintenance window assembled from a template
+#: reads like one, and a demo dataset whose announcements are obviously
+#: machine-made is a demo of the wrong thing.
+ANNOUNCEMENTS: tuple[tuple[str, str, str, str], ...] = (
+    (
+        "Scheduled maintenance this Sunday, 02:00–04:00 UTC",
+        "MAINTENANCE", "WARNING",
+        "The platform will be read-only for up to two hours while the primary "
+        "database is upgraded. Exports queued during the window will run "
+        "afterwards; nothing needs to be re-submitted.",
+    ),
+    (
+        "Release 2.4 — saved dashboards and the map view",
+        "RELEASE", "INFO",
+        "Dashboards can now be shared the way saved searches are, and every "
+        "dataset that reaches a place can be drawn on the map. See the release "
+        "notes for the full list.",
+    ),
+    (
+        "Single sign-on is now required for every account",
+        "POLICY", "CRITICAL",
+        "Password sign-in has been disabled. If you have a service account "
+        "that still authenticates with a password, move it to an API "
+        "credential before the end of the month.",
+    ),
+    (
+        "Degraded search performance, 09:12–10:40 UTC",
+        "INCIDENT", "WARNING",
+        "Global search returned slowly or timed out for about ninety minutes "
+        "this morning. The cause was an unindexed query on the activity feed; "
+        "it has been fixed and search is back to normal.",
+    ),
+    (
+        "New export limits",
+        "POLICY", "INFO",
+        "Exports are capped at 250 000 rows. Anything larger is queued as a "
+        "background job and delivered as a download link.",
+    ),
+    (
+        "Welcome to the new reporting workspace",
+        "NEWS", "INFO",
+        "Reports and charts are now built from one question. Anything you had "
+        "saved still opens; the builder simply asks for it in fewer places.",
+    ),
+    (
+        "Certificate rotation on the API gateway",
+        "MAINTENANCE", "INFO",
+        "The TLS certificate will be replaced on Thursday. Clients that pin "
+        "the old fingerprint will need to be updated.",
+    ),
+    (
+        "Quarterly access review starts Monday",
+        "POLICY", "WARNING",
+        "Every manager will be asked to confirm the permissions their team "
+        "holds. Nothing is revoked automatically, but unreviewed access is "
+        "reported to the security group.",
+    ),
+    (
+        "Read-only replica now serves reports",
+        "RELEASE", "INFO",
+        "Long-running reports are answered by a replica, so a heavy analysis "
+        "no longer slows the record pages down.",
+    ),
+    (
+        "Data retention: audit entries older than two years",
+        "POLICY", "INFO",
+        "Audit entries are now archived after twenty-four months rather than "
+        "kept indefinitely. Archived entries remain retrievable on request.",
+    ),
+)
+
 REPORT_NAMES: tuple[tuple[str, str, str], ...] = (
     ("Revenue by region", "order", "bar"),
     ("Ticket volume by category", "ticket", "line"),

@@ -62,6 +62,10 @@ PERMISSION_GROUPS: dict[str, list[tuple[str, str]]] = {
         ("roles.manage", "Manage roles and permissions"),
         ("orgs.manage", "Manage organizations"),
         ("settings.manage", "Manage system settings"),
+        # Reading a notice needs nothing beyond being signed in — it is
+        # addressed to everybody by definition. Writing one is a broadcast,
+        # and that is the privilege.
+        ("announcements.manage", "Write and publish announcements"),
         ("flags.manage", "Manage feature flags"),
         ("integrations.manage", "Manage integrations"),
         ("api.manage", "Manage API credentials"),
@@ -118,7 +122,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
         "permissions": [
             "records.view", "records.create", "records.update", "records.export",
             "records.comment", "records.import", "records.bulk",
-            "users.view", "users.manage",
+            "users.view", "users.manage", "announcements.manage",
             "jobs.view", "jobs.manage", "audit.view", "health.view", "logs.view",
             "tasks.view", "tasks.manage", "mail.access",
             "files.view", "files.manage", "calendar.view", "calendar.manage",

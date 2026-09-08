@@ -754,6 +754,65 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "announcements_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/announcements",
+      "description": "The notices addressed to this reader, and writing one (announcements.manage).",
+      "exec_method": {
+        "module_name": "src.api.announcements",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "announcements_drafts",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/announcements/drafts",
+      "description": "Every announcement whatever its state \u2014 the author's list.",
+      "exec_method": {
+        "module_name": "src.api.announcements",
+        "method_name": "drafts"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "announcements_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/announcements/<uuid:announcement_id>",
+      "description": "One announcement: read it, change it, or withdraw it.",
+      "exec_method": {
+        "module_name": "src.api.announcements",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "announcements_receipt",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/announcements/<uuid:announcement_id>/receipt",
+      "description": "Record that this reader has seen \u2014 or agreed to \u2014 this announcement.",
+      "exec_method": {
+        "module_name": "src.api.announcements",
+        "method_name": "receipt"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "activity_collection",
       "model_name": "Empty",
       "request_method": [

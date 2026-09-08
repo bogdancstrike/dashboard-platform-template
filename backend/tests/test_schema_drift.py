@@ -90,6 +90,50 @@ def test_what_it_cannot_add_is_still_reported_afterwards(engine, probe):
 
 
 @pytest.mark.database
+def test_a_table_the_model_grew_is_created_rather_than_reported(engine):
+    """A missing *table* is additive too, and it used to have no path at all.
+
+    The drift report said "run the seed", which is advice a populated database
+    cannot take — seeding refuses to touch one, rightly. So a model that grew
+    a table (announcements did) left a running installation with a choice
+    between a destructive reseed and a hand-written DDL script. `CREATE TABLE`
+    touches no existing row, so it belongs on this side of the line.
+    """
+    metadata = MetaData()
+    Table("users", metadata, Column("id", PgUUID(as_uuid=True), primary_key=True))
+    Table(
+        "drift_newcomer", metadata,
+        Column("id", Integer, primary_key=True),
+        Column("actor_id", PgUUID(as_uuid=True), ForeignKey("users.id"), index=True),
+        Column("label", String(32), nullable=False),
+    )
+
+    with engine.begin() as connection:
+        connection.execute(text('DROP TABLE IF EXISTS "drift_newcomer"'))
+    try:
+        reported = [item for item in schema.drift(engine, metadata) if item.table == "drift_newcomer"]
+        assert [item.column for item in reported] == [""]
+        assert reported[0].addable
+
+        added = schema.reconcile(engine, metadata)
+        assert [(item.table, item.column) for item in added] == [("drift_newcomer", "")]
+
+        # Created the way a first boot would have: NOT NULL columns and all,
+        # because there are no existing rows to decide anything about.
+        inspector = inspect(engine)
+        columns = {column["name"] for column in inspector.get_columns("drift_newcomer")}
+        assert columns == {"id", "actor_id", "label"}
+        assert inspector.get_indexes("drift_newcomer"), "the declared index was not created"
+
+        # Idempotent: a second run finds nothing to do.
+        assert schema.reconcile(engine, metadata) == []
+        assert not [item for item in schema.drift(engine, metadata) if item.table == "drift_newcomer"]
+    finally:
+        with engine.begin() as connection:
+            connection.execute(text('DROP TABLE IF EXISTS "drift_newcomer"'))
+
+
+@pytest.mark.database
 def test_a_database_that_matches_the_model_has_no_drift(engine):
     """The real schema, which the seed created, against the real model."""
     import src.models as models

@@ -1,5 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 
+import { rememberToken } from "./api";
+
 export const PERSONAS = {
   admin: { username: "admin", password: "admin", name: "Ada Administrator" },
   manager: { username: "manager", password: "manager", name: "Mara Manager" },
@@ -41,11 +43,32 @@ export async function signIn(
   path = "/dashboard",
 ): Promise<void> {
   const account = PERSONAS[persona];
+
+  // Catch the bearer token the app is already using, so the cleanup helpers
+  // never have to ask Keycloak for one of their own. The realm ships with
+  // `bruteForceProtected` enabled — correctly — and a suite that requests a
+  // few hundred direct grants gets 401s that land on whichever spec happens
+  // to be running. This costs nothing: the header is on every API request the
+  // page makes anyway.
+  page.on("request", (request) => {
+    const header = request.headers()["authorization"];
+    if (header?.startsWith("Bearer ") && request.url().includes("/platform/")) {
+      rememberToken(persona, header.slice("Bearer ".length));
+    }
+  });
+
   await page.goto(path);
 
   const username = page.locator('input[name="username"]');
   const banner = page.getByRole("banner").getByText(account.name, { exact: true });
-  await expect(username.or(banner).first()).toBeVisible();
+  // Its own, longer deadline. Signing in is the *slowest* thing in the suite
+  // and the only one that is slow for reasons outside the product: the SPA
+  // boots, redirects to Keycloak, exchanges a code and then waits on
+  // `/api/me`. With three workers against one API container and one Keycloak,
+  // that tail runs past the global expectation cap — and the failure lands as
+  // "the page never rendered", which reads like a product bug and is not one.
+  // Raising the global cap instead would slow down every genuine failure.
+  await expect(username.or(banner).first()).toBeVisible({ timeout: 45_000 });
 
   if (await username.isVisible()) {
     await username.fill(account.username);
@@ -54,5 +77,5 @@ export async function signIn(
   }
 
   await page.waitForURL((url) => url.port === "5174");
-  await expect(banner).toBeVisible();
+  await expect(banner).toBeVisible({ timeout: 45_000 });
 }

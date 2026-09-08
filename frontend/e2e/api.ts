@@ -37,7 +37,28 @@ const API = process.env["API_URL"] ?? "http://localhost:5101/platform/api";
  */
 const tokens = new Map<Persona, Promise<string>>();
 
-/** A bearer token for one of the seeded personas. */
+/**
+ * Keep the token a signed-in browser is using, so nothing here has to ask
+ * Keycloak for one.
+ *
+ * Called from `signIn`, which sees it on every request the app makes. This is
+ * what took the direct grant off the hot path entirely: with three workers and
+ * several specs sweeping, even one grant per worker per persona was enough to
+ * trip the realm's brute-force protection and start returning 401 — and the
+ * failure landed on whichever test was running, never on the sweep that
+ * caused it.
+ */
+export function rememberToken(persona: Persona, token: string): void {
+  tokens.set(persona, Promise.resolve(token));
+}
+
+/**
+ * A bearer token for one of the seeded personas.
+ *
+ * The browser's, when a `signIn` has happened in this worker; otherwise a
+ * direct grant, which the realm allows for the SPA client and which is the
+ * only option for a sweep that runs before anything has signed in.
+ */
 function tokenFor(persona: Persona): Promise<string> {
   const cached = tokens.get(persona);
   if (cached) return cached;
@@ -91,6 +112,116 @@ export async function apiAs(persona: Persona = "admin"): Promise<APIRequestConte
 /** An absolute API address, so no path is resolved against anything. */
 export function endpoint(path: string): string {
   return `${API}${path}`;
+}
+
+/**
+ * Put a task back in the lane it was taken from.
+ *
+ * The board spec moves a card between lanes and moved it back at the end of
+ * the happy path — so a run that failed anywhere in between left the task
+ * where it had dragged it. That is a *ratchet*: `NEW` lost one task per failed
+ * run until it held none, after which every later run failed for want of a
+ * card to drag, draining the lane further. Restoring through the API in an
+ * unconditional `afterEach` is what breaks it.
+ *
+ * Found by reference rather than by id because the reference is what the card
+ * shows; the lookup is the explorer's own query, so it cannot disagree with
+ * the list the board drew.
+ */
+export async function restoreTaskStatus(
+  reference: string,
+  status: string,
+  persona: Persona = "admin",
+): Promise<void> {
+  const api = await apiAs(persona);
+  try {
+    const found = await api.post(endpoint("/explorer/query"), {
+      data: {
+        resource_type: "task",
+        filters: { reference },
+        columns: ["reference", "status"],
+        page_size: 1,
+      },
+    });
+    if (!found.ok()) return;
+    const { items } = (await found.json()) as { items: { id: string; status: string }[] };
+    const task = items[0];
+    if (!task || task.status === status) return;
+
+    const current = await api.get(endpoint(`/records/task/${task.id}`));
+    if (!current.ok()) return;
+    const { updated_at } = (await current.json()) as { updated_at: string };
+    await api.put(endpoint(`/records/task/${task.id}`), {
+      // The same optimistic-concurrency contract every write uses (§73): a
+      // restore that ignored the version would be the one write in the suite
+      // that could clobber a concurrent edit.
+      data: { status, expected_updated_at: updated_at },
+    });
+  } finally {
+    await api.dispose();
+  }
+}
+
+/**
+ * Publish a notice, and hand back its id.
+ *
+ * Written through the API rather than through the drawer because these tests
+ * are about what the *reader* sees: driving an author's form first would make
+ * every one of them a test of the form as well, and a failure there would read
+ * as a failure of the noticeboard.
+ *
+ * Not `page.evaluate(fetch(...))`, which was the first attempt: the SPA holds
+ * its bearer token in memory and adds the header itself, so a bare `fetch`
+ * from the page is unauthenticated — and in an `afterEach` the page may
+ * already be on `about:blank`, where a relative URL cannot even be parsed.
+ */
+export async function writeAnnouncement(
+  notice: Record<string, unknown>,
+  persona: Persona = "admin",
+): Promise<string> {
+  const api = await apiAs(persona);
+  try {
+    const response = await api.post(endpoint("/announcements"), {
+      data: {
+        body: "Written by the end-to-end suite.",
+        category: "NEWS",
+        severity: "INFO",
+        status: "PUBLISHED",
+        publish_at: new Date(Date.now() - 60_000).toISOString(),
+        ...notice,
+      },
+    });
+    if (!response.ok()) {
+      throw new Error(`Could not write the notice: ${response.status()} ${await response.text()}`);
+    }
+    return ((await response.json()) as { id: string }).id;
+  } finally {
+    await api.dispose();
+  }
+}
+
+/**
+ * Delete these notices, by id.
+ *
+ * By id and not by title prefix, which was the first version: these tests run
+ * in parallel and a prefix sweep in one test's `afterEach` deleted a sibling's
+ * notice while it was still reading it — the board then showed nothing and the
+ * failure read as "acknowledging did not survive a reload". The same mistake
+ * `sweepSavedSearches` documents, made twice.
+ */
+export async function sweepAnnouncements(
+  ids: string[],
+  persona: Persona = "admin",
+): Promise<void> {
+  if (ids.length === 0) return;
+  const api = await apiAs(persona);
+  try {
+    for (const id of ids) {
+      await api.delete(endpoint(`/announcements/${id}`));
+    }
+  } finally {
+    await api.dispose();
+  }
 }
 
 /**

@@ -53,6 +53,7 @@ class Scale:
     recent_items: int
     dashboards: int
     reports: int
+    announcements: int
 
 
 FULL = Scale(
@@ -89,6 +90,7 @@ FULL = Scale(
     recent_items=450,
     dashboards=30,
     reports=40,
+    announcements=14,
 )
 
 SMALL = Scale(
@@ -125,6 +127,7 @@ SMALL = Scale(
     recent_items=50,
     dashboards=6,
     reports=8,
+    announcements=6,
 )
 
 SCALES: dict[str, Scale] = {FULL.name: FULL, SMALL.name: SMALL}
@@ -175,6 +178,8 @@ class World:
     activity_entries: list[Any] = field(default_factory=list)
     system_logs: list[Any] = field(default_factory=list)
     notifications: list[Any] = field(default_factory=list)
+    announcements: list[Any] = field(default_factory=list)
+    announcement_receipts: list[Any] = field(default_factory=list)
     background_jobs: list[Any] = field(default_factory=list)
     scheduled_tasks: list[Any] = field(default_factory=list)
     feature_flags: list[Any] = field(default_factory=list)

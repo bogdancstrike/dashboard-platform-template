@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { restoreTaskStatus } from "./api";
 import { signIn, storageStateFor } from "./auth";
 
 /**
@@ -23,6 +24,23 @@ import { signIn, storageStateFor } from "./auth";
  */
 
 test.describe.configure({ mode: "serial" });
+
+/**
+ * Where each card was before this file moved it.
+ *
+ * Restored unconditionally, because putting it back at the end of the happy
+ * path is not putting it back: a run that failed in between left the task in
+ * the lane it had been dragged to, and `NEW` lost one task per failed run
+ * until it held none — after which every run failed for want of a card to
+ * drag, taking another one with it.
+ */
+const moved: { reference: string; from: string }[] = [];
+
+test.afterEach(async () => {
+  for (const card of moved.splice(0, moved.length)) {
+    await restoreTaskStatus(card.reference, card.from);
+  }
+});
 
 /** The number in a lane's header pill, which the server counted. */
 async function laneCount(page: Page, status: string): Promise<number> {
@@ -49,10 +67,13 @@ async function settledBoard(page: Page, status: string): Promise<number> {
 /** Move the first card of a lane, by the keyboard path a pointer-free reader uses. */
 async function moveFirstCard(page: Page, from: string, to: string): Promise<string> {
   const card = page.getByTestId(`lane-${from}`).locator(".nu-task-card").first();
-  const reference = (await card.locator(".nu-task-ref").textContent()) ?? "";
+  const reference = ((await card.locator(".nu-task-ref").textContent()) ?? "").trim();
+  // Recorded *before* the move, so the `afterEach` can put it back whatever
+  // happens between here and the end of the test.
+  moved.push({ reference, from });
   await card.getByRole("button", { name: /^Move / }).click();
   await page.getByRole("menuitem", { name: to.replace(/_/g, " ") }).click();
-  return reference.trim();
+  return reference;
 }
 
 test.describe("the task board writes to the record", () => {
@@ -97,6 +118,13 @@ test.describe("the task board writes to the record", () => {
     const reference = await moveFirstCard(page, "NEW", "ASSIGNED");
     await expect.poll(() => laneCount(page, "ASSIGNED"), { timeout: 15_000 }).toBeGreaterThan(0);
 
+    // Settled before clicking. The lane re-sorts by priority every time its
+    // query answers, and a keyed list that reorders *moves the DOM node* — so
+    // a click that arrives mid-reorder reports "element was detached from the
+    // DOM, retrying" and, under load, can keep missing until the test times
+    // out. Waiting for the requests to stop is waiting for the list to hold
+    // still, which is what a person does without thinking about it.
+    await page.waitForLoadState("networkidle");
     const card = page.getByTestId("lane-ASSIGNED").locator(".nu-task-card")
       .filter({ hasText: reference });
     await card.getByText(reference).click();

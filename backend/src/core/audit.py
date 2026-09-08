@@ -18,7 +18,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from src.core.clock import now
+from src.core.clock import iso, now
 
 
 #: Actions the UI offers as filters. Free-form strings are still accepted —
@@ -53,7 +53,38 @@ def is_secret(key: Any) -> bool:
 def redact(payload: dict[str, Any] | None) -> dict[str, Any]:
     if not payload:
         return {}
-    return {key: (MASK if is_secret(key) else value) for key, value in payload.items()}
+    return {
+        key: (MASK if is_secret(key) else jsonable(value)) for key, value in payload.items()
+    }
+
+
+def jsonable(value: Any) -> Any:
+    """A value PostgreSQL will accept into a JSONB column.
+
+    Here rather than in every caller because the failure mode is a 500 at the
+    INSERT, a long way from the `after={...}` that caused it — a service that
+    passed a `datetime` in its state dict looked completely correct and broke
+    every audited write on that endpoint. Coercing centrally means a service
+    can hand over the values it has.
+
+    Deliberately not `json.dumps(default=str)`: that would stringify a nested
+    object into something unreadable in the audit drawer. Instants become ISO
+    strings, ids and decimals become strings, containers are walked, and
+    anything else is left to psycopg2 — which handles the JSON primitives and
+    is right to refuse the rest.
+    """
+    from datetime import date, datetime
+    from decimal import Decimal
+
+    if isinstance(value, (datetime, date)):
+        return iso(value)
+    if isinstance(value, (UUID, Decimal)):
+        return str(value)
+    if isinstance(value, dict):
+        return {str(key): jsonable(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return [jsonable(item) for item in value]
+    return value
 
 
 def diff(before: dict[str, Any] | None, after: dict[str, Any] | None) -> dict[str, Any]:

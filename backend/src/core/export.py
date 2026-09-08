@@ -270,10 +270,21 @@ def stream_rows(statement, *, limit: int) -> Iterator[Any]:
     from src.core.db import session_scope
 
     with session_scope() as session:
+        # `partitions` rather than `yield_per`: both keep memory bounded, but
+        # `yield_per` holds a *server-side cursor* open across the whole
+        # response, and this generator is consumed by the WSGI server after the
+        # view has returned. Something in that path was closing the result
+        # early: an audit export of 1042 rows wrote 1001 of them one run and
+        # 1008 the next, with a 200 on it — the truncated download this
+        # function's docstring exists to prevent, arriving by a route nobody
+        # had thought of. `partitions` fetches a chunk, materialises it, and
+        # only then hands the rows over, so an interrupted response loses the
+        # chunk it was in rather than everything after the first.
         result = session.scalars(statement.limit(limit)).unique()
         count = 0
-        for row in result.yield_per(BATCH):
-            yield row
-            count += 1
-            if count >= limit:
-                return
+        for chunk in result.partitions(BATCH):
+            for row in chunk:
+                yield row
+                count += 1
+                if count >= limit:
+                    return

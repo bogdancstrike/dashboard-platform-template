@@ -17,11 +17,18 @@ knows about the same day. A hand-written ALTER script is a second description
 of the schema, wrong the first time anybody forgets to update it.
 
 **It is additive, and it stops at anything that is not.** Adding a nullable
-column to a populated table is safe and is the case that actually happens;
-dropping one, retyping one, or adding a NOT NULL column without a default
-loses data or fails, and belongs in a migration somebody has read. Those are
-*reported*, with the reason, rather than attempted — which is why this is a
-drift report that can also fix the easy half, not a migration tool.
+column to a populated table is safe, as is creating a table that does not
+exist yet, and those are the cases that actually happen; dropping a column,
+retyping one, or adding a NOT NULL column without a default loses data or
+fails, and belongs in a migration somebody has read. Those are *reported*,
+with the reason, rather than attempted — which is why this is a drift report
+that can also fix the easy half, not a migration tool.
+
+A missing table used to be reported with the advice "run the seed", which is
+advice a populated database cannot take: seeding refuses to touch one. So a
+model that grew a table had no path forward at all short of a destructive
+reseed. `CREATE TABLE` touches no existing row, so it belongs on the additive
+side of that line.
 """
 
 from __future__ import annotations
@@ -57,9 +64,12 @@ def drift(engine, metadata) -> list[Drift]:
     found: list[Drift] = []
     for name, table in sorted(metadata.tables.items()):
         if name not in present:
-            # A missing table is `create_all`'s job, not an ALTER's, and it is
-            # never the situation this exists for.
-            found.append(Drift(name, "", True, "the table does not exist; run the seed"))
+            # A whole table, which `reconcile` creates: `CREATE TABLE` is as
+            # additive as `ADD COLUMN` and touches no existing row. This used
+            # to say "run the seed", which is advice a populated database
+            # cannot take — seeding refuses to touch one, rightly — so a model
+            # that grew a table had no non-destructive path at all.
+            found.append(Drift(name, "", True, "the table does not exist"))
             continue
         live = {column["name"] for column in inspector.get_columns(name)}
         for column in table.columns:
@@ -91,7 +101,15 @@ def reconcile(engine, metadata) -> list[Drift]:
     added: list[Drift] = []
     with engine.begin() as connection:
         for item in drift(engine, metadata):
-            if not item.column or not item.addable:
+            if not item.addable:
+                continue
+            if not item.column:
+                # A whole table. Created with its indexes and constraints by
+                # the metadata itself, so it is indistinguishable from one a
+                # first boot would have made — and `checkfirst` keeps this
+                # idempotent when two of them arrive together.
+                metadata.tables[item.table].create(bind=connection, checkfirst=True)
+                added.append(item)
                 continue
             table = metadata.tables[item.table]
             column = table.columns[item.column]

@@ -286,6 +286,62 @@ def test_the_dataset_check_names_an_unrunnable_report():
     assert "more than two columns" in joined
 
 
+def test_every_announcement_state_is_demonstrable(world):
+    """A demo where a state cannot be seen is a demo of an untested filter.
+
+    Left to the weights alone, the small-scale dataset produced no expired
+    notice and no draft — so the author's list could not show a draft and the
+    reader's list could not show that an expired one is hidden. The first four
+    are now fixed, and this is what says so.
+    """
+    statuses = {item.status for item in world.announcements}
+    assert {"PUBLISHED", "SCHEDULED", "DRAFT"} <= statuses
+
+    # And one that is published but past its window, which is the state the
+    # service *derives* rather than stores.
+    expired = [
+        item
+        for item in world.announcements
+        if item.status == "PUBLISHED" and item.expires_at and item.expires_at <= world.anchor
+    ]
+    assert expired, "no announcement has run out, so expiry is undemonstrable"
+
+
+def test_exactly_one_announcement_is_pinned(world):
+    """A list where everything is pinned has nothing pinned."""
+    pinned = [item for item in world.announcements if item.is_pinned]
+    assert len(pinned) == 1
+    assert pinned[0].status == "PUBLISHED"
+    assert pinned[0].expires_at is None or pinned[0].expires_at > world.anchor
+
+
+def test_announcement_receipts_belong_to_people_it_was_addressed_to(world):
+    """A receipt from somebody outside the audience is a row that says a notice
+    reached a reader it was never shown to."""
+    by_id = {item.id: item for item in world.announcements}
+    roles = {user.id: user.role_id for user in world.users}
+    role_codes = {role.id: role.code for role in world.roles}
+
+    assert world.announcement_receipts, "nobody has read anything"
+    for receipt in world.announcement_receipts:
+        notice = by_id[receipt.announcement_id]
+        assert notice.status == "PUBLISHED", "a receipt against an unpublished notice"
+        audience = list(notice.audience_roles or [])
+        if audience:
+            assert role_codes.get(roles.get(receipt.user_id)) in audience
+        # Read before acknowledged, always: agreeing to something unread is
+        # not a state the product can produce.
+        assert receipt.read_at is not None
+        if receipt.acknowledged_at is not None:
+            assert notice.requires_acknowledgement
+            assert receipt.acknowledged_at >= receipt.read_at
+
+
+def test_announcement_receipts_are_unique_per_reader(world):
+    keys = [(r.announcement_id, r.user_id) for r in world.announcement_receipts]
+    assert len(keys) == len(set(keys))
+
+
 def test_saved_searches_are_private_by_default(world):
     """§5: nothing is shared by accident, so most searches have no audience."""
     scopes = [search.scope for search in world.saved_searches]
@@ -404,3 +460,58 @@ def test_seed_writes_and_verifies(scratch_database):
     with session_scope() as session:
         runner.run(session, scale="small", seed=SEED)
         assert runner.verify(session) == []
+
+
+def test_cleanup_order_respects_the_foreign_keys():
+    """The suite's own teardown must delete a child before its parent.
+
+    `conftest.TEST_OWNED_MODELS` is ordered by hand — `metadata.sorted_tables`
+    would derive it but warns about a pre-existing cycle elsewhere in the
+    schema — so this is what stops the order silently rotting the next time a
+    model gains a reference. The symptom it prevents is not subtle: every
+    database test's teardown becomes an error at once.
+    """
+    import src.models as models
+    from tests.conftest import TEST_OWNED_MODELS, _tables_to_clean
+
+    tables = _tables_to_clean()
+    position = {name: index for index, name in enumerate(tables)}
+    assert len(position) == len(TEST_OWNED_MODELS), "a table is listed twice"
+
+    for table_name, index in position.items():
+        table = models.Base.metadata.tables[table_name]
+        for constraint in table.foreign_key_constraints:
+            parent = constraint.referred_table.name
+            if parent not in position or parent == table_name:
+                continue
+            assert index < position[parent], (
+                f"{table_name} references {parent} and must be deleted first"
+            )
+
+
+def test_every_task_status_has_at_least_one_task(world):
+    """`/tasks` is a *board*, and an empty lane is a column of nothing.
+
+    The statuses are weighted, so at a small scale one can come out empty —
+    and it is a ratchet: the end-to-end suite moves a card between lanes and
+    puts it back only when it passes, so a failing run drains the lane it took
+    from. `NEW` reached zero that way in the development database, after which
+    every later run failed for want of a card to drag.
+    """
+    from collections import Counter
+
+    from src.core import vocabulary
+
+    counted = Counter(task.status for task in world.tasks)
+    missing = [status for status in vocabulary.TASK_STATUS if counted.get(status, 0) == 0]
+    assert not missing, f"no task is {missing}"
+
+
+def test_a_task_that_has_not_started_has_no_start(world):
+    """Coverage must not be bought with a contradiction: a task that reads
+    `NEW` and was started last Tuesday is worse than a missing lane."""
+    for task in world.tasks:
+        if task.status == "NEW":
+            assert task.started_at is None, task.reference
+        if task.status != "DONE":
+            assert task.completed_at is None, task.reference

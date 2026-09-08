@@ -1512,7 +1512,189 @@ const ACTIVITY_KINDS = [
   { key: "SYSTEM", label: "System", count: 1 },
 ];
 
+/**
+ * Announcements (§17).
+ *
+ * A live one, a critical one that asks to be acknowledged, and one that has
+ * run out — so the noticeboard's own rules are all exercisable: the strip
+ * counts only what is live, the acknowledge button appears once, and expired
+ * notices are behind the history toggle.
+ */
+export const announcements: Record<string, unknown>[] = [];
+
+function seedAnnouncements(): void {
+  announcements.length = 0;
+  announcements.push(
+    {
+      id: "notice-1",
+      title: "Scheduled maintenance this Sunday",
+      body: "The platform will be read-only for up to two hours.",
+      category: "MAINTENANCE",
+      category_label: "Maintenance",
+      severity: "WARNING",
+      status: "PUBLISHED",
+      is_live: true,
+      is_expired: false,
+      is_scheduled: false,
+      is_pinned: true,
+      publish_at: "2026-09-05T09:00:00Z",
+      expires_at: "2026-09-20T09:00:00Z",
+      audience_roles: [],
+      requires_acknowledgement: false,
+      link: "/settings/system",
+      author: { id: "user-1", name: "Ada Administrator", initials: "AA" },
+      created_at: "2026-09-05T09:00:00Z",
+      updated_at: "2026-09-05T09:00:00Z",
+      read_at: "2026-09-06T08:00:00Z",
+      acknowledged_at: null,
+    },
+    {
+      id: "notice-2",
+      title: "Single sign-on is now required",
+      body: "Password sign-in has been disabled.",
+      category: "POLICY",
+      category_label: "Policy",
+      severity: "CRITICAL",
+      status: "PUBLISHED",
+      is_live: true,
+      is_expired: false,
+      is_scheduled: false,
+      is_pinned: false,
+      publish_at: "2026-09-04T09:00:00Z",
+      expires_at: null,
+      audience_roles: [],
+      requires_acknowledgement: true,
+      link: null,
+      author: { id: "user-1", name: "Ada Administrator", initials: "AA" },
+      created_at: "2026-09-04T09:00:00Z",
+      updated_at: "2026-09-04T09:00:00Z",
+      // Unread and unacknowledged: the two states the page has to act on.
+      read_at: null,
+      acknowledged_at: null,
+    },
+    {
+      id: "notice-3",
+      title: "Degraded search performance",
+      body: "Global search was slow for ninety minutes.",
+      category: "INCIDENT",
+      category_label: "Incidents",
+      severity: "WARNING",
+      status: "PUBLISHED",
+      is_live: false,
+      is_expired: true,
+      is_scheduled: false,
+      is_pinned: false,
+      publish_at: "2026-06-01T09:00:00Z",
+      expires_at: "2026-06-08T09:00:00Z",
+      audience_roles: [],
+      requires_acknowledgement: false,
+      link: null,
+      author: { id: "user-1", name: "Ada Administrator", initials: "AA" },
+      created_at: "2026-06-01T09:00:00Z",
+      updated_at: "2026-06-01T09:00:00Z",
+      read_at: "2026-06-02T09:00:00Z",
+      acknowledged_at: null,
+    },
+  );
+}
+
+seedAnnouncements();
+
+export function resetAnnouncements(): void {
+  seedAnnouncements();
+}
+
+/** Counts over the *live* set only, which is what the strip filters. */
+function announcementCategories() {
+  const live = announcements.filter((item) => item["is_live"]);
+  const counted = new Map<string, number>();
+  for (const item of live) {
+    const key = String(item["category"]);
+    counted.set(key, (counted.get(key) ?? 0) + 1);
+  }
+  return [
+    ["RELEASE", "Releases"],
+    ["MAINTENANCE", "Maintenance"],
+    ["INCIDENT", "Incidents"],
+    ["POLICY", "Policy"],
+    ["NEWS", "News"],
+  ].map(([key, label]) => ({ key, label, count: counted.get(String(key)) ?? 0 }));
+}
+
 export const handlers = [
+  http.get("/platform/api/announcements", ({ request }) => {
+    const url = new URL(request.url);
+    const category = url.searchParams.get("category") ?? "";
+    const history = url.searchParams.get("include_expired") === "true";
+    const items = announcements.filter(
+      (item) =>
+        (history ? true : item["is_live"]) &&
+        (!category || item["category"] === category),
+    );
+    return echo(request, {
+      items,
+      total: items.length,
+      page: 1,
+      page_size: 25,
+      pages: 1,
+      categories: announcementCategories(),
+      unread: announcements.filter((item) => item["is_live"] && !item["read_at"]).length,
+      can_manage: true,
+      category,
+      include_expired: history,
+    });
+  }),
+  http.get("/platform/api/announcements/drafts", ({ request }) =>
+    echo(request, {
+      items: announcements.map((item) => ({
+        ...item,
+        reach: { read: 12, acknowledged: 4 },
+      })),
+      total: announcements.length,
+      page: 1,
+      page_size: 25,
+      pages: 1,
+      statuses: ["DRAFT", "SCHEDULED", "PUBLISHED", "ARCHIVED"],
+      status: new URL(request.url).searchParams.get("status") ?? "",
+      can_manage: true,
+    }),
+  ),
+  http.post("/platform/api/announcements/:id/receipt", async ({ params, request }) => {
+    const body = (await request.json()) as { acknowledged?: boolean };
+    const notice = announcements.find((item) => item["id"] === params["id"]);
+    if (!notice) return new HttpResponse(null, { status: 404 });
+    // Idempotent, like the server: a page that marks on render sends this more
+    // than once and the first timestamp has to survive.
+    notice["read_at"] = notice["read_at"] ?? "2026-09-08T10:00:00Z";
+    if (body.acknowledged) {
+      notice["acknowledged_at"] = notice["acknowledged_at"] ?? "2026-09-08T10:00:00Z";
+    }
+    return echo(request, notice);
+  }),
+  http.post("/platform/api/announcements", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const created = {
+      ...announcements[0],
+      ...body,
+      id: `notice-${announcements.length + 1}`,
+      category_label: "News",
+      reach: { read: 0, acknowledged: 0 },
+    };
+    announcements.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.put("/platform/api/announcements/:id", async ({ params, request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const notice = announcements.find((item) => item["id"] === params["id"]);
+    if (!notice) return new HttpResponse(null, { status: 404 });
+    Object.assign(notice, body);
+    return echo(request, notice);
+  }),
+  http.delete("/platform/api/announcements/:id", ({ params, request }) => {
+    const index = announcements.findIndex((item) => item["id"] === params["id"]);
+    if (index >= 0) announcements.splice(index, 1);
+    return echo(request, { id: params["id"], deleted: true });
+  }),
   http.get("/platform/api/activity", ({ request }) => {
     const url = new URL(request.url);
     const kind = url.searchParams.get("kind") ?? "";

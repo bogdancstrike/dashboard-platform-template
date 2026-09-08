@@ -1330,6 +1330,37 @@ mark.nu-mark {
   display: flex; flex-direction: column; gap: 2px; font-size: 11.5px;
 }
 
+/* The noticeboard (§17). A notice is *prose*, so it is laid out as prose
+   rather than as a table row: what a maintenance notice says is the reason
+   somebody opened the page, and a title truncated into a column with the body
+   behind a click is a page that has hidden its content. */
+.nu-noticeboard { display: flex; flex-direction: column; gap: 12px; }
+.nu-notice { border-inline-start: 3px solid var(--nu-border-strong); }
+/* Severity on the leading edge rather than as a fill: the same device
+   `StatusTag` uses, and it clears 3:1 as a border where a tinted card would
+   not (§64). */
+.nu-notice--warning { border-inline-start-color: var(--nu-warning); }
+.nu-notice--critical { border-inline-start-color: var(--nu-danger); }
+/* Unread is a tint *and* a word — the row also says "unread" through the
+   count in the header — because colour alone is not a fact. */
+.nu-notice.is-unread { background: var(--nu-accent-soft); }
+.nu-notice-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 6px;
+}
+.nu-notice-pin { color: var(--nu-accent); }
+.nu-notice-when { font-size: 12px; white-space: nowrap; }
+.nu-notice-title { margin: 0 0 4px !important; font-size: 16px !important; }
+.nu-notice-body { margin: 0 0 10px !important; white-space: pre-wrap; max-width: 78ch; }
+.nu-notice-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  padding-top: 8px; border-top: 1px solid var(--nu-border-subtle);
+  font-size: 12px;
+}
+.nu-notice-avatar { font-size: 10px; }
+.nu-noticeboard-foot { display: flex; justify-content: center; padding-top: 4px; }
+
 /* The activity feed's kind strip (§35). One chip per kind of thing that
    happens, each carrying a count the server computed over the whole match —
    and each one the filter for it. A chip at zero is offered and refused

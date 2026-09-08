@@ -28,7 +28,13 @@ export default defineConfig({
   // rerun rather than to read.
   workers: process.env["CI"] ? 1 : Number(process.env["E2E_WORKERS"] ?? 3),
   reporter: process.env["CI"] ? [["github"], ["html", { open: "never" }]] : [["list"]],
-  timeout: 30_000,
+  // 60s rather than 30. A test that fails on a wrong value fails in
+  // milliseconds; this cap only ever binds on the slow-under-load path —
+  // signing in, or the relationship graph, whose communities are computed
+  // server-side over the whole dataset. It was binding inside a `beforeEach`,
+  // which aborts the whole serial group and reports four tests as "did not
+  // run": one contended request, five red lines, none of them a product bug.
+  timeout: 60_000,
   // 15s rather than 10. Every failure this cap produced was a *timeout* under
   // load — a sign-in stuck on "Signing you in…", a detail page that had not
   // rendered — never a wrong value, and each one read like a product bug

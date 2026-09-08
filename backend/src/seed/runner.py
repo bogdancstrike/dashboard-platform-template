@@ -47,6 +47,7 @@ INSERT_ORDER: tuple[str, ...] = (
     "scheduled_tasks", "background_jobs", "api_clients", "api_credentials",
     "api_request_logs", "alert_rules", "import_runs", "audit_logs",
     "activity_entries", "system_logs", "notifications",
+    "announcements", "announcement_receipts",
     # personalization
     "notification_preferences", "saved_searches", "resource_shares",
     "saved_views", "dashboards", "dashboard_widgets", "reports", "favorites",

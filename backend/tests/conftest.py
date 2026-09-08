@@ -71,6 +71,102 @@ def _skip_without_database(request, has_database):
         pytest.skip("set TEST_DATABASE_URL to run tests that need PostgreSQL")
 
 
+#: The models a `database`-marked test is allowed to leave rows in.
+#:
+#: This exists because the suite had no cleanup at all and it showed: 560
+#: dashboards, 151 reports and 38 announcements had accumulated in the
+#: development database, one test run at a time. Every one was invisible in
+#: the suite's own output — the tests passed — and perfectly visible on the
+#: pages a reviewer opens, where a gallery of "E2E board" and a noticeboard of
+#: "A notice" is the first thing they see.
+#:
+#: A transaction rolled back around each test would be the textbook answer and
+#: does not work here: the app opens its own sessions through `session_scope`
+#: and commits them, which is the behaviour under test. Deleting by age is what
+#: is actually available, and it is safe because seeded rows are older than the
+#: test that just ran.
+#:
+#: Named as *models* rather than as table names, and ordered by the metadata
+#: rather than by hand — the first version typed the names out and got
+#: `file_objects` wrong, which turned every database test's teardown into an
+#: error.
+TEST_OWNED_MODELS: tuple[str, ...] = (
+    # Children first, always — asserted by
+    # `test_cleanup_order_respects_the_foreign_keys`, which caught this list
+    # having the first two the wrong way round.
+    "AnnouncementReceipt", "Announcement",
+    "DashboardWidget", "Dashboard",
+    "ResourceShare", "SavedSearch", "SavedView", "Report",
+    "Comment", "FileObject", "Folder",
+    "Notification", "Favorite", "RecentItem",
+    # Written as a *side effect* of every audited test write, so they
+    # accumulate faster than anything else — and a demo `/activity` full of
+    # "1m ago · updated the Viewer role" from a test run is a feed nobody can
+    # read.
+    "ActivityEntry", "AuditLog",
+)
+
+
+def _tables_to_clean() -> list[str]:
+    """The owned tables, children first, resolved from the models.
+
+    The names come from `__tablename__` rather than being typed out — the first
+    version typed them and got `file_objects` wrong, which turned every
+    database test's teardown into an error. The *order* is `TEST_OWNED_MODELS`
+    as written: `metadata.sorted_tables` would derive it, but it warns loudly
+    about a pre-existing cycle between `departments`, `teams` and `users`,
+    and 227 warnings per run to avoid ordering sixteen names is a poor trade.
+    `test_cleanup_order_respects_the_foreign_keys` is what keeps the order
+    honest.
+    """
+    import src.models as models
+
+    tables: list[str] = []
+    for name in TEST_OWNED_MODELS:
+        model = getattr(models, name, None)
+        assert model is not None, f"{name} is not exported from src.models"
+        tables.append(model.__tablename__)
+    return tables
+
+
+@pytest.fixture(autouse=True)
+def _remove_what_the_test_created(request, has_database):
+    """Delete rows a `database` test created, and nothing older.
+
+    Runs for every test rather than being opted into: cleanup somebody has to
+    remember is cleanup that stops happening, which is exactly how the numbers
+    above were reached.
+
+    Bounded by the instant the test started, so a row seeded months ago is
+    never in range even if a test edited it — editing does not move
+    `created_at`.
+    """
+    if not request.node.get_closest_marker("database") or not has_database:
+        yield
+        return
+
+    from sqlalchemy import text
+
+    from src.core.db import get_engine
+
+    engine = get_engine()
+    # `begin()` rather than `connect()`: a read on a bare connection leaves an
+    # open transaction until the connection is returned, and a pooled
+    # connection handed out again inside that transaction serves a *stale
+    # snapshot* — which showed up as an audit export that was 34 rows shorter
+    # than the count beside it.
+    with engine.begin() as connection:
+        started = connection.execute(text("SELECT now()")).scalar()
+
+    yield
+
+    with engine.begin() as connection:
+        for table in _tables_to_clean():
+            connection.execute(
+                text(f'DELETE FROM "{table}" WHERE created_at > :since'), {"since": started}
+            )
+
+
 #: The five seeded personas, by the names the realm and the seed give them.
 #:
 #: Test claims have to carry these. `core/auth._sync_user` trusts the identity
