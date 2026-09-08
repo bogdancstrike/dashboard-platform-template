@@ -2525,3 +2525,39 @@ mark.nu-mark {
   padding: 0; height: auto; font-family: var(--nu-font-mono); font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
+
+/* ── Security (§41) ──────────────────────────────────────────────────────
+   Three tables about one account, so the layout keeps addresses and agents
+   monospaced and comparable down their columns, and spends colour on only
+   two rows: the device you are reading from, and a sign-in that failed. */
+.nu-sec > * + * { margin-top: 12px; }
+.nu-sec-headline { margin-bottom: 4px; }
+.nu-sec-note { margin-bottom: 10px; }
+.nu-sec-device,
+.nu-sec-where,
+.nu-sec-event { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.nu-sec-agent,
+.nu-sec-detail {
+  font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-sec-ip {
+  font-family: var(--nu-font-mono); font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.nu-sec-where .ant-typography:last-child { font-size: 11px; }
+.nu-sec-state { flex-wrap: nowrap; min-width: 0; }
+.nu-sec-state .ant-typography {
+  font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-sec-window { font-size: 11.5px; margin: 10px 0 0; }
+/* Under 4%, and never the only carrier: the state is written in the cell
+   beside it (§64). */
+.nu-sec-row.is-current > td {
+  background: color-mix(in srgb, var(--nu-success) 4%, transparent);
+}
+.nu-sec-row.is-failure > td {
+  background: color-mix(in srgb, var(--nu-danger) 4%, transparent);
+}
+/* An event already dealt with recedes rather than disappearing — the page
+   still has to be able to answer "was this looked at". */
+.nu-sec-row.is-resolved > td { opacity: 0.62; }

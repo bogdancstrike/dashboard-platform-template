@@ -92,6 +92,10 @@ sync-exports: ## Write the file every seeded export claims, and make its counts 
 sync-imports: ## Make every seeded import run describe a file that could exist
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-imports seed
 
+.PHONY: sync-sessions
+sync-sessions: ## Leave at most one current session per person, and only a live one
+	$(COMPOSE) run --rm -e SEED_ARGS=--sync-sessions seed
+
 .PHONY: sync-schema
 sync-schema: ## Add columns the model declares and the database lacks
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-schema seed

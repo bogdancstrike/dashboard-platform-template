@@ -36,6 +36,7 @@ const ApiClientsPage = lazy(() => import("@/pages/admin/ApiClientsPage"));
 const IntegrationsPage = lazy(() => import("@/pages/admin/IntegrationsPage"));
 const ExportsPage = lazy(() => import("@/pages/ExportsPage"));
 const ImportPage = lazy(() => import("@/pages/ImportPage"));
+const SecurityPage = lazy(() => import("@/pages/SecurityPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
@@ -508,7 +509,11 @@ export default function App() {
         />
         <Route
           path="settings/security"
-          element={<PlaceholderPage section="§41" summary="Sessions, devices, sign-in history and security events." />}
+          element={
+            <Suspense fallback={<Loading />}>
+              <SecurityPage />
+            </Suspense>
+          }
         />
 
         <Route path="system" element={<Navigate to="/admin/health" replace />} />

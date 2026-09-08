@@ -1981,6 +1981,105 @@
         "module_name": "src.api.imports",
         "method_name": "problems"
       }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "security_overview",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/security/overview",
+      "description": "Is anything wrong with this account, in one glance.",
+      "exec_method": {
+        "module_name": "src.api.security",
+        "method_name": "overview"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "security_sessions",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/security/sessions",
+      "description": "Every sign-in on this account, with the current one marked.",
+      "exec_method": {
+        "module_name": "src.api.security",
+        "method_name": "sessions"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "security_session_item",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/security/sessions/<uuid:session_id>",
+      "description": "Trust a device, or DELETE to sign it out \u2014 enforced on its next request.",
+      "exec_method": {
+        "module_name": "src.api.security",
+        "method_name": "session_item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "security_revoke_others",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/security/sessions/revoke-others",
+      "description": "Sign out everywhere else, keeping this session.",
+      "exec_method": {
+        "module_name": "src.api.security",
+        "method_name": "revoke_others"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "security_history",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/security/sign-ins",
+      "description": "Recent sign-ins, successes and failures, filtered in PostgreSQL.",
+      "exec_method": {
+        "module_name": "src.api.security",
+        "method_name": "history"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "security_events",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/security/events",
+      "description": "What the platform has noticed about this account.",
+      "exec_method": {
+        "module_name": "src.api.security",
+        "method_name": "events"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "security_event_item",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT"
+      ],
+      "api_url": "/security/events/<uuid:event_id>",
+      "description": "Mark one security event as dealt with, or as not.",
+      "exec_method": {
+        "module_name": "src.api.security",
+        "method_name": "event_item"
+      }
     }
   ]
 }

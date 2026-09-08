@@ -619,6 +619,12 @@ SECURITY_EVENT_KINDS: tuple[tuple[str, str, str], ...] = (
     ("API_KEY_REVOKED", "WARNING", "API credential revoked"),
 )
 
+#: Asserted against the vocabulary rather than trusted: a severity spelled
+#: only here is one `/settings/security` cannot colour (§41).
+assert {severity for _kind, severity, _title in SECURITY_EVENT_KINDS} <= set(
+    vocabulary.SECURITY_SEVERITY
+), "a seeded security event has a severity the vocabulary does not declare"
+
 USER_AGENTS: tuple[str, ...] = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",

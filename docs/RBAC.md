@@ -177,6 +177,28 @@ the operation is allowed in principle; organization ownership, resource
 sharing, assignment or other row scope must still be included in the SQL query.
 Never fetch broad data and filter it in the browser.
 
+### Where being signed in is the whole qualification
+
+`/settings/security` (§41) carries `@requires()` with no arguments —
+authenticated-only — and every query in `services/security` is scoped to
+`principal.user_id`. That is deliberate rather than lax: a security page that
+had to be granted is one most people never see, and its whole value is that the
+person whose account it is can look at their own sessions and failed sign-ins
+without asking anybody. The end-to-end suite asserts the *least*-privileged
+persona gets the whole page.
+
+The corollary is that it is only ever about you. An administrator reading it
+sees their own sessions, and `DELETE /security/sessions/<id>` on somebody
+else's is a 404 — signing another person out is an administrative act that
+belongs on that person's record, not here.
+
+**Session revocation is enforced, not merely recorded.**
+`core/auth._touch_session` records each sign-in against the token's `sid` and
+refuses a revoked one with 401 *before any permission is consulted*. Before
+this, nothing read `user_sessions` at all, so the model's claim that "a revoked
+session is refused on its next request" was false and a sign-out button would
+have left the device signed in.
+
 ### Where ownership overrides a permission entirely
 
 Two places check *who* rather than only *what*, and both are deliberate.
@@ -258,4 +280,7 @@ Relevant automated coverage:
 - `backend/tests/test_exports.py` and `test_imports.py` — the ownership rules
   above, each asserted as a 404 for an administrator against another persona's
   row, plus a 403 for a role holding neither privilege.
+- `backend/tests/test_security.py` — that a revoked session's next request is
+  401 everywhere, that only one session is ever "current", and that a viewer
+  holding almost nothing still reaches their own security page.
 - `frontend/e2e/` — real Keycloak sign-in and persona-level journeys.

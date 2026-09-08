@@ -8,6 +8,7 @@
     python -m src.seed --sync-files       # write the bytes seeded files point at
     python -m src.seed --sync-exports     # write the file every seeded export claims
     python -m src.seed --sync-imports     # make every seeded import run describe a real file
+    python -m src.seed --sync-sessions    # one current session per person, and only a live one
     python -m src.seed --sync-roles       # give built-in roles new permissions
     python -m src.seed --sync-reports     # make unrunnable saved reports runnable
     python -m src.seed --sync-automations # make unrunnable automations runnable
@@ -58,6 +59,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-imports", action="store_true",
         help="make every seeded import run describe a file that could exist",
+    )
+    parser.add_argument(
+        "--sync-sessions", action="store_true",
+        help="leave at most one current session per person, and only a live one",
     )
     parser.add_argument(
         "--sync-roles", action="store_true",
@@ -169,6 +174,17 @@ def main(argv: list[str] | None = None) -> int:
         )
         if result["unreadable"]:
             print(f"  ! {result['unreadable']} run(s) name a dataset that cannot be imported into")
+        return 0
+
+    if args.sync_sessions:
+        # `is_current` is derived from the most recent live sign-in, and the
+        # seed used to mark the first five sessions of every user. Idempotent.
+        with session_scope() as session:
+            result = runner.sync_sessions(session)
+        print(
+            f"{result['corrected']} session flag(s) corrected across "
+            f"{result['people']} people"
+        )
         return 0
 
     if args.sync_roles:
@@ -308,6 +324,7 @@ def main(argv: list[str] | None = None) -> int:
         runner.sync_files(session)
         runner.sync_exports(session)
         runner.sync_imports(session)
+        runner.sync_sessions(session)
         problems = runner.verify(session)
 
     _report(counts, quiet=args.quiet)

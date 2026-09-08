@@ -95,6 +95,28 @@ make sync-imports  # make every seeded import run describe a file that could exi
 
 MinIO's console is at <http://localhost:9001> (`nucleus` / `nucleus-dev-secret`).
 
+### Sessions, and why revoking one works
+
+Every authenticated request records its session against the token's `sid` and
+**refuses a revoked one with a 401 before any permission is consulted**
+(`core/auth._touch_session`). That is what makes the "sign out this device"
+button on `/settings/security` worth having: before it, nothing read
+`user_sessions` at all, so the model's claim that a revoked session is refused
+on its next request was simply false — and a page offering a control that does
+nothing is worse than a page offering none.
+
+`last_seen_at` is written at most once a minute per session, because a page
+making eight calls should not be eight updates to one row.
+
+The page itself needs no permission. Being signed in is the qualification for
+seeing your own sessions and your own failed sign-ins, and it is reached from
+the profile menu rather than the navigation, because it is about you rather
+than about the platform.
+
+```bash
+make sync-sessions  # one current session per person, and only a live one
+```
+
 ### Imports, and why the validation is the form's
 
 `/import` is four steps because the decision has four parts: which dataset,
@@ -231,6 +253,7 @@ python -m src.seed --sync-jobs         # top every background-job status up to i
 python -m src.seed --sync-org          # recount each department's headcount from the people in it
 python -m src.seed --sync-exports      # write the file every seeded export claims, and correct its counts
 python -m src.seed --sync-imports      # make every seeded import run describe a file that could exist
+python -m src.seed --sync-sessions     # one current session per person, and only a live one
 ```
 
 `--sync-schema` refuses to guess: a `NOT NULL` column with no default is
@@ -317,8 +340,8 @@ add up, and an open run holds the file it is in the middle of.
 
 Under Compose these are `make check-seed`, `make sync-schema`, `make
 sync-roles`, `make sync-reports`, `make sync-automations`, `make sync-mailboxes`,
-`make sync-settings`, `make sync-jobs`, `make sync-org`, `make sync-exports`
-and `make sync-imports`.
+`make sync-settings`, `make sync-jobs`, `make sync-org`, `make sync-exports`,
+`make sync-imports` and `make sync-sessions`.
 
 Then:
 

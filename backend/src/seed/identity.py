@@ -12,7 +12,9 @@ lands on a populated application rather than an empty one.
 
 from __future__ import annotations
 
-from src.core.auth import ROLE_DEFAULTS
+from src.core import vocabulary
+from src.core.auth import ROLE_DEFAULTS, device_of
+from src.core.vocabulary import weighted
 from src.seed import catalog
 from src.seed.support import Rng, avatar_data_uri, slugify
 from src.seed.world import World
@@ -488,6 +490,14 @@ def _memberships(world: World) -> None:
 
 
 def _sessions(world: World) -> None:
+    """Sign-ins, at most one of them current per person (§41).
+
+    `is_current=index < 5` was the first version and marked the first five
+    sessions of *every* user as current — so somebody with three sessions had
+    three of them each claiming to be the one they were reading the page from,
+    which is not a thing "current" can mean. It is now the most recently seen
+    live session of each person, decided after the draw rather than during it.
+    """
     from src.models.identity import UserSession
 
     rng = world.rng.derive("sessions")
@@ -495,21 +505,23 @@ def _sessions(world: World) -> None:
     if not active:
         return
 
+    made: list[UserSession] = []
     for index in range(world.scale.sessions):
         user = rng.pick(active)
         agent = rng.pick(catalog.USER_AGENTS)
         started = rng.recent(days=20)
         revoked = rng.chance(0.12)
-        world.sessions.append(
+        made.append(
             UserSession(
                 id=rng.uuid(),
                 user_id=user.id,
                 token_id=f"sid-{rng.uuid().hex[:24]}-{index}",
                 ip_address=f"{rng.integer(10, 213)}.{rng.integer(0, 255)}.{rng.integer(0, 255)}.{rng.integer(1, 254)}",
                 user_agent=agent,
-                device=_device_of(agent),
+                device=device_of(agent),
                 location=f"{rng.pick(catalog.LOCATIONS)[0]}",
-                is_current=index < 5,
+                # Decided below, once every session exists.
+                is_current=False,
                 trusted=rng.chance(0.6),
                 revoked_at=rng.between(started, world.anchor) if revoked else None,
                 last_seen_at=rng.between(started, world.anchor),
@@ -518,17 +530,21 @@ def _sessions(world: World) -> None:
             )
         )
 
+    # One per person, and only a live one: a revoked session cannot be the one
+    # somebody is using, and neither can an expired one.
+    by_user: dict[object, UserSession] = {}
+    for row in made:
+        if row.revoked_at is not None or (row.expires_at and row.expires_at <= world.anchor):
+            continue
+        held = by_user.get(row.user_id)
+        if held is None or (row.last_seen_at or row.created_at) > (
+            held.last_seen_at or held.created_at
+        ):
+            by_user[row.user_id] = row
+    for row in by_user.values():
+        row.is_current = True
 
-def _device_of(agent: str) -> str:
-    lowered = agent.lower()
-    if "iphone" in lowered or "android" in lowered:
-        return "Mobile"
-    if "ipad" in lowered:
-        return "Tablet"
-    for name, label in (("edg", "Edge"), ("chrome", "Chrome"), ("firefox", "Firefox"), ("safari", "Safari")):
-        if name in lowered:
-            return label
-    return "Unknown"
+    world.sessions.extend(made)
 
 
 def _login_events(world: World) -> None:
@@ -544,15 +560,18 @@ def _login_events(world: World) -> None:
                 id=rng.uuid(),
                 user_id=user.id,
                 email=user.email,
-                result="FAILURE" if failed else "SUCCESS",
+                result=vocabulary.LOGIN_RESULT[1] if failed else vocabulary.LOGIN_RESULT[0],
                 reason=rng.pick(
                     ("Invalid credentials", "Account locked", "MFA challenge failed", "Expired password")
                 ) if failed else None,
                 ip_address=f"{rng.integer(10, 213)}.{rng.integer(0, 255)}.{rng.integer(0, 255)}.{rng.integer(1, 254)}",
                 user_agent=agent,
-                device=_device_of(agent),
+                device=device_of(agent),
                 location=rng.pick(catalog.LOCATIONS)[0],
-                method=rng.weighted((("PASSWORD", 0.62), ("SSO", 0.28), ("MFA", 0.1))),
+                # Weights positionally against the vocabulary, so a method
+                # added there has to be given a weight here rather than
+                # silently never appearing.
+                method=rng.weighted(weighted(vocabulary.LOGIN_METHOD, (0.62, 0.28, 0.1))),
                 created_at=rng.business_hour(rng.recent(days=120)),
             )
         )

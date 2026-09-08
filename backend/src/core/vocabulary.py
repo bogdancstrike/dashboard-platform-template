@@ -212,6 +212,32 @@ IMPORT_STATUS: Vocabulary = (
 #: person may have at once is expressed over this set rather than over rows.
 IMPORT_OPEN: Vocabulary = ("DRAFT", "VALIDATED")
 
+#: How a sign-in ended (§41).
+#:
+#: Two values and they are the page's whole point: a *failure* is what somebody
+#: opens their security page to look for, and it must not be flattened into a
+#: "recent activity" list where it reads as ordinary.
+LOGIN_RESULT: Vocabulary = ("SUCCESS", "FAILURE")
+
+#: How somebody proved who they were.
+LOGIN_METHOD: Vocabulary = ("PASSWORD", "SSO", "MFA")
+
+#: What one session is, derived rather than stored (§41).
+#:
+#: Three outcomes and they are not interchangeable: REVOKED is somebody's
+#: decision, EXPIRED is time passing, ACTIVE is a live sign-in. Collapsing the
+#: first two into "inactive" would hide the only one anybody acted on.
+SESSION_STATE: Vocabulary = ("ACTIVE", "EXPIRED", "REVOKED")
+
+#: How serious a security event is.
+#:
+#: Deliberately `NOTIFICATION_SEVERITY`'s three rather than `SEVERITY`'s four:
+#: this grades *a thing that happened to an account*, and "moderate" is not an
+#: answer anybody wants about their own sign-ins. Declared separately because
+#: the two vocabularies answer different questions and a shared tuple would
+#: eventually be widened for one of them.
+SECURITY_SEVERITY: Vocabulary = ("INFO", "WARNING", "CRITICAL")
+
 #: The states in which a run's four row counts are facts about something.
 #:
 #: `total = valid + invalid + skipped` holds here and nowhere else. A DRAFT has

@@ -141,6 +141,15 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     # for it existing.
     "Device", "Order", "Ticket", "Project", "Customer",
     "Notification", "Favorite", "RecentItem",
+    # Every authenticated request now records its session (§41), so a test
+    # that makes one HTTP call leaves a row — the same reason `SystemLog` is
+    # in this list. Nothing points at a session.
+    #
+    # The sign-in and security rows beside it because `test_security` makes
+    # its own: a *failed* sign-in is the row that page exists to show, so a
+    # test about one must not depend on the seed's coin flip having left the
+    # persona any.
+    "UserSession", "LoginEvent", "SecurityEvent",
     # `test_groups` makes its own groups. The `user_groups` association has no
     # timestamps of its own, so it is cleared by the service's own writes —
     # `remove` empties the membership before retiring the row, which is what

@@ -125,6 +125,49 @@ def sync_exports(session) -> dict[str, int]:
     return export_files.materialise(session, storage.for_config())
 
 
+def sync_sessions(session) -> dict[str, int]:
+    """Leave at most one current session per person, and only a live one (§41).
+
+    `is_current` is derived from the *most recent live sign-in*, so this edits
+    only a cached answer — the same justification `--sync-org` has for
+    recounting a department's headcount. What it repairs: the seed marked the
+    first five sessions of every user as current, so a person with three had
+    three of them claiming to be the one they were using, and a revoked
+    session could still be marked current.
+    """
+    from sqlalchemy import select as _select
+
+    from src.core.clock import now
+    from src.models.identity import UserSession
+
+    moment = now()
+    rows = _select(UserSession).where(UserSession.user_id.is_not(None))
+    by_user: dict[Any, list[Any]] = {}
+    for row in session.scalars(rows):
+        by_user.setdefault(row.user_id, []).append(row)
+
+    corrected = 0
+    for sessions_of in by_user.values():
+        live = [
+            row
+            for row in sessions_of
+            if row.revoked_at is None and not (row.expires_at and row.expires_at <= moment)
+        ]
+        keeper = max(
+            live,
+            key=lambda row: row.last_seen_at or row.created_at,
+            default=None,
+        )
+        for row in sessions_of:
+            wanted = keeper is not None and row.id == keeper.id
+            if row.is_current != wanted:
+                row.is_current = wanted
+                corrected += 1
+
+    session.flush()
+    return {"corrected": corrected, "people": len(by_user)}
+
+
 def sync_imports(session) -> dict[str, int]:
     """Make every seeded import run describe a file that could exist (§29).
 
@@ -409,6 +452,29 @@ def verify(session) -> list[str]:
                 f"{row.reference}: reports problems on {len(lines)} lines and counts "
                 f"{row.invalid_rows} invalid"
             )
+
+    # At most one session per person may be the current one, and it has to be
+    # a live one. `is_current=index < 5` marked the first five sessions of
+    # *every* user, so somebody with three had three of them claiming to be
+    # the one they were reading the page from (§41).
+    from src.models.identity import UserSession as _Session
+
+    doubled = session.execute(
+        select(_Session.user_id, func.count())
+        .where(_Session.is_current.is_(True))
+        .group_by(_Session.user_id)
+        .having(func.count() > 1)
+    ).all()
+    for user_id, count in doubled:
+        problems.append(f"user {user_id}: {count} sessions each claim to be the current one")
+
+    dead = session.scalar(
+        select(func.count())
+        .select_from(_Session)
+        .where(_Session.is_current.is_(True), _Session.revoked_at.is_not(None))
+    )
+    if dead:
+        problems.append(f"user_sessions: {dead} revoked session(s) still marked current")
 
     # A share grants read, never write (§5) — editing belongs to the owner.
     writable = session.scalar(

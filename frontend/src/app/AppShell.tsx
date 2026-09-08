@@ -17,6 +17,7 @@ import {
   MenuOutlined,
   MoonOutlined,
   QuestionCircleOutlined,
+  SafetyOutlined,
   SettingOutlined,
   SunOutlined,
   UserOutlined,
@@ -284,6 +285,15 @@ export function AppShell() {
                     icon: <SettingOutlined />,
                     label: "Preferences",
                     onClick: () => navigate("/settings/preferences"),
+                  },
+                  {
+                    // Here rather than in the navigation, for the reason
+                    // Preferences is: it is about *you* rather than about the
+                    // platform, and it needs no permission (§41).
+                    key: "security",
+                    icon: <SafetyOutlined />,
+                    label: "Security",
+                    onClick: () => navigate("/settings/security"),
                   },
                   ...(isMobile
                     ? [

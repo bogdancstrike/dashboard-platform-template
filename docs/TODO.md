@@ -1621,6 +1621,72 @@ commit — built, committed, pushed, redeployed and verified before the next.
       and lets the label take the click, which `NotificationsPage.test` had
       already documented
 
+- [x] **`/settings/security` — and a security control that did nothing** (§41)
+  - **`UserSession`'s docstring had been lying since the day it was
+      written.** "Revocation is a row update, so a revoked session is refused
+      on its next request even though the JWT is still cryptographically valid
+      until it expires" — and *nothing read the table*. `core/auth` never
+      looked at it; the only reader in the codebase was the administrator's
+      user drawer, for display. So this page would have shipped a "sign out
+      this device" button that left the device signed in, which is worse than
+      shipping no page: a control that does nothing is one people rely on.
+      This is the eighth defect found by building the page that reads the
+      data, and the only one so far that was a *security* claim
+  - **The fix is two halves and neither works alone.** `_touch_session`
+      records the sign-in against Keycloak's `sid` — without which the page
+      lists the seeded sessions and never the one the reader is looking at it
+      from, the first row anybody looks for — and refuses a revoked one with a
+      401 before a single permission is consulted. The e2e takes a direct
+      grant of its own, uses it, revokes it and asks again with the *same*
+      token: that assertion is the whole feature
+  - **`last_seen_at` is written at most once a minute.** A page making eight
+      calls would otherwise be eight updates to one row for one meaningful
+      event, and a minute is finer than any question this page asks
+  - **"Current" was a fact about a request stored in a column.** The seed set
+      `is_current = index < 5`, so the first five sessions of *every* user were
+      marked current and somebody with three had three of them each claiming
+      to be the one they were reading the page from. The page derives it from
+      `principal.session_id`, which is the authority; the column is maintained
+      too, because the administrator's drawer has no request to derive it from,
+      and `--sync-sessions` repairs an existing database. `--check` reports
+      both invariants: at most one per person, and never a revoked one
+  - **No permission gates any of it, deliberately.** Being signed in is the
+      qualification for seeing your own sessions, and the e2e asserts the
+      *least*-privileged persona gets the whole page. A security page that had
+      to be granted is one most people never see. It is reached from the
+      profile menu rather than the navigation, beside Preferences, because it
+      is about you rather than about the platform
+  - **Three states, and a page that said "inactive" would hide the useful
+      one.** REVOKED is somebody's decision, EXPIRED is time passing, ACTIVE
+      is a live sign-in — `SESSION_STATE` in the vocabulary, `state()` derives
+      it, and a revoked session stays revoked whatever its expiry says
+  - **The page opens with a sentence rather than four counters**, because the
+      question is "is anything wrong" and a row of numbers makes the reader do
+      the arithmetic. Failed sign-ins first, then unresolved warnings, then how
+      many devices — and the threshold for leading with failures is the
+      *server's*, so it is not a browser's opinion. One failure is a typo;
+      three from an address you do not recognise earns a line at the top with
+      the action beside it
+  - **A failed sign-in has its own filter and its own colour**, and is never
+      merged into a "recent activity" list. It is the row this page exists for
+  - **Four closed sets moved into `core/vocabulary`** — `LOGIN_RESULT`,
+      `LOGIN_METHOD`, `SESSION_STATE`, `SECURITY_SEVERITY` — and the seeded
+      severities are asserted against the last of them. `SECURITY_SEVERITY` is
+      deliberately not `SEVERITY`: this grades a thing that happened to an
+      account, and "moderate" is not an answer anybody wants about their own
+      sign-ins
+  - **`_device_of` existed twice**, in `core/auth` and in `seed/identity`, so
+      a seeded session and a real one could have disagreed about what "Edge"
+      is. One copy now, public, imported by the seed
+  - **Two tests were about to be the "quietly not running" mistake again.**
+      They looked for a seeded failed sign-in and a seeded security event and
+      skipped when the draw had left the persona none — the exact shape the
+      integrations suite already made once. They make their own now, which is
+      also what turned "the flag agrees with the count" into "three failures
+      make the page lead with them"
+  - And `no-base-to-string` for the *fifth* time in `handlers.ts`, with the
+      same answer for the fifth time: the `asText` the file already imports
+
 - [x] **`/import` — the wizard, and the seventh data defect** (§29)
   - **The rules are the form's rules, and that is the whole design.** A row is
       validated by `record_writes.coerce` — the same function
@@ -1920,9 +1986,9 @@ commit — built, committed, pushed, redeployed and verified before the next.
       administration index with `/admin/settings`, `/admin/flags`,
       `/admin/logs`, `/admin/jobs`, `/admin/groups`, `/admin/organizations`,
       `/admin/api` and `/admin/integrations` are done, and so are `/exports`
-      (§30) and `/import` (§29). Remaining: `/favorites`,
-      `/settings/security` (§41) and the two `/showcase/*` pages — every one of
-      which already has its model and its seeded rows
+      (§30), `/import` (§29) and `/settings/security` (§41). Remaining:
+      `/favorites` and the two `/showcase/*` pages — every one of which already
+      has its model and its seeded rows
 - [x] **Six latent e2e flakes fixed, all the same two mistakes.** Four specs
       clicked a select option with `getByTitle`, which AntD also puts on the
       closed select's own label — so the click matched twice as soon as the
@@ -2252,7 +2318,7 @@ section is a cross-cutting rule rather than a page.
 | 38 | Favorites | `/favorites` | `/favorites` | [ ] |
 | 39 | Recent items | sidebar + `/recent` | `/recent` | [ ] |
 | 40 | Personal preferences | `/settings/preferences` | `/api/me` | [x] |
-| 41 | Security settings, sessions | `/settings/security` | `/api/me/sessions` | [ ] |
+| 41 | Security settings, sessions | `/settings/security` | `/security/*` | [x] |
 | 42 | Organization settings | `/admin/organizations` | `/admin/organizations` | [x] |
 | 43 | Bulk operations | every list | `/{entity}/bulk` | [ ] |
 | 44 | Drill-down | dashboard, analytics → list | `/api/analysis/run` | [~] |
@@ -3381,7 +3447,8 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [ ] Component showcase (§60), page template gallery (§61), master/detail (§62),
       split view (§63), row preview drawer (§64), comparison (§47),
       data quality (§65), error pages (§34)
-- [ ] Preferences (§40), security and sessions (§41), organization settings (§42)
+- [~] Preferences (§40) and security and sessions (§41) ship. Organization
+      settings (§42) remain
 
 ## Phase 7 — Verification
 

@@ -3253,6 +3253,142 @@ const importCatalogue = {
   total: 4,
 };
 
+
+// ── Security (§41) ──────────────────────────────────────────────────────
+//
+// The states this page has to keep apart: the session you are reading from,
+// a live one you have not recognised, one somebody signed out, and one that
+// expired on its own. Plus a failed sign-in, because that is the row the
+// page exists to show.
+//
+// Everything derived is derived the way `services/security.py` derives it —
+// including `current`, which comes from the *request's* session rather than
+// from a stored column, and `can_revoke`, which is true only of a live one.
+
+export const sessionRows: Record<string, unknown>[] = [];
+export const signInRows: Record<string, unknown>[] = [];
+export const securityEventRows: Record<string, unknown>[] = [];
+
+/** Which session the fixture's requests are "from". */
+const CURRENT_SESSION = "sess-here";
+
+function sessionOf(overrides: Record<string, unknown>): Record<string, unknown> {
+  const row = {
+    device: "Chrome",
+    user_agent: "Mozilla/5.0 (X11; Linux x86_64) Chrome/140.0",
+    ip_address: "198.51.100.4",
+    location: "Bucharest, RO",
+    trusted: false,
+    signed_in_at: "2026-09-01T08:00:00Z",
+    last_seen_at: "2026-09-08T09:00:00Z",
+    expires_at: "2026-09-15T08:00:00Z",
+    revoked_at: null,
+    ...overrides,
+  } as Record<string, unknown>;
+
+  // Compared as *dates*, not as strings, and through `asText` rather than
+  // `String` — the fifth time this file has been caught by
+  // `no-base-to-string`, and the fifth time the answer was the helper it
+  // already imports.
+  const expiry = text(row["expires_at"]);
+  row["state"] =
+    row["revoked_at"] !== null
+      ? "REVOKED"
+      : expiry && new Date(expiry) <= new Date("2026-09-08T00:00:00Z")
+        ? "EXPIRED"
+        : "ACTIVE";
+  row["current"] = row["id"] === CURRENT_SESSION;
+  row["can_revoke"] = row["state"] === "ACTIVE";
+  return row;
+}
+
+function seedSecurity(): void {
+  sessionRows.length = 0;
+  sessionRows.push(
+    sessionOf({ id: CURRENT_SESSION, device: "Firefox", trusted: true }),
+    // Live and not recognised: the row somebody scans for.
+    sessionOf({ id: "sess-mobile", device: "Mobile", ip_address: "203.0.113.77" }),
+    sessionOf({ id: "sess-gone", device: "Safari", revoked_at: "2026-09-05T10:00:00Z" }),
+    // Expired on its own, which is not the same as signed out.
+    sessionOf({ id: "sess-old", device: "Edge", expires_at: "2026-08-01T08:00:00Z" }),
+  );
+
+  signInRows.length = 0;
+  signInRows.push(
+    {
+      id: "in-ok", result: "SUCCESS", reason: null, method: "SSO", device: "Firefox",
+      ip_address: "198.51.100.4", location: "Bucharest, RO", at: "2026-09-08T09:00:00Z",
+    },
+    {
+      id: "in-bad", result: "FAILURE", reason: "Wrong password", method: "PASSWORD",
+      device: "Unknown", ip_address: "203.0.113.9", location: "Unknown",
+      at: "2026-09-07T22:14:00Z",
+    },
+  );
+
+  securityEventRows.length = 0;
+  securityEventRows.push(
+    {
+      id: "ev-device", kind: "NEW_DEVICE_SIGN_IN", severity: "INFO",
+      title: "Sign-in from a new device",
+      description: "A device this account has not been seen on before.",
+      ip_address: "203.0.113.77", resolved: false, at: "2026-09-07T22:20:00Z", details: {},
+    },
+    {
+      id: "ev-travel", kind: "IMPOSSIBLE_TRAVEL", severity: "CRITICAL",
+      title: "Sign-ins from distant locations in a short window",
+      description: "Bucharest and São Paulo within eleven minutes.",
+      ip_address: "203.0.113.9", resolved: false, at: "2026-09-07T22:25:00Z", details: {},
+    },
+    {
+      id: "ev-done", kind: "MFA_ENABLED", severity: "INFO",
+      title: "Two-factor authentication enabled", description: null,
+      ip_address: "198.51.100.4", resolved: true, at: "2026-09-01T08:05:00Z", details: {},
+    },
+  );
+}
+
+seedSecurity();
+
+export function resetSecurity(): void {
+  seedSecurity();
+}
+
+/** Session counts, derived as the service derives them. */
+function sessionList(): Record<string, unknown> {
+  const active = sessionRows.filter((row) => row["state"] === "ACTIVE");
+  return {
+    items: sessionRows,
+    total: sessionRows.length,
+    active: active.length,
+    others: active.filter((row) => !row["current"]).length,
+    current_known: true,
+  };
+}
+
+function securityOverview(): Record<string, unknown> {
+  const failures = signInRows.filter((row) => row["result"] !== "SUCCESS");
+  const unresolved = securityEventRows.filter((row) => !row["resolved"]);
+  const list = sessionList();
+  const lastSuccess = signInRows.find((row) => row["result"] === "SUCCESS");
+  return {
+    window_days: 90,
+    active_sessions: list["active"],
+    other_sessions: list["others"],
+    current_known: true,
+    failed_sign_ins: failures.length,
+    // The threshold is the *server's*: three, from `FAILURES_WORTH_SAYING`.
+    failures_worth_saying: failures.length >= 3,
+    failure_addresses: [
+      ...new Set(failures.map((row) => text(row["ip_address"]))),
+    ].filter(Boolean),
+    unresolved_events: unresolved.length,
+    last_signed_in_at: lastSuccess ? lastSuccess["at"] : null,
+    last_signed_in_from: lastSuccess ? lastSuccess["ip_address"] : null,
+    last_signed_in_on: lastSuccess ? lastSuccess["device"] : null,
+  };
+}
+
 export const handlers = [
   http.get("/platform/admin/integrations/catalogue", ({ request }) => {
     const states = ["NOT_CONFIGURED", "DISCONNECTED", "CONNECTED", "ERROR"];
@@ -5137,6 +5273,85 @@ export const handlers = [
     if (index >= 0) recordComments.splice(index, 1);
     return HttpResponse.json({ deleted: true, id: params["id"] });
   }),
+  // ── Security (§41) ────────────────────────────────────────────────────
+  http.get("/platform/security/overview", ({ request }) =>
+    echo(request, securityOverview()),
+  ),
+  http.post("/platform/security/sessions/revoke-others", () => {
+    // Keeps the current one, for the reason the service does: an operation
+    // that signed you out too would make its own result unviewable.
+    let revoked = 0;
+    sessionRows.forEach((row, index) => {
+      if (row["state"] === "ACTIVE" && !row["current"]) {
+        sessionRows[index] = sessionOf({ ...row, revoked_at: "2026-09-08T09:30:00Z" });
+        revoked += 1;
+      }
+    });
+    return HttpResponse.json({ revoked, ...sessionList() });
+  }),
+  http.get("/platform/security/sessions", ({ request }) => echo(request, sessionList())),
+  http.delete("/platform/security/sessions/:id", ({ params }) => {
+    const index = sessionRows.findIndex((row) => row["id"] === params["id"]);
+    if (index < 0 || sessionRows[index]!["state"] !== "ACTIVE") {
+      return HttpResponse.json(
+        { error: "conflict", message: "That session cannot be signed out.", details: {} },
+        { status: 409 },
+      );
+    }
+    const gone = sessionOf({ ...sessionRows[index], revoked_at: "2026-09-08T09:30:00Z" });
+    sessionRows[index] = gone;
+    return HttpResponse.json(gone);
+  }),
+  http.put("/platform/security/sessions/:id", async ({ request, params }) => {
+    const body = (await request.json()) as { trusted?: boolean };
+    const index = sessionRows.findIndex((row) => row["id"] === params["id"]);
+    if (index < 0) {
+      return HttpResponse.json(
+        { error: "not_found", message: "That session does not exist.", details: {} },
+        { status: 404 },
+      );
+    }
+    const updated = sessionOf({ ...sessionRows[index], trusted: Boolean(body.trusted) });
+    sessionRows[index] = updated;
+    return HttpResponse.json(updated);
+  }),
+  http.get("/platform/security/sign-ins", ({ request }) => {
+    const query = new URL(request.url).searchParams;
+    const result = query.get("result") ?? "";
+    const items = signInRows.filter((row) => !result || row["result"] === result);
+    return echo(request, {
+      items,
+      total: items.length,
+      page: 1,
+      page_size: 25,
+      pages: 1,
+      facets: {},
+      window_days: 90,
+    });
+  }),
+  http.put("/platform/security/events/:id", async ({ request, params }) => {
+    const body = (await request.json()) as { resolved?: boolean };
+    const index = securityEventRows.findIndex((row) => row["id"] === params["id"]);
+    if (index < 0) {
+      return HttpResponse.json(
+        { error: "not_found", message: "That event does not exist.", details: {} },
+        { status: 404 },
+      );
+    }
+    const updated = { ...securityEventRows[index], resolved: Boolean(body.resolved) };
+    securityEventRows[index] = updated;
+    return HttpResponse.json(updated);
+  }),
+  http.get("/platform/security/events", ({ request }) =>
+    echo(request, {
+      items: securityEventRows,
+      total: securityEventRows.length,
+      page: 1,
+      page_size: 25,
+      pages: 1,
+      facets: {},
+    }),
+  ),
   // ── Import wizard (§29) ───────────────────────────────────────────────
   // `catalogue` before `:id`, for the reason the audit export is: MSW matches
   // path segments loosely, so `:id` would swallow it.
