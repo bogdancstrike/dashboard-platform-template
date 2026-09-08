@@ -1567,6 +1567,78 @@
         "module_name": "src.api.groups",
         "method_name": "grants"
       }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "org_catalogue",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/organizations/catalogue",
+      "description": "Tiers, statuses, regions and what the reader may change.",
+      "exec_method": {
+        "module_name": "src.api.organizations",
+        "method_name": "catalogue"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "org_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/organizations",
+      "description": "Every organisation, filtered and faceted in PostgreSQL.",
+      "exec_method": {
+        "module_name": "src.api.organizations",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "org_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT"
+      ],
+      "api_url": "/admin/organizations/<string:organization_id>",
+      "description": "One organisation's whole structure, or a change to its details.",
+      "exec_method": {
+        "module_name": "src.api.organizations",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "org_departments",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/admin/organizations/<string:organization_id>/departments",
+      "description": "Add a department, optionally inside another.",
+      "exec_method": {
+        "module_name": "src.api.organizations",
+        "method_name": "departments"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "org_department",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/admin/departments/<string:department_id>",
+      "description": "Edit or move a department, or retire it when nothing is inside.",
+      "exec_method": {
+        "module_name": "src.api.organizations",
+        "method_name": "department"
+      }
     }
   ]
 }

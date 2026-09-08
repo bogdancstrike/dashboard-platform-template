@@ -121,6 +121,10 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     # `remove` empties the membership before retiring the row, which is what
     # stops a soft-deleted group going on granting its permissions.
     "Group",
+    # `test_organizations` makes its own departments. A department points at
+    # its parent, so the tests build shallow trees and delete them by age —
+    # which reaches a child and its parent in the same sweep.
+    "Department",
     # `test_jobs` makes its own jobs rather than editing seeded ones, so they
     # have to be swept — and before the audit rows that describe them.
     "BackgroundJob",

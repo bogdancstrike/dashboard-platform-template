@@ -122,6 +122,16 @@ EVENT_FREQUENCY: Vocabulary = ("DAILY", "WEEKLY", "MONTHLY")
 
 USER_STATUS: Vocabulary = ("ACTIVE", "INVITED", "SUSPENDED", "DISABLED")
 
+#: A tenant's commercial tier, ordered smallest first — the order is the
+#: meaning, so a page can render them as a scale rather than alphabetically.
+ORG_TIER: Vocabulary = ("TRIAL", "STARTER", "STANDARD", "ENTERPRISE")
+
+#: A tenant's lifecycle. Its own set rather than `CUSTOMER_STATUS`: those are
+#: the same three words today, and an organisation is the *installation's own*
+#: tenant while a customer is a record inside it — sharing the tuple would tie
+#: two unrelated lifecycles together the first time either grew a state.
+ORG_STATUS: Vocabulary = ("ACTIVE", "SUSPENDED", "ARCHIVED")
+
 #: What a group is *for*, which is not what it grants.
 #:
 #: A closed set because the kind is a filter and a heading on

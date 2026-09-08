@@ -156,7 +156,12 @@ export const NAV_GROUPS: NavGroup[] = [
       { key: "/admin/users", label: "Users", icon: <UserOutlined />, permission: "users.view" },
       { key: "/admin/groups", label: "Groups", icon: <TeamOutlined />, permission: "users.view" },
       { key: "/admin/roles", label: "Roles & permissions", icon: <SafetyCertificateOutlined />, permission: "roles.manage" },
-      { key: "/admin/organizations", label: "Organizations", icon: <ApartmentOutlined />, permission: "orgs.manage" },
+      // `users.view` and not `orgs.manage`: reading where people sit is
+      // directory information, and this permission is what gates the *route*
+      // as well as the menu entry — declaring the write permission here would
+      // make the page's own read-only state unreachable. The commercial
+      // fields are withheld by the service instead.
+      { key: "/admin/organizations", label: "Organizations", icon: <ApartmentOutlined />, permission: "users.view" },
       { key: "/admin/audit", label: "Audit log", icon: <AuditOutlined />, permission: "audit.view" },
       { key: "/admin/logs", label: "System logs", icon: <FileTextOutlined />, permission: "logs.view" },
       { key: "/admin/jobs", label: "Background jobs", icon: <ClusterOutlined />, permission: "jobs.view", badge: "failed_jobs" },

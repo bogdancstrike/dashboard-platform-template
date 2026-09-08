@@ -112,9 +112,9 @@ INDUSTRIES: tuple[str, ...] = (
     "Media", "Hospitality", "Pharmaceuticals", "Automotive",
 )
 
-ORG_TIERS: tuple[tuple[str, float], ...] = (
-    ("ENTERPRISE", 0.2), ("STANDARD", 0.5), ("STARTER", 0.25), ("TRIAL", 0.05),
-)
+#: Weighted in the vocabulary's order — smallest tier first — so a tier added
+#: there fails loudly here instead of silently never being generated.
+ORG_TIERS = weighted(vocabulary.ORG_TIER, (0.05, 0.25, 0.5, 0.2))
 
 #: (name, code, timezone, currency) — derived from the gazetteer, so a region
 #: the seed creates is a region the map can name.

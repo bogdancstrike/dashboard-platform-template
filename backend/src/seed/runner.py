@@ -333,8 +333,75 @@ def verify(session) -> list[str]:
     # a rule that cannot compile its condition reports quiet rather than
     # broken, which is the one thing a monitor must never do (§49).
     problems.extend(_unrunnable_automations(session))
+    # And a number that contradicts the directory it summarises: `headcount`
+    # was drawn at random before the users existed, so Support stored 116 with
+    # nobody assigned to it (§57).
+    problems.extend(_headcount_drift(session))
 
     return problems
+
+
+def _headcount_drift(session) -> list[str]:
+    """Departments whose stored `headcount` disagrees with their people.
+
+    Reported rather than tolerated because two numbers for one fact is the
+    defect this whole codebase keeps finding, and the stored one is always the
+    one that lies. `--sync-org` is the repair; `services/organizations`
+    computes the count itself so the API is right either way.
+    """
+    from sqlalchemy import func, select
+
+    from src.models.identity import Department, User
+
+    actual = dict(
+        session.execute(
+            select(User.department_id, func.count())
+            .where(User.department_id.is_not(None), User.deleted_at.is_(None))
+            .group_by(User.department_id)
+        ).all()
+    )
+    problems: list[str] = []
+    for row in session.scalars(
+        select(Department).where(Department.deleted_at.is_(None))
+    ).all():
+        real = int(actual.get(row.id, 0))
+        if int(row.headcount or 0) != real:
+            problems.append(
+                f"department {row.name!r} says {row.headcount} people, has {real}"
+            )
+    return problems
+
+
+def sync_org(session) -> dict[str, int]:
+    """Make every department's `headcount` agree with the people in it.
+
+    The sixth repair. Unlike the others it *edits* rather than inserts, and
+    that is safe precisely because the column is derived: the truth is
+    `users.department_id`, and this only stops the cached copy contradicting
+    it. Nothing a person chose is overwritten.
+    """
+    from sqlalchemy import func
+    from sqlalchemy import select as _select
+
+    from src.models.identity import Department, User
+
+    actual = dict(
+        session.execute(
+            _select(User.department_id, func.count())
+            .where(User.department_id.is_not(None), User.deleted_at.is_(None))
+            .group_by(User.department_id)
+        ).all()
+    )
+    corrected = 0
+    for row in session.scalars(
+        _select(Department).where(Department.deleted_at.is_(None))
+    ).all():
+        real = int(actual.get(row.id, 0))
+        if int(row.headcount or 0) != real:
+            row.headcount = real
+            corrected += 1
+
+    return {"corrected": corrected}
 
 
 def _unrunnable_reports(session) -> list[str]:

@@ -163,6 +163,7 @@ python -m src.seed --sync-automations  # make automations the engine cannot run 
 python -m src.seed --sync-mailboxes    # give each demo persona an inbox worth opening
 python -m src.seed --sync-settings     # add newly declared settings, refit any that no longer fit
 python -m src.seed --sync-jobs         # top every background-job status up to its guaranteed minimum
+python -m src.seed --sync-org          # recount each department's headcount from the people in it
 ```
 
 `--sync-schema` refuses to guess: a `NOT NULL` column with no default is
@@ -212,9 +213,17 @@ that ran dry: topping up by row count alone kept finding five cancelled jobs
 and never noticed every one of them had spent its attempts. If the jobs spec
 starts saying "run 'make sync-jobs'", that is what it means.
 
+`--sync-org` is the only one of these that *edits* rather than inserts, and it
+is safe precisely because what it edits is derived. `departments.headcount` was
+drawn at random before the users existed, so Support stored 116 people with
+nobody at all assigned to it — two numbers for one fact, and the stored one was
+the fiction. `users.department_id` is the truth, `services/organizations` counts
+it rather than reading the column, and this stops the cached copy contradicting
+it. `--check` reports the drift, so a database that has it says so.
+
 Under Compose these are `make check-seed`, `make sync-schema`, `make
 sync-roles`, `make sync-reports`, `make sync-automations`, `make sync-mailboxes`,
-`make sync-settings` and `make sync-jobs`.
+`make sync-settings`, `make sync-jobs` and `make sync-org`.
 
 Then:
 

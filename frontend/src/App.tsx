@@ -31,6 +31,7 @@ const FlagsPage = lazy(() => import("@/pages/admin/FlagsPage"));
 const LogsPage = lazy(() => import("@/pages/admin/LogsPage"));
 const JobsPage = lazy(() => import("@/pages/admin/JobsPage"));
 const GroupsPage = lazy(() => import("@/pages/admin/GroupsPage"));
+const OrganizationsPage = lazy(() => import("@/pages/admin/OrganizationsPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
@@ -393,7 +394,11 @@ export default function App() {
         />
         <Route
           path="admin/organizations"
-          element={<PlaceholderPage section="§42" summary="Organizations, departments, teams and regions." />}
+          element={
+            <Suspense fallback={<Loading />}>
+              <OrganizationsPage />
+            </Suspense>
+          }
         />
         <Route
           path="admin/audit"

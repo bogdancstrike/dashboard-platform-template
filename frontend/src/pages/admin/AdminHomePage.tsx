@@ -97,7 +97,10 @@ export function destinations(counts: {
       title: "Organizations",
       what: "The tenants, their departments and their teams.",
       icon: <ClusterOutlined />,
-      permission: "orgs.manage",
+      // Matches the route's own gate: reading the structure is directory
+      // information, and a card whose permission drifted from its
+      // destination's would be a card that opens onto a refusal.
+      permission: "users.view",
     },
     {
       to: "/admin/settings",

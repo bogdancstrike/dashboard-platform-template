@@ -1415,6 +1415,75 @@ commit — built, committed, pushed, redeployed and verified before the next.
       before it can be clicked, because rc-virtual-list renders only the
       visible window and the real catalogue is forty-odd permissions long
 
+- [x] **`/admin/organizations` — the shape of the company** (§42)
+  - **`departments.headcount` was fiction, and the page is what found it.** The
+      column was drawn at random *before* the users existed, so Support stored
+      116 people with nobody at all assigned to it — while `users.department_id`
+      said 0. Two numbers for one fact, no reader anywhere, and the stored one
+      lying. The service counts the assignment so the API is right even if the
+      column drifts again; the seed now fills it from the people once they
+      exist; `--check` reports any department that disagrees; and `--sync-org`
+      recounts. It is the only repair that *edits* rather than inserts, which
+      is safe exactly because what it edits is derived
+  - **A department's own people and its subtree's are two numbers, labelled.**
+      One alone is a lie in one direction or the other: its own understates a
+      parent, the rollup makes a tree sum to more than the company employs. And
+      the wording is "2 here, 7 in all" rather than "7 below", because
+      `people_in_subtree` *includes* the department — the first version read as
+      nine people when there were seven. There is no collapse-when-equal case
+      either: a parent whose children are all empty would then have said "5
+      below" when all five were *here*
+  - **The tree's arithmetic is asserted end to end**: every rollup equals its
+      own plus its children's, and the roots plus the *unplaced* equal the
+      tenant's total. Which is why people in no department are counted on the
+      screen — that number is the only thing explaining a tree summing to less
+      than the tenant holds, and without it somebody spends an afternoon
+      looking for the missing forty (§34)
+  - **A department cannot become its own ancestor**, and the refusal names the
+      path that would close the loop rather than saying "invalid parent" — on a
+      four-level tree that message starts an investigation instead of ending
+      one. `_ancestry` and `_depth_of` are both bounded, because the code that
+      *detects* cycles must not be the code that hangs on them; there is a test
+      that forces a cycle past the API and checks both terminate. The page
+      prunes the offending subtree from its picker as well, since a control
+      that produces an error on purpose is not a control
+  - **Retiring is refused while anything is inside**, unlike a group: a group
+      is a set and can be dissolved, a department is a *place* whose foreign
+      keys cascade — a silent delete would take its teams with it and leave its
+      people pointing at nothing. The refusal counts the people, the teams and
+      the sub-departments in the way
+  - **Following the route's permission through found an over-exposure.** The
+      navigation gates the *route*, not just the menu, and it declared
+      `orgs.manage` — which made the page's own read-only branch unreachable.
+      Opening it at `users.view` is right, because where somebody sits is
+      directory information — but that permission is held by every role, and
+      the payload carried `annual_revenue`. So the commercial field is now
+      withheld unless the reader holds `orgs.manage`, *omitted* rather than
+      zeroed so the page can tell "not shown to you" from "nothing", and the
+      admin index card's permission moved to match the route it opens
+  - **`ORG_TIER` and `ORG_STATUS` join `core/vocabulary`**, the tiers ordered
+      smallest-first so a page can render them as a scale. `ORG_STATUS` is its
+      own tuple rather than reusing `CUSTOMER_STATUS`: the three words are the
+      same today, and an organisation is the *installation's* tenant while a
+      customer is a record inside it — sharing the tuple would tie two
+      unrelated lifecycles together the first time either grew a state
+  - **Hover-revealed row controls were the wrong idea and are gone.**
+      `opacity: 0` leaves every button in the tab order and in the
+      accessibility tree while invisible, and it needed a `@media (hover:
+      none)` escape hatch for touch on top. Small icon buttons, always
+      visible, like every other admin table
+  - **And the Tooltip-inside-Popconfirm bug was made twice.** It renders a
+      second popover over the confirmation and intercepts the click; the jobs
+      table hit it, and this page reintroduced it two hours later. Both now
+      carry a comment saying why the hint is absent on the enabled path — the
+      button's accessible name and the dialog's title already say the word
+  - Also: the department code is upper-cased rather than refused for being
+      lower, since `eng` and `ENG` are the same code to everybody except a
+      string comparison; and `no-base-to-string` was caught a third time in
+      `test/handlers.ts`, so the fixtures now have one `text(value)` helper
+      instead of ninety-nine hand-written `String(...)` calls waiting to be
+      the fourth
+
 - [ ] **Variety in how "create" opens** — a wizard where the decision has
       parts, a drawer for one object's fields, a plain modal for one question.
       The dashboard wizard is the first; the rest of the modules follow
@@ -1422,9 +1491,9 @@ commit — built, committed, pushed, redeployed and verified before the next.
       list is in [Phase 6](#phase-6--frontend-pages). `/dashboards`, `/kanban`,
       `/files`, `/workflows`, `/calendar`, `/mail`, `/home` and the
       administration index with `/admin/settings`, `/admin/flags`,
-      `/admin/logs`, `/admin/jobs` and `/admin/groups` are done.
-      Remaining: `/admin/organizations`,
-      `/admin/api` (§25), `/admin/integrations` (§26),
+      `/admin/logs`, `/admin/jobs`, `/admin/groups` and `/admin/organizations`
+      are done.
+      Remaining: `/admin/api` (§25), `/admin/integrations` (§26),
       `/favorites`, `/import` (§29), `/exports` (§30), `/settings/security`
       (§41) and the two `/showcase/*` pages — every one of which already has
       its model and its seeded rows
@@ -1754,7 +1823,7 @@ section is a cross-cutting rule rather than a page.
 | 39 | Recent items | sidebar + `/recent` | `/recent` | [ ] |
 | 40 | Personal preferences | `/settings/preferences` | `/api/me` | [x] |
 | 41 | Security settings, sessions | `/settings/security` | `/api/me/sessions` | [ ] |
-| 42 | Organization settings | `/settings/organization` | `/admin/organizations` | [ ] |
+| 42 | Organization settings | `/admin/organizations` | `/admin/organizations` | [x] |
 | 43 | Bulk operations | every list | `/{entity}/bulk` | [ ] |
 | 44 | Drill-down | dashboard, analytics → list | `/api/analysis/run` | [~] |
 | 45 | Dashboard builder | `/dashboards` | `/api/dashboards` | [x] |

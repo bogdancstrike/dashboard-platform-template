@@ -107,6 +107,18 @@ export const currentUser = {
 };
 
 /** Echoes the correlation id back, exactly as the real server does. */
+/**
+ * A string out of an `unknown`, safely.
+ *
+ * These fixtures hold `Record<string, unknown>`, so `String(value)` renders
+ * "[object Object]" for anything that is not a primitive — and eslint's
+ * `no-base-to-string` has caught that same slip three times in this file
+ * alone. One helper is cheaper than a fourth.
+ */
+function text(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
 function echo<T extends object>(request: Request, body: T, status = 200) {
   return HttpResponse.json(body, {
     status,
@@ -2587,7 +2599,283 @@ const GROUP_MEMBERS: Record<string, Array<Record<string, unknown>>> = {
   "grp-buddies": [],
 };
 
+/**
+ * Organizations, departments and teams (§42).
+ *
+ * The fixture is a *tree*, three levels deep, with the two cases the page has
+ * to draw honestly: a parent whose own people differ from its subtree's, and
+ * an organisation with people and a team in no department at all — which is
+ * the reason a tree can sum to less than the tenant's total.
+ *
+ * `headcount` is deliberately absent: the server counts `users.department_id`
+ * and that column said 116 for a department with nobody in it.
+ */
+export const orgRows: Record<string, unknown>[] = [];
+
+function organization(overrides: Record<string, unknown>): Record<string, unknown> {
+  return {
+    legal_name: null,
+    industry: "Logistics",
+    tier: "STANDARD",
+    status: "ACTIVE",
+    logo_url: null,
+    website: null,
+    email: null,
+    phone: null,
+    address_line: null,
+    city: "Rotterdam",
+    country: "Netherlands",
+    employee_count: 4200,
+    people: 0,
+    department_count: 0,
+    team_count: 0,
+    created_at: "2026-01-04T09:00:00Z",
+    updated_at: "2026-09-01T09:00:00Z",
+    ...overrides,
+  };
+}
+
+function seedOrgs(): void {
+  orgRows.length = 0;
+  orgRows.push(
+    organization({
+      id: "org-northwind", name: "Northwind Group", slug: "northwind-group",
+      tier: "ENTERPRISE", people: 12, department_count: 4, team_count: 3,
+    }),
+    organization({
+      id: "org-contoso", name: "Contoso Systems", slug: "contoso-systems",
+      tier: "STARTER", people: 2, department_count: 0, team_count: 0,
+      city: "Lisbon", country: "Portugal", employee_count: 40,
+    }),
+  );
+}
+
+seedOrgs();
+
+export function resetOrgs(): void {
+  seedOrgs();
+  orgsCanManage = true;
+}
+
+export let orgsCanManage = true;
+
+export function setOrgsCanManage(value: boolean): void {
+  orgsCanManage = value;
+}
+
+const ORG_LEAD = {
+  id: "usr-lead", full_name: "Mara Manager", initials: "MM",
+  avatar_url: null, job_title: "Engineering Manager",
+};
+
+/** Three levels, so the depth limit and the rollup are both observable. */
+const ORG_TREES: Record<string, Record<string, unknown>> = {
+  "org-northwind": {
+    departments: [
+      {
+        id: "dep-eng", name: "Engineering", code: "ENG", description: null,
+        cost_center: "CC-ENG-100", parent_id: null, manager: ORG_LEAD, depth: 0,
+        // Its own two, and seven counting everything below — the pair the page
+        // must not collapse into one number.
+        people: 2, people_in_subtree: 7,
+        teams: [
+          { id: "tm-atlas", name: "Atlas", slug: "atlas", description: null, color: "#5b5bd6", lead: ORG_LEAD },
+        ],
+        children: [
+          {
+            id: "dep-plt", name: "Engineering — Platform", code: "ENG-PLT",
+            description: null, cost_center: null, parent_id: "dep-eng",
+            manager: null, depth: 1, people: 3, people_in_subtree: 5, teams: [],
+            children: [
+              {
+                id: "dep-plt-core", name: "Platform — Core", code: "ENG-PLT-COR",
+                description: null, cost_center: null, parent_id: "dep-plt",
+                manager: null, depth: 2, people: 2, people_in_subtree: 2,
+                teams: [], children: [],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "dep-sales", name: "Sales", code: "SLS", description: null,
+        cost_center: null, parent_id: null, manager: null, depth: 0,
+        people: 4, people_in_subtree: 4, teams: [], children: [],
+      },
+      // Nothing in it at all: the branch where retiring changes nothing else,
+      // and the state a just-created department is in.
+      {
+        id: "dep-legacy", name: "Legacy", code: "LGC", description: null,
+        cost_center: null, parent_id: null, manager: null, depth: 0,
+        people: 0, people_in_subtree: 0, teams: [], children: [],
+      },
+    ],
+    // The reason this tenant's tree sums to 11 while it holds 12 accounts.
+    unplaced_teams: [
+      { id: "tm-floating", name: "Wayfinder", slug: "wayfinder", description: null, color: "#0891b2", lead: null },
+    ],
+    depth: 2,
+    unassigned_people: 1,
+  },
+  "org-contoso": {
+    departments: [],
+    unplaced_teams: [],
+    depth: 0,
+    unassigned_people: 2,
+  },
+};
+
 export const handlers = [
+  http.get("/platform/admin/organizations/catalogue", ({ request }) =>
+    echo(request, {
+      fields: [{ name: "name", label: "Name", kind: "text" }],
+      default_columns: ["name", "tier", "industry", "country", "people"],
+      tiers: ["TRIAL", "STARTER", "STANDARD", "ENTERPRISE"],
+      statuses: ["ACTIVE", "SUSPENDED", "ARCHIVED"],
+      regions: [
+        { id: "reg-emea", name: "EMEA", code: "EMEA", timezone: "Europe/Amsterdam", currency: "EUR" },
+        { id: "reg-amer", name: "Americas", code: "AMER", timezone: "America/New_York", currency: "USD" },
+      ],
+      max_depth: 4,
+      total: orgRows.length,
+      can_manage: orgsCanManage,
+      // The reader's own tenant, so the page opens on theirs rather than on
+      // whichever sorted first.
+      own_organization_id: "org-northwind",
+      industries: ["Logistics"],
+    }),
+  ),
+  http.post("/platform/admin/organizations/:id/departments", async ({ params, request }) => {
+    if (!orgsCanManage) return HttpResponse.json({ message: "forbidden" }, { status: 403 });
+    const shape = ORG_TREES[String(params["id"])];
+    if (!shape) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    const body = (await request.json()) as Record<string, unknown>;
+    const code = text(body["code"]).toUpperCase();
+    const node = {
+      id: `dep-${code}`, name: text(body["name"]), code,
+      description: null, cost_center: null,
+      parent_id: (body["parent_id"] as string | null) ?? null,
+      manager: null, depth: 0, people: 0, people_in_subtree: 0,
+      teams: [], children: [],
+    };
+    const parentId = node.parent_id;
+    if (parentId) {
+      const attach = (list: Array<Record<string, unknown>>): boolean => {
+        for (const item of list) {
+          if (item["id"] === parentId) {
+            node.depth = Number(item["depth"]) + 1;
+            (item["children"] as Array<unknown>).push(node);
+            return true;
+          }
+          if (attach(item["children"] as Array<Record<string, unknown>>)) return true;
+        }
+        return false;
+      };
+      attach(shape["departments"] as Array<Record<string, unknown>>);
+    } else {
+      (shape["departments"] as Array<unknown>).push(node);
+    }
+    return HttpResponse.json(node, { status: 201 });
+  }),
+  http.put("/platform/admin/departments/:id", async ({ params, request }) => {
+    if (!orgsCanManage) return HttpResponse.json({ message: "forbidden" }, { status: 403 });
+    const body = (await request.json()) as Record<string, unknown>;
+    const id = String(params["id"]);
+    // The cycle the server refuses, refused here too — a fixture that allowed
+    // it would let the page ship a control that corrupts the tree.
+    let found: Record<string, unknown> | null = null;
+    const find = (list: Array<Record<string, unknown>>): void => {
+      for (const item of list) {
+        if (item["id"] === id) found = item;
+        find(item["children"] as Array<Record<string, unknown>>);
+      }
+    };
+    for (const shape of Object.values(ORG_TREES)) {
+      find(shape["departments"] as Array<Record<string, unknown>>);
+    }
+    if (!found) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    if (body["parent_id"] === id) {
+      return HttpResponse.json(
+        { error: "conflict", message: "It cannot sit inside itself." },
+        { status: 409 },
+      );
+    }
+    const node = found as Record<string, unknown>;
+    return echo(request, {
+      id,
+      name: String(node["name"]),
+      code: String(node["code"]),
+      parent_id: (body["parent_id"] as string | null) ?? null,
+    });
+  }),
+  http.delete("/platform/admin/departments/:id", ({ params, request }) => {
+    if (!orgsCanManage) return HttpResponse.json({ message: "forbidden" }, { status: 403 });
+    const id = String(params["id"]);
+    // `dep-eng` has people, teams and children: the refusal the page must
+    // relay rather than swallow.
+    if (id === "dep-eng") {
+      return HttpResponse.json(
+        {
+          error: "conflict",
+          message: "Engineering still has 2 people, 1 team, 1 sub-department. Move them first.",
+        },
+        { status: 409 },
+      );
+    }
+    for (const shape of Object.values(ORG_TREES)) {
+      const prune = (list: Array<Record<string, unknown>>): void => {
+        const index = list.findIndex((item) => item["id"] === id);
+        if (index >= 0) {
+          list.splice(index, 1);
+          return;
+        }
+        for (const item of list) prune(item["children"] as Array<Record<string, unknown>>);
+      };
+      prune(shape["departments"] as Array<Record<string, unknown>>);
+    }
+    return echo(request, { deleted: true, name: "Retired department" });
+  }),
+  http.get("/platform/admin/organizations/:id", ({ params, request }) => {
+    const row = orgRows.find((item) => item["id"] === String(params["id"]));
+    const shape = ORG_TREES[String(params["id"])];
+    if (!row || !shape) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    return echo(request, {
+      organization: orgsCanManage ? { ...row, annual_revenue: 12_400_000 } : row,
+      ...shape,
+      max_depth: 4,
+      can_manage: orgsCanManage,
+    });
+  }),
+  http.put("/platform/admin/organizations/:id", async ({ params, request }) => {
+    if (!orgsCanManage) return HttpResponse.json({ message: "forbidden" }, { status: 403 });
+    const row = orgRows.find((item) => item["id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    Object.assign(row, (await request.json()) as Record<string, unknown>);
+    return echo(request, row);
+  }),
+  http.get("/platform/admin/organizations", ({ request }) =>
+    echo(request, {
+      // `annual_revenue` present only for a reader who may manage — mirroring
+      // the service, so the page's guard is exercised rather than assumed.
+      items: orgRows.map((row) =>
+        orgsCanManage ? { ...row, annual_revenue: 12_400_000 } : row,
+      ),
+      total: orgRows.length,
+      page: 1,
+      page_size: 100,
+      pages: 1,
+      sort: "name",
+      order: "asc",
+      facets: {
+        tier: [...new Set(orgRows.map((row) => String(row["tier"])))].map((value) => ({
+          value,
+          count: orgRows.filter((row) => row["tier"] === value).length,
+        })),
+      },
+      columns: ["name", "tier", "industry", "country", "people"],
+      can_manage: orgsCanManage,
+    }),
+  ),
   http.get("/platform/admin/groups/catalogue", ({ request }) =>
     echo(request, {
       fields: [

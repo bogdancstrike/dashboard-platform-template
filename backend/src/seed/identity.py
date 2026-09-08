@@ -49,10 +49,36 @@ def build(world: World) -> None:
     _teams(world)
     _groups(world)
     _users(world)
+    _settle_headcount(world)
     _memberships(world)
     _sessions(world)
     _login_events(world)
     _security_events(world)
+
+
+def _settle_headcount(world: World) -> None:
+    """Make `departments.headcount` agree with the people in them.
+
+    It was `rng.integer(3, 120)`, written before the users existed and never
+    reconciled — so Support stored 116 while nobody at all was assigned to it.
+    Two numbers for one fact, and the stored one was the fiction.
+
+    `services/organizations` computes the count from `users.department_id`
+    rather than reading this column, so the API cannot be wrong even if the
+    column drifts again. This exists so the column is not a lie for anything
+    that reads it directly, and so `--check` has something true to verify.
+
+    A sub-department's people are its own. Rolling a parent's children into it
+    would make the numbers on a tree sum to more than the organisation has,
+    which is the other way round of the same problem.
+    """
+    from collections import Counter
+
+    counted = Counter(
+        user.department_id for user in world.users if user.department_id is not None
+    )
+    for department in world.departments:
+        department.headcount = counted.get(department.id, 0)
 
 
 # ── reference data ───────────────────────────────────────────────────────
@@ -183,7 +209,10 @@ def _departments(world: World) -> None:
                 description=f"{name} at {organization.name}.",
                 organization_id=organization.id,
                 cost_center=f"CC-{code}-{rng.integer(100, 999)}",
-                headcount=rng.integer(3, 120),
+                # Filled in by `_settle_headcount` once the people exist. Drawn
+                # at random here it said 116 for a department with nobody in
+                # it, which is the platform contradicting its own directory.
+                headcount=0,
                 created_at=rng.between(organization.created_at, world.anchor),
             )
             world.departments.append(parent)
@@ -198,7 +227,7 @@ def _departments(world: World) -> None:
                         organization_id=organization.id,
                         parent_id=parent.id,
                         cost_center=f"CC-{code}-{rng.integer(100, 999)}",
-                        headcount=rng.integer(2, 40),
+                        headcount=0,
                         created_at=rng.between(parent.created_at, world.anchor),
                     )
                 )

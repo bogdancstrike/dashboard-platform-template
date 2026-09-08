@@ -12,6 +12,7 @@
     python -m src.seed --sync-mailboxes  # give each demo persona an inbox worth opening
     python -m src.seed --sync-settings   # bring each setting's declaration up to date
     python -m src.seed --sync-jobs       # give every job status at least one job
+    python -m src.seed --sync-org        # make each department's headcount agree with its people
     python -m src.seed --dry-run          # build in memory, write nothing
 
 It refuses to seed a database that already has data unless `--reset` or
@@ -59,6 +60,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-mailboxes", action="store_true",
         help="top each demo persona's inbox up to the guaranteed minimum",
+    )
+    parser.add_argument(
+        "--sync-org", action="store_true",
+        help="recount each department's headcount from the people actually in it",
     )
     parser.add_argument(
         "--sync-jobs", action="store_true",
@@ -172,6 +177,19 @@ def main(argv: list[str] | None = None) -> int:
             f"{result['added']} thread(s) added across {result['personas']} persona(s)"
             if result["added"]
             else "every persona already has an inbox"
+        )
+        return 0
+
+    if args.sync_org:
+        # An *edit*, unlike the other repairs — safe because the column is
+        # derived: `users.department_id` is the truth, and this only stops the
+        # cached copy contradicting it.
+        with session_scope() as session:
+            result = runner.sync_org(session)
+        print(
+            f"{result['corrected']} departments recounted"
+            if result["corrected"]
+            else "every department already agrees with its people"
         )
         return 0
 
