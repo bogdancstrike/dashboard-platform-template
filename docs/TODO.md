@@ -1050,13 +1050,109 @@ commit — built, committed, pushed, redeployed and verified before the next.
       relationship and analysis endpoints — are read-only because they are
       *views*, and a POST to any of them would be a second way to write
       something that already has one
+- [x] **The administration area's index, `/admin/settings` and `/admin/flags`**
+      (§11, §27) — runtime configuration, and who has what
+  - **`/admin` is a map, not a second dashboard.** The area is eleven screens
+      people visit rarely and need to *find*; what the index owes them is where
+      each one is and what it is for. A second set of KPIs here would compete
+      with `/dashboard` and answer nothing an administrator came for. Each card
+      carries one live number, and only where one is cheap — how many people,
+      how many settings differ, how many flags are on — taken from the endpoint
+      that card's own destination uses, so the number cannot disagree with the
+      page it sends somebody to
+  - **A card the reader may not open is absent, not greyed out** (§76), and the
+      index is rendered from the same permission string each destination
+      checks, so the two cannot drift. The e2e asserts the gate from the other
+      side too: a manager holds `users.manage` and `jobs.view` and *not*
+      `admin.access`, which `core/auth` documents as the single gate for the
+      whole area — so the route is closed and not merely unlinked
+  - **Every settings control is rendered from the setting's own declaration.**
+      A boolean gets a switch, a choice a select, a bounded number a bounded
+      number. Adding a setting on the server needs no change in the browser —
+      and a page that ignored the declaration would render a boolean as a text
+      box and store the string `"false"`, which reads as *true* everywhere it
+      is used. `controlFor` is the whole mapping, exported and asserted
+      directly, because driving seven forms to check it would be seven tests
+      about AntD
+  - **The value is coerced on the server**, against the type the setting
+      declares and the `minimum`/`maximum`/`choices` it was seeded with. The
+      e2e writes 45, reloads, and reads it back from the database rather than
+      from the box that sent it: a browser sends `"45"` and the column has to
+      hold `45`
+  - **A secret is shown as *set*, never shown.** `_visible` cannot return one,
+      the payload carries `••••••••` for the value *and* the default, and the
+      field asks for a replacement rather than offering what is there. The e2e
+      records every response body on the page and asserts the seeded
+      `whsec_…` appears in none of them — a settings page that renders a
+      signing key has put it in a screenshot, a browser cache and a support
+      ticket
+  - **Drift is on the face of it.** Each changed setting says what the platform
+      ships with, with Reset beside it — and only where there is something to
+      undo, because a column of permanently disabled buttons is noise. "Somebody
+      chose this" and "this is how it comes" are different facts
+  - **A flag's rollout is one function, and it is the same answer every time.**
+      `is_on` buckets on `sha256(f"{key}:{user_id}")`, so a reader either has a
+      flag or does not, on every request and after every deploy — a flag that
+      flickered would make every bug report about it unreproducible. The table
+      says so in words (`reachOf`): "50% of people, always the same ones", and
+      "Nobody — no rollout and nobody named" for the state that looks like a
+      bug and is a configuration
+  - **A flag arrives off, and says so on the way in.** Whatever the payload
+      claims: a flag created enabled would ship whatever it guards at the
+      moment it was made. Delete is refused while it is on — disabled with the
+      reason rather than absent, because deleting a spent flag *is* something
+      an administrator does (§76)
+  - **Two accessibility defects, and the palette test that should have caught
+      one.** `contrast.test.ts` exists so a low-contrast token fails in
+      milliseconds rather than being found one page at a time by axe — but it
+      checked the semantic inks against the page and a card, and not against
+      the ground a preset `Tag` is actually drawn on. AntD *derives* that tint
+      from our seed rather than taking it from its stock palette, and our
+      greens are saturated enough that the ramp desaturates them to `#d3e3d6`
+      and `#daf1f2` instead of the near-white `#f6ffed` and `#e6f4ff`: the
+      success ink scored 3.76:1 there and failed, and the info ink passed by
+      0.05. Both moved a step darker, and the test now derives each tint
+      through the same algorithm the theme uses — so the next change to
+      `SEMANTIC` fails a unit test instead of a browser
+  - The other was the rollout slider: AntD forwards `aria-label` to the
+      wrapper, and the element carrying `role="slider"` is the *handle*. Nine
+      unnamed inputs on one screen, each announced as "50, slider" with no clue
+      which flag it moved. `ariaLabelForHandle` is the prop that reaches it
+  - **Additively repairable, like every other seeded thing** — `--sync-settings`
+      adds settings the catalogue declares and the database lacks and fixes any
+      whose stored value no longer fits its declaration, without a reseed
+
+- [~] **One activity-feed flake fixed, and three left tracked rather than
+      guessed at.** `activity.spec.ts` asserted that clicking a kind chip
+      leaves the counts *equal*, which is false on a live stack: every sign-in
+      writes a SECURITY row, the suite signs in on every test, and
+      `fullyParallel` runs three workers — so a sibling authenticating between
+      the two reads failed it. The claim is now "the other kinds are still
+      positive", because nought is the only value the defect it guards against
+      could produce
+  - Three others failed once each in one parallel sweep and passed both alone
+      and in the next full run, and the line reporter's summary had already
+      scrolled past their error text — so they are recorded rather than
+      "fixed" on a hypothesis: `dashboards.spec.ts` "one person has one home
+      dashboard", `entities.spec.ts` "a reader without export rights is told",
+      and `maps.spec.ts` "clicking a country opens the records that are
+      there". All three assert something global about state that a
+      concurrently-running spec as the same persona can move — a dashboard
+      set as home, a role's permissions, a record count — which is the same
+      shape as the flake above and the likeliest cause. The next sweep that
+      reproduces one should be run with `--reporter=list` kept whole
 - [ ] **Variety in how "create" opens** — a wizard where the decision has
       parts, a drawer for one object's fields, a plain modal for one question.
       The dashboard wizard is the first; the rest of the modules follow
 - [~] **Every page in the navigation is implemented**, not a placeholder — the
       list is in [Phase 6](#phase-6--frontend-pages). `/dashboards`, `/kanban`,
-      `/files`, `/workflows`, `/calendar`, `/mail` and `/home` are done; the
-      admin area and the system pages remain
+      `/files`, `/workflows`, `/calendar`, `/mail`, `/home` and the
+      administration index with `/admin/settings` and `/admin/flags` are done.
+      Remaining: `/admin/groups`, `/admin/organizations`, `/admin/logs` (§22),
+      `/admin/jobs` (§23), `/admin/api` (§25), `/admin/integrations` (§26),
+      `/favorites`, `/import` (§29), `/exports` (§30), `/settings/security`
+      (§41) and the two `/showcase/*` pages — every one of which already has
+      its model and its seeded rows
 - [x] **Six latent e2e flakes fixed, all the same two mistakes.** Four specs
       clicked a select option with `getByTitle`, which AntD also puts on the
       closed select's own label — so the click matched twice as soon as the
@@ -1352,7 +1448,7 @@ section is a cross-cutting rule rather than a page.
 | 8 | Entity detail page | `/{entity}/:id` | `/api/records/…` | [x] |
 | 9 | Create / edit forms | drawer on every entity page | `/api/records/*` | [x] |
 | 10 | Multi-step wizard | `/{entity}/new/wizard` | draft endpoints | [ ] |
-| 11 | Admin area | `/admin` | `/admin/*` | [ ] |
+| 11 | Admin area | `/admin` | `/admin/*` | [x] |
 | 12 | User management, impersonation | `/admin/users` | `/admin/users` | [x] |
 | 13 | Roles and permission matrix | `/admin/roles` | `/admin/roles` | [x] |
 | 14 | Email inbox | `/mail` | `/api/mail/threads` | [x] |
@@ -1368,7 +1464,7 @@ section is a cross-cutting rule rather than a page.
 | 24 | System health | `/admin/health` | `/health/status` | [x] API |
 | 25 | API management | `/admin/api` | `/admin/api-clients` | [ ] |
 | 26 | Integrations | `/admin/integrations` | `/admin/integrations` | [ ] |
-| 27 | Feature flags | `/admin/flags` | `/admin/flags` | [ ] |
+| 27 | Feature flags | `/admin/flags` | `/admin/flags` | [x] |
 | 28 | Reports | `/reports`, `/reports/builder` | `/api/reports`, `/api/analysis/run` | [x] |
 | 29 | Import wizard | `/import` | `/imports` | [ ] |
 | 30 | Export | every list | `/{list}/export` | [~] |

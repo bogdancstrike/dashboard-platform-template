@@ -114,14 +114,31 @@ export const AVATAR_GROUND = "#475569";
 
 export const SEMANTIC_INK = {
   light: {
-    success: "#15803d",
     // A step darker than the ink used on white, because these also land on
     // AntD's *tinted* backgrounds — a warning tag is amber on `#fffbe6`, and
     // `#a16207` there is 4.73:1 while the amber it derives is 2.82:1. One
     // value that clears the bar on both grounds beats two that each clear one.
+    //
+    // How dark a step depends on the tint, and the tints are *derived from
+    // `SEMANTIC`* rather than AntD's stock seeds: our success and info greens
+    // are saturated enough that the ramp desaturates their tints to `#d3e3d6`
+    // and `#daf1f2` instead of the near-white `#f6ffed` and `#e6f4ff`. So
+    // these two carry a further step. The worst ground each value has to
+    // survive, and what it scores there:
+    //
+    //   success  #166534 on #d3e3d6  5.34:1   (#15803d was 3.76:1 — failed)
+    //   warning  #854d0e on #fffbe6  6.59:1
+    //   danger   #b91c1c on #fff2f0  5.92:1
+    //   info     #155e75 on #daf1f2  6.18:1   (#0e7490 was 4.55:1 — passed
+    //                                          by 0.05, which a hover ground
+    //                                          or a nested tint undoes)
+    //
+    // Small text at 10px — a tag under compact density — is held to 4.5:1,
+    // and none of these is ever the *only* carrier of its meaning (§64).
+    success: "#166534",
     warning: "#854d0e",
     danger: "#b91c1c",
-    info: "#0e7490",
+    info: "#155e75",
   },
   dark: {
     success: "#4ade80",

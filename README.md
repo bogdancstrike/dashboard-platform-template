@@ -150,7 +150,9 @@ gunicorn -k gevent -c gunicorn.conf.py wsgi:application   # production
 `create_all` creates the tables that are missing and says nothing about a table
 that already exists but has since grown a column in the model — so the failure
 arrives as a 500 on somebody's next write rather than as an error on deploy.
-Two commands close that, both additive and neither destructive:
+The commands below close that. Every one of them is additive and none is
+destructive — they insert what is missing and repair what no longer fits, and
+never drop or overwrite a row somebody may have edited:
 
 ```bash
 python -m src.seed --check          # is the schema behind the model, and does the data hang together
@@ -159,6 +161,7 @@ python -m src.seed --sync-roles     # give the built-in roles any newly declared
 python -m src.seed --sync-reports   # make saved reports the analysis compiler would reject runnable
 python -m src.seed --sync-automations  # make automations the engine cannot run runnable
 python -m src.seed --sync-mailboxes    # give each demo persona an inbox worth opening
+python -m src.seed --sync-settings     # add newly declared settings, refit any that no longer fit
 ```
 
 `--sync-schema` refuses to guess: a `NOT NULL` column with no default is
@@ -180,15 +183,24 @@ of them was unrunnable — and a monitoring rule that cannot run reports quiet,
 which reads exactly like good news. It repairs what it can and *pauses* a rule
 whose dataset is gone, because there is nothing to repair that to.
 
-`--sync-mailboxes` is the third of these and the least dramatic: the mailbox
+`--sync-settings` is the one you will need most often while extending the
+platform, because it is the one a new *feature* triggers: `/admin/settings`
+renders every control from the setting's declaration, so adding a setting means
+adding a row to `seed/catalog.py`, and a populated database will not have it.
+It inserts what is missing and refits any stored value that no longer satisfies
+its declaration — a bound that has since tightened, a choice that has since
+been removed — because a setting whose value its own control cannot represent
+is one the page silently rewrites the first time somebody opens it.
+
+`--sync-mailboxes` is the fourth of these and the least dramatic: the mailbox
 generator's folder draw is random, and at the small scale it left the
 *administrator* — the account everybody signs in as first — with two threads
 and neither of them in the inbox. An empty inbox on a demo reads as a broken
 feature. It counts what is there and inserts only what is missing.
 
 Under Compose these are `make check-seed`, `make sync-schema`, `make
-sync-roles`, `make sync-reports`, `make sync-automations` and `make
-sync-mailboxes`.
+sync-roles`, `make sync-reports`, `make sync-automations`, `make sync-mailboxes`
+and `make sync-settings`.
 
 Then:
 

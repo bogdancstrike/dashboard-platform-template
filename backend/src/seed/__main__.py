@@ -10,6 +10,7 @@
     python -m src.seed --sync-reports     # make unrunnable saved reports runnable
     python -m src.seed --sync-automations # make unrunnable automations runnable
     python -m src.seed --sync-mailboxes  # give each demo persona an inbox worth opening
+    python -m src.seed --sync-settings   # bring each setting's declaration up to date
     python -m src.seed --dry-run          # build in memory, write nothing
 
 It refuses to seed a database that already has data unless `--reset` or
@@ -49,6 +50,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-roles", action="store_true",
         help="add any newly declared permissions to the built-in roles and exit",
+    )
+    parser.add_argument(
+        "--sync-settings", action="store_true",
+        help="update each setting's label, type, options and default, keeping chosen values",
     )
     parser.add_argument(
         "--sync-mailboxes", action="store_true",
@@ -162,6 +167,19 @@ def main(argv: list[str] | None = None) -> int:
             f"{result['added']} thread(s) added across {result['personas']} persona(s)"
             if result["added"]
             else "every persona already has an inbox"
+        )
+        return 0
+
+    if args.sync_settings:
+        # What an ordinary deploy needs: the catalogue gains a setting, or an
+        # existing one gains a type and a range, and seeding refuses to touch a
+        # populated database. Chosen values survive; a value that no longer
+        # fits its own declaration is reset, and counted separately.
+        with session_scope() as session:
+            result = runner.sync_settings(session)
+        print(
+            f"{result['added']} added, {result['updated']} updated"
+            + (f", {result['reset']} reset to the new default" if result["reset"] else "")
         )
         return 0
 

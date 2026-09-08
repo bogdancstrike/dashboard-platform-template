@@ -53,7 +53,7 @@ def _system_settings(world: World) -> None:
     rng = world.rng.derive("settings")
     admin = world.personas.get("ADMINISTRATOR")
 
-    for key, category, label, value_type, default, description in catalog.SYSTEM_SETTINGS:
+    for key, category, label, value_type, default, description, options in catalog.SYSTEM_SETTINGS:
         # Most settings sit at their default; a handful are overridden, which is
         # what gives the settings screen something to show as "changed".
         overridden = rng.chance(0.28)
@@ -61,8 +61,16 @@ def _system_settings(world: World) -> None:
         if overridden:
             if value_type == "boolean":
                 value = not default
-            elif value_type == "integer":
-                value = int(default * rng.pick((0.5, 2, 3)))
+            elif value_type in ("integer", "duration"):
+                # Within the declared range, so an overridden value is one the
+                # form would accept — a seeded setting the editor refuses is a
+                # screen that reports its own data as invalid.
+                low = int(options.get("minimum", 1))
+                high = int(options.get("maximum", max(int(default) * 3, low + 1)))
+                value = min(max(int(int(default) * rng.pick((0.5, 2, 3))), low), high)
+            elif value_type == "choice":
+                choices = [item for item in options.get("choices", []) if item != default]
+                value = rng.pick(choices) if choices else default
             else:
                 value = f"{default}"
         world.system_settings.append(
@@ -75,9 +83,13 @@ def _system_settings(world: World) -> None:
                 value={"value": value},
                 default_value={"value": default},
                 value_type=value_type,
-                options={"editable": True} if value_type != "boolean" else None,
-                is_secret=False,
-                requires_restart=key.startswith("limits.") and rng.chance(0.3),
+                # The declaration itself, so the form renders from it. A
+                # boolean needs none — a switch has no choices and no range.
+                options=options or None,
+                # Declared in the catalogue, so the one secret in the demo is
+                # the one the settings screen redacts.
+                is_secret=bool(options.get("secret")),
+                requires_restart=bool(options.get("restart")),
                 updated_by_id=admin.id if admin and overridden else None,
                 created_at=rng.ago(days_min=200, days_max=800),
             )

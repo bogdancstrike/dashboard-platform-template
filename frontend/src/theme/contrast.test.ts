@@ -19,9 +19,10 @@
  * where those components are.
  */
 
+import { theme } from "antd";
 import { describe, expect, it } from "vitest";
 
-import { AVATAR_GROUND, INK, NEUTRAL, SEMANTIC_INK } from "@/theme/tokens";
+import { AVATAR_GROUND, INK, NEUTRAL, SEMANTIC, SEMANTIC_INK } from "@/theme/tokens";
 
 /** WCAG relative luminance. */
 function luminance(hex: string): number {
@@ -81,6 +82,46 @@ describe.each(["light", "dark"] as const)("text is legible in %s", (mode) => {
     (_meaning, ink) => {
       expect(contrast(ink, grounds.page)).toBeGreaterThanOrEqual(4.5);
       expect(contrast(ink, grounds.card)).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+
+  /**
+   * The third ground, and the one that got away: a preset tag's own tint.
+   *
+   * `<Tag color="success">` is drawn on `colorSuccessBg`, which AntD *derives
+   * from our seed* rather than taking from its stock palette — so the tint is
+   * not knowable from this file, and the ink chosen against white and a card
+   * can still fail on it. It did: `#15803d` scored 3.76:1 on the `#d3e3d6`
+   * that `#16a34a` derives, and a Playwright axe run on `/admin/flags` found
+   * it, which is exactly the one-page-at-a-time discovery this file exists to
+   * end.
+   *
+   * Derived here through the same algorithm the theme uses, so a change to
+   * `SEMANTIC` that darkens a tint fails this rather than a browser.
+   */
+  type Meaning = keyof (typeof SEMANTIC_INK)["light"];
+
+  it.each(Object.keys(SEMANTIC_INK[mode]) as Meaning[])(
+    "the %s ink clears 4.5:1 on the tag tint its own seed derives",
+    (meaning) => {
+      const algorithm = mode === "dark" ? theme.darkAlgorithm : theme.defaultAlgorithm;
+      const derived = algorithm({
+        ...theme.defaultSeed,
+        colorSuccess: SEMANTIC.success,
+        colorWarning: SEMANTIC.warning,
+        colorError: SEMANTIC.danger,
+        colorInfo: SEMANTIC.info,
+      });
+      const tint: Record<Meaning, string> = {
+        success: derived.colorSuccessBg,
+        warning: derived.colorWarningBg,
+        danger: derived.colorErrorBg,
+        info: derived.colorInfoBg,
+      };
+
+      expect(contrast(SEMANTIC_INK[mode][meaning], tint[meaning])).toBeGreaterThanOrEqual(
+        4.5,
+      );
     },
   );
 

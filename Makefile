@@ -104,6 +104,10 @@ sync-automations: ## Make automations the engine cannot run runnable, and pause 
 sync-mailboxes: ## Give each demo persona an inbox worth opening
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-mailboxes seed
 
+.PHONY: sync-settings
+sync-settings: ## Add newly declared system settings, and refit any that no longer fit
+	$(COMPOSE) run --rm -e SEED_ARGS=--sync-settings seed
+
 .PHONY: psql
 psql: ## Open a psql shell on the stack's database
 	$(COMPOSE) exec postgres psql -U platform -d platform

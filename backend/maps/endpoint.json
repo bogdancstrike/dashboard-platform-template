@@ -1282,6 +1282,64 @@
         "module_name": "src.api.mail",
         "method_name": "message"
       }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "admin_settings_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/settings",
+      "description": "Every setting, grouped, with what the platform ships with beside it.",
+      "exec_method": {
+        "module_name": "src.api.settings",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "admin_setting_item",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT"
+      ],
+      "api_url": "/admin/settings/<string:key>",
+      "description": "Change one setting, or reset it to its default.",
+      "exec_method": {
+        "module_name": "src.api.settings",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "admin_flags_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/admin/flags",
+      "description": "Every feature flag and whether it is on for this reader, or a new one.",
+      "exec_method": {
+        "module_name": "src.api.settings",
+        "method_name": "flags"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "admin_flag_item",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/admin/flags/<string:key>",
+      "description": "Turn a flag on or off, change its rollout, or remove it.",
+      "exec_method": {
+        "module_name": "src.api.settings",
+        "method_name": "flag"
+      }
     }
   ]
 }

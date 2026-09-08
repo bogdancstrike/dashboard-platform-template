@@ -2151,7 +2151,191 @@ export function resetMail(): void {
   seedMail();
 }
 
+
+/**
+ * System settings and feature flags (§11, §27).
+ *
+ * One of each declared type, because the page renders its controls from the
+ * declaration and a fixture of all-strings would assert nothing: a boolean, a
+ * choice, a bounded number, a plain string, and one secret.
+ */
+export const settingRows: Record<string, unknown>[] = [];
+
+function setting(overrides: Record<string, unknown>): Record<string, unknown> {
+  return {
+    category: "general",
+    description: "What it does.",
+    value_type: "string",
+    options: {},
+    is_secret: false,
+    requires_restart: false,
+    changed: false,
+    updated_at: "2026-09-01T09:00:00Z",
+    ...overrides,
+  };
+}
+
+function seedSettings(): void {
+  settingRows.length = 0;
+  settingRows.push(
+    setting({ key: "app.name", label: "Application name", value: "Nucleus", default: "Nucleus" }),
+    setting({
+      key: "ui.density", label: "Default table density", category: "appearance",
+      value_type: "choice", value: "middle", default: "middle",
+      options: { choices: ["compact", "middle", "comfortable"] },
+    }),
+    setting({
+      key: "security.mfa_required", label: "Require MFA", category: "security",
+      value_type: "boolean", value: false, default: false,
+    }),
+    setting({
+      key: "retention.log_days", label: "Log retention", category: "retention",
+      value_type: "duration", value: 60, default: 30, changed: true,
+      requires_restart: true,
+      options: { minimum: 1, maximum: 365, unit: "days" },
+    }),
+    setting({
+      key: "integrations.webhook_signing_key", label: "Webhook signing key",
+      category: "security", value: "••••••••", default: "••••••••", is_secret: true,
+    }),
+  );
+}
+
+seedSettings();
+
+export function resetSettings(): void {
+  seedSettings();
+}
+
+/** The grouped shape the page renders, built from whatever the rows now say. */
+function settingsPage() {
+  const groups: Record<string, Record<string, unknown>[]> = {};
+  for (const row of settingRows) {
+    const key = String(row["category"]);
+    (groups[key] ??= []).push(row);
+  }
+  return {
+    groups: Object.entries(groups)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, items]) => ({
+        key,
+        label: key.charAt(0).toUpperCase() + key.slice(1),
+        items,
+      })),
+    total: settingRows.length,
+    categories: Object.entries(groups).map(([key, items]) => ({
+      key,
+      label: key.charAt(0).toUpperCase() + key.slice(1),
+      count: items.length,
+    })),
+    value_types: ["string", "integer", "boolean", "choice", "json", "duration"],
+    changed: settingRows.filter((row) => row["changed"]).length,
+    restart_pending: settingRows.filter((row) => row["changed"] && row["requires_restart"])
+      .length,
+  };
+}
+
+export const flagRows: Record<string, unknown>[] = [];
+
+function flag(overrides: Record<string, unknown>): Record<string, unknown> {
+  return {
+    description: "What it guards.",
+    environment: "production",
+    stage: "BETA",
+    rollout_percentage: 0,
+    target_roles: [],
+    target_user_ids: [],
+    experimental: false,
+    last_toggled_at: null,
+    updated_at: "2026-09-01T09:00:00Z",
+    on_for_me: false,
+    partial: false,
+    ...overrides,
+  };
+}
+
+function seedFlags(): void {
+  flagRows.length = 0;
+  flagRows.push(
+    flag({
+      key: "dark-mode", name: "Dark mode", enabled: true, rollout_percentage: 100,
+      stage: "GA", on_for_me: true, last_toggled_at: "2026-08-20T09:00:00Z",
+    }),
+    // Enabled and partial: the row the page exists to explain — on, and not
+    // on for this reader.
+    flag({
+      key: "csv-import", name: "CSV import wizard", enabled: true,
+      rollout_percentage: 10, partial: true, on_for_me: false,
+    }),
+    flag({ key: "ai-summaries", name: "AI record summaries", enabled: false, experimental: true }),
+  );
+}
+
+seedFlags();
+
+export function resetFlags(): void {
+  seedFlags();
+}
+
 export const handlers = [
+  http.get("/platform/admin/settings", ({ request }) => echo(request, settingsPage())),
+  http.put("/platform/admin/settings/:key", async ({ params, request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const row = settingRows.find((item) => item["key"] === String(params["key"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    if (body["reset"]) {
+      row["value"] = row["default"];
+      row["changed"] = false;
+    } else {
+      row["value"] = body["value"];
+      row["changed"] = body["value"] !== row["default"];
+    }
+    return echo(request, row);
+  }),
+  http.get("/platform/admin/flags", ({ request }) => {
+    const state = new URL(request.url).searchParams.get("state") ?? "";
+    const items = flagRows.filter((item) =>
+      state === "ON" ? item["enabled"] : state === "OFF" ? !item["enabled"] : true,
+    );
+    return echo(request, {
+      items,
+      total: items.length,
+      counts: {
+        total: flagRows.length,
+        on: flagRows.filter((item) => item["enabled"]).length,
+        partial: flagRows.filter((item) => item["partial"]).length,
+        experimental: flagRows.filter((item) => item["experimental"]).length,
+      },
+      stages: ["BETA", "GA"],
+    });
+  }),
+  http.post("/platform/admin/flags", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const text = (value: unknown) => (typeof value === "string" ? value : "");
+    // Off, whatever was asked for — the server's rule.
+    const created = flag({ key: text(body["key"]), name: text(body["name"]), enabled: false });
+    flagRows.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.put("/platform/admin/flags/:key", async ({ params, request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const row = flagRows.find((item) => item["key"] === String(params["key"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    Object.assign(row, body);
+    const percentage = Number(row["rollout_percentage"]);
+    row["partial"] = Boolean(row["enabled"]) && percentage > 0 && percentage < 100;
+    return echo(request, row);
+  }),
+  http.delete("/platform/admin/flags/:key", ({ params, request }) => {
+    const at = flagRows.findIndex((item) => item["key"] === String(params["key"]));
+    const row = flagRows[at];
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    if (row["enabled"]) {
+      return HttpResponse.json({ message: "Turn it off first" }, { status: 409 });
+    }
+    flagRows.splice(at, 1);
+    return echo(request, { deleted: true, key: row["key"] });
+  }),
   http.get("/platform/api/mail/templates", ({ request }) =>
     echo(request, {
       items: [

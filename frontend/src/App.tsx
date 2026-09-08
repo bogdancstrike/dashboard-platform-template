@@ -25,6 +25,9 @@ const WorkflowsPage = lazy(() => import("@/pages/WorkflowsPage"));
 const CalendarPage = lazy(() => import("@/pages/CalendarPage"));
 const MailPage = lazy(() => import("@/pages/MailPage"));
 const HomePage = lazy(() => import("@/pages/HomePage"));
+const AdminHomePage = lazy(() => import("@/pages/admin/AdminHomePage"));
+const SystemSettingsPage = lazy(() => import("@/pages/admin/SettingsPage"));
+const FlagsPage = lazy(() => import("@/pages/admin/FlagsPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"));
 const ReportBuilderPage = lazy(() => import("@/pages/ReportBuilderPage"));
@@ -346,10 +349,9 @@ export default function App() {
         <Route
           path="admin"
           element={
-            <PlaceholderPage
-              section="§11"
-              summary="The administration area — users, roles, settings and operations."
-            />
+            <Suspense fallback={<Loading />}>
+              <AdminHomePage />
+            </Suspense>
           }
         />
         <Route path="admin/users">
@@ -437,11 +439,19 @@ export default function App() {
         />
         <Route
           path="admin/flags"
-          element={<PlaceholderPage section="§27" summary="Feature flags with percentage and targeted rollout." />}
+          element={
+            <Suspense fallback={<Loading />}>
+              <FlagsPage />
+            </Suspense>
+          }
         />
         <Route
           path="admin/settings"
-          element={<PlaceholderPage section="§11" summary="Runtime configuration, one row per setting." />}
+          element={
+            <Suspense fallback={<Loading />}>
+              <SystemSettingsPage />
+            </Suspense>
+          }
         />
 
         {/* Data */}

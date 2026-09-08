@@ -512,28 +512,70 @@ MONITORED_SERVICES: tuple[tuple[str, str, str], ...] = (
     ("api", "Public API", "SERVICE"),
 )
 
-#: (key, category, label, value_type, default, description)
-SYSTEM_SETTINGS: tuple[tuple[str, str, str, str, object, str], ...] = (
-    ("app.name", "general", "Application name", "string", "Nucleus", "Shown in the header and on emails."),
-    ("app.support_email", "general", "Support email", "string", "support@nucleus.local", "Where the help menu points."),
-    ("app.default_locale", "general", "Default locale", "string", "en-US", "Used until a user chooses their own."),
-    ("app.default_timezone", "general", "Default timezone", "string", "UTC", "Used for display and scheduling."),
-    ("ui.density", "appearance", "Default table density", "string", "middle", "compact, middle or comfortable."),
-    ("ui.page_size", "appearance", "Default page size", "integer", 25, "Rows per page on list screens."),
-    ("ui.theme", "appearance", "Default theme", "string", "system", "light, dark or system."),
-    ("security.session_timeout_minutes", "security", "Session timeout", "integer", 60, "Idle minutes before sign-out."),
-    ("security.mfa_required", "security", "Require MFA", "boolean", False, "Force two-factor for every user."),
-    ("security.password_min_length", "security", "Minimum password length", "integer", 12, "Enforced by the identity provider."),
-    ("security.max_failed_logins", "security", "Failed sign-in limit", "integer", 5, "Attempts before an account locks."),
-    ("retention.audit_days", "retention", "Audit retention", "integer", 730, "Days an audit entry is kept."),
-    ("retention.log_days", "retention", "Log retention", "integer", 30, "Days a system log line is kept."),
-    ("retention.notification_days", "retention", "Notification retention", "integer", 90, "Days a read notification is kept."),
-    ("limits.max_upload_mb", "limits", "Maximum upload size", "integer", 25, "Per-file limit, in megabytes."),
-    ("limits.max_export_rows", "limits", "Maximum export rows", "integer", 100000, "Above this an export becomes a job."),
-    ("limits.api_rate_per_minute", "limits", "API rate limit", "integer", 600, "Requests per minute per client."),
-    ("notifications.digest_hour", "notifications", "Digest hour", "integer", 7, "Local hour the daily digest is sent."),
-    ("notifications.email_enabled", "notifications", "Email notifications", "boolean", True, "Send notifications by email."),
-    ("features.self_service_signup", "features", "Self-service sign-up", "boolean", False, "Allow registration without an invite."),
+#: (key, category, label, type, default, description, options).
+#:
+#: The **options** are the seventh field because they are what the settings
+#: form renders from: a `choice` gets a select, an `integer` with a range gets
+#: a bounded number. `secret` and `restart` live here too — both are facts
+#: about a setting, and deriving them from a key prefix (which the seed did,
+#: with a coin flip on top) meant two places disagreeing about which settings
+#: need a restart. The first version left options empty and put the choices in
+#: the *description* — "compact, middle or comfortable" — which made every
+#: setting a text box and the declared type decoration. A description that
+#: lists the valid values is a type that has not been declared.
+SYSTEM_SETTINGS: tuple[tuple[str, str, str, str, object, str, dict], ...] = (
+    ("app.name", "general", "Application name", "string", "Nucleus",
+     "Shown in the header and on emails.", {}),
+    ("app.support_email", "general", "Support email", "string", "support@nucleus.local",
+     "Where the help menu points.", {}),
+    ("app.default_locale", "general", "Default locale", "choice", "en-US",
+     "Used until a user chooses their own.",
+     {"choices": ["en-US", "en-GB", "de-DE", "fr-FR", "ro-RO"]}),
+    ("app.default_timezone", "general", "Default timezone", "choice", "UTC",
+     "Used for display and scheduling.",
+     {"choices": ["UTC", "Europe/London", "Europe/Bucharest", "Europe/Berlin", "America/New_York"]}),
+    ("ui.density", "appearance", "Default table density", "choice", "middle",
+     "Until a person chooses their own.", {"choices": ["compact", "middle", "comfortable"]}),
+    ("ui.page_size", "appearance", "Default page size", "choice", 25,
+     "Rows per page on list screens.", {"choices": [10, 25, 50, 100]}),
+    ("ui.theme", "appearance", "Default theme", "choice", "system",
+     "Until a person chooses their own.", {"choices": ["light", "dark", "system"]}),
+    ("security.session_timeout_minutes", "security", "Session timeout", "duration", 60,
+     "Idle minutes before sign-out.",
+     {"minimum": 5, "maximum": 1440, "unit": "minutes", "restart": True}),
+    ("security.mfa_required", "security", "Require MFA", "boolean", False,
+     "Force two-factor for every user.", {}),
+    ("security.password_min_length", "security", "Minimum password length", "integer", 12,
+     "Enforced by the identity provider.", {"minimum": 8, "maximum": 128}),
+    ("security.max_failed_logins", "security", "Failed sign-in limit", "integer", 5,
+     "Attempts before an account locks.", {"minimum": 1, "maximum": 100}),
+    # The one secret, so the settings screen demonstrates that it never sends
+    # one: a page that renders an API key puts it in a screenshot, a browser
+    # cache and a support ticket.
+    ("integrations.webhook_signing_key", "security", "Webhook signing key", "string",
+     "whsec_replace_me",
+     "Signs outbound webhooks. Never displayed once set.",
+     {"secret": True, "restart": True}),
+    ("retention.audit_days", "retention", "Audit retention", "duration", 730,
+     "Days an audit entry is kept.", {"minimum": 30, "maximum": 3650, "unit": "days"}),
+    ("retention.log_days", "retention", "Log retention", "duration", 30,
+     "Days a system log line is kept.", {"minimum": 1, "maximum": 365, "unit": "days"}),
+    ("retention.notification_days", "retention", "Notification retention", "duration", 90,
+     "Days a read notification is kept.", {"minimum": 7, "maximum": 730, "unit": "days"}),
+    ("limits.max_upload_mb", "limits", "Maximum upload size", "integer", 25,
+     "Per-file limit, in megabytes.",
+     {"minimum": 1, "maximum": 1024, "unit": "MB", "restart": True}),
+    ("limits.max_export_rows", "limits", "Maximum export rows", "integer", 100000,
+     "Above this an export becomes a job.", {"minimum": 1000, "maximum": 5000000}),
+    ("limits.api_rate_per_minute", "limits", "API rate limit", "integer", 600,
+     "Requests per minute per client.",
+     {"minimum": 10, "maximum": 100000, "restart": True}),
+    ("notifications.digest_hour", "notifications", "Digest hour", "integer", 7,
+     "Local hour the daily digest is sent.", {"minimum": 0, "maximum": 23}),
+    ("notifications.email_enabled", "notifications", "Email notifications", "boolean", True,
+     "Send notifications by email.", {}),
+    ("features.self_service_signup", "features", "Self-service sign-up", "boolean", False,
+     "Allow registration without an invite.", {}),
 )
 
 NOTIFICATION_CATEGORIES = vocabulary.NOTIFICATION_CATEGORY

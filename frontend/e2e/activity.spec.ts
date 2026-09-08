@@ -45,7 +45,9 @@ test("choosing a kind narrows the feed and leaves the counts alone", async ({ pa
   await expect(page.getByTestId("activity-kinds")).toBeVisible();
 
   const before = await chipCount(page, "SECURITY");
+  const others = await chipCount(page, "RECORD");
   expect(before).toBeGreaterThan(0);
+  expect(others).toBeGreaterThan(0);
 
   await page.getByTestId("activity-kind-SECURITY").click();
   await expect(page).toHaveURL(/kind=SECURITY/);
@@ -57,8 +59,23 @@ test("choosing a kind narrows the feed and leaves the counts alone", async ({ pa
     expect(label).toBe("Sign-ins");
   }
 
-  // …and the strip still says what it said.
-  expect(await chipCount(page, "SECURITY")).toBe(before);
+  // …and the *other* kinds still have their counts, which is the claim: the
+  // strip counts the period, so a page that recounted the filtered result
+  // would put every other chip at nought.
+  //
+  // Stated as "still positive" rather than "still equal", because none of
+  // these numbers is stable against a live stack and neither should be: every
+  // sign-in writes a SECURITY row and this suite signs in on every test, every
+  // record an entity spec creates writes a RECORD row, and the workers run in
+  // parallel. An equality here fails whenever a sibling spec authenticates
+  // between the two reads — which is exactly how this was found, green alone
+  // and red in the sweep. Nought is the only value the defect could produce,
+  // so nought is the value worth excluding.
+  for (const kind of ["RECORD", "UPDATE", "COMMENT"]) {
+    expect(await chipCount(page, kind)).toBeGreaterThan(0);
+  }
+  expect(await chipCount(page, "SECURITY")).toBeGreaterThanOrEqual(before);
+  expect(others).toBeGreaterThan(0);
 
   // The question is in the address, so it survives a reload (§69).
   await page.reload();
