@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+from src.core import vocabulary
 from src.core.auth import ALL_PERMISSIONS
 from src.seed import catalog
 from src.seed.support import mask_hash, reference
@@ -246,82 +247,167 @@ def _scheduled_tasks(world: World) -> None:
         )
 
 
-def _background_jobs(world: World) -> None:
+#: How many jobs every declared status is guaranteed, whatever the weighted
+#: draw did at this scale.
+#:
+#: Two reasons it is a minimum rather than one.
+#:
+#: RETRYING is weighted at 0.04, so at the small scale it comes out empty about
+#: half the time — and a queue console offering a RETRYING filter that can
+#: never match anything is the same defect an empty kanban lane was (§76).
+#:
+#: And the end-to-end suite *consumes* these: it retries a job and cancels
+#: another, and neither is reversible — a retry always spends an attempt. One
+#: per status would make the suite a ratchet, draining a state per run until
+#: the tests failed for want of a row, which is exactly what happened to the
+#: `NEW` task lane. Headroom plus an additive `--sync-jobs` top-up is the same
+#: answer `GUARANTEED_INBOX` gives for mailboxes.
+GUARANTEED_PER_STATUS = 3
+
+
+def background_job(rng, *, index: int, status: str, users, scheduled_tasks, fresh: bool = False):
+    """One job, built but not stored.
+
+    Shared by the seed and by `--sync-jobs`, which tops up an existing
+    database: two copies of "what a job looks like" is how a repair ends up
+    writing rows the page renders differently from the seeded ones.
+
+    `status` is passed in rather than drawn here, because the caller is the one
+    that knows whether it is filling a distribution or covering a gap.
+
+    `fresh` caps the attempt below `max_attempts`, so the job can still be
+    retried. The draw gives attempt 3 about seven times in a hundred, and a
+    job born at 3 of 3 is *spent* — which is fine in a distribution and useless
+    in a repair whose whole purpose is to provide something actionable. A
+    repair that fixed the problem ninety-three per cent of the time is one
+    somebody runs twice and still does not trust.
+    """
     from src.models.platform import BackgroundJob
 
+    kind = rng.weighted(catalog.JOB_KINDS)
+    initiator = rng.pick(users) if users else None
+    scheduled = rng.pick(scheduled_tasks) if scheduled_tasks and rng.chance(0.3) else None
+
+    total = rng.integer(10, 250_000)
+    if status == "SUCCEEDED":
+        processed, failed, progress = total, 0, 100
+    elif status in ("FAILED", "RETRYING"):
+        # RETRYING is a job that *has already failed* and will be tried again,
+        # so it carries the failure that caused the retry. Without that the
+        # page can say a job is retrying and never say why — and "failed and
+        # will be tried again" versus "failed and will not" is the single
+        # distinction an operator reads this screen for.
+        processed = rng.integer(0, total)
+        failed = rng.integer(1, max(1, total - processed) or 1)
+        progress = int(processed / total * 100)
+    elif status == "QUEUED":
+        processed, failed, progress = 0, 0, 0
+    else:
+        processed = rng.integer(1, total)
+        failed, progress = 0, int(processed / total * 100)
+
+    started = rng.recent(days=20) if status != "QUEUED" else None
+    duration = rng.integer(200, 5_400_000) if status in ("SUCCEEDED", "FAILED", "CANCELLED") else None
+    finished = started + timedelta(milliseconds=duration) if started and duration else None
+    # A retry is not the first attempt, by definition — and it has not used up
+    # `max_attempts`, or it would be FAILED for good.
+    if status == "RETRYING":
+        attempt = 2
+    elif fresh:
+        attempt = rng.weighted(((1, 0.85), (2, 0.15)))
+    else:
+        attempt = rng.weighted(((1, 0.8), (2, 0.13), (3, 0.07)))
+    failure = rng.pick(catalog.JOB_ERRORS) if status in ("FAILED", "RETRYING") else None
+
+    return BackgroundJob(
+        id=rng.uuid(),
+        reference=reference("JOB", index + 1, width=6),
+        name=f"{kind.title()} — {rng.pick(('projects', 'orders', 'tickets', 'customers', 'tasks', 'audit log'))}",
+        kind=kind,
+        queue=rng.weighted((("default", 0.6), ("exports", 0.2), ("imports", 0.12), ("maintenance", 0.08))),
+        status=status,
+        priority=rng.weighted(catalog.PRIORITIES),
+        progress=progress,
+        total_units=total,
+        processed_units=processed,
+        failed_units=failed,
+        attempt=attempt,
+        max_attempts=3,
+        started_at=started,
+        finished_at=finished,
+        duration_ms=duration,
+        scheduled_for=rng.ahead(days_min=0, days_max=2) if status == "QUEUED" else None,
+        initiated_by_id=initiator.id if initiator else None,
+        initiated_by_label=initiator.full_name if initiator else "System",
+        organization_id=initiator.organization_id if initiator else None,
+        scheduled_task_id=scheduled.id if scheduled else None,
+        error_message=failure,
+        payload={"entity": rng.pick(("project", "order", "ticket", "customer")), "format": rng.pick(("csv", "xlsx", "json"))},
+        result=(
+            {"rows": processed, "artifact": f"exports/{reference('JOB', index + 1, width=6)}.csv"}
+            if status == "SUCCEEDED" else None
+        ),
+        # Inline log lines so the job drawer needs no join.
+        log_lines=[
+            {
+                "at": (started + timedelta(seconds=offset)).isoformat() if started else None,
+                "level": level,
+                "message": message,
+            }
+            for offset, level, message in (
+                (0, "INFO", "job accepted"),
+                (2, "INFO", f"processing {total} units"),
+                (5, "WARNING", "slow batch, continuing") if rng.chance(0.3) else (5, "INFO", "halfway"),
+                (9, "ERROR", failure) if failure else (9, "INFO", "finished"),
+            )
+        ] if started else None,
+        created_at=started or rng.recent(days=3),
+    )
+
+
+def _background_jobs(world: World) -> None:
     rng = world.rng.derive("jobs")
-    for index in range(world.scale.background_jobs):
-        kind = rng.weighted(catalog.JOB_KINDS)
-        status = rng.weighted(catalog.JOB_STATUSES)
-        initiator = rng.pick(world.users) if world.users else None
-        scheduled = rng.pick(world.scheduled_tasks) if world.scheduled_tasks and rng.chance(0.3) else None
+    drawn = world.scale.background_jobs
 
-        total = rng.integer(10, 250_000)
-        if status == "SUCCEEDED":
-            processed, failed, progress = total, 0, 100
-        elif status == "FAILED":
-            processed = rng.integer(0, total)
-            failed, progress = rng.integer(1, max(1, total - processed) or 1), int(processed / total * 100)
-        elif status in ("QUEUED",):
-            processed, failed, progress = 0, 0, 0
-        else:
-            processed = rng.integer(1, total)
-            failed, progress = 0, int(processed / total * 100)
-
-        started = rng.recent(days=20) if status != "QUEUED" else None
-        duration = rng.integer(200, 5_400_000) if status in ("SUCCEEDED", "FAILED", "CANCELLED") else None
-        finished = started + timedelta(milliseconds=duration) if started and duration else None
-
+    for index in range(drawn):
         world.background_jobs.append(
-            BackgroundJob(
-                id=rng.uuid(),
-                reference=reference("JOB", index + 1, width=6),
-                name=f"{kind.title()} — {rng.pick(('projects', 'orders', 'tickets', 'customers', 'tasks', 'audit log'))}",
-                kind=kind,
-                queue=rng.weighted((("default", 0.6), ("exports", 0.2), ("imports", 0.12), ("maintenance", 0.08))),
-                status=status,
-                priority=rng.weighted(catalog.PRIORITIES),
-                progress=progress,
-                total_units=total,
-                processed_units=processed,
-                failed_units=failed,
-                attempt=rng.weighted(((1, 0.8), (2, 0.13), (3, 0.07))),
-                max_attempts=3,
-                started_at=started,
-                finished_at=finished,
-                duration_ms=duration,
-                scheduled_for=rng.ahead(days_min=0, days_max=2) if status == "QUEUED" else None,
-                initiated_by_id=initiator.id if initiator else None,
-                initiated_by_label=initiator.full_name if initiator else "System",
-                organization_id=initiator.organization_id if initiator else None,
-                scheduled_task_id=scheduled.id if scheduled else None,
-                error_message=rng.pick(catalog.JOB_ERRORS) if status == "FAILED" else None,
-                payload={"entity": rng.pick(("project", "order", "ticket", "customer")), "format": rng.pick(("csv", "xlsx", "json"))},
-                result=(
-                    {"rows": processed, "artifact": f"exports/{reference('JOB', index + 1, width=6)}.csv"}
-                    if status == "SUCCEEDED" else None
-                ),
-                # Inline log lines so the job drawer needs no join.
-                log_lines=[
-                    {
-                        "at": (started + timedelta(seconds=offset)).isoformat() if started else None,
-                        "level": level,
-                        "message": message,
-                    }
-                    for offset, level, message in (
-                        (0, "INFO", "job accepted"),
-                        (2, "INFO", f"processing {total} units"),
-                        (5, "WARNING", "slow batch, continuing") if rng.chance(0.3) else (5, "INFO", "halfway"),
-                        (9, "ERROR", rng.pick(catalog.JOB_ERRORS)) if status == "FAILED" else (9, "INFO", "finished"),
-                    )
-                ] if started else None,
-                created_at=started or rng.recent(days=3),
+            background_job(
+                rng,
+                index=index,
+                status=rng.weighted(catalog.JOB_STATUSES),
+                users=world.users,
+                scheduled_tasks=world.scheduled_tasks,
             )
         )
 
+    # Then top every status up to the guaranteed minimum, so each filter the
+    # console offers can match something and the suite that consumes them has
+    # room to run more than once.
+    from collections import Counter
 
-# ── API access ───────────────────────────────────────────────────────────
-
+    # Counted on jobs that can still be *acted on*, not merely on rows: the
+    # draw produces a job born at attempt 3 of 3 about seven times in a
+    # hundred, and one of those satisfies a filter while satisfying nothing
+    # else. Same invariant `sync_jobs` repairs to.
+    counted = Counter(
+        job.status
+        for job in world.background_jobs
+        if job.attempt < job.max_attempts
+    )
+    offset = 0
+    for status in vocabulary.JOB_STATUS:
+        for _ in range(max(0, GUARANTEED_PER_STATUS - counted[status])):
+            world.background_jobs.append(
+                background_job(
+                    rng,
+                    index=drawn + offset,
+                    status=status,
+                    users=world.users,
+                    scheduled_tasks=world.scheduled_tasks,
+                    fresh=True,
+                )
+            )
+            offset += 1
 
 def _api_clients(world: World) -> None:
     """Machine consumers and their credentials.

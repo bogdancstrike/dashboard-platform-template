@@ -13,6 +13,7 @@ words in it can change independently. Two rules held throughout:
 from __future__ import annotations
 
 from src.core import geography, vocabulary
+from src.core.auth import ALL_PERMISSIONS
 from src.core.vocabulary import weighted
 
 # The closed value sets live in `core/vocabulary.py`, shared with the query
@@ -660,6 +661,11 @@ EMAIL_TEMPLATES: tuple[tuple[str, str, str, str], ...] = (
 )
 
 #: (name, kind, permissions granted on top of the role)
+#: (name, kind, permissions it grants).
+#:
+#: The kinds are asserted against the vocabulary below rather than trusted:
+#: these were literals, and a kind spelled only here is one `/admin/groups`
+#: cannot filter by.
 GROUPS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("On-call", "OPERATIONAL", ("jobs.manage", "logs.view", "health.view")),
     ("Release managers", "OPERATIONAL", ("flags.manage", "jobs.manage")),
@@ -672,6 +678,13 @@ GROUPS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("Report authors", "BUSINESS", ("reports.manage", "searches.share")),
     ("Onboarding buddies", "TEAM", ("users.view",)),
 )
+
+assert {kind for _, kind, _ in GROUPS} <= set(vocabulary.GROUP_KIND), (
+    "a seeded group has a kind the vocabulary does not declare"
+)
+assert all(
+    set(permissions) <= set(ALL_PERMISSIONS) for _, _, permissions in GROUPS
+), "a seeded group grants a permission no endpoint checks for"
 
 DASHBOARD_WIDGETS: tuple[tuple[str, str, str], ...] = (
     ("KPI", "Open tickets", "ticket"),

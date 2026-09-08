@@ -2259,3 +2259,37 @@ mark.nu-mark {
   font-family: var(--nu-font-mono); font-size: 11.5px; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* ── The background-job queue (§23) ──────────────────────────────────────
+   A queue is scanned for the row that needs somebody, so the two things that
+   decide that — how it ended and how many times it has tried — are the two
+   things given room. */
+.nu-job .ant-table-tbody > tr > td { padding-block: 6px; }
+.nu-job-what { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.nu-job-name,
+.nu-job-ref {
+  display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-job-ref { font-size: 11.5px; font-family: var(--nu-font-mono); }
+.nu-job-attempt { font-size: 11px; }
+.nu-job-status { gap: 2px; }
+/* The bar and the number, stacked: the bar is `aria-hidden` because the units
+   under it say the same thing in a form that can be read out and compared
+   between rows (§64). */
+.nu-job-progress { display: flex; flex-direction: column; gap: 0; }
+.nu-job-progress .ant-progress { margin: 0; line-height: 1; }
+.nu-job-units { font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.nu-job-when { font-size: 11.5px; line-height: 1.45; }
+
+.nu-job-detail-name { margin: 8px 0 2px; font-size: 15px; font-weight: 600; }
+.nu-job-truncated { font-size: 11.5px; }
+/* Scrolls inside itself: a job that logged two hundred lines must not set the
+   height of the drawer it is in. */
+.nu-job-lines {
+  margin: 6px 0 0; padding: 8px 10px; max-height: 260px; overflow: auto;
+  list-style: none; background: var(--nu-hover);
+  border: 1px solid var(--nu-border-subtle); border-radius: 6px;
+  font-family: var(--nu-font-mono); font-size: 11.5px; line-height: 1.6;
+}
+.nu-job-lines > li { display: flex; gap: 8px; }
+.nu-job-lines > li > span { min-width: 0; overflow-wrap: anywhere; }

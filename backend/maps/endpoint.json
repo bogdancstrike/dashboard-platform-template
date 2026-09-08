@@ -1410,6 +1410,90 @@
         "module_name": "src.api.logs",
         "method_name": "prune"
       }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "job_catalogue",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/jobs/catalogue",
+      "description": "The queue's filter vocabulary and per-status counts.",
+      "exec_method": {
+        "module_name": "src.api.jobs",
+        "method_name": "catalogue"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "job_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/jobs",
+      "description": "One page of the background-job queue, filtered and faceted in PostgreSQL.",
+      "exec_method": {
+        "module_name": "src.api.jobs",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "job_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/jobs/<string:job_id>",
+      "description": "One job in full: its payload, its result and its log lines.",
+      "exec_method": {
+        "module_name": "src.api.jobs",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "job_retry",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/admin/jobs/<string:job_id>/retry",
+      "description": "Queue another attempt on the same job.",
+      "exec_method": {
+        "module_name": "src.api.jobs",
+        "method_name": "retry"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "job_cancel",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/admin/jobs/<string:job_id>/cancel",
+      "description": "Stop a job that has not finished, keeping the row.",
+      "exec_method": {
+        "module_name": "src.api.jobs",
+        "method_name": "cancel"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "job_attempts",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT"
+      ],
+      "api_url": "/admin/jobs/<string:job_id>/attempts",
+      "description": "Grant a job more attempts, up to the allowed maximum.",
+      "exec_method": {
+        "module_name": "src.api.jobs",
+        "method_name": "allow_attempts"
+      }
     }
   ]
 }

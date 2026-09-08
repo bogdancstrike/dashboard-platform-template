@@ -55,12 +55,16 @@ test("choosing a kind narrows the feed and leaves the counts alone", async ({ pa
   await page.getByTestId("activity-kind-SECURITY").click();
   await expect(page).toHaveURL(/kind=SECURITY/);
 
-  // Only that kind is listed…
+  // Only that kind is listed — polled, not sampled. `tags.first()` is visible
+  // on the *previous* result while the filtered one is still in flight, so
+  // reading the labels once caught the unfiltered feed and failed with
+  // "Edits". Retrying the whole claim is what makes it a claim about the
+  // filter rather than about the timing of a fetch.
   const tags = page.getByTestId("activity-feed").locator(".nu-feed-meta .ant-tag");
   await expect(tags.first()).toBeVisible();
-  for (const label of await tags.allInnerTexts()) {
-    expect(label).toBe("Sign-ins");
-  }
+  await expect
+    .poll(async () => [...new Set(await tags.allInnerTexts())].sort())
+    .toEqual(["Sign-ins"]);
 
   // …and the *other* kinds still have their counts, which is the claim: the
   // strip counts the period, so a page that recounted the filtered result

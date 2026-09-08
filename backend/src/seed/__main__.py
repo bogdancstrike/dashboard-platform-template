@@ -11,6 +11,7 @@
     python -m src.seed --sync-automations # make unrunnable automations runnable
     python -m src.seed --sync-mailboxes  # give each demo persona an inbox worth opening
     python -m src.seed --sync-settings   # bring each setting's declaration up to date
+    python -m src.seed --sync-jobs       # give every job status at least one job
     python -m src.seed --dry-run          # build in memory, write nothing
 
 It refuses to seed a database that already has data unless `--reset` or
@@ -58,6 +59,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-mailboxes", action="store_true",
         help="top each demo persona's inbox up to the guaranteed minimum",
+    )
+    parser.add_argument(
+        "--sync-jobs", action="store_true",
+        help="add one job for any status the queue console can filter by and never match",
     )
     parser.add_argument(
         "--sync-automations", action="store_true",
@@ -167,6 +172,24 @@ def main(argv: list[str] | None = None) -> int:
             f"{result['added']} thread(s) added across {result['personas']} persona(s)"
             if result["added"]
             else "every persona already has an inbox"
+        )
+        return 0
+
+    if args.sync_jobs:
+        # `JOB_STATUS` is what `/admin/jobs` builds its filters from, and
+        # RETRYING is weighted low enough that a small scale often leaves it
+        # empty — a filter that can never match anything (§76). Additive: it
+        # never edits an existing job, because a job's status is a record of
+        # what happened.
+        with session_scope() as session:
+            result = runner.sync_jobs(session)
+        print(
+            f"{result['added']} added"
+            + (
+                f" covering {result['statuses']} statuses"
+                if result["added"]
+                else " — every status already has the guaranteed minimum"
+            )
         )
         return 0
 

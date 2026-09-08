@@ -2373,7 +2373,247 @@ function byNewest(rows: Record<string, unknown>[]): Record<string, unknown>[] {
   );
 }
 
+/**
+ * The background job queue (§23).
+ *
+ * One job per state that matters to the page: a failure inside its attempts (a
+ * real Retry), one that has used them all (a *refused* Retry, which is the §76
+ * case), one running (cancellable, not retryable), one succeeded, and one
+ * retrying with the error that caused it. `can_retry`/`can_cancel` are
+ * computed here from the same rules the server uses, because a fixture that
+ * hardcoded them could disagree with the service and the test would still
+ * pass.
+ */
+export const jobRows: Record<string, unknown>[] = [];
+
+const JOB_STATUSES = [
+  "QUEUED", "RUNNING", "RETRYING", "SUCCEEDED", "FAILED", "CANCELLED",
+] as const;
+const JOB_TERMINAL = ["SUCCEEDED", "FAILED", "CANCELLED"];
+const JOB_CANCELLABLE = ["QUEUED", "RUNNING", "RETRYING"];
+
+function job(overrides: Record<string, unknown>): Record<string, unknown> {
+  const row: Record<string, unknown> = {
+    kind: "EXPORT",
+    queue: "default",
+    priority: "NORMAL",
+    progress: 0,
+    total_units: 100,
+    processed_units: 0,
+    failed_units: 0,
+    attempt: 1,
+    max_attempts: 3,
+    started_at: "2026-09-08T09:00:00Z",
+    finished_at: null,
+    scheduled_for: null,
+    duration_ms: null,
+    initiated_by_label: "Ada Administrator",
+    error_message: null,
+    created_at: "2026-09-08T08:59:00Z",
+    ...overrides,
+  };
+  // Derived, never stored: the same two rules the service applies.
+  return {
+    ...row,
+    can_retry:
+      JOB_TERMINAL.includes(String(row["status"])) &&
+      Number(row["attempt"]) < Number(row["max_attempts"]),
+    can_cancel: JOB_CANCELLABLE.includes(String(row["status"])),
+    can_allow_attempts:
+      Number(row["attempt"]) >= Number(row["max_attempts"]) &&
+      Number(row["max_attempts"]) < 10,
+  };
+}
+
+function seedJobs(): void {
+  jobRows.length = 0;
+  jobRows.push(
+    job({
+      id: "job-failed", reference: "JOB-000101", name: "Export — orders",
+      status: "FAILED", progress: 40, processed_units: 40, failed_units: 60,
+      error_message: "Upstream timed out after 30s", duration_ms: 4200,
+      finished_at: "2026-09-08T09:04:00Z",
+    }),
+    // The refused Retry: terminal, out of attempts — and therefore the row
+    // that offers the grant instead, which is the §76 pair this page turns on.
+    job({
+      id: "job-spent", reference: "JOB-000102", name: "Import — customers",
+      kind: "IMPORT", status: "FAILED", attempt: 3, max_attempts: 3,
+      error_message: "Row 412: customer code does not exist",
+      progress: 88, processed_units: 88, failed_units: 12, duration_ms: 91000,
+    }),
+    job({
+      id: "job-running", reference: "JOB-000103", name: "Reindex — search",
+      kind: "REINDEX", queue: "maintenance", status: "RUNNING",
+      progress: 62, processed_units: 620, total_units: 1000,
+    }),
+    job({
+      id: "job-done", reference: "JOB-000104", name: "Report — revenue",
+      kind: "REPORT", queue: "exports", status: "SUCCEEDED",
+      progress: 100, processed_units: 100, duration_ms: 2400,
+      finished_at: "2026-09-08T09:01:00Z",
+    }),
+    job({
+      id: "job-retrying", reference: "JOB-000105", name: "Email — digest",
+      kind: "EMAIL", status: "RETRYING", attempt: 2,
+      error_message: "Connection reset by the mail relay",
+      progress: 30, processed_units: 30, failed_units: 70,
+    }),
+    job({
+      id: "job-queued", reference: "JOB-000106", name: "Sync — devices",
+      kind: "SYNC", status: "QUEUED", started_at: null,
+      scheduled_for: "2026-09-08T10:00:00Z",
+    }),
+  );
+}
+
+seedJobs();
+
+export function resetJobs(): void {
+  seedJobs();
+}
+
+function matchingJobs(url: URL): Record<string, unknown>[] {
+  const term = (url.searchParams.get("q") ?? "").toLowerCase();
+  const status = url.searchParams.get("status") ?? "";
+  const queue = url.searchParams.get("queue") ?? "";
+  return jobRows.filter((row) => {
+    if (status && String(row["status"]) !== status) return false;
+    if (queue && String(row["queue"]) !== queue) return false;
+    if (term) {
+      const haystack = [row["name"], row["reference"], row["error_message"]]
+        .map((value) => (typeof value === "string" ? value.toLowerCase() : ""))
+        .join(" ");
+      if (!haystack.includes(term)) return false;
+    }
+    return true;
+  });
+}
+
+/** Whether the fixture's reader may act — flipped by a test. */
+export let jobsCanManage = true;
+
+export function setJobsCanManage(value: boolean): void {
+  jobsCanManage = value;
+}
+
 export const handlers = [
+  http.get("/platform/admin/jobs/catalogue", ({ request }) =>
+    echo(request, {
+      fields: [
+        { name: "status", label: "Status", kind: "enum" },
+        { name: "kind", label: "Kind", kind: "enum" },
+        { name: "queue", label: "Queue", kind: "enum" },
+      ],
+      default_columns: ["created_at", "reference", "name", "status", "progress", "attempt"],
+      default_sort: "created_at",
+      statuses: JOB_STATUSES.map((key) => ({
+        key,
+        count: jobRows.filter((row) => row["status"] === key).length,
+      })),
+      kinds: ["EXPORT", "IMPORT", "REPORT", "EMAIL", "MAINTENANCE", "SYNC", "REINDEX"],
+      total: jobRows.length,
+      can_manage: jobsCanManage,
+    }),
+  ),
+  http.post("/platform/admin/jobs/:id/retry", ({ params, request }) => {
+    const row = jobRows.find((item) => item["id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    // The fixture enforces the same rules, so a page that drew a button the
+    // server refuses fails here rather than only in the end-to-end suite.
+    if (!row["can_retry"]) {
+      return HttpResponse.json(
+        { error: "conflict", message: `${String(row["reference"])} cannot be retried.` },
+        { status: 409 },
+      );
+    }
+    row["attempt"] = Number(row["attempt"]) + 1;
+    row["status"] = "QUEUED";
+    row["progress"] = 0;
+    row["error_message"] = null;
+    row["finished_at"] = null;
+    row["can_retry"] = false;
+    row["can_cancel"] = true;
+    return echo(request, row);
+  }),
+  http.put("/platform/admin/jobs/:id/attempts", async ({ params, request }) => {
+    const row = jobRows.find((item) => item["id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    const body = (await request.json()) as Record<string, unknown>;
+    const wanted = Number(body["max_attempts"]);
+    // The same two rules the service applies: upward only, and bounded.
+    if (wanted <= Number(row["max_attempts"]) || wanted > 10) {
+      return HttpResponse.json(
+        { error: "validation_error", message: "That grant was refused." },
+        { status: 400 },
+      );
+    }
+    row["max_attempts"] = wanted;
+    row["can_retry"] =
+      JOB_TERMINAL.includes(String(row["status"])) &&
+      Number(row["attempt"]) < wanted;
+    row["can_allow_attempts"] = false;
+    return echo(request, row);
+  }),
+  http.post("/platform/admin/jobs/:id/cancel", ({ params, request }) => {
+    const row = jobRows.find((item) => item["id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    if (!row["can_cancel"]) {
+      return HttpResponse.json(
+        { error: "conflict", message: `${String(row["reference"])} already finished.` },
+        { status: 409 },
+      );
+    }
+    row["status"] = "CANCELLED";
+    row["finished_at"] = "2026-09-08T09:30:00Z";
+    row["duration_ms"] = 1800000;
+    row["can_cancel"] = false;
+    row["can_retry"] = Number(row["attempt"]) < Number(row["max_attempts"]);
+    return echo(request, row);
+  }),
+  http.get("/platform/admin/jobs/:id", ({ params, request }) => {
+    const row = jobRows.find((item) => item["id"] === String(params["id"]));
+    if (!row) return HttpResponse.json({ message: "not found" }, { status: 404 });
+    return echo(request, {
+      ...row,
+      payload: { entity: "order", format: "csv" },
+      result: row["status"] === "SUCCEEDED" ? { rows: 100, artifact: "exports/x.csv" } : null,
+      log_lines: [
+        { at: "2026-09-08T09:00:00Z", level: "INFO", message: "job accepted" },
+        { at: "2026-09-08T09:00:02Z", level: "INFO", message: "processing 100 units" },
+        // Narrowed rather than stringified: these rows are
+        // `Record<string, unknown>`, and `String(anObject)` renders
+        // "[object Object]" into a fixture the tests then assert against.
+        ...(typeof row["error_message"] === "string"
+          ? [{ at: "2026-09-08T09:00:09Z", level: "ERROR", message: row["error_message"] }]
+          : []),
+      ],
+      log_truncated: false,
+      scheduled_task_id: null,
+      correlation_hint: String(row["reference"]),
+    });
+  }),
+  http.get("/platform/admin/jobs", ({ request }) => {
+    const url = new URL(request.url);
+    const matched = matchingJobs(url);
+    return echo(request, {
+      items: matched,
+      total: matched.length,
+      page: 1,
+      page_size: 25,
+      pages: 1,
+      sort: "created_at",
+      order: "desc",
+      facets: {
+        queue: [...new Set(jobRows.map((row) => String(row["queue"])))].map((value) => ({
+          value,
+          count: jobRows.filter((row) => row["queue"] === value).length,
+        })),
+      },
+      columns: ["created_at", "reference", "name", "status", "progress", "attempt"],
+      can_manage: jobsCanManage,
+    });
+  }),
   http.get("/platform/admin/logs/catalogue", ({ request }) =>
     echo(request, {
       fields: [

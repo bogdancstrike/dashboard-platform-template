@@ -122,6 +122,13 @@ EVENT_FREQUENCY: Vocabulary = ("DAILY", "WEEKLY", "MONTHLY")
 
 USER_STATUS: Vocabulary = ("ACTIVE", "INVITED", "SUSPENDED", "DISABLED")
 
+#: What a group is *for*, which is not what it grants.
+#:
+#: A closed set because the kind is a filter and a heading on
+#: `/admin/groups`, and a kind typed into a seed row (which is where these
+#: lived) is one the page's filter has never heard of.
+GROUP_KIND: Vocabulary = ("TEAM", "OPERATIONAL", "GOVERNANCE", "BUSINESS")
+
 # ── operations ───────────────────────────────────────────────────────────
 
 #: Ordered by severity, quietest first, and *relied upon* to be: the log

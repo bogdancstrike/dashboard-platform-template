@@ -104,6 +104,10 @@ sync-automations: ## Make automations the engine cannot run runnable, and pause 
 sync-mailboxes: ## Give each demo persona an inbox worth opening
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-mailboxes seed
 
+.PHONY: sync-jobs
+sync-jobs: ## Give every background-job status at least one job
+	$(COMPOSE) run --rm -e SEED_ARGS=--sync-jobs seed
+
 .PHONY: sync-settings
 sync-settings: ## Add newly declared system settings, and refit any that no longer fit
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-settings seed

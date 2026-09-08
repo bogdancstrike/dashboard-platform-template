@@ -162,6 +162,7 @@ python -m src.seed --sync-reports   # make saved reports the analysis compiler w
 python -m src.seed --sync-automations  # make automations the engine cannot run runnable
 python -m src.seed --sync-mailboxes    # give each demo persona an inbox worth opening
 python -m src.seed --sync-settings     # add newly declared settings, refit any that no longer fit
+python -m src.seed --sync-jobs         # top every background-job status up to its guaranteed minimum
 ```
 
 `--sync-schema` refuses to guess: a `NOT NULL` column with no default is
@@ -198,9 +199,22 @@ generator's folder draw is random, and at the small scale it left the
 and neither of them in the inbox. An empty inbox on a demo reads as a broken
 feature. It counts what is there and inserts only what is missing.
 
+`--sync-jobs` is the one the *test suite* wears out. `/admin/jobs` builds its
+filters from `JOB_STATUS`, and RETRYING is weighted at 0.04 — so at the small
+scale the draw leaves it empty about half the time, and a console offering a
+filter that can never match anything is the same defect an empty kanban lane
+was. The end-to-end suite then spends these: it retries a job, and a retry
+spends an attempt irreversibly, because `attempt` is a record of what happened
+and nothing rewrites it. So there are two guarantees rather than one — at least
+three jobs per status so no filter is dead, and at least one per status still
+*within its attempts* so there is something to retry. The second is the one
+that ran dry: topping up by row count alone kept finding five cancelled jobs
+and never noticed every one of them had spent its attempts. If the jobs spec
+starts saying "run 'make sync-jobs'", that is what it means.
+
 Under Compose these are `make check-seed`, `make sync-schema`, `make
-sync-roles`, `make sync-reports`, `make sync-automations`, `make sync-mailboxes`
-and `make sync-settings`.
+sync-roles`, `make sync-reports`, `make sync-automations`, `make sync-mailboxes`,
+`make sync-settings` and `make sync-jobs`.
 
 Then:
 

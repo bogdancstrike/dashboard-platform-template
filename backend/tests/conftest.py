@@ -116,6 +116,9 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     # way round, which is exactly what that test is for.
     "CalendarEvent", "Task",
     "Notification", "Favorite", "RecentItem",
+    # `test_jobs` makes its own jobs rather than editing seeded ones, so they
+    # have to be swept — and before the audit rows that describe them.
+    "BackgroundJob",
     # Written as a *side effect* of every audited test write, so they
     # accumulate faster than anything else — and a demo `/activity` full of
     # "1m ago · updated the Viewer role" from a test run is a feed nobody can

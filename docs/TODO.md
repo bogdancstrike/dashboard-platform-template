@@ -1249,16 +1249,113 @@ commit — built, committed, pushed, redeployed and verified before the next.
       `DELETE` naming a column that is not there fails the teardown of every
       test in the suite at once
 
+- [x] **`/admin/jobs` — the queue, and the two verbs that act on it** (§23)
+  - **Retry and cancel are gated on the *state*, not on the permission alone.**
+      A running job cannot be retried, because retrying it would put two runs
+      on the same rows — the commonest way a queue console corrupts what it was
+      built to supervise. `JOB_TERMINAL` and `JOB_CANCELLABLE` in
+      `core/vocabulary` are the two sets that decide it, and a test asserts
+      they partition `JOB_STATUS` exactly: a status in neither would be a row
+      the console can only stare at, and one in both would offer two
+      contradictory actions at once
+  - **`max_attempts` is a real bound, and the refusal's advice is now real
+      too.** Refused with the number named, because a three-attempt limit that
+      allows a fourth is worse than no limit — somebody is relying on it. But
+      the message said "raise the limit if it should be tried again" when the
+      product offered no way to raise it, which is the worst kind of error
+      message: one naming a fix that does not exist. `allow_attempts` is that
+      fix — its own verb rather than a flag on retry, because raising a limit
+      and running the work are two decisions; upward only, since "attempt 4 of
+      3" is a state the console would have to explain; and capped at
+      `MAX_ALLOWED_ATTEMPTS`, because "retry until it works" is how a broken
+      job writes the same rows forty times. The control appears on exactly the
+      rows where it would change something, which is exactly where the retry
+      refusal points at it
+  - **A retry is the same row, not a new job.** `attempt` goes up, the outcome
+      is cleared, the previous attempt's log lines are *kept* — they are the
+      evidence of why the retry exists. A fresh row per retry would lose the
+      connection between them and count one failure as three, and the e2e
+      asserts there is exactly one row for the reference afterwards
+  - **A cancel is not a delete.** The row stays, CANCELLED, with who stopped
+      it and when: a queue whose cancelled jobs vanish cannot answer "why did
+      the nightly export not run last Tuesday", which is the question it gets
+      asked
+  - **`can_retry`/`can_cancel` ride on every row**, so a button the page draws
+      is a button the endpoint honours. The rules are stateful and a browser
+      re-deriving them would eventually disagree with the server — the MSW
+      fixture computes them from the same two rules for the same reason
+  - **A refusal is a disabled control with *which* refusal it is** (§76).
+      `whyNot` is exported and asserted directly: "it is running and has not
+      finished — retrying now would run it twice over the same records" and
+      "all 3 attempts have been used" are different problems with different
+      fixes, and a shared "not allowed" would have told an operator neither.
+      Contrast the settings index, where a card is *absent*: there the reason
+      is a permission, which will not change while somebody looks at it — so
+      the read-only case here says so once at the top instead of drawing a
+      column of dead buttons
+  - **Progress is a number and a bar, in that order.** The bar is
+      `aria-hidden` decoration; "40 of 100, 60 failed" is the part that can be
+      read out and compared between rows (§64). And *not* AntD's
+      `status="active"` for a running job: that bar animates forever, so the
+      page never goes idle — it costs a laptop battery on a screen somebody
+      leaves open, and it made every wait-for-animations assertion in the spec
+      time out. The shimmer carried nothing the status tag was not already
+      saying
+  - **RETRYING was seeded wrong, and the page is what exposed it.** The
+      generator gave it the running branch: no error message and attempt 1 —
+      so a queue could say a job was retrying and never say why, which is the
+      one distinction an operator reads this screen for. It carries the failure
+      that caused the retry now, on attempt 2 of 3
+  - **The guarantee is a minimum, because the suite spends it.** RETRYING is
+      weighted at 0.04 and came out empty at the small scale, so
+      `GUARANTEED_PER_STATUS` tops every status up — and it is 3 rather than 1
+      because the e2e retries a job and cancels another, and a retry spends an
+      attempt irreversibly. One per status made the spec a ratchet that drained
+      a state per run, which is exactly what happened to the `NEW` task lane.
+      `--sync-jobs` tops it back up additively, the same shape as
+      `--sync-mailboxes` and `GUARANTEED_INBOX`
+  - **And the spec restores what it can**: it retries a *cancelled* job and
+      cancels it back, and cancels a *queued* one and retries it back, so the
+      status distribution it finds is the one it leaves. Its targets are chosen
+      through the API rather than by row position, because a queued job that
+      has used its attempts can be cancelled and not retried — and the table
+      does not show an attempt count of 1, so the row alone cannot say which is
+      which
+  - **What it cannot restore is an attempt**, and that is the product being
+      right rather than the test being weak: `attempt` is a record of what
+      happened and no endpoint rewrites it. Granting the attempt back was tried
+      and only traded the drift for `max_attempts` climbing towards its
+      ceiling — so the contract is the one `--sync-mailboxes` already sets for
+      the mailbox drain. `sync_jobs` guarantees at least one *retryable* job
+      per status, which is the guarantee that actually ran dry: topping up by
+      row count alone kept finding five cancelled jobs and never noticed every
+      one had spent its attempts. The spec's guard names the repair, and the
+      jobs it adds are `fresh=True` so the repair is deterministic in its
+      effect — the ordinary draw gives attempt 3 seven times in a hundred, and
+      a repair that worked ninety-three per cent of the time is one nobody
+      trusts
+  - **No create, deliberately.** Nothing in the platform enqueues a job yet;
+      `limits.max_export_rows` is declared and unread. A "New job" button would
+      write a row no worker reads, and the enqueue path belongs with `/exports`
+      (§30) where the setting already promises it
+  - Two more test-vs-library differences worth recording: Playwright matches an
+      accessible name as a *substring* where testing-library's `name` is exact,
+      so `{ name: "Retry" }` also found every "Retry JOB-000011" button and the
+      "retrying" chip; and a `Tooltip` nested inside a `Popconfirm` renders a
+      second popover *over* the first, so the hint ended up intercepting clicks
+      on the button it described. The tooltip now lives only on the disabled
+      path, which is the only place it carries information
+
 - [ ] **Variety in how "create" opens** — a wizard where the decision has
       parts, a drawer for one object's fields, a plain modal for one question.
       The dashboard wizard is the first; the rest of the modules follow
 - [~] **Every page in the navigation is implemented**, not a placeholder — the
       list is in [Phase 6](#phase-6--frontend-pages). `/dashboards`, `/kanban`,
       `/files`, `/workflows`, `/calendar`, `/mail`, `/home` and the
-      administration index with `/admin/settings`, `/admin/flags` and
-      `/admin/logs` are done.
+      administration index with `/admin/settings`, `/admin/flags`,
+      `/admin/logs` and `/admin/jobs` are done.
       Remaining: `/admin/groups`, `/admin/organizations`,
-      `/admin/jobs` (§23), `/admin/api` (§25), `/admin/integrations` (§26),
+      `/admin/api` (§25), `/admin/integrations` (§26),
       `/favorites`, `/import` (§29), `/exports` (§30), `/settings/security`
       (§41) and the two `/showcase/*` pages — every one of which already has
       its model and its seeded rows
@@ -1569,7 +1666,7 @@ section is a cross-cutting rule rather than a page.
 | 20 | File manager | `/files` | `/api/files` | [x] |
 | 21 | **Audit logs** | `/admin/audit` | `/admin/audit` | [x] |
 | 22 | System logs | `/admin/logs` | `/admin/logs` | [x] |
-| 23 | Background jobs | `/admin/jobs` | `/admin/jobs` | [ ] |
+| 23 | Background jobs | `/admin/jobs` | `/admin/jobs` | [x] |
 | 24 | System health | `/admin/health` | `/health/status` | [x] API |
 | 25 | API management | `/admin/api` | `/admin/api-clients` | [ ] |
 | 26 | Integrations | `/admin/integrations` | `/admin/integrations` | [ ] |
