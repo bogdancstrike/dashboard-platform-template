@@ -474,6 +474,20 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "files_blob",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/files/blob",
+      "description": "One object from the local store, to the holder of a signed link. Public: the signature is the credential.",
+      "exec_method": {
+        "module_name": "src.api.files",
+        "method_name": "blob"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "files_folders",
       "model_name": "Empty",
       "request_method": [

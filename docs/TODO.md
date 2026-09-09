@@ -3800,8 +3800,40 @@ everything else.
     genuinely produce. A `.xlsx` whose bytes are plain text looks fine in a
     list and fails in the application the reader opens it with — eight formats
     somebody can actually download beat twelve they cannot
-- [ ] Preview for images, PDF and text, and copy — the preview pane waits on
-      §63, and copy is the one verb of the four not yet wired
+- [x] Preview for images, PDF and text, and copy
+  - **The bytes still bypass the API.** A preview asks for the same presigned
+      URL a download asks for with one word of its disposition changed —
+      `inline` instead of `attachment` — so a 400 MB file is never back on a
+      worker, which is the thing presigned URLs exist to prevent. A preview is
+      also not counted as a download: the number beside a file is how many
+      times it was taken away, not how many times somebody glanced at it
+  - **Three kinds preview and the rest say so.** An image, a PDF and text are
+      what a browser renders without a library; a spreadsheet cannot be shown
+      honestly, so the pane offers the download rather than an empty frame
+      that looks broken. An **SVG is a download**, because a browser *executes*
+      one and a colleague's upload is not a document this app should run inside
+      its own origin
+  - **The address carries the file** (`/files?file=<id>`), so the pane is a
+      link, the back button closes it, and "copy link" copies something that
+      still works tomorrow — never the presigned URL, which expires in minutes
+      and would work for the sender and fail for everybody they sent it to
+  - **`api/files/blob` exists now**, which the module docstring had promised
+      since it was written and nothing served: with no `STORAGE_ENDPOINT` —
+      which is how `make dev-api` runs — every download and every preview was
+      a 404 at a URL the API had signed itself. Public by necessity and by
+      design: a browser following an `<img>`, an `<iframe>` or a download
+      cannot add a bearer header, so the signature *is* the credential. It is
+      on `test_endpoint_map.PUBLIC` with that reason, and a test asserts the
+      signature is actually checked — tampered, expired and missing links are
+      all refused
+  - **And the seeded images are images.** Every one was a 1×1 transparent
+      pixel: valid, 68 bytes, invisible — so the pane showed an empty frame for
+      all of them, which is indistinguishable from a broken one. They are
+      chart-shaped pictures derived from each file's own name now, hand-encoded
+      with `zlib` and no new dependency. `--sync-files` replaces the
+      placeholder where it finds it, and **nothing else**: a repair that
+      regenerated every body would overwrite somebody's real upload with a
+      plausible fake, so the old placeholder is identified by its exact bytes
 
 ### Configurable dashboards, shared like saved searches (§45, §67)
 

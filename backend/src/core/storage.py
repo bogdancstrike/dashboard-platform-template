@@ -88,7 +88,7 @@ class Storage(Protocol):
     name: str
 
     def upload_url(self, key: str, *, content_type: str) -> SignedUrl: ...
-    def download_url(self, key: str, *, filename: str = "") -> SignedUrl: ...
+    def download_url(self, key: str, *, filename: str = "", inline: bool = False) -> SignedUrl: ...
     def put(self, key: str, stream: BinaryIO | bytes, *, content_type: str) -> StoredObject: ...
     def get(self, key: str) -> bytes: ...
     def stat(self, key: str) -> StoredObject | None: ...
@@ -238,13 +238,17 @@ class ObjectStorage:
             "PUT",
         )
 
-    def download_url(self, key: str, *, filename: str = "") -> SignedUrl:
+    def download_url(self, key: str, *, filename: str = "", inline: bool = False) -> SignedUrl:
         params: dict[str, Any] = {"Bucket": self._bucket, "Key": key}
         if filename:
             # So the browser saves it under the name the person gave it rather
-            # than under the generated key.
+            # than under the generated key — or *shows* it under that name,
+            # when the caller wants a preview rather than a download (§20).
+            # The disposition is the only difference between the two: the same
+            # object, the same signature, one word.
+            disposition = "inline" if inline else "attachment"
             params["ResponseContentDisposition"] = (
-                f'attachment; filename="{quote(filename)}"'
+                f'{disposition}; filename="{quote(filename)}"'
             )
         return self._signed("get_object", params, "GET")
 
@@ -338,13 +342,23 @@ class LocalStorage:
         if not hmac.compare_digest(self.sign(key, expires_at), signature):
             raise ValidationError("That link is not valid.")
 
-    def _url(self, key: str, method: str, filename: str = "") -> SignedUrl:
+    def _url(
+        self, key: str, method: str, filename: str = "", inline: bool = False
+    ) -> SignedUrl:
         expires_at = int(time.time()) + URL_TTL_SECONDS
         query = f"expires={expires_at}&signature={self.sign(key, expires_at)}"
         if filename:
             query += f"&filename={quote(filename)}"
+        if inline:
+            # Not part of the signature: it changes how the *response* is
+            # framed, not which object may be read. Signing it would mean a
+            # preview and a download needed two signatures for one object.
+            query += "&inline=1"
         return SignedUrl(
-            url=f"{self._prefix}/api/files/blob/{quote(key)}?{query}",
+            # The key rides in the query string rather than the path: a
+            # storage key contains slashes, and `maps/endpoint.json` has no
+            # path converter — a `<string:key>` would match none of them.
+            url=f"{self._prefix}/api/files/blob?key={quote(key)}&{query}",
             method=method,
             expires_in=URL_TTL_SECONDS,
             headers={},
@@ -354,8 +368,8 @@ class LocalStorage:
         del content_type  # The local store takes whatever arrives.
         return self._url(key, "PUT")
 
-    def download_url(self, key: str, *, filename: str = "") -> SignedUrl:
-        return self._url(key, "GET", filename)
+    def download_url(self, key: str, *, filename: str = "", inline: bool = False) -> SignedUrl:
+        return self._url(key, "GET", filename, inline=inline)
 
     def put(self, key: str, stream: BinaryIO | bytes, *, content_type: str) -> StoredObject:
         body = stream if isinstance(stream, bytes) else stream.read()

@@ -233,8 +233,18 @@ def confirm_upload(session, file_id: Any, *, principal) -> dict[str, Any]:
     return _serialize(row)
 
 
-def download_url(session, file_id: Any, *, principal) -> dict[str, Any]:
-    """A URL the browser follows itself, and a record that it was asked for."""
+def download_url(
+    session, file_id: Any, *, principal, inline: bool = False
+) -> dict[str, Any]:
+    """A URL the browser follows itself, and a record that it was asked for.
+
+    `inline` asks for the same object framed for *showing* rather than saving
+    (§20) — an image in a pane, a PDF in a frame, a text file read in place.
+    One word of the response's disposition, not a second copy of the bytes and
+    not a second endpoint: a preview that went through the API would put a
+    400 MB file back on a worker, which is the thing presigned URLs exist to
+    avoid.
+    """
     principal.require(VIEW_PERMISSION)
     row = _file(session, file_id)
     if row.status != READY:
@@ -251,8 +261,12 @@ def download_url(session, file_id: Any, *, principal) -> dict[str, Any]:
             details={"file_id": str(row.id), "key": row.storage_key},
         )
 
-    signed = store.download_url(row.storage_key or "", filename=row.name)
-    row.download_count = (row.download_count or 0) + 1
+    signed = store.download_url(row.storage_key or "", filename=row.name, inline=inline)
+    # A preview is a *look*, not a download: counting it would make the number
+    # beside a file the number of times somebody glanced at it, and the column
+    # is called `download_count`.
+    if not inline:
+        row.download_count = (row.download_count or 0) + 1
     row.last_accessed_at = now()
     session.flush()
 

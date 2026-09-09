@@ -57,6 +57,8 @@ import {
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
+import { FilePreview } from "@/components/files/FilePreview";
+
 import { ApiError } from "@/api/client";
 import {
   filesApi,
@@ -100,6 +102,23 @@ export default function FilesPage() {
       (current) => {
         const replacement = new URLSearchParams(current);
         replacement.set("folder", next);
+        return replacement;
+      },
+      { replace: true },
+    );
+  /**
+   * Which file the pane is showing — in the *address*, not in state (§69).
+   *
+   * So "look at this one" is a link, the back button closes the pane, and a
+   * reload lands where the reader was. It is also what "copy link" copies.
+   */
+  const previewing = params.get("file") ?? "";
+  const setPreviewing = (next: string) =>
+    setParams(
+      (current) => {
+        const replacement = new URLSearchParams(current);
+        if (next) replacement.set("file", next);
+        else replacement.delete("file");
         return replacement;
       },
       { replace: true },
@@ -556,6 +575,14 @@ export default function FilesPage() {
               size="small"
               rowKey="id"
               sticky
+              // A row opens the preview, the way a row opens a record
+              // everywhere else — the buttons at its end stop the click, so
+              // "download" does not also open a pane over the download.
+              onRow={(row) => ({
+                onClick: () => setPreviewing(row.id),
+                style: { cursor: "pointer" },
+              })}
+              rowClassName={(row) => (row.id === previewing ? "nu-row-selected" : "")}
               loading={files.isLoading}
               dataSource={files.data?.items ?? []}
               pagination={
@@ -613,7 +640,8 @@ export default function FilesPage() {
                   width: 112,
                   align: "right",
                   render: (_value, row) => (
-                    <Space size={2}>
+                    // The row opens the preview; these do their own thing.
+                    <Space size={2} onClick={(event) => event.stopPropagation()}>
                       <Tooltip title="Download">
                         <Button
                           type="text"
@@ -664,6 +692,15 @@ export default function FilesPage() {
           </DropArea>
         </Card>
       </div>
+
+      {/* Shown rather than downloaded, for the three kinds a browser can
+          render honestly (§20, §64). */}
+      <FilePreview
+        open={Boolean(previewing)}
+        file={(files.data?.items ?? []).find((item) => item.id === previewing) ?? null}
+        onClose={() => setPreviewing("")}
+        onDownload={(file) => download.mutate(file)}
+      />
 
       <RenameModal
         file={renaming}

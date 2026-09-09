@@ -67,6 +67,12 @@ PUBLIC: dict[str, str] = {
         "the OIDC coordinates the SPA needs to *start* a login, which it cannot "
         "have obtained by logging in"
     ),
+    "/platform/api/files/blob": (
+        "a signed link's own credential is its signature — a browser following "
+        "an <img>, an <iframe> or a download cannot add a bearer header, which "
+        "is the whole reason presigned URLs exist. Only the local store issues "
+        "these, and `files.blob` refuses when object storage is configured"
+    ),
 }
 
 
@@ -100,6 +106,59 @@ def test_every_endpoint_refuses_an_anonymous_request(client):
             if response.status_code != 401:
                 leaked.append(f"{method} {url} → {response.status_code}")
     assert leaked == []
+
+
+def test_a_signed_link_is_the_credential_and_an_unsigned_one_is_not(
+    client, tmp_path, monkeypatch
+):
+    """The one public endpoint that serves *data* rather than metadata.
+
+    Its exemption is only honest if the signature is actually checked — an
+    endpoint on the public list that reads a query parameter and hands back
+    bytes would be an open object store. So: a valid link works, a tampered
+    one does not, an expired one does not, and a missing one does not.
+    """
+    import time
+
+    from src.core import storage
+
+    # A store of this test's own, installed as the configured one: the
+    # directory in the configuration belongs to the container image, and
+    # `for_config()` would try to create it.
+    store = storage.LocalStorage(
+        str(tmp_path / "objects"), secret="test-secret", prefix=Config.API_PREFIX
+    )
+    monkeypatch.setattr(storage, "_store", store)
+
+    key = "probe/blob-endpoint.txt"
+    store.put(key, b"the bytes", content_type="text/plain")
+    try:
+        expires = int(time.time()) + 300
+        signature = store.sign(key, expires)
+        base = f"{Config.API_PREFIX}/api/files/blob?key={key}"
+
+        good = client.get(f"{base}&expires={expires}&signature={signature}")
+        assert good.status_code == 200
+        assert good.data == b"the bytes"
+        # Saved by default, shown only when asked (§20).
+        assert good.headers["Content-Disposition"].startswith("attachment")
+        shown = client.get(f"{base}&expires={expires}&signature={signature}&inline=1")
+        assert shown.headers["Content-Disposition"].startswith("inline")
+
+        # A tampered signature, a tampered key, an expired link, and no link
+        # at all — each refused, and none with a 500.
+        assert client.get(f"{base}&expires={expires}&signature={signature[:-1]}0").status_code == 400
+        assert client.get(
+            f"{Config.API_PREFIX}/api/files/blob?key=probe/other.txt"
+            f"&expires={expires}&signature={signature}"
+        ).status_code == 400
+        stale = int(time.time()) - 10
+        assert client.get(
+            f"{base}&expires={stale}&signature={store.sign(key, stale)}"
+        ).status_code == 400
+        assert client.get(f"{Config.API_PREFIX}/api/files/blob").status_code == 400
+    finally:
+        store.delete(key)
 
 
 def test_the_public_endpoints_answer_without_a_token(client):

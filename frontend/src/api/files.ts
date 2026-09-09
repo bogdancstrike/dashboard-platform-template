@@ -88,6 +88,19 @@ export const filesApi = {
       `/api/files/${id}`,
     ),
 
+  /**
+   * The same object, framed for *showing* rather than saving (§20).
+   *
+   * One word of the response's disposition — `inline` instead of `attachment`
+   * — and the bytes still go straight from storage to the browser. A preview
+   * that streamed through the API would put a 400 MB file back on a worker.
+   */
+  previewUrl: (id: string, signal?: AbortSignal) =>
+    api.get<{ file: StoredFile; download: { url: string; method: string; expires_in: number } }>(
+      `/api/files/${id}`,
+      { params: { inline: true }, signal },
+    ),
+
   update: (id: string, input: { name?: string; folder_id?: string | null }) =>
     api.put<StoredFile>(`/api/files/${id}`, input),
   remove: (id: string) =>

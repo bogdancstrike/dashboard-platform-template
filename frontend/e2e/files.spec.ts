@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
+import { findStoredFile } from "./api";
 import { signIn, storageStateFor } from "./auth";
 
 /**
@@ -194,4 +195,75 @@ test("the library is legible and keyboard-reachable", async ({ page }) => {
       nodes: violation.nodes.map((node) => `${node.target.join(" ")} :: ${node.failureSummary}`),
     })),
   ).toEqual([]);
+});
+
+test.describe("the preview pane (§20, §64)", () => {
+  /**
+   * Open the pane straight at one file.
+   *
+   * The address is the pane's state (§69), so this is also the shortest
+   * expression of that: no clicking through a folder tree to reach a file the
+   * *generator* decided where to put.
+   */
+  async function openPreview(page: Page, extension: string): Promise<string> {
+    const file = await findStoredFile(extension);
+    await signIn(
+      page,
+      "admin",
+      `/files?folder=${file.folder_id ?? "unfiled"}&file=${file.id}`,
+    );
+    await expect(page.getByTestId("file-preview")).toBeVisible();
+    return file.name;
+  }
+
+  test("a seeded image is shown in place, from storage rather than through the API", async ({
+    page,
+  }) => {
+    // The bytes are real — written by `seed/blobs.py` — which is what makes
+    // this checkable rather than merely plausible.
+    await openPreview(page, "png");
+
+    const shown = page.getByTestId("file-preview-image");
+    await expect(shown).toBeVisible();
+    // Straight from object storage: the URL is presigned and is not this app.
+    const source = await shown.getAttribute("src");
+    expect(source).not.toContain("/platform/api/files/");
+    // And it decoded — a broken image is a visible element with no size.
+    await expect
+      .poll(async () => shown.evaluate((node: HTMLImageElement) => node.naturalWidth))
+      .toBeGreaterThan(0);
+
+    // The address carries the file, so the pane survives a reload (§69).
+    await expect(page).toHaveURL(/file=[0-9a-f-]{36}/);
+    await page.reload();
+    await expect(page.getByTestId("file-preview-image")).toBeVisible();
+    // And a row's own click opens it, which is how a reader gets here.
+    // The drawer's own close button: `getByLabel("Close")` also matches the
+    // search box's clear affordance and the icon inside the button.
+    await page.locator(".ant-drawer-close").click();
+    await expect(page.getByTestId("file-preview")).toBeHidden();
+    await page.locator("tr.ant-table-row").first().click();
+    await expect(page.getByTestId("file-preview")).toBeVisible();
+  });
+
+  test("a kind a browser cannot render says so, and offers the download", async ({ page }) => {
+    await openPreview(page, "pptx");
+
+    // An empty frame that looks broken is worse than a sentence saying so.
+    const frame = page.getByTestId("file-preview-frame");
+    await expect(frame).toContainText(/cannot be shown here/);
+    await expect(frame.getByRole("button", { name: /^Download / })).toBeVisible();
+  });
+
+  test("a preview is not counted as a download", async ({ page }) => {
+    await openPreview(page, "png");
+    await expect(page.getByTestId("file-preview-image")).toBeVisible();
+
+    // The number beside a file is how many times it was taken away, not how
+    // many times somebody glanced at it.
+    const before = await page.getByTestId("file-preview").innerText();
+    await page.reload();
+    await expect(page.getByTestId("file-preview-image")).toBeVisible();
+    expect(await page.getByTestId("file-preview").innerText()).toBe(before);
+  });
 });

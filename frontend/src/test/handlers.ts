@@ -1045,6 +1045,61 @@ function seedFiles(): void {
     created_at: "2026-09-01T09:00:00Z",
     last_accessed_at: "2026-09-04T09:00:00Z",
   });
+  // One of each kind the preview pane can show, and one it cannot: the three
+  // branches and the refusal are all reachable from a fixture (§20).
+  storedFiles.push(
+    {
+      id: "file-2",
+      name: "Floorplan.png",
+      extension: "png",
+      mime_type: "image/png",
+      kind: "IMAGE",
+      size_bytes: 51_200,
+      checksum: "img123",
+      folder_id: "folder-1",
+      status: "READY",
+      version: 1,
+      download_count: 0,
+      preview_text: null,
+      owner: "Ada Administrator",
+      created_at: "2026-09-02T09:00:00Z",
+      last_accessed_at: null,
+    },
+    {
+      id: "file-3",
+      name: "migration-notes.md",
+      extension: "md",
+      mime_type: "text/markdown",
+      kind: "DOCUMENT",
+      size_bytes: 1_024,
+      checksum: "txt123",
+      folder_id: "folder-1",
+      status: "READY",
+      version: 1,
+      download_count: 1,
+      preview_text: null,
+      owner: "Mara Manager",
+      created_at: "2026-09-03T09:00:00Z",
+      last_accessed_at: null,
+    },
+    {
+      id: "file-4",
+      name: "Q3 pipeline.xlsx",
+      extension: "xlsx",
+      mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      kind: "SPREADSHEET",
+      size_bytes: 8_192,
+      checksum: "xls123",
+      folder_id: "folder-1",
+      status: "READY",
+      version: 1,
+      download_count: 2,
+      preview_text: null,
+      owner: "Ada Administrator",
+      created_at: "2026-09-03T10:00:00Z",
+      last_accessed_at: null,
+    },
+  );
 }
 
 seedFiles();
@@ -5488,11 +5543,17 @@ export const handlers = [
   }),
   http.get("/platform/api/files/:id", ({ request, params }) => {
     const file = storedFiles.find((item) => item["id"] === String(params["id"]));
-    if (file) file["download_count"] = Number(file["download_count"]) + 1;
+    // `?inline=true` is a *look*, and the server does not count one as a
+    // download — a handler that counted both would let the preview inflate
+    // the number beside the file.
+    const inline = new URL(request.url).searchParams.get("inline") === "true";
+    if (file && !inline) file["download_count"] = Number(file["download_count"]) + 1;
     return echo(request, {
       file,
       download: {
-        url: "https://storage.example/nucleus/generated-key?signed=1",
+        url: inline
+          ? "https://storage.example/nucleus/generated-key?signed=1&inline=1"
+          : "https://storage.example/nucleus/generated-key?signed=1",
         method: "GET",
         expires_in: 900,
       },

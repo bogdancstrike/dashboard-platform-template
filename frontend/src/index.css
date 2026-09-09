@@ -1056,6 +1056,28 @@ mark.nu-mark {
 }
 .nu-impersonation strong { font-weight: 700; }
 .nu-impersonation .ant-btn { margin-inline-start: auto; }
+/* ── The file preview pane (§20, §64) ─────────────────────────────────────
+   A frame with a floor, so a 40-pixel icon and a 4000-pixel screenshot make
+   the same shaped pane: a drawer whose height jumps with the file is a drawer
+   that moves the buttons under the reader's cursor. */
+.nu-preview-frame {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 260px; max-height: 52vh; overflow: auto;
+  padding: 12px; margin-bottom: 12px;
+  border: 1px solid var(--nu-border); border-radius: var(--nu-radius-card);
+  background: var(--nu-surface);
+}
+.nu-preview-image { max-width: 100%; max-height: 48vh; object-fit: contain; }
+.nu-preview-pdf { width: 100%; height: 48vh; border: 0; }
+/* Monospace and wrapped: a log line is 300 characters and a pane that scrolls
+   sideways to read one is a pane nobody reads. */
+.nu-preview-text {
+  width: 100%; margin: 0; padding: 0;
+  font-family: var(--nu-font-mono); font-size: 12px; line-height: 1.5;
+  white-space: pre-wrap; word-break: break-word;
+  color: var(--nu-text);
+}
+
 /* ── The announcement band (§17) ──────────────────────────────────────────
    A band rather than a toast, for the reason the impersonation one is: a
    toast is gone in four seconds and a maintenance window is not. Tinted by

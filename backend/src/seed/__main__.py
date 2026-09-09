@@ -155,7 +155,8 @@ def main(argv: list[str] | None = None) -> int:
         with session_scope() as session:
             result = runner.sync_files(session)
         print(
-            f"{result['written']} objects written, "
+            f"{result['written']} objects written "
+            f"({result['upgraded']} placeholder image(s) replaced), "
             f"{result['already_present']} already there"
         )
         return 0

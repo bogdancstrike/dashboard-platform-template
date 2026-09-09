@@ -176,6 +176,29 @@ def test_asking_to_download_is_recorded(client, uploaded):
 
 
 @pytest.mark.database
+def test_a_preview_is_a_look_and_not_a_download(client, uploaded):
+    """`?inline=true` is the same object, framed for showing (§20).
+
+    Two claims in one, and both are about what a number means: the count
+    beside a file is how many times it was *taken away*, and a preview that
+    incremented it would make it a count of glances. And the URL says
+    `inline`, which is the one word that separates a pane from a save dialog.
+    """
+    stored, _body, headers = uploaded
+    before = client.get(f"{FILES}/{stored['id']}", headers=headers).get_json()
+
+    shown = client.get(f"{FILES}/{stored['id']}?inline=true", headers=headers)
+
+    assert shown.status_code == 200
+    body = shown.get_json()
+    assert body["file"]["download_count"] == before["file"]["download_count"]
+    # The disposition rides in the signed URL, so the browser is told by the
+    # store rather than by us — which is what keeps the bytes off this process.
+    assert "inline" in body["download"]["url"]
+    assert "attachment" in before["download"]["url"]
+
+
+@pytest.mark.database
 def test_renaming_and_moving_leaves_the_object_where_it_is(client, uploaded, monkeypatch):
     """A storage key is an address, not a path. Moving bytes to make a tree
     look tidy is a copy and a delete for something no reader ever sees."""

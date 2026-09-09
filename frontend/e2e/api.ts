@@ -491,3 +491,39 @@ export async function writeSavedSearch(
     await api.dispose();
   }
 }
+
+/**
+ * One seeded file of a given kind, with the folder it lives in (§20).
+ *
+ * The library's own list is folder-scoped — a search narrows *this folder* —
+ * so a test that wants "an image" has to know where the image is. Asked of the
+ * API rather than guessed: `seed/blobs.py` decides which extensions exist and
+ * how many, and a spec that hardcoded a folder would break the day the
+ * generator moved one.
+ */
+export async function findStoredFile(
+  extension: string,
+  persona: Persona = "admin",
+): Promise<{ id: string; name: string; folder_id: string | null }> {
+  const api = await apiAs(persona);
+  try {
+    const response = await api.get(endpoint("/files"), {
+      params: { q: `.${extension}`, page_size: 50 },
+    });
+    if (!response.ok()) {
+      throw new Error(`Could not list files: ${response.status()}`);
+    }
+    const { items } = (await response.json()) as {
+      items: { id: string; name: string; folder_id: string | null; status: string }[];
+    };
+    const found = items.find((item) => item.status === "READY" && item.name.endsWith(`.${extension}`));
+    if (!found) {
+      throw new Error(
+        `No seeded .${extension} file is READY — run \`make seed\` and \`make sync-files\``,
+      );
+    }
+    return { id: found.id, name: found.name, folder_id: found.folder_id };
+  } finally {
+    await api.dispose();
+  }
+}
