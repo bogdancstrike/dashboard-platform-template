@@ -96,21 +96,19 @@ either way, because a catalogue has to be able to say "every entity list".
 | 70 | Search within table data | every list | generic list | [x] |
 | 71 | Server-side data model | — | — (`core/query.py`) | [x] |
 | 72 | Query state persistence | global | — | [x] |
-| 73 | Optimistic vs confirmed actions | board, forms | — | [~] |
+| 73 | Optimistic vs confirmed actions | board, notifications, forms | — | [x] |
 | 74 | Unsaved changes protection | every drawer | — | [x] |
 | 75 | Preview before bulk execution | every bulk action | `/api/records/{type}/bulk/preview` | [x] |
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*74 shipped · 3 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*75 shipped · 2 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
 Every section above that is not shipped, with the part that is open. A catalogue that grades something "partly there" and stops has told a reader that something is missing and not what.
 
 **§59 UX quality bar** — Partly there. The standing bar rather than a deliverable: it is met on every page that has shipped and is re-argued on every page that ships next.
-
-**§73 Optimistic vs confirmed actions** — Partly there. A dragged card moves at once and is reconciled against the server's answer, and a stale edit is refused with a 409 naming both moments. Forms are all confirmed rather than optimistic, which is the right default and leaves the optimistic half unexercised outside the board.
 
 **§77 Final goal — coherent template** — Partly there. Open while anything above is, by construction: the section is the conjunction of the rest.
 

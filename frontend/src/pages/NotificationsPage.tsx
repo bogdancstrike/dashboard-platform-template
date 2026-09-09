@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
+  App as AntApp,
   Button,
   Card,
   Input,
@@ -27,6 +28,7 @@ import { ApiError } from "@/api/client";
 import {
   notificationsApi,
   type Notification,
+  type NotificationPage,
 } from "@/api/notifications";
 import { EmptyState, NoResults } from "@/components/EmptyState";
 import { NotificationDigest } from "@/components/notifications/NotificationDigest";
@@ -60,9 +62,38 @@ const READ_STATES = [
  * have downloaded reports "3 of a kind" for something the server would have
  * told it was thirty.
  */
+/**
+ * One notification's read state, changed in a page of them.
+ *
+ * A pure function so the guess can be tested without a server, and so the
+ * *counts* move with it: a row that greys while the header still says "12
+ * unread" is a page disagreeing with itself in front of the reader.
+ */
+export function withReadState(
+  page: NotificationPage,
+  id: string,
+  isRead: boolean,
+): NotificationPage {
+  const found = page.items.find((item) => item.id === id);
+  if (!found || found.is_read === isRead) return page;
+
+  return {
+    ...page,
+    items: page.items.map((item) =>
+      item.id === id
+        ? { ...item, is_read: isRead, read_at: isRead ? new Date().toISOString() : null }
+        : item,
+    ),
+    // Never below zero: a guess that produces "-1 unread" is worse than one
+    // that is briefly stale.
+    unread: Math.max(0, page.unread + (isRead ? -1 : 1)),
+  };
+}
+
 export default function NotificationsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { message } = AntApp.useApp();
   const [params, setParams] = useSearchParams();
   const { status } = useLive();
   const refetchInterval = usePollInterval(45_000);
@@ -127,10 +158,49 @@ export default function NotificationsPage() {
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["notifications"] });
 
+  /**
+   * Read and unread, applied at once and reconciled afterwards (§73).
+   *
+   * The second place in the platform where optimism is right, and for the
+   * same reasons the board's drag is: the outcome is *certain* (nothing can
+   * refuse marking your own notification read), it is trivially reversible,
+   * and the reader does it forty times in a row. Waiting for a round trip
+   * before greying the row makes a list of forty feel broken — and the whole
+   * point of the row is that it stops asking for attention.
+   *
+   * A confirmed write is still the default everywhere else. Optimism is only
+   * honest where a refusal is not a real possibility; a form that guessed
+   * would be telling the reader their record was saved.
+   */
   const setRead = useMutation({
     mutationFn: ({ id, isRead }: { id: string; isRead: boolean }) =>
       notificationsApi.setRead(id, isRead),
-    onSuccess: invalidate,
+    onMutate: async ({ id, isRead }) => {
+      // Cancelled first, or an in-flight list can land *after* the guess and
+      // undo it — which reads as the click having been ignored.
+      await queryClient.cancelQueries({ queryKey: ["notifications"] });
+      const snapshot = queryClient.getQueriesData<NotificationPage>({
+        queryKey: ["notifications", "list"],
+      });
+      queryClient.setQueriesData<NotificationPage>(
+        { queryKey: ["notifications", "list"] },
+        (current) => (current ? withReadState(current, id, isRead) : current),
+      );
+      return { snapshot };
+    },
+    onError: (error, _variables, context) => {
+      // Put it back, and say so: a row that silently returns to unread is a
+      // click the reader will make again.
+      for (const [key, value] of context?.snapshot ?? []) {
+        queryClient.setQueryData(key, value);
+      }
+      message.error(
+        error instanceof ApiError ? error.message : "That notification could not be updated.",
+      );
+    },
+    // Either way the server is the authority on the counts, which are over
+    // the whole set rather than the page.
+    onSettled: invalidate,
   });
   const remove = useMutation({
     mutationFn: (id: string) => notificationsApi.remove(id),

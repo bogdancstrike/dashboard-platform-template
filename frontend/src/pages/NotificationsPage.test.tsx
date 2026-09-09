@@ -3,10 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 
-import NotificationsPage from "@/pages/NotificationsPage";
+import NotificationsPage, { withReadState } from "@/pages/NotificationsPage";
 import { CommandProvider } from "@/commands/CommandContext";
 import { renderWithProviders } from "@/test/render";
-import { notificationPage } from "@/test/handlers";
+import { notificationPage, notificationRows } from "@/test/handlers";
 import { server } from "@/test/server";
 
 /**
@@ -197,5 +197,116 @@ describe("the centre's digest", () => {
     const headings = screen.getAllByRole("heading", { level: 3 });
     expect(headings.length).toBe(2);
     expect(headings[0]).toHaveTextContent("2");
+  });
+
+  /**
+   * Read and unread are applied at once, and put back if the server refuses
+   * (§73).
+   *
+   * The second place optimism is right, for the same reasons the board's drag
+   * is: the outcome is certain, it is trivially reversible, and the reader
+   * does it forty times in a row. Waiting for a round trip before greying the
+   * row makes a list of forty feel broken — and the row's whole purpose is to
+   * stop asking for attention.
+   */
+  it("greys a notification before the server answers, and moves the count with it", async () => {
+    const user = userEvent.setup();
+    // Held open, so the assertions below run while the request is still in
+    // flight — which is the whole claim.
+    let release: () => void = () => undefined;
+    server.use(
+      http.put("/platform/notifications/:id", async () => {
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        return HttpResponse.json({ ...notificationRows[0], is_read: true });
+      }),
+    );
+    renderPage();
+
+    // The rows first: a count read while the page is still a skeleton is
+    // zero, and every later comparison is then against a number that was
+    // never true.
+    const row = (await screen.findAllByTestId("notification-row"))[0]!;
+    const before = Number(
+      ((await screen.findByTestId("unread-count")).textContent ?? "").replace(/[^\d]/g, ""),
+    );
+    expect(before).toBeGreaterThan(0);
+    await user.click(within(row).getByRole("button", { name: /^Mark .* as read$/ }));
+
+    // Before the request has answered: the row has changed and so has the
+    // count — a row that greys while the header still says twelve unread is a
+    // page disagreeing with itself in front of the reader.
+    expect(
+      within(screen.getAllByTestId("notification-row")[0]!).getByRole("button", {
+        name: /^Mark .* as unread$/,
+      }),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        Number((screen.getByTestId("unread-count").textContent ?? "").replace(/[^\d]/g, "")),
+      ).toBe(before - 1),
+    );
+
+    release();
+  });
+
+  it("puts it back and says so when the write is refused", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.put("/platform/notifications/:id", () =>
+        HttpResponse.json({ error: "boom", message: "The write failed." }, { status: 500 }),
+      ),
+    );
+    renderPage();
+
+    const row = (await screen.findAllByTestId("notification-row"))[0]!;
+    await user.click(within(row).getByRole("button", { name: /^Mark .* as read$/ }));
+
+    // Rolled back *and* said: a row that silently returns to unread is a
+    // click the reader will simply make again.
+    expect(await screen.findByText("The write failed.")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        within(screen.getAllByTestId("notification-row")[0]!).getByRole("button", {
+          name: /^Mark .* as read$/,
+        }),
+      ).toBeInTheDocument(),
+    );
+  });
+});
+
+describe("guessing a read state", () => {
+  it("moves the row and the count together, and never below zero", () => {
+    const page = {
+      items: [
+        { ...notificationRows[0]!, id: "n1", is_read: false },
+        { ...notificationRows[1]!, id: "n2", is_read: true },
+      ],
+      total: 2,
+      page: 1,
+      page_size: 25,
+      pages: 1,
+      unread: 1,
+      by_category: {},
+      by_severity: {},
+      recent_unread: 1,
+    } as unknown as Parameters<typeof withReadState>[0];
+
+    const read = withReadState(page, "n1", true);
+    expect(read.items[0]!.is_read).toBe(true);
+    expect(read.unread).toBe(0);
+    // Marking an already-read row read changes nothing, so the count cannot
+    // drift by clicking twice.
+    expect(withReadState(read, "n1", true)).toBe(read);
+    // And a guess never produces "-1 unread", which is worse than a stale one.
+    expect(withReadState(read, "n2", true).unread).toBe(0);
+    // Unmarking puts it back.
+    expect(withReadState(read, "n1", false).unread).toBe(1);
+  });
+
+  it("leaves a page that does not hold the row alone", () => {
+    const page = { items: [], unread: 3 } as unknown as Parameters<typeof withReadState>[0];
+    expect(withReadState(page, "missing", true)).toBe(page);
   });
 });

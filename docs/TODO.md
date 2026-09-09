@@ -264,6 +264,19 @@ vertical slice with its own tests, its own tracker entry and its own commit.
   - **Moving a card writes the record.** Optimistic, then reconciled — every
     lane refetches, because a lane total is an aggregate over the whole
     dataset and cannot be adjusted in the browser without lying about the rows
+  - **And marking a notification read is the second optimistic write** (§73),
+    for the same three reasons the drag is: the outcome is *certain* — nothing
+    can refuse marking your own notification read — it is trivially
+    reversible, and a reader does it forty times in a row. Waiting for a round
+    trip before greying the row makes a list of forty feel broken, and the
+    row's whole purpose is to stop asking for attention. The guess moves the
+    *count* with the row, because a row that greys while the header still says
+    twelve unread is a page disagreeing with itself in front of the reader;
+    a refusal rolls it back **and says so**, since a row that silently returns
+    to unread is a click the reader will simply make again
+  - Everything else stays confirmed, which is the point of the distinction:
+    optimism is honest only where a refusal is not a real possibility, and a
+    form that guessed would be telling somebody their record was saved
     nobody loaded. A refused move snaps back and says why
   - Dragging is not the only way: `Move to` on every card is the same call
     from the keyboard (§54, §55), and the menu names the lanes
@@ -3336,21 +3349,19 @@ told a reader that something is missing and not what.
 | 70 | Search within table data | every list | generic list | [x] |
 | 71 | Server-side data model | — | — (`core/query.py`) | [x] |
 | 72 | Query state persistence | global | — | [x] |
-| 73 | Optimistic vs confirmed actions | board, forms | — | [~] |
+| 73 | Optimistic vs confirmed actions | board, notifications, forms | — | [x] |
 | 74 | Unsaved changes protection | every drawer | — | [x] |
 | 75 | Preview before bulk execution | every bulk action | `/api/records/{type}/bulk/preview` | [x] |
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*74 shipped · 3 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*75 shipped · 2 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
 Every section above that is not shipped, with the part that is open. A catalogue that grades something "partly there" and stops has told a reader that something is missing and not what.
 
 **§59 UX quality bar** — Partly there. The standing bar rather than a deliverable: it is met on every page that has shipped and is re-argued on every page that ships next.
-
-**§73 Optimistic vs confirmed actions** — Partly there. A dragged card moves at once and is reconciled against the server's answer, and a stale edit is refused with a 409 naming both moments. Forms are all confirmed rather than optimistic, which is the right default and leaves the optimistic half unexercised outside the board.
 
 **§77 Final goal — coherent template** — Partly there. Open while anything above is, by construction: the section is the conjunction of the rest.
 

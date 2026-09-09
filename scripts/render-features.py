@@ -197,11 +197,7 @@ CATALOGUE: list[dict[str, object]] = [
     feature(71, "Server-side data model", "—", "— (`core/query.py`)", "done"),
     feature(72, "Query state persistence", "global", "—", "done"),
     feature(
-        73, "Optimistic vs confirmed actions", "board, forms", "—", "partial",
-        "A dragged card moves at once and is reconciled against the server's "
-        "answer, and a stale edit is refused with a 409 naming both moments. "
-        "Forms are all confirmed rather than optimistic, which is the right "
-        "default and leaves the optimistic half unexercised outside the board.",
+        73, "Optimistic vs confirmed actions", "board, notifications, forms", "—", "done",
     ),
     feature(74, "Unsaved changes protection", "every drawer", "—", "done"),
     feature(75, "Preview before bulk execution", "every bulk action",
