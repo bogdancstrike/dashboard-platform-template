@@ -774,6 +774,8 @@ never sees anything raised by a mounted endpoint.
 
 | | |
 | --- | --- |
+| [`docs/WALKTHROUGH.md`](docs/WALKTHROUGH.md) | **Start here if the stack is running.** Eighteen stops through the platform in a reading order, each with the address, the persona to sign in as, what to do and what to notice — generated, route-checked, and walked in a browser by `e2e/walkthrough.spec.ts` |
 | [`docs/features.md`](docs/features.md) | The §1–§77 catalogue: every feature, its page, its endpoints and its state — generated and checked against the router and the endpoint map |
 | [`docs/TODO.md`](docs/TODO.md) | Implementation tracker, updated after every task |
 | [`docs/RBAC.md`](docs/RBAC.md) | Authentication flow, role/access matrix, groups and enforcement rules |
+| [`docs/architecture.svg`](docs/architecture.svg) | The stack as one picture: the four lanes, the three stores, the live channel, and the ten numbered steps of a request |

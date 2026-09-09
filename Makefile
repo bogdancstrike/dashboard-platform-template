@@ -241,10 +241,15 @@ lint: ## Typecheck, lint and *build* the frontend, and check the endpoint map an
 	# hand-typed catalogue had `/showcase/table` as §3's home for the life of
 	# the project and no page of that name was ever built.
 	$(PY) scripts/render-features.py --check
+	# The guided tour, checked the same way: a stop that names a route the
+	# router does not serve, or a §77 capability no stop covers, fails here.
+	# `frontend/e2e/walkthrough.spec.ts` then walks all eighteen in a browser.
+	$(PY) scripts/render-walkthrough.py --check
 
 .PHONY: docs
 docs: ## Regenerate the documents that are derived from the code
 	$(PY) scripts/render-rbac-matrix.py
+	$(PY) scripts/render-walkthrough.py
 	$(PY) scripts/render-features.py
 
 # ── Local development, outside Docker ────────────────────────────────────
