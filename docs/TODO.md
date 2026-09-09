@@ -3884,10 +3884,34 @@ everything else.
 
 ### `/announcements` — system messages (§17)
 
-- [ ] Platform-wide announcements: scheduled banners for maintenance and
-      releases, targeted by role, organization or user
-- [ ] Acknowledged per reader, so a notice can require a response
-- [ ] Shown in the shell as a dismissible banner, and listed on the page
+- [x] Platform-wide announcements: scheduled banners for maintenance and
+      releases, targeted by **role or organization** — never by a list of
+      people, which is the one part of this line the model refuses. A notice
+      addressed by enumerating recipients silently misses whoever joined after
+      it was written; an empty `audience_roles` means everyone and an
+      `organization_id` scopes it to one tenant, both as a `WHERE` clause
+- [x] Acknowledged per reader, so a notice can require a response — two
+      columns rather than one status, because "everyone has seen it" and
+      "eleven people have agreed to it" are different questions
+- [x] Shown in the shell as a dismissible banner, and listed on the page
+  - **Not every notice earns a band.** A banner is an interruption and a
+      release note is not one: only a pinned notice or one above `INFO`
+      appears, and the rest are on the page and in the count beside its menu
+      item. A shell that announced everything is one people learn to skip —
+      and then the maintenance notice is skipped too
+  - **One at a time, loudest first**, with the others counted and one click
+      away. Two bands stacked is a page that has lost its header
+  - **Dismissing writes a receipt**, server-side rather than to
+      `localStorage`: a notice dismissed on a laptop is dismissed on the
+      phone, and "who has seen this" is a question the author's reach count
+      already answers
+  - **A notice that requires acknowledgement cannot be dismissed.** That is
+      what "requires" means, and the only way past it is the receipt the
+      author is waiting for
+  - 9 component tests and 4 end-to-end. The e2e spec is serial and publishes
+      *after* signing in: two tests putting a pinned critical notice on one
+      band at the same moment each find the other's on screen, and a direct
+      grant per test is what trips the realm's brute-force protection
 
 ### `/maps` — records on a map (§44, §61)
 

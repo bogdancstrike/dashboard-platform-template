@@ -4996,10 +4996,15 @@ export const handlers = [
     const url = new URL(request.url);
     const category = url.searchParams.get("category") ?? "";
     const history = url.searchParams.get("include_expired") === "true";
+    // `unread` is honoured, like the server's, because the shell's banner asks
+    // for exactly that — a handler that ignored it would let the banner pass a
+    // test while showing a notice the reader has already dismissed.
+    const unread = url.searchParams.get("unread") === "true";
     const items = announcements.filter(
       (item) =>
         (history ? true : item["is_live"]) &&
-        (!category || item["category"] === category),
+        (!category || item["category"] === category) &&
+        (!unread || !item["read_at"]),
     );
     return echo(request, {
       items,

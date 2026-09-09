@@ -1056,6 +1056,34 @@ mark.nu-mark {
 }
 .nu-impersonation strong { font-weight: 700; }
 .nu-impersonation .ant-btn { margin-inline-start: auto; }
+/* ── The announcement band (§17) ──────────────────────────────────────────
+   A band rather than a toast, for the reason the impersonation one is: a
+   toast is gone in four seconds and a maintenance window is not. Tinted by
+   severity and never *filled* by it — white on this amber is 2.87:1, which is
+   the mistake the status tags were built to stop (§55). */
+.nu-notice-band {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 16px; font-size: 13px;
+  border-bottom: 1px solid var(--nu-border);
+  background: var(--nu-surface); color: var(--nu-text);
+  box-shadow: inset 3px 0 0 var(--nu-border-strong);
+}
+.nu-notice-band--info { box-shadow: inset 3px 0 0 var(--nu-info); }
+.nu-notice-band--warning { box-shadow: inset 3px 0 0 var(--nu-warning); }
+.nu-notice-band--critical { box-shadow: inset 3px 0 0 var(--nu-danger); }
+.nu-notice-band--info .nu-notice-band-icon { color: var(--nu-info-ink); }
+.nu-notice-band--warning .nu-notice-band-icon { color: var(--nu-warning-ink); }
+.nu-notice-band--critical .nu-notice-band-icon { color: var(--nu-danger-ink); }
+.nu-notice-band-icon { display: inline-flex; flex: 0 0 auto; }
+/* The title and the body on one line, the body quieter and clipped: a notice
+   long enough to wrap is a notice that pushes the page down every time
+   somebody signs in. The whole text is on `/announcements`. */
+.nu-notice-band-text { flex: 1 1 320px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nu-notice-band-body { color: var(--nu-text-secondary); }
+.nu-notice-band-link { flex: 0 0 auto; font-weight: 600; }
+.nu-notice-band .ant-btn { flex: 0 0 auto; margin-inline-start: auto; }
+.nu-notice-band .nu-notice-band-link + .ant-btn { margin-inline-start: 0; }
+
 .nu-mfa-on { color: var(--nu-success); }
 
 /* ── Entity pages (§7) ────────────────────────────────────────────────────

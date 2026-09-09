@@ -30,6 +30,7 @@ import { notificationsApi } from "@/api/notifications";
 import { ErrorBoundary } from "@/app/ErrorBoundary";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { ProblemPage } from "@/components/ProblemPage";
+import { AnnouncementBanner } from "@/components/announcements/AnnouncementBanner";
 import { useAuth } from "@/auth/AuthProvider";
 import { useImpersonation } from "@/auth/ImpersonationProvider";
 import { CommandPalette, CommandTrigger } from "@/components/CommandPalette";
@@ -367,6 +368,11 @@ export function AppShell() {
             </Button>
           </div>
         )}
+
+        {/* The platform's own voice (§17). Below the impersonation band,
+            because who you are acting as outranks what the platform has to
+            say. */}
+        <AnnouncementBanner />
 
         <Content className="nu-content">
           <a className="nu-skip-link" href="#nu-main">
