@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-import { apiAs, namespaced } from "./api";
+import { apiAs, findRetryableJob, namespaced } from "./api";
 import { signIn, storageStateFor } from "./auth";
 
 /**
@@ -95,25 +95,25 @@ test("a retry is the same job with the next attempt, in the database", async ({ 
   // on the seeded data. A version that retried a FAILED job left one fewer
   // failure behind on every run, and the suite eventually failed for want of
   // one. (`attempt` still climbs, which `--sync-jobs` tops up.)
-  await signIn(page, "admin", "/admin/jobs?status=CANCELLED");
-  await expect(rows(page).first()).toBeVisible();
-
-  // Any reference prefix, not only `JOB-`: exports carry `EXP-` (§30), and
-  // hardcoding one prefix meant this locator silently stopped seeing half the
-  // queue the day that changed. Exports are not retryable anyway, so the
-  // `:not([disabled])` is what excludes them — by the server's rule rather
-  // than by a string match here.
-  const retryable = page.locator('[data-testid^="retry-"]:not([disabled])');
-  const available = await retryable.count();
+  // Which job, asked of the API rather than taken off the console's first
+  // page. A retry spends an attempt irreversibly, so retryable rows drain
+  // with use — and the ones `--sync-jobs` adds carry seed-relative
+  // timestamps, so they sort into the middle of a thirty-row status filter.
+  // This spec used to fail on its own guard while three good candidates sat
+  // on page two.
+  const candidate = await findRetryableJob("CANCELLED");
   expect(
-    available,
+    candidate,
     "no cancelled job is within its attempts — run 'make sync-jobs'",
-  ).toBeGreaterThan(0);
+  ).not.toBeNull();
+  const reference = candidate!.reference;
 
-  const reference = ((await retryable.first().getAttribute("data-testid")) ?? "").replace(
-    "retry-",
-    "",
-  );
+  // Filtered to that one, which is also how an operator reaches a job they
+  // have a reference for.
+  await signIn(page, "admin", `/admin/jobs?status=CANCELLED&q=${reference}`);
+  await expect(rows(page).first()).toBeVisible();
+  const retryable = page.locator(`[data-testid="retry-${reference}"]:not([disabled])`);
+  await expect(retryable).toBeVisible();
   // The attempt *before*, read from the server. Asserted relatively rather
   // than as "attempt 2": these rows are shared with every other run, and a
   // job already on its second attempt made the absolute form fail — the claim

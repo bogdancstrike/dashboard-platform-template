@@ -3302,7 +3302,7 @@ told a reader that something is missing and not what.
 | 50 | Data relationships | detail tabs + `/find/relationships` | `/api/relationships/*` | [x] |
 | 51 | Query inspector | `/explore` | — (`core/rules.py`) | [x] |
 | 52 | Pagination patterns | various | — (`core/pagination.py`) | [x] |
-| 53 | Data refresh, auto-refresh | data-heavy pages | `/live` | [~] |
+| 53 | Data refresh, auto-refresh | data-heavy pages | — (`src/api/websocket.py`) | [x] |
 | 54 | Keyboard navigation | global | — | [x] |
 | 55 | Accessibility | global | — | [x] |
 | 56 | Responsive behaviour | global | — | [x] |
@@ -3328,7 +3328,7 @@ told a reader that something is missing and not what.
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*67 shipped · 10 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*68 shipped · 9 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
@@ -3341,8 +3341,6 @@ Every section above that is not shipped, with the part that is open. A catalogue
 **§44 Drill-down** — Partly there. Every KPI tile, chart segment and quality finding opens the rows behind it with the same filters applied. The back-stack that would return a reader to the picture they came from is open.
 
 **§48 Timeline view** — Partly there. Every record page carries its own history, read from the audit ledger so the two cannot disagree. A cross-record timeline — one thread through several records — is open.
-
-**§53 Data refresh, auto-refresh** — Partly there. Notifications and the log tail arrive over the live channel. A general auto-refresh a reader can turn on per page is open.
 
 **§59 UX quality bar** — Partly there. The standing bar rather than a deliverable: it is met on every page that has shipped and is re-argued on every page that ships next.
 
@@ -4738,12 +4736,41 @@ Each endpoint ships with its five-case integration test and the page consuming i
   - **Acceptance**: opens in under 50ms with the palette code-split; search is
     debounced and cancellable; arrows and `Enter` work throughout; every group
     reachable without a mouse; results respect the caller's permissions
-- [~] Shared primitives: Data Explorer now contributes reusable server-backed
+- [x] Shared primitives: Data Explorer now contributes reusable server-backed
       result table/list/card renderers, facet controls, query builder, saved
       search drawer and debouncing hook; generic CRUD/bulk primitives,
       drawers and modals (§33), confirmation dialogs (§73), unsaved-changes
       guard (§74), bulk preview dialog (§75), timeline (§48), comments (§36),
       tag input (§37), auto-refresh control (§53)
+  - The last two arrived last: the **discard guard** is one hook used by
+      sixteen drawers and modals, with three declared exceptions and a source
+      rule that fails on a seventeenth written without deciding (§74); and the
+      **auto-refresh control** is `components/AutoRefresh.tsx` — "Refreshed 2m
+      ago" beside a split button whose menu chooses the interval (§53)
+  - **Off by default, and the reader's to change.** A page that polls on a
+      timer nobody asked for spends the database's time on a tab somebody left
+      open and moves rows under a reader trying to read them. The job console
+      is the one exception: watching progress *is* that page, so it opens at
+      thirty seconds — which is what the hardcoded `refetchInterval: 15_000`
+      in its source used to do without the reader being able to say otherwise
+  - **Parked while the tab is hidden**, and refreshed *once* on return, which
+      is exactly when a stale page is worth re-asking. Remembered per page in
+      the browser, because "refresh the job queue every thirty seconds" says
+      nothing about whether the account list should move
+  - It is a refetch rather than a remount, so the current answer stays on
+      screen while the new one is in flight: nothing blanks, the scroll holds
+      and a selection survives. An auto-refresh that moves the page under the
+      reader is worse than none
+  - On the six lists, the dashboard, the activity feed and the job queue.
+      Nine tests on the control and its rules, and an e2e that counts the
+      *request* going out again rather than a label being redrawn — and that
+      the chosen interval outlives a reload and does not leak to another list
+  - One e2e defect this uncovered: the retry spec picked its job off the
+      console's *first page*, and the retryable rows `--sync-jobs` adds carry
+      seed-relative timestamps that sort them into the middle of a thirty-row
+      filter. It failed on its own guard while three good candidates sat on
+      page two. `findRetryableJob` asks the API the same question the button
+      answers
 
 ## Phase 6 — Frontend pages
 

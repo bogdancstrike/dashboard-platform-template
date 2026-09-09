@@ -28,6 +28,7 @@ import {
 } from "@/api/dashboard";
 import { ChartCard } from "@/components/ChartCard";
 import { FailureAlert } from "@/components/FailureAlert";
+import { AutoRefresh } from "@/components/AutoRefresh";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 
@@ -115,7 +116,7 @@ export default function DashboardPage() {
   // sent to a colleague and arrive showing the same thing (§69).
   const period = params.get("period") ?? "last_30_days";
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch, dataUpdatedAt, isFetching } = useQuery({
     queryKey: ["dashboard", period],
     queryFn: ({ signal }) => dashboardApi.summary({ period }, signal),
   });
@@ -152,20 +153,41 @@ export default function DashboardPage() {
             : "Loading the overview…"
         }
         actions={
-          periodOptions.length > 0 && (
-            screens.md !== false ? <Segmented
-              size="middle"
-              value={period}
-              onChange={choosePeriod}
-              options={periodOptions.map((option) => ({ label: option.label, value: option.key }))}
-            /> : <Select
-              aria-label="Dashboard period"
-              value={period}
-              onChange={choosePeriod}
-              style={{ minWidth: 170 }}
-              options={periodOptions.map((option) => ({ label: option.label, value: option.key }))}
+          <>
+            {/* The page people leave open all day, so it says how old its
+                numbers are and offers to keep them current (§53). The cache is
+                invalidated by writes, so this is for the writes that happen
+                *elsewhere* — somebody else closing a ticket. */}
+            <AutoRefresh
+              page="dashboard"
+              updatedAt={dataUpdatedAt}
+              busy={isFetching}
+              refresh={() => void refetch()}
             />
-          )
+            {periodOptions.length > 0 &&
+              (screens.md !== false ? (
+                <Segmented
+                  size="middle"
+                  value={period}
+                  onChange={choosePeriod}
+                  options={periodOptions.map((option) => ({
+                    label: option.label,
+                    value: option.key,
+                  }))}
+                />
+              ) : (
+                <Select
+                  aria-label="Dashboard period"
+                  value={period}
+                  onChange={choosePeriod}
+                  style={{ minWidth: 170 }}
+                  options={periodOptions.map((option) => ({
+                    label: option.label,
+                    value: option.key,
+                  }))}
+                />
+              ))}
+          </>
         }
       />
 

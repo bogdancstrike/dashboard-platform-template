@@ -859,6 +859,11 @@ mark.nu-mark {
 .nu-view-item .nu-view-name { max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nu-block { margin-top: 12px; }
 
+/* "Refreshed 2m ago" beside the control that decides how often (§53). The age
+   is quiet and the control is not: one is context, the other is a button. */
+.nu-refresh { display: inline-flex; align-items: center; gap: 8px; }
+.nu-refresh-age { font-size: 12px; white-space: nowrap; }
+
 /* One dashboard in "add this to a dashboard": the name on the first line and
    what it holds on the second, so a reader picks by what is on it rather than
    by remembering which of their four dashboards is which. The label is a grid

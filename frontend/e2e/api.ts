@@ -520,6 +520,46 @@ export async function sweepFolders(
 }
 
 /**
+ * One job of a given status that the console would really retry (§23).
+ *
+ * Asked of the API rather than picked off the console's first page, which is
+ * what the retry spec used to do. A retry spends an attempt irreversibly, so
+ * the retryable rows drain with use and the ones `--sync-jobs` adds carry
+ * seed-relative timestamps — they sort into the middle of a thirty-row status
+ * filter, not the top of it. The spec then failed on its own guard while three
+ * perfectly good candidates sat on page two.
+ *
+ * `can_retry` comes from the server, so this asks the same question the button
+ * answers: terminal, within its attempts, and a kind this console owns.
+ */
+export async function findRetryableJob(
+  status: string,
+  persona: Persona = "admin",
+): Promise<{ reference: string; attempt: number } | null> {
+  const api = await apiAs(persona);
+  try {
+    for (let page = 1; page <= 5; page += 1) {
+      const response = await api.get(namespaced("/admin/jobs"), {
+        params: { status, page, page_size: 50 },
+      });
+      if (!response.ok()) {
+        throw new Error(`Could not list jobs: ${response.status()} ${await response.text()}`);
+      }
+      const body = (await response.json()) as {
+        items: { reference: string; attempt: number; can_retry: boolean }[];
+        pages: number;
+      };
+      const found = body.items.find((job) => job.can_retry);
+      if (found) return { reference: found.reference, attempt: found.attempt };
+      if (page >= body.pages) break;
+    }
+    return null;
+  } finally {
+    await api.dispose();
+  }
+}
+
+/**
  * Save a report through the API, and hand back its id and name (§28, §45).
  *
  * For the tests that are about what happens *to* a saved chart — putting it on

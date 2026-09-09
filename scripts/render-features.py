@@ -175,9 +175,10 @@ CATALOGUE: list[dict[str, object]] = [
     feature(51, "Query inspector", "`/explore`", "— (`core/rules.py`)", "done"),
     feature(52, "Pagination patterns", "various", "— (`core/pagination.py`)", "done"),
     feature(
-        53, "Data refresh, auto-refresh", "data-heavy pages", "`/live`", "partial",
-        "Notifications and the log tail arrive over the live channel. A general "
-        "auto-refresh a reader can turn on per page is open.",
+        53, "Data refresh, auto-refresh", "data-heavy pages",
+        # The socket is mounted on Flask directly rather than through the
+        # endpoint map, because a socket is not a request/response resource.
+        "— (`src/api/websocket.py`)", "done",
     ),
     feature(54, "Keyboard navigation", "global", "—", "done"),
     feature(55, "Accessibility", "global", "—", "done"),

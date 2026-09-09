@@ -50,7 +50,7 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { PlusOutlined, RedoOutlined, ReloadOutlined, StopOutlined } from "@ant-design/icons";
+import { PlusOutlined, RedoOutlined, StopOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -61,6 +61,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { AutoRefresh } from "@/components/AutoRefresh";
 
 const { Text } = Typography;
 
@@ -178,11 +179,10 @@ export default function JobsPage() {
   const listing = useQuery({
     queryKey: ["jobs", "list", filters, page],
     queryFn: ({ signal }) => jobsApi.list({ ...filters, page, page_size: 25 }, signal),
-    // A queue moves. Refetched on an interval so a RUNNING job's progress is
-    // not a number from whenever the page happened to load — but slowly, since
-    // nothing here is per-second and a console that refetched constantly would
-    // fight the operator's own scroll position.
-    refetchInterval: 15_000,
+    // A queue moves, so this page opens with a refresh already running — the
+    // one page where watching progress *is* the job. It is the reader's to
+    // change or turn off, which is what it was not while the interval was a
+    // constant here (§53).
   });
 
   const detail = useQuery({
@@ -420,14 +420,13 @@ export default function JobsPage() {
                 })),
               ]}
             />
-            <Tooltip title="Read it again">
-              <Button
-                icon={<ReloadOutlined />}
-                aria-label="Refresh the queue"
-                loading={listing.isFetching}
-                onClick={() => void listing.refetch()}
-              />
-            </Tooltip>
+            <AutoRefresh
+              page="jobs"
+              defaultSeconds={30}
+              updatedAt={listing.dataUpdatedAt}
+              busy={listing.isFetching}
+              refresh={() => void listing.refetch()}
+            />
           </Space>
         }
       />

@@ -40,7 +40,6 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { ReloadOutlined } from "@ant-design/icons";
 import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -52,6 +51,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { PeoplePicker } from "@/components/PeoplePicker";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, groupByDay, relativeTime } from "@/lib/time";
+import { AutoRefresh } from "@/components/AutoRefresh";
 
 const { Text } = Typography;
 
@@ -191,13 +191,15 @@ export default function ActivityPage() {
         subtitle="Everything that happened, newest first — narrow it by what kind of thing it was."
         tag={<Tag color="blue">{matched.toLocaleString()} in this period</Tag>}
         actions={
-          <Button
-            icon={<ReloadOutlined />}
-            loading={feed.isFetching}
-            onClick={() => void feed.refetch()}
-          >
-            Refresh
-          </Button>
+          // A feed is the clearest case for the reader's own interval: what is
+          // on screen is only as current as the last request, and this page is
+          // one people leave open (§53).
+          <AutoRefresh
+            page="activity"
+            updatedAt={feed.dataUpdatedAt}
+            busy={feed.isFetching}
+            refresh={() => void feed.refetch()}
+          />
         }
       />
 

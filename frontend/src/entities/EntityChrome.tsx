@@ -29,6 +29,7 @@ import { qualityApi } from "@/api/quality";
 import { explorerApi, type ExplorerRequest, type InsightMetric } from "@/api/explorer";
 import { exportsApi, type ExportRequest } from "@/api/exports";
 import { EmptyState, NoResults } from "@/components/EmptyState";
+import { AutoRefresh } from "@/components/AutoRefresh";
 import { ExportButton } from "@/components/ExportButton";
 import { FailureAlert } from "@/components/FailureAlert";
 import { PageHeader } from "@/components/PageHeader";
@@ -69,6 +70,18 @@ export function EntityHeader({
       actions={
         <>
           {actions}
+          {/* A list is an answer that goes quietly out of date, so it says how
+              old it is and lets the reader decide how often it is re-asked
+              (§53). Off by default, remembered per dataset. */}
+          <AutoRefresh
+            page={`list:${resource?.key ?? "unknown"}`}
+            updatedAt={rows.dataUpdatedAt}
+            busy={rows.isFetching}
+            refresh={() => {
+              void rows.refetch();
+              void view.insights.refetch();
+            }}
+          />
           {/* Here rather than on each page, for the reason the quality chip is:
               a list gets its saved views by being a list (§46). */}
           <SavedViewMenu view={view} />

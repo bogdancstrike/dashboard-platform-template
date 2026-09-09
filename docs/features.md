@@ -76,7 +76,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 50 | Data relationships | detail tabs + `/find/relationships` | `/api/relationships/*` | [x] |
 | 51 | Query inspector | `/explore` | — (`core/rules.py`) | [x] |
 | 52 | Pagination patterns | various | — (`core/pagination.py`) | [x] |
-| 53 | Data refresh, auto-refresh | data-heavy pages | `/live` | [~] |
+| 53 | Data refresh, auto-refresh | data-heavy pages | — (`src/api/websocket.py`) | [x] |
 | 54 | Keyboard navigation | global | — | [x] |
 | 55 | Accessibility | global | — | [x] |
 | 56 | Responsive behaviour | global | — | [x] |
@@ -102,7 +102,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*67 shipped · 10 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*68 shipped · 9 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
@@ -115,8 +115,6 @@ Every section above that is not shipped, with the part that is open. A catalogue
 **§44 Drill-down** — Partly there. Every KPI tile, chart segment and quality finding opens the rows behind it with the same filters applied. The back-stack that would return a reader to the picture they came from is open.
 
 **§48 Timeline view** — Partly there. Every record page carries its own history, read from the audit ledger so the two cannot disagree. A cross-record timeline — one thread through several records — is open.
-
-**§53 Data refresh, auto-refresh** — Partly there. Notifications and the log tail arrive over the live channel. A general auto-refresh a reader can turn on per page is open.
 
 **§59 UX quality bar** — Partly there. The standing bar rather than a deliverable: it is met on every page that has shipped and is re-argued on every page that ships next.
 

@@ -298,3 +298,49 @@ test.describe("entity page permissions", () => {
     await expect(page.getByText(/do not have permission to export/)).toBeVisible();
   });
 });
+
+/**
+ * A list says how old it is, and the reader decides how often it is re-asked
+ * (§53).
+ *
+ * The claim a component test cannot make: the refresh really goes back to the
+ * database and the answer on screen is replaced by a *new* one — and that a
+ * chosen interval outlives a reload, because it is the reader's habit rather
+ * than a setting of the page's.
+ */
+test("a list refreshes on the reader's own schedule and says when it last did", async ({
+  page,
+}) => {
+  await signIn(page, "manager", "/orders");
+  await expect(page.getByTestId("entity-total")).toBeVisible();
+
+  const age = page.getByTestId("refreshed-at");
+  await expect(age).toContainText(/Refreshed|Refreshing/);
+
+  // Counted at the network, so this is the request going out again rather
+  // than a label being redrawn.
+  let asked = 0;
+  page.on("request", (request) => {
+    if (request.url().includes("/explorer/query")) asked += 1;
+  });
+
+  await page.getByTestId("refresh-now").click();
+  await expect.poll(() => asked, { timeout: 10_000 }).toBeGreaterThan(0);
+
+  // The interval is chosen from the split control's menu, and remembered
+  // across a reload — per dataset, so the ledger's habit is not the queue's.
+  await page.locator(".nu-refresh").getByRole("button", { name: /down/ }).click();
+  await page.getByRole("menuitem", { name: "Every 30s" }).click();
+  await expect(page.getByTestId("refresh-now")).toContainText("30s");
+
+  await page.reload();
+  await expect(page.getByTestId("refresh-now")).toContainText("30s");
+  await page.goto("/tickets");
+  await expect(page.getByTestId("refresh-now")).toContainText("Refresh");
+
+  // Put it back, so the rest of the suite reads a page nobody is polling.
+  await page.goto("/orders");
+  await page.locator(".nu-refresh").getByRole("button", { name: /down/ }).click();
+  await page.getByRole("menuitem", { name: "Off" }).click();
+  await expect(page.getByTestId("refresh-now")).toContainText("Refresh");
+});
