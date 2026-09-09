@@ -224,6 +224,29 @@ place. Which datasets can be mapped, and how each reaches a place, is the
 no city is placed one hop away, at its customer's. Country outlines are
 vendored (`frontend/src/assets/README.md`) because the stack runs offline.
 
+### Who am I, as the platform sees me
+
+`/profile` answers the commonest support question in a platform of this shape —
+"why can I not export?" — without an administrator in the loop. It shows the
+reader's *effective* permissions and marks the ones a **group** granted rather
+than the role, which is the half that surprises people. Until it existed that
+breakdown lived only on `/admin/users/:id`, the page the person asking cannot
+open.
+
+It needs no permission, deliberately, the way `/settings/security` does. Every
+query is scoped to one user id and the server decides which from the token.
+
+`/profile/<userId>` is the same page about a colleague, withholding by layers:
+the business card to anybody signed in, contact details and the permission
+breakdown to `users.view`, and the activity trail to `audit.view` — a
+per-person list of everything somebody did is the audit log by another name.
+The response says which layers the reader has, so the page names the absence
+rather than drawing an empty panel.
+
+Three tabs, and not the five a sketch would give it: preferences and security
+are whole pages at their own addresses, so the profile carries a *digest* of
+each with a button through rather than a second copy of either.
+
 ### Changing many records at once
 
 A list that can only be changed a row at a time is a list somebody changes with

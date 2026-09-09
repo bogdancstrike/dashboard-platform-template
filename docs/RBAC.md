@@ -272,6 +272,34 @@ module imports from `@/test/`, and no glob pattern matches a `.test.` file. A
 filter applied to the matched names is too late. `make lint` also runs the
 production build, which is what noticed the original.
 
+### A page about yourself
+
+`/profile` (§40) carries `@requires()` with no arguments, like
+`/settings/security`: a page about you that has to be granted is a page most
+people never see, and its whole value is that the person who needs it can reach
+it. Which person a request is about is decided by the server from the token,
+never from the request body.
+
+`/profile/<user_id>` is the same page about somebody else, and it withholds by
+layers rather than refusing outright:
+
+| What | Who may see it | Why that permission |
+| --- | --- | --- |
+| Name, role, organisation, department, job title | anybody signed in | `/admin/users` is readable by every persona, so this is not a new disclosure |
+| Email, phone, sign-in count, the permission breakdown | `users.view` | the permission that already governs the directory's private half |
+| The person's activity trail | `audit.view` | a per-person list of everything somebody did is the audit log by another name, and that distinction is the only thing between a directory and surveillance |
+
+The response publishes a `visibility` object saying which of those the reader
+has, so the page can *name* the absence. A panel that is empty for want of
+permission is indistinguishable from one that is broken (§76), and the withheld
+fields are absent from the payload rather than blank — an empty string where an
+address should be is a thing a client will happily display.
+
+The permission breakdown itself comes from `users.access_of`, the same function
+`/admin/users/:id` uses, so a reader looking at themselves and an administrator
+looking at them are told the same thing. That answers "why can I not export?"
+without an administrator in the loop, which is what the page exists for.
+
 ## Impersonation
 
 An administrator with `users.impersonate` may send `X-Impersonate-User` with a

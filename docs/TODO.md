@@ -3125,14 +3125,66 @@ everything else.
 
 ### `/profile` — the user's own page (§40, §41)
 
-- [ ] Header: avatar, name, role, organization, department, joined, last seen
-- [ ] Tabs: overview · activity · security · preferences
-- [ ] Personal analytics, in the style of gif_responder's profile: tasks
-      completed over time, throughput by week, an activity heatmap by day,
-      and the record types they touch most
-- [ ] Their own recent activity, favourites, saved searches and sessions
-- [ ] A public view of another user at `/profile/:username`, showing only what
-      the viewer's permissions allow
+- [x] Header: avatar, name, role, organization, department, joined, last seen
+- [x] Personal analytics: tasks completed by week, an activity heatmap by
+      weekday and hour, the record types they touch most, and five counts that
+      each open the rows behind them (§44)
+- [x] A view of another person at `/profile/:userId`, showing only what the
+      viewer's permissions allow — and *saying* what it withheld
+- [~] Tabs: **overview · activity · access**, and the last two of the four in
+      the original sketch are deliberately not here
+  - **`/settings/preferences` and `/settings/security` are whole pages
+      already**, each with its own address, its own e2e suite and its own entry
+      in the profile menu. Re-hosting either as a tab would put one screen at
+      two addresses: two things to keep in step, two axe runs, and a bookmark
+      that points at whichever a reader happened to find. The sketch predates
+      both pages
+  - What the profile carries instead is a **digest** of each — "system theme,
+      compact density, Europe/Bucharest", "last sign-in 4 hours ago, 412 in
+      total" — with a button through to the page that owns the change. A
+      digest is different content from the page it links to, so there is no
+      second implementation of anything
+  - **Access replaces them, and it is the reason the page exists.** A reader's
+      own permissions were visible only to an administrator opening
+      `/admin/users/:id` — which is the page the person asking cannot open — so
+      "why can I not export?" had no self-service answer at all. The tab shows
+      the effective set and *marks the permissions a group granted rather than
+      the role*, which is the half that surprises people. Computed by
+      `users.access_of`, the same function the administrator's page uses, and a
+      backend test compares the two so they cannot drift
+- [~] Their own recent activity ships — the Activity tab is the platform feed
+      filtered by actor, so a person's page and `/activity` cannot disagree
+      about what happened. Their favourites and saved searches have their own
+      pages (`/favorites`, `/search/saved`) and are not copied here
+- **The visibility rule, and why each half sits where it does:**
+  - Your own page needs **no permission**, the way `/settings/security` does
+      (§41): a page about you that has to be granted is one most people never
+      see, and its whole value is that the person who needs it can reach it.
+      Every query is scoped to one user id, decided by the server from the
+      token and never from the request
+  - A colleague's shows what the **directory** shows — name, role,
+      organisation, department, job title — because `/admin/users` is readable
+      by every persona and none of that is a new disclosure
+  - Contact details and the permission breakdown need `users.view`
+  - Their **activity trail** needs `audit.view`: a per-person list of
+      everything somebody did is the audit log by another name, and that
+      distinction is the only thing between a directory and surveillance
+  - The withholding is **published** in `visibility` and drawn, because a panel
+      that is empty for want of permission is indistinguishable from one that
+      is broken (§76). The withheld fields are *absent* rather than blank — an
+      empty string where an address should be is a thing a client will happily
+      display
+- **The charts are dense.** Every week has a bar and every hour has a cell,
+  because a chart drawn only where there is data reports a quiet week as no
+  week at all. The one exception is a person with no activity at all, who gets
+  a sentence rather than a grid of 168 zeroes — that grid *is* a grid, and a
+  reader cannot tell it from a broken chart
+- The analytics are cached like the other aggregates, keyed on the person and
+  invalidated by the writes: a task somebody finishes appears on their own page
+  immediately, which is the case a timer gets wrong for exactly the reader who
+  would look
+- 11 backend tests, 15 component tests, 8 Playwright including axe on all three
+  tabs
 
 ### `/settings/preferences` — the reader's own settings (§40)
 

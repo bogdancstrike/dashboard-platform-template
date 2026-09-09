@@ -37,6 +37,7 @@ const ExportsPage = lazy(() => import("@/pages/ExportsPage"));
 const ImportPage = lazy(() => import("@/pages/ImportPage"));
 const SecurityPage = lazy(() => import("@/pages/SecurityPage"));
 const FavoritesPage = lazy(() => import("@/pages/FavoritesPage"));
+const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
 const ShowcaseComponentsPage = lazy(() => import("@/pages/showcase/ComponentsPage"));
 const ShowcaseTemplatesPage = lazy(() => import("@/pages/showcase/TemplatesPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
@@ -540,6 +541,23 @@ export default function App() {
         />
 
         {/* Personal */}
+        <Route
+          path="profile"
+          element={
+            <Suspense fallback={<Loading />}>
+              <ProfilePage />
+            </Suspense>
+          }
+        />
+        {/* A colleague's, showing only what this reader may be told (§40). */}
+        <Route
+          path="profile/:userId"
+          element={
+            <Suspense fallback={<Loading />}>
+              <ProfilePage />
+            </Suspense>
+          }
+        />
         <Route
           path="settings/preferences"
           element={

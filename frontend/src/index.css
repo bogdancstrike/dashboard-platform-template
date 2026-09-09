@@ -342,6 +342,43 @@ body {
 .nu-activity-item { font-size: 13px; line-height: 1.45; }
 .nu-activity-time { font-size: 11.5px; color: var(--nu-text-tertiary); margin-top: 2px; }
 
+/* ── profile (§40, §41) ─────────────────────────────────────────────── */
+.nu-profile-card { margin-bottom: 12px; }
+.nu-profile-head { display: flex; gap: 16px; align-items: flex-start; }
+.nu-profile-facts { flex: 1 1 auto; min-width: 0; }
+.nu-profile-note { margin-top: 10px; }
+/* A tag as a link, so the two ways out of the page read as one control pair
+   rather than as two buttons competing with the page's own actions. */
+.nu-profile-jump { cursor: pointer; margin-inline-end: 0; }
+.nu-profile-tabs { flex: 1 1 auto; display: flex; flex-direction: column; }
+.nu-profile-tabs > .ant-tabs-content-holder { display: flex; }
+.nu-profile-tabs .ant-tabs-tabpane { display: flex; flex-direction: column; }
+.nu-profile-overview { display: flex; flex-direction: column; gap: 12px; }
+/* Five counts across on a laptop, wrapping rather than shrinking: a stat card
+   narrower than its own number is a card that reads as broken. */
+.nu-profile-stats {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+}
+.nu-profile-stat { color: inherit; }
+.nu-profile-stat:hover { color: inherit; }
+.nu-profile-charts { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+.nu-profile-digests { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+.nu-profile-digest { margin-bottom: 4px !important; }
+.nu-profile-access { display: flex; flex-direction: column; gap: 12px; }
+.nu-profile-groups, .nu-profile-trail { margin: 0; padding: 0; list-style: none; }
+.nu-profile-groups > li + li,
+.nu-profile-trail > li + li {
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--nu-border-subtle);
+}
+.nu-profile-trail > li { display: flex; justify-content: space-between; gap: 12px; }
+.nu-profile-when { flex: 0 0 auto; font-size: 12px; }
+
+@media (max-width: 900px) {
+  .nu-profile-charts, .nu-profile-digests { grid-template-columns: 1fr; }
+  .nu-profile-head { flex-direction: column; }
+}
+
 /* ── bulk selection (§43, §75) ──────────────────────────────────────── */
 /* Above the table rather than floating over it: a bar pinned to the bottom of
    the viewport covers the last row, which is part of what the reader is

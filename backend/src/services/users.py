@@ -112,11 +112,18 @@ def listing(session, args, *, principal) -> dict[str, Any]:
     )
 
 
-def detail(session, user_id: Any, *, principal) -> dict[str, Any]:
-    """One person, with the access they actually have and how they got it."""
-    principal.require(VIEW_PERMISSION)
-    user = _load(session, user_id)
+def access_of(user) -> dict[str, Any]:
+    """The permissions a person actually has, and how they got them.
 
+    Extracted because two screens need the same answer for different reasons:
+    an administrator asks it of *somebody else* on `/admin/users/:id`, and a
+    reader asks it of themselves on `/profile` — "why can I not export?" is
+    the commonest support question there is, and until `/profile` existed the
+    only place that answered it was a page the asker cannot open.
+
+    Role *plus* groups, because that is what the API enforces. A screen showing
+    only the role cannot explain why this person can cancel a job.
+    """
     role_permissions = set(user.role.permissions or []) if user.role else set()
     group_permissions: dict[str, list[str]] = {
         group.name: sorted(group.permissions or []) for group in user.groups
@@ -125,6 +132,33 @@ def detail(session, user_id: Any, *, principal) -> dict[str, Any]:
     for permissions in group_permissions.values():
         effective.update(permissions)
 
+    return {
+        "role_permissions": sorted(role_permissions),
+        "group_permissions": group_permissions,
+        "effective": sorted(effective),
+        "effective_labels": [PERMISSION_LABELS.get(p, p) for p in sorted(effective)],
+        # Granted by a group and not by the role: the surprising half.
+        "from_groups_only": sorted(effective - role_permissions),
+    }
+
+
+def groups_of(user) -> list[dict[str, Any]]:
+    """The groups a person belongs to, with what each one grants."""
+    return [
+        {
+            "id": str(group.id),
+            "name": group.name,
+            "kind": group.kind,
+            "permissions": sorted(group.permissions or []),
+        }
+        for group in user.groups
+    ]
+
+
+def detail(session, user_id: Any, *, principal) -> dict[str, Any]:
+    """One person, with the access they actually have and how they got it."""
+    principal.require(VIEW_PERMISSION)
+    user = _load(session, user_id)
     allowed, blocked_because = _may_impersonate(session, principal, user)
 
     return {
@@ -136,27 +170,8 @@ def detail(session, user_id: Any, *, principal) -> dict[str, Any]:
         "organization": _named(user.organization),
         "department": _named(user.department),
         "manager": _named(user.manager),
-        "groups": [
-            {
-                "id": str(group.id),
-                "name": group.name,
-                "kind": group.kind,
-                "permissions": group_permissions.get(group.name, []),
-            }
-            for group in user.groups
-        ],
-        # Role *plus* groups, which is what the API will actually enforce. A
-        # screen showing only the role cannot explain why this person can
-        # cancel a job, and "why can they do that?" is the question an
-        # administrator opens this page to answer.
-        "access": {
-            "role_permissions": sorted(role_permissions),
-            "group_permissions": group_permissions,
-            "effective": sorted(effective),
-            "effective_labels": [PERMISSION_LABELS.get(p, p) for p in sorted(effective)],
-            # Granted by a group and not by the role: the surprising half.
-            "from_groups_only": sorted(effective - role_permissions),
-        },
+        "groups": groups_of(user),
+        "access": access_of(user),
         "sessions": _sessions(session, user),
         "sign_ins": _sign_ins(session, user),
         "can_manage": principal.can(MANAGE_PERMISSION),
@@ -336,6 +351,16 @@ def summarise(user) -> dict[str, Any]:
         "created_at": iso(user.created_at),
         "updated_at": iso(user.updated_at),
     }
+
+
+def load_person(session, user_id: Any):
+    """One person by id, with their groups, or a 404.
+
+    Public because `/profile` (§40) needs the same row and the same refusal.
+    A second loader would be a second answer to "does this person exist", and
+    the two would eventually disagree about a soft-deleted account.
+    """
+    return _load(session, user_id)
 
 
 def _load(session, user_id: Any):

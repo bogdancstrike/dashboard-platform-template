@@ -1004,6 +1004,34 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "profile_mine",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/profile",
+      "description": "The signed-in reader's own page: access, work and when they work.",
+      "exec_method": {
+        "module_name": "src.api.profile",
+        "method_name": "mine"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "profile_person",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/profile/<uuid:user_id>",
+      "description": "A colleague's page, showing only what the viewer may be told.",
+      "exec_method": {
+        "module_name": "src.api.profile",
+        "method_name": "person"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "comments_collection",
       "model_name": "Empty",
       "request_method": [

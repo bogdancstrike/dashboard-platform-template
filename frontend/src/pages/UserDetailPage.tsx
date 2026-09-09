@@ -17,8 +17,13 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { SafetyCertificateOutlined, UserOutlined, UserSwitchOutlined } from "@ant-design/icons";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import {
+  IdcardOutlined,
+  SafetyCertificateOutlined,
+  UserOutlined,
+  UserSwitchOutlined,
+} from "@ant-design/icons";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { rolesApi } from "@/api/roles";
@@ -197,6 +202,14 @@ export default function UserDetailPage() {
                 />
               </Space.Compact>
             )}
+            {/* The person's own page, which is what a colleague sees of them —
+                worth one click from the administration screen, because "what
+                does this look like to them" is a question this page invites. */}
+            <Link to={`/profile/${user.id}`}>
+              <Button icon={<IdcardOutlined />} data-testid="open-profile">
+                Their profile
+              </Button>
+            </Link>
             {user.can_impersonate ? (
               <Popconfirm
                 title={`Act as ${user.full_name}?`}

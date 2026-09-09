@@ -4855,6 +4855,102 @@ export const handlers = [
     if (index >= 0) announcements.splice(index, 1);
     return echo(request, { id: params["id"], deleted: true });
   }),
+  // ── profile (§40, §41) ───────────────────────────────────────────────
+  //
+  // Answers for *whoever is asked about*, so a test can check that a
+  // colleague's page withholds what the reader may not see. A handler with one
+  // fixed body would let the page draw the administrator's own access under
+  // somebody else's name and pass.
+  http.get("/platform/api/profile/:userId?", ({ params, request }) => {
+    const asked = params["userId"] ? String(params["userId"]) : currentUser.user.id;
+    const mine = asked === currentUser.user.id;
+    const person = mine
+      ? currentUser.user
+      : { ...currentUser.user, id: asked, full_name: "Mara Manager", initials: "MM",
+          username: "manager", job_title: "Delivery Manager" };
+    // The viewer's own permissions decide what is shown, the way the server
+    // decides it — so a test that strips `users.view` sees the withholding.
+    const permissions = new Set(currentUser.permissions);
+    const contact = mine || permissions.has("users.view");
+    const activity = mine || permissions.has("audit.view");
+
+    return echo(request, {
+      is_me: mine,
+      user: {
+        id: person.id,
+        full_name: person.full_name,
+        initials: person.initials,
+        username: person.username,
+        avatar_url: null,
+        job_title: person.job_title,
+        status: "ACTIVE",
+        ...(contact ? { email: `${person.username}@nucleus.example`, phone: "" } : {}),
+      },
+      role: { code: "ADMINISTRATOR", name: "Administrator", color: "#dc2626",
+              description: "Unrestricted access." },
+      organization: { id: "org-1", name: "Northwind Partners" },
+      department: { id: "dep-1", name: "Operations" },
+      team: { id: "team-1", name: "Team Atlas" },
+      manager: null,
+      joined_at: "2024-02-01T09:00:00Z",
+      last_login_at: "2026-09-03T08:15:00Z",
+      login_count: contact ? 412 : null,
+      locale: "en-GB",
+      timezone: "Europe/Bucharest",
+      mfa_enabled: true,
+      visibility: { contact, access: contact, activity },
+      groups: contact
+        ? [{ id: "grp-1", name: "Platform owners", kind: "SECURITY",
+             permissions: ["records.export"] }]
+        : [],
+      access: contact
+        ? {
+            role_permissions: ["records.view", "users.view"],
+            group_permissions: { "Platform owners": ["records.export"] },
+            effective: ["records.export", "records.view", "users.view"],
+            effective_labels: ["Export records", "View records", "View users"],
+            from_groups_only: ["records.export"],
+          }
+        : null,
+      stats: [
+        { key: "open_tasks", label: "Tasks in hand", value: 7,
+          link: `/tasks?f.assignee_id=${person.id}`, hint: "Assigned and not finished" },
+        { key: "done_tasks", label: "Tasks completed", value: 41,
+          link: `/tasks?f.assignee_id=${person.id}&f.status=DONE` },
+        { key: "open_tickets", label: "Tickets in hand", value: 3,
+          link: `/tickets?f.assignee_id=${person.id}` },
+        { key: "resolved_tickets", label: "Tickets resolved", value: 88,
+          link: `/tickets?f.assignee_id=${person.id}&f.status=RESOLVED` },
+        { key: "projects", label: "Projects owned", value: 2,
+          link: `/projects?f.owner_id=${person.id}`, hint: "Active, as owner" },
+      ],
+      throughput: Array.from({ length: 13 }, (_, index) => ({
+        bucket: `2026-06-${String(index + 1).padStart(2, "0")}T00:00:00Z`,
+        value: index % 4,
+      })),
+      heatmap: Array.from({ length: 7 * 24 }, (_, index) => ({
+        day: Math.floor(index / 24),
+        hour: index % 24,
+        value: index % 9 === 0 ? index % 5 : 0,
+      })),
+      touches: [
+        { name: "task", value: 120 },
+        { name: "ticket", value: 64 },
+        { name: "project", value: 12 },
+      ],
+      ...(activity
+        ? {
+            recent_activity: [
+              { id: "act-1", action: "UPDATE", kind: "RECORD", resource_type: "task",
+                resource_id: "task-1", resource_label: "TSK-00001",
+                summary: "moved TSK-00001 to IN_PROGRESS",
+                occurred_at: "2026-09-03T09:00:00Z" },
+            ],
+          }
+        : {}),
+    });
+  }),
+
   http.get("/platform/api/activity", ({ request }) => {
     const url = new URL(request.url);
     const kind = url.searchParams.get("kind") ?? "";

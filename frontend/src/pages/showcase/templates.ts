@@ -155,6 +155,17 @@ export const LAYOUTS: PageLayout[] = [
     routes: ["admin/settings", "admin/roles", "settings/preferences", "settings/security"],
   },
   {
+    key: "record",
+    name: "One subject, in tabs",
+    shape:
+      "An identity block that stays put, and tabs over the parts of one subject that are read separately.",
+    when:
+      "Everything on the page is about one thing, and the parts are read on different occasions rather than together.",
+    unless:
+      "The parts are read *at the same time* — then tabs hide half the answer, and a reader has to remember the other half while looking at this one.",
+    routes: ["profile"],
+  },
+  {
     key: "console",
     name: "Operations console",
     shape:

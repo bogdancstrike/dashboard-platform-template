@@ -282,6 +282,14 @@ export function AppShell() {
                   },
                   { type: "divider" },
                   {
+                    // First, because it is the page about *you* — the others
+                    // change something, this one explains what you are.
+                    key: "profile",
+                    icon: <UserOutlined />,
+                    label: "Your profile",
+                    onClick: () => navigate("/profile"),
+                  },
+                  {
                     key: "preferences",
                     icon: <SettingOutlined />,
                     label: "Preferences",
