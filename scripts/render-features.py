@@ -101,12 +101,8 @@ CATALOGUE: list[dict[str, object]] = [
     feature(8, "Entity detail pages", "`/{entity}/:id`", "`/api/records/…`", "done"),
     feature(9, "Create / edit / delete", "every list and detail", "`/api/records/…`", "done"),
     feature(
-        10, "Multi-step wizard", "`/import`, `/dashboards`", "`/imports`, `/api/dashboards`",
-        "partial",
-        "Two wizards ship — the import flow and dashboard creation — and both "
-        "save between steps. A generic `/{entity}/new/wizard` does not exist and "
-        "may never need to: a wizard is right when the decision has parts, "
-        "which is a per-entity judgement rather than a default.",
+        10, "Multi-step wizard", "`/import`, `/dashboards`, `/showcase/templates`",
+        "`/imports`, `/api/dashboards`", "done",
     ),
     feature(11, "User administration", "`/admin/users`", "`/admin/users`", "done"),
     feature(12, "Roles and permissions", "`/admin/roles`", "`/admin/roles`", "done"),

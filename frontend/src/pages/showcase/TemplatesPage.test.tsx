@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { Route, Routes } from "react-router-dom";
 
 import TemplatesPage, { routeLabel, summary } from "@/pages/showcase/TemplatesPage";
+import { CREATE_SHAPES, flowsOf } from "@/pages/showcase/creates";
 import { LAYOUTS } from "@/pages/showcase/templates";
 import { renderWithProviders } from "@/test/render";
 
@@ -101,5 +102,30 @@ describe("the page", () => {
     expect(screen.getByTestId("completeness")).toHaveTextContent(
       /fails `templates.test.ts`/,
     );
+  });
+
+  /**
+   * The other half of the page: how a create opens.
+   *
+   * Same test as the layouts, one size down. A gallery that lists five shapes
+   * and shows the flows for two of them is a gallery that reads as a plan
+   * rather than as a description of what is here.
+   */
+  it("shows every create shape, with what opens that way and why", async () => {
+    render();
+
+    const creates = await screen.findByTestId("creates");
+    for (const shape of CREATE_SHAPES) {
+      const card = within(creates).getByTestId(`create-${shape.key.replace(" ", "-")}`);
+      expect(card).toHaveTextContent(shape.name);
+      // When, and — the half that matters — when not.
+      expect(card).toHaveTextContent(shape.when.slice(0, 30));
+      expect(card).toHaveTextContent(shape.unless.slice(0, 30));
+      // And the flows themselves, with the reason each one is this shape.
+      const flows = flowsOf(shape.key);
+      expect(flows.length, shape.key).toBeGreaterThan(0);
+      expect(card).toHaveTextContent(flows[0]!.what);
+      expect(card).toHaveTextContent(flows[0]!.because.slice(0, 30));
+    }
   });
 });

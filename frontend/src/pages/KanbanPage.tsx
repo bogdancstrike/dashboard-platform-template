@@ -55,6 +55,7 @@ import { kanbanApi, type KanbanCard, type KanbanLane } from "@/api/kanban";
 import { BoardGallery } from "@/components/kanban/BoardGallery";
 import { CardDrawer } from "@/components/kanban/CardDrawer";
 import { LaneColumn } from "@/components/kanban/LaneColumn";
+import { NameModal } from "@/components/NameModal";
 import { NewBoardModal } from "@/components/kanban/NewBoardModal";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
@@ -68,6 +69,8 @@ export default function KanbanPage() {
   const { message, modal } = AntApp.useApp();
   const [creating, setCreating] = useState(false);
   const [openCard, setOpenCard] = useState<string | null>(null);
+  /** The one-question modal for a new lane (§33). */
+  const [namingLane, setNamingLane] = useState(false);
   const [term, setTerm] = useState(params.get("q") ?? "");
 
   const boardId = params.get("board") ?? "";
@@ -275,7 +278,7 @@ export default function KanbanPage() {
                     },
                   ],
                   onClick: ({ key }) => {
-                    if (key === "lane") promptForLane();
+                    if (key === "lane") setNamingLane(true);
                     else if (key === "archive") {
                       void kanbanApi
                         .updateBoard(detail.board.id, {
@@ -439,7 +442,7 @@ export default function KanbanPage() {
                   <button
                     type="button"
                     className="nu-lane-add"
-                    onClick={promptForLane}
+                    onClick={() => setNamingLane(true)}
                     data-testid="add-lane"
                   >
                     <PlusOutlined />
@@ -465,6 +468,20 @@ export default function KanbanPage() {
         </>
       )}
 
+      <NameModal
+        open={namingLane}
+        title="Add a lane"
+        label="Lane name"
+        placeholder="Blocked"
+        okText="Add"
+        saving={addLane.isPending}
+        onClose={() => setNamingLane(false)}
+        onSubmit={(name) => {
+          addLane.mutate(name);
+          setNamingLane(false);
+        }}
+      />
+
       <NewBoardModal
         open={creating}
         onClose={() => setCreating(false)}
@@ -484,26 +501,6 @@ export default function KanbanPage() {
     </>
   );
 
-  function promptForLane(): void {
-    let name = "";
-    modal.confirm({
-      title: "Add a lane",
-      content: (
-        <Input
-          autoFocus
-          placeholder="Blocked"
-          aria-label="Lane name"
-          onChange={(event) => {
-            name = event.target.value;
-          }}
-        />
-      ),
-      okText: "Add",
-      onOk: async () => {
-        if (name.trim()) await addLane.mutateAsync(name.trim());
-      },
-    });
-  }
 }
 
 /**

@@ -67,6 +67,7 @@ import {
   type FileFolder,
   type StoredFile,
 } from "@/api/files";
+import { NameModal } from "@/components/NameModal";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
@@ -126,6 +127,8 @@ export default function FilesPage() {
   const [search, setSearch] = useState("");
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [renaming, setRenaming] = useState<StoredFile | null>(null);
+  /** The one-question modal for a new folder (§33). */
+  const [namingFolder, setNamingFolder] = useState(false);
   const term = useDebouncedValue(search, 280);
 
   const tree = useQuery({
@@ -134,6 +137,9 @@ export default function FilesPage() {
   });
 
   const open = folderId || tree.data?.folders[0]?.id || UNFILED;
+  /** The folder a new one would go inside, or nothing at the top level. */
+  const parentName =
+    open === UNFILED ? "" : (tree.data?.folders.find((item) => item.id === open)?.name ?? "");
 
   const files = useQuery({
     queryKey: ["files", open, term],
@@ -330,7 +336,7 @@ export default function FilesPage() {
       id: "files.folder",
       label: "Create a folder",
       keywords: "new directory",
-      run: () => promptForFolder(),
+      run: () => setNamingFolder(true),
     },
     {
       id: "files.unfiled",
@@ -340,26 +346,6 @@ export default function FilesPage() {
     },
   ]);
 
-  function promptForFolder(): void {
-    let name = "";
-    modal.confirm({
-      title: "New folder",
-      content: (
-        <Input
-          autoFocus
-          placeholder="Contracts"
-          aria-label="Folder name"
-          onChange={(event) => {
-            name = event.target.value;
-          }}
-        />
-      ),
-      okText: "Create",
-      onOk: async () => {
-        if (name.trim()) await addFolder.mutateAsync(name.trim());
-      },
-    });
-  }
 
   if (tree.isLoading) return <Skeleton active paragraph={{ rows: 10 }} />;
 
@@ -410,7 +396,7 @@ export default function FilesPage() {
               <Button
                 icon={<FolderAddOutlined />}
                 disabled={!canManage}
-                onClick={promptForFolder}
+                onClick={() => setNamingFolder(true)}
                 data-testid="new-folder"
               >
                 New folder
@@ -700,6 +686,22 @@ export default function FilesPage() {
         file={(files.data?.items ?? []).find((item) => item.id === previewing) ?? null}
         onClose={() => setPreviewing("")}
         onDownload={(file) => download.mutate(file)}
+      />
+
+      <NameModal
+        open={namingFolder}
+        // Where it will land, because "New folder" while a folder is selected
+        // creates a *child* — a file manager's habit, and one the reader has
+        // to be told about before they press Create rather than after.
+        title={parentName ? `New folder in ${parentName}` : "New folder"}
+        label="Folder name"
+        placeholder="Contracts"
+        saving={addFolder.isPending}
+        onClose={() => setNamingFolder(false)}
+        onSubmit={(name) => {
+          addFolder.mutate(name);
+          setNamingFolder(false);
+        }}
       />
 
       <RenameModal

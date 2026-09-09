@@ -23,6 +23,12 @@
  * **"Not a layout" is a category.** Redirects exist so links do not rot, and
  * pretending they are a page shape would be padding the gallery with
  * something nobody can look at.
+ *
+ * **How a create opens is the same kind of question**, one size down, so it is
+ * answered on the same page: five shapes, when each fits, and every create in
+ * the platform classified under one of them (`creates.ts`). A reader adding a
+ * page needs both answers, and a platform where every create is a drawer is
+ * telling them every decision is the same size.
  */
 
 import { Alert, Card, Space, Tag, Typography } from "antd";
@@ -31,6 +37,12 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
 import { PageHeader } from "@/components/PageHeader";
+import {
+  CREATE_FLOWS,
+  CREATE_SHAPES,
+  flowsOf,
+  type CreateShapeSpec,
+} from "@/pages/showcase/creates";
 import { LAYOUTS, classified, type PageLayout } from "@/pages/showcase/templates";
 import { formatNumber } from "@/lib/formats";
 
@@ -99,6 +111,55 @@ function LayoutCard({ layout }: { layout: PageLayout }) {
   );
 }
 
+/** One create shape, with the flows that use it. */
+function CreateCard({ shape }: { shape: CreateShapeSpec }) {
+  const flows = flowsOf(shape.key);
+  return (
+    <Card
+      size="small"
+      className="nu-tmpl-card"
+      data-testid={`create-${shape.key.replace(" ", "-")}`}
+      title={
+        <Space size={8}>
+          <Text strong>{shape.name}</Text>
+          <Tag bordered={false}>{flows.length}</Tag>
+        </Space>
+      }
+    >
+      <Paragraph className="nu-tmpl-shape">Built on: {shape.built}</Paragraph>
+
+      <div className="nu-tmpl-rules">
+        <div className="nu-tmpl-rule">
+          <Text strong className="nu-tmpl-label">
+            Use it when
+          </Text>
+          <Text type="secondary">{shape.when}</Text>
+        </div>
+        <div className="nu-tmpl-rule">
+          <Text strong className="nu-tmpl-label nu-tmpl-unless">
+            Not when
+          </Text>
+          <Text type="secondary">{shape.unless}</Text>
+        </div>
+      </div>
+
+      {/* What actually opens this way, with the reason each one does — which
+          is the part somebody choosing a shape for their own create reads. */}
+      <ul className="nu-tmpl-flows">
+        {flows.map((flow) => (
+          <li key={flow.what}>
+            <Link to={routeLabel(flow.where)} className="nu-tmpl-link">
+              {flow.what}
+              <ArrowRightOutlined />
+            </Link>
+            <Text type="secondary">{flow.because}</Text>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
 export default function TemplatesPage() {
   const shapes = useMemo(
     () => LAYOUTS.filter((layout) => layout.key !== "redirect"),
@@ -129,6 +190,23 @@ export default function TemplatesPage() {
       <div className="nu-tmpl-grid" data-testid="layouts">
         {shapes.map((layout) => (
           <LayoutCard key={layout.key} layout={layout} />
+        ))}
+      </div>
+
+      <Text strong className="nu-tmpl-section">
+        And how a create opens
+      </Text>
+      <Alert
+        type="info"
+        showIcon
+        className="nu-tmpl-note"
+        data-testid="creates-completeness"
+        message="Five shapes, smallest decision first"
+        description={`${CREATE_FLOWS.length} creates in the platform, each classified as exactly one of them, with the reason. A "new something" control added without that decision fails \`creates.test.ts\`.`}
+      />
+      <div className="nu-tmpl-grid" data-testid="creates">
+        {CREATE_SHAPES.map((shape) => (
+          <CreateCard key={shape.key} shape={shape} />
         ))}
       </div>
 

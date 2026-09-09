@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-import { findStoredFile } from "./api";
+import { findStoredFile, sweepFolders } from "./api";
 import { signIn, storageStateFor } from "./auth";
 
 /**
@@ -22,6 +22,7 @@ test.describe.configure({ mode: "serial" });
  * next run then reads *that* as the seeded one.
  */
 test.afterEach(async ({ page }) => {
+  await sweepFolders(["e2e-folder-"]);
   await page.goto("/files");
   const list = page.getByTestId("file-list");
   if ((await list.count()) === 0) return;
@@ -93,6 +94,38 @@ test("a dropped file goes to storage, not through the API", async ({ page }) => 
   await expect(
     page.getByTestId("file-list").locator(".ant-table-row").filter({ hasText: name }),
   ).toHaveCount(0);
+});
+
+/**
+ * A folder, from the one-question modal (§33).
+ *
+ * The whole decision is a name, so it is a modal and not a drawer — and the
+ * end-to-end claim is that the name is *stored*: the folder is in the tree
+ * after a reload, and the file library filters by it.
+ */
+test("a folder is created from one question and is there after a reload", async ({ page }) => {
+  const name = `e2e-folder-${Date.now()}`;
+  await signIn(page, "admin", "/files");
+
+  // A folder is created *inside* the one that is open, as a file manager
+  // does — so the modal says which, and this test picks the top level first.
+  await page.getByTestId("new-folder").click();
+  await expect(page.getByRole("dialog")).toContainText(/New folder in /);
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+
+  await page.getByRole("tree").getByText("Unfiled", { exact: false }).first().click();
+  await page.getByTestId("new-folder").click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("New folder");
+  // Enter submits: a one-field form that needs the mouse should not have been
+  // a dialog at all.
+  await dialog.getByLabel("Folder name").fill(name);
+  await dialog.getByLabel("Folder name").press("Enter");
+  await expect(dialog).toBeHidden();
+
+  await expect(page.getByRole("tree").getByText(name)).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("tree").getByText(name)).toBeVisible();
 });
 
 test("a seeded file downloads as the format it claims to be", async ({ page }) => {

@@ -2975,3 +2975,14 @@ mark.nu-mark {
   font-family: var(--nu-font-mono); font-size: 11.5px;
 }
 .nu-tmpl-section { display: block; margin-top: 18px; }
+/* What opens each way, and why. A list rather than the chip row the layouts
+   use, because each line carries a sentence and chips would wrap it into
+   confetti. */
+.nu-tmpl-flows {
+  margin: 12px 0 0; padding: 10px 0 0; list-style: none;
+  border-top: 1px solid var(--nu-border-subtle);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.nu-tmpl-flows li { display: flex; flex-direction: column; gap: 1px; }
+.nu-tmpl-flows .ant-typography { font-size: 12px; line-height: 1.5; }
+.nu-tmpl-flows .nu-tmpl-link { font-family: inherit; font-size: 13px; }

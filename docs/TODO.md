@@ -2555,9 +2555,37 @@ commit — built, committed, pushed, redeployed and verified before the next.
       there". Re-running the sweep alone left two real failures, both worth
       having found
 
-- [ ] **Variety in how "create" opens** — a wizard where the decision has
-      parts, a drawer for one object's fields, a plain modal for one question.
-      The dashboard wizard is the first; the rest of the modules follow
+- [x] **Variety in how "create" opens** — a wizard where the decision has
+      parts, a drawer for one object's fields, a plain modal for one question
+  - **Five shapes, not three**, because two more were already earning their
+      place: *in place* (a card in a lane, a checklist step — a line of text in
+      a list already on screen) and *its own page* (a report, a chart, where
+      composing the thing is the work and wants a live preview and an address).
+      Twenty-two creates, each classified under exactly one shape with the
+      reason it is not the next size up
+  - **The declaration is the deliverable.** Variety is not a thing a
+      screenshot demonstrates: it is a claim about twenty-two flows, and the
+      way it goes wrong is that the twenty-third copies whichever one was
+      nearest. `showcase/creates.ts` declares the shapes and the
+      classification; `creates.test.ts` asserts every shape is *used*, that
+      each flow's implementation contains the component its shape implies (an
+      entry that says "modal" and opens a drawer fails), and that **every
+      "new something" control in the shipped sources is classified** — so the
+      next create is a decision rather than a copy
+  - Rendered on `/showcase/templates` beside the page layouts, because
+      "what shapes does this template give me, and when do I reach for each" is
+      the same question one size down, and `unless` is on every card for the
+      same reason it is on the layouts
+  - **Two flows were the right shape built wrongly.** The folder and the lane
+      asked their one question with `modal.confirm` and an *uncontrolled*
+      input, and both had the same three defects: Enter did nothing, an empty
+      name created nothing and said nothing, and a name of spaces was
+      accepted. `components/NameModal.tsx` is that shape done once — a real
+      form, trimmed, required, Enter submits — with five tests, each for a
+      defect that reads to the reader as a broken button
+  - And a smaller honesty fix it surfaced: "New folder" creates a folder
+      *inside* the one that is open, as a file manager does, and said nothing
+      about it. The modal is titled "New folder in Archive" now
 - [x] **Every page in the navigation is implemented**, not a placeholder — the
       list is in [Phase 6](#phase-6--frontend-pages). `PlaceholderPage` and its
       file are gone, and `e2e/showcase.spec.ts` walks every route the template
@@ -3188,7 +3216,7 @@ told a reader that something is missing and not what.
 | 7 | Entity list pages | `/{entity}` | generic list | [x] |
 | 8 | Entity detail pages | `/{entity}/:id` | `/api/records/…` | [x] |
 | 9 | Create / edit / delete | every list and detail | `/api/records/…` | [x] |
-| 10 | Multi-step wizard | `/import`, `/dashboards` | `/imports`, `/api/dashboards` | [~] |
+| 10 | Multi-step wizard | `/import`, `/dashboards`, `/showcase/templates` | `/imports`, `/api/dashboards` | [x] |
 | 11 | User administration | `/admin/users` | `/admin/users` | [x] |
 | 12 | Roles and permissions | `/admin/roles` | `/admin/roles` | [x] |
 | 13 | System settings | `/admin/settings` | `/admin/settings` | [x] |
@@ -3257,15 +3285,13 @@ told a reader that something is missing and not what.
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*63 shipped · 14 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*64 shipped · 13 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
 Every section above that is not shipped, with the part that is open. A catalogue that grades something "partly there" and stops has told a reader that something is missing and not what.
 
 **§3 Advanced data table** — Partly there. Filtering, sorting, paging, facets and column choice all happen in PostgreSQL on every list, off one `FieldSet` declaration. What is open is the *showcase* of the table on its own, which `/showcase/components` does not yet include.
-
-**§10 Multi-step wizard** — Partly there. Two wizards ship — the import flow and dashboard creation — and both save between steps. A generic `/{entity}/new/wizard` does not exist and may never need to: a wizard is right when the decision has parts, which is a per-entity judgement rather than a default.
 
 **§18 Tasks / work queue (kanban)** — Partly there. Boards, lanes and cards with full CRUD, server-side filters, drag between lanes reconciled against the server, and a keyboard equivalent of the drag. Ordering *within* a lane and the comment and checklist counts on a card's face are open.
 

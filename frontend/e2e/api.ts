@@ -493,6 +493,33 @@ export async function writeSavedSearch(
 }
 
 /**
+ * Delete every file folder whose name starts with one of `prefixes`.
+ *
+ * The library's own cleanup sweeps *files*; a folder is a separate row and
+ * would otherwise pile up in the tree one run at a time, which is how the
+ * dashboards gallery came to hold forty-four leftovers.
+ */
+export async function sweepFolders(
+  prefixes: string[],
+  persona: Persona = "admin",
+): Promise<void> {
+  const api = await apiAs(persona);
+  try {
+    const response = await api.get(endpoint("/files/tree"));
+    if (!response.ok()) {
+      throw new Error(`Could not list folders to sweep: ${response.status()}`);
+    }
+    const { folders } = (await response.json()) as { folders: { id: string; name: string }[] };
+    for (const folder of folders) {
+      if (!prefixes.some((prefix) => folder.name.startsWith(prefix))) continue;
+      await api.delete(endpoint(`/files/folders/${folder.id}`));
+    }
+  } finally {
+    await api.dispose();
+  }
+}
+
+/**
  * Save a report through the API, and hand back its id and name (§28, §45).
  *
  * For the tests that are about what happens *to* a saved chart — putting it on

@@ -33,7 +33,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 7 | Entity list pages | `/{entity}` | generic list | [x] |
 | 8 | Entity detail pages | `/{entity}/:id` | `/api/records/…` | [x] |
 | 9 | Create / edit / delete | every list and detail | `/api/records/…` | [x] |
-| 10 | Multi-step wizard | `/import`, `/dashboards` | `/imports`, `/api/dashboards` | [~] |
+| 10 | Multi-step wizard | `/import`, `/dashboards`, `/showcase/templates` | `/imports`, `/api/dashboards` | [x] |
 | 11 | User administration | `/admin/users` | `/admin/users` | [x] |
 | 12 | Roles and permissions | `/admin/roles` | `/admin/roles` | [x] |
 | 13 | System settings | `/admin/settings` | `/admin/settings` | [x] |
@@ -102,15 +102,13 @@ either way, because a catalogue has to be able to say "every entity list".
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*63 shipped · 14 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*64 shipped · 13 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
 Every section above that is not shipped, with the part that is open. A catalogue that grades something "partly there" and stops has told a reader that something is missing and not what.
 
 **§3 Advanced data table** — Partly there. Filtering, sorting, paging, facets and column choice all happen in PostgreSQL on every list, off one `FieldSet` declaration. What is open is the *showcase* of the table on its own, which `/showcase/components` does not yet include.
-
-**§10 Multi-step wizard** — Partly there. Two wizards ship — the import flow and dashboard creation — and both save between steps. A generic `/{entity}/new/wizard` does not exist and may never need to: a wizard is right when the decision has parts, which is a per-entity judgement rather than a default.
 
 **§18 Tasks / work queue (kanban)** — Partly there. Boards, lanes and cards with full CRUD, server-side filters, drag between lanes reconciled against the server, and a keyboard equivalent of the drag. Ordering *within* a lane and the comment and checklist counts on a card's face are open.
 

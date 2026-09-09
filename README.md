@@ -386,6 +386,18 @@ links to the real pages built that way. The route list is a declaration in
 equals the router's own — so a page added to `App.tsx` and not classified fails
 a test. That is the only mechanism by which a document like this stays true.
 
+The same page answers the question one size down: **how a create opens**. Five
+shapes — in place, a plain modal, a drawer, a wizard, its own page — with what
+each is for, when it is the wrong answer, and every one of the platform's
+twenty-two creates classified under exactly one of them with the reason. The
+declaration is `frontend/src/pages/showcase/creates.ts`; `creates.test.ts`
+asserts each flow's implementation contains the component its shape implies and
+that every "new something" control in the sources is classified, so adding a
+create is a decision about its size rather than a copy of whichever one was
+nearest. A one-question create uses `components/NameModal.tsx` rather than a
+confirm dialog with an input in it — Enter submits, an empty name is refused in
+words, and the value is trimmed.
+
 `/showcase/components` demonstrates the shared components in the states that
 are actually decisions — a rise that reads as bad news beside the same arrow
 reading as good — and publishes what it is *not* showing, by name and file,
