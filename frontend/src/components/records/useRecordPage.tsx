@@ -23,17 +23,16 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, App as AntApp, Button, Skeleton, Space, Typography } from "antd";
+import { App as AntApp, Button, Skeleton } from "antd";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { explorerApi } from "@/api/explorer";
 import { recordsApi, type RecordDetail } from "@/api/records";
+import { FailureAlert, failureKind, retryHelps } from "@/components/FailureAlert";
 import { PageHeader } from "@/components/PageHeader";
 import { useRecordEditing, type RecordEditing } from "@/components/records/useRecordEditing";
-
-const { Text } = Typography;
 
 export interface RecordPage {
   /** The record, once it has arrived. `undefined` while `fallback` is showing. */
@@ -132,7 +131,9 @@ export function useRecordPage(
  *
  * A page that fails silently, or that shows an empty layout where a record
  * should be, is a bug (§34, §76). "Not found" and "not permitted" are
- * deliberately different messages, because they lead somewhere different.
+ * deliberately different messages, because they lead somewhere different —
+ * and neither of them is a retry, so both offer the way back to the list
+ * instead of a button that will fail identically.
  */
 function ReadFailure({
   error,
@@ -145,39 +146,34 @@ function ReadFailure({
   onBack: () => void;
   onRetry: () => void;
 }) {
-  const api = error instanceof ApiError ? error : null;
-  const missing = api?.isNotFound ?? false;
+  const kind = failureKind(error);
 
   return (
     <>
       <PageHeader
-        title={missing ? `${capitalise(noun)} not found` : `Could not open this ${noun}`}
+        title={
+          kind === "not_found"
+            ? `${capitalise(noun)} not found`
+            : kind === "forbidden"
+              ? `You may not open this ${noun}`
+              : `Could not open this ${noun}`
+        }
         onBack={onBack}
       />
-      <Alert
-        type={missing ? "warning" : "error"}
-        showIcon
-        message={
-          missing
-            ? "It may have been deleted, or the link may be wrong."
-            : (api?.message ?? "The request failed.")
-        }
-        description={
-          api ? (
-            <Space direction="vertical" size={4}>
-              {api.missingPermissions.length > 0 && (
-                <Text type="secondary">Missing: {api.missingPermissions.join(", ")}</Text>
-              )}
-              <Text code copyable={{ text: api.correlationId }}>
-                {api.correlationId}
-              </Text>
-            </Space>
-          ) : undefined
-        }
+      <FailureAlert
+        error={error}
+        titles={{
+          not_found: "Nothing at this address",
+          forbidden: `Your role does not include this ${noun}`,
+          failed: `Could not open this ${noun}`,
+        }}
+        onRetry={onRetry}
         action={
-          <Button size="small" onClick={onRetry}>
-            Retry
-          </Button>
+          retryHelps(kind) ? undefined : (
+            <Button size="small" onClick={onBack}>
+              Back to the list
+            </Button>
+          )
         }
       />
     </>

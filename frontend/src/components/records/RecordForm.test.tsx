@@ -63,7 +63,7 @@ describe("the edit form", () => {
     await user.click(await screen.findByTestId("record-edit"));
 
     const drawer = await screen.findByRole("dialog");
-    const title = within(drawer).getByLabelText("Title");
+    const title = await within(drawer).findByLabelText("Title");
     await user.clear(title);
     await user.type(title, "Review the migration plan");
     await user.click(within(drawer).getByTestId("record-form-save"));
@@ -109,7 +109,7 @@ describe("the edit form", () => {
     renderDetail();
     await user.click(await screen.findByTestId("record-edit"));
     const drawer = await screen.findByRole("dialog");
-    await user.type(within(drawer).getByLabelText("Title"), "!");
+    await user.type(await within(drawer).findByLabelText("Title"), "!");
     await user.click(within(drawer).getByTestId("record-form-save"));
 
     expect(
@@ -123,7 +123,7 @@ describe("the edit form", () => {
     await user.click(await screen.findByTestId("record-edit"));
 
     const drawer = await screen.findByRole("dialog");
-    await user.type(within(drawer).getByLabelText("Title"), " (draft)");
+    await user.type(await within(drawer).findByLabelText("Title"), " (draft)");
     await user.click(within(drawer).getByRole("button", { name: "Cancel" }));
 
     expect(await screen.findAllByText("Discard your changes?")).not.toHaveLength(0);

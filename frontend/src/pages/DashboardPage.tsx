@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Button, Card, Col, Grid, Row, Segmented, Select, Skeleton, Space, Tag, Timeline, Typography } from "antd";
+import { Card, Col, Grid, Row, Segmented, Select, Skeleton, Space, Tag, Timeline, Typography } from "antd";
 import {
   AlertOutlined,
   ApiOutlined,
@@ -27,9 +27,9 @@ import {
   type DashboardAlert,
 } from "@/api/dashboard";
 import { ChartCard } from "@/components/ChartCard";
+import { FailureAlert } from "@/components/FailureAlert";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
-import { ApiError } from "@/api/client";
 
 const { Text } = Typography;
 
@@ -168,14 +168,14 @@ export default function DashboardPage() {
       />
 
       {isError && (
-        <Alert
-          type="error"
-          showIcon
-          style={{ marginBottom: 16 }}
-          message="The dashboard could not be loaded"
-          description={<>{error instanceof Error ? error.message : "Unknown error"}
-            {error instanceof ApiError && <div>Correlation ID: {error.correlationId}</div>}</>}
-          action={<Button onClick={() => void refetch()}>Retry</Button>}
+        <FailureAlert
+          className="nu-block"
+          error={error}
+          titles={{
+            forbidden: "Your role does not include the dashboard",
+            failed: "The dashboard could not be loaded",
+          }}
+          onRetry={() => void refetch()}
         />
       )}
 

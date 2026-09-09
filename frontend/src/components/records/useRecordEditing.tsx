@@ -104,10 +104,16 @@ export function useRecordEditing(
         // Remounted per record, so the drawer never opens showing the values
         // of the one before it while the next is still loading.
         key={editingId ?? "new"}
-        open={creating || Boolean(record.data)}
+        // On the click, not on the response. The read is fast on a warm
+        // database and not fast on a cold one, and a reader who presses Edit
+        // and sees nothing at all concludes the button is broken (§34).
+        open={creating || Boolean(editingId)}
         onClose={close}
         resource={resource}
         record={creating ? undefined : record.data}
+        loading={record.isLoading}
+        readError={record.error ?? undefined}
+        onRetryRead={() => void record.refetch()}
         onSaved={(saved) => {
           refresh();
           if (creating) options.onCreated?.(saved.id);

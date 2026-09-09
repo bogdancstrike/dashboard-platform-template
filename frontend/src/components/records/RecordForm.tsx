@@ -25,7 +25,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   App as AntApp,
-  Alert,
   Button,
   DatePicker,
   Drawer,
@@ -33,6 +32,7 @@ import {
   Input,
   InputNumber,
   Select,
+  Skeleton,
   Space,
   Switch,
   Typography,
@@ -43,6 +43,8 @@ import { useMemo, useState } from "react";
 import { ApiError } from "@/api/client";
 import { explorerApi, type ExplorerField, type ExplorerResource } from "@/api/explorer";
 import { recordsApi, type RecordChanges, type RecordDetail, type RecordField } from "@/api/records";
+import { EmptyState } from "@/components/EmptyState";
+import { FailureAlert } from "@/components/FailureAlert";
 import { PeoplePicker } from "@/components/PeoplePicker";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { asText } from "@/lib/text";
@@ -119,21 +121,47 @@ export interface RecordFormProps {
   /** Absent means create; present means edit that record. */
   record?: RecordDetail;
   onSaved?: (saved: RecordDetail) => void;
+  /**
+   * The record being edited is still on the wire.
+   *
+   * The drawer opens on the click rather than on the response: waiting for
+   * the read before opening anything means a reader presses Edit and the
+   * product appears to have ignored them (§34, §21). So the drawer opens
+   * field-shaped and fills in.
+   */
+  loading?: boolean;
+  /** The read failed — say which way, rather than opening a blank form. */
+  readError?: unknown;
+  /** Try the read again, for the kinds of failure where that could work. */
+  onRetryRead?: () => void;
 }
 
-export function RecordForm({ open, onClose, resource, record, onSaved }: RecordFormProps) {
+export function RecordForm({
+  open,
+  onClose,
+  resource,
+  record,
+  onSaved,
+  loading = false,
+  readError,
+  onRetryRead,
+}: RecordFormProps) {
   const [form] = Form.useForm();
   const { message, modal } = AntApp.useApp();
   const queryClient = useQueryClient();
   const [dirty, setDirty] = useState(false);
 
-  const creating = !record;
+  // Open with nothing to show yet: the record is on the wire, or the read
+  // already failed. Neither is a create, and calling it one would title the
+  // drawer "New task" over somebody's edit.
+  const pending = loading || Boolean(readError);
+  const creating = !record && !pending;
   const fields = useMemo(
     () =>
-      creating
-        ? creatableFields(resource)
-        : editableFields(resource, record.fields, record.content_fields),
-    [creating, resource, record],
+      record
+        ? editableFields(resource, record.fields, record.content_fields)
+        : creatableFields(resource),
+    [resource, record],
   );
 
   const initial = useMemo(() => {
@@ -188,7 +216,9 @@ export function RecordForm({ open, onClose, resource, record, onSaved }: RecordF
     });
   };
 
-  const error = save.error;
+  const saveError = save.error;
+  /** Nothing to write: the catalogue declares no field of this kind writable. */
+  const nothingWritable = !pending && fields.length === 0;
 
   return (
     <Drawer
@@ -196,13 +226,24 @@ export function RecordForm({ open, onClose, resource, record, onSaved }: RecordF
       onClose={close}
       width={520}
       destroyOnClose
-      title={creating ? `New ${singular(resource?.label)}` : `Edit ${record.title}`}
+      title={
+        creating
+          ? `New ${singular(resource?.label)}`
+          : record
+            ? `Edit ${record.title}`
+            : `Edit ${singular(resource?.label)}`
+      }
       extra={
         <Space>
           <Button onClick={close}>Cancel</Button>
           <Button
             type="primary"
             loading={save.isPending}
+            // There is nothing to send while the record is still arriving, and
+            // nothing to send if the dataset declares nothing writable. A live
+            // primary button over a skeleton is a promise of a save that would
+            // post an empty form.
+            disabled={pending || nothingWritable}
             onClick={() => void form.submit()}
             data-testid="record-form-save"
           >
@@ -211,44 +252,77 @@ export function RecordForm({ open, onClose, resource, record, onSaved }: RecordF
         </Space>
       }
     >
-      {error instanceof ApiError && (
-        <Alert
-          className="nu-block"
-          type={error.status === 409 ? "warning" : "error"}
-          showIcon
-          message={error.message}
-          description={
-            <Space direction="vertical" size={2}>
-              {error.missingPermissions.length > 0 && (
-                <Text type="secondary">Missing: {error.missingPermissions.join(", ")}</Text>
-              )}
-              <Text code copyable={{ text: error.correlationId }}>
-                {error.correlationId}
-              </Text>
-            </Space>
+      {readError ? (
+        <FailureAlert
+          error={readError}
+          titles={{
+            not_found: "That record is no longer there",
+            forbidden: "Your role does not include this record",
+            failed: "Could not open this record for editing",
+          }}
+          onRetry={onRetryRead}
+        />
+      ) : loading ? (
+        // Shaped like the form that is coming — a label and a control, eight
+        // times — rather than a spinner in the middle of an empty drawer.
+        <Skeleton active title={false} paragraph={{ rows: 8 }} />
+      ) : nothingWritable ? (
+        <EmptyState
+          title="Nothing here can be edited"
+          // Which of the two it is matters: a dataset nobody may create into
+          // is a permission question for an administrator, and a record whose
+          // every field is read-only is a fact about this record.
+          hint={
+            creating
+              ? `The catalogue declares no writable fields for ${
+                  resource?.label ?? "this dataset"
+                }, so there is no form to show.`
+              : "Every field on this record is read-only for your role, so there is no form to show."
           }
         />
-      )}
+      ) : (
+        <>
+          {saveError instanceof ApiError && (
+            <FailureAlert
+              className="nu-block"
+              error={saveError}
+              // The headline names the kind and the server's own sentence
+              // sits under it — printing the message as both is one failure
+              // said twice.
+              titles={{
+                conflict: "Somebody else changed this record first",
+                forbidden: "Your role does not include writing this record",
+                not_found: "That record is no longer there",
+                failed: "That change was not saved",
+              }}
+            />
+          )}
 
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={initial}
-        onValuesChange={() => setDirty(true)}
-        onFinish={(values: Record<string, unknown>) => save.mutate(values)}
-        disabled={save.isPending}
-      >
-        {fields.map((field) => (
-          <Form.Item
-            key={field.name}
-            name={field.name}
-            label={field.label}
-            rules={field.required ? [{ required: true, message: `${field.label} is required` }] : []}
+          <Form
+            form={form}
+            layout="vertical"
+            initialValues={initial}
+            onValuesChange={() => setDirty(true)}
+            onFinish={(values: Record<string, unknown>) => save.mutate(values)}
+            disabled={save.isPending}
           >
-            <FieldControl field={field} />
-          </Form.Item>
-        ))}
-      </Form>
+            {fields.map((field) => (
+              <Form.Item
+                key={field.name}
+                name={field.name}
+                label={field.label}
+                rules={
+                  field.required
+                    ? [{ required: true, message: `${field.label} is required` }]
+                    : []
+                }
+              >
+                <FieldControl field={field} />
+              </Form.Item>
+            ))}
+          </Form>
+        </>
+      )}
     </Drawer>
   );
 }

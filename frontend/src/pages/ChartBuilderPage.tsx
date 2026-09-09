@@ -283,6 +283,8 @@ export default function ChartBuilderPage() {
           panel={blocked ? undefined : panel}
           height={300}
           loading={preview.isFetching && !preview.data}
+          error={preview.error ?? undefined}
+          onRetry={() => void preview.refetch()}
           empty={
             blocked
               ? {
@@ -317,19 +319,6 @@ export default function ChartBuilderPage() {
         </Row>
       </Card>
 
-      {preview.error instanceof ApiError && (
-        <Alert
-          className="nu-block"
-          type="error"
-          showIcon
-          message={preview.error.message}
-          description={
-            <Text code copyable={{ text: preview.error.correlationId }}>
-              {preview.error.correlationId}
-            </Text>
-          }
-        />
-      )}
 
       <SaveAnalysisDialog
         open={saving}

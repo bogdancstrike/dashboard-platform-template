@@ -12,7 +12,6 @@
  */
 
 import {
-  Alert,
   App as AntApp,
   Button,
   Card,
@@ -21,23 +20,21 @@ import {
   Space,
   Tag,
   Tooltip,
-  Typography,
 } from "antd";
 import { ClearOutlined, SearchOutlined } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 
-import { ApiError } from "@/api/client";
 import { qualityApi } from "@/api/quality";
 import { explorerApi, type ExplorerRequest, type InsightMetric } from "@/api/explorer";
 import { exportsApi, type ExportRequest } from "@/api/exports";
+import { EmptyState, NoResults } from "@/components/EmptyState";
 import { ExportButton } from "@/components/ExportButton";
+import { FailureAlert } from "@/components/FailureAlert";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { SavedViewMenu } from "@/entities/SavedViewMenu";
 import type { EntityView } from "@/entities/useEntityView";
-
-const { Text } = Typography;
 
 /** Title, live count, export and the escape hatch to the Data Explorer. */
 export function EntityHeader({
@@ -275,40 +272,71 @@ export function MetricStrip({
   );
 }
 
+/**
+ * Which of the four things a list with no rows should say (§34).
+ *
+ * Six lists each wrote this ternary for themselves and all six wrote the same
+ * three branches — loading, nothing-matched, nothing-yet — and all six forgot
+ * the fourth: a list whose query was *refused* drew the failure alert and then
+ * "No orders have been placed yet" underneath it, which tells the reader in
+ * one screen both that they may not see the dataset and that it is empty.
+ *
+ * The branch is the contract and lives here; the sentences belong to the page,
+ * because only it knows what an order is. When the query failed this renders
+ * nothing at all: `EntityError` above has already said what happened, and a
+ * second voice guessing at the same event is how the contradiction got there.
+ */
+export function EntityEmpty({
+  view,
+  title,
+  hint,
+  action,
+  card = false,
+}: {
+  view: EntityView;
+  /** "No orders have been placed yet" — the page's own words. */
+  title: string;
+  hint?: React.ReactNode;
+  /** Usually the control that makes the first one (§34). */
+  action?: React.ReactNode;
+  /** Wrap it in a card, for the lists whose rows are not a table. */
+  card?: boolean;
+}) {
+  if (view.rows.isError || view.catalogue.isError) return null;
+  // A blank rather than AntD's "No data", which would flash under the skeleton
+  // for as long as the first query takes.
+  if (view.rows.isLoading) return <> </>;
+
+  const message =
+    view.filterCount > 0 ? (
+      <NoResults filterCount={view.filterCount} onClear={view.clearFilters} />
+    ) : (
+      <EmptyState title={title} hint={hint} action={action} />
+    );
+
+  return card ? (
+    <Card size="small" className="nu-block">
+      {message}
+    </Card>
+  ) : (
+    message
+  );
+}
+
 /** One place where a dataset that will not load says why (§34, §76). */
 export function EntityError({ view }: { view: EntityView }) {
-  const error = view.rows.error ?? view.catalogue.error;
   if (!view.rows.isError && !view.catalogue.isError) return null;
 
   return (
-    <Alert
+    <FailureAlert
       className="nu-block"
-      type={error instanceof ApiError && error.isForbidden ? "warning" : "error"}
-      showIcon
-      message={
-        error instanceof ApiError && error.isForbidden
-          ? "Your role does not include this dataset"
-          : error instanceof ApiError
-            ? error.message
-            : "Those records could not be loaded"
-      }
-      description={
-        error instanceof ApiError ? (
-          <Space direction="vertical" size={4}>
-            {error.missingPermissions.length > 0 && (
-              <Text type="secondary">Missing: {error.missingPermissions.join(", ")}</Text>
-            )}
-            <Text code copyable={{ text: error.correlationId }}>
-              {error.correlationId}
-            </Text>
-          </Space>
-        ) : undefined
-      }
-      action={
-        <Button size="small" onClick={() => void view.rows.refetch()}>
-          Retry
-        </Button>
-      }
+      error={view.rows.error ?? view.catalogue.error}
+      titles={{
+        forbidden: "Your role does not include this dataset",
+        not_found: "That dataset no longer exists",
+        failed: "Those records could not be loaded",
+      }}
+      onRetry={() => void view.rows.refetch()}
     />
   );
 }

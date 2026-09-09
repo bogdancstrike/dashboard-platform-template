@@ -53,6 +53,7 @@ import { panelFor } from "@/api/analysis";
 import { reportsApi, type SavedReport } from "@/api/reports";
 import type { ChartKind } from "@/api/dashboard";
 import { ChartCard } from "@/components/ChartCard";
+import { FailureAlert } from "@/components/FailureAlert";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
@@ -340,17 +341,14 @@ export default function ReportsPage() {
           {!open ? (
             <Empty description="Choose a report from the list" />
           ) : run.isError ? (
-            <Alert
-              type="error"
-              showIcon
-              message={
-                run.error instanceof ApiError ? run.error.message : "That report could not be run."
-              }
-              action={
-                <Button size="small" onClick={() => void run.refetch()}>
-                  Retry
-                </Button>
-              }
+            <FailureAlert
+              error={run.error}
+              titles={{
+                forbidden: "Your role does not include this report",
+                not_found: "That report has been deleted",
+                failed: "That report could not be run",
+              }}
+              onRetry={() => void run.refetch()}
             />
           ) : (
             <>

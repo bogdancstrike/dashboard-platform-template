@@ -3003,8 +3003,37 @@ function is a slow test that fails for unrelated reasons.
       the app produces, which is how the first of those two survived
   - URL state, permission hooks and the query builder's coercion were already
       covered (`SavedViewMenu`, `AuthProvider`, `queryBuilderConfig`)
-- [ ] Component: every state in [States](#states-every-data-view-must-have) for
+- [x] Component: every state in [States](#states-every-data-view-must-have) for
       the table, detail page, form and chart wrappers
+  - Four sweeps, one per wrapper, each over every page that uses it rather than
+      over whichever page a test happened to cover — and each found something.
+      The **chart** presented a failed query as *"Nothing in this period"*,
+      which is not a state but a finding: a reader who takes it as one has been
+      told the quarter was quiet when the request was refused. The **form**
+      opened on the *response* rather than the click, so a slow read looked
+      like a button that did nothing, and a failed read opened no drawer and
+      said nothing at all. All six **lists** drew the failure alert *and*
+      "nothing here yet" underneath it, telling the reader in one screen both
+      that they may not see the dataset and that it is empty. And the account
+      card's avatar wrote the accent *fill* on the accent tint — 4.2:1 in dark,
+      the one place the tint rule could not see because it was inline in JSX
+  - The failure surface itself was **six hand-written copies** (the entity
+      chrome, the detail hook, the generic record page, the record preview, the
+      edit drawer, the dashboard) and they had drifted where it costs
+      something: two printed the correlation id without making it copyable,
+      one omitted it, and three offered a "Retry" on a 404. `FailureAlert`
+      owns the contract now — tone by kind, the missing permission in the
+      sentence the disabled controls use, the id always copyable, and a retry
+      only where trying again could work — while the sentences stay with the
+      page that knows what noun it is talking about
+  - `EntityEmpty` is the same consolidation for the three-way empty branch the
+      six lists had each written for themselves, which is how all six came to
+      forget the fourth branch
+  - `FailureAlert.test.tsx` (14), `EntityStates.test.tsx` (+12 across the six
+      lists), `DetailStates.test.tsx` (16 across four detail pages),
+      `RecordFormStates.test.tsx` (6), `ChartCard.test.tsx` (8), and a source
+      rule in `test/a11y.test.ts` for the accent-on-tint pairing. **Partial**
+      (§43) is asserted where it happens, in `useBulk.test.tsx`
 - [x] Contract: the client and the API map describe one surface — a drift check
       in the suite
   - `src/api/contract.test.ts` reads `backend/maps/endpoint.json` and asserts

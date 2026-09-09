@@ -26,7 +26,6 @@ import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { useNavigate } from "react-router-dom";
 
-import { EmptyState, NoResults } from "@/components/EmptyState";
 import { StatusTag } from "@/components/StatusTag";
 import {
   NewRecordButton,
@@ -36,7 +35,13 @@ import {
 import { opensRecord, useBulk } from "@/components/records/useBulk";
 import { usePageCommands } from "@/commands/CommandContext";
 import { duration, slaStanding, type SlaStanding } from "@/entities/sla";
-import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
+import {
+  EntityEmpty,
+  EntityError,
+  EntityFilters,
+  EntityHeader,
+  MetricStrip,
+} from "@/entities/EntityChrome";
 import { useEntityView } from "@/entities/useEntityView";
 import { absoluteTime, relativeTime } from "@/lib/time";
 
@@ -296,16 +301,11 @@ export default function TicketsQueuePage() {
             style: { cursor: "pointer" },
           })}
           locale={{
-            emptyText: view.rows.isLoading ? (
-              " "
-            ) : view.filterCount > 0 ? (
-              <NoResults filterCount={view.filterCount} onClear={view.clearFilters} />
-            ) : (
-              <EmptyState
+            emptyText: (
+              <EntityEmpty
+                view={view}
                 title="Nothing has been raised"
                 hint="A ticket is a customer's problem with a deadline attached."
-                // "Nothing yet" wants the action that makes the first one;
-                // a message without it is a dead end (§34).
                 action={<NewRecordButton records={records} resource={view.resource} />}
               />
             ),

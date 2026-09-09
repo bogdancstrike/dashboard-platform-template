@@ -30,6 +30,13 @@ import { SRC, jsxElements, shippedSources } from "@/test/sources";
  * the secondary ink for everything inside them, which is one declaration
  * rather than a colour chosen in seventeen places — and this is what fails
  * when the eighteenth tinted surface forgets.
+ *
+ * **Nothing writes the accent *fill* on the accent tint.** `--nu-accent` is
+ * 4.2:1 over `--nu-accent-soft` in dark, and `--nu-accent-ink` exists for
+ * exactly this ground. The rule above reads the stylesheet, so it could not
+ * see the one place that broke it: an inline `style` on the account card's
+ * avatar, in JSX, which axe found in the dark appearance and only on the page
+ * that happens to draw cards with initials in them.
  */
 
 describe("progress bars", () => {
@@ -93,5 +100,31 @@ describe("an accent-tinted surface", () => {
     }
     expect(painted.size).toBeGreaterThan(10);
     expect([...painted].filter((selector) => !lifted.has(selector))).toEqual([]);
+  });
+
+  it("never writes the accent fill on the accent tint", () => {
+    // Both grounds: the stylesheet's own blocks, and the inline styles that a
+    // rule reading only CSS cannot see.
+    const offenders: string[] = [];
+    for (const block of blocks()) {
+      if (
+        /background:[^;]*--nu-accent-soft/.test(block.body) &&
+        /(?:^|[^-])color:\s*var\(--nu-accent\)/.test(block.body)
+      ) {
+        offenders.push(`index.css ${block.selector}`);
+      }
+    }
+    for (const file of shippedSources()) {
+      const text = readFileSync(file.path, "utf8");
+      for (const style of text.match(/style=\{\{[^}]*\}\}/g) ?? []) {
+        if (
+          style.includes("--nu-accent-soft") &&
+          /color:\s*"var\(--nu-accent\)"/.test(style)
+        ) {
+          offenders.push(`${file.name} ${style}`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
   });
 });

@@ -1,4 +1,5 @@
 import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { HttpResponse, delay, http } from "msw";
 import { describe, expect, it } from "vitest";
 import { Route, Routes } from "react-router-dom";
@@ -27,6 +28,10 @@ import { server } from "@/test/server";
  * The distinction is the whole point. "Nothing here yet" wants the action that
  * creates the first record; "nothing matched" wants the filters cleared. One
  * shrug for both leaves the reader unsure which of the two they are looking at.
+ *
+ * The two failure states are here for the same reason: a refusal and a fault
+ * were demonstrated on *one* of the six lists each, and a list that draws an
+ * empty table over a 403 tells the reader the dataset is empty.
  */
 
 const PAGES = [
@@ -46,6 +51,18 @@ function render(page: React.ReactNode, route: string) {
       </Routes>
     </CommandProvider>,
     { route },
+  );
+}
+
+/** Answer every list query with one failure, carrying an id to quote. */
+function listFails(status: number, details: Record<string, unknown> = {}) {
+  server.use(
+    http.post("/platform/api/explorer/query", () =>
+      HttpResponse.json(
+        { error: "list_error", message: "Those rows could not be read.", details },
+        { status, headers: { "X-Correlation-ID": "list-trace" } },
+      ),
+    ),
   );
 }
 
@@ -96,5 +113,41 @@ describe.each(PAGES)("$name", ({ path, element }) => {
     expect(empty).toHaveTextContent(/match/i);
     // One click, on the thing that caused it.
     expect(within(empty).getByRole("button", { name: /clear/i })).toBeInTheDocument();
+  });
+
+  it("names the permission it lacks rather than drawing an empty list", async () => {
+    listFails(403, { missing: ["records.view"] });
+    render(element, path);
+
+    const failure = await screen.findByTestId("failure-alert");
+    expect(failure).toHaveAttribute("data-failure", "forbidden");
+    expect(failure).toHaveTextContent("Your role does not include this dataset");
+    // The same sentence the disabled controls use, and no retry — a refusal
+    // does not become permission on a second press.
+    expect(failure).toHaveTextContent("Your role does not include records.view");
+    expect(within(failure).queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+    // And never a shrug that reads as "there is nothing here".
+    expect(screen.queryByTestId("empty-state")).not.toBeInTheDocument();
+  });
+
+  it("says a fault is a fault, with the id to quote, and retries it", async () => {
+    listFails(500);
+    const user = userEvent.setup();
+    render(element, path);
+
+    const failure = await screen.findByTestId("failure-alert");
+    expect(failure).toHaveAttribute("data-failure", "failed");
+    expect(failure).toHaveTextContent("list-trace");
+    expect(screen.queryByTestId("empty-state")).not.toBeInTheDocument();
+
+    let reads = 0;
+    server.use(
+      http.post("/platform/api/explorer/query", () => {
+        reads += 1;
+        return HttpResponse.json({ error: "again", message: "Still broken." }, { status: 500 });
+      }),
+    );
+    await user.click(within(failure).getByRole("button", { name: "Retry" }));
+    await waitFor(() => expect(reads).toBeGreaterThan(0));
   });
 });

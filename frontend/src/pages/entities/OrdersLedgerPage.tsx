@@ -21,7 +21,6 @@ import { useNavigate } from "react-router-dom";
 import type { SeriesPoint } from "@/api/explorer";
 import { ChartCard } from "@/components/ChartCard";
 import { StatusTag } from "@/components/StatusTag";
-import { EmptyState, NoResults } from "@/components/EmptyState";
 import {
   NewRecordButton,
   RecordActions,
@@ -29,7 +28,13 @@ import {
 } from "@/components/records/useRecordEditing";
 import { opensRecord, useBulk } from "@/components/records/useBulk";
 import { usePageCommands } from "@/commands/CommandContext";
-import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
+import {
+  EntityEmpty,
+  EntityError,
+  EntityFilters,
+  EntityHeader,
+  MetricStrip,
+} from "@/entities/EntityChrome";
 import { useEntityView } from "@/entities/useEntityView";
 import { absoluteTime, relativeTime } from "@/lib/time";
 
@@ -215,6 +220,8 @@ export default function OrdersLedgerPage() {
           series: trend.map((point) => ({ bucket: point.name, value: point.value })),
         }}
         loading={view.insights.isLoading}
+        error={view.insights.error ?? undefined}
+        onRetry={() => void view.insights.refetch()}
       />
 
       <EntityFilters
@@ -245,12 +252,9 @@ export default function OrdersLedgerPage() {
             style: { cursor: "pointer" },
           })}
           locale={{
-            emptyText: view.rows.isLoading ? (
-              " "
-            ) : view.filterCount > 0 ? (
-              <NoResults filterCount={view.filterCount} onClear={view.clearFilters} />
-            ) : (
-              <EmptyState
+            emptyText: (
+              <EntityEmpty
+                view={view}
                 title="No orders have been placed yet"
                 hint="An order is what a customer bought, and what is owed for it."
                 action={<NewRecordButton records={records} resource={view.resource} />}

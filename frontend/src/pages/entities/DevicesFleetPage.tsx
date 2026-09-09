@@ -18,7 +18,6 @@ import { ApiOutlined, ThunderboltOutlined, WifiOutlined } from "@ant-design/icon
 import { useNavigate } from "react-router-dom";
 
 import { ChartCard } from "@/components/ChartCard";
-import { EmptyState, NoResults } from "@/components/EmptyState";
 import { StatusTag } from "@/components/StatusTag";
 import {
   NewRecordButton,
@@ -26,7 +25,13 @@ import {
   useRecordEditing,
 } from "@/components/records/useRecordEditing";
 import { usePageCommands } from "@/commands/CommandContext";
-import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
+import {
+  EntityEmpty,
+  EntityError,
+  EntityFilters,
+  EntityHeader,
+  MetricStrip,
+} from "@/entities/EntityChrome";
 import { useEntityView } from "@/entities/useEntityView";
 import { absoluteTime, parseInstant, relativeTime } from "@/lib/time";
 import { knownStatusColor, SEMANTIC } from "@/theme/tokens";
@@ -163,6 +168,8 @@ export default function DevicesFleetPage() {
               }
             }
             loading={view.insights.isLoading}
+            error={view.insights.error ?? undefined}
+            onRetry={() => void view.insights.refetch()}
             onSelect={(name) => view.setFilter("status", name)}
           />
         </Col>
@@ -178,6 +185,8 @@ export default function DevicesFleetPage() {
               }
             }
             loading={view.insights.isLoading}
+            error={view.insights.error ?? undefined}
+            onRetry={() => void view.insights.refetch()}
             onSelect={(name) => view.setFilter("kind", name)}
           />
         </Col>
@@ -193,6 +202,8 @@ export default function DevicesFleetPage() {
               }
             }
             loading={view.insights.isLoading}
+            error={view.insights.error ?? undefined}
+            onRetry={() => void view.insights.refetch()}
             onSelect={(name) => view.setFilter("location", name)}
           />
         </Col>
@@ -204,18 +215,13 @@ export default function DevicesFleetPage() {
       {view.rows.isLoading ? (
         <Skeleton active paragraph={{ rows: 10 }} />
       ) : rows.length === 0 ? (
-        <Card size="small" className="nu-block">
-          {/* The same two states the ledger and the queue draw (§34). */}
-          {view.filterCount > 0 ? (
-            <NoResults filterCount={view.filterCount} onClear={view.clearFilters} />
-          ) : (
-            <EmptyState
-              title="No devices in the fleet yet"
-              hint="A device reports its health and its last contact."
-              action={<NewRecordButton records={records} resource={view.resource} />}
-            />
-          )}
-        </Card>
+        <EntityEmpty
+          view={view}
+          card
+          title="No devices in the fleet yet"
+          hint="A device reports its health and its last contact."
+          action={<NewRecordButton records={records} resource={view.resource} />}
+        />
       ) : (
         <div className="nu-fleet" data-testid="device-fleet">
           {rows.map((device) => {

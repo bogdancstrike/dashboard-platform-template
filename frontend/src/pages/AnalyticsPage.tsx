@@ -23,12 +23,11 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Button, Card, Col, Row, Segmented, Select, Skeleton, Space, Tag, Typography } from "antd";
+import { Button, Card, Col, Row, Segmented, Select, Skeleton, Space, Tag } from "antd";
 import { ExportOutlined, SearchOutlined } from "@ant-design/icons";
 import { useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { ApiError } from "@/api/client";
 import {
   analysisApi,
   panelFor,
@@ -38,11 +37,10 @@ import {
 } from "@/api/analysis";
 import type { ChartKind } from "@/api/dashboard";
 import { ChartCard } from "@/components/ChartCard";
+import { FailureAlert } from "@/components/FailureAlert";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { usePageCommands } from "@/commands/CommandContext";
-
-const { Text } = Typography;
 
 /** How a breakdown of one dimension is drawn, by how many values it has. */
 const BREAKDOWN_KINDS: ChartKind[] = ["bar", "pie", "hbar", "treemap"];
@@ -136,24 +134,13 @@ export default function AnalyticsPage() {
     return (
       <>
         <PageHeader title="Analytics" />
-        <Alert
-          type={catalogue.error instanceof ApiError && catalogue.error.isForbidden ? "warning" : "error"}
-          showIcon
-          message={
-            catalogue.error instanceof ApiError ? catalogue.error.message : "Analytics is unavailable."
-          }
-          description={
-            catalogue.error instanceof ApiError ? (
-              <Text code copyable={{ text: catalogue.error.correlationId }}>
-                {catalogue.error.correlationId}
-              </Text>
-            ) : undefined
-          }
-          action={
-            <Button size="small" onClick={() => void catalogue.refetch()}>
-              Retry
-            </Button>
-          }
+        <FailureAlert
+          error={catalogue.error}
+          titles={{
+            forbidden: "Your role does not include analytics",
+            failed: "Analytics is unavailable",
+          }}
+          onRetry={() => void catalogue.refetch()}
         />
       </>
     );
@@ -294,6 +281,8 @@ export default function AnalyticsPage() {
             id="analytics-trend"
             height={300}
             loading={trend.isLoading}
+            error={trend.error ?? undefined}
+            onRetry={() => void trend.refetch()}
             panel={panelFor(trend.data, "area", primaryKey(trend.data), "Over time")}
           />
         </Col>
@@ -302,6 +291,8 @@ export default function AnalyticsPage() {
             id="analytics-breakdown"
             height={300}
             loading={breakdown.isLoading}
+            error={breakdown.error ?? undefined}
+            onRetry={() => void breakdown.refetch()}
             panel={panelFor(breakdown.data, kind, primaryKey(breakdown.data), "By " + labelOf(dataset?.dimensions, groupBy))}
             onSelect={drillInto(groupBy)}
             extra={
@@ -322,6 +313,8 @@ export default function AnalyticsPage() {
           id="analytics-composition"
           height={320}
           loading={composition.isLoading}
+          error={composition.error ?? undefined}
+          onRetry={() => void composition.refetch()}
           panel={panelFor(
             composition.data,
             "stacked-bar",
@@ -333,22 +326,14 @@ export default function AnalyticsPage() {
       )}
 
       {headline.isError && (
-        <Alert
+        <FailureAlert
           className="nu-block"
-          type="error"
-          showIcon
-          message={
-            headline.error instanceof ApiError
-              ? headline.error.message
-              : "That analysis could not be run."
-          }
-          description={
-            headline.error instanceof ApiError ? (
-              <Text code copyable={{ text: headline.error.correlationId }}>
-                {headline.error.correlationId}
-              </Text>
-            ) : undefined
-          }
+          error={headline.error}
+          titles={{
+            forbidden: "Your role does not include this dataset",
+            failed: "That analysis could not be run",
+          }}
+          onRetry={() => void headline.refetch()}
         />
       )}
     </>

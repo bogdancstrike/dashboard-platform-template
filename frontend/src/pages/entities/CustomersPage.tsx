@@ -18,7 +18,6 @@ import { MailOutlined, ShopOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
 import { ChartCard } from "@/components/ChartCard";
-import { EmptyState, NoResults } from "@/components/EmptyState";
 import { StatusTag } from "@/components/StatusTag";
 import {
   NewRecordButton,
@@ -26,7 +25,13 @@ import {
   useRecordEditing,
 } from "@/components/records/useRecordEditing";
 import { usePageCommands } from "@/commands/CommandContext";
-import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
+import {
+  EntityEmpty,
+  EntityError,
+  EntityFilters,
+  EntityHeader,
+  MetricStrip,
+} from "@/entities/EntityChrome";
 import { useEntityView } from "@/entities/useEntityView";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { SEMANTIC } from "@/theme/tokens";
@@ -135,6 +140,8 @@ export default function CustomersPage() {
               }
             }
             loading={view.insights.isLoading}
+            error={view.insights.error ?? undefined}
+            onRetry={() => void view.insights.refetch()}
             onSelect={(name) => view.setFilter("segment", name)}
           />
         </Col>
@@ -150,6 +157,8 @@ export default function CustomersPage() {
               }
             }
             loading={view.insights.isLoading}
+            error={view.insights.error ?? undefined}
+            onRetry={() => void view.insights.refetch()}
             onSelect={(name) => view.setFilter("lifecycle_stage", name)}
           />
         </Col>
@@ -158,22 +167,13 @@ export default function CustomersPage() {
       {view.rows.isLoading ? (
         <Skeleton active paragraph={{ rows: 10 }} />
       ) : rows.length === 0 ? (
-        <Card size="small" className="nu-block">
-          {/* Two states, not one shrug (§34): "nothing matched" wants the
-              filters cleared and "nothing here yet" wants the first record.
-              This said "no accounts match these filters" with no filters set,
-              which tells a reader their filter is wrong when the book of
-              business is simply empty. */}
-          {view.filterCount > 0 ? (
-            <NoResults filterCount={view.filterCount} onClear={view.clearFilters} />
-          ) : (
-            <EmptyState
-              title="No accounts yet"
-              hint="An account is a customer with a value and a lifecycle."
-              action={<NewRecordButton records={records} resource={view.resource} />}
-            />
-          )}
-        </Card>
+        <EntityEmpty
+          view={view}
+          card
+          title="No accounts yet"
+          hint="An account is a customer with a value and a lifecycle."
+          action={<NewRecordButton records={records} resource={view.resource} />}
+        />
       ) : (
         <div className="nu-account-grid" data-testid="customer-grid">
           {rows.map((customer) => {
@@ -190,7 +190,10 @@ export default function CustomersPage() {
                   <Avatar
                     shape="square"
                     size={40}
-                    style={{ background: "var(--nu-accent-soft)", color: "var(--nu-accent)" }}
+                    // The accent *ink*, not the fill: on the accent-soft tint
+                    // the fill measures 4.2:1, which axe found here in the
+                    // dark appearance. Same rule as every tinted row (§55).
+                    style={{ background: "var(--nu-accent-soft)", color: "var(--nu-accent-ink)" }}
                   >
                     {initials(customer.name ?? "?")}
                   </Avatar>

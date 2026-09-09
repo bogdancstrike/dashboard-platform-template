@@ -47,17 +47,53 @@ describe("record preview", () => {
     expect(await screen.findByText("Customer portal")).toBeInTheDocument();
   });
 
-  it.each([404, 403, 500])("explains a %s response with a trace ID and retry", async (status) => {
+  /**
+   * Every failed read says which way it failed, and every one of them carries
+   * the id to quote — a reader who can only report "it did not work" cannot be
+   * helped, and the preview is where a broken row is usually first noticed.
+   */
+  it.each([
+    { status: 404, headline: "Record not found" },
+    { status: 403, headline: "Your role does not include this record" },
+    { status: 500, headline: "Could not load this record" },
+  ])("explains a $status response with a trace ID", async ({ status, headline }) => {
     server.use(http.get("/platform/api/records/task/task-1", () => HttpResponse.json({
       error: "record_error", message: "Cannot read the selected record", details: { missing: ["records.view"] },
     }, { status, headers: { "X-Correlation-ID": "preview-trace" } })));
-    const user = userEvent.setup();
     renderPreview();
-    expect(await screen.findByText("Cannot read the selected record")).toBeInTheDocument();
+    expect(await screen.findByText(headline)).toBeInTheDocument();
+    expect(screen.getByText("Cannot read the selected record")).toBeInTheDocument();
     expect(screen.getByText(/preview-trace/)).toBeInTheDocument();
+  });
+
+  /**
+   * A retry appears only where a retry could work — the same rule the error
+   * pages hold to (`PROBLEMS.not_found.retryable === false`). Offering one on
+   * a 404 promises the address will resolve on the second press, and on a 403
+   * that the reader's role changed while they were reading; pressing either
+   * teaches them that this product's buttons do not mean anything.
+   */
+  it("retries a fault and does not pretend a refusal can be retried", async () => {
+    const user = userEvent.setup();
+    const fail = (status: number) =>
+      server.use(http.get("/platform/api/records/task/task-1", () => HttpResponse.json({
+        error: "record_error", message: "Cannot read the selected record", details: {},
+      }, { status, headers: { "X-Correlation-ID": "preview-trace" } })));
+
+    fail(500);
+    const view = renderPreview();
+    expect(await screen.findByTestId("failure-alert")).toHaveAttribute("data-failure", "failed");
     server.use(http.get("/platform/api/records/task/task-1", () => HttpResponse.json(recordDetail)));
     await user.click(screen.getByRole("button", { name: "Retry" }));
     expect(await screen.findByText("Customer portal")).toBeInTheDocument();
+
+    for (const status of [404, 403]) {
+      fail(status);
+      view.unmount();
+      renderPreview();
+      await screen.findByTestId("failure-alert");
+      expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+    }
   });
 
   it("loads related records only when requested and links to their own previews", async () => {

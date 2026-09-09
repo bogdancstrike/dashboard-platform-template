@@ -28,7 +28,6 @@ import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { useNavigate } from "react-router-dom";
 
-import { EmptyState, NoResults } from "@/components/EmptyState";
 import { StatusTag } from "@/components/StatusTag";
 import {
   NewRecordButton,
@@ -38,7 +37,13 @@ import {
 import { opensRecord, useBulk } from "@/components/records/useBulk";
 import { usePageCommands } from "@/commands/CommandContext";
 import { behindOn, projectStanding, type ProjectStanding } from "@/entities/delivery";
-import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
+import {
+  EntityEmpty,
+  EntityError,
+  EntityFilters,
+  EntityHeader,
+  MetricStrip,
+} from "@/entities/EntityChrome";
 import { useEntityView } from "@/entities/useEntityView";
 import { absoluteTime } from "@/lib/time";
 
@@ -356,12 +361,9 @@ export default function ProjectsPortfolioPage() {
             style: { cursor: "pointer" },
           })}
           locale={{
-            emptyText: view.rows.isLoading ? (
-              " "
-            ) : view.filterCount > 0 ? (
-              <NoResults filterCount={view.filterCount} onClear={view.clearFilters} />
-            ) : (
-              <EmptyState
+            emptyText: (
+              <EntityEmpty
+                view={view}
                 title="No projects yet"
                 hint="A project is work with a budget and a date."
                 action={<NewRecordButton records={records} resource={view.resource} />}

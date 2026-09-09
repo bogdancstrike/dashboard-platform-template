@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import {
-  Alert,
   Button,
   Card,
   Col,
@@ -16,10 +15,10 @@ import {
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-import { ApiError } from "@/api/client";
 import { explorerApi } from "@/api/explorer";
 import { recordsApi, type RecordField } from "@/api/records";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
+import { FailureAlert, failureKind, retryHelps } from "@/components/FailureAlert";
 import { PageHeader } from "@/components/PageHeader";
 import { TagPicker } from "@/components/records/TagPicker";
 import { useRecordEditing } from "@/components/records/useRecordEditing";
@@ -108,40 +107,33 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
   }
 
   if (record.isError) {
-    const error = record.error;
-    const missing = error instanceof ApiError && error.isNotFound;
+    const kind = failureKind(record.error);
     return (
       <>
         <PageHeader
-          title={missing ? "Record not found" : "Could not open this record"}
+          title={
+            kind === "not_found"
+              ? "Record not found"
+              : kind === "forbidden"
+                ? "You may not open this record"
+                : "Could not open this record"
+          }
           onBack={() => navigate(-1)}
         />
-        <Alert
-          type={missing ? "warning" : "error"}
-          showIcon
-          message={
-            missing
-              ? "It may have been deleted, or the link may be wrong."
-              : error instanceof ApiError
-                ? error.message
-                : "The request failed."
-          }
-          description={
-            error instanceof ApiError ? (
-              <Space direction="vertical" size={4}>
-                {error.missingPermissions.length > 0 && (
-                  <Text type="secondary">Missing: {error.missingPermissions.join(", ")}</Text>
-                )}
-                <Text code copyable={{ text: error.correlationId }}>
-                  {error.correlationId}
-                </Text>
-              </Space>
-            ) : undefined
-          }
+        <FailureAlert
+          error={record.error}
+          titles={{
+            not_found: "Nothing at this address",
+            forbidden: "Your role does not include this record",
+            failed: "Could not open this record",
+          }}
+          onRetry={() => void record.refetch()}
           action={
-            <Button size="small" onClick={() => void record.refetch()}>
-              Retry
-            </Button>
+            retryHelps(kind) ? undefined : (
+              <Button size="small" onClick={() => navigate(-1)}>
+                Go back
+              </Button>
+            )
           }
         />
       </>

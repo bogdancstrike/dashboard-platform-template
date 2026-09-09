@@ -53,8 +53,13 @@ import {
   type RecordEditing,
 } from "@/components/records/useRecordEditing";
 import { usePageCommands } from "@/commands/CommandContext";
-import { EmptyState, NoResults } from "@/components/EmptyState";
-import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
+import {
+  EntityEmpty,
+  EntityError,
+  EntityFilters,
+  EntityHeader,
+  MetricStrip,
+} from "@/entities/EntityChrome";
 import { useEntityView } from "@/entities/useEntityView";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { knownStatusColor } from "@/theme/tokens";
@@ -247,15 +252,12 @@ export default function TasksBoardPage() {
           their filter is — which is exactly the distinction these two states
           exist to draw. */}
       {(rows.data?.total ?? 0) === 0 && !rows.isLoading ? (
-        view.filterCount > 0 ? (
-          <NoResults filterCount={view.filterCount} onClear={view.clearFilters} />
-        ) : (
-          <EmptyState
-            title="No work items yet"
-            hint="A task is a piece of work with an owner and a state."
-            action={<NewRecordButton records={records} resource={view.resource} />}
-          />
-        )
+        <EntityEmpty
+          view={view}
+          title="No work items yet"
+          hint="A task is a piece of work with an owner and a state."
+          action={<NewRecordButton records={records} resource={view.resource} />}
+        />
       ) : (
       <div className="nu-board" data-testid="task-board">
         {lanes.map((lane, index) => {

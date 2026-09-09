@@ -9,6 +9,7 @@ import { useAppearance } from "@/theme/AppearanceProvider";
 import { buildOption } from "./charts/options";
 import { chartColumns, chartCsv } from "./charts/data";
 import { EmptyState } from "./EmptyState";
+import { FailureAlert } from "./FailureAlert";
 
 /**
  * A chart that can always be read as a table.
@@ -26,6 +27,8 @@ export function ChartCard({
   extra,
   onSelect,
   loading = false,
+  error,
+  onRetry,
   className,
   empty,
 }: {
@@ -44,6 +47,17 @@ export function ChartCard({
   /** Clicking a bar, slice or row drills into the records behind it (§44). */
   onSelect?: (name: string) => void;
   loading?: boolean;
+  /**
+   * The query behind the panel failed.
+   *
+   * Without this a failed chart fell through to the empty state and said
+   * "Nothing in this period" — which is a *finding*, and a reader who takes it
+   * as one has been told the business is quiet when in fact the request was
+   * refused. A chart that cannot draw must say so (§34).
+   */
+  error?: unknown;
+  /** Refetch the panel, where the kind of failure makes that worth offering. */
+  onRetry?: () => void;
   /** For the callers that need to place the card — spacing, or a fill. */
   className?: string;
   /**
@@ -133,7 +147,17 @@ export function ChartCard({
       {panel?.description && <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
         {panel.description}
       </Typography.Paragraph>}
-      {rows.length === 0 ? (
+      {error ? (
+        <FailureAlert
+          error={error}
+          titles={{
+            forbidden: "Your role does not include this figure",
+            not_found: "That figure is no longer published",
+            failed: "This panel could not be drawn",
+          }}
+          onRetry={onRetry}
+        />
+      ) : rows.length === 0 ? (
         <div style={{ minHeight: height, display: "grid", placeItems: "center" }}>
           <EmptyState
             title={empty?.title ?? "Nothing in this period"}

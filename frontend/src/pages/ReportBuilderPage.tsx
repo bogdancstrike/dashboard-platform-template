@@ -251,23 +251,14 @@ export default function ReportBuilderPage() {
           message="Pick a column to measure"
           description="Every aggregation except a row count needs one."
         />
-      ) : preview.isError ? (
-        <Alert
-          className="nu-block"
-          type="error"
-          showIcon
-          message={
-            preview.error instanceof ApiError
-              ? preview.error.message
-              : "That question could not be answered."
-          }
-        />
       ) : (
         <ChartCard
           id="report-preview"
           className="nu-block"
           height={420}
           loading={preview.isLoading}
+          error={preview.error ?? undefined}
+          onRetry={() => void preview.refetch()}
           panel={
             blocked
               ? undefined
