@@ -5,6 +5,15 @@ SPA needs to *start* a login, which it cannot have obtained by logging in. That
 is public information by construction — a realm URL, a realm name and a public
 client id are all visible in the browser's network tab of any OIDC app. No
 secret is served here, and none may ever be added.
+
+**The other three are introspection, and they need a token.** The permission
+catalogue, the role ranking and the route table describe the shape of the
+platform's authorisation, and they were anonymous because they had been written
+beside `/meta/app` rather than because anything needed them to be — nothing in
+the SPA calls them before signing in, or at all. Publishing the exact
+permission a control checks is a free reconnaissance step for anybody probing,
+and `test_endpoint_map.py` now pins the public surface to a list somebody has
+to add to on purpose (§76).
 """
 
 from __future__ import annotations
@@ -14,6 +23,7 @@ from typing import Any
 from src.config import Config
 from src.core.auth import (
     ALL_PERMISSIONS,
+    authenticated,
     PERMISSION_GROUPS,
     PERMISSION_LABELS,
     ROLE_DEFAULTS,
@@ -49,6 +59,7 @@ def application(app=None, operation: str = "", request=None, **_: Any):
     }, 200
 
 
+@authenticated
 def permissions(app=None, operation: str = "", request=None, **_: Any):
     """The catalogue, in the grouping the admin permission matrix renders."""
     return {
@@ -65,6 +76,7 @@ def permissions(app=None, operation: str = "", request=None, **_: Any):
     }, 200
 
 
+@authenticated
 def roles(app=None, operation: str = "", request=None, **_: Any):
     """Built-in role definitions.
 
@@ -94,6 +106,7 @@ def roles(app=None, operation: str = "", request=None, **_: Any):
     }, 200
 
 
+@authenticated
 def routes(app=None, operation: str = "", request=None, **_: Any):
     """Every route this process serves, read from the map it was mounted from.
 

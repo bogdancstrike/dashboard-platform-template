@@ -52,6 +52,79 @@ def test_routes_expose_their_handler():
         assert function
 
 
+#: The endpoints an anonymous caller may reach, and why each one has to be.
+#:
+#: A list somebody has to add to on purpose. Authentication on 154 endpoints is
+#: 154 decorators, and a route that forgets one is not visibly different from a
+#: route that has one — it answers, with data, to nobody in particular. The
+#: sweep below is what turns that from a review question into a failing test
+#: (§76).
+PUBLIC: dict[str, str] = {
+    "/platform/health/live": "a liveness probe an orchestrator calls with no credential",
+    "/platform/health/ready": "a readiness probe, same",
+    "/platform/health/status": "the dependency summary the compose stack waits on",
+    "/platform/meta/app": (
+        "the OIDC coordinates the SPA needs to *start* a login, which it cannot "
+        "have obtained by logging in"
+    ),
+}
+
+
+def _concrete(url: str) -> str:
+    """One mounted path with its parameters filled in.
+
+    The value only has to be *shaped* right: every endpoint under test refuses
+    the request before it looks at a parameter, and one that did not would be
+    the finding.
+    """
+    url = re.sub(r"<uuid:[^>]+>", "11111111-1111-1111-1111-111111111111", url)
+    return re.sub(r"<(?:[^:>]+:)?[^>]+>", "probe", url)
+
+
+def test_every_endpoint_refuses_an_anonymous_request(client):
+    """The security property no per-endpoint test suite can promise.
+
+    Each endpoint's own test asserts its 401 — when somebody wrote one. This
+    asserts it for *all* of them, from the map, so an endpoint added tomorrow
+    is covered by being in the map rather than by being remembered.
+    """
+    leaked = []
+    for route in endpoint_map.routes():
+        if route["url"] in PUBLIC:
+            continue
+        url = _concrete(route["url"])
+        for method in route["methods"]:
+            response = client.open(url, method=method)
+            # 401 for "no token". A 404 or 405 would mean this sweep is not
+            # reaching the handler and is therefore proving nothing.
+            if response.status_code != 401:
+                leaked.append(f"{method} {url} → {response.status_code}")
+    assert leaked == []
+
+
+def test_the_public_endpoints_answer_without_a_token(client):
+    """The other half: the four that must stay reachable, still are.
+
+    Without this the sweep above could be satisfied by making everything
+    private, including the metadata the sign-in page cannot start without.
+
+    "Not 401" rather than "200": `/health/status` reports **503** when a
+    dependency is down, which is the whole point of it — and this suite runs
+    with every dependency pointed at a closed port unless a database is
+    configured. What is asserted is *reachability*, not health.
+    """
+    for url in PUBLIC:
+        assert client.get(url).status_code != 401, url
+
+
+def test_the_public_list_names_only_endpoints_that_exist():
+    # A stale entry would be a hole nobody notices: it exempts a URL that has
+    # moved, and the endpoint at its new address is swept as it should be —
+    # until the day the old name comes back.
+    mounted = {route["url"] for route in endpoint_map.routes()}
+    assert set(PUBLIC) <= mounted
+
+
 def _write(tmp_path, document):
     target = tmp_path / "endpoint.json"
     target.write_text(json.dumps(document))

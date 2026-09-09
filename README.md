@@ -538,7 +538,7 @@ Then:
 | <http://localhost:5101/platform/health/live> | Liveness (never touches a dependency) |
 | <http://localhost:5101/platform/health/ready> | Readiness (503 until the database answers) |
 | <http://localhost:5101/platform/health/status> | Every dependency, with latency |
-| <http://localhost:5101/platform/meta/routes> | The API surface this process is serving |
+| <http://localhost:5101/platform/meta/routes> | The API surface this process is serving — needs a bearer token, like every endpoint but the four above |
 | <http://localhost:9001> | MinIO console — `nucleus` / `nucleus-dev-secret` |
 
 ### Frontend

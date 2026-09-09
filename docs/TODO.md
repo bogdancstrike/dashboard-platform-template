@@ -2791,9 +2791,28 @@ function is a slow test that fails for unrelated reasons.
       `TEST_DATABASE_URL` enables the `database`-marked tests
 - [x] Endpoint-map contract check compares Flask converters with their OpenAPI
       parameter form, so typed UUID routes are covered by the drift test
-- [ ] **Every endpoint** has an integration test covering five cases: happy
+- [~] **Every endpoint** has an integration test covering five cases: happy
       path, validation failure, 401 without a token, 403 with the wrong role,
       404 for a missing id
+  - **The 401 is asserted for all 161 of them, from the map.** Each endpoint's
+      own test asserts its refusal when somebody wrote one;
+      `test_endpoint_map.py` asserts it for every route the map mounts, so an
+      endpoint added tomorrow is covered by being in the map rather than by
+      being remembered. A route that forgets its decorator is not visibly
+      different from one that has it — it answers, with data, to nobody in
+      particular
+  - The **public surface** is now a list of four with a reason each, and a test
+      that they still answer: three health probes an orchestrator calls with no
+      credential, and `/meta/app`, which carries the OIDC coordinates a login
+      cannot be started without. `/meta/permissions`, `/meta/roles` and
+      `/meta/routes` were anonymous because they had been written beside it —
+      nothing in the SPA calls them at all, and publishing the exact permission
+      a control checks is a free reconnaissance step. They need a token now
+      (§76). Verified load-bearing by removing one decorator: the sweep fails
+  - The other four cases are per-endpoint and largely written; what is open is
+      a mechanical check that each one *has* them, which needs the tests to
+      declare which endpoint they cover rather than being grepped for a URL
+      they build from a helper
 - [x] `core/query.py` — one unit test per operator per field kind, plus the
       subtle ones: "excluding a value must not exclude rows that have none",
       "empty means empty *or* absent", case-insensitive text equality
