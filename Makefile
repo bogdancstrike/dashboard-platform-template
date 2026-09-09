@@ -100,6 +100,10 @@ sync-sessions: ## Leave at most one current session per person, and only a live 
 sync-favorites: ## Move the old per-row is_favorite flags into the one favourites store
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-favorites seed
 
+.PHONY: sync-tags
+sync-tags: ## Make each record's tags array agree with its tag links
+	$(COMPOSE) run --rm -e SEED_ARGS=--sync-tags seed
+
 .PHONY: sync-schema
 sync-schema: ## Add columns the model declares and the database lacks
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-schema seed

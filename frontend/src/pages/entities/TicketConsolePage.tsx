@@ -53,6 +53,7 @@ import { recordsApi } from "@/api/records";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
 import { CommentThread } from "@/components/comments/CommentThread";
 import { PageHeader } from "@/components/PageHeader";
+import { TagPicker } from "@/components/records/TagPicker";
 import { PeoplePicker } from "@/components/PeoplePicker";
 import { useRecordPage } from "@/components/records/useRecordPage";
 import { StatusTag } from "@/components/StatusTag";
@@ -232,6 +233,7 @@ export default function TicketConsolePage() {
 
       <Row gutter={[12, 12]} className="nu-block">
         <Col xs={24} xl={16}>
+          <TagPicker resourceType="ticket" recordId={id} listPath="/tickets" />
           <Card size="small" title="What was reported">
             <Paragraph className="nu-record-prose">
               {asText(page.value("description")) || "No description was given."}

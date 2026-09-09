@@ -60,7 +60,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 34 | Error and empty states | `/errors/*` | — | [x] |
 | 35 | Activity feed | `/activity`, `/profile` | `/api/activity` | [x] |
 | 36 | Comments | `/tasks/:id`, `/tickets/:id` | `/api/comments` | [~] |
-| 37 | Tags and labels | `/admin/tags` + inline | `/tags` | [ ] |
+| 37 | Tags and labels | `/admin/tags` | `/tags` | [x] |
 | 38 | Favorites | `/favorites` | `/favorites` | [x] |
 | 39 | Recent items | `/favorites` | `/recents` | [x] |
 | 40 | Personal preferences | `/settings/preferences`, `/profile` | `/api/me` | [x] |
@@ -102,7 +102,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*59 shipped · 16 partly there · 2 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*60 shipped · 16 partly there · 1 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
@@ -117,8 +117,6 @@ Every section above that is not shipped, with the part that is open. A catalogue
 **§18 Tasks / work queue (kanban)** — Partly there. Boards, lanes and cards with full CRUD, server-side filters, drag between lanes reconciled against the server, and a keyboard equivalent of the drag. Ordering *within* a lane and the comment and checklist counts on a card's face are open.
 
 **§36 Comments** — Partly there. Mentions, one level of replies and the audit timeline beside them, on the two record pages where a conversation actually happens. The other four entity detail pages do not carry it yet.
-
-**§37 Tags and labels** — Not built. Not built. The `tags` table and the polymorphic join exist in the model; no page reads them.
 
 **§44 Drill-down** — Partly there. Every KPI tile, chart segment and quality finding opens the rows behind it with the same filters applied. The back-stack that would return a reader to the picture they came from is open.
 

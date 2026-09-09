@@ -21,6 +21,7 @@ import { explorerApi } from "@/api/explorer";
 import { recordsApi, type RecordField } from "@/api/records";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
 import { PageHeader } from "@/components/PageHeader";
+import { TagPicker } from "@/components/records/TagPicker";
 import { useRecordEditing } from "@/components/records/useRecordEditing";
 import { StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
@@ -191,6 +192,15 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
             </Tooltip>
           </>
         }
+      />
+
+      {/* Under the header rather than in a tab: a record's tags are read at a
+          glance beside its title, and a tab is where things go that a reader
+          opens deliberately (§37). */}
+      <TagPicker
+        resourceType={data.resource_type}
+        recordId={data.id}
+        listPath={data.path}
       />
 
       <Tabs

@@ -113,6 +113,17 @@ test("revoking a session refuses its next request", async () => {
 });
 
 test("signing out everywhere else keeps the session that asked", async () => {
+  /**
+   * This revokes the operator's *stored browser session* as well, which is
+   * worth knowing before wondering why `tags.spec` is slow.
+   *
+   * `revoke-others` means every session but the one that asked, and the
+   * suite's replayed `storageState` for this persona is one of them. Any later
+   * spec that signs the operator in therefore pays a full re-authentication
+   * rather than a replayed cookie — which is why `signIn` carries a 90-second
+   * deadline. Using a different persona would only move the problem: the realm
+   * has five accounts and every one of them is signed in by some spec.
+   */
   // Two sessions on one account, which is the situation the sweep exists for.
   const other = await freshToken("operator");
   const mine = await freshToken("operator");

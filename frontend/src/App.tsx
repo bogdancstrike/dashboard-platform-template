@@ -3,6 +3,7 @@ import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes, useParams } from "react-router-dom";
 
 import { AppShell } from "@/app/AppShell";
+import { signInAgain } from "@/auth/keycloak";
 import { ProblemPage, type ProblemKind } from "@/components/ProblemPage";
 import { useAuth } from "@/auth/AuthProvider";
 import { landingPath } from "@/pages/PreferencesPage";
@@ -28,6 +29,7 @@ const AdminHomePage = lazy(() => import("@/pages/admin/AdminHomePage"));
 const SystemSettingsPage = lazy(() => import("@/pages/admin/SettingsPage"));
 const FlagsPage = lazy(() => import("@/pages/admin/FlagsPage"));
 const QualityPage = lazy(() => import("@/pages/admin/QualityPage"));
+const TagsPage = lazy(() => import("@/pages/admin/TagsPage"));
 const LogsPage = lazy(() => import("@/pages/admin/LogsPage"));
 const JobsPage = lazy(() => import("@/pages/admin/JobsPage"));
 const GroupsPage = lazy(() => import("@/pages/admin/GroupsPage"));
@@ -112,6 +114,12 @@ function ProblemRoute({ kind }: { kind: ProblemKind }) {
       // which is honest and proves the button does something. The declaration
       // decides whether the button appears at all.
       onRetry={() => window.location.reload()}
+      // Not a reload: a revoked session is keyed on the identity provider's
+      // own session id, and a browser holding the SSO cookie reloads straight
+      // back into the same one — so the only button on the page would do
+      // nothing and the reader would be locked out of a platform they had just
+      // authenticated to.
+      onSignIn={() => void signInAgain()}
       missing={kind === "forbidden" ? ["records.view"] : []}
     />
   );
@@ -486,6 +494,14 @@ export default function App() {
           element={
             <Suspense fallback={<Loading />}>
               <IntegrationsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="admin/tags"
+          element={
+            <Suspense fallback={<Loading />}>
+              <TagsPage />
             </Suspense>
           }
         />

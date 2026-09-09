@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { markSignedIn, recordSignInAttempt } from "@/auth/keycloak";
+import {
+  SESSION_EXPIRED_PATH,
+  markSignedIn,
+  recordSignInAttempt,
+  resetSignInGuard,
+} from "@/auth/keycloak";
 
 /**
  * The sign-in loop guard (§34, §41).
@@ -19,6 +24,11 @@ import { markSignedIn, recordSignInAttempt } from "@/auth/keycloak";
 describe("re-authenticating", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
+    // A fresh document. The flag below is what distinguishes "one attempt
+    // seen twice" from "two attempts", and it dies with the page in the
+    // product — so a test that shares it across cases is testing a state no
+    // browser is ever in.
+    resetSignInGuard();
   });
 
   it("redirects the first time", () => {
@@ -27,8 +37,26 @@ describe("re-authenticating", () => {
     expect(recordSignInAttempt(1_000)).toBe("redirect");
   });
 
-  it("stops on a second attempt inside the window", () => {
+  it("says nothing to a second caller in the same document", () => {
+    /**
+     * A page issues six requests at once; when the token has expired all six
+     * ask to re-authenticate. The first redirects, and the rest must do
+     * nothing — the document they would have done it in is being replaced.
+     *
+     * Without this the *second* caller read the stamp the first had just
+     * written and declared a loop, which sent an end-to-end run to
+     * `/errors/session-expired` while the product was fine.
+     */
     expect(recordSignInAttempt(1_000)).toBe("redirect");
+    expect(recordSignInAttempt(1_001)).toBe("already");
+    expect(recordSignInAttempt(1_002)).toBe("already");
+  });
+
+  it("stops on a second attempt in a later document", () => {
+    expect(recordSignInAttempt(1_000)).toBe("redirect");
+    // The redirect happened and the document was replaced, which is what
+    // `resetSignInGuard` stands for here.
+    resetSignInGuard();
     // Back within a few seconds still unauthorised: the round trip did not
     // help, so doing it again will not either.
     expect(recordSignInAttempt(6_000)).toBe("loop");
@@ -36,6 +64,7 @@ describe("re-authenticating", () => {
 
   it("redirects again once the window has passed", () => {
     expect(recordSignInAttempt(1_000)).toBe("redirect");
+    resetSignInGuard();
     // Half an hour later is a second session expiring, not a loop — and
     // showing an error page for that would be a regression in the common case.
     expect(recordSignInAttempt(1_800_000)).toBe("redirect");
@@ -49,6 +78,23 @@ describe("re-authenticating", () => {
     // session, say — would show the loop page instead of re-authenticating.
     markSignedIn();
     expect(recordSignInAttempt(2_000)).toBe("redirect");
+  });
+
+  it("does nothing on the page that exists for this state", () => {
+    /**
+     * The page whose job is to say "your session ended" must not try to fix
+     * it. Its own boot calls `/api/me`, which is refused for the same reason,
+     * so re-authenticating sends the browser back to this address — and again,
+     * and again. The page that exists for the state was unreachable in it,
+     * and an end-to-end run found it by bouncing between two copies of the
+     * same URL until it timed out.
+     */
+    window.history.replaceState({}, "", SESSION_EXPIRED_PATH);
+    try {
+      expect(recordSignInAttempt(1_000)).toBe("already");
+    } finally {
+      window.history.replaceState({}, "", "/");
+    }
   });
 
   it("survives storage being unavailable", () => {
@@ -69,6 +115,7 @@ describe("re-authenticating", () => {
     });
     try {
       expect(recordSignInAttempt(1_000)).toBe("redirect");
+      resetSignInGuard();
       expect(recordSignInAttempt(1_100)).toBe("redirect");
     } finally {
       throwing.mockRestore();

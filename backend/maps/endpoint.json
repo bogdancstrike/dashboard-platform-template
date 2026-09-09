@@ -1018,6 +1018,51 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "tags_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/tags",
+      "description": "The tag vocabulary, and adding to it.",
+      "exec_method": {
+        "module_name": "src.api.tags",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "tags_item",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/tags/<uuid:tag_id>",
+      "description": "Rename, recolour or remove one tag.",
+      "exec_method": {
+        "module_name": "src.api.tags",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "tags_on_record",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT"
+      ],
+      "api_url": "/api/records/<string:resource_type>/<uuid:record_id>/tags",
+      "description": "The tags on one record; PUT sets the whole set.",
+      "exec_method": {
+        "module_name": "src.api.tags",
+        "method_name": "on_record"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "profile_mine",
       "model_name": "Empty",
       "request_method": [

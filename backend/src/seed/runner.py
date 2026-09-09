@@ -125,6 +125,80 @@ def sync_exports(session) -> dict[str, int]:
     return export_files.materialise(session, storage.for_config())
 
 
+def sync_tags(session) -> dict[str, int]:
+    """Make each record's `tags` array agree with its links (§37).
+
+    There were two stores for one fact, and nothing kept them in step: 44 tasks
+    carried a `tags` array and 28 had `tag_links` rows, with no reason to think
+    the two sets agreed. The same shape as the favourites defect, found the
+    same way — by building the page that reads the data.
+
+    `services/tags` now treats the *links* as the truth and the array as a
+    derived cache with one writer. This is the repair that brings an existing
+    database up to that: it rewrites the array of every record that has links,
+    and *clears* it on every record that has an array and no links — because a
+    string left behind after the link went is exactly the stale value the
+    single-writer rule exists to prevent.
+
+    Idempotent: a record already in step is written the same value.
+    """
+    from sqlalchemy import func, select as _select
+
+    from src.models.content import Tag, TagLink
+    from src.services.explorer import resources as _resources
+    from src.services.tags import _resync
+
+    rewritten = 0
+    cleared = 0
+    recounted = 0
+
+    # Every record that has at least one link, by dataset.
+    linked: dict[str, set[str]] = {}
+    for resource_type, resource_id in session.execute(
+        _select(TagLink.resource_type, TagLink.resource_id).distinct()
+    ).all():
+        linked.setdefault(str(resource_type), set()).add(str(resource_id))
+
+    catalogue = _resources()
+    for resource_type, ids in linked.items():
+        if resource_type not in catalogue:
+            continue
+        for resource_id in ids:
+            _resync(session, resource_type, resource_id)
+            rewritten += 1
+
+    # And the other direction: an array with no links behind it.
+    for key, resource in catalogue.items():
+        model = resource.model
+        if not hasattr(model, "tags"):
+            continue
+        rows = session.scalars(
+            _select(model).where(model.tags.isnot(None))
+        ).unique().all()
+        for row in rows:
+            if str(row.id) in linked.get(key, set()):
+                continue
+            if row.tags:
+                row.tags = None
+                cleared += 1
+
+    # The usage counts are the third derived value here, and the manager sorts
+    # by them — a count that drifted would put the wrong tags at the top.
+    for tag in session.scalars(_select(Tag)).all():
+        wanted = int(
+            session.scalar(
+                _select(func.count()).select_from(TagLink).where(TagLink.tag_id == tag.id)
+            )
+            or 0
+        )
+        if tag.usage_count != wanted:
+            tag.usage_count = wanted
+            recounted += 1
+
+    session.flush()
+    return {"rewritten": rewritten, "cleared": cleared, "recounted": recounted}
+
+
 def sync_favorites(session) -> dict[str, int]:
     """Move the old per-row `is_favorite` flags into the one store (§38).
 
@@ -343,6 +417,13 @@ def run(
     world = generate(scale=resolved, seed=seed_value)
     built = time.perf_counter()
     counts = write(session, world)
+
+    # The derived tag arrays, here rather than in the caller: `verify` asserts
+    # that they agree with the links, so a seed whose caller forgot the sync
+    # would report itself inconsistent — and did, in `test_seed`. A generator
+    # writes the truth; a derived value is derived once, by the one writer, and
+    # the seed is a caller of it like any other.
+    sync_tags(session)
     written = time.perf_counter()
 
     log.info(
@@ -641,6 +722,13 @@ def verify(session) -> list[str]:
                 f"cannot express — allowed: {', '.join(sorted(SCOPES))}"
             )
 
+    # The `tags` array is a *derived* cache of `tag_links` with exactly one
+    # writer (`services/tags._resync`). A derived column is only a decision
+    # while something asserts it; two stores for one fact is what it becomes
+    # otherwise, which is how 44 tagged tasks and 28 tag links came to
+    # disagree. `--sync-tags` is the repair this reports.
+    problems.extend(_tags_out_of_step(session))
+
     # A saved report whose definition the compiler would reject is a row that
     # looks fine in psql and fails the moment somebody opens `/reports`. Every
     # seeded report was one of these — the dimensions were drawn from a
@@ -720,6 +808,64 @@ def sync_org(session) -> dict[str, int]:
             corrected += 1
 
     return {"corrected": corrected}
+
+
+def _tags_out_of_step(session) -> list[str]:
+    """Where a record's `tags` array disagrees with its links.
+
+    Compared as *sets of names*, because that is what the column is a cache
+    of. Reported per dataset with a count rather than per record: "17 tasks
+    disagree" is what somebody acts on, and seventeen identical lines are what
+    they scroll past.
+    """
+    from sqlalchemy import func, select as _select
+
+    from src.models.content import Tag, TagLink
+    from src.services.explorer import resources as _resources
+
+    problems: list[str] = []
+
+    links: dict[tuple[str, str], set[str]] = {}
+    for resource_type, resource_id, name in session.execute(
+        _select(TagLink.resource_type, TagLink.resource_id, Tag.name).join(
+            Tag, Tag.id == TagLink.tag_id
+        )
+    ).all():
+        links.setdefault((str(resource_type), str(resource_id)), set()).add(str(name))
+
+    for key, resource in _resources().items():
+        model = resource.model
+        if not hasattr(model, "tags"):
+            continue
+        wrong = 0
+        for row in session.scalars(_select(model)).unique().all():
+            stored = set(row.tags or [])
+            wanted = links.get((key, str(row.id)), set())
+            if stored != wanted:
+                wrong += 1
+        if wrong:
+            problems.append(
+                f"{key}.tags: {wrong} records disagree with their tag links — "
+                "run `python -m src.seed --sync-tags`"
+            )
+
+    # And the counts the tag manager sorts by.
+    drifted = 0
+    for tag in session.scalars(_select(Tag)).all():
+        wanted = int(
+            session.scalar(
+                _select(func.count()).select_from(TagLink).where(TagLink.tag_id == tag.id)
+            )
+            or 0
+        )
+        if int(tag.usage_count or 0) != wanted:
+            drifted += 1
+    if drifted:
+        problems.append(
+            f"tags.usage_count: {drifted} tags disagree with their links — "
+            "run `python -m src.seed --sync-tags`"
+        )
+    return problems
 
 
 def _unrunnable_reports(session) -> list[str]:

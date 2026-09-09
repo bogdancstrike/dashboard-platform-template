@@ -61,14 +61,36 @@ export async function signIn(
 
   const username = page.locator('input[name="username"]');
   const banner = page.getByRole("banner").getByText(account.name, { exact: true });
+  // The third outcome, and it is a real one rather than a failure: this
+  // persona's session may have been revoked by `security.spec`, and a browser
+  // still holding the identity provider's cookie re-authenticates silently
+  // into the *same* session — same id, refused again. The platform lands on
+  // its own session-expired page, whose button forces a fresh authentication
+  // (`keycloak.signInAgain`). Clicking it is what a person does, and it is the
+  // only way back in short of clearing cookies.
+  const expired = page.getByTestId("problem-session_expired");
   // Its own, longer deadline. Signing in is the *slowest* thing in the suite
   // and the only one that is slow for reasons outside the product: the SPA
   // boots, redirects to Keycloak, exchanges a code and then waits on
-  // `/api/me`. With three workers against one API container and one Keycloak,
-  // that tail runs past the global expectation cap — and the failure lands as
-  // "the page never rendered", which reads like a product bug and is not one.
-  // Raising the global cap instead would slow down every genuine failure.
-  await expect(username.or(banner).first()).toBeVisible({ timeout: 45_000 });
+  // `/api/me`. With several workers against one API container and one
+  // Keycloak, that tail runs past the global expectation cap — and the failure
+  // lands as "the page never rendered", which reads like a product bug and is
+  // not one. Raising the global cap instead would slow down every genuine
+  // failure.
+  //
+  // 90s rather than 45, and the extra half has a named cause: `security.spec`
+  // asserts that signing out everywhere else keeps the session that asked, and
+  // it does that as the *operator* — which revokes the operator's stored
+  // browser session too. Any later spec signing that persona in therefore pays
+  // a full re-authentication: two SPA boots and a Keycloak round trip rather
+  // than a replayed cookie. `tags.spec` did, three sweeps in a row, and
+  // reported it as a page that never rendered.
+  await expect(username.or(banner).or(expired).first()).toBeVisible({ timeout: 90_000 });
+
+  if (await expired.isVisible()) {
+    await page.getByTestId("problem-signin").click();
+    await expect(username.or(banner).first()).toBeVisible({ timeout: 90_000 });
+  }
 
   if (await username.isVisible()) {
     await username.fill(account.username);
@@ -77,5 +99,5 @@ export async function signIn(
   }
 
   await page.waitForURL((url) => url.port === "5174");
-  await expect(banner).toBeVisible({ timeout: 45_000 });
+  await expect(banner).toBeVisible({ timeout: 90_000 });
 }

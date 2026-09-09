@@ -100,6 +100,7 @@ does not.
 | `records.export` — Export records | ✓ | ✓ | ✓ | ✓ | — |
 | `records.import` — Import records | ✓ | ✓ | — | — | — |
 | `records.bulk` — Run bulk operations | ✓ | ✓ | — | — | — |
+| `tags.manage` — Manage the tag vocabulary | ✓ | ✓ | — | — | — |
 | **Administration** |  |  |  |  |  |
 | `admin.access` — Open the administration area | ✓ | — | — | — | — |
 | `users.view` — View users | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -132,7 +133,7 @@ does not.
 | `dashboards.manage` — Customise dashboards | ✓ | ✓ | ✓ | ✓ | — |
 | `searches.share` — Share saved searches and views | ✓ | ✓ | — | ✓ | — |
 
-*36 permissions across 4 areas, generated from `backend/src/core/auth.py` by `scripts/render-rbac-matrix.py`.*
+*37 permissions across 4 areas, generated from `backend/src/core/auth.py` by `scripts/render-rbac-matrix.py`.*
 
 <!-- /generated:permission-matrix -->
 
@@ -299,6 +300,30 @@ The permission breakdown itself comes from `users.access_of`, the same function
 `/admin/users/:id` uses, so a reader looking at themselves and an administrator
 looking at them are told the same thing. That answers "why can I not export?"
 without an administrator in the loop, which is what the page exists for.
+
+### Applying a label, and owning the vocabulary
+
+Tags (§37) split across two permissions on purpose.
+
+**Putting a tag on a record needs `records.update`.** It is a change to that
+record, it is audited on that record, and anybody who may edit the record may
+classify it.
+
+**Changing the vocabulary needs `tags.manage`.** Creating, renaming,
+recolouring or deleting a tag changes what *every* record carrying it says — a
+rename rewrites the derived column on all of them, and a delete takes the tag
+off all of them. Granted to Administrator and Manager. An operator may tag
+records all day and owns none of the vocabulary.
+
+*Reading* the vocabulary needs nothing beyond being signed in: a picker that
+cannot list the options is not a picker, and the page is worth opening to find
+out what the tags mean. It says which permission curating them needs rather
+than hiding itself.
+
+A tag marked `is_system` cannot be renamed or removed by anybody, whatever they
+hold. Automations, saved searches and reports quote it by name; renaming it
+would silently change what they match and deleting it would silently match
+nothing.
 
 ## Impersonation
 

@@ -32,6 +32,7 @@ import {
   NotificationOutlined,
   ProjectOutlined,
   SafetyCertificateOutlined,
+  TagsOutlined,
   SearchOutlined,
   SettingOutlined,
   ShopOutlined,
@@ -187,6 +188,10 @@ export const NAV_GROUPS: NavGroup[] = [
       // path prefix is not a permission boundary here: `/admin/users` is
       // readable by every persona too.
       { key: "/admin/quality", label: "Data quality", icon: <FundProjectionScreenOutlined />, permission: "records.view" },
+      // `records.view` and not `tags.manage`: the page is worth opening to
+      // find out what the tags *mean*, and it says which permission curating
+      // them needs rather than hiding itself (§37, §76).
+      { key: "/admin/tags", label: "Tags", icon: <TagsOutlined />, permission: "records.view" },
       { key: "/import", label: "Import", icon: <ImportOutlined />, permission: "records.import" },
       { key: "/exports", label: "Exports", icon: <ContainerOutlined />, permission: "records.export" },
     ],

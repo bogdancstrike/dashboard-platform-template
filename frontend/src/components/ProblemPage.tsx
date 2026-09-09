@@ -188,6 +188,7 @@ export function ProblemPage({
   missing = [],
   detail,
   onRetry,
+  onSignIn,
   standalone = false,
 }: {
   kind: ProblemKind;
@@ -199,6 +200,15 @@ export function ProblemPage({
   detail?: ReactNode;
   /** Supplied when the caller can actually retry; the button is hidden otherwise. */
   onRetry?: () => void;
+  /**
+   * What "Sign in again" does.
+   *
+   * Supplied by the route, because the correct action is not a reload: a
+   * revoked session is keyed on the identity provider's session id, and a
+   * browser holding the SSO cookie reloads straight back into the same one.
+   * See `keycloak.signInAgain`.
+   */
+  onSignIn?: () => void;
   /** Outside the shell — at boot, before there is a sidebar to sit next to. */
   standalone?: boolean;
 }) {
@@ -243,8 +253,11 @@ export function ProblemPage({
             type={problem.retryable && onRetry ? "default" : "primary"}
           />
           {(kind === "session_expired" || kind === "unauthorized") && (
-            <Tooltip title="Reloading takes you through the sign-in page">
-              <Button onClick={() => window.location.reload()} data-testid="problem-signin">
+            <Tooltip title="Asks the sign-in page for your details again">
+              <Button
+                onClick={() => (onSignIn ? onSignIn() : window.location.reload())}
+                data-testid="problem-signin"
+              >
                 Sign in again
               </Button>
             </Tooltip>

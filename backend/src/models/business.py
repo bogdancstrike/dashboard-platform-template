@@ -150,6 +150,12 @@ class Order(Base, TimestampMixin, SoftDeleteMixin, MetadataMixin):
     #: separate table would be one join for no query anyone actually runs.
     items: Mapped[list[Any] | None] = mapped_column(JSONB)
     notes: Mapped[str | None] = mapped_column(Text)
+    #: Added when tags shipped (§37). The other five entity tables had it and
+    #: this one did not, which made orders the one dataset a shared vocabulary
+    #: could not be applied to — an asymmetry with no reason behind it, and one
+    #: nothing would have reported. `--sync-schema` adds the column to a
+    #: database that predates this line.
+    tags: Mapped[list[str] | None] = mapped_column(ARRAY(String(48)))
 
     customer = relationship("Customer", lazy="joined")
     owner = relationship("User", foreign_keys=[owner_id], lazy="joined")

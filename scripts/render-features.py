@@ -149,11 +149,7 @@ CATALOGUE: list[dict[str, object]] = [
         "the two record pages where a conversation actually happens. The other "
         "four entity detail pages do not carry it yet.",
     ),
-    feature(
-        37, "Tags and labels", "`/admin/tags` + inline", "`/tags`", "open",
-        "Not built. The `tags` table and the polymorphic join exist in the "
-        "model; no page reads them.",
-    ),
+    feature(37, "Tags and labels", "`/admin/tags`", "`/tags`", "done"),
     feature(38, "Favorites", "`/favorites`", "`/favorites`", "done"),
     feature(39, "Recent items", "`/favorites`", "`/recents`", "done"),
     feature(40, "Personal preferences", "`/settings/preferences`, `/profile`", "`/api/me`", "done"),

@@ -75,7 +75,6 @@ def _customers(world: World) -> None:
                 # view (§47) needs a metric that is genuinely absent somewhere.
                 satisfaction=rng.maybe(rng.integer(1, 10), 0.8),
                 last_contact_at=rng.maybe(rng.recent(days=200), 0.88),
-                tags=rng.sample([t[0] for t in catalog.TAGS], rng.integer(0, 3)),
                 created_at=rng.ago(days_min=30, days_max=1_800),
                 metadata_json={"segment": segment, "stage": stage},
             )
@@ -146,7 +145,6 @@ def _projects(world: World) -> None:
                 spent=round(budget * (rng.decimal(0.05, 1.25) if rng.chance(0.25) else rng.decimal(0.05, 0.95)), 2),
                 currency=rng.pick(catalog.ORDER_CURRENCIES),
                 progress=progress,
-                tags=rng.sample([t[0] for t in catalog.TAGS], rng.integer(0, 4)),
                 color=rng.pick(("#5b5bd6", "#0891b2", "#16a34a", "#ca8a04", "#dc2626", "#7c3aed")),
                 created_at=start,
                 metadata_json={"methodology": rng.pick(("Agile", "Waterfall", "Hybrid"))},
@@ -207,7 +205,6 @@ def _tasks(world: World) -> None:
             # a reload rather than resorting on every open.
             board_position=counter % 50,
             blocked_reason=rng.pick(catalog.BLOCKED_REASONS) if status == "BLOCKED" else None,
-            tags=rng.sample([t[0] for t in catalog.TAGS], rng.integer(0, 3)),
             checklist=[
                 {"label": item, "done": rng.chance(0.5)}
                 for item in rng.sample(
@@ -351,7 +348,6 @@ def _tickets(world: World) -> None:
                 sla_breached=bool(breached),
                 reopen_count=rng.weighted(((0, 0.82), (1, 0.12), (2, 0.05), (3, 0.01))),
                 satisfaction=rng.maybe(rng.integer(1, 5), 0.45) if resolved else None,
-                tags=rng.sample([t[0] for t in catalog.TAGS], rng.integer(0, 3)),
                 created_at=created,
             )
         )
@@ -482,7 +478,6 @@ def _devices(world: World) -> None:
                 uptime_hours=rng.integer(0, 26_000),
                 error_count=rng.weighted(((0, 0.55), (rng.integer(1, 9), 0.3), (rng.integer(10, 400), 0.15))),
                 warranty_until=rng.maybe(rng.ahead(days_min=1, days_max=1_400), 0.8),
-                tags=rng.sample([t[0] for t in catalog.TAGS], rng.integer(0, 2)),
                 created_at=rng.ago(days_min=20, days_max=1_500),
                 metadata_json={"firmware_channel": rng.pick(("stable", "beta"))},
             )

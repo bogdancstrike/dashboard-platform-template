@@ -224,6 +224,28 @@ place. Which datasets can be mapped, and how each reaches a place, is the
 no city is placed one hop away, at its customer's. Country outlines are
 vendored (`frontend/src/assets/README.md`) because the stack runs offline.
 
+### Tags, and one store for one fact
+
+A tag is the only classification a reader invents; everything else — status,
+priority, health — is a closed vocabulary declared in code, because a filter
+menu built from free text has four spellings of "urgent" in it. `/admin/tags`
+is where the vocabulary is curated, and every record page carries a picker.
+
+The design decision worth knowing: **`tag_links` is the truth and each entity's
+`tags` array is a derived cache with exactly one writer.** Both existed before
+the feature and nothing kept them in step — 44 tagged tasks against 28 tag
+links, with the seed writing each from its own draw. The links win because they
+carry who assigned a tag and when, they cascade when a tag is deleted, and a
+tag *renamed* does not leave stale strings on a thousand records. The array
+stays because it is what lets a list filter and draw tags without a join;
+`services/tags._resync` is its only writer, `python -m src.seed --sync-tags`
+repairs it, and `--check` fails when the two disagree.
+
+Applying a tag needs `records.update` and is audited on the record. Curating
+the vocabulary needs `tags.manage`, because a rename changes what every record
+carrying the tag says. A tag that is not in the vocabulary is refused rather
+than created: a typo would otherwise become a permanent member of it.
+
 ### Two records side by side
 
 `/compare?type=order&ids=…` puts two to five records in columns and marks the

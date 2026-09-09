@@ -151,7 +151,6 @@ def _files(world: World) -> None:
                     "Figures are provisional until the reconciliation completes."
                     if kind in ("DOCUMENT", "DATA", "LOG") else None
                 ),
-                tags=rng.sample([t[0] for t in catalog.TAGS], rng.integer(0, 3)),
                 created_at=created,
                 metadata_json={"source": rng.pick(("upload", "import", "generated"))},
             )
@@ -513,6 +512,13 @@ def _tag_links(world: World) -> None:
 
     The counter exists so the tag manager can sort by popularity without a
     `count(*)` per row, which makes it worth exactly as much as its accuracy.
+
+    **The only writer of a tag fact in the seed.** The entity generators used
+    to fill each record's `tags` array *as well*, from an independent draw —
+    two writers producing two unrelated answers, which is how 44 tagged tasks
+    and 28 tag links came to disagree. `services/tags` treats the links as the
+    truth and the array as a derived cache; `runner.sync_tags` derives it after
+    the seed, and `--check` asserts the two agree.
     """
     from src.models.content import TagLink
 

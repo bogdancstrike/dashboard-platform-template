@@ -84,7 +84,21 @@ export const currentUser = {
   department: { id: "dep-1", name: "Operations", code: "OPS" },
   team: { id: "team-1", name: "Team Atlas", slug: "atlas" },
   groups: [],
-  permissions: ["admin.access", "records.view", "users.view", "health.view"],
+  // `records.update` and `tags.manage` because the fixture's administrator is
+  // the account every component test signs in as, and applying a tag needs the
+  // first while curating the vocabulary needs the second — a fixture whose
+  // administrator cannot do what the real one can makes every control appear
+  // disabled and every test assert the refusal instead of the feature.
+  //
+  // `records.delete` is deliberately *absent*: `AuthProvider.test` uses it as
+  // its "a permission this profile lacks" case, and a check that answers yes
+  // to everything is not a check. Nothing needs it here — the delete controls
+  // read `can_delete` off the dataset declaration, which is the server's own
+  // answer for this caller.
+  permissions: [
+    "admin.access", "records.view", "records.update",
+    "users.view", "health.view", "tags.manage",
+  ],
   preferences: {
     appearance: {
       theme: "system" as const,
@@ -1489,6 +1503,31 @@ export function userPage(items = userRows) {
  * nothing: the kind counts are over the *whole* match and do not move when a
  * kind is chosen, and every kind is present even at zero.
  */
+/**
+ * The tag vocabulary: one used, one on nothing, one system-owned.
+ *
+ * Three because the manager draws them differently — the used one's count is a
+ * link, the unused one says "nothing", and the system one cannot be renamed or
+ * removed.
+ */
+export const tagVocabulary = [
+  {
+    id: "tag-1", name: "urgent", slug: "urgent", color: "#dc2626",
+    description: "Needs attention today.", category: "PRIORITY" as const,
+    usage_count: 9, is_system: true,
+  },
+  {
+    id: "tag-2", name: "documentation", slug: "documentation", color: "#059669",
+    description: "Wants writing up.", category: "GENERAL" as const,
+    usage_count: 8, is_system: false,
+  },
+  {
+    id: "tag-3", name: "compliance", slug: "compliance", color: "#be123c",
+    description: "", category: "GOVERNANCE" as const,
+    usage_count: 0, is_system: false,
+  },
+];
+
 export const activityEntries = [
   {
     id: "activity-1",
@@ -4855,6 +4894,69 @@ export const handlers = [
     if (index >= 0) announcements.splice(index, 1);
     return echo(request, { id: params["id"], deleted: true });
   }),
+  // ── tags (§37) ───────────────────────────────────────────────────────
+  //
+  // A used tag, an unused one and a system one — the three rows the manager
+  // draws differently. A fixture of interchangeable tags would leave the
+  // "on nothing" branch and the system refusals untested.
+  http.get("/platform/tags", ({ request }) =>
+    echo(request, {
+      items: tagVocabulary,
+      total: tagVocabulary.length,
+      categories: [
+        { value: "GENERAL", count: 1 },
+        { value: "PRIORITY", count: 1 },
+        { value: "GOVERNANCE", count: 1 },
+      ],
+      can_manage: currentUser.permissions.includes("tags.manage"),
+      limit_per_record: 12,
+      taggable: ["customer", "device", "order", "project", "task", "ticket"],
+    }),
+  ),
+  http.post("/platform/tags", async ({ request }) => {
+    const body = (await request.json()) as { name?: string };
+    return echo(request, {
+      id: "tag-new", name: String(body.name ?? "new"), slug: "new",
+      color: "#64748b", description: "", category: "GENERAL",
+      usage_count: 0, is_system: false,
+    });
+  }),
+  http.put("/platform/tags/:tagId", async ({ params, request }) => {
+    const body = (await request.json()) as { name?: string };
+    const found = tagVocabulary.find((tag) => tag.id === String(params["tagId"]));
+    return echo(request, { ...found, name: String(body.name ?? found?.name ?? "") });
+  }),
+  http.delete("/platform/tags/:tagId", ({ params, request }) => {
+    const found = tagVocabulary.find((tag) => tag.id === String(params["tagId"]));
+    return echo(request, {
+      id: String(params["tagId"]), deleted: true,
+      name: found?.name ?? "tag", records: found?.usage_count ?? 0,
+    });
+  }),
+  http.get("/platform/api/records/:resourceType/:recordId/tags", ({ params, request }) =>
+    echo(request, {
+      resource_type: String(params["resourceType"]),
+      resource_id: String(params["recordId"]),
+      items: [tagVocabulary[0]!],
+      can_apply: currentUser.permissions.includes("records.update"),
+      limit: 12,
+    }),
+  ),
+  http.put("/platform/api/records/:resourceType/:recordId/tags", async ({ params, request }) => {
+    const body = (await request.json()) as { tags?: string[] };
+    const names = new Set(body.tags ?? []);
+    return echo(request, {
+      resource_type: String(params["resourceType"]),
+      resource_id: String(params["recordId"]),
+      // Answers with what was *asked for*, so a test that saves two tags sees
+      // two — a handler returning a constant would let the picker send one
+      // thing and draw another and pass.
+      items: tagVocabulary.filter((tag) => names.has(tag.name)),
+      can_apply: true,
+      limit: 12,
+    });
+  }),
+
   // ── comparison (§47) ─────────────────────────────────────────────────
   //
   // Answers about the ids it is *given*, with one field agreeing and one

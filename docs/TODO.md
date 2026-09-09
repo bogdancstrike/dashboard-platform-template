@@ -1700,6 +1700,94 @@ commit — built, committed, pushed, redeployed and verified before the next.
       and lets the label take the click, which `NotificationsPage.test` had
       already documented
 
+- [x] **`/admin/tags` — one shared vocabulary, applied to anything** (§37)
+  - A tag is the only classification a *reader* invents. Everything else this
+      platform uses to describe a record — status, priority, health, category —
+      is a closed vocabulary declared in code, because a filter menu built from
+      free text has four spellings of "urgent" in it. Tags are the deliberate
+      exception, and the price of the exception is that somebody curates them
+  - **Two stores for one fact, again.** The `tags` array column and the
+      `tag_links` table both existed and nothing kept them in step: 44 tasks
+      carried an array, 28 had links, and the seed wrote each from its own
+      independent draw. `--check` measured it at **147 records across five
+      datasets**. That is the favourites defect in a different table, found the
+      same way — by building the page that reads the data
+  - **The links win, and the array becomes a derived cache with one writer.**
+      The links carry who assigned a tag and when, they cascade when a tag is
+      deleted, and a tag *renamed* does not leave stale strings on a thousand
+      records. The array stays because it is what makes a list filterable
+      without a join — written only by `tags._resync`, repaired by
+      `--sync-tags`, and asserted by `--check`. That is the pattern
+      `Tag.usage_count` and `Project.task_count` already use: a derived column
+      is a decision while something asserts it, and two stores otherwise
+  - **The seed's second writer is gone.** The entity generators filled the
+      array from their own draw; `_tag_links` is now the only writer of a tag
+      fact and `runner.run` derives the array before it returns, so a fresh
+      seed is consistent by construction rather than by a caller remembering
+  - **Orders could not be tagged, for no reason at all.** The other five entity
+      tables had the column and this one did not, so a shared vocabulary
+      stopped at the ledger. `--sync-schema` added it; a test asserts every
+      dataset in the catalogue can carry tags
+  - **A record's tags are set as a whole set**, never added one at a time: two
+      people editing the same record with add/remove calls interleave into a
+      set neither of them chose, and each sees their own change land and the
+      other's vanish
+  - **A tag that does not exist is refused, not created.** A typo would
+      otherwise become a permanent member of a shared vocabulary, which is
+      exactly what having a vocabulary prevents. The picker offers the
+      vocabulary and points at the manager
+  - **Applying a tag is an edit; curating the vocabulary is governance.**
+      `records.update` for the first — audited on the *record*, beside every
+      other edit — and a new `tags.manage` for the second, because a rename
+      changes what every record carrying the tag says. Granted to
+      administrator and manager; an operator may tag all day and owns nothing
+  - **A system tag can be recoloured and described but not renamed or
+      removed**, in the form as well as by the server: its name is quoted by
+      automations, saved searches and reports
+  - **Every count is a link and every delete says its consequence.** "urgent ·
+      9 records" opens the nine through the list's own `tags__contains` filter,
+      and "remove urgent" tells you it comes off nine records before you decide
+  - **`tags` is searchable**, so typing a tag name into a list's search box
+      finds the records carrying it — which is what anybody would expect
+  - 17 backend tests, 14 component tests, 6 Playwright
+
+- [x] **And a security control that locked people out** (§41, §34)
+  - `/settings/security`'s "sign out this device" marks the `UserSession` row
+      revoked and every token carrying that `sid` is refused afterwards, which
+      is the point. But `sid` identifies Keycloak's **SSO session**, and a
+      browser holding the SSO cookie *cannot get a different one*: a reload
+      re-authenticates silently into the same session, and `prompt=login` asks
+      for credentials again and still reuses it — verified against the running
+      Keycloak, where `session_state` was unchanged across a forced login
+  - So a reader who had been signed out was refused, sent to the
+      session-expired page, pressed the only button on it, and was refused
+      again — **locked out of a platform they had just authenticated to**, with
+      no way back but clearing cookies
+  - **Worse: the page that exists for that state was unreachable in it.** Its
+      own boot calls `/api/me`, which is refused for the same reason, so the
+      guard re-authenticated and landed on the same address again — and again.
+      An end-to-end run found it bouncing between two copies of one URL until
+      it timed out
+  - Three fixes, each small and each necessary: the guard does nothing when it
+      is *already on* that page; "Sign in again" ends the identity provider's
+      session (`logout`) so the next sign-in carries an id no revocation names;
+      and the address the reader was going to is remembered, because being
+      signed out is not a reason to lose your place
+  - **And the guard treated concurrency as a loop.** A page issues six requests
+      at once; when the token has expired all six ask to re-authenticate, and
+      the second one read the stamp the first had just written and declared a
+      loop. A loop is two attempts separated by a *page load* — a module flag
+      that dies with the document is what distinguishes them
+  - The fuller answer is for revocation to end the Keycloak session too: a
+      session the API considers dead and the identity provider considers live is
+      two answers to one question. That needs an administrative credential the
+      API does not have, and shipping one in a template's environment is its own
+      decision — recorded here rather than done quietly
+  - Found because `security.spec` revokes the *operator's* browser session, so
+      every later spec signing that persona in pays a real re-authentication.
+      The suite now recovers the way a person does, which makes the recovery
+      path tested rather than merely present
+
 - [x] **`/compare` — two or more records side by side** (§47)
   - The question is "what is actually different about these", and it is asked
       most often about records somebody suspects are the same thing twice — two
@@ -2825,7 +2913,7 @@ told a reader that something is missing and not what.
 | 34 | Error and empty states | `/errors/*` | — | [x] |
 | 35 | Activity feed | `/activity`, `/profile` | `/api/activity` | [x] |
 | 36 | Comments | `/tasks/:id`, `/tickets/:id` | `/api/comments` | [~] |
-| 37 | Tags and labels | `/admin/tags` + inline | `/tags` | [ ] |
+| 37 | Tags and labels | `/admin/tags` | `/tags` | [x] |
 | 38 | Favorites | `/favorites` | `/favorites` | [x] |
 | 39 | Recent items | `/favorites` | `/recents` | [x] |
 | 40 | Personal preferences | `/settings/preferences`, `/profile` | `/api/me` | [x] |
@@ -2867,7 +2955,7 @@ told a reader that something is missing and not what.
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*59 shipped · 16 partly there · 2 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*60 shipped · 16 partly there · 1 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
@@ -2882,8 +2970,6 @@ Every section above that is not shipped, with the part that is open. A catalogue
 **§18 Tasks / work queue (kanban)** — Partly there. Boards, lanes and cards with full CRUD, server-side filters, drag between lanes reconciled against the server, and a keyboard equivalent of the drag. Ordering *within* a lane and the comment and checklist counts on a card's face are open.
 
 **§36 Comments** — Partly there. Mentions, one level of replies and the audit timeline beside them, on the two record pages where a conversation actually happens. The other four entity detail pages do not carry it yet.
-
-**§37 Tags and labels** — Not built. Not built. The `tags` table and the polymorphic join exist in the model; no page reads them.
 
 **§44 Drill-down** — Partly there. Every KPI tile, chart segment and quality finding opens the rows behind it with the same filters applied. The back-stack that would return a reader to the picture they came from is open.
 

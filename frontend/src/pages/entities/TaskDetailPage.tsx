@@ -52,6 +52,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
 import { CommentThread } from "@/components/comments/CommentThread";
 import { PageHeader } from "@/components/PageHeader";
+import { TagPicker } from "@/components/records/TagPicker";
 import { PeoplePicker } from "@/components/PeoplePicker";
 import { useRecordPage } from "@/components/records/useRecordPage";
 import { StatusTag } from "@/components/StatusTag";
@@ -150,6 +151,7 @@ export default function TaskDetailPage() {
 
       <Row gutter={[12, 12]}>
         <Col xs={24} xl={16}>
+          <TagPicker resourceType="task" recordId={id} listPath="/tasks" />
           <Card size="small" title="Description" className="nu-block">
             <Paragraph className="nu-record-prose">
               {asText(page.value("description")) || "No description was given."}

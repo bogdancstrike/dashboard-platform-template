@@ -161,6 +161,25 @@ describe("the page", () => {
     );
   });
 
+  it("hands 'Sign in again' to the caller rather than reloading", async () => {
+    /**
+     * A reload is the wrong action and it took a lockout to find out.
+     *
+     * `UserSession` revocation is keyed on the identity provider's session id.
+     * A browser that still holds the SSO cookie reloads straight back into the
+     * same session, gets the same id, and is refused again — so the only
+     * button on the page does nothing and the reader cannot get in without
+     * clearing cookies. The route passes `keycloak.signInAgain`, which forces
+     * a fresh authentication.
+     */
+    const user = userEvent.setup();
+    const signIn = vi.fn();
+    show("session_expired", { onSignIn: signIn });
+
+    await user.click(screen.getByTestId("problem-signin"));
+    expect(signIn).toHaveBeenCalledTimes(1);
+  });
+
   it("uses a plain anchor when it renders outside the router", () => {
     // The boot screen renders before `BrowserRouter` exists, and a `Link`
     // there throws while trying to explain why something else threw.

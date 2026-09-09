@@ -10,6 +10,7 @@
     python -m src.seed --sync-imports     # make every seeded import run describe a real file
     python -m src.seed --sync-sessions    # one current session per person, and only a live one
     python -m src.seed --sync-favorites   # move the old per-row is_favorite flags into one store
+    python -m src.seed --sync-tags        # make each record's tags array agree with its links
     python -m src.seed --sync-roles       # give built-in roles new permissions
     python -m src.seed --sync-reports     # make unrunnable saved reports runnable
     python -m src.seed --sync-automations # make unrunnable automations runnable
@@ -64,6 +65,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-favorites", action="store_true",
         help="move the old per-row is_favorite flags into the one favourites store",
+    )
+    parser.add_argument(
+        "--sync-tags", action="store_true",
+        help="make each record's tags array agree with its tag links",
     )
     parser.add_argument(
         "--sync-sessions", action="store_true",
@@ -189,6 +194,21 @@ def main(argv: list[str] | None = None) -> int:
         print(
             f"{result['moved']} star(s) moved into favourites, "
             f"{result['already_bookmarked']} already there"
+        )
+        return 0
+
+    if args.sync_tags:
+        # The array is a *derived* cache of `tag_links` with one writer. This
+        # brings a database that predates that rule into line: it rewrites the
+        # array wherever there are links and clears it wherever there are not,
+        # because a string left behind after its link went is the stale value
+        # the single-writer rule exists to prevent. Idempotent.
+        with session_scope() as session:
+            result = runner.sync_tags(session)
+        print(
+            f"{result['rewritten']} record(s) rewritten from their links, "
+            f"{result['cleared']} stale array(s) cleared, "
+            f"{result['recounted']} usage count(s) corrected"
         )
         return 0
 

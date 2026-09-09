@@ -71,6 +71,7 @@ export const LAYOUTS: PageLayout[] = [
       "admin/api",
       "admin/integrations",
       "admin/flags",
+      "admin/tags",
       "favorites",
     ],
   },

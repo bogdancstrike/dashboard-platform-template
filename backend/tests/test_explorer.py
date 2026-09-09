@@ -397,7 +397,11 @@ def test_the_result_echoes_what_was_searched_for_so_matches_can_be_marked(client
 
     body = response.get_json()
     assert body["query_text"] == "audit"
-    assert set(body["searchable"]) == {"reference", "title", "description"}
+    # `tags` joined them when the vocabulary shipped (§37): typing a tag name
+    # into a list's search box finding the records carrying it is what anybody
+    # would expect, and the array column is cast to text for the same `ilike`
+    # every other searchable field uses.
+    assert set(body["searchable"]) == {"reference", "title", "description", "tags"}
     assert body["total"] > 0
 
 
@@ -768,7 +772,18 @@ def test_relationships_are_derived_from_the_schema_not_a_second_list(client, mon
 
     headers = _authenticate(monkeypatch)
     with session_scope() as session:
-        customer = session.scalars(select(Customer).limit(1)).one()
+        # A *live* one, and ordered. `limit(1)` on its own returns whichever row
+        # PostgreSQL reaches first, which moves whenever anything updates the
+        # table — a `--sync-tags` run was enough — and eventually returns a
+        # soft-deleted customer the endpoint correctly refuses. A test that
+        # passes on incidental physical ordering is a test that fails for a
+        # reason unrelated to what it asserts.
+        customer = session.scalars(
+            select(Customer)
+            .where(Customer.deleted_at.is_(None))
+            .order_by(Customer.created_at.asc())
+            .limit(1)
+        ).one()
         customer_id = str(customer.id)
 
     response = client.get(f"{PREFIX}/api/relationships/customer/{customer_id}", headers=headers)
@@ -799,7 +814,11 @@ def test_an_inbound_relation_is_counted_in_full_and_sampled(client, monkeypatch)
     headers = _authenticate(monkeypatch)
     with session_scope() as session:
         project_id = session.scalars(
-            select(Task.project_id).where(Task.project_id.is_not(None)).limit(1)
+            # Live and ordered, for the reason above.
+            select(Task.project_id)
+            .where(Task.project_id.is_not(None), Task.deleted_at.is_(None))
+            .order_by(Task.created_at.asc())
+            .limit(1)
         ).one()
         expected = session.scalar(
             select(func.count()).select_from(Task).where(

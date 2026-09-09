@@ -54,6 +54,11 @@ PERMISSION_GROUPS: dict[str, list[tuple[str, str]]] = {
         ("records.export", "Export records"),
         ("records.import", "Import records"),
         ("records.bulk", "Run bulk operations"),
+        # *Applying* a tag is editing a record, so it needs `records.update`
+        # and nothing more. This is the vocabulary: creating, renaming,
+        # recolouring and removing a tag changes what every record carrying it
+        # says, which is a governance act rather than an edit (§37).
+        ("tags.manage", "Manage the tag vocabulary"),
     ],
     "Administration": [
         ("admin.access", "Open the administration area"),
@@ -127,7 +132,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
         "color": "#7c3aed",
         "permissions": [
             "records.view", "records.create", "records.update", "records.export",
-            "records.comment", "records.import", "records.bulk",
+            "records.comment", "records.import", "records.bulk", "tags.manage",
             "users.view", "users.manage", "announcements.manage",
             "automations.manage",
             "jobs.view", "jobs.manage", "audit.view", "health.view", "logs.view",
