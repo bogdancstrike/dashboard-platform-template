@@ -2794,9 +2794,33 @@ function is a slow test that fails for unrelated reasons.
 - [ ] **Every endpoint** has an integration test covering five cases: happy
       path, validation failure, 401 without a token, 403 with the wrong role,
       404 for a missing id
-- [ ] `core/query.py` — one unit test per operator per field kind, plus the
+- [x] `core/query.py` — one unit test per operator per field kind, plus the
       subtle ones: "excluding a value must not exclude rows that have none",
       "empty means empty *or* absent", case-insensitive text equality
+  - 111 tests against a real PostgreSQL, on a scratch table of one column per
+      kind whose four rows are the ones that make the subtle cases visible: a
+      NULL, an empty string, an empty array, and two spellings of one name.
+      Real, because the claims are about what *PostgreSQL* does with NULL and
+      with `lower()` — an assertion against a compiled string would only prove
+      the module agrees with itself
+  - **The matrix found a defect on its first run.** `json` and `array` columns
+      are compared as their rendered text, an empty array renders as `{}`, and
+      `_blank` tested the *length* of that — so "records with no tags" (§37)
+      answered only the rows whose column was NULL and quietly missed every
+      row holding an empty array. An empty collection is an absence; it is one
+      now
+  - **And the suite's own cleanup now restores what it invalidates.** A test
+      that tags a seeded record leaves the `tag_links` row for the sweep and
+      `tags.usage_count` incremented on a row seeded months ago, which the
+      sweep is not allowed to delete — so `--check` reported "1 tags disagree
+      with their links" after every backend run against the demo database, and
+      the fix was a repair somebody had to remember. Deleting a row is not the
+      whole undo when something else caches a count of it
+  - `count_of` strips the LIMIT rather than assuming the caller has not
+      applied one. Every caller today counts before paging, so the docstring's
+      promise held by convention — and a promise held by convention is one the
+      next caller breaks in the quietest way available: a footer reading
+      "1–25 of 25" for a filtered set of four thousand
 - [ ] `core/rules.py` — tree → SQL and tree → text asserted to describe the same
       thing (§51); depth and rule-count limits enforced; a half-built rule is
       skipped rather than blanking the result set
@@ -2805,8 +2829,26 @@ function is a slow test that fails for unrelated reasons.
       from the database rather than the token
 - [ ] `core/audit.py` — the diff, redaction of secret-shaped keys, and that an
       audit row rolls back with the change it describes
-- [ ] `core/pagination.py` — page envelope, keyset cursor round-trip, and that a
-      malformed cursor is a 400 not a 500
+- [x] `core/pagination.py` — page envelope, the refusals, and that a malformed
+      identifier is a 400 not a 500
+  - 21 tests: the defaults, the derived offset, a page below one clamped and a
+      page size outside the range *refused* (a client asking for 100 000 rows
+      is asking for something it will not get, and silently giving it 200 while
+      its own footer says otherwise is worse than saying no), the envelope's
+      arithmetic including "0 rows is one page, not zero", and `parse_uuid`,
+      whose whole job is turning `invalid input syntax for type uuid` from a
+      500 into a 400 that names the field
+  - **The keyset cursor is gone rather than tested.** `encode_cursor` and
+      `decode_cursor` were a base64 JSON token with **no caller**: the two
+      things that actually scroll do it differently and for good reasons — the
+      Data Explorer's "load more" accumulates *pages* of one question so a
+      reader who scrolls and then narrows is never shown two answers at once,
+      and the log tail keys on a **line id**, because two lines can share a
+      millisecond and a timestamp cursor either repeats them or drops them.
+      Dead code with a docstring promising a strategy nothing uses is worse
+      than the absence of both
+  - `PAGE_SIZE_CHOICES` was declared here and duplicated inline in
+      `services/saved_searches`; the service reads the constant now
 - [x] Seed — determinism, referential consistency, volume targets
 - **Acceptance**: `pytest` green in both modes; no endpoint ships without its
   five-case test
@@ -3988,7 +4030,10 @@ there was only one. The point of a template is the opposite.
 - [x] `wsgi.py` / `main.py` / `gunicorn.conf.py`
 - [x] `core/db.py` — engine, `session_scope`
 - [x] `core/errors.py` — domain error taxonomy + Flask/RESTX handlers
-- [x] `core/pagination.py` — page/size envelope + keyset cursor (§52)
+- [x] `core/pagination.py` — page/size envelope, and the refusals a list
+      endpoint needs (§52). The keyset-cursor half was removed once nothing
+      had adopted it in the life of the project: "load more" accumulates pages
+      and the log tail keys on a line id
 - [x] `core/query.py` — declarative FieldSet filter/sort/search/facets (§71)
 - [x] `core/rules.py` — RAQB tree → SQLAlchemy, and → readable text (§4, §51)
 - [x] `core/cache.py` — Redis helpers, degrading to a miss when unreachable

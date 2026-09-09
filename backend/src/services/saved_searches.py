@@ -15,7 +15,7 @@ from sqlalchemy.orm import selectinload
 from src.core import audit, sharing
 from src.core.clock import iso, now
 from src.core.errors import NotFoundError, ValidationError
-from src.core.pagination import parse_uuid
+from src.core.pagination import PAGE_SIZE_CHOICES, parse_uuid
 from src.core.rules import compile_tree, describe_tree, rule_count
 from src.models.personal import SavedSearch
 from src.services import favorites
@@ -334,8 +334,12 @@ def _validated(
         page_size = int(page_size)
     except (TypeError, ValueError) as exc:
         raise ValidationError("page_size must be an integer") from exc
-    if page_size not in (10, 25, 50, 100, 200):
-        raise ValidationError("page_size must be 10, 25, 50, 100 or 200")
+    # The pager's own set rather than a second copy of it: a saved view's page
+    # size has to be a value the pager can show as selected.
+    if page_size not in PAGE_SIZE_CHOICES:
+        raise ValidationError(
+            "page_size must be " + ", ".join(str(size) for size in PAGE_SIZE_CHOICES)
+        )
     if not partial or "page_size" in payload:
         out["page_size"] = page_size
 

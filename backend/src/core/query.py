@@ -287,10 +287,31 @@ def canonical_operator(raw: str) -> str:
     return key
 
 
+#: How PostgreSQL renders an *empty* collection when a JSON or array column is
+#: cast to text. An absence, not a value: "records with no tags" has to find
+#: the record whose tags are `{}` as well as the one whose tags are NULL.
+_EMPTY_RENDERINGS = ("{}", "[]", "null")
+
+
 def _blank(column, kind: str):
     """"Empty" means empty *or* absent: a NULL description and an empty-string
-    description are the same absence to whoever is asking."""
-    if kind in ("text", "json", "array"):
+    description are the same absence to whoever is asking.
+
+    And an empty *collection* is the same absence again. `json` and `array`
+    columns are compared as their rendered text, and an empty array renders as
+    `{}` — two characters, so a length test alone called it a value and
+    "records with no tags" quietly answered only the ones whose column was
+    NULL. Found by the operator matrix in `tests/test_query.py`, which is the
+    first thing to ask every operator about every kind.
+    """
+    if kind in ("json", "array"):
+        rendered = func.trim(cast(column, String))
+        return or_(
+            column.is_(None),
+            func.length(rendered) == 0,
+            rendered.in_(_EMPTY_RENDERINGS),
+        )
+    if kind == "text":
         return or_(column.is_(None), func.length(func.trim(cast(column, String))) == 0)
     return column.is_(None)
 
@@ -503,8 +524,17 @@ def apply_sort(stmt: Select, page, spec: FieldSet, *, default: str) -> Select:
 
 
 def count_of(session, stmt: Select) -> int:
-    """Total matching rows, without the LIMIT/OFFSET of the page itself."""
-    return session.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    """Total matching rows, without the LIMIT/OFFSET of the page itself.
+
+    The limit is *stripped* rather than assumed absent. Every caller today
+    counts before paging, so the promise held by convention — and a promise
+    held by convention is one the next caller breaks, in the quietest way
+    available: a footer reading "1–25 of 25" for a filtered set of four
+    thousand.
+    """
+    return session.scalar(
+        select(func.count()).select_from(stmt.limit(None).offset(None).subquery())
+    ) or 0
 
 
 def facets_for(session, stmt: Select, spec: FieldSet, *, limit: int = 50) -> dict[str, list[dict]]:

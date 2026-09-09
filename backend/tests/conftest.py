@@ -268,6 +268,27 @@ def _remove_what_the_test_created(request, has_database):
             connection.execute(
                 text(f'DELETE FROM "{table}" WHERE "{column}" > :since'), {"since": started}
             )
+        # And the derived counts those deletions invalidate.
+        #
+        # Deleting a row is not the whole undo when something *else* caches a
+        # count of it: a test that tags a seeded record leaves `tag_links`
+        # behind for the sweep and `tags.usage_count` incremented on a row
+        # seeded months ago, which nothing here is allowed to delete. So
+        # `--check` reported "1 tags disagree with their links" after every
+        # backend run against the demo database, and the fix was a repair
+        # somebody had to remember to run.
+        #
+        # Recomputed rather than decremented, for the same reason the service
+        # recomputes: a derived column has one truth and it is the links.
+        connection.execute(
+            text(
+                'UPDATE "tags" SET usage_count = ('
+                '  SELECT count(*) FROM "tag_links" WHERE "tag_links".tag_id = "tags".id'
+                ') WHERE usage_count <> ('
+                '  SELECT count(*) FROM "tag_links" WHERE "tag_links".tag_id = "tags".id'
+                ')'
+            )
+        )
 
 
 #: The five seeded personas, by the names the realm and the seed give them.
