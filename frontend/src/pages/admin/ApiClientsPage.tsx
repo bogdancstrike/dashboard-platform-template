@@ -72,6 +72,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { formatNumber } from "@/lib/formats";
+import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 
 const { Text, Paragraph } = Typography;
 
@@ -134,6 +135,10 @@ export default function ApiClientsPage() {
   // nowhere else.
   const [minted, setMinted] = useState<(Minted & { about: string }) | null>(null);
   const [form] = Form.useForm();
+  const { touch, settled, requestClose } = useDiscardGuard({
+    close: () => setCreating(false),
+    what: "client",
+  });
 
   const set = (changes: Record<string, string | null>) =>
     setParams(
@@ -181,6 +186,7 @@ export default function ApiClientsPage() {
   const create = useMutation({
     mutationFn: (body: { name: string; scopes?: string[] }) => apiClientsApi.create(body),
     onSuccess: async (made) => {
+      settled();
       setCreating(false);
       form.resetFields();
       // Straight into the modal, before anything else can take the focus.
@@ -440,7 +446,7 @@ export default function ApiClientsPage() {
 
       <Modal
         open={creating}
-        onCancel={() => setCreating(false)}
+        onCancel={requestClose}
         title="Register an API client"
         okText="Register it"
         confirmLoading={create.isPending}
@@ -454,7 +460,7 @@ export default function ApiClientsPage() {
         }}
         okButtonProps={{ "data-testid": "create-client" }}
       >
-        <Form form={form} layout="vertical" data-testid="client-form">
+        <Form form={form} layout="vertical" data-testid="client-form" onValuesChange={touch}>
           <Alert
             type="warning"
             showIcon

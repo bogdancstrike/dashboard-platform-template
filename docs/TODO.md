@@ -3188,6 +3188,35 @@ function is a slow test that fails for unrelated reasons.
       intact (a guard that discarded on either button would be worse than
       none), "Discard" writes nothing, and a close with nothing typed asks
       nothing — a guard on every close teaches people to dismiss guards
+  - **And then on the other eighteen.** The record drawer was the only guarded
+      layer in the platform; nineteen drawers and modals hold forms, and the
+      rest threw away what was typed on a stray `Esc` or a click outside —
+      including the *mail composer*, which is prose. `hooks/useDiscardGuard.ts`
+      is the question asked once, and sixteen layers use it: the composer, the
+      announcement editor, the event editor, both wizards, the saved-search and
+      save-analysis dialogs, the role, board, group, client, flag, department
+      and tag forms, and the dashboard's widget and settings drawers
+  - **Three do not guard, on purpose, and say why**: `NameModal` (one field,
+      and the field *is* the thing being named — a confirmation over eight
+      characters is the guard that teaches people to dismiss guards), the bulk
+      dialog (the selection lives on the page and survives the close; what the
+      dialog holds is one field and one value, previewed before anything is
+      applied) and the export drawer (its choices live on the page, so
+      reopening shows exactly the same ones — asking would be theatre)
+  - `showcase/guards.ts` declares all nineteen with a reason either way, and
+      `guards.test.ts` reads the sources: every form-in-a-layer is classified,
+      every guarded one really uses the hook *and* arms it, **every close path
+      goes through it** — a dialog that guards `onCancel` and leaves the
+      drawer's own X on `onClose` is guarding the button nobody presses, which
+      is how three of these were written the first time — and the sentence
+      "Discard your changes?" exists in exactly one module, so the copies
+      cannot drift apart
+  - One flake fixed on the way: `ApiClientsPage.test.tsx` drives a
+      deliberately three-dialog-deep secret flow twice and takes ten seconds
+      alone, which crossed the suite's twenty under the full run's parallelism
+      and read as a broken dialog. Its timeout is raised with that reason
+      written down; shortening the flow would mean making the product less
+      careful with a value that exists nowhere else
 - [x] **Deep link** (§69) — paste a filtered-table URL as another user, same
       view — `personas.spec`: a manager's filtered ticket queue, opened by a
       viewer, shows the same question and the same total. The state is in the
@@ -3294,12 +3323,12 @@ told a reader that something is missing and not what.
 | 71 | Server-side data model | — | — (`core/query.py`) | [x] |
 | 72 | Query state persistence | global | — | [x] |
 | 73 | Optimistic vs confirmed actions | board, forms | — | [~] |
-| 74 | Unsaved changes protection | every drawer | — | [~] |
+| 74 | Unsaved changes protection | every drawer | — | [x] |
 | 75 | Preview before bulk execution | every bulk action | `/api/records/{type}/bulk/preview` | [x] |
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*66 shipped · 11 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*67 shipped · 10 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
@@ -3322,8 +3351,6 @@ Every section above that is not shipped, with the part that is open. A catalogue
 **§64 Table row preview drawer** — Partly there. The explorer opens a row without leaving the list, deep-linked and keyboard-driven. The other lists send a reader to the record page instead, which for a ledger or a fleet is the better answer — the open part is the lists where it is not.
 
 **§73 Optimistic vs confirmed actions** — Partly there. A dragged card moves at once and is reconciled against the server's answer, and a stale edit is refused with a 409 naming both moments. Forms are all confirmed rather than optimistic, which is the right default and leaves the optimistic half unexercised outside the board.
-
-**§74 Unsaved changes protection** — Partly there. The record drawer asks before discarding. The inline controls that write on change need no guard, and the two builders do not have one.
 
 **§77 Final goal — coherent template** — Partly there. Open while anything above is, by construction: the section is the conjunction of the rest.
 

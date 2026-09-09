@@ -69,6 +69,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { usePageCommands } from "@/commands/CommandContext";
 import { formatNumber } from "@/lib/formats";
+import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 
 const { Text } = Typography;
 
@@ -128,6 +129,10 @@ export default function OrganizationsPage() {
   const { message } = AntApp.useApp();
   const [adding, setAdding] = useState<{ parentId: string | null } | null>(null);
   const [form] = Form.useForm();
+  const { touch, settled, requestClose } = useDiscardGuard({
+    close: () => setAdding(null),
+    what: "department",
+  });
 
   const chosen = params.get("org");
 
@@ -167,6 +172,7 @@ export default function OrganizationsPage() {
     mutationFn: (body: { name: string; code: string; parent_id?: string | null }) =>
       organizationsApi.addDepartment(opened!, body),
     onSuccess: async (created) => {
+      settled();
       message.success(`${created.name} added.`);
       setAdding(null);
       form.resetFields();
@@ -315,7 +321,7 @@ export default function OrganizationsPage() {
 
       <Modal
         open={adding !== null}
-        onCancel={() => setAdding(null)}
+        onCancel={requestClose}
         title={adding?.parentId ? "Add a sub-department" : "Add a department"}
         okText="Add it"
         confirmLoading={addDepartment.isPending}
@@ -332,7 +338,7 @@ export default function OrganizationsPage() {
         }}
         okButtonProps={{ "data-testid": "create-department" }}
       >
-        <Form form={form} layout="vertical" data-testid="department-form">
+        <Form form={form} layout="vertical" data-testid="department-form" onValuesChange={touch}>
           <Form.Item
             name="name"
             label="Name"

@@ -19,6 +19,7 @@ import { App as AntApp, Form, Input, Modal, Segmented, Typography } from "antd";
 
 import { ApiError } from "@/api/client";
 import { kanbanApi, type KanbanBoard } from "@/api/kanban";
+import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 
 const { Text } = Typography;
 
@@ -56,6 +57,13 @@ export function NewBoardModal({
   onCreated: (board: KanbanBoard) => void;
 }) {
   const [form] = Form.useForm<FormValues>();
+  const { touch, settled, requestClose } = useDiscardGuard({
+    close: () => {
+      form.resetFields();
+      onClose();
+    },
+    what: "board",
+  });
   const { message } = AntApp.useApp();
   // `useWatch` is typed as the field's type, but a field nobody has touched
   // holds nothing — hence the cast rather than a `??` the checker calls dead.
@@ -69,6 +77,7 @@ export function NewBoardModal({
         scope: values.scope,
       }),
     onSuccess: (board) => {
+      settled();
       message.success(`${board.name} is ready — ${board.lane_count} lanes to start with`);
       form.resetFields();
       onCreated(board);
@@ -85,10 +94,7 @@ export function NewBoardModal({
       title="New board"
       okText="Create the board"
       confirmLoading={create.isPending}
-      onCancel={() => {
-        form.resetFields();
-        onClose();
-      }}
+      onCancel={requestClose}
       onOk={() => void form.submit()}
       okButtonProps={{ "data-testid": "create-board" }}
     >
@@ -96,6 +102,7 @@ export function NewBoardModal({
         form={form}
         layout="vertical"
         requiredMark={false}
+        onValuesChange={touch}
         initialValues={{ scope: "PRIVATE" }}
         onFinish={(values) => create.mutate(values)}
       >

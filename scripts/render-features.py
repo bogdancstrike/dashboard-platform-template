@@ -220,11 +220,7 @@ CATALOGUE: list[dict[str, object]] = [
         "Forms are all confirmed rather than optimistic, which is the right "
         "default and leaves the optimistic half unexercised outside the board.",
     ),
-    feature(
-        74, "Unsaved changes protection", "every drawer", "—", "partial",
-        "The record drawer asks before discarding. The inline controls that "
-        "write on change need no guard, and the two builders do not have one.",
-    ),
+    feature(74, "Unsaved changes protection", "every drawer", "—", "done"),
     feature(75, "Preview before bulk execution", "every bulk action",
             "`/api/records/{type}/bulk/preview`", "done"),
     feature(76, "Security-conscious UX", "global", "— (`core/auth.py`)", "done"),

@@ -53,6 +53,7 @@ import {
   blankAction,
 } from "@/components/automations/ActionListEditor";
 import { RunReport } from "@/components/automations/RunReport";
+import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 
 const { Text } = Typography;
 
@@ -118,6 +119,15 @@ export function AutomationWizard({
   onCreated: (rule: AutomationRule) => void;
 }) {
   const [form] = Form.useForm<Details>();
+  // Several steps of choices, thrown away by a click outside the dialog — the
+  // clearest case for asking first (§74).
+  const { touch, settled, requestClose } = useDiscardGuard({
+    close: () => {
+      reset();
+      onClose();
+    },
+    what: "automation",
+  });
   const { message } = AntApp.useApp();
   const [step, setStep] = useState(0);
   const [details, setDetails] = useState<Details>({
@@ -163,6 +173,7 @@ export function AutomationWizard({
         enabled: false,
       }),
     onSuccess: async (rule) => {
+      settled();
       setCreated(rule);
       setStep(3);
       // Rehearsed immediately, because "what would this have done" is the
@@ -217,10 +228,7 @@ export function AutomationWizard({
       open={open}
       width={860}
       title="New automation"
-      onCancel={() => {
-        reset();
-        onClose();
-      }}
+      onCancel={requestClose}
       footer={
         <Space>
           {step > 0 && step < 3 && (
@@ -249,7 +257,13 @@ export function AutomationWizard({
       )}
 
       {step === 0 && (
-        <Form form={form} layout="vertical" initialValues={details} data-testid="wizard-details">
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={details}
+          onValuesChange={touch}
+          data-testid="wizard-details"
+        >
           <Form.Item
             name="name"
             label="What is it watching for?"

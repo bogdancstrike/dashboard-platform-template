@@ -87,6 +87,7 @@ import { WidgetGrid, compacted } from "@/components/dashboards/WidgetGrid";
 import { usePageCommands } from "@/commands/CommandContext";
 import { asText } from "@/lib/text";
 import { relativeTime } from "@/lib/time";
+import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 
 const { Text } = Typography;
 
@@ -597,6 +598,9 @@ function WidgetDrawer({
 }) {
   const [form] = Form.useForm();
   const [kind, setKind] = useState<WidgetKind>(widget?.kind ?? "KPI");
+  // A widget's question is several choices — a dataset, a dimension, a
+  // period — and closing the drawer would take them all (§74).
+  const { touch, requestClose } = useDiscardGuard({ close: onClose, what: "widget" });
 
   const catalogue = useQuery({
     queryKey: ["analysis-catalogue"],
@@ -639,7 +643,7 @@ function WidgetDrawer({
   return (
     <Drawer
       open={open}
-      onClose={onClose}
+      onClose={requestClose}
       width={420}
       destroyOnClose
       title={widget ? `Configure ${widget.title}` : "Add a widget"}
@@ -655,6 +659,7 @@ function WidgetDrawer({
         layout="vertical"
         initialValues={initial}
         onValuesChange={(changed: { kind?: WidgetKind }) => {
+          touch();
           if (changed.kind) setKind(changed.kind);
         }}
         onFinish={(values: Record<string, string>) => {
@@ -834,12 +839,13 @@ function SettingsDrawer({
   onDelete: () => void;
 }) {
   const [form] = Form.useForm();
+  const { touch, requestClose } = useDiscardGuard({ close: onClose, what: "dashboard" });
   if (!dashboard) return null;
 
   return (
     <Drawer
       open={open}
-      onClose={onClose}
+      onClose={requestClose}
       width={420}
       destroyOnClose
       title={`Settings — ${dashboard.name}`}
@@ -858,6 +864,7 @@ function SettingsDrawer({
       <Form
         form={form}
         layout="vertical"
+        onValuesChange={touch}
         initialValues={{
           name: dashboard.name,
           description: dashboard.description ?? "",

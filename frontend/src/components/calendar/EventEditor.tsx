@@ -43,6 +43,7 @@ import {
   type EventRecurrence,
 } from "@/api/calendar";
 import { ApiError } from "@/api/client";
+import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { MemberPicker } from "@/components/PeoplePicker";
 import { WEEKDAY_CODES } from "@/components/calendar/weekdays";
 
@@ -146,6 +147,10 @@ export function EventEditor({
 }) {
   const [form] = Form.useForm<FormValues>();
   const { message } = AntApp.useApp();
+  const { touch, settled, requestClose } = useDiscardGuard({
+    close: onClose,
+    what: "event",
+  });
   const repeat = Form.useWatch("repeat", form) as FormValues["repeat"] | undefined;
   const allDay = Form.useWatch("all_day", form) as boolean | undefined;
 
@@ -183,6 +188,7 @@ export function EventEditor({
     },
     onSuccess: (saved) => {
       message.success(event ? `${saved.title} updated` : `${saved.title} is in the calendar`);
+      settled();
       onSaved(saved);
     },
     onError: (error) =>
@@ -198,7 +204,7 @@ export function EventEditor({
       title={event ? "Edit event" : "New event"}
       okText={event ? "Save" : "Add it"}
       confirmLoading={save.isPending}
-      onCancel={onClose}
+      onCancel={requestClose}
       onOk={() => void form.submit()}
       okButtonProps={{ "data-testid": "save-event" }}
     >
@@ -217,6 +223,7 @@ export function EventEditor({
         form={form}
         layout="vertical"
         requiredMark={false}
+        onValuesChange={touch}
         onFinish={(values) => save.mutate(values)}
         data-testid="event-form"
       >

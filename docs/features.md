@@ -97,12 +97,12 @@ either way, because a catalogue has to be able to say "every entity list".
 | 71 | Server-side data model | — | — (`core/query.py`) | [x] |
 | 72 | Query state persistence | global | — | [x] |
 | 73 | Optimistic vs confirmed actions | board, forms | — | [~] |
-| 74 | Unsaved changes protection | every drawer | — | [~] |
+| 74 | Unsaved changes protection | every drawer | — | [x] |
 | 75 | Preview before bulk execution | every bulk action | `/api/records/{type}/bulk/preview` | [x] |
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*66 shipped · 11 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*67 shipped · 10 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
@@ -125,8 +125,6 @@ Every section above that is not shipped, with the part that is open. A catalogue
 **§64 Table row preview drawer** — Partly there. The explorer opens a row without leaving the list, deep-linked and keyboard-driven. The other lists send a reader to the record page instead, which for a ledger or a fleet is the better answer — the open part is the lists where it is not.
 
 **§73 Optimistic vs confirmed actions** — Partly there. A dragged card moves at once and is reconciled against the server's answer, and a stale edit is refused with a 409 naming both moments. Forms are all confirmed rather than optimistic, which is the right default and leaves the optimistic half unexercised outside the board.
-
-**§74 Unsaved changes protection** — Partly there. The record drawer asks before discarding. The inline controls that write on change need no guard, and the two builders do not have one.
 
 **§77 Final goal — coherent template** — Partly there. Open while anything above is, by construction: the section is the conjunction of the rest.
 

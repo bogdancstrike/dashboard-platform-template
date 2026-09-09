@@ -25,6 +25,7 @@ import { useEffect } from "react";
 
 import { MemberPicker } from "@/components/PeoplePicker";
 import type { ReportScope, SavedReport } from "@/api/reports";
+import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 
 const { Text } = Typography;
 
@@ -66,6 +67,10 @@ export function SaveAnalysisDialog({
   onSave,
 }: SaveAnalysisDialogProps) {
   const [form] = Form.useForm<SaveAnalysisValues>();
+  const { touch, settled, requestClose } = useDiscardGuard({
+    close: onClose,
+    what: "analysis",
+  });
   const { message } = AntApp.useApp();
 
   /**
@@ -93,7 +98,7 @@ export function SaveAnalysisDialog({
       title={existing ? `Save ${existing.name}` : `Save this ${noun}`}
       okText={existing ? "Save changes" : `Create ${noun}`}
       confirmLoading={saving}
-      onCancel={onClose}
+      onCancel={requestClose}
       okButtonProps={{
         disabled: Boolean(blocked),
         // The e2e and component suites press this by name; the test id keeps
@@ -115,7 +120,21 @@ export function SaveAnalysisDialog({
         </Text>
       )}
 
-      <Form form={form} layout="vertical" onFinish={onSave} requiredMark={false}>
+      settled();
+      <Form
+        form={form}
+        layout="vertical"
+        onValuesChange={touch}
+        onFinish={(values) => {
+          // The page owns the mutation, so the guard settles when the values
+          // leave the dialog: a failed save keeps the dialog open with the
+          // values still in it, and asking to discard them then would be
+          // asking about work that is still here.
+          settled();
+          onSave(values);
+        }}
+        requiredMark={false}
+      >
         <Form.Item
           name="name"
           label="Name"

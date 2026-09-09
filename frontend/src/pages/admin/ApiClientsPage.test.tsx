@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Route, Routes } from "react-router-dom";
 
 import ApiClientsPage, { credentialStory, stateTone } from "@/pages/admin/ApiClientsPage";
@@ -10,6 +10,19 @@ import { CommandProvider } from "@/commands/CommandContext";
 import { apiClientRows, currentUser, resetApiClients } from "@/test/handlers";
 import { server } from "@/test/server";
 import { renderWithProviders } from "@/test/render";
+
+/**
+ * Longer than the suite's twenty seconds, for a reason worth stating.
+ *
+ * The secret flow is *deliberately* three dialogs deep — a modal that cannot
+ * be dismissed by clicking away, a confirmation on top of it, and a mutation
+ * behind each — and two of the tests here drive the whole of it twice. Alone
+ * they take ten seconds; under the full suite's parallelism, on a machine also
+ * running the stack, they crossed twenty and failed as a timeout, which reads
+ * as a broken dialog rather than as a slow test. Shortening the flow would
+ * mean making the product less careful with a value that exists nowhere else.
+ */
+vi.setConfig({ testTimeout: 45_000 });
 
 /**
  * API clients and their credentials (§25).

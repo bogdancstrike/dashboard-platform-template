@@ -31,6 +31,7 @@ import { explorerApi, type SavedSearch, type SaveSearchInput } from "@/api/explo
 import type { Person } from "@/api/directory";
 import { useAuth } from "@/auth/AuthProvider";
 import { PeoplePicker } from "@/components/PeoplePicker";
+import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 
 const { Text } = Typography;
 
@@ -69,6 +70,10 @@ export function SavedSearchForm({
   onTransferred,
 }: SavedSearchFormProps) {
   const [form] = Form.useForm<FormValues>();
+  const { touch, settled, requestClose } = useDiscardGuard({
+    close: onClose,
+    what: "saved search",
+  });
   const { message } = App.useApp();
   const { can } = useAuth();
   const queryClient = useQueryClient();
@@ -126,6 +131,7 @@ export function SavedSearchForm({
         : explorerApi.createSaved(body);
     },
     onSuccess: async (saved) => {
+      settled();
       await invalidate();
       message.success(editing ? "Saved search updated" : "Search saved");
       onSaved(saved);
@@ -137,6 +143,7 @@ export function SavedSearchForm({
   const transfer = useMutation({
     mutationFn: (ownerId: string) => explorerApi.transferSaved(search!.id, ownerId),
     onSuccess: async (saved) => {
+      settled();
       await invalidate();
       message.success(`${saved.name} now belongs to ${saved.owner.name}`);
       onTransferred?.(saved);
@@ -151,11 +158,17 @@ export function SavedSearchForm({
       title={editing ? `Edit “${search?.name}”` : "Save this search"}
       okText={editing ? "Save changes" : "Save search"}
       confirmLoading={save.isPending}
-      onCancel={onClose}
+      onCancel={requestClose}
       onOk={() => form.validateFields().then((values) => save.mutate(values))}
       destroyOnHidden
     >
-      <Form form={form} layout="vertical" initialValues={initial} preserve={false}>
+      <Form
+        form={form}
+        layout="vertical"
+        initialValues={initial}
+        preserve={false}
+        onValuesChange={touch}
+      >
         <Form.Item
           name="name"
           label="Name"

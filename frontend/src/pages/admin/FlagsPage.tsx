@@ -54,6 +54,7 @@ import { settingsApi, type FeatureFlag } from "@/api/settings";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 
 const { Text } = Typography;
 
@@ -91,6 +92,13 @@ export default function FlagsPage() {
   const { message } = AntApp.useApp();
   const [creating, setCreating] = useState(false);
   const [form] = Form.useForm<{ key: string; name: string; description?: string }>();
+  const { touch, settled, requestClose } = useDiscardGuard({
+    close: () => {
+      form.resetFields();
+      setCreating(false);
+    },
+    what: "flag",
+  });
 
   const state = params.get("state") ?? "";
 
@@ -129,6 +137,7 @@ export default function FlagsPage() {
     mutationFn: (values: { key: string; name: string; description?: string }) =>
       settingsApi.createFlag(values),
     onSuccess: async (flag) => {
+      settled();
       message.success(`${flag.name} exists, and it is off`);
       form.resetFields();
       setCreating(false);
@@ -395,10 +404,7 @@ export default function FlagsPage() {
         title="New feature flag"
         okText="Create it, off"
         confirmLoading={create.isPending}
-        onCancel={() => {
-          form.resetFields();
-          setCreating(false);
-        }}
+        onCancel={requestClose}
         onOk={() => void form.submit()}
         okButtonProps={{ "data-testid": "create-flag" }}
       >
@@ -414,6 +420,7 @@ export default function FlagsPage() {
         <Form
           form={form}
           layout="vertical"
+          onValuesChange={touch}
           requiredMark={false}
           onFinish={(values) => create.mutate(values)}
           data-testid="flag-form"

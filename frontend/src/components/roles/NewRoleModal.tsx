@@ -28,6 +28,7 @@ import { useState } from "react";
 
 import { ApiError } from "@/api/client";
 import { rolesApi, type RoleRow } from "@/api/roles";
+import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 
 const { Text } = Typography;
 
@@ -67,6 +68,14 @@ export function NewRoleModal({
   onCreated: (role: RoleRow) => void;
 }) {
   const [form] = Form.useForm<FormValues>();
+  const { touch, settled, requestClose } = useDiscardGuard({
+    close: () => {
+      form.resetFields();
+      setTouchedCode(false);
+      onClose();
+    },
+    what: "role",
+  });
   const { message } = AntApp.useApp();
   const [touchedCode, setTouchedCode] = useState(false);
   const name = (Form.useWatch("name", form) as string | undefined) ?? "";
@@ -81,6 +90,7 @@ export function NewRoleModal({
           roles.find((role) => role.code === values.like)?.permissions ?? [],
       }),
     onSuccess: (role) => {
+      settled();
       message.success(`${role.name} exists — tune what it grants in the matrix`);
       form.resetFields();
       setTouchedCode(false);
@@ -98,17 +108,14 @@ export function NewRoleModal({
       title="New role"
       okText="Create the role"
       confirmLoading={create.isPending}
-      onCancel={() => {
-        form.resetFields();
-        setTouchedCode(false);
-        onClose();
-      }}
+      onCancel={requestClose}
       onOk={() => void form.submit()}
       okButtonProps={{ "data-testid": "create-role" }}
     >
       <Form
         form={form}
         layout="vertical"
+        onValuesChange={touch}
         requiredMark={false}
         onFinish={(values) => create.mutate(values)}
         data-testid="role-form"

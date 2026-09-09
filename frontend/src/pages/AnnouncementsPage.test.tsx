@@ -124,4 +124,49 @@ describe("the noticeboard", () => {
     );
   });
 
+  /**
+   * Closing a half-written notice asks first (§74).
+   *
+   * The behaviour, once, for the hook every drawer and modal in the platform
+   * shares — `showcase/guards.test.ts` is what asserts the other eighteen are
+   * wired to it. The path that matters is the drawer's own X and the click
+   * outside it, not the Cancel button: those are the ones somebody presses by
+   * accident.
+   */
+  it("asks before throwing away a notice somebody was writing", async () => {
+    const user = userEvent.setup();
+    render();
+
+    await user.click(await screen.findByTestId("new-announcement"));
+    const drawer = await screen.findByRole("dialog");
+    await user.type(within(drawer).getByLabelText("Title"), "Half a thought");
+
+    await user.click(drawer.querySelector(".ant-drawer-close")!);
+
+    // Asked, not thrown away — and "Keep editing" leaves the words where they
+    // were. (AntD renders the title twice: once as the heading and once for
+    // its own measuring pass.)
+    expect((await screen.findAllByText("Discard your changes?")).length).toBeGreaterThan(0);
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(within(drawer).getByLabelText("Title")).toHaveValue("Half a thought");
+
+    // And discarding really closes it.
+    await user.click(drawer.querySelector(".ant-drawer-close")!);
+    await user.click(await screen.findByRole("button", { name: "Discard" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("asks nothing when there is nothing to lose", async () => {
+    const user = userEvent.setup();
+    render();
+
+    await user.click(await screen.findByTestId("new-announcement"));
+    const drawer = await screen.findByRole("dialog");
+    await user.click(drawer.querySelector(".ant-drawer-close")!);
+
+    // A guard that fires on a dialog nobody typed into is the guard that
+    // teaches people to dismiss guards.
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.queryByText("Discard your changes?")).not.toBeInTheDocument();
+  });
 });

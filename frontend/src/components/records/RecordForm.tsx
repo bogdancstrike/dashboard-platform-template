@@ -47,6 +47,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { FailureAlert } from "@/components/FailureAlert";
 import { PeoplePicker } from "@/components/PeoplePicker";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { asText } from "@/lib/text";
 
 const { Text } = Typography;
@@ -147,9 +148,13 @@ export function RecordForm({
   onRetryRead,
 }: RecordFormProps) {
   const [form] = Form.useForm();
-  const { message, modal } = AntApp.useApp();
+  const { message } = AntApp.useApp();
   const queryClient = useQueryClient();
-  const [dirty, setDirty] = useState(false);
+  // §74, from the one hook every drawer and modal in the platform uses.
+  const { touch, settled, requestClose: close } = useDiscardGuard({
+    close: onClose,
+    what: "record",
+  });
 
   // Open with nothing to show yet: the record is on the wire, or the read
   // already failed. Neither is a create, and calling it one would title the
@@ -185,7 +190,7 @@ export function RecordForm({
     },
     onSuccess: (saved) => {
       message.success(creating ? `${saved.title} created` : `${saved.title} saved`);
-      setDirty(false);
+      settled();
       // Every list, lane and aggregate that could contain it is now stale. The
       // server stays the authority: nothing is patched into a cache by hand.
       void queryClient.invalidateQueries({ queryKey: ["record", saved.resource_type] });
@@ -196,25 +201,6 @@ export function RecordForm({
       onClose();
     },
   });
-
-  const close = () => {
-    if (!dirty) {
-      onClose();
-      return;
-    }
-    // §74: leaving with unsaved changes is a decision, not an accident.
-    modal.confirm({
-      title: "Discard your changes?",
-      content: "This record has edits that have not been saved.",
-      okText: "Discard",
-      okButtonProps: { danger: true },
-      cancelText: "Keep editing",
-      onOk: () => {
-        setDirty(false);
-        onClose();
-      },
-    });
-  };
 
   const saveError = save.error;
   /** Nothing to write: the catalogue declares no field of this kind writable. */
@@ -302,7 +288,7 @@ export function RecordForm({
             form={form}
             layout="vertical"
             initialValues={initial}
-            onValuesChange={() => setDirty(true)}
+            onValuesChange={touch}
             onFinish={(values: Record<string, unknown>) => save.mutate(values)}
             disabled={save.isPending}
           >

@@ -42,6 +42,7 @@ import {
   type WidgetKind,
 } from "@/api/dashboards";
 import { MemberPicker } from "@/components/PeoplePicker";
+import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 
 import { KINDS } from "./kinds";
 import { WidgetKindPicker } from "./WidgetKindPicker";
@@ -73,6 +74,15 @@ export function CreateDashboardWizard({
   const [details, setDetails] = useState<Details>({ name: "", scope: "PRIVATE" });
   const [kinds, setKinds] = useState<WidgetKind[]>([]);
   const [form] = Form.useForm<Details>();
+  // Several steps of choices, thrown away by a click outside the dialog — the
+  // clearest case for asking first (§74).
+  const { touch, settled, requestClose } = useDiscardGuard({
+    close: () => {
+      reset();
+      onClose();
+    },
+    what: "dashboard",
+  });
 
   const reset = () => {
     setStep(0);
@@ -90,6 +100,7 @@ export function CreateDashboardWizard({
         widgets: kinds.map((kind) => ({ kind })),
       }),
     onSuccess: (saved) => {
+      settled();
       onCreated(saved);
       reset();
     },
@@ -120,10 +131,7 @@ export function CreateDashboardWizard({
       open={open}
       width={720}
       title="New dashboard"
-      onCancel={() => {
-        reset();
-        onClose();
-      }}
+      onCancel={requestClose}
       footer={
         <Space>
           {step > 0 && (
@@ -160,7 +168,13 @@ export function CreateDashboardWizard({
       )}
 
       {step === 0 && (
-        <Form form={form} layout="vertical" initialValues={details} data-testid="wizard-details">
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={details}
+          onValuesChange={touch}
+          data-testid="wizard-details"
+        >
           <Form.Item
             name="name"
             label="Name"
@@ -203,7 +217,17 @@ export function CreateDashboardWizard({
             Every widget asks the platform the same question the page behind it
             would. You can change what each one shows once it is on the grid.
           </Text>
-          <WidgetKindPicker chosen={kinds} onChange={setKinds} unavailable={unavailable} />
+          {/* Choosing cards is an edit too, so it arms the guard: three
+              chosen kinds thrown away by a click outside is the same loss as
+              a typed name. */}
+          <WidgetKindPicker
+            chosen={kinds}
+            onChange={(next) => {
+              touch();
+              setKinds(next);
+            }}
+            unavailable={unavailable}
+          />
         </>
       )}
 

@@ -39,6 +39,7 @@ import dayjs, { type Dayjs } from "dayjs";
 
 import { announcementsApi, type Announcement, type AnnouncementInput } from "@/api/announcements";
 import { ApiError } from "@/api/client";
+import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 
 const { Text } = Typography;
 
@@ -110,6 +111,10 @@ export function AnnouncementEditor({
   onSaved: () => void;
 }) {
   const [form] = Form.useForm<FormValues>();
+  const { touch, settled, requestClose } = useDiscardGuard({
+    close: onClose,
+    what: "announcement",
+  });
   const { message } = AntApp.useApp();
 
   const save = useMutation({
@@ -134,6 +139,7 @@ export function AnnouncementEditor({
     },
     onSuccess: (saved) => {
       message.success(notice ? `${saved.title} saved` : `${saved.title} written`);
+      settled();
       onSaved();
     },
     onError: (error) =>
@@ -172,11 +178,11 @@ export function AnnouncementEditor({
       width={560}
       title={notice ? `Edit “${notice.title}”` : "Write an announcement"}
       afterOpenChange={(opened) => opened && seed()}
-      onClose={onClose}
+      onClose={requestClose}
       destroyOnClose={false}
       extra={
         <Space>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={requestClose}>Cancel</Button>
           <Button
             type="primary"
             loading={save.isPending}
@@ -192,6 +198,7 @@ export function AnnouncementEditor({
         form={form}
         layout="vertical"
         requiredMark={false}
+        onValuesChange={touch}
         onFinish={(values) => save.mutate(values)}
       >
         <Form.Item

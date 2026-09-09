@@ -61,6 +61,7 @@ import { PersonAvatar } from "@/components/PersonAvatar";
 import { MemberPicker } from "@/components/PeoplePicker";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 
 const { Text } = Typography;
 
@@ -111,6 +112,10 @@ export default function GroupsPage() {
   const opened = params.get("group");
   const [creating, setCreating] = useState(false);
   const [form] = Form.useForm();
+  const { touch, settled, requestClose } = useDiscardGuard({
+    close: () => setCreating(false),
+    what: "group",
+  });
 
   const set = (changes: Record<string, string | null>) =>
     setParams(
@@ -162,6 +167,7 @@ export default function GroupsPage() {
     mutationFn: (body: { name: string; kind?: GroupKind; description?: string }) =>
       groupsApi.create(body),
     onSuccess: async (group) => {
+      settled();
       message.success(`${group.name} exists, and grants nothing yet.`);
       setCreating(false);
       form.resetFields();
@@ -389,7 +395,7 @@ export default function GroupsPage() {
 
       <Modal
         open={creating}
-        onCancel={() => setCreating(false)}
+        onCancel={requestClose}
         title="New group"
         okText="Make it"
         confirmLoading={create.isPending}
@@ -407,7 +413,13 @@ export default function GroupsPage() {
         }}
         okButtonProps={{ "data-testid": "create-group" }}
       >
-        <Form form={form} layout="vertical" data-testid="group-form" initialValues={{ kind: "TEAM" }}>
+        <Form
+          form={form}
+          layout="vertical"
+          onValuesChange={touch}
+          data-testid="group-form"
+          initialValues={{ kind: "TEAM" }}
+        >
           {/* Said on the way in, because a group that arrived granting
               something would grant it at the moment it was made. */}
           <Alert

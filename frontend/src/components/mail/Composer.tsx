@@ -35,6 +35,7 @@ import { useEffect, useState } from "react";
 
 import { ApiError } from "@/api/client";
 import { mailApi, type ComposeInput, type MailMessage, type MailThread } from "@/api/mail";
+import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 
 const { Text } = Typography;
 
@@ -98,6 +99,12 @@ export function Composer({
   onSaved: (thread: MailThread) => void;
 }) {
   const [form] = Form.useForm<FormValues>();
+  // An email half-written is the clearest case there is for asking (§74): a
+  // click outside the dialog would otherwise throw away prose.
+  const { touch, settled, requestClose } = useDiscardGuard({
+    close: onClose,
+    what: "message",
+  });
   const { message } = AntApp.useApp();
   const [template, setTemplate] = useState<string | undefined>();
   const body = (Form.useWatch("body", form) as string | undefined) ?? "";
@@ -175,6 +182,7 @@ export function Composer({
           ? "Queued — it is in your Outbox until a transport takes it"
           : "Saved as a draft",
       );
+      settled();
       onSaved(saved);
     },
     onError: (error) =>
@@ -212,7 +220,7 @@ export function Composer({
       open={open}
       width={720}
       title={draft ? "Edit draft" : thread ? "Reply" : "New message"}
-      onCancel={onClose}
+      onCancel={requestClose}
       footer={
         <Space>
           <Button
@@ -242,7 +250,13 @@ export function Composer({
         description="There is no mail transport in this template, so nothing will deliver it. It is stored exactly as it would be sent."
       />
 
-      <Form form={form} layout="vertical" requiredMark={false} data-testid="composer">
+      <Form
+        form={form}
+        layout="vertical"
+        requiredMark={false}
+        onValuesChange={touch}
+        data-testid="composer"
+      >
         <Form.Item
           name="to"
           label="To"

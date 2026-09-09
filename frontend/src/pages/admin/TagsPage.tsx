@@ -59,6 +59,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { SEMANTIC } from "@/theme/tokens";
 import { formatNumber } from "@/lib/formats";
+import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 
 const { Text } = Typography;
 
@@ -344,12 +345,17 @@ function TagForm({
   onSaved: () => void;
 }) {
   const [form] = Form.useForm();
+  const { touch, settled, requestClose } = useDiscardGuard({
+    close: onClose,
+    what: "tag",
+  });
   const { message } = AntApp.useApp();
 
   const save = useMutation({
     mutationFn: (values: { name: string; color: string; description?: string; category: TagCategory }) =>
       tag ? tagsApi.update(tag.id, values) : tagsApi.create(values),
     onSuccess: () => {
+      settled();
       message.success(tag ? "Tag saved" : "Tag added");
       onSaved();
     },
@@ -362,7 +368,7 @@ function TagForm({
   return (
     <Modal
       open={open}
-      onCancel={onClose}
+      onCancel={requestClose}
       title={tag ? `Edit “${tag.name}”` : "New tag"}
       okText={tag ? "Save" : "Add"}
       confirmLoading={save.isPending}
@@ -373,6 +379,7 @@ function TagForm({
       <Form
         form={form}
         layout="vertical"
+        onValuesChange={touch}
         size="small"
         initialValues={{
           name: tag?.name ?? "",
