@@ -15,6 +15,7 @@ import { Button, Space, Tag, Tooltip, Typography } from "antd";
 import { DeleteOutlined, HomeFilled, SettingOutlined, TeamOutlined } from "@ant-design/icons";
 
 import type { SavedDashboard } from "@/api/dashboards";
+import { EdgeTag } from "@/components/EdgeTag";
 import { relativeTime } from "@/lib/time";
 
 import { KINDS } from "./kinds";
@@ -41,25 +42,32 @@ export function DashboardCard({
   const hidden = dashboard.widget_kinds.length - kinds.length;
 
   return (
+    // Not a `role="button"` on the whole card, which is what it was: a button
+    // holding a Settings button and a Delete button is `nested-interactive` —
+    // a screen reader announces one control and there are three, and the two
+    // inside are unreachable by the name the outer one carries. The title is
+    // the control now, and the card keeps its click for the mouse (§55).
     <div
       className={`nu-board-card${open ? " is-open" : ""}`}
-      role="button"
-      tabIndex={0}
-      aria-label={`Open ${dashboard.name}`}
       onClick={onOpen}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onOpen();
-        }
-      }}
       data-testid={`board-card-${dashboard.id}`}
     >
       <div className="nu-board-head">
         <Space size={6} className="nu-board-title">
-          <Text strong ellipsis>
-            {dashboard.name}
-          </Text>
+          <button
+            type="button"
+            className="nu-board-open"
+            onClick={(event) => {
+              // The card's own click would fire too, and opening twice is one
+              // navigation and one wasted render.
+              event.stopPropagation();
+              onOpen();
+            }}
+          >
+            <Text strong ellipsis>
+              {dashboard.name}
+            </Text>
+          </button>
           {dashboard.is_home && (
             <Tooltip title="Your home dashboard">
               <HomeFilled aria-label="Your home dashboard" />
@@ -106,9 +114,9 @@ export function DashboardCard({
           // `KINDS` covers the whole `WidgetKind` union, and TypeScript
           // enforces that — so a kind the server sends is a kind this can
           // name, and a guard here would be unreachable.
-          <Tag key={kind} bordered={false} color={KINDS[kind].colour}>
+          <EdgeTag key={kind} color={KINDS[kind].colour}>
             {KINDS[kind].label}
-          </Tag>
+          </EdgeTag>
         ))}
         {hidden > 0 && <Tag bordered={false}>+{hidden}</Tag>}
         {dashboard.widget_kinds.length === 0 && (

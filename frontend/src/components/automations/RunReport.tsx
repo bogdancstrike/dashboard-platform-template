@@ -26,11 +26,14 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 const { Text } = Typography;
 
 /** What each state is called and why, in the one place that decides it. */
-const STATE: Record<AutomationOutcome["state"], { colour?: string; hint: string }> = {
-  FIRED: { colour: "success", hint: "Its actions ran on this record." },
-  "WOULD FIRE": { colour: "processing", hint: "Nothing has been sent — this was a rehearsal." },
+/** `preset`, not `colour`: AntD preset names, whose ink `index.css` fixes.
+ * A field called colour is where a hex ends up, and a hex on a `Tag` is white
+ * text on a fill nobody measured (§55) — see `EdgeTag`. */
+const STATE: Record<AutomationOutcome["state"], { preset?: string; hint: string }> = {
+  FIRED: { preset: "success", hint: "Its actions ran on this record." },
+  "WOULD FIRE": { preset: "processing", hint: "Nothing has been sent — this was a rehearsal." },
   SUPPRESSED: {
-    colour: undefined,
+    preset: undefined,
     hint: "Acted on recently, so the cooldown held it back. This is the cooldown working.",
   },
 };
@@ -61,7 +64,7 @@ export function RunReport({ run, dense }: { run: AutomationRun; dense?: boolean 
               : STATE[state].hint
           }
         >
-          <Tag color={STATE[state].colour} bordered={false}>
+          <Tag color={STATE[state].preset} bordered={false}>
             {state.toLowerCase()}
           </Tag>
         </Tooltip>

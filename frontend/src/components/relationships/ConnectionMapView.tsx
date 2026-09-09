@@ -189,9 +189,19 @@ export function ConnectionMapView({
                   dataIndex: "label",
                   render: (_value: string, edge) => (
                     <Space size={4} direction="vertical" style={{ lineHeight: 1.3 }}>
-                      <Text>
+                      {/* A button, for the reason the cluster list's is one:
+                          the row selects this relation and a keyboard could
+                          not reach it (§55). */}
+                      <button
+                        type="button"
+                        className="nu-row-button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSelected(edge);
+                        }}
+                      >
                         {edge.source_label} → {edge.target_label}
-                      </Text>
+                      </button>
                       <Text type="secondary">as {edge.label.toLowerCase()}</Text>
                     </Space>
                   ),

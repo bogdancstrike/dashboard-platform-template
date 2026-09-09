@@ -356,7 +356,7 @@ body {
 .nu-tags-edit {
   background: none; border: 0; padding: 0;
   font: inherit; font-size: 12.5px;
-  color: var(--nu-accent); cursor: pointer;
+  color: var(--nu-accent-ink); cursor: pointer;
 }
 .nu-tags-edit:hover { text-decoration: underline; }
 .nu-tags-edit:disabled { color: var(--nu-text-tertiary); cursor: default; }
@@ -564,7 +564,7 @@ a:hover > .nu-tag-chip { border-color: var(--nu-accent); }
 }
 .nu-query-builder .group-or-rule-container:hover > .nu-query-duplicate,
 .nu-query-duplicate:focus-visible { opacity: 1; }
-.nu-query-duplicate:hover { color: var(--nu-accent); }
+.nu-query-duplicate:hover { color: var(--nu-accent-ink); }
 /* The advanced editor is a column: guidance, the tree, what it reads as, and
    the actions that run or name it. The action row is sticky so the match count
    and Search stay reachable while a deep tree scrolls behind them. */
@@ -588,7 +588,25 @@ a:hover > .nu-tag-chip { border-color: var(--nu-accent); }
   border: 0; padding: 0; background: transparent; color: var(--nu-text);
   font: inherit; font-weight: 650; text-align: start; cursor: pointer;
 }
-.nu-link-button:hover { color: var(--nu-accent); }
+.nu-link-button:hover { color: var(--nu-accent-ink); }
+/* The same button with the surrounding typography left alone: a card's title
+   or a table cell's label that is *also* the control. `nu-link-button` sets a
+   weight, which is right for a record's name in a list and wrong for a label
+   whose weight belongs to the cell.
+
+   These exist because a row that responds only to a click is a control no
+   keyboard can reach — the cluster list and the connection map both had one,
+   and a scrolling panel with no focusable content inside it is unreachable
+   twice over (§55). */
+.nu-row-button,
+.nu-board-open {
+  border: 0; padding: 0; background: transparent; color: inherit;
+  font: inherit; text-align: start; cursor: pointer; min-width: 0;
+}
+.nu-row-button:hover,
+.nu-board-open:hover { color: var(--nu-accent-ink); }
+/* The title takes the room the row has, so the ellipsis inside it still works. */
+.nu-board-open { display: flex; min-width: 0; overflow: hidden; }
 /* A marked match, in the app's accent rather than the browser's yellow — and
    qualified by the element, because AntD's reset styles bare `mark` and its
    stylesheet is injected after this one. */
@@ -925,7 +943,7 @@ mark.nu-mark {
   border: none; background: transparent; padding: 0; margin: 0;
   font: inherit; color: inherit; cursor: pointer; text-align: start;
 }
-.nu-notice-open:hover .ant-typography { color: var(--nu-accent); }
+.nu-notice-open:hover .ant-typography { color: var(--nu-accent-ink); }
 .nu-notice-open:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; border-radius: 3px; }
 /* Two lines of body, then an ellipsis: enough to know whether to open it,
    never enough for one row to push the next one off the screen. */
@@ -952,7 +970,7 @@ mark.nu-mark {
   color: var(--nu-text-secondary);
 }
 .nu-notice-meta > .nu-notice-chip + span::before { content: none; margin-right: 0; }
-.nu-notice-link { color: var(--nu-accent); }
+.nu-notice-link { color: var(--nu-accent-ink); }
 /* Row actions stay put rather than appearing on hover: a control that is only
    there while the pointer is over it is a control a keyboard never finds. */
 .nu-notice-actions { flex: 0 0 auto; }
@@ -1211,7 +1229,7 @@ mark.nu-mark {
 .nu-record-drawer .ant-list-item-meta-description { color: var(--nu-text-secondary); }
 .nu-record-drawer a,
 .nu-record-drawer .ant-btn-link,
-.nu-record-drawer .ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--nu-accent); }
+.nu-record-drawer .ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--nu-accent-ink); }
 
 /* The project delivery review: a rollup of the work under one project (§8).
    Every cell is a link into the board filtered to that lane, because the
@@ -1246,8 +1264,13 @@ mark.nu-mark {
 
 /* A gauge's number keeps the surface's ink. AntD tints it green at 100% and
    red on "exception", which is 3.3:1 and 4.8:1 on white — and the hue says
-   nothing the bar beside it has not already said. */
-.nu-gauge .ant-progress-text { color: var(--nu-text) !important; }
+   nothing the bar beside it has not already said.
+
+   Every progress bar, not only the ones marked `nu-gauge`: this was scoped to
+   that class, and the audit over every route found the same green at 3.29:1 on
+   `/find/catalog`, whose bars are AntD's plain ones. A rule that has to be
+   opted into is a rule the next page forgets. */
+.ant-progress-text { color: var(--nu-text) !important; }
 
 /* One audit entry's heading: the action, who did it, and when. Laid out
    rather than left to inline flow — an unstyled span renders the actor and
@@ -1404,6 +1427,41 @@ mark.nu-mark {
   border-color: transparent !important;
 }
 
+/* A tinted surface is a *third ground*, and the quiet end of the ramp does not
+   survive it (§55).
+
+   `--nu-text-tertiary` is `#7d8595` in dark: 4.83:1 on a card, 5.27:1 on the
+   page — and **3.92:1** on the accent-soft tint painted over that card. The
+   sweep over every route found it on an unread notification's meta line, where
+   the actor's name and the time are tertiary by design.
+
+   Rather than choose a different colour in seventeen places, the tint
+   re-points the variable for everything inside it: within a highlighted row
+   the quiet ink *is* the secondary one, which measures 5.68:1 there. Custom
+   properties cascade, so this reaches our own rules and needs no page to
+   remember it. `test/a11y.test.ts` fails if a surface paints the tint without
+   it. */
+.nu-global-hit:hover,
+.nu-global-hit.is-active,
+.nu-notice--unread,
+.nu-notice--unread:hover,
+.nu-announce.is-unread,
+.nu-queue-row.is-open,
+.nu-row-selected > td,
+.nu-mailrail-row--active,
+.nu-thread--open,
+.nu-chosen,
+.nu-cmdk [cmdk-item][data-selected="true"],
+.nu-weekhours-day--today,
+.nu-weekhours-cell--today,
+.nu-month-cell-date:hover,
+.nu-event-chip:hover,
+.nu-waitcard:hover,
+.nu-adminmap-card:hover,
+mark.nu-mark {
+  --nu-text-tertiary: var(--nu-text-secondary);
+}
+
 /* A preset-coloured tag's text (§55).
    `<Tag color="warning">` is amber on pale amber — 2.82:1, and the tags that
    fail worst are the ones a reader most needs: a breach, a failure, an
@@ -1415,6 +1473,32 @@ mark.nu-mark {
 .ant-tag-error { color: var(--nu-danger-ink) !important; }
 .ant-tag-processing,
 .ant-tag-info { color: var(--nu-info-ink) !important; }
+
+/* And the *stock hue* presets, which are the same defect one layer down.
+   `<Tag color="green">` takes its ink from AntD's own palette rather than from
+   our seed — `#389e0d` on `#f6ffed` is 3.37:1 — so the four rules above fixed
+   `success` and left `green` broken, and the audit over every route found it
+   on `/reports`, `/notifications`, `/settings/preferences` and `/admin/audit`.
+   Mapped onto the four inks we have measured, by hue family: the tint and the
+   border keep the hue, so a green tag still reads green. The two families
+   with no ink of their own take the ordinary text colour rather than an
+   invented one. */
+.ant-tag-green,
+.ant-tag-lime { color: var(--nu-success-ink) !important; }
+.ant-tag-orange,
+.ant-tag-gold,
+.ant-tag-yellow { color: var(--nu-warning-ink) !important; }
+.ant-tag-red,
+.ant-tag-volcano { color: var(--nu-danger-ink) !important; }
+.ant-tag-blue,
+.ant-tag-cyan,
+.ant-tag-geekblue { color: var(--nu-info-ink) !important; }
+.ant-tag-purple,
+.ant-tag-magenta,
+.ant-tag-pink { color: var(--nu-text) !important; }
+.ant-tag-default,
+.ant-tag-gray,
+.ant-tag-grey { color: var(--nu-text-secondary) !important; }
 
 /* The upload tray (§20). One row per file, because a drop of forty with a
    single indeterminate bar is a page somebody watches for four minutes
@@ -1447,7 +1531,7 @@ mark.nu-mark {
   border-radius: var(--nu-radius-card);
   color: var(--nu-text-secondary); font-size: 12.5px;
 }
-.nu-drop-hint .anticon { font-size: 20px; color: var(--nu-accent); }
+.nu-drop-hint .anticon { font-size: 20px; color: var(--nu-accent-ink); }
 
 /* A name and the tag that qualifies it, in a cell that may be narrower than
    both. `min-width: 0` is what lets the name give way rather than push. */
@@ -1544,7 +1628,7 @@ mark.nu-mark {
   color: var(--nu-text-secondary); font: inherit; font-size: 12.5px; cursor: pointer;
 }
 .nu-lane-col-new:hover,
-.nu-lane-add:hover { border-color: var(--nu-accent); color: var(--nu-accent); }
+.nu-lane-add:hover { border-color: var(--nu-accent); color: var(--nu-accent-ink); }
 .nu-lane-col-new:focus-visible,
 .nu-lane-add:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; }
 .nu-lane-add { flex: 0 0 200px; align-self: stretch; min-height: 88px; }
@@ -1577,13 +1661,13 @@ mark.nu-mark {
 }
 .nu-card-ref { font-family: var(--nu-font-mono); font-size: 11px; color: var(--nu-text-tertiary); }
 .nu-card-ref:hover,
-.nu-card-title:hover { color: var(--nu-accent); }
+.nu-card-title:hover { color: var(--nu-accent-ink); }
 .nu-card-title { font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
 .nu-card-grip {
   margin-inline-start: auto; border: 0; background: transparent; padding: 2px;
   color: var(--nu-text-tertiary); cursor: pointer; line-height: 1;
 }
-.nu-card-grip:hover { color: var(--nu-accent); }
+.nu-card-grip:hover { color: var(--nu-accent-ink); }
 .nu-card-grip:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 1px; }
 .nu-card-foot {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
@@ -1621,7 +1705,7 @@ mark.nu-mark {
   border: 1px dashed var(--nu-border-strong); background: transparent;
   color: var(--nu-text-secondary); font: inherit; cursor: pointer;
 }
-.nu-board-new:hover { border-color: var(--nu-accent); color: var(--nu-accent); }
+.nu-board-new:hover { border-color: var(--nu-accent); color: var(--nu-accent-ink); }
 .nu-board-new:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; }
 
 /* The noticeboard (§17). Named `nu-announce*` and not `nu-notice*`: the
@@ -1681,7 +1765,7 @@ mark.nu-mark {
 /* Unread is a tint *and* a word — the row also says "unread" through the
    count in the header — because colour alone is not a fact. */
 .nu-announce.is-unread { background: var(--nu-accent-soft); }
-.nu-announce-pin { color: var(--nu-accent); }
+.nu-announce-pin { color: var(--nu-accent-ink); }
 .nu-announce-when { font-size: 12px; white-space: nowrap; }
 .nu-announce-title {
   display: flex; align-items: center; gap: 8px;
@@ -1947,7 +2031,7 @@ mark.nu-mark {
   background: var(--nu-bg); border: 1px solid var(--nu-border-subtle);
 }
 .nu-run-number-value { display: block; font-size: 20px; font-weight: 600; line-height: 1.2; }
-.nu-run-number-value--strong { color: var(--nu-accent); }
+.nu-run-number-value--strong { color: var(--nu-accent-ink); }
 .nu-run-number-label {
   display: block; font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase;
 }
@@ -2004,7 +2088,7 @@ mark.nu-mark {
 }
 .nu-month-more {
   appearance: none; background: none; border: 0; padding: 1px 4px;
-  font: inherit; font-size: 11px; color: var(--nu-accent); text-align: start;
+  font: inherit; font-size: 11px; color: var(--nu-accent-ink); text-align: start;
   cursor: pointer;
 }
 .nu-month-more:hover { text-decoration: underline; }
@@ -2148,7 +2232,7 @@ mark.nu-mark {
 .nu-mailrail-row:hover { background: var(--nu-bg); }
 .nu-mailrail-row--active { background: var(--nu-accent-soft); font-weight: 600; }
 .nu-mailrail-icon { flex: none; color: var(--nu-text-tertiary); }
-.nu-mailrail-row--active .nu-mailrail-icon { color: var(--nu-accent); }
+.nu-mailrail-row--active .nu-mailrail-icon { color: var(--nu-accent-ink); }
 .nu-mailrail-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nu-mailrail-total { flex: none; font-size: 11.5px; font-variant-numeric: tabular-nums; }
 .nu-mailrail-heading {
@@ -2285,7 +2369,7 @@ mark.nu-mark {
   transition: border-color 120ms ease, background-color 120ms ease;
 }
 .nu-waitcard:hover { border-color: var(--nu-accent); background: var(--nu-accent-soft); }
-.nu-waitcard-icon { color: var(--nu-accent); font-size: 18px; line-height: 1; }
+.nu-waitcard-icon { color: var(--nu-accent-ink); font-size: 18px; line-height: 1; }
 .nu-waitcard-count { font-size: 26px; font-weight: 650; line-height: 1; }
 .nu-waitcard-label { font-size: 12.5px; color: var(--nu-text-secondary); }
 
@@ -2332,7 +2416,7 @@ mark.nu-mark {
   transition: border-color 120ms ease, background-color 120ms ease;
 }
 .nu-adminmap-card:hover { border-color: var(--nu-accent); background: var(--nu-accent-soft); }
-.nu-adminmap-icon { font-size: 20px; color: var(--nu-accent); line-height: 1; }
+.nu-adminmap-icon { font-size: 20px; color: var(--nu-accent-ink); line-height: 1; }
 .nu-adminmap-title { margin: 0 !important; }
 .nu-adminmap-what { display: block; font-size: 12.5px; margin-top: 2px; }
 

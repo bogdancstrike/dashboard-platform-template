@@ -29,12 +29,12 @@ import {
   Segmented,
   Space,
   Steps,
-  Tag,
   Typography,
 } from "antd";
 import { useState } from "react";
 
 import { ApiError } from "@/api/client";
+import { EdgeTag } from "@/components/EdgeTag";
 import {
   dashboardsApi,
   type DashboardScope,
@@ -227,9 +227,9 @@ export function CreateDashboardWizard({
               reader has been choosing and has not yet seen. */}
           <Space size={[6, 6]} wrap className="nu-block">
             {kinds.map((kind, index) => (
-              <Tag key={`${kind}-${index}`} color={KINDS[kind].colour} bordered={false}>
+              <EdgeTag key={`${kind}-${index}`} color={KINDS[kind].colour}>
                 {KINDS[kind].label}
-              </Tag>
+              </EdgeTag>
             ))}
           </Space>
           <Text type="secondary" style={{ display: "block", marginTop: 8 }}>

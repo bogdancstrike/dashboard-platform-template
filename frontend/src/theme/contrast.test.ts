@@ -20,9 +20,10 @@
  */
 
 import { theme } from "antd";
+import { PresetColors } from "antd/es/theme/interface";
 import { describe, expect, it } from "vitest";
 
-import { AVATAR_GROUND, INK, NEUTRAL, SEMANTIC, SEMANTIC_INK } from "@/theme/tokens";
+import { ACCENT, AVATAR_GROUND, INK, NEUTRAL, SEMANTIC, SEMANTIC_INK } from "@/theme/tokens";
 
 /** WCAG relative luminance. */
 function luminance(hex: string): number {
@@ -41,10 +42,24 @@ export function contrast(foreground: string, background: string): number {
   return Math.round(((lighter + 0.05) / (darker + 0.05)) * 100) / 100;
 }
 
-/** The two grounds text lands on, per appearance — the page, and a card. */
+/**
+ * The grounds text lands on, per appearance — the page, a card, and a *tint*.
+ *
+ * The third one is the one that got away twice. A highlighted row — unread,
+ * selected, today — is painted with `--nu-accent-soft`, which in dark is the
+ * accent at 16% over the card: `#25273f`. An ink asserted on the page and on a
+ * card can still fail there, and two did: the tertiary ink at 3.92:1 and the
+ * accent at 4.21:1, on an unread notification's meta line. Found by auditing
+ * every route rather than by looking at the palette, which is why the ground
+ * is named here now.
+ *
+ * `INK_ON_TINT` below says which inks are allowed on it: the tint classes in
+ * `index.css` re-point `--nu-text-tertiary` to the secondary ink for
+ * everything inside them, so the quiet end of the ramp is never drawn there.
+ */
 const GROUNDS = {
-  light: { page: NEUTRAL[100], card: "#ffffff" },
-  dark: { page: INK[900], card: INK[800] },
+  light: { page: NEUTRAL[100], card: "#ffffff", tint: "#eeeefc" },
+  dark: { page: INK[900], card: INK[800], tint: "#25273f" },
 } as const;
 
 /**
@@ -125,6 +140,54 @@ describe.each(["light", "dark"] as const)("text is legible in %s", (mode) => {
     },
   );
 
+  /**
+   * AntD's *stock hue* presets — `<Tag color="green">`, `color="blue"`.
+   *
+   * A layer below the four above and broken for exactly as long: AntD takes a
+   * preset tag's ink from its own palette (`green7` on `green1`), which our
+   * seed does not touch, so fixing `success` left `green` at 3.37:1. Four
+   * routes were carrying it — and the tags that fail are labels like "Live"
+   * and "Public", which is to say the ones a reader looks for.
+   *
+   * `index.css` maps each hue onto one of the four measured inks by family,
+   * and the two families we have no ink for take the ordinary text colour.
+   * This is that map, asserted against the ground AntD actually derives.
+   */
+  const PRESET_INK: Record<string, string> = {
+    green: SEMANTIC_INK[mode].success,
+    lime: SEMANTIC_INK[mode].success,
+    orange: SEMANTIC_INK[mode].warning,
+    gold: SEMANTIC_INK[mode].warning,
+    yellow: SEMANTIC_INK[mode].warning,
+    red: SEMANTIC_INK[mode].danger,
+    volcano: SEMANTIC_INK[mode].danger,
+    blue: SEMANTIC_INK[mode].info,
+    cyan: SEMANTIC_INK[mode].info,
+    geekblue: SEMANTIC_INK[mode].info,
+    purple: TEXT_INKS[mode].colorText,
+    magenta: TEXT_INKS[mode].colorText,
+    pink: TEXT_INKS[mode].colorText,
+  };
+
+  it.each(Object.keys(PRESET_INK))(
+    "the ink on a %s preset tag clears 4.5:1 on the ground AntD gives it",
+    (hue) => {
+      const algorithm = mode === "dark" ? theme.darkAlgorithm : theme.defaultAlgorithm;
+      const derived = algorithm(theme.defaultSeed) as unknown as Record<string, string>;
+      // `${hue}1` is the fill and `${hue}3` the border, per AntD's own
+      // `genPresetColor` — so the fill is the ground the label sits on.
+      const ground = derived[`${hue}1`]!;
+      expect(contrast(PRESET_INK[hue]!, ground)).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+
+  it("every preset AntD ships is covered by that map", () => {
+    // A hue with no rule in `index.css` keeps AntD's own ink, which is the
+    // defect. `default`/`grey` are the neutral ground the text inks above
+    // already cover.
+    expect(Object.keys(PRESET_INK).sort()).toEqual([...PresetColors].sort());
+  });
+
   it("carries white text on a solid danger button", () => {
     /**
      * The fill of `<Button danger type="primary">`, which AntD writes white on.
@@ -142,6 +205,53 @@ describe.each(["light", "dark"] as const)("text is legible in %s", (mode) => {
      * "fixing" the ink by changing the fill again.
      */
     expect(contrast("#ffffff", SEMANTIC.danger)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("carries the inks a tinted row is allowed to use", () => {
+    /**
+     * A highlighted row's own ground, and what may be written on it.
+     *
+     * The tertiary ink is deliberately absent: it measures 3.92:1 here, and
+     * the tint classes re-point it to the secondary one — `test/a11y.test.ts`
+     * is what fails when a new tinted surface forgets to. The accent *ink*
+     * rather than the accent: the fill is 4.21:1 on this ground, which is
+     * where every link inside a highlighted row lives.
+     */
+    const allowed = {
+      colorText: TEXT_INKS[mode].colorText,
+      colorTextSecondary: TEXT_INKS[mode].colorTextSecondary,
+      accentInk: mode === "dark" ? ACCENT[300] : ACCENT[700],
+    };
+    for (const [role, ink] of Object.entries(allowed)) {
+      expect(contrast(ink, grounds.tint), `${role} on a tinted row`).toBeGreaterThanOrEqual(
+        4.5,
+      );
+    }
+    // And in dark the fill it replaces is *not* good enough there, which is
+    // the whole reason the ink exists. In light the tint is a pale wash rather
+    // than a translucent overlay and the fill clears it at 4.67:1 — the ink is
+    // used in both anyway, because one rule for accent text beats a rule that
+    // holds in one appearance.
+    if (mode === "dark") {
+      expect(contrast(ACCENT[400], grounds.tint)).toBeLessThan(4.5);
+    }
+  });
+
+  it("keeps a placeholder legible", () => {
+    /**
+     * The ink of every "nothing chosen yet" in the product.
+     *
+     * AntD's default is `#bfbfbf` — **1.83:1** on white, the worst score
+     * anywhere in this application, and invisible to a per-page audit because
+     * no page's test is about a placeholder. The sweep over every route found
+     * it on the first two pages with a `Select` on them.
+     *
+     * A control is painted on `colorBgContainer`, which is white in light and
+     * `INK[800]` in dark — the card ground below.
+     */
+    const placeholder = mode === "dark" ? INK[400] : NEUTRAL[500];
+    expect(contrast(placeholder, grounds.card)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(placeholder, grounds.page)).toBeGreaterThanOrEqual(4.5);
   });
 
   it("carries white initials on an avatar", () => {

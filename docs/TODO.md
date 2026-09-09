@@ -2737,14 +2737,33 @@ operational enterprise application, not a marketing website.**
 
 ### Accessibility (§55)
 
-- [ ] Keyboard: every action reachable without a mouse; visible focus ring;
+- [x] Keyboard: every action reachable without a mouse; visible focus ring;
       logical tab order; `Esc` closes only the topmost layer
-- [ ] Screen readers: landmarks, labelled controls, `aria-live` for async
+  - The two that were not: a cluster row and a connection row that responded
+    to a click and to nothing else, in a scrolling panel that therefore had no
+    keyboard content at all. Both are buttons now. And a `role="button"` card
+    holding two buttons was announcing one control where there were three —
+    the title is the control, and the card keeps its click for the mouse
+- [x] Screen readers: landmarks, labelled controls, `aria-live` for async
       results, table headers associated with cells
-- [ ] Contrast 4.5:1 body / 3:1 large text and UI boundaries, both themes
-- [ ] Honours `prefers-reduced-motion`
-- **Acceptance**: axe reports no serious or critical violations on any route;
-  primary flows complete with the keyboard alone
+  - Nine unnamed progress bars were the gap, and `role="progressbar"` takes no
+    name from its contents — a bar with its percentage drawn inside it is
+    announced as a number with no subject. Each is now named or marked
+    decoration, and `test/a11y.test.ts` fails on a `<Progress>` that is
+    neither. The force graph was a `role="img"` full of focusable buttons,
+    which is a picture that hides what it summarises; it is a `group`
+- [x] Contrast 4.5:1 body / 3:1 large text and UI boundaries, both themes
+  - `theme/contrast.test.ts` — 62 assertions over the palette in both
+    appearances and on all three grounds (the page, a card, and a tinted row),
+    including AntD's thirteen stock hue presets against the ground AntD
+    derives for each. A pure value, so the property holds for pages nobody has
+    written yet and fails in milliseconds
+- [x] Honours `prefers-reduced-motion`
+- **Acceptance**: **met** — `e2e/a11y.spec.ts` reads the route table out of
+  `App.tsx` and reports no serious or critical violation on any of the 59
+  routes, and the sweep was run in both appearances (light as the
+  administrator, dark as the viewer). Primary flows are covered by the
+  keyboard tests in the board, palette and record specs
 
 ### Keyboard map (§54)
 
@@ -4338,7 +4357,49 @@ Each endpoint ships with its five-case integration test and the page consuming i
       teaches people to rerun instead of to read. Three consecutive full runs
       at the new cap; one flake in four before it
 - [x] Frontend typecheck + production build
-- [ ] Accessibility — axe clean on every route (§55)
+- [x] **Accessibility — axe clean on every route (§55).** `e2e/a11y.spec.ts`
+      reads the route table out of `App.tsx` and audits all 59 of them in one
+      pass, so a page is audited *by being in the router*. Twelve specs
+      audited a page each before it, and every one of those was written after
+      somebody had already shipped a broken page — which is the wrong order,
+      and left the same hole every time
+  - What the first run found, none of it visible to a per-page audit:
+    **`#bfbfbf` placeholders at 1.83:1** — the worst score in the product, on
+    every `Select` with nothing chosen, because no page's own test is about a
+    placeholder; **AntD's stock hue presets** (`<Tag color="green">` is
+    `green7` on `green1`, 3.37:1) on four routes, the layer below the four
+    semantic presets that were fixed months ago; **role and widget-kind tags**
+    filled with a data colour and white text at 3.29:1 and 3.74:1;
+    a **`role="button"` card holding two buttons** in the dashboard gallery;
+    a **`role="img"` graph** whose nodes have been focusable buttons all
+    along; a **KPI delta** at 4.37:1 on its own tint; and **two clickable
+    table rows no keyboard could reach**, in a scrolling panel that was
+    therefore unreachable twice over
+  - Fixed at the layer each belongs to rather than per page: the placeholder
+    ink is a theme token, the preset inks are one CSS block mapped onto the
+    four measured inks, `EdgeTag` is the rendering both data-coloured chips
+    now share, and `theme/contrast.test.ts` asserts every preset ink against
+    the ground AntD derives for it — in **both** appearances, which is why one
+    browser pass in one appearance is enough
+  - `StatusTag`'s source rule now reads `<Tag>` elements rather than whole
+    files and catches a hex or a `color`/`colour` field as well as the
+    vocabulary helpers — the two shapes it could not see. The maps that hold
+    *preset names* were renamed to `preset`, so the rule is exact and the name
+    says which kind of value it holds
+  - **A tint is a third ground, and it got away twice.** The dark sweep found
+    the last two: `--nu-text-tertiary` is 4.83:1 on a card and **3.92:1** on
+    the accent-soft tint painted over it, and the accent is 4.21:1 there —
+    which is exactly where an unread row's "3 minutes ago" and its "Opens the
+    record" link live. So the accent now has an *ink* as well as a fill (the
+    same split the four semantic colours have had since §55 was first
+    argued), the seventeen tint classes re-point the quiet variable to the
+    secondary ink for everything inside them, and `contrast.test.ts` carries
+    the tint as a ground in both appearances. `test/a11y.test.ts` reads
+    `index.css` and fails when an eighteenth tinted surface forgets
+  - Both appearances are clean over all 59 routes: light as the administrator,
+    dark as the viewer, whose own preference is dark — so neither sweep has to
+    write a persona's theme to measure one, which is what made the pinned
+    audit safe to run beside every other spec
 - [ ] Performance — list page interactive under 1.5s against the seeded database
 - [ ] **§77 walkthrough**: a developer who has never seen the repo opens it and
       finds a working example of each of dashboards, data tables, search,

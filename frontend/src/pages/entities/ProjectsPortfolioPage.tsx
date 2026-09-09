@@ -83,11 +83,13 @@ const SYMBOL: Record<string, string> = { EUR: "€", USD: "$", GBP: "£" };
  * Behind on money is a conversation with finance; behind on schedule is one
  * with delivery.
  */
-const STANDING: Record<ProjectStanding["standing"], { label: string; colour?: string }> = {
-  behind: { label: "Behind", colour: "error" },
-  ahead: { label: "Ahead", colour: "success" },
+/** `preset`, not `colour`: AntD preset names — see `EdgeTag` for why a field
+ * called colour on a `Tag` is a fill with white text on it (§55). */
+const STANDING: Record<ProjectStanding["standing"], { label: string; preset?: string }> = {
+  behind: { label: "Behind", preset: "error" },
+  ahead: { label: "Ahead", preset: "success" },
   even: { label: "On line" },
-  done: { label: "Delivered", colour: "blue" },
+  done: { label: "Delivered", preset: "blue" },
 };
 
 const BEHIND_ON: Record<"schedule" | "money" | "both", string> = {
@@ -254,7 +256,7 @@ export default function ProjectsPortfolioPage() {
         const reason = behindOn(standing);
         return (
           <Tooltip title={standing.summary}>
-            <Tag color={shown.colour} bordered={false}>
+            <Tag color={shown.preset} bordered={false}>
               {reason ? BEHIND_ON[reason] : shown.label}
             </Tag>
           </Tooltip>

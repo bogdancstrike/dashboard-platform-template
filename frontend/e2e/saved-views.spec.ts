@@ -147,6 +147,9 @@ test.describe("the view a list opens with", () => {
     await page.getByRole("button", { name: "Save search" }).click();
     await expect(page.getByText("Search saved")).toBeVisible();
     await expect(page).toHaveURL(/view=/);
+    // Kept now, while the address still carries it: the last step needs to
+    // reach this view again, and by then the address is a different question.
+    const view = new URL(page.url()).searchParams.get("view") ?? "";
 
     await openMenu(page);
     await menuItem(page, "Open this list with this view").click();
@@ -163,8 +166,13 @@ test.describe("the view a list opens with", () => {
     await expect(page).toHaveURL(/f\.status=RETIRED/);
 
     // Stopped, so nothing outlives the test even if the sweep cannot delete.
-    await page.goto(`/devices?view=${new URL(page.url()).searchParams.get("view") ?? ""}`);
-    await page.goto("/devices");
+    // One navigation, straight to the view: the first version went to
+    // `/devices?view=` (the id was no longer in the address) and then to
+    // `/devices`, and the second `goto` was interrupted by the first one's
+    // silent re-authentication — a flake in the cleanup that reads as a
+    // failure of the feature.
+    await page.goto(`/devices?view=${view}`);
+    await expect(page.getByTestId("saved-views")).toContainText(name);
     await openMenu(page);
     await menuItem(page, "Stop opening with this view").click();
     await expect(page.getByText("no longer the default")).toBeVisible();

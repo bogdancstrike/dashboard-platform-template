@@ -294,7 +294,12 @@ export function ForceGraph({
     <div ref={host} className="nu-force" data-testid="force-graph">
       <svg
         ref={svgRef}
-        role="img"
+        // A group rather than an image: every node inside is a `role="button"`
+        // a keyboard can reach, and `role="img"` promises a picture with
+        // nothing in it — `nested-interactive`, and a screen reader that
+        // announces the summary and then hides the graph it summarises. The
+        // name still reads the whole summary aloud (§55).
+        role="group"
         aria-label={description}
         height={height}
         width="100%"

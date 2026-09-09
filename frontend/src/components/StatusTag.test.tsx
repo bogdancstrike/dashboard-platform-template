@@ -1,11 +1,8 @@
-import { readFileSync } from "node:fs";
-import { relative } from "node:path";
-
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { StatusTag } from "@/components/StatusTag";
-import { SRC, shippedFiles } from "@/test/sources";
+import { jsxElements, shippedFiles, shippedSources } from "@/test/sources";
 
 /**
  * A status is coloured in a way that can be *read* (§55, §59).
@@ -62,17 +59,41 @@ describe("no page writes its own filled status tag", () => {
     // whose ink `index.css` already fixes. What this catches is a colour
     // computed from the vocabulary and handed to AntD as a fill, which is the
     // form that puts white on it.
+    //
+    // Scoped to `<Tag …>` elements rather than to the whole file, because the
+    // component that *does* take a data colour — `EdgeTag` — takes it in a
+    // prop of the same name.
     const offenders: string[] = [];
-    for (const path of shippedFiles()) {
-      if (path.endsWith("StatusTag.tsx")) continue;
-      const source = readFileSync(path, "utf8");
-      for (const match of source.matchAll(/color=\{([^}]*)\}/g)) {
-        const expression = match[1] ?? "";
-        if (/knownStatusColor|categoryColor|SEMANTIC\.|STATUS_COLORS/.test(expression)) {
-          offenders.push(`${relative(SRC, path)}: color={${expression.trim()}}`);
+    for (const file of shippedSources()) {
+      if (file.name.endsWith("EdgeTag.tsx")) continue;
+      for (const element of jsxElements(file.source, "Tag")) {
+        const match = /color=\{([^}]*)\}/.exec(element);
+        const expression = match?.[1] ?? "";
+        if (!expression) continue;
+        // Three shapes, all of which end as a fill AntD writes white on:
+        // a vocabulary helper, a literal hex, and a `color`/`colour` field
+        // from the API or a config map. The last two are what the first
+        // version of this rule could not see — role colours in the directory
+        // and widget-kind colours in the dashboard gallery were 3.29:1 and
+        // 3.74:1 for the life of both pages, found by auditing every route.
+        if (
+          /knownStatusColor|categoryColor|SEMANTIC\.|STATUS_COLORS/.test(expression) ||
+          /#[0-9a-fA-F]{3,8}/.test(expression) ||
+          /\.colou?r\b|_colou?r\b/.test(expression)
+        ) {
+          offenders.push(`${file.name}: color={${expression.trim()}} — use EdgeTag`);
         }
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  it("reads the Tag elements it is meant to be checking", () => {
+    // Without this the rule above passes by parsing nothing — and the element
+    // scan is hand-rolled, so "it found no tags" is a real way for it to be
+    // wrong.
+    const tags = shippedSources().flatMap((file) => jsxElements(file.source, "Tag"));
+    expect(tags.length).toBeGreaterThan(30);
+    expect(tags.some((element) => /color="/.test(element))).toBe(true);
   });
 });

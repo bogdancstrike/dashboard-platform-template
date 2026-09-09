@@ -35,7 +35,11 @@ const ACCENTS: Record<string, string> = {
  * tile in both polarities side by side; it was wrong on every dashboard.
  */
 function movementColor(trend: Trend, polarity: Polarity): string {
-  if (trend === "flat" || polarity === "neutral") return "var(--nu-text-tertiary)";
+  // Secondary rather than tertiary for "no change": the chip paints a 13%
+  // tint of its own ink as its ground, and the tertiary ink on its own tint
+  // measures 4.37:1 — under the bar by a tenth, which the audit over every
+  // route found on the dashboard's KPI row (§55).
+  if (trend === "flat" || polarity === "neutral") return "var(--nu-text-secondary)";
   const good = polarity === "up_is_good" ? trend === "up" : trend === "down";
   return good ? "var(--nu-success-ink)" : "var(--nu-danger-ink)";
 }
@@ -92,7 +96,7 @@ export function StatCard({
 }) {
   const color = ACCENTS[accent] ?? ACCENT[500];
   const moved = trend !== undefined && changePercent !== undefined;
-  const movement = moved ? movementColor(trend, polarity) : "var(--nu-text-tertiary)";
+  const movement = moved ? movementColor(trend, polarity) : "var(--nu-text-secondary)";
   const Arrow = trend === "up" ? ArrowUpOutlined : trend === "down" ? ArrowDownOutlined : MinusOutlined;
 
   return (

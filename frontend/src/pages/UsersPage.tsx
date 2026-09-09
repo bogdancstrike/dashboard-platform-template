@@ -20,6 +20,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { usersApi, type UserQuery, type UserRow } from "@/api/users";
 import { EmptyState, NoResults } from "@/components/EmptyState";
+import { EdgeTag } from "@/components/EdgeTag";
 import { StatusTag } from "@/components/StatusTag";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
@@ -139,7 +140,7 @@ export default function UsersPage() {
       render: (_code: string | null, row) => (
         <Space size={4} wrap>
           {row.role_name ? (
-            <Tag color={row.role_color}>{row.role_name}</Tag>
+            <EdgeTag color={row.role_color}>{row.role_name}</EdgeTag>
           ) : (
             <Text type="secondary">No role</Text>
           )}

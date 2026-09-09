@@ -18,8 +18,7 @@
  * up with three different status tags.
  */
 
-import { Tag } from "antd";
-
+import { EdgeTag } from "@/components/EdgeTag";
 import { knownStatusColor } from "@/theme/tokens";
 
 export function StatusTag({
@@ -35,22 +34,15 @@ export function StatusTag({
   if (!status) return null;
 
   return (
-    <Tag
-      {...rest}
-      bordered={bordered}
-      className="nu-status-tag"
-      style={{
-        // A named colour when the vocabulary has one, and the neutral border
-        // when it does not — a status nobody has assigned a meaning to should
-        // look unassigned rather than borrow the last one's.
-        borderInlineStartColor: knownStatusColor(status) ?? "var(--nu-border-strong)",
-      }}
-    >
+    // A named colour when the vocabulary has one, and `EdgeTag`'s neutral
+    // border when it does not — a status nobody has assigned a meaning to
+    // should look unassigned rather than borrow the last one's.
+    <EdgeTag {...rest} bordered={bordered} color={knownStatusColor(status)}>
       {/* The vocabulary verbatim, because it is what the API returns, what a
           filter URL carries and what a reader quotes in a ticket. The lists
           show the same string, and a tag that prettified it would be the one
           place the two disagreed. */}
       {status}
-    </Tag>
+    </EdgeTag>
   );
 }

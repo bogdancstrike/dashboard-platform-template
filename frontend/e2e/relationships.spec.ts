@@ -28,7 +28,10 @@ test.describe("community analysis", () => {
 
     // Clustered on the server over the real rows, and scored so the reader
     // knows whether to believe the picture.
-    const graph = page.getByRole("img", { name: /records in \d+ communities/ });
+    // A `group` and not an `img`: the nodes inside are focusable buttons, and
+    // `role="img"` promises a picture with nothing in it — which is both a
+    // lie to a screen reader and an axe violation (§55).
+    const graph = page.getByRole("group", { name: /records in \d+ communities/ });
     await expect(graph).toBeVisible();
     await expect(page.getByTestId("modularity")).toContainText(/Q 0\.\d\d/);
     await expect(page.locator(".nu-statcard-label", { hasText: "Communities" })).toBeVisible();
@@ -85,7 +88,7 @@ test.describe("the connection map", () => {
     await expect(page.getByTestId("hub-records")).toBeVisible();
 
     // Drawn from the real schema and the real rows.
-    const graph = page.getByRole("img", { name: /entities connected by \d+ relations/ });
+    const graph = page.getByRole("group", { name: /entities connected by \d+ relations/ });
     await expect(graph).toBeVisible();
     await expect(graph.getByLabel(/Tickets, [\d,]+ records/)).toBeVisible();
     await expect(page.getByText("Relations", { exact: true })).toBeVisible();
@@ -150,7 +153,7 @@ test.describe("relationship explorer", () => {
 
     await page.getByTestId("relationship-view").getByText("Graph", { exact: true }).click();
 
-    const graph = page.getByRole("img", { name: /nearest connections/ });
+    const graph = page.getByRole("group", { name: /nearest connections/ });
     await expect(graph).toBeVisible();
     // The root plus one node per connection.
     await expect(graph.locator("g.nu-force-node")).toHaveCount(connections + 1);

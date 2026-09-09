@@ -61,10 +61,13 @@ import { relativeTime } from "@/lib/time";
 const { Text } = Typography;
 
 /** What each visibility looks like, so the state is read rather than deduced. */
-const SCOPES: Record<string, { icon: React.ReactNode; label: string; colour?: string }> = {
+/** `preset` and not `colour`: these are AntD preset *names*, whose ink
+ * `index.css` fixes. A field called colour is where a hex ends up, and a hex
+ * on a `Tag` is a filled tag with white text on it (§55) — see `EdgeTag`. */
+const SCOPES: Record<string, { icon: React.ReactNode; label: string; preset?: string }> = {
   PRIVATE: { icon: <LockOutlined />, label: "Private" },
-  SHARED: { icon: <TeamOutlined />, label: "Shared", colour: "blue" },
-  PUBLIC: { icon: <GlobalOutlined />, label: "Public", colour: "green" },
+  SHARED: { icon: <TeamOutlined />, label: "Shared", preset: "blue" },
+  PUBLIC: { icon: <GlobalOutlined />, label: "Public", preset: "green" },
 };
 
 export default function ReportsPage() {
@@ -424,7 +427,7 @@ export default function ReportsPage() {
 function ScopeTag({ report }: { report: SavedReport }) {
   const scope = SCOPES[report.scope] ?? SCOPES["PRIVATE"]!;
   return (
-    <Tag icon={scope.icon} color={scope.colour} bordered={false}>
+    <Tag icon={scope.icon} color={scope.preset} bordered={false}>
       {scope.label}
     </Tag>
   );

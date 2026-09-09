@@ -31,9 +31,15 @@ describe("community analysis", () => {
   it("describes the whole picture for a reader who cannot see it", async () => {
     render();
 
-    // §55: the SVG is one image with one description, not sixty focusable
-    // circles a screen reader has to walk.
-    const picture = await screen.findByRole("img", { name: /6 records in 2 communities/ });
+    // §55: the SVG names the whole picture, so a reader who cannot see it
+    // gets the finding rather than a shape count.
+    //
+    // A `group` and not an `img`: this comment used to claim the opposite —
+    // "one image, not sixty focusable circles" — and the circles have been
+    // focusable `role="button"` nodes all along, which is `nested-interactive`
+    // and a screen reader that announces the summary and then hides the graph
+    // it summarises. Found by auditing every route at once.
+    const picture = await screen.findByRole("group", { name: /6 records in 2 communities/ });
     expect(picture).toHaveAccessibleName(/1 of which cross between communities/);
     expect(picture).toHaveAccessibleName(/largest is Northwind Partners/);
   });

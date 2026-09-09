@@ -1,6 +1,9 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
-import { jsxElements, shippedSources } from "@/test/sources";
+import { SRC, jsxElements, shippedSources } from "@/test/sources";
 
 /**
  * Accessibility rules that hold across every page, asserted from the source.
@@ -19,6 +22,14 @@ import { jsxElements, shippedSources } from "@/test/sources";
  * `aria-label` when the bar is the only carrier of the fact, or
  * `aria-hidden="true"` when the number is already readable beside it — which
  * is the honest answer for the decoration over a figure in a table cell.
+ *
+ * **Every accent-tinted surface re-points the quiet ink.** A tint is a third
+ * ground: `--nu-text-tertiary` clears 4.5:1 on the page and on a card and
+ * scores 3.92:1 on the accent-soft tint over that card, and a tinted row is
+ * exactly where a "3 minutes ago" sits. The tint classes set the variable to
+ * the secondary ink for everything inside them, which is one declaration
+ * rather than a colour chosen in seventeen places — and this is what fails
+ * when the eighteenth tinted surface forgets.
  */
 
 describe("progress bars", () => {
@@ -38,5 +49,49 @@ describe("progress bars", () => {
       }
     }
     expect(offenders).toEqual([]);
+  });
+});
+
+describe("an accent-tinted surface", () => {
+  const stylesheet = readFileSync(join(SRC, "index.css"), "utf8");
+
+  /** Each rule in the stylesheet, as `selector { declarations }`. */
+  function blocks(): Array<{ selector: string; body: string }> {
+    return stylesheet
+      .split("}")
+      .map((chunk) => {
+        const brace = chunk.indexOf("{");
+        return brace === -1
+          ? null
+          : {
+              selector: chunk.slice(0, brace).replace(/\/\*[\s\S]*?\*\//g, "").trim(),
+              body: chunk.slice(brace + 1),
+            };
+      })
+      .filter((block): block is { selector: string; body: string } => block !== null);
+  }
+
+  it("reads the stylesheet it is checking", () => {
+    expect(blocks().length).toBeGreaterThan(300);
+    expect(stylesheet).toContain("--nu-accent-soft");
+  });
+
+  it("re-points the quiet ink wherever it paints the tint", () => {
+    // The selectors that paint it, and the one rule that lifts the ramp for
+    // all of them. A surface in the first set and not the second is a surface
+    // whose tertiary text measures 3.92:1 in the dark appearance.
+    const painted = new Set<string>();
+    const lifted = new Set<string>();
+    for (const block of blocks()) {
+      const selectors = block.selector.split(",").map((one) => one.trim()).filter(Boolean);
+      if (/background:[^;]*--nu-accent-soft/.test(block.body)) {
+        selectors.forEach((one) => painted.add(one));
+      }
+      if (/--nu-text-tertiary:\s*var\(--nu-text-secondary\)/.test(block.body)) {
+        selectors.forEach((one) => lifted.add(one));
+      }
+    }
+    expect(painted.size).toBeGreaterThan(10);
+    expect([...painted].filter((selector) => !lifted.has(selector))).toEqual([]);
   });
 });

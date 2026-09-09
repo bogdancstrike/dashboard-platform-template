@@ -41,10 +41,13 @@ import { explorerApi, type SavedSearch } from "@/api/explorer";
 
 const { Text } = Typography;
 
-const SCOPE_TAG: Record<SavedSearch["scope"], { icon: JSX.Element; label: string; color?: string }> = {
+/** `preset`, not `color`: AntD preset names, whose ink `index.css` fixes. A
+ * field called color is where a hex ends up, and a hex on a `Tag` is white
+ * text on a fill nobody measured (§55) — see `EdgeTag`. */
+const SCOPE_TAG: Record<SavedSearch["scope"], { icon: JSX.Element; label: string; preset?: string }> = {
   PRIVATE: { icon: <LockOutlined />, label: "Private" },
-  SHARED: { icon: <TeamOutlined />, label: "Shared", color: "blue" },
-  PUBLIC: { icon: <GlobalOutlined />, label: "Public", color: "green" },
+  SHARED: { icon: <TeamOutlined />, label: "Shared", preset: "blue" },
+  PUBLIC: { icon: <GlobalOutlined />, label: "Public", preset: "green" },
 };
 
 export interface SavedSearchDrawerProps {
@@ -200,7 +203,7 @@ export function SavedSearchDrawer({
                 )}
 
                 <Space size={[6, 6]} wrap>
-                  <Tag icon={scope.icon} color={scope.color}>{scope.label}</Tag>
+                  <Tag icon={scope.icon} color={scope.preset}>{scope.label}</Tag>
                   <Tag>{item.rule_count} {item.rule_count === 1 ? "rule" : "rules"}</Tag>
                   {item.members.length > 0 && (
                     <Tooltip title={item.members.map((member) => member.name).join(", ")}>

@@ -277,7 +277,23 @@ export function NetworkView({
                         aria-hidden
                       />
                       <Space direction="vertical" size={0} style={{ lineHeight: 1.3 }}>
-                        <Text>{label}</Text>
+                        {/* A button, not a label: the row highlights a cluster
+                            on the graph, and a click handler on the row alone
+                            is a control no keyboard can reach. It is also what
+                            gives this scrolling panel focusable content, which
+                            is the other half of the same rule (§55). */}
+                        <button
+                          type="button"
+                          className="nu-row-button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setHighlighted((current) =>
+                              current === community.id ? null : community.id,
+                            );
+                          }}
+                        >
+                          {label}
+                        </button>
                         <Text type="secondary">
                           {community.mix
                             .map((part) => `${part.count} ${part.label.toLowerCase()}`)

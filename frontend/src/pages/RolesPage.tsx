@@ -21,6 +21,7 @@ import { useMemo, useState } from "react";
 import { ApiError } from "@/api/client";
 import { rolesApi, type RoleMatrix, type RoleRow } from "@/api/roles";
 import { NewRoleModal } from "@/components/roles/NewRoleModal";
+import { EdgeTag } from "@/components/EdgeTag";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 
@@ -209,9 +210,9 @@ export default function RolesPage() {
       title: (
         <Space direction="vertical" size={2} style={{ lineHeight: 1.3 }}>
           <Space size={4}>
-            <Tag color={role.color} style={{ marginInlineEnd: 0 }}>
+            <EdgeTag color={role.color} style={{ marginInlineEnd: 0 }}>
               {role.name}
-            </Tag>
+            </EdgeTag>
             {role.is_yours && (
               <Tooltip title="The role you hold. Changes here affect you.">
                 <Tag color="gold">yours</Tag>
@@ -332,9 +333,9 @@ export default function RolesPage() {
               .filter((role) => !role.is_system)
               .map((role) => (
                 <Space key={role.code} size={4}>
-                  <Tag color={role.color} style={{ marginInlineEnd: 0 }}>
+                  <EdgeTag color={role.color} style={{ marginInlineEnd: 0 }}>
                     {role.name}
-                  </Tag>
+                  </EdgeTag>
                   <Text type="secondary">
                     {role.user_count} {role.user_count === 1 ? "person" : "people"}
                   </Text>
@@ -378,9 +379,9 @@ export default function RolesPage() {
               {data!.items
                 .filter((role) => role.customised)
                 .map((role) => (
-                  <Tag key={role.code} color={role.color}>
+                  <EdgeTag key={role.code} color={role.color}>
                     {role.name}
-                  </Tag>
+                  </EdgeTag>
                 ))}
             </Space>
           }

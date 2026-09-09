@@ -72,6 +72,13 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
       // product, so being a tenth of a point short of legible there is short
       // everywhere at once (§55).
       colorTextDescription: dark ? INK[300] : NEUTRAL[600],
+      // The ink of every placeholder in the product — a Select with nothing
+      // chosen, an empty search box, a date that has not been picked. AntD's
+      // default is `#bfbfbf`, which is **1.83:1** on white: the lowest score
+      // anywhere in this application, and it went unseen because no single
+      // page's audit is about a placeholder. Found by auditing every route at
+      // once. The tertiary ink is the quietest one measured (§55).
+      colorTextPlaceholder: dark ? INK[400] : NEUTRAL[500],
 
       // Text on a *tinted* semantic ground — an `Alert type="error"`, a
       // `Typography.Text type="warning"`. AntD derives these from the fill,
@@ -189,6 +196,13 @@ export function cssVariables(appearance: Appearance, density: Density): Record<s
 
   return {
     "--nu-accent": dark ? ACCENT[400] : ACCENT[500],
+    // The readable half of the accent, for *text* — the same split `SEMANTIC`
+    // and `SEMANTIC_INK` have, and for the same reason. The accent as a fill
+    // is `#7c7cf5` in dark, which is 5.17:1 on a card and **4.21:1 on the
+    // accent-soft tint** an unread row is painted with. A link inside a
+    // highlighted row is precisely where accent text appears, so the one
+    // ground it has to survive is the one it failed on (§55).
+    "--nu-accent-ink": dark ? ACCENT[300] : ACCENT[700],
     "--nu-accent-soft": dark ? "rgba(124, 124, 245, 0.16)" : ACCENT[50],
     "--nu-bg": dark ? INK[900] : NEUTRAL[100],
     "--nu-surface": dark ? INK[800] : "#ffffff",

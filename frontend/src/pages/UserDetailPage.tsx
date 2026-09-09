@@ -34,6 +34,7 @@ import {
   type UserSessionRow,
 } from "@/api/users";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
+import { EdgeTag } from "@/components/EdgeTag";
 import { StatusTag } from "@/components/StatusTag";
 import { PageHeader } from "@/components/PageHeader";
 import { useImpersonation } from "@/auth/ImpersonationProvider";
@@ -164,7 +165,7 @@ export default function UserDetailPage() {
         tag={
           <Space size={6}>
             <StatusTag status={user.status} data-testid="user-status" />
-            {user.role_name && <Tag color={user.role_color}>{user.role_name}</Tag>}
+            {user.role_name && <EdgeTag color={user.role_color}>{user.role_name}</EdgeTag>}
             {user.mfa_enabled && (
               <Tooltip title="Multi-factor authentication is on">
                 <Tag icon={<SafetyCertificateOutlined />}>MFA</Tag>
@@ -314,7 +315,7 @@ function Access({ user }: { user: UserDetail }) {
             <Descriptions.Item label="Role">
               {user.role_name ? (
                 <Space direction="vertical" size={2}>
-                  <Tag color={user.role_color}>{user.role_name}</Tag>
+                  <EdgeTag color={user.role_color}>{user.role_name}</EdgeTag>
                   <Text type="secondary">
                     {access.role_permissions.length} permission
                     {access.role_permissions.length === 1 ? "" : "s"}

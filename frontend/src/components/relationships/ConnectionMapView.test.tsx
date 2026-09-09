@@ -29,7 +29,9 @@ describe("the connection map", () => {
   it("draws every entity and relation the server sent", async () => {
     renderWithProviders(<ConnectionMapView onStart={vi.fn()} />);
 
-    const graph = await screen.findByRole("img", {
+    // A `group`, because the nodes below are controls a keyboard reaches —
+    // which is exactly what the next assertion checks (§55).
+    const graph = await screen.findByRole("group", {
       name: "4 entities connected by 2 relations",
     });
     // Nodes are labelled for a screen reader, not only drawn.
