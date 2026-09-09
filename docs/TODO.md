@@ -4970,4 +4970,23 @@ Each endpoint ships with its five-case integration test and the page consuming i
       how a reader shares a search), and the record page's title carries the
       status tag beside the name — reading the heading gave
       "Vanguard SystemsACTIVE", which finds nothing at all
-- [ ] Docs complete (`README.md`, `architecture.md`, `features.md`, this file)
+- [x] Docs complete (`README.md`, `architecture.md`, `features.md`, this file)
+  - The one that was missing was `docs/architecture.md` — the diagram has
+      carried the *shape* since Phase 1 and nothing carried the **rule**: four
+      layers, imports pointing inwards only, and what each layer is forbidden
+      to know. It is written now, with a request's ten steps in words, what
+      degrades without each store, how the schema is owned, the frontend's own
+      layering, and the table of everything that is *derived* rather than
+      written twice
+  - **And the rule is now asserted**, because a document describing a shape
+      nothing enforces is true on the day it is written: `tests/test_layering.py`
+      reads every module's imports and fails on a service that imports Flask, a
+      `core` module that imports a service, a model that imports either, or a
+      handler that queries the database. It also requires every endpoint module
+      to gate its handlers — with the exemption derived from
+      `test_endpoint_map.PUBLIC`, so the health probes are exempt in *one* place
+      with their reason rather than in two lists that can disagree
+  - `README.md` gained the migration commands, the walkthrough, the map
+      clustering and the create shapes as they shipped; `docs/features.md` and
+      the tracker's matrix are generated and checked by `make lint`; and the
+      document index at the end of the README now points at all six
