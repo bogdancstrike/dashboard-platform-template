@@ -2767,9 +2767,24 @@ operational enterprise application, not a marketing website.**
 
 ### Keyboard map (§54)
 
-- [ ] `Ctrl/Cmd-K` palette · `/` focus search - also see gifr /home/bogdan/workspace/dev/gif_responder for cmdk -> it has more "categories": "On this page" being the most important -> actions to do on the current page.
-- **Acceptance**: listed in the `?` dialog; never fires while typing in an
-  input; disabled while a modal owns the keyboard
+- [x] `Ctrl/Cmd-K` palette · `/` focus search — and "On this page" is the
+      palette's first group, contributed by the page itself, so it is always
+      about where the reader actually is
+  - **`/` was not implemented, and the chord's guard was a comment.** The
+      handler carried "never while somebody is typing into a field — a palette
+      that steals the keystroke mid-sentence is worse than no shortcut" and no
+      code that did so, which is how a promise in a comment survives review
+  - The distinction the fix draws: **a chord is not a character.** Ctrl/Cmd-K
+      keeps working inside a field, because the search box is exactly where
+      somebody already typing what they are looking for is, and a modifier
+      chord cannot land in their sentence. `/` is a character, so it is
+      ignored in any editable element — and while a modal or drawer owns the
+      keyboard, where a global shortcut is a surprise
+- **Acceptance**: met — listed in the trigger's own label and title, never
+  fires while typing in an input, and disabled while a layer owns the
+  keyboard. 10 tests, including a checkbox (which holds no text, so `/` is
+  free there — a row of tick boxes is exactly where a reader's focus is when
+  they decide to search) and the guard verified load-bearing by removing it
 
 ---
 
@@ -2905,11 +2920,38 @@ function is a slow test that fails for unrelated reasons.
 
 - [x] Vitest + React Testing Library + MSW, mocking at the network boundary so
       tests exercise the real client rather than a stubbed module
-- [ ] Unit: formatters, URL-state serialisation (§72), permission hooks, query
+- [x] Unit: formatters, URL-state serialisation (§72), permission hooks, query
       builder value coercion, keyboard handlers
+  - The gaps were the formatters and the keyboard. `lib/formats.ts` — the
+      module every rendered date, time and number in the platform goes through
+      — had none, and writing them found **two wrongs**: the `MM/DD/YYYY`
+      option rendered an unpadded `9/6/2026` while its own label promised
+      `09/06/2026` (a column of dates that did not line up), and the *clock*
+      borrowed the date pattern's locale, so a 12-hour setting read
+      "03:42 p.m." under `YYYY-MM-DD` and "03:42 PM" under `MM/DD/YYYY`. Two
+      independent choices, one of them silently deciding the other
+  - The preferences page's option labels are rendered *by* `formatSample` now
+      rather than typed in beside it — a label that cannot disagree with what
+      the app produces, which is how the first of those two survived
+  - URL state, permission hooks and the query builder's coercion were already
+      covered (`SavedViewMenu`, `AuthProvider`, `queryBuilderConfig`)
 - [ ] Component: every state in [States](#states-every-data-view-must-have) for
       the table, detail page, form and chart wrappers
-- [ ] Contract: the generated client matches `/swagger.json` — a drift check in CI
+- [x] Contract: the client and the API map describe one surface — a drift check
+      in the suite
+  - `src/api/contract.test.ts` reads `backend/maps/endpoint.json` and asserts
+      that every address `src/api/*.ts` calls is one the API mounts. The two
+      halves of this repository agreed about the surface by hand, so a renamed
+      endpoint or a typed path was a 404 in a browser — found by whoever opened
+      the page next, and only if they opened it
+  - Reads the *map* rather than a running server, so it cannot be skipped for
+      want of a stack; the map is the same declaration the stack mounts from.
+      The subtlety it has to get right is that an interpolation in a path is
+      either a segment (`${id}`) or a query string (`${query(params)}`), and
+      treating them alike matches nothing — that rule is asserted on its own
+  - Deliberately one-directional: an endpoint with no caller is not a defect.
+      The health probes have none by design and a template ships more API than
+      any one page uses
 - **Acceptance**: `npm run test` green; `npm run typecheck` clean under
   `strict: true`; `npm run build` produces no chunk above 500KB gzipped without
   an explicit exemption
@@ -2953,7 +2995,24 @@ function is a slow test that fails for unrelated reasons.
       rather than against the row that claims it
 - [x] **Impersonation** (§12) — admin impersonates a viewer, sees the reduced
       UI, and both identities appear on the audit row
-- [ ] **Command palette** (§31) — `Ctrl-K`, navigate to a record, run a page action
+- [x] **Command palette** (§31) — `Ctrl-K`, navigate to a record, run a page action
+  - "Navigate to a record" needed the palette to *have* records, which its own
+      docstring had listed as "later" for the life of the project. It searches
+      the server now, debounced, from two characters — the thing somebody
+      actually wants from `Ctrl-K` is "TSK-00042, enter, be there", and the
+      alternative was three navigations and a filter
+  - A hit opens the record's **own page** where the router serves one, and the
+      explorer narrowed to it where it does not (`/files`, `/admin/users`) —
+      sending somebody to a 404 would be worse than a filtered list. The
+      search endpoint now publishes each group's `path`, which the declaration
+      already carried and every other caller already had
+  - The matched text is *in* each item's cmdk value, because cmdk filters
+      every item against the term again — including the ones the server just
+      matched, so a record found by its description was mounted and then
+      hidden by a fuzzy match against its reference
+  - 8 component tests and 8 end-to-end, including that a viewer is offered no
+      destination their role forbids: the palette is a second door to the same
+      rooms, not a way round the lock (§76)
 - [ ] **Audit explorer** (§21) — filter by actor and action, open an entry, read
       the before → after diff
 - [x] **Email** (§14–§16) — read a thread, reply, save a draft, send

@@ -654,6 +654,25 @@ def test_global_search_ranks_an_exact_reference_above_a_mention(client, monkeypa
 
 
 @pytest.mark.database
+def test_a_search_group_says_where_its_dataset_lives(client, monkeypatch):
+    """So a caller can offer the record's own page (§31).
+
+    The declaration carries the path and the explorer catalogue publishes it; a
+    search hit that did not was the one place a caller had to guess, and the
+    guess was `/explore?resource=…&f.id=…` — a query string that selects the
+    record rather than the page that *is* it.
+    """
+    response = client.get(
+        f"{PREFIX}/api/search/global?q=TSK-00042", headers=_authenticate(monkeypatch)
+    )
+
+    groups = {group["resource_type"]: group for group in response.get_json()["groups"]}
+    assert groups["task"]["path"] == "/tasks"
+    # Every group, not only the one this term happened to hit hardest.
+    assert all(group["path"].startswith("/") for group in groups.values())
+
+
+@pytest.mark.database
 def test_global_search_says_which_field_matched_and_shows_it(client, monkeypatch):
     response = client.get(
         f"{PREFIX}/api/search/global?q=migration", headers=_authenticate(monkeypatch)

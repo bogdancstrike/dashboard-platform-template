@@ -23,6 +23,10 @@ export interface GlobalGroup {
   resource_type: string;
   label: string;
   description: string;
+  /** Where this dataset lives — `/tasks`, `/orders`. The server's own
+   * declaration, so a caller can offer the record's page rather than a query
+   * string that selects it. */
+  path: string;
   /** More rows exist in this dataset than were returned. */
   has_more: boolean;
   items: GlobalHit[];

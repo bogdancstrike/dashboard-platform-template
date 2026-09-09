@@ -35,6 +35,14 @@ if (!window.ResizeObserver) {
   };
 }
 
+// jsdom has no layout, so it has no `scrollIntoView` — and `cmdk` calls it on
+// every selection change to keep the highlighted item in view. Without this the
+// command palette cannot be rendered in a test at all, which is why it had no
+// component test until now.
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}
+
 // jsdom throws "not implemented" for the two-argument form, which AntD's table
 // calls while measuring the scrollbar. The measurement is meaningless in jsdom
 // anyway; this keeps it from filling the output with stack traces.

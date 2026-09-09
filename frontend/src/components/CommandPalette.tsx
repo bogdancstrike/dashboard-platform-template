@@ -1,20 +1,42 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Command } from "cmdk";
 import {
   BgColorsOutlined,
   ColumnHeightOutlined,
   MoonOutlined,
+  FileSearchOutlined,
   SearchOutlined,
   SunOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
 
+import { searchApi, type GlobalHit } from "@/api/search";
 import { NAV_GROUPS, NAV_ITEMS, selectedKeyFor } from "@/app/navigation";
 import { useAuth } from "@/auth/AuthProvider";
 import { useCommands, type PageCommand } from "@/commands/CommandContext";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { RECORD_PAGES } from "@/app/records";
 import { useAppearance } from "@/theme/AppearanceProvider";
 import type { Density } from "@/theme/tokens";
+
+//: Two letters before the server is asked. One matches most of a database,
+//: and the answer would be discarded by the next keystroke.
+const MIN_RECORD_TERM = 2;
+
+/**
+ * Where selecting a record goes.
+ *
+ * Its own page when this dataset has one, and the explorer narrowed to it when
+ * it does not — `/files` and `/admin/users` list records the router serves no
+ * detail route for, and sending somebody to a 404 is worse than sending them
+ * to a filtered list.
+ */
+export function recordAddress(hit: GlobalHit, path: string): string {
+  if (RECORD_PAGES.has(hit.resource_type)) return `${path}/${hit.id}`;
+  return `/explore?resource=${hit.resource_type}&f.id=${hit.id}`;
+}
 
 export const isMacPlatform =
   typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
@@ -28,11 +50,15 @@ export const isMacPlatform =
  *
  * 1. **On this page** — what the current screen can do right now. Pages
  *    contribute these through `usePageCommands`, so the group is never stale.
- * 2. **General** — every destination in the application, and (later) matching
- *    records from the server.
- * 3. **Quick views** — saved searches and saved views, the things somebody
+ * 2. **Records** — the records themselves, from the server, once two letters
+ *    are typed. This is what the palette is *for*: somebody who knows
+ *    "TSK-00042" should reach it without choosing a page first, and the
+ *    alternative is three navigations and a filter. It was "later" for the
+ *    life of the project (§31, §32).
+ * 3. **General** — every destination in the application.
+ * 4. **Quick views** — saved searches and saved views, the things somebody
  *    returns to daily.
- * 4. **Settings** — appearance and density, the two preferences people change
+ * 5. **Settings** — appearance and density, the two preferences people change
  *    often enough to want without hunting for a screen.
  *
  * `cmdk` does the fuzzy matching and the keyboard model; everything here is
@@ -56,6 +82,30 @@ export function CommandPalette() {
     setOpen(false);
     run();
   };
+
+  /**
+   * Matching records, from the server, while the palette is open.
+   *
+   * Debounced and gated on two characters: one letter matches most of the
+   * database and the request would be thrown away by the next keystroke
+   * anyway. Disabled while the palette is closed, so a page with the provider
+   * mounted costs nothing.
+   */
+  const term = useDebouncedValue(query.trim(), 200);
+  const hits = useQuery({
+    queryKey: ["palette-search", term],
+    queryFn: ({ signal }) => searchApi.global(term, signal),
+    enabled: open && term.length >= MIN_RECORD_TERM,
+    placeholderData: (previous) => previous,
+    staleTime: 15_000,
+  });
+  const records = useMemo(
+    () =>
+      (hits.data?.groups ?? []).flatMap((group) =>
+        group.items.map((hit) => ({ hit, path: group.path, dataset: group.label })),
+      ),
+    [hits.data],
+  );
 
   const currentLabel = useMemo(() => {
     const key = selectedKeyFor(location.pathname);
@@ -126,6 +176,31 @@ export function CommandPalette() {
                 <span className="nu-cmdk-icon">{command.icon ?? <ThunderboltOutlined />}</span>
                 <span className="nu-cmdk-label">{command.label}</span>
                 {command.shortcut && <kbd>{command.shortcut}</kbd>}
+              </Command.Item>
+            ))}
+          </Command.Group>
+        )}
+
+        {records.length > 0 && (
+          <Command.Group heading={`Records matching “${hits.data?.query ?? term}”`}>
+            {records.map(({ hit, path, dataset }) => (
+              <Command.Item
+                key={`${hit.resource_type}:${hit.id}`}
+                // The matched text is *in* the value, because cmdk filters
+                // every item against the term again — including these, which
+                // the server already matched. Without the snippet, a record
+                // found by its description is mounted and then hidden by a
+                // fuzzy match against its reference.
+                value={`record:${hit.resource_type}:${hit.id}:${hit.label} ${hit.summary} ${hit.snippet}`}
+                onSelect={() => close(() => navigate(recordAddress(hit, path)))}
+              >
+                <span className="nu-cmdk-icon">
+                  <FileSearchOutlined />
+                </span>
+                <span className="nu-cmdk-label">{hit.label}</span>
+                <span className="nu-cmdk-hint">
+                  {dataset} · {hit.matched_label}
+                </span>
               </Command.Item>
             ))}
           </Command.Group>

@@ -37,6 +37,32 @@ interface CommandContextValue {
 
 const CommandContext = createContext<CommandContextValue | null>(null);
 
+/** Whether this event came from somewhere a character belongs. */
+export function isTyping(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  const tag = target.tagName;
+  if (tag === "TEXTAREA" || tag === "SELECT") return true;
+  if (tag !== "INPUT") return false;
+  // A checkbox or a radio takes no text, so `/` is free there — and the row
+  // of tick boxes down a table's first column is exactly where a reader's
+  // focus tends to be when they decide to search.
+  const type = (target as HTMLInputElement).type;
+  return !["checkbox", "radio", "button", "submit", "reset", "range", "file"].includes(type);
+}
+
+/**
+ * Whether a modal or drawer currently owns the keyboard.
+ *
+ * A DOM check, because AntD owns the layer stack and does not publish it. The
+ * alternative — every dialog in the product remembering to register itself —
+ * is the kind of bookkeeping that is right in three places and forgotten in
+ * the fourth.
+ */
+export function aLayerOwnsTheKeyboard(doc: Document = document): boolean {
+  return Boolean(doc.querySelector(".ant-modal-wrap:not([style*='display: none']), .ant-drawer-open"));
+}
+
 export function CommandProvider({ children }: { children: ReactNode }) {
   const [bySource, setBySource] = useState<Record<string, PageCommand[]>>({});
   const [open, setOpen] = useState(false);
@@ -54,13 +80,32 @@ export function CommandProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Ctrl/Cmd-K from anywhere, and never while somebody is typing into a field —
-  // a palette that steals the keystroke mid-sentence is worse than no shortcut.
+  /**
+   * The two ways in from the keyboard (§54).
+   *
+   * **Ctrl/Cmd-K works everywhere, including inside a field.** A chord is not
+   * a character: intercepting it cannot interrupt a sentence, and a shortcut
+   * that stopped working in the search box would stop working exactly where
+   * somebody is already typing what they are looking for.
+   *
+   * **`/` works only when nothing is being typed.** It *is* a character, so
+   * the guard is the whole feature — this comment claimed it for the chord and
+   * nothing implemented it for either, which is how a promise in a comment
+   * survives review. Editable elements are excluded, and so is anything inside
+   * an open modal or drawer: while a layer owns the keyboard, a global
+   * shortcut is a surprise.
+   */
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() !== "k" || !(event.metaKey || event.ctrlKey)) return;
+      if (event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        setOpen((current) => !current);
+        return;
+      }
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (isTyping(event.target) || aLayerOwnsTheKeyboard()) return;
       event.preventDefault();
-      setOpen((current) => !current);
+      setOpen(true);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);

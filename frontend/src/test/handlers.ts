@@ -642,8 +642,62 @@ export const explorerResult = {
 export const globalResults = {
   query: "",
   total: 0,
-  groups: [],
+  groups: [] as Array<Record<string, unknown>>,
   truncated: false,
+};
+
+/**
+ * A search that found something — two datasets, one of which the router serves
+ * no record page for.
+ *
+ * That second group is the point: the palette has to send a `file` hit to the
+ * explorer and a `task` hit to its own page, and a fixture with only entity
+ * hits could not tell the two apart (§31).
+ */
+export const globalHits = {
+  query: "migration",
+  total: 2,
+  truncated: false,
+  groups: [
+    {
+      resource_type: "task",
+      label: "Tasks",
+      description: "Work items",
+      path: "/tasks",
+      has_more: false,
+      items: [
+        {
+          id: "task-1",
+          resource_type: "task",
+          label: "TSK-00042",
+          summary: "Review customer migration",
+          score: 120,
+          matched_field: "title",
+          matched_label: "Title",
+          snippet: "Review customer migration",
+        },
+      ],
+    },
+    {
+      resource_type: "file",
+      label: "Files",
+      description: "Documents",
+      path: "/files",
+      has_more: false,
+      items: [
+        {
+          id: "file-1",
+          resource_type: "file",
+          label: "migration-plan.pdf",
+          summary: "2.1 MB",
+          score: 60,
+          matched_field: "name",
+          matched_label: "Name",
+          snippet: "migration-plan.pdf",
+        },
+      ],
+    },
+  ],
 };
 
 

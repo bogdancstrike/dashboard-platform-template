@@ -68,7 +68,9 @@ describe("personal preferences", () => {
 
     // §40's whole point: the formatters the rest of the app calls are the ones
     // this page configures. `absoluteTime` is what an audit row uses.
-    await waitFor(() => expect(absoluteTime("2026-09-06T15:42:08Z")).toMatch(/^9\/6\/2026/));
+    // Padded, as the option's own label says: two digits for the day and the
+    // month whichever pattern is chosen, so a column of dates lines up.
+    await waitFor(() => expect(absoluteTime("2026-09-06T15:42:08Z")).toMatch(/^09\/06\/2026/));
 
     // Put it back so the module store does not leak into the next test.
     await user.click(

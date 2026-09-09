@@ -34,6 +34,12 @@ import { useAppearance } from "@/theme/AppearanceProvider";
 
 const { Text, Paragraph } = Typography;
 
+//: The choices, in the order the control offers them. The *labels* are
+//: rendered from `formatSample`, so they are worked examples rather than a
+//: fourth spelling of the pattern.
+const DATE_PATTERNS = ["YYYY-MM-DD", "DD/MM/YYYY", "MM/DD/YYYY"] as const;
+const NUMBER_PATTERNS = ["1,234.56", "1 234,56"] as const;
+
 /** Where the logo and the index route can be pointed. */
 const LANDING_PAGES: { value: string; label: string; path: string }[] = [
   { value: "home", label: "Home", path: "/home" },
@@ -195,11 +201,15 @@ export default function PreferencesPage() {
                   aria-label="Date format"
                   value={formats.date}
                   onChange={(event) => setFormat("date", event.target.value as typeof formats.date)}
-                  options={[
-                    { label: "2026-09-06", value: "YYYY-MM-DD" },
-                    { label: "06/09/2026", value: "DD/MM/YYYY" },
-                    { label: "09/06/2026", value: "MM/DD/YYYY" },
-                  ]}
+                  // Each label is the *same function* the rest of the app
+                  // renders with, so an option cannot promise a shape it does
+                  // not produce. The hardcoded labels did: `MM/DD/YYYY` said
+                  // "09/06/2026" and rendered an unpadded "9/6/2026"
+                  // everywhere else in the product.
+                  options={DATE_PATTERNS.map((pattern) => ({
+                    label: formatSample({ ...formats, date: pattern }).date,
+                    value: pattern,
+                  }))}
                   optionType="button"
                 />
               </Setting>
@@ -220,11 +230,13 @@ export default function PreferencesPage() {
                 <Segmented
                   aria-label="Number format"
                   value={formats.number}
-                  onChange={(next) => setFormat("number", next as typeof formats.number)}
-                  options={[
-                    { label: "1,234.56", value: "1,234.56" },
-                    { label: "1 234,56", value: "1 234,56" },
-                  ]}
+                  // Typed by the options now, so the assertion the old
+                  // hardcoded list needed is gone.
+                  onChange={(next) => setFormat("number", next)}
+                  options={NUMBER_PATTERNS.map((pattern) => ({
+                    label: formatSample({ ...formats, number: pattern }).number,
+                    value: pattern,
+                  }))}
                 />
               </Setting>
 

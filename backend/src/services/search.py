@@ -134,6 +134,12 @@ def search(session, args, *, principal) -> dict[str, Any]:
             "resource_type": resource.key,
             "label": resource.label,
             "description": resource.description,
+            # Where this dataset lives, so a caller can offer the record's own
+            # page rather than a query string that happens to select it. The
+            # declaration already carries it (`Resource.path`) and the
+            # catalogue publishes it; a search hit that did not was the one
+            # place a caller had to guess (§31, §32).
+            "path": resource.path,
             "has_more": more,
             "items": [
                 {
