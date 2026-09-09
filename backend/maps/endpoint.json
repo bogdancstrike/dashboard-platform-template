@@ -1032,6 +1032,34 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "quality_overview",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/quality",
+      "description": "What is wrong with the records, counted, with somewhere to go for each.",
+      "exec_method": {
+        "module_name": "src.api.quality",
+        "method_name": "overview"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "quality_summary",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/quality/<string:resource_type>",
+      "description": "One dataset's data-quality counts, for the indicator on its list.",
+      "exec_method": {
+        "module_name": "src.api.quality",
+        "method_name": "summary"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "comments_collection",
       "model_name": "Empty",
       "request_method": [

@@ -342,6 +342,21 @@ body {
 .nu-activity-item { font-size: 13px; line-height: 1.45; }
 .nu-activity-time { font-size: 11.5px; color: var(--nu-text-tertiary); margin-top: 2px; }
 
+/* ── data quality (§65) ─────────────────────────────────────────────── */
+.nu-quality-totals {
+  display: grid; gap: 10px; margin-bottom: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+.nu-quality-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.nu-quality-card .ant-card-head-title { white-space: normal; }
+/* The reason first and the remedy second, both at reading width: a finding is
+   two sentences somebody has to act on, not a row in a table. */
+.nu-quality-why { margin-bottom: 6px !important; max-width: 78ch; }
+.nu-quality-fix { margin-bottom: 0 !important; max-width: 78ch; }
+.nu-quality-nolink { display: block; margin-top: 8px; font-size: 12.5px; }
+.nu-quality-sample { margin: 6px 0 0; padding-left: 18px; }
+.nu-quality-sample li { font-size: 12.5px; }
+
 /* ── profile (§40, §41) ─────────────────────────────────────────────── */
 .nu-profile-card { margin-bottom: 12px; }
 .nu-profile-head { display: flex; gap: 16px; align-items: flex-start; }

@@ -255,6 +255,21 @@ IMPORT_COUNTED: Vocabulary = ("VALIDATED", "RUNNING", "COMPLETED", "FAILED")
 #: on the preview, not skip past it.
 IMPORT_STEP: Vocabulary = ("UPLOAD", "MAPPING", "PREVIEW", "EXECUTE", "DONE")
 
+#: How much a data-quality finding should worry somebody (§65).
+#:
+#: Its own vocabulary rather than a share of `NOTIFICATION_SEVERITY`, for the
+#: reason `SECURITY_SEVERITY` is: the three grade different questions. A
+#: notification's severity is "how loudly should this interrupt you"; this is
+#: "how wrong is the data, and does anything downstream depend on it being
+#: right". A fourth notification level added one day must not silently become a
+#: data-quality grade nothing renders.
+#:
+#: CRITICAL is reserved for a *contradiction* — a ticket marked resolved with
+#: no moment of resolution, an order shipped and never paid — because those are
+#: not a matter of taste. WARNING is a gap somebody should close. INFO is a
+#: fact worth publishing that nobody has to act on today.
+QUALITY_SEVERITY: Vocabulary = ("INFO", "WARNING", "CRITICAL")
+
 
 def weighted(values: Vocabulary, weights: tuple[float, ...]) -> tuple[tuple[str, float], ...]:
     """Pair a vocabulary with the seed's distribution, positionally.

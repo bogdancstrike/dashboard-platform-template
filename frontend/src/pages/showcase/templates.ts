@@ -176,6 +176,20 @@ export const LAYOUTS: PageLayout[] = [
     routes: ["admin/health"],
   },
   {
+    key: "findings",
+    name: "Findings report",
+    shape:
+      "Totals at the top, then one card per thing that is wrong — what it is, why it matters, what to do, and a link to the rows.",
+    when:
+      "The page's subject is a set of *problems*, each needing a sentence of explanation and a different remedy.",
+    unless:
+      "The items are homogeneous — then they are rows, and a table of two hundred is readable where two hundred cards are not.",
+    // The passing checks are drawn too, which is what separates this shape
+    // from a list of problems: a page showing only failures cannot be told
+    // apart from a page whose checks are broken.
+    routes: ["admin/quality"],
+  },
+  {
     key: "index",
     name: "Section index",
     shape: "Cards leading into a section, each saying what is behind it.",

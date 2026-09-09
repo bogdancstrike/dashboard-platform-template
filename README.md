@@ -224,6 +224,36 @@ place. Which datasets can be mapped, and how each reaches a place, is the
 no city is placed one hop away, at its customer's. Country outlines are
 vendored (`frontend/src/assets/README.md`) because the stack runs offline.
 
+### What is wrong with the records
+
+`/admin/quality` runs fourteen checks over the six datasets and says, for each,
+what is wrong, why it matters downstream, what to do about it, and where the
+rows are.
+
+The design decision worth knowing before adding a check: **a check is declared
+as the list's own filter**, in `backend/src/services/quality.py`. The count and
+the link both come from those filters, through `apply_filters` and
+`core/query`'s operator vocabulary — so "12 unassigned open tickets" opens
+exactly the twelve rows it counted, and a check counted one way and linked
+another cannot exist. A count nobody can open is a count nobody can fix.
+
+A check that needs SQL the filter vocabulary cannot express — `spent > budget`
+compares two columns, and a filter compares a column to a value — carries a
+predicate instead and publishes a *sample* of records rather than a link. The
+page draws that difference rather than hiding it behind a link that would open
+the wrong rows.
+
+Severity grades the data: CRITICAL is a contradiction (an order shipped and
+never paid), WARNING is a gap, INFO is a fact worth publishing. Findings sort
+by grade and only then by size, because one contradiction matters more than
+four hundred missing phone numbers. The checks that came back empty are drawn
+too — a page listing only problems cannot be told apart from a page whose
+checks are broken.
+
+Every entity list carries a chip beside its count linking to the page narrowed
+to that dataset, and the chip is absent when nothing is wrong: a green "0
+issues" on six lists is six pieces of chrome a reader learns to skip.
+
 ### Who am I, as the platform sees me
 
 `/profile` answers the commonest support question in a platform of this shape —

@@ -27,6 +27,7 @@ const HomePage = lazy(() => import("@/pages/HomePage"));
 const AdminHomePage = lazy(() => import("@/pages/admin/AdminHomePage"));
 const SystemSettingsPage = lazy(() => import("@/pages/admin/SettingsPage"));
 const FlagsPage = lazy(() => import("@/pages/admin/FlagsPage"));
+const QualityPage = lazy(() => import("@/pages/admin/QualityPage"));
 const LogsPage = lazy(() => import("@/pages/admin/LogsPage"));
 const JobsPage = lazy(() => import("@/pages/admin/JobsPage"));
 const GroupsPage = lazy(() => import("@/pages/admin/GroupsPage"));
@@ -484,6 +485,14 @@ export default function App() {
           element={
             <Suspense fallback={<Loading />}>
               <IntegrationsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="admin/quality"
+          element={
+            <Suspense fallback={<Loading />}>
+              <QualityPage />
             </Suspense>
           }
         />

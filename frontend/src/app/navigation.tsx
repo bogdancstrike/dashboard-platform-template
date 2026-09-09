@@ -176,6 +176,17 @@ export const NAV_GROUPS: NavGroup[] = [
     key: "data",
     label: "Data",
     items: [
+      // Here rather than under Administration, and the permission is why: what
+      // the page shows is a count of rows the reader can already see, gated on
+      // `records.view`, so it belongs beside the other things one does *to the
+      // data* rather than in the group about running the platform. Putting it
+      // there gave a viewer an "Administration" heading with one entry under
+      // it (§65).
+      //
+      // The address stays `/admin/quality` — the tracker's, and the API's. A
+      // path prefix is not a permission boundary here: `/admin/users` is
+      // readable by every persona too.
+      { key: "/admin/quality", label: "Data quality", icon: <FundProjectionScreenOutlined />, permission: "records.view" },
       { key: "/import", label: "Import", icon: <ImportOutlined />, permission: "records.import" },
       { key: "/exports", label: "Exports", icon: <ContainerOutlined />, permission: "records.export" },
     ],

@@ -11,11 +11,24 @@
  * that knows what it is looking at.
  */
 
-import { Alert, App as AntApp, Button, Card, Input, Select, Space, Tag, Typography } from "antd";
+import {
+  Alert,
+  App as AntApp,
+  Button,
+  Card,
+  Input,
+  Select,
+  Space,
+  Tag,
+  Tooltip,
+  Typography,
+} from "antd";
 import { ClearOutlined, SearchOutlined } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Link, useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
+import { qualityApi } from "@/api/quality";
 import { explorerApi, type ExplorerRequest, type InsightMetric } from "@/api/explorer";
 import { exportsApi, type ExportRequest } from "@/api/exports";
 import { ExportButton } from "@/components/ExportButton";
@@ -47,9 +60,12 @@ export function EntityHeader({
       subtitle={subtitle ?? resource?.description ?? ""}
       tag={
         rows.data && resource ? (
-          <Tag color="blue" data-testid="entity-total">
-            {rows.data.total.toLocaleString()} of {resource.record_count.toLocaleString()}
-          </Tag>
+          <>
+            <Tag color="blue" data-testid="entity-total">
+              {rows.data.total.toLocaleString()} of {resource.record_count.toLocaleString()}
+            </Tag>
+            <QualityChip resourceKey={resource.key} />
+          </>
         ) : undefined
       }
       actions={
@@ -88,6 +104,45 @@ export function EntityHeader({
         </>
       }
     />
+  );
+}
+
+/**
+ * "3 data issues", beside the count, on every list (§65).
+ *
+ * Here rather than on each page, so a dataset gets the indicator by being a
+ * dataset. It is a *chip and a link* and nothing more: the explanations, the
+ * remedies and the rows live on `/admin/quality`, and putting them on every
+ * list would be that page rendered six times.
+ *
+ * Absent when there is nothing wrong, deliberately. A green "0 issues" on six
+ * lists is six pieces of chrome a reader learns to skip, and then the one that
+ * says 3 is skipped too.
+ */
+function QualityChip({ resourceKey }: { resourceKey: string }) {
+  const found = useQuery({
+    queryKey: ["quality-summary", resourceKey],
+    queryFn: ({ signal }) => qualityApi.summary(resourceKey, signal),
+    staleTime: 60_000,
+  });
+  const summary = found.data;
+  if (!summary || summary.failing === 0) return null;
+
+  return (
+    <Tooltip
+      title={`${summary.records.toLocaleString()} records across ${summary.failing} check${
+        summary.failing === 1 ? "" : "s"
+      }. Open the data-quality page to see what and why.`}
+    >
+      <Link to={`/admin/quality?resource_type=${resourceKey}`}>
+        <Tag
+          color={summary.worst === "CRITICAL" ? "error" : summary.worst === "WARNING" ? "warning" : "processing"}
+          data-testid="entity-quality"
+        >
+          {summary.failing} data {summary.failing === 1 ? "issue" : "issues"}
+        </Tag>
+      </Link>
+    </Tooltip>
   );
 }
 

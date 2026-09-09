@@ -1700,6 +1700,72 @@ commit — built, committed, pushed, redeployed and verified before the next.
       and lets the label take the click, which `NotificationsPage.test` had
       already documented
 
+- [x] **`/admin/quality` — what is wrong with the records** (§65)
+  - Every dataset in a real installation rots the same few ways: a customer
+      nobody owns, a ticket marked resolved with no moment of resolution, two
+      accounts with one email address. None of those is a bug in the software
+      and all of them break something downstream — a report, a rota, a bill —
+      so a platform that cannot show them is one where somebody finds out from
+      a customer
+  - **A check is declared as the list's own filter, not as its own SQL**, and
+      that is what makes the page worth having. The count and the *link* come
+      from the same `filters`, through `apply_filters` and `core/query`'s
+      operator vocabulary, so "12 unassigned open tickets" opens exactly the
+      twelve rows it counted. A count nobody can open is a count nobody can
+      fix, and a count computed by one query and linked to another is a count
+      that will eventually disagree with its own list. The backend test runs
+      the check's count and then the *list's* query with the check's filters
+      and compares; the e2e reads the number off the page, follows the link and
+      compares it with the header count the list computes
+  - **The checks a filter cannot express say so.** `spent > budget` compares
+      two columns and the query language compares a column to a *value*, by
+      design — a filter bar that could name a second column is a query builder.
+      Those checks carry a predicate, are counted in SQL like the rest, and
+      publish a *sample* whose records each open on their own page. The
+      difference is drawn rather than hidden: a link that quietly returned the
+      wrong rows would be worse than no link
+  - **The passing checks are drawn too.** A page listing only problems cannot
+      be told apart from a page whose checks are broken, so all fourteen come
+      back with their counts and the empty ones are shown as such. "14 checks,
+      8 with something in them" is a sentence somebody can trust
+  - **Every finding says what goes wrong and what to do.** A finding with no
+      remedy is a complaint, and a page of complaints is a page nobody opens
+      twice — asserted over the whole catalogue rather than one example,
+      because the failure mode is a check added later with a title and nothing
+      else
+  - **Severity grades the data, not the volume.** CRITICAL is a *contradiction*
+      — a state that cannot be true, like an order shipped and never paid;
+      WARNING is a gap; INFO is a fact worth publishing. Findings are ordered
+      by grade and only then by size, because one contradiction matters more
+      than four hundred missing phone numbers. `QUALITY_SEVERITY` is its own
+      vocabulary for the reason `SECURITY_SEVERITY` is
+  - **The relative moments are rounded to the day**, which matters twice: a
+      task due at nine this morning is not "past its due date" at two in the
+      afternoon, and a link carrying `…T01:21:22.598686Z` is an address that
+      means something different every time the page is opened — two calls a
+      millisecond apart produced two different links, which the count-equals-
+      link test caught
+  - **An indicator on every list** (§65's other half): a chip beside the count
+      saying "3 data issues", linking to the page narrowed to that dataset.
+      In `EntityChrome`, so a dataset gets it by being a dataset — and *absent*
+      when there is nothing wrong, because a green "0 issues" on six lists is
+      six pieces of chrome a reader learns to skip, and then the one that says
+      3 is skipped too
+  - **`records.view` and nothing narrower.** What the page shows is a count of
+      rows the reader can already see; a separate permission would let an
+      installation grant somebody a list and withhold the news that a tenth of
+      it contradicts itself. It sits in the **Data** group beside Import and
+      Exports rather than under Administration for the same reason — putting it
+      there gave a viewer an "Administration" heading with one entry under it,
+      which a component test caught
+  - **The seed already produces the problems**, which is why this suite asserts
+      against something: 4 overspent projects, 4 customers sharing an email
+      address, an order shipped and never paid, 12 unassigned open tickets, 17
+      overdue tasks. Deliberate data-quality seeding turned out to be
+      unnecessary — a generator drawing from distributions produces the same
+      contradictions a real installation does
+  - 15 backend tests, 14 component tests, 7 Playwright
+
 - [x] **One gesture over many records** (§43, §75)
   - **The preview is a separate call and it is not optional.** "Change the
       status of everything matching this filter" is a sentence whose
@@ -2379,7 +2445,7 @@ commit — built, committed, pushed, redeployed and verified before the next.
 
 ---
 
-- [ ] **Lanes can be created, renamed and removed** (§18) — on `/kanban`, where
+- [x] **Lanes can be created, renamed and removed** (§18) — on `/kanban`, where
       a lane is a row a person owns. On `/tasks` a lane is the declared status
       vocabulary and stays that way: the board is a view of the work queue, and
       a lane somebody invents there would be a status no filter, chart or
@@ -2731,7 +2797,7 @@ section is a cross-cutting rule rather than a page.
 | 62 | Master / detail layout | `/showcase/master-detail` | — | [ ] |
 | 63 | Split view | mail, logs, files, tasks | — | [ ] |
 | 64 | Table row preview drawer | every list | — | [ ] |
-| 65 | Data quality indicators | lists + `/admin/quality` | — | [ ] |
+| 65 | Data quality indicators | lists + `/admin/quality` | `/admin/quality` | [x] |
 | 66 | Dashboard alerts | `/` | `/dashboard/alerts` | [ ] |
 | 67 | Customisable home page | `/dashboards` | `/api/dashboards` | [x] |
 | 68 | Navigation history | global | `/recent` | [ ] |
@@ -3020,12 +3086,16 @@ everything else.
 
 ### `/kanban` — boards, cards, drag (§18, §33, §36)
 
-- [ ] Model: `kanban_boards` → `kanban_lanes` → `kanban_cards`, plus
+- [x] Model: `kanban_boards` → `kanban_lanes` → `kanban_cards`, plus
       `kanban_card_items` (the card's to-do list). Comments reuse the existing
       polymorphic `comments` table; attachments reuse `files`
   - Cards carry `position` **and** `lane_id`, so a drag is one UPDATE and a
     reload restores exactly what the reader left
-- [ ] Board CRUD, lane CRUD, card CRUD
+- [x] Board CRUD, lane CRUD, card CRUD — seven endpoints, and the lane half is
+      create, rename, set a WIP limit, reorder and remove-with-a-destination.
+      Verified against the shipped code rather than ticked: `kanbanApi` carries
+      all of them, `LaneColumn` opens the three dialogues, and the e2e asserts
+      that a removed lane hands its cards to another one
 - [~] **Drag a card between lanes and within a lane.** Optimistic on the client,
       reconciled against the server's answer (§73)
   - Lane-to-lane ships on `/tasks`, on the task's own `status` rather than a
@@ -3044,8 +3114,12 @@ everything else.
   - **Acceptance**: met for the checklist and the conversation — ticking an
     item writes the record and the progress moves with it, without a reload.
     Counts on the card face are still open
-- [ ] Filters: assignee, label, due, text — applied server-side (§71)
-- [ ] Keyboard: move a card between lanes without a mouse (§54, §55)
+- [x] Filters: assignee, label, kind, text — applied server-side (§71) and
+      carried in the URL, so a narrowed board is a link. `BoardFilters` goes
+      to the API; the page never narrows a downloaded column
+- [x] Keyboard: move a card between lanes without a mouse (§54, §55) — the
+      card's own menu offers every other lane by name, and it calls the same
+      mutation the drag does, so the two cannot disagree about what a move is
 
 ### `/notifications` — the notification centre, live (§17)
 
@@ -3671,8 +3745,15 @@ there was only one. The point of a template is the opposite.
 - [x] Referential consistency across all modules — `--check` verifies it
 - [x] The five Keycloak personas seeded with the realm's emails, so signing in
       adopts a populated profile instead of provisioning an empty one
-- [ ] Data-quality seeding for §65 — deliberate duplicates, stale records and
-      incomplete profiles, in known quantities the tests can assert
+- [x] Data-quality seeding for §65 turned out to be **unnecessary**, which is
+      worth recording rather than doing: the generator draws from
+      distributions, and distributions produce the same contradictions a real
+      installation does. `/admin/quality` finds 4 overspent projects, 4
+      customers sharing an email address, an order shipped and never paid, 12
+      unassigned open tickets and 17 overdue tasks in the seeded database
+      without a single line of deliberate corruption. Contriving them would
+      have made the page's own tests weaker, not stronger — they would have
+      been asserting against data planted to satisfy them
 
 ## Phase 4 — Backend API
 

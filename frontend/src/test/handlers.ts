@@ -4855,6 +4855,111 @@ export const handlers = [
     if (index >= 0) announcements.splice(index, 1);
     return echo(request, { id: params["id"], deleted: true });
   }),
+  // ── data quality (§65) ───────────────────────────────────────────────
+  //
+  // A failing check *with* a link, a failing check *without* one, and a
+  // passing check — the three shapes the page draws differently. A fixture
+  // with only failures would let the "nothing to report" branch and the
+  // passing-checks panel ship untested.
+  http.get("/platform/admin/quality/:resourceType", ({ params, request }) =>
+    echo(request, {
+      resource_type: String(params["resourceType"]),
+      failing: 2,
+      records: 16,
+      by_severity: { CRITICAL: 1, WARNING: 1, INFO: 0 },
+      worst: "CRITICAL",
+    }),
+  ),
+  http.get("/platform/admin/quality", ({ request }) => {
+    const chosen = new URL(request.url).searchParams.get("resource_type") ?? "";
+    const findings = [
+      {
+        key: "order_shipped_unpaid",
+        resource_type: "order",
+        resource_label: "Orders",
+        title: "Shipped and never paid",
+        why: "The goods have gone and the money has not arrived.",
+        fix: "Chase the payment, or mark the order refunded.",
+        severity: "CRITICAL",
+        count: 3,
+        link: "/orders?f.fulfilment_status=SHIPPED&f.payment_status=UNPAID",
+        why_no_link: "",
+        sample: [],
+      },
+      {
+        key: "project_overspent",
+        resource_type: "project",
+        resource_label: "Projects",
+        title: "Spent more than the budget",
+        why: "A project past its budget and still reported as on track is expensive.",
+        fix: "Revise the budget, or change the reported health.",
+        severity: "CRITICAL",
+        count: 4,
+        // No link: two columns compared, which a filter cannot express.
+        link: "",
+        why_no_link:
+          "This compares two columns, which a filter cannot express — so the records are named here instead.",
+        sample: [
+          { id: "project-1", label: "PRJ-0001", path: "/projects/project-1" },
+          { id: "project-2", label: "PRJ-0002", path: "/projects/project-2" },
+        ],
+      },
+      {
+        key: "ticket_unassigned_open",
+        resource_type: "ticket",
+        resource_label: "Tickets",
+        title: "Open and unassigned",
+        why: "Nobody is working on it, and the clock is running against the SLA.",
+        fix: "Assign it, or close it if it was raised in error.",
+        severity: "WARNING",
+        count: 12,
+        link: "/tickets?f.assignee_id__empty=true&f.status__not_in=RESOLVED,CLOSED",
+        why_no_link: "",
+        sample: [],
+      },
+      {
+        key: "customer_no_email",
+        resource_type: "customer",
+        resource_label: "Customers",
+        title: "No email address",
+        why: "Nothing the platform sends can reach them.",
+        fix: "Add an address.",
+        severity: "INFO",
+        count: 0,
+        link: "/customers?f.email__empty=true",
+        why_no_link: "",
+        sample: [],
+      },
+    ].filter((finding) => !chosen || finding.resource_type === chosen);
+
+    const counted = findings.filter((finding) => finding.count > 0);
+    return echo(request, {
+      resource_type: chosen,
+      generated_at: "2026-09-09T04:00:00Z",
+      findings,
+      totals: {
+        checks: findings.length,
+        failing: counted.length,
+        records: counted.reduce((sum, finding) => sum + finding.count, 0),
+        by_severity: {
+          CRITICAL: counted.filter((f) => f.severity === "CRITICAL").length,
+          WARNING: counted.filter((f) => f.severity === "WARNING").length,
+          INFO: counted.filter((f) => f.severity === "INFO").length,
+        },
+      },
+      datasets: [
+        { resource_type: "order", label: "Orders", path: "/orders", failing: 1, records: 3,
+          by_severity: { CRITICAL: 1, WARNING: 0, INFO: 0 }, worst: "CRITICAL" },
+        { resource_type: "project", label: "Projects", path: "/projects", failing: 1, records: 4,
+          by_severity: { CRITICAL: 1, WARNING: 0, INFO: 0 }, worst: "CRITICAL" },
+        { resource_type: "ticket", label: "Tickets", path: "/tickets", failing: 1, records: 12,
+          by_severity: { CRITICAL: 0, WARNING: 1, INFO: 0 }, worst: "WARNING" },
+        { resource_type: "customer", label: "Customers", path: "/customers", failing: 0, records: 0,
+          by_severity: { CRITICAL: 0, WARNING: 0, INFO: 0 }, worst: "" },
+      ],
+    });
+  }),
+
   // ── profile (§40, §41) ───────────────────────────────────────────────
   //
   // Answers for *whoever is asked about*, so a test can check that a
