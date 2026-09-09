@@ -146,6 +146,15 @@ def main(argv: list[str] | None = None) -> int:
             parts = [f"{tables} table(s) created"] if tables else []
             parts += [f"{columns} column(s) added"] if columns else []
             print(", ".join(parts))
+        if not blocked:
+            # A database whose schema now matches the models is a database at
+            # the latest revision, and saying so is what stops the first
+            # `make migrate` on it from trying to create every table again.
+            # Only ever *recorded*, never assumed: `stamp_head` refuses a
+            # database that already carries a revision.
+            stamped = runner.stamp_head(engine)
+            if stamped:
+                print(f"recorded schema revision {stamped}")
         return 1 if blocked else 0
 
     if args.sync_files:

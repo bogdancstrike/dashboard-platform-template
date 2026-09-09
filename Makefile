@@ -76,6 +76,38 @@ seed: ## Seed, if the database is empty
 reseed: ## Drop every table and seed again
 	$(COMPOSE) run --rm -e SEED_ARGS=--reset seed
 
+# ── Schema (Alembic) ─────────────────────────────────────────────────────
+#
+# The schema is versioned by revision. The seed still calls `create_all` for a
+# database that is *empty* — a first `docker compose up` should not need two
+# commands — and `--sync-schema` still repairs an existing one additively; what
+# these add is the answer for a database that has to move from one shape to
+# another with rows in it. `migrations/env.py` reads `DATABASE_URL`, so all
+# three see one database.
+
+.PHONY: migrate
+migrate: ## Bring the database up to the latest revision
+	$(COMPOSE) run --rm --no-deps seed python -m alembic upgrade head
+
+.PHONY: migration-status
+migration-status: ## Which revision the database is at, and what is pending
+	$(COMPOSE) run --rm --no-deps seed python -m alembic current --verbose
+	$(COMPOSE) run --rm --no-deps seed python -m alembic heads
+
+.PHONY: migration
+migration: ## Generate a revision from the models — make migration m="what changed"
+	@test -n "$(m)" || { echo 'usage: make migration m="what changed"'; exit 2; }
+	# Written into the repository, not into the image: the container's copy of
+	# `migrations/` is a build artefact, and a revision generated there would
+	# be lost with the container.
+	cd $(BACKEND) && DATABASE_URL="postgresql+psycopg2://platform:platform@localhost:$${POSTGRES_PORT:-5433}/platform" \
+		../$(PY) -m alembic revision --autogenerate -m "$(m)"
+
+.PHONY: migration-sql
+migration-sql: ## Print the SQL an upgrade would run, for somebody else to apply
+	cd $(BACKEND) && DATABASE_URL="postgresql+psycopg2://platform:platform@localhost:$${POSTGRES_PORT:-5433}/platform" \
+		../$(PY) -m alembic upgrade head --sql
+
 .PHONY: check-seed
 check-seed: ## Verify the seeded data is referentially consistent
 	$(COMPOSE) run --rm -e SEED_ARGS=--check seed

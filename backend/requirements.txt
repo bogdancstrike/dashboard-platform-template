@@ -34,6 +34,13 @@ simple-websocket>=1.1.0,<2
 sqlalchemy>=2.0.36,<3
 psycopg2-binary>=2.9.10
 
+# Migrations (§back-end phase 2). The schema is versioned by revision rather
+# than created from the models at deploy time: `create_all` is silent about a
+# table that already exists and has drifted, which is precisely the state a
+# second deployment is in. `migrations/env.py` reads the models' own metadata,
+# so a revision is generated from the ORM rather than typed out beside it.
+alembic>=1.14.0,<2
+
 # ── Auth (Keycloak / OIDC) ───────────────────────────────────────────────
 # JWKS-based access-token verification. python-jose validates RS256 against
 # the realm's published keys; requests fetches them.

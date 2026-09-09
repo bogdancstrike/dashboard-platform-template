@@ -4443,9 +4443,44 @@ there was only one. The point of a template is the opposite.
       feature flags, api clients, integrations, alert rules, email templates
 - [x] Personalization: saved searches, saved views, favorites, recent items,
       dashboards/widgets, preferences, reports
-- [ ] Alembic migrations, on the naming convention already in `models/base.py`
-  - **Acceptance**: `alembic upgrade head` on an empty database produces exactly
-    what `create_all` does, asserted by a diff test
+- [x] Alembic migrations, on the naming convention already in `models/base.py`
+  - `backend/alembic.ini` + `migrations/env.py`, and one revision that builds
+      the schema the models describe. **No URL in the ini file**: `env.py`
+      reads `Config.DATABASE_URL`, the same setting the application, the seed
+      and the tests read, because two answers to "which database did that run
+      against" is how a migration lands on the wrong one
+  - `compare_type` and `compare_server_default` are on. Without them a column
+      whose type or default changed in a model autogenerates an *empty*
+      revision, which is worse than none because it looks like agreement
+  - **The initial revision had to be rewritten to run at all.** Autogenerate
+      inlines every foreign key, and this schema has a cycle — `users` →
+      `departments` → `users` — so `CREATE TABLE departments` referenced a
+      `users` that did not exist yet. The eleven constraints in that cycle are
+      added after the tables with `op.create_foreign_key`, which is exactly
+      what SQLAlchemy's own `create_all` does with them
+  - **The baseline problem, which is how this usually first goes wrong.** A
+      first `docker compose up` still builds the schema from the models —
+      needing two commands for a working stack is a worse first five minutes
+      than owning a version table — and now *stamps* what it built. A database
+      with every table and no recorded revision is one Alembic believes is
+      empty, and the first `make migrate` on it would try to create all
+      fifty-seven tables again. `--sync-schema` stamps for the same reason
+      once an existing database matches the models. Stamping only ever writes
+      into an *empty* version table: claiming a migration has run when it has
+      not is the one lie here that turns a pending change into missing columns
+      nobody notices
+  - `stamp_head` stamps the engine it was handed rather than the configured
+      database, which took a test to find — the first version stamped whatever
+      `DATABASE_URL` pointed at while claiming to stamp a scratch database
+  - `make migrate`, `make migration-status`, `make migration m="…"` and
+      `make migration-sql` (the offline mode, for a deployment where the person
+      applying the change is not the person who wrote it)
+  - **Acceptance**: met — `tests/test_migrations.py`, seven tests against a
+    scratch database each one creates and drops, never the development one.
+    After `upgrade head` on an empty database Alembic's own autogenerate finds
+    *nothing* to do; `downgrade base` leaves it empty; the history has one head
+    and every revision can be undone; and what `create_all` builds is stamped
+    at the same head with no differences either
 
 ## Phase 3 — Seeds (§57)
 

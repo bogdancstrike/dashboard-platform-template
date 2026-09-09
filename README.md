@@ -417,6 +417,37 @@ python main.py                                    # development
 gunicorn -k gevent -c gunicorn.conf.py wsgi:application   # production
 ```
 
+### Migrations, and what the seed does instead on an empty database
+
+The schema is versioned with Alembic. `backend/migrations/env.py` reads the
+models' own metadata, so a revision is *generated* from the ORM rather than
+typed out beside it — two descriptions of one schema is the defect the whole
+arrangement exists to avoid.
+
+```bash
+make migrate            # bring the database up to the latest revision
+make migration-status   # which revision it is at, and what the head is
+make migration m="add the widget's position"   # generate one from the models
+make migration-sql      # print the SQL an upgrade would run, for review
+```
+
+A first `docker compose up` does **not** run migrations: the seed builds the
+schema from the models with `create_all`, because needing two commands to get a
+working stack is a worse first five minutes than owning a version table. It
+then *stamps* what it built, so the database records which revision it is at —
+a database that has every table and no recorded revision is one Alembic
+believes is empty, and the first `make migrate` on it would try to create all
+fifty-seven tables again. `--sync-schema` stamps for the same reason once an
+existing database matches the models. Stamping is only ever a record: it writes
+into an empty version table and never over a revision the database already
+carries, because saying a migration has run when it has not is how a pending
+change becomes missing columns nobody notices.
+
+`backend/tests/test_migrations.py` holds the claim that matters: after
+`upgrade head` on an empty database, Alembic's own autogenerate finds *nothing*
+to do. A model changed without a revision fails there rather than in
+production.
+
 ### Keeping an existing database in step
 
 `create_all` creates the tables that are missing and says nothing about a table
@@ -444,7 +475,10 @@ python -m src.seed --sync-favorites    # move the old per-row is_favorite flags 
 
 `--sync-schema` refuses to guess: a `NOT NULL` column with no default is
 reported with the reason rather than added, because deciding what existing rows
-get is a migration somebody has to read.
+get is a migration somebody has to read — and that is what `make migration` is
+for. The two are not rivals: the repair closes the common case in one command
+on a database whose rows nobody has to think about, and a revision is what
+travels to a deployment where they do.
 
 `--sync-reports` exists for a defect worth knowing about if you seeded before
 it was fixed: the generator used to draw a report's groupings and measures from

@@ -19,6 +19,7 @@ wrong way round.
 from __future__ import annotations
 
 import time
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import select
@@ -76,10 +77,18 @@ def bootstrap_schema(engine) -> None:
     refusing every INSERT. So the drift is reported here rather than
     discovered later; applying it is `--sync-schema`, deliberately, because an
     unannounced ALTER on somebody's database is not a boot step.
+
+    A first `docker compose up` should not need a second command, so the
+    schema is still built from the models here rather than by running the
+    migrations — and then **stamped**, so the database says which revision it
+    is at. Without the stamp a database that already has every table is a
+    database Alembic believes is empty, and the first `make migrate` on it
+    tries to create all fifty-seven tables again.
     """
     import src.models as models
 
     models.Base.metadata.create_all(engine)
+    stamp_head(engine)
 
     remaining = schema_drift(engine)
     if remaining:
@@ -91,6 +100,37 @@ def bootstrap_schema(engine) -> None:
             + " — run 'python -m src.seed --sync-schema'",
             "yellow",
         )
+
+
+def stamp_head(engine) -> str | None:
+    """Record that this database is at the latest revision, if it is not yet.
+
+    Only when the version table is *absent or empty*: stamping a database that
+    is behind would tell Alembic a migration has run when it has not, which is
+    the one lie that turns a pending upgrade into a silent corruption. Returns
+    the revision recorded, or `None` when there was already one.
+    """
+    from alembic import command
+    from alembic.config import Config as AlembicConfig
+    from alembic.runtime.migration import MigrationContext
+
+    with engine.connect() as connection:
+        if MigrationContext.configure(connection).get_current_heads():
+            return None
+
+    root = Path(__file__).resolve().parents[2]
+    config = AlembicConfig(str(root / "alembic.ini"))
+    config.set_main_option("script_location", str(root / "migrations"))
+    # *This* database, which is not always the configured one: the migration
+    # test builds a scratch database and stamps that. Without this the stamp
+    # landed on whatever `DATABASE_URL` pointed at, which is the one mistake
+    # in this area that is invisible until an upgrade skips a revision.
+    config.set_main_option("sqlalchemy.url", engine.url.render_as_string(hide_password=False))
+    command.stamp(config, "head")
+
+    with engine.connect() as connection:
+        heads = MigrationContext.configure(connection).get_current_heads()
+    return heads[0] if heads else None
 
 
 def schema_drift(engine) -> list[schema.Drift]:
