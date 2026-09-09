@@ -13,13 +13,15 @@
  * anybody chases.
  */
 
-import { Card, Skeleton, Space, Table, Tooltip, Typography } from "antd";
+import { Button, Card, Skeleton, Space, Table, Tooltip, Typography } from "antd";
+import { EyeOutlined } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { useNavigate } from "react-router-dom";
 
 import type { SeriesPoint } from "@/api/explorer";
 import { ChartCard } from "@/components/ChartCard";
+import { RecordPreview } from "@/components/explorer/RecordPreview";
 import { StatusTag } from "@/components/StatusTag";
 import {
   NewRecordButton,
@@ -174,13 +176,36 @@ export default function OrdersLedgerPage() {
       // actions column early in the scan is a column in the way.
       title: "",
       key: "actions",
-      width: 48,
+      width: 84,
       fixed: "right",
       render: (_value: unknown, row) => (
-        <RecordActions records={records} id={row.id} label={row.reference ?? "this order"} />
+        <Space size={0}>
+          {/* A peek, beside the actions (§64). A ledger is scanned — "which
+              order is this refund about" — and the answer is three fields,
+              which is not worth losing the reader's place in forty thousand
+              rows for. The row still opens the record page, because an order
+              somebody is going to *work on* deserves the page. */}
+          <Tooltip title={`Look at ${row.reference ?? "this order"} without leaving the ledger`}>
+            <Button
+              type="text"
+              size="small"
+              icon={<EyeOutlined />}
+              aria-label={`Preview ${row.reference ?? "this order"}`}
+              data-testid={`peek-${row.id}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                view.set({ preview: row.id });
+              }}
+            />
+          </Tooltip>
+          <RecordActions records={records} id={row.id} label={row.reference ?? "this order"} />
+        </Space>
       ),
     },
   ];
+
+  /** The order being peeked at, from the address rather than from state. */
+  const previewing = view.params.get("preview") ?? "";
 
   const onChange = (
     pagination: TablePaginationConfig,
@@ -295,6 +320,17 @@ export default function OrdersLedgerPage() {
           }}
         />
       </Card>
+
+      {/* Deep-linked, like the explorer's (§64, §69): a peek is a URL, so it
+          can be sent to somebody with the filters that found it. */}
+      {previewing && (
+        <RecordPreview
+          resourceType="order"
+          recordId={previewing}
+          term={view.term}
+          onClose={() => view.set({ preview: null })}
+        />
+      )}
 
       {records.drawer}
       {bulk.dialog}

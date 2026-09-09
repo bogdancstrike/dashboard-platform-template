@@ -189,7 +189,7 @@ vertical slice with its own tests, its own tracker entry and its own commit.
       browser
 - [x] **`/dashboard` needs far more charts** (§2, §44) — the full ECharts
       vocabulary, following `gif_responder`'s dashboard and going beyond it
-- [~] **`/explore` needs a record side panel** (§64) — click a row and read the
+- [x] **`/explore` needs a record side panel** (§64) — click a row and read the
       record itself: metadata, full text, related items. `rag-poc`'s data
       explorer is the reference
   - Fetch the complete record independently of visible table columns; show
@@ -205,7 +205,21 @@ vertical slice with its own tests, its own tracker entry and its own commit.
     Deployed verification found and fixed low-contrast secondary text, links and
     filled status badges in the preview. Text now uses the shared readable
     tokens; status colour is carried by badge borders. Heading levels follow
-    the page hierarchy. The full browser suite is being rerun before completion.
+    the page hierarchy.
+  - **And the ledger has it too, which is where the rest of §64 was.** The
+    open part was never "every list should preview": five of the six lists
+    send a reader to a record page that is a *job* — a support console, a
+    delivery review, a work page — and a drawer would be a worse version of a
+    page that exists. The **ledger** is the exception: it is *scanned*, the
+    question is usually three fields ("which order is this refund about"), and
+    the answer is not worth losing a place in forty thousand rows for. So
+    `/orders` grows a peek beside the row actions, deep-linked like the
+    explorer's, while the row itself still opens the page — because an order
+    somebody is going to work on deserves the page
+  - `EntityView` publishes the address as `params` for exactly this: a page's
+    own state that the list contract does not describe — a previewed row, a
+    chosen tab — read from the URL, written through the one `set` that applies
+    the "a changed question returns to page one" rule
 - [x] **Expand `/dashboard` using Apache ECharts**, informed by
       `/home/bogdan/workspace/dev/gif_responder` and extending its examples:
       meaningful charts and statistics from real backend data, readable table
@@ -3313,7 +3327,7 @@ told a reader that something is missing and not what.
 | 61 | Page template gallery | `/showcase/templates` | — | [x] |
 | 62 | Master / detail layout | `/mail`, `/tickets`, `/explore`, `/showcase/templates` | — | [x] |
 | 63 | Split view | `/mail`, `/tickets`, `/explore` | — | [x] |
-| 64 | Table row preview drawer | `/explore` | `/api/records/…` | [~] |
+| 64 | Table row preview drawer | `/explore`, `/orders` | `/api/records/…` | [x] |
 | 65 | Data quality indicators | lists + `/admin/quality` | `/admin/quality` | [x] |
 | 66 | Dashboard alerts | `/` | `/dashboard/alerts` | [x] |
 | 67 | Customisable home page | `/dashboards` | `/api/dashboards` | [x] |
@@ -3328,15 +3342,13 @@ told a reader that something is missing and not what.
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*73 shipped · 4 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*74 shipped · 3 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
 Every section above that is not shipped, with the part that is open. A catalogue that grades something "partly there" and stops has told a reader that something is missing and not what.
 
 **§59 UX quality bar** — Partly there. The standing bar rather than a deliverable: it is met on every page that has shipped and is re-argued on every page that ships next.
-
-**§64 Table row preview drawer** — Partly there. The explorer opens a row without leaving the list, deep-linked and keyboard-driven. The other lists send a reader to the record page instead, which for a ledger or a fleet is the better answer — the open part is the lists where it is not.
 
 **§73 Optimistic vs confirmed actions** — Partly there. A dragged card moves at once and is reconciled against the server's answer, and a stale edit is refused with a 409 naming both moments. Forms are all confirmed rather than optimistic, which is the right default and leaves the optimistic half unexercised outside the board.
 

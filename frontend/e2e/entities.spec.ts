@@ -308,6 +308,49 @@ test.describe("entity page permissions", () => {
  * chosen interval outlives a reload, because it is the reader's habit rather
  * than a setting of the page's.
  */
+/**
+ * The ledger can be peeked at without being left (§64).
+ *
+ * A ledger is scanned — "which order is this refund about" — and the answer is
+ * three fields, which is not worth losing a reader's place in forty thousand
+ * rows for. The row still opens the record page, because an order somebody is
+ * going to *work on* deserves the page. The peek is a URL, like the
+ * explorer's, so it can be sent with the filters that found it.
+ */
+test("an order can be looked at without leaving the ledger, and the peek is a link", async ({
+  page,
+}) => {
+  // `payment_status`, not `status`: PAID is how an order was paid for, and
+  // its status is where it is in the pipeline (§7).
+  await signIn(page, "manager", "/orders?f.payment_status=PAID");
+  const row = page.locator(".ant-table-row").first();
+  await expect(row).toBeVisible();
+
+  // The reference comes off the peek control's own label rather than the
+  // first cell — that one is the selection tick box.
+  const peek = page.getByRole("button", { name: /^Preview ORD-/ }).first();
+  const reference = ((await peek.getAttribute("aria-label")) ?? "").replace("Preview ", "");
+  await peek.click();
+
+  // The drawer, and the ledger still behind it with its filter intact.
+  const drawer = page.getByRole("dialog");
+  await expect(drawer).toContainText(reference);
+  await expect(page.getByTestId("entity-total")).toBeVisible();
+  await expect(page).toHaveURL(/f\.payment_status=PAID/);
+  await expect(page).toHaveURL(/preview=/);
+
+  // Deep-linked: the same address, opened cold, opens the same peek.
+  const address = page.url();
+  await page.goto("/home");
+  await page.goto(address);
+  await expect(page.getByRole("dialog")).toContainText(reference);
+
+  // And Escape closes it, leaving the list — not the record page.
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await expect(page).toHaveURL(/\/orders/);
+});
+
 test("a list refreshes on the reader's own schedule and says when it last did", async ({
   page,
 }) => {

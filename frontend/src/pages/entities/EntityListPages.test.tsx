@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useSearchParams } from "react-router-dom";
 
 import CustomersPage from "@/pages/entities/CustomersPage";
 import DevicesFleetPage from "@/pages/entities/DevicesFleetPage";
@@ -23,9 +23,16 @@ import { server } from "@/test/server";
  * and a row would pass just as happily against the single generic list these
  * replaced, which is the failure mode this whole change exists to fix.
  */
+/** The address, so a test can assert what a page put in it (§69, §72). */
+function Address() {
+  const [params] = useSearchParams();
+  return <span data-testid="address">{params.toString()}</span>;
+}
+
 function render(page: React.ReactNode, route: string, detail = "/:id") {
   return renderWithProviders(
     <CommandProvider>
+      <Address />
       <Routes>
         <Route path={route} element={page} />
         <Route path={`${route}${detail}`} element={<div>the record</div>} />
@@ -243,5 +250,28 @@ describe("what every entity page keeps in common", () => {
     expect(
       await screen.findByText("Your role does not include this dataset"),
     ).toBeInTheDocument();
+  });
+
+  /**
+   * The ledger can be peeked at without being left (§64).
+   *
+   * A ledger is *scanned* — "which order is this refund about" — and the
+   * answer is three fields, which is not worth losing a reader's place in
+   * forty thousand rows for. The row still opens the record page, because an
+   * order somebody is going to work on deserves the page; the peek is beside
+   * the row actions and, like the explorer's, it is a URL.
+   */
+  it("peeks at an order without leaving the ledger, and says so in the address", async () => {
+    const user = userEvent.setup();
+    render(<OrdersLedgerPage />, "/orders");
+
+    const peek = (await screen.findAllByRole("button", { name: /^Preview / }))[0]!;
+    await user.click(peek);
+
+    // The drawer, not a navigation: the ledger is still behind it.
+    const drawer = await screen.findByRole("dialog");
+    expect(drawer).toBeInTheDocument();
+    expect(screen.getByTestId("entity-total")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId("address")).toHaveTextContent("preview="));
   });
 });

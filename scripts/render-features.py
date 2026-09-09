@@ -187,11 +187,7 @@ CATALOGUE: list[dict[str, object]] = [
         63, "Split view", "`/mail`, `/tickets`, `/explore`", "—", "done",
     ),
     feature(
-        64, "Table row preview drawer", "`/explore`", "`/api/records/…`", "partial",
-        "The explorer opens a row without leaving the list, deep-linked and "
-        "keyboard-driven. The other lists send a reader to the record page "
-        "instead, which for a ledger or a fleet is the better answer — the open "
-        "part is the lists where it is not.",
+        64, "Table row preview drawer", "`/explore`, `/orders`", "`/api/records/…`", "done",
     ),
     feature(65, "Data quality indicators", "lists + `/admin/quality`", "`/admin/quality`", "done"),
     feature(66, "Dashboard alerts", "`/`", "`/dashboard/alerts`", "done"),

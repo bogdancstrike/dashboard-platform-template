@@ -54,6 +54,14 @@ export interface EntityView {
   setFilter: (field: string, value: string | null) => void;
   clearFilters: () => void;
 
+  /**
+   * The address itself, for the state a page carries that the contract does
+   * not — a previewed row (§64), a chosen tab.
+   *
+   * Read-only on purpose: writing goes through `set`, so one place applies
+   * the "changing a question returns to page one" rule.
+   */
+  params: URLSearchParams;
   /** The saved searches for this dataset the reader can see (§46). */
   views: ReturnType<typeof useSavedViews>;
   /** The one the address says is applied, if any. */
@@ -291,6 +299,7 @@ export function useEntityView(
     set,
     setFilter: (field, value) => set({ [`f.${field}`]: value, page: null }),
     clearFilters: () => setParams(new URLSearchParams()),
+    params,
     views,
     viewId: params.get("view"),
     // `replace`, like every other change here: a saved view is a way of

@@ -70,7 +70,14 @@ test("a missing record leaves the search usable and reports a traceable error", 
   await signIn(page, "admin", "/explore?resource=ticket&record=00000000-0000-0000-0000-000000000000");
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByText("Record not found", { exact: true })).toBeVisible();
-  await expect(dialog.getByText(/Correlation ID:/)).toBeVisible();
+  // The id to quote, and what to do about it — the shared failure surface
+  // prints the id alone and makes it copyable, rather than labelling it
+  // "Correlation ID:" as one of the six hand-written copies used to.
+  const failure = dialog.getByTestId("failure-alert");
+  await expect(failure).toHaveAttribute("data-failure", "not_found");
+  // The correlation id is a bare hex string, not a dashed UUID.
+  await expect(failure).toContainText(/[0-9a-f]{16,}/);
+  await expect(failure).toContainText(/deleted, or the link may be wrong/);
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: /^Preview / }).first()).toBeVisible();
 });

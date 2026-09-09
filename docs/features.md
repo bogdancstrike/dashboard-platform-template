@@ -87,7 +87,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 61 | Page template gallery | `/showcase/templates` | — | [x] |
 | 62 | Master / detail layout | `/mail`, `/tickets`, `/explore`, `/showcase/templates` | — | [x] |
 | 63 | Split view | `/mail`, `/tickets`, `/explore` | — | [x] |
-| 64 | Table row preview drawer | `/explore` | `/api/records/…` | [~] |
+| 64 | Table row preview drawer | `/explore`, `/orders` | `/api/records/…` | [x] |
 | 65 | Data quality indicators | lists + `/admin/quality` | `/admin/quality` | [x] |
 | 66 | Dashboard alerts | `/` | `/dashboard/alerts` | [x] |
 | 67 | Customisable home page | `/dashboards` | `/api/dashboards` | [x] |
@@ -102,15 +102,13 @@ either way, because a catalogue has to be able to say "every entity list".
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*73 shipped · 4 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*74 shipped · 3 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
 Every section above that is not shipped, with the part that is open. A catalogue that grades something "partly there" and stops has told a reader that something is missing and not what.
 
 **§59 UX quality bar** — Partly there. The standing bar rather than a deliverable: it is met on every page that has shipped and is re-argued on every page that ships next.
-
-**§64 Table row preview drawer** — Partly there. The explorer opens a row without leaving the list, deep-linked and keyboard-driven. The other lists send a reader to the record page instead, which for a ledger or a fleet is the better answer — the open part is the lists where it is not.
 
 **§73 Optimistic vs confirmed actions** — Partly there. A dragged card moves at once and is reconciled against the server's answer, and a stale edit is refused with a 409 naming both moments. Forms are all confirmed rather than optimistic, which is the right default and leaves the optimistic half unexercised outside the board.
 
