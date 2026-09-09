@@ -14,7 +14,7 @@ from sqlalchemy import Column, DateTime, Integer, MetaData, String, Table, selec
 
 from src.core.errors import ValidationError
 from src.core.query import OPERATORS, OPERATORS_BY_KIND, Field, FieldSet, canonical_operator
-from src.core.rules import MAX_DEPTH, compile_tree, describe_tree, rule_count
+from src.core.rules import MAX_DEPTH, MAX_RULES, compile_tree, describe_tree, rule_count
 
 _metadata = MetaData()
 _records = Table(
@@ -136,6 +136,28 @@ def test_a_tree_deeper_than_the_limit_is_refused_with_a_message():
         compile_tree(tree, FIELDS)
 
     assert "nest at most" in str(failure.value)
+
+
+def test_a_tree_with_more_rules_than_the_limit_is_refused_with_the_number():
+    """The other half of the limit, and the one a *saved* search can reach.
+
+    Depth is bounded because a compiler recurses; the rule *count* is bounded
+    because a tree of a thousand `OR`s is a query plan nobody can serve — and
+    unlike depth it arrives flat, from a builder somebody held a key down in
+    or from a saved search that grew a rule at a time.
+    """
+    flat = group("OR", *(rule("score", "equal", str(index)) for index in range(MAX_RULES + 1)))
+
+    with pytest.raises(ValidationError) as failure:
+        compile_tree(flat, FIELDS)
+
+    assert str(MAX_RULES) in str(failure.value)
+    # And the count itself is right at the boundary, so the limit is a limit
+    # rather than an off-by-one.
+    assert rule_count(flat) == MAX_RULES + 1
+    assert compile_tree(
+        group("OR", *(rule("score", "equal", str(index)) for index in range(MAX_RULES))), FIELDS
+    ) is not None
 
 
 def test_an_unknown_field_names_what_is_available():

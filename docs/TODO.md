@@ -2821,14 +2821,43 @@ function is a slow test that fails for unrelated reasons.
       promise held by convention — and a promise held by convention is one the
       next caller breaks in the quietest way available: a footer reading
       "1–25 of 25" for a filtered set of four thousand
-- [ ] `core/rules.py` — tree → SQL and tree → text asserted to describe the same
+- [x] `core/rules.py` — tree → SQL and tree → text asserted to describe the same
       thing (§51); depth and rule-count limits enforced; a half-built rule is
       skipped rather than blanking the result set
-- [ ] `core/auth.py` — verification against a fake JWKS, key rotation self-heal,
+  - The rule-*count* limit was the one enforced and untested. Unlike depth it
+      arrives flat — from a builder somebody held a key down in, or a saved
+      search that grew a rule at a time — and the test pins the boundary
+      rather than only the refusal
+- [x] `core/auth.py` — verification against a fake JWKS, key rotation self-heal,
       role → permission resolution, impersonation, and that permissions come
       from the database rather than the token
-- [ ] `core/audit.py` — the diff, redaction of secret-shaped keys, and that an
+  - `tests/test_jwks.py` — 16 tests against a **real RSA keypair** published
+      as a JWKS document by a stubbed fetch. What it had before was four tests
+      of the Redis cache: the cache was covered and the verification it caches
+      was not, because a suite that monkeypatches `jwt.decode` cannot see a
+      signature at all
+  - **Key rotation is the one that mattered.** Keycloak rotates the realm key,
+      the next token carries a `kid` this process has never seen, and one
+      refresh on that miss is the difference between a rotation nobody notices
+      and every signed-in person being refused until the API is restarted.
+      Verified load-bearing by breaking `_JwksCache.get` — the test fails
+  - And the refusals, each for its own reason: a token signed by an impostor
+      advertising the *same* `kid`, a retired key, another audience, another
+      issuer, an expiry beyond the leeway (and one inside it, which must be
+      accepted — container clock drift is not a reason to sign everybody out),
+      a missing `kid`, and a malformed token, which costs no JWKS fetch at all
+      so an unauthenticated flood cannot become traffic to Keycloak
+  - The role → permission half was already covered: `test_groups` asserts the
+      role ∪ group union read from the tables on every request, `test_me`
+      asserts it is re-read rather than cached in the token, and
+      `test_audit` asserts an impersonated action records both identities
+- [x] `core/audit.py` — the diff, redaction of secret-shaped keys, and that an
       audit row rolls back with the change it describes
+  - The rollback was a docstring promise with nothing asserting it. An audit
+      row that commits on its own is a trail claiming an update happened that
+      was rolled back a millisecond later — the one failure mode that makes a
+      ledger worse than no ledger, because it is *confidently* wrong.
+      Verified by making `record` commit for itself: the test fails
 - [x] `core/pagination.py` — page envelope, the refusals, and that a malformed
       identifier is a 400 not a 500
   - 21 tests: the defaults, the derived offset, a page below one clamped and a

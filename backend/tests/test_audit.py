@@ -243,6 +243,57 @@ def test_a_missing_entry_is_a_404_and_a_bad_page_size_is_a_400(client, monkeypat
 
 
 @pytest.mark.database
+def test_an_audit_row_rolls_back_with_the_change_it_describes():
+    """`record` takes the caller's session, and this is why.
+
+    An audit row that commits on its own is a trail claiming an update
+    happened that was rolled back a millisecond later — the one failure mode
+    that makes a ledger worse than no ledger, because it is *confidently*
+    wrong. The docstring has promised this since it was written; nothing
+    asserted it.
+
+    Written through `record` and then rolled back, rather than through an
+    endpoint: what is under test is the transaction, and an endpoint that
+    happens to commit before failing would hide it.
+    """
+    from sqlalchemy import func, select
+
+    from src.core import audit
+    from src.core.db import session_scope
+    from src.models.platform import AuditLog
+
+    label = f"rollback probe {uuid4()}"
+
+    def rows() -> int:
+        with session_scope() as session:
+            return session.scalar(
+                select(func.count()).select_from(AuditLog).where(AuditLog.resource_label == label)
+            ) or 0
+
+    before = rows()
+
+    with pytest.raises(RuntimeError):
+        with session_scope() as session:
+            audit.record(
+                session,
+                action="UPDATE",
+                resource_type="task",
+                resource_id=uuid4(),
+                resource_label=label,
+                principal=None,
+                after={"status": "DONE"},
+                message="a change that does not survive",
+                activity=False,
+            )
+            session.flush()
+            # The write it describes fails — a constraint, a concurrent edit, a
+            # bug. The ledger has to fail with it.
+            raise RuntimeError("the change failed after the row was appended")
+
+    assert rows() == before
+
+
+@pytest.mark.database
 def test_the_ledger_is_read_only(client, monkeypatch):
     headers = _authenticate(monkeypatch)
     identifier = uuid4()
