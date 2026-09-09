@@ -26,7 +26,7 @@ import { STORAGE_KEYS } from "@/config";
 
 import { buildTheme, cssVariables, resolveAppearance, type Appearance } from "./antd";
 import { buildChartTheme } from "./echarts";
-import type { Density } from "./tokens";
+import { LAYOUT, type Density } from "./tokens";
 
 interface AppearanceContextValue {
   appearance: Appearance;
@@ -58,6 +58,15 @@ function write(key: string, value: string): void {
   }
 }
 
+/** Below this the app is being held, not pointed at (§56). */
+const HANDHELD = `(max-width: ${LAYOUT.breakpoints.mobile - 1}px)`;
+
+function isHandheld(): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!window.matchMedia) return false;
+  return window.matchMedia(HANDHELD).matches;
+}
+
 export function AppearanceProvider({ children }: { children: ReactNode }) {
   const [appearance, setAppearanceState] = useState<Appearance>(() =>
     read(STORAGE_KEYS.appearance, "system", ["light", "dark", "system"] as const),
@@ -68,6 +77,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   const [systemMode, setSystemMode] = useState<"light" | "dark">(() =>
     resolveAppearance("system"),
   );
+  const [handheld, setHandheld] = useState<boolean>(() => isHandheld());
 
   // Follow the OS while the setting is `system`, and keep following it — a
   // laptop that switches to dark at sunset should take the app with it.
@@ -82,7 +92,31 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     return () => query.removeEventListener("change", listener);
   }, []);
 
+  // And follow the *width*, for the same reason: a control sized for a mouse
+  // is not a control a thumb can hit.
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (!window.matchMedia) return;
+    const query = window.matchMedia(HANDHELD);
+    const listener = (event: MediaQueryListEvent) => setHandheld(event.matches);
+    query.addEventListener("change", listener);
+    return () => query.removeEventListener("change", listener);
+  }, []);
+
   const mode = appearance === "system" ? systemMode : appearance;
+
+  /**
+   * The density actually rendered, which on a phone is not always the one the
+   * reader chose (§56).
+   *
+   * `compact` is a *mouse* setting: 28px controls and 21px small buttons, which
+   * is right for somebody comparing forty rows with a pointer and unusable
+   * with a thumb — WCAG 2.2 asks for 24×24 as a minimum and a compact phone
+   * misses it. So a handheld width floors the density at `middle` while
+   * leaving the stored preference alone: the reader's choice still applies on
+   * the machine they made it on, and the preferences page still shows it.
+   */
+  const rendered: Density = handheld && density === "compact" ? "middle" : density;
 
   const setAppearance = useCallback((next: Appearance) => {
     setAppearanceState(next);
@@ -98,17 +132,20 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   // derived from the same tokens, so they cannot disagree.
   useEffect(() => {
     const root = document.documentElement;
-    for (const [name, value] of Object.entries(cssVariables(appearance, density))) {
+    for (const [name, value] of Object.entries(cssVariables(appearance, rendered))) {
       root.style.setProperty(name, value);
     }
     root.dataset["theme"] = mode;
-    root.dataset["density"] = density;
+    // The *rendered* density, because the stylesheet's rows and controls are
+    // sized from it — and a test or a screenshot asking "what is on screen"
+    // should read what is on screen.
+    root.dataset["density"] = rendered;
     // Tells the browser to paint form controls and scrollbars to match.
     root.style.colorScheme = mode;
-  }, [appearance, density, mode]);
+  }, [appearance, rendered, mode]);
 
-  const theme = useMemo(() => buildTheme(appearance, density), [appearance, density]);
-  const chartTheme = useMemo(() => buildChartTheme(mode, density), [mode, density]);
+  const theme = useMemo(() => buildTheme(appearance, rendered), [appearance, rendered]);
+  const chartTheme = useMemo(() => buildChartTheme(mode, rendered), [mode, rendered]);
 
   const value = useMemo(
     () => ({ appearance, mode, density, setAppearance, setDensity, chartTheme }),
@@ -117,7 +154,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppearanceContext.Provider value={value}>
-      <ConfigProvider theme={theme} componentSize={density === "compact" ? "small" : "middle"}>
+      <ConfigProvider theme={theme} componentSize={rendered === "compact" ? "small" : "middle"}>
         {children}
       </ConfigProvider>
     </AppearanceContext.Provider>

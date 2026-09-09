@@ -192,12 +192,7 @@ CATALOGUE: list[dict[str, object]] = [
     ),
     feature(54, "Keyboard navigation", "global", "—", "done"),
     feature(55, "Accessibility", "global", "—", "done"),
-    feature(
-        56, "Responsive behaviour", "global", "—", "partial",
-        "Four breakpoints, a collapsing sidebar, a mobile drawer and tables that "
-        "scroll rather than squash. One page is asserted at mobile width end to "
-        "end; the rest are not.",
-    ),
+    feature(56, "Responsive behaviour", "global", "—", "done"),
     feature(57, "Realistic demo data", "—", "`src/seed/`", "done"),
     feature(58, "Demo roles / personas", "—", "— (`core/auth.py`)", "done"),
     feature(

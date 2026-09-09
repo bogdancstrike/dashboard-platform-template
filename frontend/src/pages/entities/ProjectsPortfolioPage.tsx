@@ -361,7 +361,11 @@ export default function ProjectsPortfolioPage() {
             ) : view.filterCount > 0 ? (
               <NoResults filterCount={view.filterCount} onClear={view.clearFilters} />
             ) : (
-              <EmptyState title="No projects yet" hint="A project is work with a budget and a date." />
+              <EmptyState
+                title="No projects yet"
+                hint="A project is work with a budget and a date."
+                action={<NewRecordButton records={records} resource={view.resource} />}
+              />
             ),
           }}
           pagination={{

@@ -79,7 +79,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 53 | Data refresh, auto-refresh | data-heavy pages | `/live` | [~] |
 | 54 | Keyboard navigation | global | — | [x] |
 | 55 | Accessibility | global | — | [x] |
-| 56 | Responsive behaviour | global | — | [~] |
+| 56 | Responsive behaviour | global | — | [x] |
 | 57 | Realistic demo data | — | `src/seed/` | [x] |
 | 58 | Demo roles / personas | — | — (`core/auth.py`) | [x] |
 | 59 | UX quality bar | global | — | [~] |
@@ -102,7 +102,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*61 shipped · 16 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*62 shipped · 15 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
@@ -125,8 +125,6 @@ Every section above that is not shipped, with the part that is open. A catalogue
 **§50 Data relationships** — Partly there. The graph, the weighted relations, hub records and coverage all ship. Marker clustering and a per-record relationship tab are open.
 
 **§53 Data refresh, auto-refresh** — Partly there. Notifications and the log tail arrive over the live channel. A general auto-refresh a reader can turn on per page is open.
-
-**§56 Responsive behaviour** — Partly there. Four breakpoints, a collapsing sidebar, a mobile drawer and tables that scroll rather than squash. One page is asserted at mobile width end to end; the rest are not.
 
 **§59 UX quality bar** — Partly there. The standing bar rather than a deliverable: it is met on every page that has shipped and is re-argued on every page that ships next.
 

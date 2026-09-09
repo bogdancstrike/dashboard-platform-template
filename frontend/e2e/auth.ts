@@ -60,7 +60,16 @@ export async function signIn(
   await page.goto(path);
 
   const username = page.locator('input[name="username"]');
-  const banner = page.getByRole("banner").getByText(account.name, { exact: true });
+  /**
+   * That the shell is up and knows who this is — at any width.
+   *
+   * The reader's *name* in the header was the witness, and the header hides it
+   * below `lg`: a phone shows the avatar and nothing else. So every test that
+   * set a mobile viewport before signing in timed out here, which is why the
+   * suite had exactly one assertion at mobile width (§56). The profile button
+   * carries the same fact and is there at every width.
+   */
+  const banner = page.getByRole("banner").getByRole("button", { name: "Open profile menu" });
   // The third outcome, and it is a real one rather than a failure: this
   // persona's session may have been revoked by `security.spec`, and a browser
   // still holding the identity provider's cookie re-authenticates silently

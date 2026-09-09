@@ -24,7 +24,9 @@ export function EmptyState({
   compact?: boolean;
 }) {
   return (
-    <div className={`nu-empty${compact ? " nu-empty--compact" : ""}`}>
+    // One test id for both states, because a test asking "which of the two is
+    // this" should read the words a person reads rather than a class name.
+    <div className={`nu-empty${compact ? " nu-empty--compact" : ""}`} data-testid="empty-state">
       <div className="nu-empty-icon">{icon ?? <InboxOutlined />}</div>
       <Typography.Text strong>{title}</Typography.Text>
       {hint && <div className="nu-empty-hint">{hint}</div>}

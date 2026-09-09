@@ -304,6 +304,9 @@ export default function TicketsQueuePage() {
               <EmptyState
                 title="Nothing has been raised"
                 hint="A ticket is a customer's problem with a deadline attached."
+                // "Nothing yet" wants the action that makes the first one;
+                // a message without it is a dead end (§34).
+                action={<NewRecordButton records={records} resource={view.resource} />}
               />
             ),
           }}

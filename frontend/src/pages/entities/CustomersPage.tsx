@@ -13,11 +13,12 @@
  * a different question from the one on screen.
  */
 
-import { Avatar, Card, Col, Empty, Pagination, Progress, Row, Skeleton, Space, Tag, Tooltip, Typography } from "antd";
+import { Avatar, Card, Col, Pagination, Progress, Row, Skeleton, Space, Tag, Tooltip, Typography } from "antd";
 import { MailOutlined, ShopOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
 import { ChartCard } from "@/components/ChartCard";
+import { EmptyState, NoResults } from "@/components/EmptyState";
 import { StatusTag } from "@/components/StatusTag";
 import {
   NewRecordButton,
@@ -158,7 +159,20 @@ export default function CustomersPage() {
         <Skeleton active paragraph={{ rows: 10 }} />
       ) : rows.length === 0 ? (
         <Card size="small" className="nu-block">
-          <Empty description="No accounts match these filters" />
+          {/* Two states, not one shrug (§34): "nothing matched" wants the
+              filters cleared and "nothing here yet" wants the first record.
+              This said "no accounts match these filters" with no filters set,
+              which tells a reader their filter is wrong when the book of
+              business is simply empty. */}
+          {view.filterCount > 0 ? (
+            <NoResults filterCount={view.filterCount} onClear={view.clearFilters} />
+          ) : (
+            <EmptyState
+              title="No accounts yet"
+              hint="An account is a customer with a value and a lifecycle."
+              action={<NewRecordButton records={records} resource={view.resource} />}
+            />
+          )}
         </Card>
       ) : (
         <div className="nu-account-grid" data-testid="customer-grid">

@@ -13,11 +13,12 @@
  * problem from one reporting that it is unwell.
  */
 
-import { Card, Col, Empty, Pagination, Row, Skeleton, Space, Tooltip, Typography } from "antd";
+import { Card, Col, Pagination, Row, Skeleton, Space, Tooltip, Typography } from "antd";
 import { ApiOutlined, ThunderboltOutlined, WifiOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
 import { ChartCard } from "@/components/ChartCard";
+import { EmptyState, NoResults } from "@/components/EmptyState";
 import { StatusTag } from "@/components/StatusTag";
 import {
   NewRecordButton,
@@ -204,7 +205,16 @@ export default function DevicesFleetPage() {
         <Skeleton active paragraph={{ rows: 10 }} />
       ) : rows.length === 0 ? (
         <Card size="small" className="nu-block">
-          <Empty description="No devices match these filters" />
+          {/* The same two states the ledger and the queue draw (§34). */}
+          {view.filterCount > 0 ? (
+            <NoResults filterCount={view.filterCount} onClear={view.clearFilters} />
+          ) : (
+            <EmptyState
+              title="No devices in the fleet yet"
+              hint="A device reports its health and its last contact."
+              action={<NewRecordButton records={records} resource={view.resource} />}
+            />
+          )}
         </Card>
       ) : (
         <div className="nu-fleet" data-testid="device-fleet">

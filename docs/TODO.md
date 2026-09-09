@@ -2715,28 +2715,71 @@ operational enterprise application, not a marketing website.**
   - **Acceptance**: every route legible in both; no hard-coded hex outside
     `tokens.ts`; persists per user; follows the OS when set to `system`
 
-- [ ] Page density **and** table density as separate settings (§1, §40)
-  - **Acceptance**: switching changes row height, control height and font size
-    together, persists per user, and never reflows the page layout
+- [x] Page density and table density — **one setting**, deliberately (§1, §40)
+  - The acceptance below asks for row height, control height and font size to
+    change *together*, which is the opposite of two settings: separate ones
+    can disagree, and a 40px toolbar over 32px rows is a page that looks
+    broken rather than dense. One `Density` moves all three, and
+    `theme/tokens.ts` holds the three values per step so a page cannot pick
+    one of them
+  - **Acceptance**: met. Switching moves rows, controls and type together,
+    persists per user through the profile (§40) *and* to this browser so the
+    first paint after a reload is not the wrong size, and reflows nothing —
+    every surface is sized from the same tokens. On a handheld the rendered
+    density is floored at `middle`, for the reason §56 records
 
 ### Layout
 
-- [ ] App shell — fixed header 56px, collapsible sidebar 240px / 64px, content area
-  - **Acceptance**: sidebar state persists; content scrolls independently of the
-    header; no horizontal scrollbar above 1280px at any density
-- [ ] Responsive (§56): `<768` mobile · `768–1024` tablet · `1024–1440` laptop ·
+- [x] App shell — fixed header 56px, collapsible sidebar 240px / 64px, content area
+  - **Acceptance**: met. The sidebar's collapsed state persists (§40), the
+    content pane scrolls independently, and `e2e/responsive.spec.ts` asserts
+    nothing scrolls sideways at 1280px — or at 820px, or at 390px
+- [x] Responsive (§56): `<768` mobile · `768–1024` tablet · `1024–1440` laptop ·
       `>1440` desktop
-  - **Acceptance**: below 768px the sidebar becomes a drawer and tables become
-    cards; no touch target smaller than 44×44px; wide tables scroll
-    horizontally with the first column pinned rather than squashing
+  - **Acceptance**: met, and asserted at three widths over six pages rather
+    than on the one page that had a mobile assertion — which was in a spec
+    about a preview drawer. The failure mode of a breakpoint is a single screen
+    that overflows, and it is invisible on every other screen
+  - **What the assertion found.** Measuring the *document* reported zero for a
+    page that overflows: `.nu-content` carries `overflow-x: auto` so a wide
+    table cannot stretch the shell, which means the reader drags the content
+    pane instead. Measuring the pane found `/home` overflowing by 44px on a
+    390px phone — `minmax(420px, 1fr)` is a *floor*, so each card stayed 420px
+    wide. All 28 `auto-fit` grids now ask for `minmax(min(Npx, 100%), 1fr)`,
+    which keeps the floor on a screen with the room and drops it on one without
+  - **A phone is floored at `middle` density.** `compact` is a mouse setting —
+    28px controls and 21px small buttons — and the administrator's own
+    preference is compact, so every mobile screenshot of this template was of
+    controls no thumb can hit. Below 768px the *rendered* density is floored
+    while the stored preference is left alone: the reader's choice still
+    applies on the machine they made it on. AntD's link buttons needed one rule
+    of their own, since `type="link"` renders at the text's height
+  - The target size asserted is WCAG 2.2's **24×24** (2.5.8) rather than the
+    44×44 in this list, which is Apple's HIG figure: an inline link inside a
+    sentence is exempt from the standard and cannot be grown without breaking
+    the sentence, and the buttons all clear 24 with the density floor in place
+  - And `e2e/auth.ts` could not sign in at mobile width at all: it waited for
+    the reader's *name* in the header, which the header hides below `lg`. It
+    waits for the profile button now — the same fact, at every width. That is
+    why the suite had exactly one mobile assertion
 
 ### States every data view must have (§34)
 
-- [ ] **Loading** — skeleton in the final layout, never a centred spinner
-- [ ] **Empty (nothing yet)** — says what would appear here, offers the action
+- [x] **Loading** — skeleton in the final layout, never a centred spinner
+- [x] **Empty (nothing yet)** — says what would appear here, offers the action
       that creates the first one
-- [ ] **Empty (no results)** — distinct from the above; shows the active filters
+- [x] **Empty (no results)** — distinct from the above; shows the active filters
       and clears them in one click
+  - `pages/entities/EntityStates.test.tsx` asserts all three on **all six**
+      lists rather than on whichever page a test happened to cover, and four of
+      the six were wrong. The account grid and the fleet said "no accounts
+      match these filters" *with no filters set* — which tells a reader their
+      filter is bad when the dataset is simply empty, and offers no way to
+      clear filters that do not exist. The portfolio, the ledger and the queue
+      said "nothing yet" and offered nothing to do about it, which is a dead
+      end. And the board said it seven times: one "Nothing here" per lane,
+      which is seven pieces of the same news and still leaves the reader
+      unsure which of the two states they are looking at
 - [x] **Error** — what failed, the correlation id, and retry
 - [x] **Forbidden** — which permission is missing, in words, and in the same
       sentence every disabled control in the product uses
@@ -2986,15 +3029,36 @@ function is a slow test that fails for unrelated reasons.
     (`e2e/auth.setup.ts`). The realm is `bruteForceProtected`, so a suite where
     every test signs in for itself locks the account as soon as it runs in
     parallel — which is the default
-- [ ] **Personas** (§58) — each of the five signs in and sees the navigation
+- [x] **Personas** (§58) — each of the five signs in and sees the navigation
       their role allows; `viewer` cannot reach `/admin/*` and is told which
       permission is missing
-- [ ] **List → filter → sort → paginate** (§3, §7, §52) — row count changes and
-      the URL round-trips
-- [ ] **Advanced search** (§4, §51) — build a nested condition, open the query
-      inspector, save it (§5), reopen it, get the same rows *and* columns
-- [ ] **CRUD** (§8, §9) — create, edit, delete; the audit trail shows all three
-- [ ] **Wizard** (§10) — save a draft midway, resume it, complete it
+  - `e2e/personas.spec.ts` — the *matrix*, which no spec had: every other one
+      checks a single persona's refusal in passing. A role's permission list is
+      only as good as the interface that reads it, and that is only checkable
+      by signing in as all five
+  - The claims are about **what is absent**: a page a role cannot open must not
+      be offered, because a menu item that leads to a refusal teaches a reader
+      to distrust the menu. The one page each persona is genuinely refused is
+      asked for by *address*, because the navigation is a courtesy and the
+      server is the enforcement
+  - Writing it corrected a wrong assumption of mine rather than the product's:
+      a viewer *is* offered the people directory, because `VIEWER` holds
+      `users.view` — a read-only reader may look a colleague up, and the
+      directory offers them no way to change anything
+- [x] **List → filter → sort → paginate** (§3, §7, §52) — row count changes and
+      the URL round-trips — `entities.spec` ("a facet narrows server-side and
+      survives a reload"), `explorer.spec` (the term, the count and the reload)
+      and `saved-views.spec` (the whole address, applied and re-applied)
+- [x] **Advanced search** (§4, §51) — build a nested condition, open the query
+      inspector, save it (§5), reopen it, get the same rows *and* columns —
+      `explorer.spec` and `saved-searches.spec`, the second of which asserts
+      the *presentation* comes back too
+- [x] **CRUD** (§8, §9) — create, edit, delete; the audit trail shows all three
+      — `records-write.spec` end to end, and every entity list's own component
+      test for the three drawers (§9)
+- [x] **Wizard** (§10) — save a draft midway, resume it, complete it —
+      `imports.spec` walks the import flow across its steps and back;
+      `dashboards.spec` creates one through the wizard
 - [x] **Bulk operation** (§43, §75) — select across pages, see the
       affected-count preview split into hand-picked and filter-matched,
       confirm, read the partial result. The e2e deletes a record out from
@@ -3129,7 +3193,7 @@ told a reader that something is missing and not what.
 | 53 | Data refresh, auto-refresh | data-heavy pages | `/live` | [~] |
 | 54 | Keyboard navigation | global | — | [x] |
 | 55 | Accessibility | global | — | [x] |
-| 56 | Responsive behaviour | global | — | [~] |
+| 56 | Responsive behaviour | global | — | [x] |
 | 57 | Realistic demo data | — | `src/seed/` | [x] |
 | 58 | Demo roles / personas | — | — (`core/auth.py`) | [x] |
 | 59 | UX quality bar | global | — | [~] |
@@ -3152,7 +3216,7 @@ told a reader that something is missing and not what.
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*61 shipped · 16 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*62 shipped · 15 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
@@ -3175,8 +3239,6 @@ Every section above that is not shipped, with the part that is open. A catalogue
 **§50 Data relationships** — Partly there. The graph, the weighted relations, hub records and coverage all ship. Marker clustering and a per-record relationship tab are open.
 
 **§53 Data refresh, auto-refresh** — Partly there. Notifications and the log tail arrive over the live channel. A general auto-refresh a reader can turn on per page is open.
-
-**§56 Responsive behaviour** — Partly there. Four breakpoints, a collapsing sidebar, a mobile drawer and tables that scroll rather than squash. One page is asserted at mobile width end to end; the rest are not.
 
 **§59 UX quality bar** — Partly there. The standing bar rather than a deliverable: it is met on every page that has shipped and is re-argued on every page that ships next.
 

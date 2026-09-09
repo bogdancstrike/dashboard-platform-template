@@ -250,7 +250,11 @@ export default function OrdersLedgerPage() {
             ) : view.filterCount > 0 ? (
               <NoResults filterCount={view.filterCount} onClear={view.clearFilters} />
             ) : (
-              <EmptyState title="No orders have been placed yet" />
+              <EmptyState
+                title="No orders have been placed yet"
+                hint="An order is what a customer bought, and what is owed for it."
+                action={<NewRecordButton records={records} resource={view.resource} />}
+              />
             ),
           }}
           summary={() =>
