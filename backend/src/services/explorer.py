@@ -16,7 +16,7 @@ from uuid import UUID
 
 from sqlalchemy import Numeric, Select, cast as sql_cast, func, select
 
-from src.core import vocabulary
+from src.core import cache, vocabulary
 from src.core.errors import ValidationError
 from src.core.pagination import envelope, parse_page
 from src.core.query import Field, FieldSet, apply_filters, apply_sort, count_of, facets_for
@@ -920,6 +920,46 @@ def insights(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
         raise ValidationError("The query must be a JSON object.")
     resource = resource_for(payload.get("resource_type"), principal=principal)
 
+    # Cached on the question *and* on the dataset's generation, because this is
+    # a `COUNT`, a `SUM`, up to eight `GROUP BY`s and a thirty-bucket trend
+    # over the whole filtered set — every one of which the list beside it asks
+    # again on each page, sort and filter change. Invalidated by the writes
+    # that make it stale: a reader who has just closed a ticket must not be
+    # shown their own change missing from the number above the table.
+    #
+    # Validated first and cached second. A bad payload has to be a bad request
+    # rather than a cache key.
+    # Not keyed on who is asking, and that is a claim about the query rather
+    # than a convenience: `_base_statement` narrows by soft-deletion and
+    # nothing else, so two readers who may see this dataset see the same
+    # aggregate. Permission is checked above, on every request, and never from
+    # the cache. **If a resource ever scopes rows by principal — by
+    # organization, by assignment — that scope has to enter this key**, or one
+    # reader's total will be served to another. Asserted in `test_explorer`.
+    return cache.aggregate(
+        f"insights:{resource.key}",
+        _cacheable(payload),
+        depends_on=(resource.key,),
+        producer=lambda: _insights(session, payload, resource=resource),
+    )
+
+
+def _cacheable(payload: dict[str, Any]) -> dict[str, Any]:
+    """Only the parts of a request that change the answer.
+
+    `page` and `page_size` do not: the aggregates are over the whole filtered
+    set, which is the property that makes them worth computing in SQL at all.
+    Including them would give every page of a list its own cache entry and the
+    cache would never be hit twice.
+    """
+    return {
+        key: value
+        for key, value in payload.items()
+        if key not in ("page", "page_size", "sort", "order", "columns")
+    }
+
+
+def _insights(session, payload: dict[str, Any], *, resource: Resource) -> dict[str, Any]:
     statement = apply_filters(_base_statement(resource), _query_args(payload), resource.fields)
     predicate = compile_tree(payload.get("condition_tree"), resource.fields)
     if predicate is not None:

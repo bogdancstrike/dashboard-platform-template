@@ -408,9 +408,71 @@ commit — built, committed, pushed, redeployed and verified before the next.
     does *not* use it — a CSV has to be parsed by the API, so routing it
     through object storage and fetching it back would move the same bytes
     through the same worker twice for no benefit
-- [ ] **Redis is used for what a cache is for** — the aggregates that cost a
+- [x] **Redis is used for what a cache is for** — the aggregates that cost a
       `GROUP BY` over the whole dataset, invalidated by the writes that make
       them stale rather than by a timer
+  - **A generation per dataset, not a scan-and-delete.** Each dataset has a
+      counter in Redis, an aggregate's key carries the current counter of every
+      dataset it summarises, and a write increments it — which makes every key
+      naming the old value unreachable at once. Three properties follow and all
+      three matter: invalidation is O(1) with no `SCAN`; an aggregate over
+      *five* datasets is invalidated by a write to any one of them, which no
+      prefix scheme expresses and which the dashboard is; and a stale entry is
+      never *read*, only abandoned, which is what makes it atomic — a
+      delete-by-prefix leaves a window in which a request that read just before
+      the write stores its answer just after it
+  - **The TTL is a backstop, not the mechanism.** Five minutes, short enough
+      that a write path which forgot to bump would make a page slightly slow
+      rather than wrong
+  - **The bump happens after the commit**, from a SQLAlchemy `after_commit`
+      listener on the `Session` class, reading the datasets the transaction
+      noted on `session.info`. Before the commit it would leave a window in
+      which another request recomputes from the pre-commit state and stores
+      that answer under the *new* generation — a stale entry that now looks
+      fresh. And on `session.info` rather than a module variable, because
+      gevent workers interleave requests inside one process
+  - **`audit.record` is the choke point.** Every change the product records
+      already passes through it, so a new endpoint gets correct invalidation
+      the day it starts auditing — which it has to do anyway. One call, not one
+      per service
+  - **The dependency set is declared, not inferred.** `dashboard.SUMMARISES`
+      lists the eight datasets the overview reads. Too narrow serves a stale
+      number; too wide turns the cache into a slower database; and a reader can
+      check a declaration against the SQL, which is why it is one
+  - **The insights key carries no principal**, on the stated grounds that
+      `_base_statement` narrows by soft-deletion and nothing else — asserted by
+      giving two personas the same question and comparing the answers, so the
+      day a resource scopes rows by organisation the test fails rather than one
+      reader's total being served to another
+  - **`/dashboard/alerts` is deliberately *not* cached.** It reads service
+      health and security events, which nothing bumps, so it could only have a
+      timer — and a timer on the strip that says what is wrong right now is the
+      case where a cache is worse than none
+  - Measured on the deployed stack: 96ms cold, 14ms warm
+  - 13 tests behind a new `cache` marker, skipped without `TEST_REDIS_URL` the
+      same way the database ones are, plus one Playwright that writes a record
+      *outside the browser* and watches the front page change
+
+- [x] **And the front page counted deleted records** (§9)
+  - A soft delete means gone from every list and remembered only by the audit
+      trail, and `open_tickets` was `~status.in_(("RESOLVED", "CLOSED"))` and
+      nothing else — so every ticket anybody had ever deleted was still open on
+      the dashboard: **189 against a table showing 50**. Fourteen of the
+      aggregates on that page remembered the filter and the rest did not, which
+      is worse than uniformly wrong: two numbers on one page disagreeing about
+      whether a record exists
+  - Found while asserting that a *write* invalidated the cache — the delete at
+      the end of that test did not put the number back, which was the tell.
+      Twelfth defect found by building the thing that reads the data
+  - The rule is derived from the model now rather than remembered per query:
+      `_live()` reads `deleted_at` off whatever entity the aggregate is over, and
+      `_count`, `_sum`, `_series`, `_grouped_series` and the `grouped` helper
+      all apply it. A new aggregate gets it by construction. The test asserts
+      the *property* over every KPI at once — create records, delete them, and
+      every number returns to where it started — so an aggregate that forgets
+      fails without anybody thinking to add a case
+
+
 - [x] **The dashboards *look* like QSINT's too** — the grid was not the part
       that was wrong
   - **The landing state is a gallery of cards, not a picker.** What a reader is

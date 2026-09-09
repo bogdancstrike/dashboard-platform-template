@@ -26,7 +26,7 @@ from typing import Any
 
 from sqlalchemy import Numeric, and_, case, cast, func, or_, select
 
-from src.core import vocabulary
+from src.core import cache, vocabulary
 from src.core.clock import iso, now, previous_period, resolve_range
 
 #: The week as a reader reads it, Monday first. The heatmap's vertical axis.
@@ -99,16 +99,49 @@ def _kpi(
     }
 
 
+def _entity_of(expression):
+    """The mapped class an expression belongs to, or None for `func.count()`."""
+    return getattr(getattr(expression, "parent", None), "class_", None)
+
+
+def _live(*expressions) -> tuple:
+    """"Not deleted", derived from whatever the query is over.
+
+    A soft delete means gone from every list and remembered only by the audit
+    trail — and the front page counted them anyway. `open_tickets` was
+    `~status.in_(("RESOLVED", "CLOSED"))` and nothing else, so every ticket
+    anybody had ever deleted was still open on the dashboard: 189 where the
+    table showed 50. Fourteen of the queries here *did* remember the filter and
+    the rest did not, which is worse than uniformly wrong — two numbers on one
+    page disagreeing about whether a record exists.
+    
+    So the rule is derived from the model rather than remembered per query. A
+    new aggregate gets it by construction, and a dataset without a
+    `deleted_at` contributes nothing.
+    """
+    clauses = []
+    seen: set = set()
+    for expression in expressions:
+        model = expression if isinstance(expression, type) else _entity_of(expression)
+        if model is None or model in seen:
+            continue
+        seen.add(model)
+        deleted = getattr(model, "deleted_at", None)
+        if deleted is not None:
+            clauses.append(deleted.is_(None))
+    return tuple(clauses)
+
+
 def _count(session, model, *clauses) -> int:
     stmt = select(func.count()).select_from(model)
-    for clause in clauses:
+    for clause in (*_live(model), *clauses):
         stmt = stmt.where(clause)
     return session.scalar(stmt) or 0
 
 
 def _sum(session, column, *clauses) -> float:
     stmt = select(func.coalesce(func.sum(column), 0))
-    for clause in clauses:
+    for clause in (*_live(column), *clauses):
         stmt = stmt.where(clause)
     return float(session.scalar(stmt) or 0)
 
@@ -146,7 +179,7 @@ def kpis(session, start: datetime, end: datetime) -> list[dict[str, Any]]:
         return and_(column >= a, column < b)
 
     # Users — a lifetime headline with the period's arrivals beside it.
-    total_users = _count(session, User, User.deleted_at.is_(None))
+    total_users = _count(session, User)
     new_users = _count(session, User, window(User.created_at, start, end))
     prior_users = _count(session, User, window(User.created_at, prior_start, prior_end))
     active_users = _count(session, User, User.last_login_at >= start, User.status == "ACTIVE")
@@ -170,9 +203,9 @@ def kpis(session, start: datetime, end: datetime) -> list[dict[str, Any]]:
     )
 
     unfinished = ~Task.status.in_(("DONE", "CANCELLED"))
-    open_tasks = _count(session, Task, unfinished, Task.deleted_at.is_(None))
+    open_tasks = _count(session, Task, unfinished)
     prior_tasks = _open_at(
-        session, Task, Task.created_at, Task.completed_at, prior_end, Task.deleted_at.is_(None)
+        session, Task, Task.created_at, Task.completed_at, prior_end
     )
     overdue = _count(session, Task, unfinished, Task.due_date < moment)
     # Overdue *as it stood then*: due before that moment and still not finished
@@ -180,10 +213,10 @@ def kpis(session, start: datetime, end: datetime) -> list[dict[str, Any]]:
     # delivered on time as if it had been late.
     prior_overdue = _open_at(
         session, Task, Task.created_at, Task.completed_at, prior_end,
-        Task.due_date < prior_end, Task.deleted_at.is_(None),
+        Task.due_date < prior_end,
     )
 
-    active_projects = _count(session, Project, Project.status == "ACTIVE", Project.deleted_at.is_(None))
+    active_projects = _count(session, Project, Project.status == "ACTIVE")
     prior_projects = _count(
         session, Project, Project.status == "ACTIVE", Project.created_at < prior_end
     )
@@ -260,7 +293,7 @@ def _series(session, column, value_column, start: datetime, end: datetime, *clau
     stmt = select(bucket.label("bucket"), value_column.label("value")).where(
         and_(column >= start, column < end)
     )
-    for clause in clauses:
+    for clause in (*_live(column), *clauses):
         stmt = stmt.where(clause)
     stmt = stmt.group_by(bucket).order_by(bucket)
     return [
@@ -290,7 +323,7 @@ def _grouped_series(
         .group_by(bucket, group_column)
         .order_by(bucket)
     )
-    for clause in clauses:
+    for clause in (*_live(column, group_column), *clauses):
         statement = statement.where(clause)
 
     rows = session.execute(statement).all()
@@ -333,15 +366,12 @@ def charts(session, start: datetime, end: datetime) -> dict[str, Any]:
     )
     order_series = _series(session, Order.placed_at, func.count(), start, end)
     ticket_series = _series(session, Ticket.created_at, func.count(), start, end)
-    resolved_series = _series(
-        session, Ticket.resolved_at, func.count(), start, end,
-        Ticket.deleted_at.is_(None),
-    )
+    resolved_series = _series(session, Ticket.resolved_at, func.count(), start, end)
 
     def grouped(column, label_column=None, *clauses, limit: int = 12):
         target = label_column if label_column is not None else column
         stmt = select(target.label("name"), func.count().label("value"))
-        for clause in clauses:
+        for clause in (*_live(column, label_column), *clauses):
             stmt = stmt.where(clause)
         stmt = stmt.group_by(target).order_by(func.count().desc()).limit(limit)
         return [
@@ -354,7 +384,7 @@ def charts(session, start: datetime, end: datetime) -> dict[str, Any]:
         for row in session.execute(
             select(Region.name.label("name"), func.sum(cast(Order.total, Numeric)).label("value"))
             .join(Region, Region.id == Order.region_id, isouter=True)
-            .where(and_(Order.placed_at >= start, Order.placed_at < end, booked))
+            .where(and_(Order.placed_at >= start, Order.placed_at < end, booked, *_live(Order)))
             .group_by(Region.name)
             .order_by(func.sum(cast(Order.total, Numeric)).desc())
         ).all()
@@ -411,13 +441,13 @@ def charts(session, start: datetime, end: datetime) -> dict[str, Any]:
             "kind": "bar",
             "title": "Tasks by status",
             "description": "Current task state · all dates",
-            "series": grouped(Task.status, None, Task.deleted_at.is_(None)),
+            "series": grouped(Task.status),
         },
         "projects_by_health": {
             "kind": "pie",
             "title": "Projects by health",
             "description": "Current active projects · all dates",
-            "series": grouped(Project.health, None, Project.status == "ACTIVE", Project.deleted_at.is_(None)),
+            "series": grouped(Project.health, None, Project.status == "ACTIVE"),
         },
         "revenue_by_region": {
             "kind": "bar",
@@ -485,7 +515,7 @@ def charts(session, start: datetime, end: datetime) -> dict[str, Any]:
             "title": "Support demand by priority",
             "description": "Tickets created in the selected period",
             "series": grouped(Ticket.priority, None, Ticket.created_at >= start,
-                              Ticket.created_at < end, Ticket.deleted_at.is_(None)),
+                              Ticket.created_at < end),
         },
         "portfolio_budget": {
             "kind": "treemap",
@@ -714,7 +744,45 @@ def recent_activity(session, limit: int = 12) -> list[dict[str, Any]]:
 # ── the whole payload ────────────────────────────────────────────────────
 
 
+#: What the overview summarises, and therefore what makes it stale.
+#:
+#: Declared rather than inferred from the SQL below, because a reader can check
+#: a declaration. Getting it wrong in one direction serves a stale number; in
+#: the other it throws away an entry that was still good — and the first of
+#: those is the one that matters, so this errs wide: the alert strip reads
+#: background jobs and service health, and the feed reads the activity trail.
+SUMMARISES = (
+    "project",
+    "customer",
+    "ticket",
+    "order",
+    "task",
+    "device",
+    "activity",
+    "job",
+)
+
+
 def summary(session, *, period: str, frm: str | None = None, to: str | None = None) -> dict[str, Any]:
+    """The whole overview for one period, cached until something changes it.
+
+    Twenty-odd aggregates over the whole dataset for a screen people open first
+    thing every morning and then leave open. Cached on the *period* and on the
+    generation of every dataset it summarises, so a write anywhere in the
+    business makes the next read recompute — which is the only kind of cache
+    this page can have. Behind a timer it would tell somebody who has just
+    closed a ticket that it is still open, and the number they are checking is
+    precisely the one they changed.
+    """
+    return cache.aggregate(
+        "dashboard:summary",
+        {"period": period or "last_30_days", "from": frm or "", "to": to or ""},
+        depends_on=SUMMARISES,
+        producer=lambda: _summary(session, period=period, frm=frm, to=to),
+    )
+
+
+def _summary(session, *, period: str, frm: str | None, to: str | None) -> dict[str, Any]:
     start, end = resolve_range(period, frm, to)
     prior_start, prior_end = previous_period(start, end)
 

@@ -21,7 +21,15 @@ os.environ.setdefault("SERVICE_NAME", "platform-api-test")
 os.environ.setdefault(
     "DATABASE_URL", os.getenv("TEST_DATABASE_URL", f"postgresql+psycopg2://t:t@{_CLOSED}/t")
 )
-os.environ.setdefault("CACHE_ENABLED", "false")
+# Off by default, for the reason above: a closed Redis costs a connect timeout
+# on the first call and then disables itself, but "then" is one test late.
+#
+# `TEST_REDIS_URL` turns it on for the tests that assert the *caching* — which
+# cannot be asserted against a cache that is switched off, and which are marked
+# `cache` and skipped without it. The same shape as `TEST_DATABASE_URL`.
+os.environ.setdefault("CACHE_ENABLED", "true" if os.getenv("TEST_REDIS_URL") else "false")
+if os.getenv("TEST_REDIS_URL"):
+    os.environ.setdefault("REDIS_URL", os.environ["TEST_REDIS_URL"])
 os.environ.setdefault("KEYCLOAK_INTERNAL_URL", f"http://{_CLOSED}")
 os.environ.setdefault("ALLOWED_ORIGINS", "http://localhost:5174")
 os.environ.setdefault("ENABLE_TRACING", "false")
@@ -69,6 +77,8 @@ def engine(has_database):
 def _skip_without_database(request, has_database):
     if request.node.get_closest_marker("database") and not has_database:
         pytest.skip("set TEST_DATABASE_URL to run tests that need PostgreSQL")
+    if request.node.get_closest_marker("cache") and not os.getenv("TEST_REDIS_URL"):
+        pytest.skip("set TEST_REDIS_URL to run tests that need Redis")
 
 
 #: The models a `database`-marked test is allowed to leave rows in.

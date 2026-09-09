@@ -556,6 +556,18 @@ operator vocabulary — so they can never disagree about what "starts with" mean
 not fail on it. A dashboard that 503s because a *cache* is down is worse than
 one that recomputes.
 
+**Aggregates are invalidated by the writes that make them stale, never by a
+timer.** Each dataset has a generation counter in Redis; an aggregate's cache
+key carries the current counter of every dataset it summarises; a write bumps
+it, from a SQLAlchemy `after_commit` listener so the bump can never land before
+the change it describes. Nothing is deleted — the old keys are simply
+unreachable, which is what makes it atomic, and the five-minute TTL is a
+backstop rather than the mechanism. A dashboard behind a timer tells the person
+who just closed a ticket that it is still open, and they are the one person
+guaranteed to notice. `audit.record` is where a write declares which dataset it
+touched, so a new endpoint gets correct invalidation the day it starts
+auditing.
+
 **Liveness touches nothing.** A liveness probe that checks the database restarts
 a healthy API every time the database hiccups, turning a brief outage into a
 crash loop.

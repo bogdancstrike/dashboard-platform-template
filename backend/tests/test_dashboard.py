@@ -57,6 +57,73 @@ def test_panels_reconcile_with_the_selected_period(client, monkeypatch):
 
 
 @pytest.mark.database
+def test_a_deleted_record_is_gone_from_every_number(client, monkeypatch):
+    """A soft delete means gone from every list — the front page included.
+
+    `open_tickets` was `~status.in_(("RESOLVED", "CLOSED"))` and nothing else,
+    so every ticket anybody had ever deleted was still open on the dashboard:
+    189 where the table showed 50. Fourteen of the aggregates here remembered
+    the filter and the rest did not, which is worse than uniformly wrong — two
+    numbers on one page disagreeing about whether a record exists.
+
+    The rule is derived from the model now rather than remembered per query, so
+    this asserts the *property* over every KPI at once: create records, delete
+    them, and every number is back where it started. A new aggregate that
+    forgets the filter fails this without anybody thinking to add a case.
+    """
+    from src.core.db import session_scope
+    from src.models.business import Ticket
+    from src.models.platform import ActivityEntry, AuditLog
+
+    headers = authenticate(monkeypatch)
+    url = f"{PREFIX}/summary?period=current_year"
+
+    def numbers() -> dict[str, float]:
+        body = client.get(url, headers=headers).get_json()
+        return {kpi["key"]: float(kpi["value"]) for kpi in body["kpis"]}
+
+    before = numbers()
+    made: list[str] = []
+    try:
+        for index in range(3):
+            created = client.post(
+                f"{Config.API_PREFIX}/api/records/ticket",
+                json={
+                    "subject": f"Soft delete probe {index}",
+                    "description": "Created by the dashboard test.",
+                    "status": "OPEN", "priority": "NORMAL", "severity": "MINOR",
+                    "category": "SUPPORT", "channel": "EMAIL",
+                },
+                headers=headers,
+            )
+            assert created.status_code == 201, created.get_json()
+            made.append(created.get_json()["id"])
+
+        # They are there while they exist — otherwise the assertion below
+        # passes on a dashboard that counts nothing at all.
+        assert numbers()["open_tickets"] == before["open_tickets"] + 3
+
+        for record_id in made:
+            assert client.delete(
+                f"{Config.API_PREFIX}/api/records/ticket/{record_id}", headers=headers
+            ).status_code == 200
+
+        assert numbers() == before
+    finally:
+        with session_scope() as session:
+            for record_id in made:
+                session.query(ActivityEntry).filter(
+                    ActivityEntry.resource_id == record_id
+                ).delete(synchronize_session=False)
+                session.query(AuditLog).filter(
+                    AuditLog.resource_id == record_id
+                ).delete(synchronize_session=False)
+                session.query(Ticket).filter(Ticket.id == record_id).delete(
+                    synchronize_session=False
+                )
+
+
+@pytest.mark.database
 def test_no_tickets_does_not_claim_perfect_sla_compliance():
     from src.core.db import session_scope
     from src.models.business import Ticket

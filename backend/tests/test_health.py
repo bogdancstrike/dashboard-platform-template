@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from src.config import Config
 
 PREFIX = Config.API_PREFIX
@@ -40,10 +42,33 @@ def test_readiness_follows_the_database(client, has_database):
         assert "error" in body["checks"]["database"]
 
 
-def test_readiness_does_not_fail_on_a_disabled_cache(client):
-    """The cache is an optimisation (`core/cache.py`), never a dependency."""
-    body = client.get(f"{PREFIX}/health/ready").get_json()
-    assert body["checks"]["cache"]["status"] == "disabled"
+@pytest.mark.parametrize(
+    ("enabled", "expected"), [(False, "disabled"), (True, "unavailable")]
+)
+def test_readiness_does_not_fail_on_a_cache_that_is_not_there(
+    client, monkeypatch, enabled, expected
+):
+    """The cache is an optimisation (`core/cache.py`), never a dependency.
+
+    Both states are arranged rather than inherited from the suite's own
+    configuration. This test used to assert "disabled" and pass only because
+    the suite happened to switch caching off; the day a `TEST_REDIS_URL` turned
+    it on, the test failed while the product was fine — and the case that
+    actually matters in production, an *enabled* cache that cannot be reached,
+    was never covered at all.
+    """
+    from src.core import cache
+    from src.config import Config
+
+    monkeypatch.setattr(Config, "CACHE_ENABLED", enabled)
+    monkeypatch.setattr(cache, "client", lambda: None)
+
+    response = client.get(f"{PREFIX}/health/ready")
+    body = response.get_json()
+    assert body["checks"]["cache"]["status"] == expected
+    # Ready either way: a readiness probe that fails on a missing cache takes
+    # the whole deployment out for an optimisation.
+    assert "cache" not in body.get("degraded", [])
 
 
 def test_snapshot_reports_each_dependency(client, has_database):

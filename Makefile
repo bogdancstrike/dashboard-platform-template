@@ -155,9 +155,15 @@ STORAGE_ENV := \
 	STORAGE_ACCESS_KEY=$${MINIO_ROOT_USER:-nucleus} \
 	STORAGE_SECRET_KEY=$${MINIO_ROOT_PASSWORD:-nucleus-dev-secret}
 
+# The cache tests assert *invalidation*, which cannot be asserted against a
+# cache that is switched off — and it is off by default so the suite runs on a
+# laptop with nothing installed. `TEST_REDIS_URL` turns it on, the same shape
+# as `TEST_DATABASE_URL`.
+CACHE_ENV := TEST_REDIS_URL=redis://localhost:$${REDIS_PORT:-6380}/0
+
 .PHONY: test-backend-db
-test-backend-db: ## Backend tests including the ones that need PostgreSQL and MinIO
-	cd $(BACKEND) && TEST_DATABASE_URL=postgresql+psycopg2://platform:platform@localhost:$${POSTGRES_PORT:-5433}/platform $(STORAGE_ENV) ../$(PY) -m pytest
+test-backend-db: ## Backend tests including the ones that need PostgreSQL, MinIO and Redis
+	cd $(BACKEND) && TEST_DATABASE_URL=postgresql+psycopg2://platform:platform@localhost:$${POSTGRES_PORT:-5433}/platform $(STORAGE_ENV) $(CACHE_ENV) ../$(PY) -m pytest
 
 .PHONY: test-frontend
 test-frontend: ## Frontend unit and component tests

@@ -171,6 +171,15 @@ def record(
     )
     session.add(entry)
 
+    # Every audited write says which dataset it changed, and `core/db` bumps
+    # that dataset's cache generation *after the commit*. One choke point
+    # rather than a call in each service: this function already runs for every
+    # change the product records, so a new endpoint gets correct invalidation
+    # the day it starts auditing — which it must do anyway.
+    from src.core.db import touched
+
+    touched(session, resource_type, "activity" if activity else "")
+
     if activity:
         session.add(
             ActivityEntry(
