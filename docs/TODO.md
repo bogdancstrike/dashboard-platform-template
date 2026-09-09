@@ -4916,7 +4916,24 @@ Each endpoint ships with its five-case integration test and the page consuming i
     dark as the viewer, whose own preference is dark — so neither sweep has to
     write a persona's theme to measure one, which is what made the pinned
     audit safe to run beside every other spec
-- [ ] Performance — list page interactive under 1.5s against the seeded database
+- [x] Performance — list page interactive under 1.5s against the seeded database
+  - Measured rather than asserted in prose: `e2e/performance.spec.ts` times all
+      six lists and the Data Explorer against the seeded database and holds
+      them to the budget. **Cold** (the address typed, so the bundle is paid
+      for) 474–631ms, **warm** (moving between lists in the running app)
+      166–369ms, and the explorer — which carries the rule builder, the
+      largest lazy chunk here — 1.11s cold. Comfortably inside 1 500ms, and
+      now a test rather than a claim
+  - The methodology is in the file, because a number without one is a number:
+      signed in first (a cold sign-in measures Keycloak, not the list), the
+      clock stops when the first *row* is visible rather than when the shell
+      paints (a page with a skeleton on it cannot be acted on), and the median
+      of three, because a single run on a loaded machine measures the machine
+  - It also asserts **why** the budget holds at sixteen thousand rows: the
+      page asks the server for one page and for the counts, and never
+      downloads a dataset to count it in the browser (§71). That is the thing
+      that would quietly stop being true — one `page_size` raised to "just get
+      them all" and nothing fails
 - [ ] **§77 walkthrough**: a developer who has never seen the repo opens it and
       finds a working example of each of dashboards, data tables, search,
       advanced filtering, entity management, administration, reporting, email,

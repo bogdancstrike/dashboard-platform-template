@@ -630,6 +630,15 @@ TEST_DATABASE_URL=postgresql+psycopg2://platform:platform@localhost:5432/platfor
   python -m pytest
 ```
 
+The browser suite (`make e2e`) runs against the stack in `docker compose` and
+includes `e2e/performance.spec.ts`, which holds every list page to **1.5
+seconds to interactive** with the whole seeded database behind it — cold, with
+the bundle paid for, and warm. Performance is the requirement that decays
+without anybody deciding to break it: one `page_size` raised to "just get them
+all" and nothing else fails, so that too is asserted — the page asks the server
+for one page and for the counts, and never downloads a dataset to count it in
+the browser.
+
 ---
 
 ## Adding an endpoint
