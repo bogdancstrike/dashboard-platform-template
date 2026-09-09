@@ -8,7 +8,8 @@
     above the two components that talk to it. Numbered steps 1 to 10 trace a
     first load, a sign-in, an authenticated call, a file or export fetched
     straight from object storage, and the seed that writes both the rows and
-    the bytes.
+    the bytes. Step 11 is the one exchange the server starts: a WebSocket at
+    /platform/live, fanned out across workers through Redis.
   </desc>
 
   <style>
@@ -33,6 +34,11 @@
       .zone     { stroke: #334155; }
       .zone-lb  { fill: #64748b; }
       .card     { fill: #0f172a; stroke: #1e293b; }
+      /* The core chips carry hardcoded pastel fills, which is right in light
+         and unreadable in dark: a pale pill under text that has just turned
+         pale. A CSS rule beats a presentation attribute, so one line here
+         re-grounds all nine without touching the light rendering. */
+      .chip     { fill: #131a29; stroke: #334155; }
       .card-alt { fill: #0b1220; stroke: #1e293b; }
       .title    { fill: #f1f5f9; }
       .sub      { fill: #94a3b8; }
@@ -58,6 +64,9 @@
     </marker>
     <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
       <path d="M0 0 L10 5 L0 10 z" fill="#94a3b8"/>
+    </marker>
+    <marker id="ag2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#16a34a"/>
     </marker>
     <marker id="av" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
       <path d="M0 0 L10 5 L0 10 z" fill="#7c3aed"/>
@@ -141,6 +150,7 @@
   <text class="t-dim" x="418" y="510">One origin: no preflight</text>
   <text class="t-dim" x="418" y="530">on any call, and a deep</text>
   <text class="t-dim" x="418" y="550">link survives being pasted</text>
+  <text class="t-dim" x="418" y="570">Upgrade headers pass through</text>
 
   <!-- ═══ LANE 3 — APPLICATION ═════════════════════════════════════════ -->
   <rect class="zone" x="712" y="300" width="330" height="440" rx="12"/>
@@ -153,7 +163,7 @@
 
   <rect class="card" x="730" y="408" width="294" height="52" rx="8"/>
   <text class="h-sm" x="750" y="431">maps/endpoint.json</text>
-  <text class="t-dim" x="750" y="450">The API surface, verified at startup</text>
+  <text class="t-dim" x="750" y="450">161 endpoints · the surface, verified at startup</text>
 
   <rect class="card" x="730" y="472" width="294" height="52" rx="8"/>
   <text class="h-sm" x="750" y="495">src/api/ — handlers</text>
@@ -162,29 +172,29 @@
   <rect class="card" x="730" y="536" width="294" height="154" rx="8"/>
   <rect x="730" y="536" width="4" height="154" rx="2" fill="#0891b2"/>
   <text class="h-sm" x="752" y="559">src/core/</text>
-  <rect x="752" y="572" width="76" height="24" rx="12" fill="#eef2ff" stroke="#c7d2fe"/>
+  <rect class="chip" x="752" y="572" width="76" height="24" rx="12" fill="#eef2ff" stroke="#c7d2fe"/>
   <text class="t" x="763" y="588" font-size="11.5">auth</text>
-  <rect x="836" y="572" width="76" height="24" rx="12" fill="#ecfeff" stroke="#a5f3fc"/>
+  <rect class="chip" x="836" y="572" width="76" height="24" rx="12" fill="#ecfeff" stroke="#a5f3fc"/>
   <text class="t" x="847" y="588" font-size="11.5">query</text>
-  <rect x="920" y="572" width="84" height="24" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <rect class="chip" x="920" y="572" width="84" height="24" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
   <text class="t" x="931" y="588" font-size="11.5">rules</text>
-  <rect x="752" y="604" width="76" height="24" rx="12" fill="#fef2f2" stroke="#fecaca"/>
+  <rect class="chip" x="752" y="604" width="76" height="24" rx="12" fill="#fef2f2" stroke="#fecaca"/>
   <text class="t" x="763" y="620" font-size="11.5">audit</text>
-  <rect x="836" y="604" width="76" height="24" rx="12" fill="#fffbeb" stroke="#fde68a"/>
+  <rect class="chip" x="836" y="604" width="76" height="24" rx="12" fill="#fffbeb" stroke="#fde68a"/>
   <text class="t" x="847" y="620" font-size="11.5">cache</text>
-  <rect x="920" y="604" width="84" height="24" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <rect class="chip" x="920" y="604" width="84" height="24" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
   <text class="t" x="931" y="620" font-size="11.5">paging</text>
-  <rect x="752" y="636" width="76" height="24" rx="12" fill="#f5f3ff" stroke="#ddd6fe"/>
+  <rect class="chip" x="752" y="636" width="76" height="24" rx="12" fill="#f5f3ff" stroke="#ddd6fe"/>
   <text class="t" x="763" y="652" font-size="11.5">storage</text>
-  <rect x="836" y="636" width="76" height="24" rx="12" fill="#fdf4ff" stroke="#f5d0fe"/>
+  <rect class="chip" x="836" y="636" width="76" height="24" rx="12" fill="#fdf4ff" stroke="#f5d0fe"/>
   <text class="t" x="847" y="652" font-size="11.5">export</text>
-  <rect x="920" y="636" width="84" height="24" rx="12" fill="#f0f9ff" stroke="#bae6fd"/>
+  <rect class="chip" x="920" y="636" width="84" height="24" rx="12" fill="#f0f9ff" stroke="#bae6fd"/>
   <text class="t" x="931" y="652" font-size="11.5">background</text>
   <text class="t-dim" x="752" y="680">Filters compile to SQL, never to a page</text>
 
   <rect class="card" x="730" y="702" width="294" height="52" rx="8"/>
   <text class="h-sm" x="750" y="725">src/models/ — SQLAlchemy 2</text>
-  <text class="t-dim" x="750" y="744">58 tables · UUID keys · soft delete</text>
+  <text class="t-dim" x="750" y="744">57 tables · UUID keys · soft delete</text>
 
   <!-- ═══ LANE 4 — DATA ════════════════════════════════════════════════ -->
   <rect class="zone" x="1112" y="300" width="262" height="652" rx="12"/>
@@ -195,8 +205,8 @@
   <text class="h" x="1150" y="372">PostgreSQL 18</text>
   <text class="t" x="1150" y="394">System of record</text>
   <line class="rule" x1="1150" y1="410" x2="1336" y2="410"/>
-  <text class="t-dim" x="1150" y="432">58 tables · 496 indexes</text>
-  <text class="t-dim" x="1150" y="452">131 foreign keys</text>
+  <text class="t-dim" x="1150" y="432">57 tables · 486 indexes</text>
+  <text class="t-dim" x="1150" y="452">128 foreign keys</text>
   <text class="t-dim" x="1150" y="478">Every filter, sort, facet</text>
   <text class="t-dim" x="1150" y="498">and search is answered</text>
   <text class="t-dim" x="1150" y="518">here, not in the browser</text>
@@ -204,12 +214,13 @@
   <rect class="card" x="1130" y="546" width="226" height="176" rx="8" filter="url(#sh)"/>
   <rect x="1130" y="546" width="226" height="4" rx="2" fill="#dc2626"/>
   <text class="h" x="1150" y="580">Redis 8</text>
-  <text class="t" x="1150" y="602">Cache</text>
+  <text class="t" x="1150" y="602">Cache · live fan-out</text>
   <line class="rule" x1="1150" y1="618" x2="1336" y2="618"/>
-  <text class="t-dim" x="1150" y="640">An optimisation, never</text>
-  <text class="t-dim" x="1150" y="660">a dependency.</text>
-  <text class="t-dim" x="1150" y="686">Unreachable ⇒ every</text>
-  <text class="t-dim" x="1150" y="706">helper degrades to a miss</text>
+  <text class="t-dim" x="1150" y="640">An optimisation, never a</text>
+  <text class="t-dim" x="1150" y="660">dependency. Unreachable ⇒</text>
+  <text class="t-dim" x="1150" y="680">every helper degrades to a</text>
+  <text class="t-dim" x="1150" y="700">miss, and live delivery to</text>
+  <text class="t-dim" x="1150" y="720">the worker holding the socket</text>
 
   <rect class="card" x="1130" y="746" width="226" height="176" rx="8" filter="url(#sh)"/>
   <rect x="1130" y="746" width="226" height="4" rx="2" fill="#7c3aed"/>
@@ -273,6 +284,26 @@
   <circle cx="1068" cy="766" r="12" fill="#7c3aed"/>
   <text class="badge-t" x="1068" y="770.5" text-anchor="middle">10</text>
 
+  <!-- ═══ LIVE CHANNEL — the one path that is not request/response ═════
+       Drawn as its own band rather than as a fifth lane: it uses the same
+       edge, the same token and the same principal as every call above it,
+       and only the *shape* of the exchange differs. -->
+  <rect class="zone" x="48" y="616" width="594" height="162" rx="12"/>
+  <text class="zone-lb" x="66" y="640">LIVE CHANNEL</text>
+
+  <rect class="card" x="66" y="654" width="558" height="108" rx="8" filter="url(#sh)"/>
+  <rect x="66" y="654" width="558" height="4" rx="2" fill="#16a34a"/>
+  <text class="h-sm" x="88" y="684">WebSocket — <tspan class="mono" font-size="12.5">/platform/live</tspan></text>
+  <text class="t-dim" x="88" y="706">Mounted on Flask directly: a socket is not a request/response resource</text>
+  <text class="t-dim" x="88" y="726">The token rides in <tspan class="mono" font-size="11.5">Sec-WebSocket-Protocol</tspan>, not in the address</text>
+  <text class="t-dim" x="88" y="746">A publish reaches this worker's sockets, and Redis carries it to the rest</text>
+
+  <!-- 11 · browser ⇄ the socket. Two heads, because this is the one exchange
+       the server starts. -->
+  <path stroke="#16a34a" stroke-width="2.2" fill="none" d="M250 582 V650" marker-end="url(#ag2)" marker-start="url(#ag2)"/>
+  <circle cx="250" cy="616" r="12" fill="#16a34a"/>
+  <text class="badge-t" x="250" y="620.5" text-anchor="middle">11</text>
+
   <!-- ═══ SEED — one-shot, before the API accepts traffic ══════════════ -->
   <rect class="zone" x="48" y="796" width="994" height="152" rx="12"/>
   <text class="zone-lb" x="66" y="820">BOOTSTRAP · ONE-SHOT JOB</text>
@@ -280,12 +311,14 @@
   <rect class="card" x="66" y="834" width="958" height="98" rx="8" filter="url(#sh)"/>
   <rect x="66" y="834" width="958" height="4" rx="2" fill="#ca8a04"/>
   <text class="h" x="88" y="866">Seed — <tspan class="mono" font-size="15">python -m src.seed</tspan></text>
-  <text class="t-dim" x="88" y="890">Runs to completion before the API starts, and refuses to run twice · 16 504 rows across 50 tables, built in memory, written in one transaction</text>
+  <text class="t-dim" x="88" y="890">Runs to completion before the API starts, and refuses to run twice · 16 370 rows across 54 tables, built in memory, written in one transaction</text>
   <text class="t-dim" x="88" y="912">Ids come from the seeded stream, so a bookmark survives a reseed · Statuses drawn by weight · Five Keycloak personas with the realm's own emails</text>
 
-  <!-- seed → postgres: around the right margin, over empty space. The old
-       route rose at x=1243, which is inside the MinIO card now. -->
-  <path stroke="#0891b2" stroke-width="2.2" fill="none" d="M1028 862 H1394 V420 H1360" marker-end="url(#ac)"/>
+  <!-- seed → postgres: down through the gap between the two zones, along the
+       bottom margin, then up the right edge. The previous route ran straight
+       out at y=862, which is *through* the MinIO card's own text — the card
+       reaches y=922 and the line was drawn when it did not. -->
+  <path stroke="#0891b2" stroke-width="2.2" fill="none" d="M1028 862 H1077 V966 H1394 V420 H1360" marker-end="url(#ac)"/>
   <circle cx="1394" cy="640" r="12" fill="#0891b2"/>
   <text class="badge-t" x="1394" y="644.5" text-anchor="middle">0</text>
 
@@ -324,6 +357,9 @@
 
     <circle cx="9" cy="69" r="9" fill="#5b5bd6"/><text class="badge-t" x="9" y="73" text-anchor="middle" font-size="11">6</text>
     <text class="t-dim" x="26" y="73">nginx forwards them to the API</text>
+
+    <circle cx="9" cy="99" r="9" fill="#16a34a"/><text class="badge-t" x="9" y="103" text-anchor="middle" font-size="11">11</text>
+    <text class="t-dim" x="26" y="103">Live channel — pushed, not polled</text>
   </g>
 
   <g transform="translate(1030 1030)">

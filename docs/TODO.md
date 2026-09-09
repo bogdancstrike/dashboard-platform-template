@@ -34,7 +34,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
 | Endpoints | 62 of ~110 — `maps/endpoint.json` is the list, and `python -m src.api.endpoint_map` prints it; nothing here is kept in step by hand |
-| Seed (`src/seed/`) | **done** — 16 504 rows across 50 tables, deterministic, `--check` verifies referential consistency |
+| Seed (`src/seed/`) | **done** — 16 370 rows across 54 tables, deterministic, `--check` verifies referential consistency |
 | Tests | 363 backend + 295 frontend + 149 Playwright e2e — all green against `docker compose up`. Scale-independent: they pass on either seed size |
 | Frontend | shell, Data Explorer, discovery workspaces, the notification centre, six entity lists, three record pages of their own, and the whole ANALYSE section bar dashboards; live WebSocket channel with a polling fallback |
 | Compose stack | **done** — `docker compose up` reaches a working stack: PostgreSQL, Redis, Keycloak, MinIO, the API and the SPA. Real Keycloak tokens and real presigned uploads verified |
@@ -4191,10 +4191,24 @@ there was only one. The point of a template is the opposite.
       import and export moves; a tenth numbered step for the presigned fetch
       that bypasses the API; `core/`'s `storage`, `export` and `background`
       chips; and counts taken from the model and a `--dry-run` rather than from
-      memory (58 tables, 496 indexes, 131 foreign keys, 16 504 seeded rows —
+      memory (57 tables, 486 indexes, 128 foreign keys, 16 370 seeded rows —
       the diagram had said 50, 499, 113 and 15 554). A prose
       `docs/architecture.md` on the layering rule and why QF is wired as it is
       remains
+  - **Updated after the live channel shipped**: the diagram now carries the
+      WebSocket at `/platform/live` as a band of its own — the one exchange the
+      server starts, mounted on Flask directly because a socket is not a
+      request/response resource, authenticated through
+      `Sec-WebSocket-Protocol` rather than the address bar, and fanned out
+      across gunicorn workers through Redis pub/sub. Redis's card says what it
+      degrades to in *both* of its roles, nginx's says it passes the upgrade,
+      and the endpoint map's says how many endpoints it verifies
+  - The counts are re-derived rather than edited: 57 tables, 486 indexes, 128
+      foreign keys, 16 370 seeded rows across 54 tables. Two routing defects
+      went with them — the seed → PostgreSQL arrow ran straight through the
+      MinIO card's own text, and the nine `src/core/` chips were pale pills
+      under text that turns pale in dark mode, which is one CSS rule now
+      rather than nine hardcoded fills
 - [x] `docs/features.md` — the §1–§77 catalogue mapped to routes and endpoints,
       as a developer's index into the template (§77)
   - **Generated, and *checked*.** The catalogue lives in
@@ -4289,7 +4303,7 @@ there was only one. The point of a template is the opposite.
 
 - [x] Deterministic generator: 20 orgs, 150 users, 50 projects, 500 tasks,
       1 000 audit rows, 200 emails, 100 files, 100 jobs, thousands of records —
-      16 504 rows across 50 tables, `python -m src.seed`
+      16 370 rows across 54 tables, `python -m src.seed`
 - [x] Referential consistency across all modules — `--check` verifies it
 - [x] The five Keycloak personas seeded with the realm's emails, so signing in
       adopts a populated profile instead of provisioning an empty one
@@ -4532,7 +4546,7 @@ Each endpoint ships with its five-case integration test and the page consuming i
 ## Phase 7 — Verification
 
 - [x] `docker compose up` clean-boot green — every service healthy from empty
-      volumes; seed wrote 16 504 rows and refused to run twice
+      volumes; seed wrote 16 370 rows and refused to run twice
 - [x] Seed verified (row counts + referential checks)
 - [~] Backend tests — 363 passing, including the comment thread's permissions
       and editing rules, the checklist's validation, saved reports' lifecycle and
