@@ -2634,6 +2634,20 @@ commit — built, committed, pushed, redeployed and verified before the next.
   - **The conversation and the history are kept apart.** Comments are what
     people said; the audit timeline is what the system recorded. One feed
     makes a decision indistinguishable from a side effect
+  - **Now on every record page, and where each page puts it is the decision**
+    (§36, §50). The generic detail page — accounts, orders, devices, the four
+    datasets with no bespoke page — carries the thread and the connections as
+    *tabs*, while the task and ticket pages keep the thread on the page:
+    answering a support case is the job, and commenting on an account is
+    occasional, so a thread above the fold there would push the fields the
+    reader came for below them. Same components, same endpoints; only the
+    placement differs, which is the one thing a page is for. Both tabs are
+    lazy, which is the other reason they are tabs — a reader who wanted the
+    address does not fetch a conversation and a graph to throw away
+  - The connections tab closes §50's last open half with the component the
+    relationship explorer already used: a group per foreign key the schema
+    declares ("Account manager · 1", "Tickets · as customer · 3"), derived
+    rather than listed per entity
   - `records.comment` is its own permission: a reader who may open the ledger
     is not automatically somebody who may annotate it. An analyst is told so
     in place of a composer, rather than after typing (§76)
@@ -3242,7 +3256,7 @@ told a reader that something is missing and not what.
 | 33 | Drawers and modals | — | — | [x] |
 | 34 | Error and empty states | `/errors/*` | — | [x] |
 | 35 | Activity feed | `/activity`, `/profile` | `/api/activity` | [x] |
-| 36 | Comments | `/tasks/:id`, `/tickets/:id` | `/api/comments` | [~] |
+| 36 | Comments | `/tasks/:id`, `/tickets/:id`, `/customers/:id` | `/api/comments` | [x] |
 | 37 | Tags and labels | `/admin/tags` | `/tags` | [x] |
 | 38 | Favorites | `/favorites` | `/favorites` | [x] |
 | 39 | Recent items | `/favorites` | `/recents` | [x] |
@@ -3256,7 +3270,7 @@ told a reader that something is missing and not what.
 | 47 | Data comparison | `/compare` | `/api/records/{type}/compare` | [x] |
 | 48 | Timeline view | detail tabs | `/admin/audit` | [~] |
 | 49 | Alerts and rules | `/workflows` | `/api/automations/rules` | [x] |
-| 50 | Data relationships | detail tabs + `/find/relationships` | `/api/relationships/*` | [~] |
+| 50 | Data relationships | detail tabs + `/find/relationships` | `/api/relationships/*` | [x] |
 | 51 | Query inspector | `/explore` | — (`core/rules.py`) | [x] |
 | 52 | Pagination patterns | various | — (`core/pagination.py`) | [x] |
 | 53 | Data refresh, auto-refresh | data-heavy pages | `/live` | [~] |
@@ -3285,7 +3299,7 @@ told a reader that something is missing and not what.
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*64 shipped · 13 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*66 shipped · 11 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
@@ -3295,13 +3309,9 @@ Every section above that is not shipped, with the part that is open. A catalogue
 
 **§18 Tasks / work queue (kanban)** — Partly there. Boards, lanes and cards with full CRUD, server-side filters, drag between lanes reconciled against the server, and a keyboard equivalent of the drag. Ordering *within* a lane and the comment and checklist counts on a card's face are open.
 
-**§36 Comments** — Partly there. Mentions, one level of replies and the audit timeline beside them, on the two record pages where a conversation actually happens. The other four entity detail pages do not carry it yet.
-
 **§44 Drill-down** — Partly there. Every KPI tile, chart segment and quality finding opens the rows behind it with the same filters applied. The back-stack that would return a reader to the picture they came from is open.
 
 **§48 Timeline view** — Partly there. Every record page carries its own history, read from the audit ledger so the two cannot disagree. A cross-record timeline — one thread through several records — is open.
-
-**§50 Data relationships** — Partly there. The graph, the weighted relations, hub records and coverage all ship, and the map merges markers that would overlap at the reader's zoom. A per-record relationship tab is open.
 
 **§53 Data refresh, auto-refresh** — Partly there. Notifications and the log tail arrive over the live channel. A general auto-refresh a reader can turn on per page is open.
 

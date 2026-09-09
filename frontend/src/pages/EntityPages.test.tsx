@@ -80,6 +80,63 @@ describe("the generic entity detail page", () => {
     expect(requested!.get("resource_id")).toBe(recordDetail.id);
   });
 
+  /**
+   * The two things a record page is for besides its fields (§36, §50).
+   *
+   * Lazily, and that is the reason they are tabs: neither query runs until the
+   * tab is opened, so a page whose reader only wanted the address does not
+   * fetch a conversation and a graph to throw away.
+   */
+  it("carries the conversation and the connections, and asks for neither until asked", async () => {
+    const user = userEvent.setup();
+    const asked: string[] = [];
+    server.use(
+      http.get("/platform/api/comments", ({ request }) => {
+        asked.push("comments");
+        const params = new URL(request.url).searchParams;
+        expect(params.get("resource_type")).toBe("task");
+        expect(params.get("resource_id")).toBe(recordDetail.id);
+        return HttpResponse.json({ items: [], total: 0, can_comment: true });
+      }),
+      http.get("/platform/api/relationships/:type/:id", () => {
+        asked.push("relationships");
+        return HttpResponse.json({
+          root: {},
+          total: 1,
+          groups: [
+            {
+              direction: "outbound",
+              relation: "project_id",
+              label: "Project",
+              total: 1,
+              has_more: false,
+              items: [
+                {
+                  id: "project-1",
+                  entity: "project",
+                  label: "Migration project",
+                  summary: "ACTIVE",
+                  explorable: true,
+                },
+              ],
+            },
+          ],
+        });
+      }),
+    );
+
+    renderDetail();
+    await screen.findByRole("tab", { name: "Overview" });
+    expect(asked).toEqual([]);
+
+    await user.click(screen.getByRole("tab", { name: "Conversation" }));
+    await waitFor(() => expect(asked).toContain("comments"));
+
+    await user.click(screen.getByRole("tab", { name: "Connections" }));
+    expect(await screen.findByText("Migration project")).toBeInTheDocument();
+    expect(asked).toContain("relationships");
+  });
+
   it("keeps the open tab in the URL", async () => {
     renderDetail("/tasks/task-1?tab=history");
 

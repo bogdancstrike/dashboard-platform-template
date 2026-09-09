@@ -318,6 +318,62 @@ test("a comment is stored, and another person sees it", async ({ page, browser }
   await deleteTask(page, title);
 });
 
+/**
+ * The conversation is polymorphic, and the generic record page carries it
+ * (§36).
+ *
+ * The task page puts the thread on the page because answering is the job; an
+ * account puts it behind a tab because a comment there is occasional. Both are
+ * the same endpoint and the same component, and this is the claim a component
+ * test cannot make: a comment written on a *customer* — a dataset with no
+ * bespoke page — is stored by the real API and is there after a reload.
+ */
+test("a comment on an account is stored, from the tab the generic page puts it in", async ({
+  page,
+}) => {
+  const body = `Playwright account note ${Date.now()}`;
+  await signIn(page, "manager", "/customers");
+  await page.locator(".nu-account").first().click();
+  await page.waitForURL(/\/customers\/[0-9a-f-]{36}/);
+
+  await page.getByRole("tab", { name: "Conversation" }).click();
+  const thread = page.getByTestId("comment-thread");
+  await thread.getByLabel("Add a comment").fill(body);
+  await thread.getByTestId("post-comment").click();
+  await expect(thread.getByText(body)).toBeVisible();
+
+  // Stored, not remembered: the tab is re-opened after a reload and the
+  // comment came back from the database.
+  await page.reload();
+  await page.getByRole("tab", { name: "Conversation" }).click();
+  await expect(page.getByTestId("comment-thread").getByText(body)).toBeVisible();
+
+  // And the connections tab reads the record's own foreign keys (§50).
+  await page.getByRole("tab", { name: "Connections" }).click();
+  const connections = page.getByRole("tabpanel");
+  // A group per foreign key the schema declares — "Account manager · 1",
+  // "Tickets · as customer · 3" — or the honest empty state for a record that
+  // is joined to nothing.
+  await expect(
+    connections
+      .getByRole("heading", { level: 3 })
+      .or(connections.getByText("No related records"))
+      .first(),
+  ).toBeVisible();
+
+  // Put it back: the seeded dataset is what the rest of the suite measures.
+  await page.getByRole("tab", { name: "Conversation" }).click();
+  const mine = page
+    .getByTestId("comment-thread")
+    .locator(".nu-comment")
+    .filter({ hasText: body })
+    .first();
+  // Withdrawn straight away: the thread's Delete is the author's own and asks
+  // nothing, because a comment is a sentence rather than a record.
+  await mine.getByRole("button", { name: "Delete" }).click();
+  await expect(page.getByTestId("comment-thread").getByText(body)).toHaveCount(0);
+});
+
 test("a ticked to-do is an edit to the record and survives a reload", async ({ page }) => {
   const title = `Playwright checklist task ${Date.now()}`;
   await openScratchTask(page, title);

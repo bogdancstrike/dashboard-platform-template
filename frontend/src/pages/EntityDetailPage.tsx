@@ -18,6 +18,8 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { explorerApi } from "@/api/explorer";
 import { recordsApi, type RecordField } from "@/api/records";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
+import { CommentThread } from "@/components/comments/CommentThread";
+import { RecordRelations } from "@/components/explorer/RecordRelations";
 import { FailureAlert, failureKind, retryHelps } from "@/components/FailureAlert";
 import { PageHeader } from "@/components/PageHeader";
 import { TagPicker } from "@/components/records/TagPicker";
@@ -42,6 +44,14 @@ const { Text } = Typography;
  * The History tab is the audit timeline (§21, §48), reading the scoped
  * endpoint — so a reader who may open this record can read what happened to it
  * without being granted the whole ledger.
+ *
+ * **The conversation and the connections are tabs here, and the page on the
+ * task and ticket pages** (§36, §50). That is not an inconsistency: on a work
+ * item or a support case, answering *is* the job and the thread belongs above
+ * the fold; on an account, an order or a device a comment is occasional, and a
+ * thread over the fields would push what the reader came for below them. Both
+ * are the same components reading the same endpoints — what differs is where
+ * the page puts them, which is the one decision a page is for.
  *
  * Editing (§9) is the same story: the drawer is built from the fields the
  * server marks writable, so the form a reader gets is the form the API will
@@ -213,6 +223,33 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
             key: "overview",
             label: "Overview",
             children: <Overview fields={data.fields} titleField={data.title_field} />,
+          },
+          {
+            // A conversation, and the records this one is connected to, as
+            // *tabs* rather than on the page — the opposite of the task and
+            // ticket pages, where answering is the job and the thread is the
+            // page. On an account or an order a comment is occasional, and a
+            // thread above the fold would push the fields a reader came for
+            // below it (§36, §33).
+            key: "comments",
+            label: "Conversation",
+            children: (
+              <Card size="small">
+                <CommentThread resourceType={data.resource_type} resourceId={data.id} />
+              </Card>
+            ),
+          },
+          {
+            // What this record is joined to, derived from the foreign keys the
+            // schema already declares rather than from a per-entity list of
+            // "related things" (§50).
+            key: "relations",
+            label: "Connections",
+            children: (
+              <Card size="small">
+                <RecordRelations resourceType={data.resource_type} recordId={data.id} />
+              </Card>
+            ),
           },
           {
             key: "history",

@@ -59,7 +59,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 33 | Drawers and modals | — | — | [x] |
 | 34 | Error and empty states | `/errors/*` | — | [x] |
 | 35 | Activity feed | `/activity`, `/profile` | `/api/activity` | [x] |
-| 36 | Comments | `/tasks/:id`, `/tickets/:id` | `/api/comments` | [~] |
+| 36 | Comments | `/tasks/:id`, `/tickets/:id`, `/customers/:id` | `/api/comments` | [x] |
 | 37 | Tags and labels | `/admin/tags` | `/tags` | [x] |
 | 38 | Favorites | `/favorites` | `/favorites` | [x] |
 | 39 | Recent items | `/favorites` | `/recents` | [x] |
@@ -73,7 +73,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 47 | Data comparison | `/compare` | `/api/records/{type}/compare` | [x] |
 | 48 | Timeline view | detail tabs | `/admin/audit` | [~] |
 | 49 | Alerts and rules | `/workflows` | `/api/automations/rules` | [x] |
-| 50 | Data relationships | detail tabs + `/find/relationships` | `/api/relationships/*` | [~] |
+| 50 | Data relationships | detail tabs + `/find/relationships` | `/api/relationships/*` | [x] |
 | 51 | Query inspector | `/explore` | — (`core/rules.py`) | [x] |
 | 52 | Pagination patterns | various | — (`core/pagination.py`) | [x] |
 | 53 | Data refresh, auto-refresh | data-heavy pages | `/live` | [~] |
@@ -102,7 +102,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*64 shipped · 13 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*66 shipped · 11 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
@@ -112,13 +112,9 @@ Every section above that is not shipped, with the part that is open. A catalogue
 
 **§18 Tasks / work queue (kanban)** — Partly there. Boards, lanes and cards with full CRUD, server-side filters, drag between lanes reconciled against the server, and a keyboard equivalent of the drag. Ordering *within* a lane and the comment and checklist counts on a card's face are open.
 
-**§36 Comments** — Partly there. Mentions, one level of replies and the audit timeline beside them, on the two record pages where a conversation actually happens. The other four entity detail pages do not carry it yet.
-
 **§44 Drill-down** — Partly there. Every KPI tile, chart segment and quality finding opens the rows behind it with the same filters applied. The back-stack that would return a reader to the picture they came from is open.
 
 **§48 Timeline view** — Partly there. Every record page carries its own history, read from the audit ledger so the two cannot disagree. A cross-record timeline — one thread through several records — is open.
-
-**§50 Data relationships** — Partly there. The graph, the weighted relations, hub records and coverage all ship, and the map merges markers that would overlap at the reader's zoom. A per-record relationship tab is open.
 
 **§53 Data refresh, auto-refresh** — Partly there. Notifications and the log tail arrive over the live channel. A general auto-refresh a reader can turn on per page is open.
 

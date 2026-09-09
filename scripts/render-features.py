@@ -137,10 +137,8 @@ CATALOGUE: list[dict[str, object]] = [
     feature(34, "Error and empty states", "`/errors/*`", "—", "done"),
     feature(35, "Activity feed", "`/activity`, `/profile`", "`/api/activity`", "done"),
     feature(
-        36, "Comments", "`/tasks/:id`, `/tickets/:id`", "`/api/comments`", "partial",
-        "Mentions, one level of replies and the audit timeline beside them, on "
-        "the two record pages where a conversation actually happens. The other "
-        "four entity detail pages do not carry it yet.",
+        36, "Comments", "`/tasks/:id`, `/tickets/:id`, `/customers/:id`", "`/api/comments`",
+        "done",
     ),
     feature(37, "Tags and labels", "`/admin/tags`", "`/tags`", "done"),
     feature(38, "Favorites", "`/favorites`", "`/favorites`", "done"),
@@ -172,10 +170,7 @@ CATALOGUE: list[dict[str, object]] = [
     ),
     feature(
         50, "Data relationships", "detail tabs + `/find/relationships`",
-        "`/api/relationships/*`", "partial",
-        "The graph, the weighted relations, hub records and coverage all ship, "
-        "and the map merges markers that would overlap at the reader's zoom. A "
-        "per-record relationship tab is open.",
+        "`/api/relationships/*`", "done",
     ),
     feature(51, "Query inspector", "`/explore`", "— (`core/rules.py`)", "done"),
     feature(52, "Pagination patterns", "various", "— (`core/pagination.py`)", "done"),
