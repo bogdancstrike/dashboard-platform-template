@@ -224,6 +224,22 @@ place. Which datasets can be mapped, and how each reaches a place, is the
 no city is placed one hop away, at its customer's. Country outlines are
 vendored (`frontend/src/assets/README.md`) because the stack runs offline.
 
+### Two records side by side
+
+`/compare?type=order&ids=…` puts two to five records in columns and marks the
+fields they disagree about. It is reached from a selection — tick rows on a
+list and press Compare — because a comparison needs records chosen, and the
+selection bar is where a reader chooses them.
+
+The fields that *agree* are shown by default, not hidden. They are the evidence
+that two records are the same thing recorded twice, which is the question the
+page is usually opened to answer; a view that only ever shows differences
+cannot answer it.
+
+`differs` is computed on the serialised value — the one the page draws —
+because `Decimal("10.00")` and `Decimal("10.0")` are not equal in Python and
+are the same money.
+
 ### What is wrong with the records
 
 `/admin/quality` runs fourteen checks over the six datasets and says, for each,

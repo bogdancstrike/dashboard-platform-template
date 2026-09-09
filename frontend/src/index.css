@@ -342,6 +342,22 @@ body {
 .nu-activity-item { font-size: 13px; line-height: 1.45; }
 .nu-activity-time { font-size: 11.5px; color: var(--nu-text-tertiary); margin-top: 2px; }
 
+/* ── comparison (§47) ───────────────────────────────────────────────── */
+/* The differing rows are tinted *and* marked: colour alone is not a signal
+   (§64), and these are the only rows a reader came to the page to find. */
+.nu-compare .nu-compare-differs > td {
+  background: color-mix(in srgb, var(--nu-warning) 8%, transparent);
+}
+/* The table's own container scrolls, rather than AntD's `scroll.x` — see the
+   comment in `ComparePage.tsx`. `min-width` on the table keeps the columns
+   readable instead of squashing five of them into a phone. */
+.nu-compare-scroll { overflow-x: auto; }
+.nu-compare-scroll .ant-table table { min-width: 620px; }
+.nu-compare .ant-table-cell { vertical-align: top; }
+/* Values wrap rather than truncate: a comparison is read across, and an
+   ellipsis in the one cell that differs hides the difference. */
+.nu-compare .ant-table-cell { white-space: normal; overflow-wrap: anywhere; }
+
 /* ── data quality (§65) ─────────────────────────────────────────────── */
 .nu-quality-totals {
   display: grid; gap: 10px; margin-bottom: 12px;

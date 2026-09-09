@@ -39,6 +39,7 @@ const ImportPage = lazy(() => import("@/pages/ImportPage"));
 const SecurityPage = lazy(() => import("@/pages/SecurityPage"));
 const FavoritesPage = lazy(() => import("@/pages/FavoritesPage"));
 const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
+const ComparePage = lazy(() => import("@/pages/ComparePage"));
 const ShowcaseComponentsPage = lazy(() => import("@/pages/showcase/ComponentsPage"));
 const ShowcaseTemplatesPage = lazy(() => import("@/pages/showcase/TemplatesPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
@@ -545,6 +546,18 @@ export default function App() {
           element={
             <Suspense fallback={<Loading />}>
               <ShowcaseTemplatesPage />
+            </Suspense>
+          }
+        />
+
+        {/* Two or more records side by side (§47). One address rather than
+            one per dataset: the dataset is a parameter of the question, and
+            `/orders/compare` would be six routes for one page. */}
+        <Route
+          path="compare"
+          element={
+            <Suspense fallback={<Loading />}>
+              <ComparePage />
             </Suspense>
           }
         />

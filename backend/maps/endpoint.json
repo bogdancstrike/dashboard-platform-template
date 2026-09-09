@@ -1004,6 +1004,20 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "record_compare",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/records/<string:resource_type>/compare",
+      "description": "Two or more records side by side, with the differing fields marked.",
+      "exec_method": {
+        "module_name": "src.api.records",
+        "method_name": "compare"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "profile_mine",
       "model_name": "Empty",
       "request_method": [

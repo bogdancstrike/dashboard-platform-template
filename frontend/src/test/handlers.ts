@@ -4855,6 +4855,53 @@ export const handlers = [
     if (index >= 0) announcements.splice(index, 1);
     return echo(request, { id: params["id"], deleted: true });
   }),
+  // ── comparison (§47) ─────────────────────────────────────────────────
+  //
+  // Answers about the ids it is *given*, with one field agreeing and one
+  // differing — the two shapes the page draws differently. A fixed body would
+  // let the page mark the wrong rows and pass, and a body where everything
+  // differs would leave the "identical" branch untested.
+  http.get("/platform/api/records/:resourceType/compare", ({ params, request }) => {
+    const ids = (new URL(request.url).searchParams.get("ids") ?? "")
+      .split(",")
+      .map((piece) => piece.trim())
+      .filter(Boolean);
+    const key = String(params["resourceType"]);
+    const resource = explorerCatalogue.items.find((item) => item.key === key);
+
+    return echo(request, {
+      resource_type: key,
+      resource_label: resource?.label ?? "Records",
+      path: resource?.path ?? `/${key}s`,
+      records: ids.map((id, index) => ({
+        id,
+        title: `REC-0000${index + 1}`,
+        path: `${resource?.path ?? ""}/${id}`,
+        status: index === 0 ? "CONFIRMED" : "CANCELLED",
+      })),
+      fields: [
+        {
+          name: "status", label: "Status", kind: "enum",
+          values: ids.map((_id, index) => (index === 0 ? "CONFIRMED" : "CANCELLED")),
+          differs: ids.length > 1,
+        },
+        {
+          name: "channel", label: "Channel", kind: "enum",
+          values: ids.map(() => "PORTAL"),
+          differs: false,
+        },
+        {
+          name: "total", label: "Total", kind: "number",
+          values: ids.map((_id, index) => 100 * (index + 1)),
+          differs: ids.length > 1,
+        },
+      ],
+      differing: ids.length > 1 ? 2 : 0,
+      same: 1,
+      limit: 5,
+    });
+  }),
+
   // ── data quality (§65) ───────────────────────────────────────────────
   //
   // A failing check *with* a link, a failing check *without* one, and a

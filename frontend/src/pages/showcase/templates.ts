@@ -88,6 +88,16 @@ export const LAYOUTS: PageLayout[] = [
     routes: ["mail", "explore", "tickets"],
   },
   {
+    key: "matrix",
+    name: "Comparison matrix",
+    shape: "One row per attribute, one column per subject, and the disagreements marked.",
+    when:
+      "The reader is deciding *between* things, or deciding whether two of them are the same thing twice.",
+    unless:
+      "There is one subject — then it is a detail page, and a matrix of one column is a list of fields with extra scrolling.",
+    routes: ["compare"],
+  },
+  {
     key: "board",
     name: "Board",
     shape: "Columns of cards, dragged between them, with a limit per column.",

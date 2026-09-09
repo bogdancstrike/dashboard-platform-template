@@ -19,6 +19,7 @@ from typing import Any
 from src.core.auth import json_body, me, requires
 from src.core.db import session_scope
 from src.services import bulk as bulk_service
+from src.services import compare as compare_service
 from src.services import record_writes as writes
 from src.services import records as service
 
@@ -95,3 +96,20 @@ def bulk(app=None, operation: str = "", request=None, resource_type: str = "", *
     kind = resource_type or str(kwargs.get("resource_type") or "")
     with session_scope() as session:
         return bulk_service.apply(session, kind, json_body(), principal=me()), 200
+
+
+@requires("records.view")
+def compare(app=None, operation: str = "", request=None, resource_type: str = "", **kwargs: Any):
+    """Two or more records side by side, with the differences marked (§47).
+
+    `records.view` and nothing more: this returns the declared fields of
+    records the reader can already open, arranged differently. A comparison
+    that needed its own permission would be a permission for reading the same
+    rows twice.
+    """
+    kind = resource_type or str(kwargs.get("resource_type") or "")
+    args = request.args if request is not None else {}
+    with session_scope() as session:
+        return compare_service.compare(
+            session, kind, args.get("ids"), principal=me()
+        ), 200

@@ -176,11 +176,7 @@ CATALOGUE: list[dict[str, object]] = [
         "Not built. A saved *search* keeps the question (§5); a saved view would "
         "keep the presentation — columns, sort, density — against a list.",
     ),
-    feature(
-        47, "Data comparison", "`/{entity}/compare`", "generic list", "open",
-        "Not built. Two or more records side by side, with the fields that "
-        "differ marked.",
-    ),
+    feature(47, "Data comparison", "`/compare`", "`/api/records/{type}/compare`", "done"),
     feature(
         48, "Timeline view", "detail tabs", "`/admin/audit`", "partial",
         "Every record page carries its own history, read from the audit ledger "

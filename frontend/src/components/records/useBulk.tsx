@@ -1,12 +1,23 @@
 import { useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { App as AntApp, Button, Space, Tooltip, Typography } from "antd";
-import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import { ColumnWidthOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import { Link } from "react-router-dom";
 
 import type { BulkAction, BulkSelection } from "@/api/bulk";
 import type { ExplorerRequest, ExplorerResource } from "@/api/explorer";
 import { BulkDialog, settableFields } from "@/components/records/BulkDialog";
 import { formatNumber } from "@/lib/formats";
+
+/**
+ * The most records a comparison may hold — `compare.MAX_RECORDS` on the server.
+ *
+ * Named here rather than fetched, because it decides whether a *control* is
+ * offered: a Compare button that appears and then hands back a refusal is worse
+ * than one that is absent, and the number is a reading limit rather than a
+ * deployment setting.
+ */
+const COMPARE_LIMIT = 5;
 
 const { Text } = Typography;
 
@@ -81,6 +92,16 @@ export function useBulk(
     setAllMatching(false);
     setExcluded([]);
   };
+
+  /**
+   * Whether these records can be put side by side (§47).
+   *
+   * Only a hand-picked selection, and only a small one. "Compare everything
+   * matching this filter" is not a question anybody asks — a comparison is
+   * read across, so five columns is already the most a page can carry, and the
+   * server refuses more.
+   */
+  const comparable = !allMatching && ticked.length >= 2 && ticked.length <= COMPARE_LIMIT;
 
   // Both halves are sent when both are in play, and that is what makes the
   // preview's split mean anything: a reader who ticked three rows and then
@@ -184,6 +205,19 @@ export function useBulk(
               Delete
             </Button>
           </Tooltip>
+          {/* Only when a comparison is possible, and it is a *link* rather
+              than a button because it navigates: a reader can middle-click it
+              to keep the list open. */}
+          {comparable && resource && (
+            <Link
+              to={`/compare?type=${resource.key}&ids=${ticked.join(",")}`}
+              data-testid="bulk-compare"
+            >
+              <Button size="small" icon={<ColumnWidthOutlined />}>
+                Compare {formatNumber(ticked.length)}
+              </Button>
+            </Link>
+          )}
           <Button size="small" type="text" onClick={clear} data-testid="bulk-clear">
             Clear
           </Button>

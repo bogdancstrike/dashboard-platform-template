@@ -70,7 +70,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 44 | Drill-down | dashboard, analytics, `/admin/quality` → list | `/api/analysis/run` | [~] |
 | 45 | Dashboard builder | `/dashboards` | `/api/dashboards` | [x] |
 | 46 | Saved views | every list | `/saved-views` | [ ] |
-| 47 | Data comparison | `/{entity}/compare` | generic list | [ ] |
+| 47 | Data comparison | `/compare` | `/api/records/{type}/compare` | [x] |
 | 48 | Timeline view | detail tabs | `/admin/audit` | [~] |
 | 49 | Alerts and rules | `/workflows` | `/api/automations/rules` | [x] |
 | 50 | Data relationships | detail tabs + `/find/relationships` | `/api/relationships/*` | [~] |
@@ -102,7 +102,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*58 shipped · 16 partly there · 3 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*59 shipped · 16 partly there · 2 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
@@ -123,8 +123,6 @@ Every section above that is not shipped, with the part that is open. A catalogue
 **§44 Drill-down** — Partly there. Every KPI tile, chart segment and quality finding opens the rows behind it with the same filters applied. The back-stack that would return a reader to the picture they came from is open.
 
 **§46 Saved views** — Not built. Not built. A saved *search* keeps the question (§5); a saved view would keep the presentation — columns, sort, density — against a list.
-
-**§47 Data comparison** — Not built. Not built. Two or more records side by side, with the fields that differ marked.
 
 **§48 Timeline view** — Partly there. Every record page carries its own history, read from the audit ledger so the two cannot disagree. A cross-record timeline — one thread through several records — is open.
 

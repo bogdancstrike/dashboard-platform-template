@@ -110,6 +110,34 @@ describe("selecting rows", () => {
     expect(within(bar).getByTestId("bulk-select-all")).toBeInTheDocument();
   });
 
+  it("offers a comparison of a hand-picked few", async () => {
+    const user = userEvent.setup();
+    render();
+    await tick(user, 2);
+
+    const compare = await screen.findByTestId("bulk-compare");
+    // A link rather than a button, so a reader can middle-click it and keep
+    // the list open — and the ids are the reader's order.
+    expect(compare.closest("a")).toHaveAttribute(
+      "href",
+      expect.stringContaining("/compare?type=order&ids="),
+    );
+  });
+
+  it("does not offer it for one row, or for a whole filter", async () => {
+    const user = userEvent.setup();
+    render();
+    await tick(user, 1);
+    // One record compared with nothing is its own page.
+    expect(screen.queryByTestId("bulk-compare")).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId("bulk-select-all"));
+    // And "compare everything matching this filter" is not a question anybody
+    // asks: a comparison is read across, so five columns is the most a page
+    // can carry.
+    expect(screen.queryByTestId("bulk-compare")).not.toBeInTheDocument();
+  });
+
   it("clears without touching anything", async () => {
     const user = userEvent.setup();
     render();

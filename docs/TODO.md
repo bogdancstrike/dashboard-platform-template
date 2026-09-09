@@ -1700,6 +1700,49 @@ commit — built, committed, pushed, redeployed and verified before the next.
       and lets the label take the click, which `NotificationsPage.test` had
       already documented
 
+- [x] **`/compare` — two or more records side by side** (§47)
+  - The question is "what is actually different about these", and it is asked
+      most often about records somebody suspects are the same thing twice — two
+      customers with one email address, two orders for the same basket.
+      `/admin/quality` finds those (§65); this is where a reader decides what
+      to do about them. A person can already answer it by opening two tabs and
+      looking from one to the other, which is how the differences get missed
+  - **The fields that *agree* are returned and shown by default.** They are the
+      evidence that two records are the same thing, which is the question — a
+      view that only ever shows differences cannot answer it. Hiding them is one
+      click and the click says how many it hid
+  - **`differs` is computed on the serialised value**, the same value the page
+      draws. Comparing the ORM attributes would let two records look identical
+      on screen and be marked different: `Decimal("10.00")` and
+      `Decimal("10.0")` are not equal in Python and are the same money. A
+      JSONB list is not hashable either, so both go through one `_comparable`
+  - **The columns are in the order asked for.** A comparison whose columns
+      arrive in database order is one the reader has to re-find their place in
+  - **A record that has gone is named, not dropped.** A comparison started from
+      a list somebody has since changed gets "one of these no longer exists"
+      rather than a table with one column in it
+  - **One record named twice is de-duplicated rather than refused**, because
+      comparing a record with itself produces a table where nothing differs and
+      nothing is wrong
+  - **The cap is five and it is about reading.** Five columns of thirty fields
+      is already a page somebody scrolls sideways. The refusal names the cap
+      *and* the count, so a reader can narrow rather than guess; the Compare
+      button is absent above five rather than offered and then refused
+  - **It is reached from a selection**, which is what §43 built: the bulk bar
+      offers it for two to five hand-picked rows and not for "everything
+      matching this filter", because a comparison is read across
+  - **And it introduced an accessibility defect, caught the same hour.** AntD's
+      `scroll.x` renders a hidden measurement row that *duplicates the header
+      nodes* — so each record's link appeared twice, the second copy inside an
+      `aria-hidden` row a keyboard could still tab into. axe called it
+      `aria-hidden-focus` and was right: two invisible links is exactly the trap
+      that rule exists to catch. The table scrolls in its own
+      `overflow-x: auto` container now, which is the same behaviour with no
+      second copy of anything. No other table in the product puts focusable
+      content in a column title, which is checked
+  - 10 backend tests, 11 component tests, 2 more on the bulk bar's offer, 6
+      Playwright
+
 - [x] **`/admin/quality` — what is wrong with the records** (§65)
   - Every dataset in a real installation rots the same few ways: a customer
       nobody owns, a ticket marked resolved with no moment of resolution, two
@@ -2792,7 +2835,7 @@ told a reader that something is missing and not what.
 | 44 | Drill-down | dashboard, analytics, `/admin/quality` → list | `/api/analysis/run` | [~] |
 | 45 | Dashboard builder | `/dashboards` | `/api/dashboards` | [x] |
 | 46 | Saved views | every list | `/saved-views` | [ ] |
-| 47 | Data comparison | `/{entity}/compare` | generic list | [ ] |
+| 47 | Data comparison | `/compare` | `/api/records/{type}/compare` | [x] |
 | 48 | Timeline view | detail tabs | `/admin/audit` | [~] |
 | 49 | Alerts and rules | `/workflows` | `/api/automations/rules` | [x] |
 | 50 | Data relationships | detail tabs + `/find/relationships` | `/api/relationships/*` | [~] |
@@ -2824,7 +2867,7 @@ told a reader that something is missing and not what.
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*58 shipped · 16 partly there · 3 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*59 shipped · 16 partly there · 2 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
@@ -2845,8 +2888,6 @@ Every section above that is not shipped, with the part that is open. A catalogue
 **§44 Drill-down** — Partly there. Every KPI tile, chart segment and quality finding opens the rows behind it with the same filters applied. The back-stack that would return a reader to the picture they came from is open.
 
 **§46 Saved views** — Not built. Not built. A saved *search* keeps the question (§5); a saved view would keep the presentation — columns, sort, density — against a list.
-
-**§47 Data comparison** — Not built. Not built. Two or more records side by side, with the fields that differ marked.
 
 **§48 Timeline view** — Partly there. Every record page carries its own history, read from the audit ledger so the two cannot disagree. A cross-record timeline — one thread through several records — is open.
 
