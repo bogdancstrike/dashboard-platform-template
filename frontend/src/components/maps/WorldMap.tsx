@@ -35,7 +35,7 @@ import { useMemo } from "react";
 
 import type { MapBucket, MapPoint } from "@/api/maps";
 import { useAppearance } from "@/theme/AppearanceProvider";
-import { ACCENT, INK, NEUTRAL } from "@/theme/tokens";
+import { ACCENT, INK, NEUTRAL, PAPER, SEMANTIC_INK } from "@/theme/tokens";
 import { compactNumber } from "@/components/charts/options";
 
 import world from "@/assets/world-110m.geo.json";
@@ -87,7 +87,7 @@ export function WorldMap({
       backgroundColor: "transparent",
       tooltip: {
         trigger: "item",
-        backgroundColor: dark ? INK[750] : "#ffffff",
+        backgroundColor: dark ? INK[750] : PAPER,
         borderColor: border,
         textStyle: { color: text },
         formatter: (params: { data?: unknown; name?: string; seriesType?: string }) => {
@@ -146,9 +146,9 @@ export function WorldMap({
           symbolSize: (value: number[]) =>
             7 + Math.sqrt(Math.max(value[2] ?? 0, 0) / biggest) * 26,
           itemStyle: {
-            color: dark ? "#22d3ee" : "#0e7490",
+            color: SEMANTIC_INK[dark ? "dark" : "light"].info,
             opacity: 0.85,
-            borderColor: dark ? INK[900] : "#ffffff",
+            borderColor: dark ? INK[900] : PAPER,
             borderWidth: 1,
           },
           data: points.map((point) => ({

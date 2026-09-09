@@ -2682,7 +2682,7 @@ operational enterprise application, not a marketing website.**
 
 ### Design tokens
 
-- [ ] `theme/tokens.ts` — one source, consumed by the AntD theme, the CSS
+- [x] `theme/tokens.ts` — one source, consumed by the AntD theme, the CSS
       custom properties and the ECharts theme, so the three cannot drift
   - **Colour**: neutral ramp 50→950; accent indigo; semantic `success` `#16a34a`
     · `warning` `#ca8a04` · `danger` `#dc2626` · `info` `#0891b2`
@@ -2693,8 +2693,23 @@ operational enterprise application, not a marketing website.**
   - **Spacing**: 4px base — 4 / 8 / 12 / 16 / 24 / 32 / 48
   - **Radius**: 4 controls · 6 cards · 8 modals · 999 pills
   - **Elevation**: four shadows, only for things that float
-  - **Acceptance**: changing the accent in one file re-themes the app, the
-    charts and dark mode with no other edit
+  - **Acceptance**: met, and asserted in `theme/palette.test.ts` as two
+    opposite halves — the three builders are checked to *read* the tokens, and
+    every shipped module outside `src/theme/` is checked to contain **no colour
+    at all**
+  - The second half found eight: the accent copied into the logo's SVG, the
+    info ink copied into the map's markers, `NEUTRAL[400]` copied into the
+    graph's muted node, a neutral copied into the new-tag default, and
+    `#ffffff` typed six times inside the theme layer itself. Each was a place a
+    retuned palette would have left behind
+  - Two tokens the palette was missing a name for: `PAPER` (the light surface —
+    "white" typed into a component is indistinguishable from "the card behind
+    this", and only one should survive a change of theme) and `LOGO`, which is
+    the one thing that must *not* follow the palette. A brand mark that changes
+    hue with the theme is not a brand mark, and the dependency runs the other
+    way: the accent was taken from the logo
+  - One exemption, marked in the source and honoured by the rule:
+    `palette-exempt` on the help text that *names* a hex to a reader
 
 - [ ] Light / dark appearance (§1, §40) via AntD's algorithm on the same tokens
   - **Acceptance**: every route legible in both; no hard-coded hex outside

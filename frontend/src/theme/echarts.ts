@@ -6,7 +6,7 @@
  * difference is visible precisely where a reader is comparing the two.
  */
 
-import { INK, NEUTRAL, SERIES, FONT, type Density, DENSITY } from "./tokens";
+import { DENSITY, FONT, INK, NEUTRAL, PAPER, SERIES, type Density } from "./tokens";
 
 export function buildChartTheme(mode: "light" | "dark", density: Density) {
   const dark = mode === "dark";
@@ -44,7 +44,7 @@ export function buildChartTheme(mode: "light" | "dark", density: Density) {
       itemHeight: 10,
     },
     tooltip: {
-      backgroundColor: dark ? INK[750] : "#ffffff",
+      backgroundColor: dark ? INK[750] : PAPER,
       borderColor: axis,
       borderWidth: 1,
       textStyle: { color: dark ? INK[100] : NEUTRAL[900], fontSize: scale.fontSize },
@@ -53,7 +53,7 @@ export function buildChartTheme(mode: "light" | "dark", density: Density) {
     line: { smooth: false, symbolSize: 6, lineStyle: { width: 2 } },
     bar: { itemStyle: { borderRadius: [3, 3, 0, 0] } },
     pie: {
-      itemStyle: { borderColor: dark ? INK[800] : "#ffffff", borderWidth: 2 },
+      itemStyle: { borderColor: dark ? INK[800] : PAPER, borderWidth: 2 },
       label: { color: text },
     },
   };

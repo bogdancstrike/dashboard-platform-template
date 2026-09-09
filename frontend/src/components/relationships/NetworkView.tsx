@@ -52,13 +52,13 @@ import {
 } from "@/api/relationships";
 import { ForceGraph, type GraphLink, type GraphNode } from "@/components/graph/ForceGraph";
 import { StatCard } from "@/components/StatCard";
-import { SERIES } from "@/theme/tokens";
+import { NEUTRAL, SERIES } from "@/theme/tokens";
 
 const { Text } = Typography;
 
 /** Above this a label on the canvas is noise; hover and the panel carry it. */
 const LABELLED_DEGREE = 5;
-const MUTED = "#94a3b8";
+const MUTED = NEUTRAL[400];
 
 export function NetworkView({
   focus,

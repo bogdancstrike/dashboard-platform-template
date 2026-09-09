@@ -67,6 +67,30 @@ export const INK = {
   100: "#e8eaf0",
 } as const;
 
+/**
+ * The light surface. The one ground that is not a step of a ramp.
+ *
+ * Named so that "white" is a token like everything else: a `#ffffff` typed
+ * into a component is indistinguishable from a `#ffffff` that means "the card
+ * behind this", and only one of them should survive a change of theme.
+ */
+export const PAPER = "#ffffff";
+
+/**
+ * The logo's own three colours, and the one thing in the product that does
+ * *not* follow the palette.
+ *
+ * A brand mark that changes hue with the theme is not a brand mark. The middle
+ * value is the accent because the accent was taken *from* the logo — that is
+ * the direction of the dependency, and writing it here keeps somebody from
+ * "fixing" the mark when they retune the accent.
+ */
+export const LOGO = {
+  ring: "#8b8bf0",
+  core: "#5b5bd6",
+  spark: "#22d3ee",
+} as const;
+
 export const ACCENT = {
   50: "#eeeefc",
   100: "#dcdcf9",

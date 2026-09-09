@@ -15,6 +15,7 @@ import {
   FONT,
   INK,
   NEUTRAL,
+  PAPER,
   RADIUS,
   SEMANTIC,
   SEMANTIC_INK,
@@ -59,8 +60,8 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
       colorError: SEMANTIC.danger,
 
       colorBgLayout: dark ? INK[900] : NEUTRAL[100],
-      colorBgContainer: dark ? INK[800] : "#ffffff",
-      colorBgElevated: dark ? INK[750] : "#ffffff",
+      colorBgContainer: dark ? INK[800] : PAPER,
+      colorBgElevated: dark ? INK[750] : PAPER,
       colorBorder: dark ? INK[600] : NEUTRAL[200],
       colorBorderSecondary: dark ? INK[650] : NEUTRAL[100],
       colorText: dark ? INK[100] : NEUTRAL[900],
@@ -113,10 +114,10 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
     },
     components: {
       Layout: {
-        headerBg: dark ? INK[850] : "#ffffff",
+        headerBg: dark ? INK[850] : PAPER,
         headerHeight: 56,
         headerPadding: "0 16px",
-        siderBg: dark ? INK[850] : "#ffffff",
+        siderBg: dark ? INK[850] : PAPER,
         bodyBg: dark ? INK[900] : NEUTRAL[100],
       },
       Menu: {
@@ -205,8 +206,8 @@ export function cssVariables(appearance: Appearance, density: Density): Record<s
     "--nu-accent-ink": dark ? ACCENT[300] : ACCENT[700],
     "--nu-accent-soft": dark ? "rgba(124, 124, 245, 0.16)" : ACCENT[50],
     "--nu-bg": dark ? INK[900] : NEUTRAL[100],
-    "--nu-surface": dark ? INK[800] : "#ffffff",
-    "--nu-surface-raised": dark ? INK[750] : "#ffffff",
+    "--nu-surface": dark ? INK[800] : PAPER,
+    "--nu-surface-raised": dark ? INK[750] : PAPER,
     "--nu-border": dark ? INK[650] : NEUTRAL[200],
     "--nu-border-subtle": dark ? INK[700] : NEUTRAL[100],
     "--nu-text": dark ? INK[100] : NEUTRAL[900],

@@ -38,6 +38,7 @@ import { STORAGE_KEYS } from "@/config";
 import { usePollInterval } from "@/live/LiveProvider";
 import { landingPath } from "@/pages/PreferencesPage";
 import { usePreferences } from "@/settings/PreferencesProvider";
+import { LOGO } from "@/theme/tokens";
 import { useAppearance } from "@/theme/AppearanceProvider";
 import { NAV_GROUPS, NAV_ITEMS, selectedKeyFor, trailFor } from "./navigation";
 
@@ -201,10 +202,10 @@ export function AppShell() {
         <div className="nu-logo" onClick={() => navigate(landingPath(auth.profile?.preferences.defaults.landing_page))}>
           <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden>
             <g transform="translate(32 32)">
-              <ellipse rx="26" ry="11" fill="none" stroke="#8b8bf0" strokeWidth="4" transform="rotate(-28)" />
-              <ellipse rx="26" ry="11" fill="none" stroke="#8b8bf0" strokeWidth="4" opacity="0.5" transform="rotate(52)" />
-              <circle r="11" fill="#5b5bd6" />
-              <circle cx="23" cy="-12.2" r="4" fill="#22d3ee" />
+              <ellipse rx="26" ry="11" fill="none" stroke={LOGO.ring} strokeWidth="4" transform="rotate(-28)" />
+              <ellipse rx="26" ry="11" fill="none" stroke={LOGO.ring} strokeWidth="4" opacity="0.5" transform="rotate(52)" />
+              <circle r="11" fill={LOGO.core} />
+              <circle cx="23" cy="-12.2" r="4" fill={LOGO.spark} />
             </g>
           </svg>
           {showLabels && (

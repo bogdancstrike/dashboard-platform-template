@@ -57,6 +57,7 @@ import { tagsApi } from "@/api/tags";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
+import { SEMANTIC } from "@/theme/tokens";
 import { formatNumber } from "@/lib/formats";
 
 const { Text } = Typography;
@@ -375,7 +376,8 @@ function TagForm({
         size="small"
         initialValues={{
           name: tag?.name ?? "",
-          color: tag?.color ?? "#64748b",
+          // The palette's neutral, so a tag nobody coloured looks unassigned.
+          color: tag?.color ?? SEMANTIC.neutral,
           description: tag?.description ?? "",
           category: tag?.category ?? "GENERAL",
         }}
@@ -407,6 +409,7 @@ function TagForm({
             data-testid="tag-category"
           />
         </Form.Item>
+        {/* palette-exempt: copy, not a colour — the example a reader types over. */}
         <Form.Item label="Colour" name="color" extra="Six-digit hex, like #dc2626.">
           <Input maxLength={7} data-testid="tag-color" />
         </Form.Item>
