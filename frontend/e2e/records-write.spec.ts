@@ -175,6 +175,58 @@ async function setPriority(page: Page, priority: string): Promise<void> {
   await expect(drawer).toBeHidden();
 }
 
+test.describe("leaving a form with unsaved changes (§74)", () => {
+  test("asks before discarding, and keeps the edit when told to", async ({ page }) => {
+    await signIn(page, "admin", "/tickets");
+    await expect(page.locator("tr.ant-table-row").first()).toBeVisible();
+
+    // A ticket, opened for editing from the row's own actions menu — the menu
+    // is portalled to the body, so the item is not inside the row.
+    await page.locator("tr.ant-table-row").first()
+      .getByRole("button", { name: /^Actions for/ }).click();
+    await page.getByRole("menuitem", { name: "Edit" }).click();
+    const drawer = page.getByRole("dialog");
+    const subject = drawer.getByLabel("Subject");
+    const original = (await subject.inputValue()).trim();
+    await subject.fill(`${original} — edited but not saved`);
+
+    // Closing is a decision, not an accident.
+    await drawer.locator(".ant-drawer-close").click();
+    const guard = page.locator(".ant-modal-confirm");
+    await expect(guard).toContainText("Discard your changes?");
+
+    // "Keep editing" leaves the drawer open with the edit intact — a guard
+    // that discarded on either button would be worse than none.
+    await guard.getByRole("button", { name: "Keep editing" }).click();
+    await expect(guard).toBeHidden();
+    await expect(subject).toHaveValue(`${original} — edited but not saved`);
+
+    // And discarding closes it without writing: the queue still shows the
+    // subject the server has.
+    await drawer.locator(".ant-drawer-close").click();
+    await page.locator(".ant-modal-confirm").getByRole("button", { name: "Discard" }).click();
+    await expect(drawer).toBeHidden();
+    await page.reload();
+    await expect(page.locator("tr.ant-table-row").first()).toContainText(original);
+  });
+
+  test("closes without asking when nothing was typed", async ({ page }) => {
+    await signIn(page, "admin", "/tickets");
+    await expect(page.locator("tr.ant-table-row").first()).toBeVisible();
+    await page.locator("tr.ant-table-row").first()
+      .getByRole("button", { name: /^Actions for/ }).click();
+    await page.getByRole("menuitem", { name: "Edit" }).click();
+    const drawer = page.getByRole("dialog");
+    await expect(drawer).toBeVisible();
+
+    await drawer.locator(".ant-drawer-close").click();
+
+    // A guard on every close teaches people to dismiss guards.
+    await expect(page.locator(".ant-modal-confirm")).toHaveCount(0);
+    await expect(drawer).toBeHidden();
+  });
+});
+
 test.describe("editing a record", () => {
   test("an edit saves what changed and the record shows it", async ({ page }) => {
     await signIn(page, "admin", "/tasks");

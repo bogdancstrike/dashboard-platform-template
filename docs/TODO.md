@@ -3013,13 +3013,27 @@ function is a slow test that fails for unrelated reasons.
   - 8 component tests and 8 end-to-end, including that a viewer is offered no
       destination their role forbids: the palette is a second door to the same
       rooms, not a way round the lock (§76)
-- [ ] **Audit explorer** (§21) — filter by actor and action, open an entry, read
-      the before → after diff
+- [x] **Audit explorer** (§21) — filter by actor and action, open an entry, read
+      the before → after diff — `audit.spec`, including the deep link to one
+      entry
 - [x] **Email** (§14–§16) — read a thread, reply, save a draft, send
-- [ ] **Kanban drag** (§18) — move a card, reload, it stayed
-- [ ] **Unsaved changes** (§74) — edit a form, navigate away, get the guard
-- [ ] **Deep link** (§69) — paste a filtered-table URL as another user, same view
-- [ ] **Appearance** — toggle dark mode and density, reload, both persisted
+- [x] **Kanban drag** (§18) — move a card, reload, it stayed — `kanban.spec`
+      and `records-write.spec`, the latter asserting the card's *identity* in
+      the target lane rather than a lane count two parallel specs can both
+      move
+- [x] **Unsaved changes** (§74) — edit a form, navigate away, get the guard —
+      `records-write.spec`: the guard appears, "Keep editing" leaves the edit
+      intact (a guard that discarded on either button would be worse than
+      none), "Discard" writes nothing, and a close with nothing typed asks
+      nothing — a guard on every close teaches people to dismiss guards
+- [x] **Deep link** (§69) — paste a filtered-table URL as another user, same
+      view — `personas.spec`: a manager's filtered ticket queue, opened by a
+      viewer, shows the same question and the same total. The state is in the
+      URL rather than in one browser's memory, which is what makes "look at
+      this" work at all
+- [x] **Appearance** — toggle dark mode and density, reload, both persisted —
+      `smoke.spec`, which also asserts `color-scheme` reaches the document, so
+      the browser paints its own controls and scrollbars to match
 - **Acceptance**: green from a cold `docker compose up` on a machine that has
   never run it
 
