@@ -11,6 +11,7 @@
     python -m src.seed --sync-sessions    # one current session per person, and only a live one
     python -m src.seed --sync-favorites   # move the old per-row is_favorite flags into one store
     python -m src.seed --sync-tags        # make each record's tags array agree with its links
+    python -m src.seed --sync-searches    # drop filter keys no dataset declares, add the list views
     python -m src.seed --sync-roles       # give built-in roles new permissions
     python -m src.seed --sync-reports     # make unrunnable saved reports runnable
     python -m src.seed --sync-automations # make unrunnable automations runnable
@@ -69,6 +70,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-tags", action="store_true",
         help="make each record's tags array agree with its tag links",
+    )
+    parser.add_argument(
+        "--sync-searches", action="store_true",
+        help="drop filter keys no dataset declares, and add the missing list views",
     )
     parser.add_argument(
         "--sync-sessions", action="store_true",
@@ -209,6 +214,20 @@ def main(argv: list[str] | None = None) -> int:
             f"{result['rewritten']} record(s) rewritten from their links, "
             f"{result['cleared']} stale array(s) cleared, "
             f"{result['recounted']} usage count(s) corrected"
+        )
+        return 0
+
+    if args.sync_searches:
+        # A saved search whose filters name a field no dataset declares is a
+        # filter that narrows nothing — invisible until the entity lists could
+        # apply one (§46). And a dataset whose saved searches all carry
+        # condition trees has a views menu that can only link elsewhere, so the
+        # six list views are added if they are missing. Additive, idempotent.
+        with session_scope() as session:
+            result = runner.sync_searches(session)
+        print(
+            f"{result['cleaned']} saved search(es) had unusable filter keys removed, "
+            f"{result['added']} list view(s) added"
         )
         return 0
 

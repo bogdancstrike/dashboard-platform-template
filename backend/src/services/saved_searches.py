@@ -73,6 +73,7 @@ def create(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
     session.flush()
     _replace_members(session, row, members, principal=principal)
     _apply_favorite(session, row, payload, principal=principal)
+    _make_sole_default(session, row)
     audit.record(
         session, action="CREATE", resource_type="saved_search", resource_id=row.id,
         resource_label=row.name, principal=principal, after=_state(row),
@@ -92,6 +93,7 @@ def update(session, search_id: Any, payload: dict[str, Any], *, principal) -> di
         _replace_members(session, row, members, principal=principal)
     session.flush()
     _apply_favorite(session, row, payload, principal=principal)
+    _make_sole_default(session, row)
     action = "SHARE" if "scope" in values or members is not None else "UPDATE"
     audit.record(
         session, action=action, resource_type="saved_search", resource_id=row.id,
@@ -189,6 +191,34 @@ def transfer(session, search_id: Any, payload: dict[str, Any], *, principal) -> 
         activity=False,
     )
     return _serialize(session, row, principal)
+
+
+def _make_sole_default(session, row: SavedSearch) -> None:
+    """One default per person per dataset, enforced on the way in (§46).
+
+    "Which of my saved searches should this list open with" has one answer, so
+    marking a second one demotes the first rather than being refused. A refusal
+    would be an error message asking somebody to go and unmark the old default
+    themselves — a chore with no decision in it.
+
+    Not a partial unique index, for that reason: an index can only reject the
+    new row, and rejecting is the wrong outcome.
+    """
+    if not row.is_default:
+        return
+    demoted = session.scalars(
+        select(SavedSearch).where(
+            SavedSearch.owner_id == row.owner_id,
+            SavedSearch.resource_type == row.resource_type,
+            SavedSearch.is_default.is_(True),
+            SavedSearch.id != row.id,
+            SavedSearch.deleted_at.is_(None),
+        )
+    ).unique().all()
+    for other in demoted:
+        other.is_default = False
+    if demoted:
+        session.flush()
 
 
 def _visible_statement(principal):

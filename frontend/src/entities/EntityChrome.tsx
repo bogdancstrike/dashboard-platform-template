@@ -34,6 +34,7 @@ import { exportsApi, type ExportRequest } from "@/api/exports";
 import { ExportButton } from "@/components/ExportButton";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
+import { SavedViewMenu } from "@/entities/SavedViewMenu";
 import type { EntityView } from "@/entities/useEntityView";
 
 const { Text } = Typography;
@@ -71,6 +72,9 @@ export function EntityHeader({
       actions={
         <>
           {actions}
+          {/* Here rather than on each page, for the reason the quality chip is:
+              a list gets its saved views by being a list (§46). */}
+          <SavedViewMenu view={view} />
           {filterCount > 0 && (
             <Button icon={<ClearOutlined />} onClick={clearFilters}>
               Clear {filterCount} filter{filterCount === 1 ? "" : "s"}

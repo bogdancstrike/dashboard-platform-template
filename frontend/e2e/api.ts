@@ -454,3 +454,40 @@ export async function sweepReports(prefixes: string[], persona: Persona = "admin
     await api.dispose();
   }
 }
+
+/**
+ * Save a search through the API, and hand back its id (§5, §46).
+ *
+ * For the one claim that needs a saved search a *list* cannot build: a
+ * condition tree. Driving the Data Explorer's rule builder first would make
+ * that test a test of the builder as well, and a failure there would read as a
+ * failure of the list's views menu. The builder has its own spec.
+ */
+export async function writeSavedSearch(
+  search: Record<string, unknown>,
+  persona: Persona = "admin",
+): Promise<string> {
+  const api = await apiAs(persona);
+  try {
+    const response = await api.post(endpoint("/saved-searches"), {
+      data: {
+        resource_type: "task",
+        scope: "PRIVATE",
+        sort: "updated_at",
+        order: "desc",
+        columns: ["reference", "title", "status"],
+        page_size: 25,
+        view_mode: "table",
+        ...search,
+      },
+    });
+    if (!response.ok()) {
+      throw new Error(
+        `Could not save the search: ${response.status()} ${await response.text()}`,
+      );
+    }
+    return ((await response.json()) as { id: string }).id;
+  } finally {
+    await api.dispose();
+  }
+}

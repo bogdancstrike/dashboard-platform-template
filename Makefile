@@ -104,6 +104,10 @@ sync-favorites: ## Move the old per-row is_favorite flags into the one favourite
 sync-tags: ## Make each record's tags array agree with its tag links
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-tags seed
 
+.PHONY: sync-searches
+sync-searches: ## Drop filter keys no dataset declares, and add the missing list views
+	$(COMPOSE) run --rm -e SEED_ARGS=--sync-searches seed
+
 .PHONY: sync-schema
 sync-schema: ## Add columns the model declares and the database lacks
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-schema seed

@@ -69,7 +69,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 43 | Bulk operations | every list that is a table | `/api/records/{type}/bulk` | [x] |
 | 44 | Drill-down | dashboard, analytics, `/admin/quality` → list | `/api/analysis/run` | [~] |
 | 45 | Dashboard builder | `/dashboards` | `/api/dashboards` | [x] |
-| 46 | Saved views | every list | `/saved-views` | [ ] |
+| 46 | Saved views | every entity list, `/explore` | `/api/saved-searches` | [x] |
 | 47 | Data comparison | `/compare` | `/api/records/{type}/compare` | [x] |
 | 48 | Timeline view | detail tabs | `/admin/audit` | [~] |
 | 49 | Alerts and rules | `/workflows` | `/api/automations/rules` | [x] |
@@ -102,7 +102,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*60 shipped · 16 partly there · 1 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*61 shipped · 16 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
@@ -119,8 +119,6 @@ Every section above that is not shipped, with the part that is open. A catalogue
 **§36 Comments** — Partly there. Mentions, one level of replies and the audit timeline beside them, on the two record pages where a conversation actually happens. The other four entity detail pages do not carry it yet.
 
 **§44 Drill-down** — Partly there. Every KPI tile, chart segment and quality finding opens the rows behind it with the same filters applied. The back-stack that would return a reader to the picture they came from is open.
-
-**§46 Saved views** — Not built. Not built. A saved *search* keeps the question (§5); a saved view would keep the presentation — columns, sort, density — against a list.
 
 **§48 Timeline view** — Partly there. Every record page carries its own history, read from the audit ledger so the two cannot disagree. A cross-record timeline — one thread through several records — is open.
 
@@ -143,3 +141,34 @@ Every section above that is not shipped, with the part that is open. A catalogue
 **§77 Final goal — coherent template** — Partly there. Open while anything above is, by construction: the section is the conjunction of the rest.
 
 <!-- /generated:feature-matrix -->
+
+## Why there is no saved-views table (§46)
+
+A saved *view* is a saved *search*. There is one store for "how I look at this
+list", not two.
+
+The model layer used to carry both: `saved_searches` for the question and
+`saved_views` for the presentation — filters, columns, order, grouping,
+density — on the theory that "a search is a question, a view is how the answer
+is laid out". Building §46 on the six entity lists showed the theory does not
+apply here:
+
+- `SavedSearch` already stores the presentation beside the question — columns,
+  sort, order, page size, view mode — for the reason its own docstring gives:
+  a saved search that finds the right rows and then shows the wrong columns is
+  a saved search nobody trusts.
+- The entity lists **fix their own columns** by design (§7). A ledger, a triage
+  queue and a fleet monitor are not one table with different columns, so
+  per-view column widths and pinning have nothing to configure.
+- Density and page size are the reader's **preferences** (§40) and follow them
+  across every list and every browser. A per-view copy would fight them.
+
+What was left of `saved_views` was a second table answering the same question
+with no rule about which one wins — the defect this template keeps finding
+elsewhere (two stores for one fact: `is_favorite`, the `tags` array,
+department headcounts). So the model is gone, the entity lists serve §46 from
+the saved-search store, and `is_default` on a saved search is what a list opens
+with — at most one per person per dataset, enforced on write.
+
+An installation seeded before this may still have the `saved_views` table.
+Nothing reads or writes it; a migration can drop it.

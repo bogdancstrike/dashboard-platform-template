@@ -62,8 +62,8 @@ COLUMN_SETS: dict[str, tuple[str, ...]] = {
 def build(world: World) -> None:
     _notification_preferences(world)
     _saved_searches(world)
+    _list_views(world)
     _shares(world)
-    _saved_views(world)
     _dashboards(world)
     _reports(world)
     _favorites(world)
@@ -202,7 +202,13 @@ def _saved_searches(world: World) -> None:
                 # Rendered by the inspector's own function: the text a user
                 # reads is then provably the shape of the SQL that runs.
                 condition_text=describe_tree(tree, _SPEC),
-                filters={"q": rng.maybe("overdue", 0.3)},
+                # Nothing: these are the *explorer's* searches and the
+                # question is the tree above. `filters` holds plain field
+                # filters, which is what `_list_views` below writes. It used to
+                # be `{"q": …}`, a key no dataset declares — `apply_filters`
+                # ignores one, so the row looked fine and put `f.q=overdue` in
+                # the address of every list that applied it (§46).
+                filters={},
                 query_text=rng.maybe("overdue", 0.3),
                 sort=rng.pick(("created_at", "due_date", "priority")),
                 order=rng.pick(("asc", "desc")),
@@ -220,41 +226,52 @@ def _saved_searches(world: World) -> None:
         )
 
 
-def _saved_views(world: World) -> None:
-    from src.models.personal import SavedView
+def _list_views(world: World) -> None:
+    """One public saved view per dataset, of the kind a list's filter bar saves.
 
-    rng = world.rng.derive("saved-views")
-    audience = _audience(world)
-    if not audience:
+    Owned by the personas in turn and public, for the reason the dashboards
+    below are dealt out that way: a feature that can only be seen by somebody
+    who first creates the data is a feature nobody reviewing the demo sees.
+    Public also demonstrates the half of §5 that matters here — a colleague can
+    *apply* a shared view and cannot change it.
+
+    Distinct from the searches above, which carry condition trees: a tree
+    cannot be drawn as a row of facet selects, so those are offered on a list
+    as links to the Data Explorer and these are the ones a list can show (§46).
+    """
+    from src.models.personal import SavedSearch
+
+    rng = world.rng.derive("list-views")
+    personas = list(world.personas.values())
+    if not personas:
         return
 
-    for index in range(world.scale.saved_views):
-        name, resource_type = catalog.SAVED_VIEW_NAMES[index % len(catalog.SAVED_VIEW_NAMES)]
-        owner = rng.pick(audience)
-        columns = list(COLUMN_SETS.get(resource_type, ("name", "status")))
-
-        world.saved_views.append(
-            SavedView(
+    for index, (name, resource_type, field, value) in enumerate(catalog.LIST_VIEWS):
+        owner = personas[index % len(personas)]
+        world.saved_searches.append(
+            SavedSearch(
                 id=rng.uuid(),
-                name=name if index < len(catalog.SAVED_VIEW_NAMES) else f"{name} ({index // len(catalog.SAVED_VIEW_NAMES) + 1})",
-                description=rng.maybe("Layout used by the operations stand-up.", 0.45),
+                name=name,
+                description=f"Saved from the {resource_type} list.",
                 resource_type=resource_type,
                 owner_id=owner.id,
                 organization_id=owner.organization_id,
-                scope=rng.weighted(SCOPES),
-                filters={"status": "ACTIVE"} if rng.chance(0.5) else {},
-                columns=columns,
-                column_widths={column: rng.integer(90, 320) for column in columns},
-                pinned_columns=columns[:1],
-                sort=rng.pick(columns),
-                order=rng.pick(("asc", "desc")),
-                group_by=rng.maybe(rng.pick(("status", "priority", "owner")), 0.35),
-                page_size=rng.pick((25, 50, 100)),
-                density=rng.pick(("compact", "middle", "comfortable")),
-                view_mode=rng.pick(("table", "table", "board", "cards")),
-                is_default=index % len(catalog.SAVED_VIEW_NAMES) == 0,
-                use_count=rng.integer(0, 180),
-                created_at=rng.ago(days_min=5, days_max=350),
+                scope="PUBLIC",
+                # No tree, which is what makes it applicable to a list.
+                condition_tree=None,
+                condition_text=None,
+                filters={field: value},
+                query_text=None,
+                sort=rng.pick(("created_at", "updated_at")),
+                order="desc",
+                columns=list(COLUMN_SETS.get(resource_type, ("name", "status"))),
+                page_size=25,
+                view_mode="table",
+                is_default=False,
+                rule_count=0,
+                use_count=rng.integer(0, 120),
+                last_used_at=rng.maybe(rng.recent(days=21), 0.7),
+                created_at=rng.ago(days_min=5, days_max=200),
             )
         )
 

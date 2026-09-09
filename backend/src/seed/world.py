@@ -48,7 +48,6 @@ class Scale:
     api_request_logs: int
     import_runs: int
     saved_searches: int
-    saved_views: int
     favorites: int
     recent_items: int
     dashboards: int
@@ -86,7 +85,6 @@ FULL = Scale(
     api_request_logs=2000,
     import_runs=10,
     saved_searches=60,
-    saved_views=40,
     favorites=250,
     recent_items=450,
     dashboards=30,
@@ -124,7 +122,6 @@ SMALL = Scale(
     api_request_logs=150,
     import_runs=4,
     saved_searches=10,
-    saved_views=8,
     favorites=30,
     recent_items=50,
     dashboards=6,
@@ -201,7 +198,6 @@ class World:
     # personalization
     saved_searches: list[Any] = field(default_factory=list)
     resource_shares: list[Any] = field(default_factory=list)
-    saved_views: list[Any] = field(default_factory=list)
     favorites: list[Any] = field(default_factory=list)
     recent_items: list[Any] = field(default_factory=list)
     dashboards: list[Any] = field(default_factory=list)

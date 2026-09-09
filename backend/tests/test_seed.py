@@ -12,7 +12,7 @@ import os
 
 import pytest
 
-from src.seed import runner
+from src.seed import catalog, runner
 from src.seed.identity import PERSONA_DOMAIN, PERSONAS
 from src.seed.world import FULL, SMALL
 
@@ -343,10 +343,28 @@ def test_announcement_receipts_are_unique_per_reader(world):
 
 
 def test_saved_searches_are_private_by_default(world):
-    """§5: nothing is shared by accident, so most searches have no audience."""
-    scopes = [search.scope for search in world.saved_searches]
+    """§5: nothing is shared by accident, so most searches have no audience.
+
+    Measured over the ones the generator *invents*. The six named list views
+    are deliberately public — a views menu only its owner can see demonstrates
+    nothing (§46) — and they are asserted as such here rather than left to
+    swamp the property this test is about, which is that a saved search nobody
+    decided to share is private.
+    """
+    deliberate = {name for name, *_rest in catalog.LIST_VIEWS}
+    scopes = [
+        search.scope for search in world.saved_searches if search.name not in deliberate
+    ]
     assert set(scopes) <= {"PRIVATE", "SHARED", "PUBLIC"}
     assert scopes.count("PRIVATE") > scopes.count("PUBLIC")
+
+    shipped = [search for search in world.saved_searches if search.name in deliberate]
+    assert len(shipped) == len(catalog.LIST_VIEWS)
+    # Public, and free of a condition tree: a tree cannot be drawn as facet
+    # selects, so one here would be a view no list could show (§46).
+    assert all(search.scope == "PUBLIC" for search in shipped)
+    assert all(search.condition_tree is None for search in shipped)
+    assert all(search.filters for search in shipped)
 
 
 def test_only_shared_searches_have_members(world):

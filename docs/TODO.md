@@ -2922,7 +2922,7 @@ told a reader that something is missing and not what.
 | 43 | Bulk operations | every list that is a table | `/api/records/{type}/bulk` | [x] |
 | 44 | Drill-down | dashboard, analytics, `/admin/quality` → list | `/api/analysis/run` | [~] |
 | 45 | Dashboard builder | `/dashboards` | `/api/dashboards` | [x] |
-| 46 | Saved views | every list | `/saved-views` | [ ] |
+| 46 | Saved views | every entity list, `/explore` | `/api/saved-searches` | [x] |
 | 47 | Data comparison | `/compare` | `/api/records/{type}/compare` | [x] |
 | 48 | Timeline view | detail tabs | `/admin/audit` | [~] |
 | 49 | Alerts and rules | `/workflows` | `/api/automations/rules` | [x] |
@@ -2955,7 +2955,7 @@ told a reader that something is missing and not what.
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*60 shipped · 16 partly there · 1 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*61 shipped · 16 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
@@ -2972,8 +2972,6 @@ Every section above that is not shipped, with the part that is open. A catalogue
 **§36 Comments** — Partly there. Mentions, one level of replies and the audit timeline beside them, on the two record pages where a conversation actually happens. The other four entity detail pages do not carry it yet.
 
 **§44 Drill-down** — Partly there. Every KPI tile, chart segment and quality finding opens the rows behind it with the same filters applied. The back-stack that would return a reader to the picture they came from is open.
-
-**§46 Saved views** — Not built. Not built. A saved *search* keeps the question (§5); a saved view would keep the presentation — columns, sort, density — against a list.
 
 **§48 Timeline view** — Partly there. Every record page carries its own history, read from the audit ledger so the two cannot disagree. A cross-record timeline — one thread through several records — is open.
 
@@ -3762,6 +3760,62 @@ everything else.
 
 ---
 
+### Saved views on every list (§46)
+
+- [x] **A saved view *is* a saved search.** The store §5 already has, reachable
+      from the six entity lists rather than only from the Data Explorer — one
+      menu in `EntityHeader`, so a list gets its views by being a list
+- [x] **The `saved_views` model is gone.** It carried filters, columns, order,
+      grouping and density on the theory that "a search is a question, a view
+      is how the answer is laid out". Building the feature showed the theory
+      does not apply here: `SavedSearch` already stores the presentation beside
+      the question, the entity lists fix their own columns by design (§7), and
+      density and page size are the reader's preferences and follow them
+      everywhere (§40). What was left was a second table answering the same
+      question with no rule about which wins — the defect this template keeps
+      finding (`is_favorite`, the `tags` array, department headcounts). The
+      reasoning is recorded in `docs/features.md` and beside the model that no
+      longer exists, because a deletion explains nothing on its own
+  - The table may still exist in an installation seeded before this. Nothing
+    reads or writes it; a migration can drop it. `runner.drop_schema` now
+    reflects the database rather than the model, because a metadata-only
+    `drop_all` fails on the parent of a table the model no longer declares —
+    which is what removing the model did to `--reset`
+- [x] **`is_default` decides what a bare list opens with**, at most one per
+      person per dataset. A second default *demotes* the first rather than
+      being refused: somebody marking one has changed their mind, and an error
+      asking them to go and unmark the old one is a chore with no decision in
+      it. Scoped to the owner — a colleague's shared view marked default by its
+      author decides what *their* list opens with, not everybody's
+- [x] **The address beats the default.** A pasted link, a filter chip, a
+      cleared list: all say what to show, and a default set weeks ago does not
+      overrule them. Applied once per mount, and applying a view rewrites the
+      whole address rather than patching it — a leftover filter from the
+      previous view is a question nobody saved and no name describes
+- [x] **A view carrying a rule tree is offered as a link, not applied.** Six
+      facet selects cannot express "overdue OR unassigned", so applying it as
+      those selects would show a different set of rows under its name. It opens
+      in `/explore` where it was built, and the menu marks it
+- [x] `--sync-searches` — drops filter keys no dataset declares, and adds the
+      six public list views. The generator wrote `filters={"q": …}`, and `q` is
+      not a field: `apply_filters` iterates the *declared* fields and ignores
+      anything else, so the row looked correct for as long as nothing applied
+      it. The moment a list could, it put `f.q=overdue` in the address and
+      counted as a filter that narrows nothing
+  - The six views exist because every seeded saved search carried a condition
+    tree, which made every list's menu a set of links to the explorer — half
+    the feature, invisible. `catalog.LIST_VIEWS` declares them once and both
+    the generator and the repair read it
+- [x] **Acceptance**: met. 17 component tests on the menu and the URL rules,
+      one on a real board so the six pages are covered by being in the header,
+      a backend test that a second default demotes the first and that another
+      person's default is untouched, a repair test on both halves, and three
+      end-to-end tests against the real stack — save, name, reapply on a page
+      opened with nothing; a rule-builder view opening where it was built; and
+      the default deciding a bare list while an explicit address is left alone
+
+---
+
 ## Entity pages — six datasets, six pages (§7, §8)
 
 There used to be one generic list page rendered six times. It was correct,
@@ -3878,8 +3932,9 @@ there was only one. The point of a template is the opposite.
       renderer refuses a row that does not. "Partly there" with no explanation
       tells a reader that something is missing and not what, which is the least
       useful thing a catalogue can say
-  - Where it leaves the template: **58 shipped, 16 partly there, 3 not built**
-      — §37 tags, §46 saved views and §47 comparison. The count is rendered
+  - Where it left the template when it was written: **58 shipped, 16 partly
+      there, 3 not built** — §37 tags, §46 saved views and §47 comparison, all
+      three since built. The count is rendered
       rather than typed, so it cannot be the wrong count
 - [x] `docs/RBAC.md` — JWT/Redis verification flow, exact default role/access
       matrix, additive groups, backend enforcement and frontend behavior
@@ -4005,9 +4060,9 @@ Each endpoint ships with its five-case integration test and the page consuming i
       entity search remain (§4, §6, §31, §32)
   - **Acceptance**: the inspector's text and the executed SQL come from the same
     tree (§51); global search groups by entity type and is keyboard-navigable
-- [~] Saved searches ship with private/shared/public backend enforcement and
-      owner-only writes; saved views and remaining sharing UI are open
-      (§5, §46)
+- [x] Saved searches ship with private/shared/public backend enforcement and
+      owner-only writes — and *are* the saved views, applied from every entity
+      list, with `is_default` deciding what one opens with (§5, §46)
 - [ ] Admin: users, groups, roles, permissions, organizations, departments,
       settings, flags, API clients, integrations, jobs, scheduled tasks,
       email templates (§11–§13, §25–§27, §42)

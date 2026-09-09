@@ -168,9 +168,7 @@ CATALOGUE: list[dict[str, object]] = [
         45, "Dashboard builder", "`/dashboards`", "`/api/dashboards`", "done",
     ),
     feature(
-        46, "Saved views", "every list", "`/saved-views`", "open",
-        "Not built. A saved *search* keeps the question (§5); a saved view would "
-        "keep the presentation — columns, sort, density — against a list.",
+        46, "Saved views", "every entity list, `/explore`", "`/api/saved-searches`", "done",
     ),
     feature(47, "Data comparison", "`/compare`", "`/api/records/{type}/compare`", "done"),
     feature(
@@ -317,6 +315,11 @@ def problems() -> list[str]:
             found.append(f"§{number} is {status} and says nothing about what is missing")
         if status == "done" and row["note"]:
             found.append(f"§{number} is shipped and still carries a note")
+        # The renderer prefixes the status itself ("Not built. …"), so a note
+        # that opens with the same words prints it twice. §46's did, for
+        # months, in both generated documents.
+        if row["note"].lower().startswith(STATUSES[status][1].lower()):
+            found.append(f"§{number}'s note repeats its status word")
         if not status == "done":
             continue
         for token in re.findall(r"`([^`]+)`", str(row["where"])):

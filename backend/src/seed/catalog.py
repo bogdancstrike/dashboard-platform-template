@@ -907,6 +907,27 @@ KANBAN_LABELS: tuple[str, ...] = (
     "customer-request", "tech-debt", "security", "accessibility",
 )
 
+#: Saved searches of the kind a *list's filter bar* saves: a name, its dataset,
+#: and the one plain field filter it keeps (§46).
+#:
+#: Separate from `SAVED_SEARCH_NAMES` above, whose rows carry a condition tree
+#: because they are the Data Explorer's. The distinction is load-bearing rather
+#: than decorative: a tree cannot be shown as a row of facet selects, so a
+#: dataset whose only saved searches came from the rule builder has a views
+#: menu that can offer nothing but links back to the explorer. One of these per
+#: dataset is what makes "open the list the way I saved it" demonstrable.
+#:
+#: Every field named here is one its page offers as a facet, and every value is
+#: `core.vocabulary`'s own — so applying one shows the chip that produced it.
+LIST_VIEWS: tuple[tuple[str, str, str, str], ...] = (
+    ("High-priority tasks", "task", "priority", "HIGH"),
+    ("Critical tickets", "ticket", "severity", "CRITICAL"),
+    ("Churned customers", "customer", "lifecycle_stage", "CHURNED"),
+    ("Off-track projects", "project", "health", "OFF_TRACK"),
+    ("Unpaid orders", "order", "payment_status", "UNPAID"),
+    ("Offline devices", "device", "status", "OFFLINE"),
+)
+
 SAVED_SEARCH_NAMES: tuple[tuple[str, str], ...] = (
     ("My overdue tasks", "task"),
     ("Critical open tickets", "ticket"),
@@ -920,11 +941,3 @@ SAVED_SEARCH_NAMES: tuple[tuple[str, str], ...] = (
     ("Blocked tasks", "task"),
 )
 
-SAVED_VIEW_NAMES: tuple[tuple[str, str], ...] = (
-    ("Operations board", "task"),
-    ("Account manager view", "customer"),
-    ("Finance review", "order"),
-    ("Support triage", "ticket"),
-    ("Portfolio overview", "project"),
-    ("Field devices", "device"),
-)

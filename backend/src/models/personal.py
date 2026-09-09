@@ -74,40 +74,22 @@ class SavedSearch(Base, TimestampMixin, SoftDeleteMixin):
     owner = relationship("User", foreign_keys=[owner_id], lazy="joined")
 
 
-class SavedView(Base, TimestampMixin, SoftDeleteMixin):
-    """A saved *page configuration* (§46) — filters, columns, order, grouping.
-
-    Distinct from a saved search: a search is a question, a view is how the
-    answer is laid out. The same question is read differently by an analyst and
-    by an operator.
-    """
-
-    __tablename__ = "saved_views"
-    __table_args__ = (Index("ix_saved_view_resource_owner", "resource_type", "owner_id"),)
-
-    id: Mapped[UUID] = uuid_pk()
-    name: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
-    description: Mapped[str | None] = mapped_column(Text)
-    resource_type: Mapped[str] = mapped_column(String(48), nullable=False, index=True)
-    owner_id: Mapped[UUID | None] = fk("users.id", ondelete="CASCADE")
-    organization_id: Mapped[UUID | None] = fk("organizations.id")
-    team_id: Mapped[UUID | None] = fk("teams.id")
-    scope: Mapped[str] = mapped_column(String(16), default="PRIVATE", index=True)
-    filters: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    condition_tree: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    columns: Mapped[list[str] | None] = mapped_column(ARRAY(String(64)))
-    column_widths: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    pinned_columns: Mapped[list[str] | None] = mapped_column(ARRAY(String(64)))
-    sort: Mapped[str | None] = mapped_column(String(120))
-    order: Mapped[str] = mapped_column(String(8), default="desc")
-    group_by: Mapped[str | None] = mapped_column(String(64))
-    page_size: Mapped[int] = mapped_column(Integer, default=25)
-    density: Mapped[str] = mapped_column(String(16), default="middle")
-    view_mode: Mapped[str] = mapped_column(String(16), default="table")
-    is_default: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
-    use_count: Mapped[int] = mapped_column(Integer, default=0)
-
-    owner = relationship("User", foreign_keys=[owner_id], lazy="joined")
+# There is deliberately no `SavedView` model (§46).
+#
+# One existed: a saved *page configuration* — filters, columns, order,
+# grouping, density — on the theory that "a search is a question, a view is how
+# the answer is laid out". Building §46 on the six entity lists showed the
+# theory was wrong here. `SavedSearch` above already stores the presentation
+# beside the question (columns, sort, order, page size, view mode) for the
+# reason its own docstring gives, the entity lists fix their own columns by
+# design (§7), and density and page size are the reader's preferences and
+# follow them everywhere (§40). What was left was a second table answering
+# "how do I look at tickets" with no rule about which one wins.
+#
+# So a saved view *is* a saved search, reachable from every list rather than
+# only from the Data Explorer, and `is_default` on it is what a list opens
+# with. The `saved_views` table may still exist in an installation seeded
+# before this; nothing reads or writes it, and a migration can drop it.
 
 
 class ResourceShare(Base, TimestampMixin):

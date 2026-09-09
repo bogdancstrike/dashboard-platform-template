@@ -108,7 +108,7 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     "AlertRuleFire", "AlertRuleRun", "AlertRule",
     "BoardCard", "BoardLane", "Board",
     "DashboardWidget", "Dashboard",
-    "ResourceShare", "SavedSearch", "SavedView", "Report",
+    "ResourceShare", "SavedSearch", "Report",
     # Mail before files: an attachment points at a `FileObject`, so it goes
     # first — and attachments before messages before threads.
     # `test_cleanup_order_respects_the_foreign_keys` caught both of these,

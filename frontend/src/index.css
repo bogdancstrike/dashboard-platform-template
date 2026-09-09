@@ -822,6 +822,10 @@ mark.nu-mark {
    makes the reader check whether it is the same notification. */
 
 .nu-filter-bar { margin-bottom: 12px; border-color: var(--nu-border); }
+
+/* One saved view in the menu: the name takes the room, the marks trail it. */
+.nu-view-item { display: inline-flex; align-items: center; gap: 6px; }
+.nu-view-item .nu-view-name { max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nu-block { margin-top: 12px; }
 
 .nu-nav-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

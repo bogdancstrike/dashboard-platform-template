@@ -52,6 +52,38 @@ def created_searches(has_database):
         ))
 
 
+@pytest.fixture()
+def preserved_defaults(has_database):
+    """Whatever the demo database says is default, said again afterwards.
+
+    A test that marks a search as its owner's default *demotes* the one that
+    held the flag — that is the rule being tested (§46). Deleting the rows the
+    test made does not put the demoted one back, so the flags are snapshotted
+    and restored. The suite runs against the database the application serves;
+    silently changing which search a persona's list opens with is exactly the
+    kind of damage a demo shows to the next person who opens it.
+    """
+    if not has_database:
+        yield
+        return
+
+    from src.core.db import session_scope
+    from src.models.personal import SavedSearch
+
+    with session_scope() as session:
+        before = {
+            row.id: row.is_default
+            for row in session.scalars(select(SavedSearch)).unique().all()
+        }
+    yield
+    with session_scope() as session:
+        for row in session.scalars(
+            select(SavedSearch).where(SavedSearch.id.in_(before))
+        ).unique().all():
+            if row.is_default != before[row.id]:
+                row.is_default = before[row.id]
+
+
 def test_explorer_endpoints_require_a_bearer_token(client):
     assert client.get(f"{PREFIX}/api/explorer/catalog").status_code == 401
     assert client.post(f"{PREFIX}/api/explorer/query", json={}).status_code == 401
@@ -192,6 +224,168 @@ def test_saved_search_lifecycle_preserves_question_and_presentation(client, monk
     assert client.delete(f"{PREFIX}/api/saved-searches/{search['id']}", headers=headers).status_code == 204
     assert client.get(f"{PREFIX}/api/saved-searches/{search['id']}", headers=headers).status_code == 404
 
+
+
+@pytest.mark.database
+def test_marking_a_second_search_as_default_demotes_the_first(
+    client, monkeypatch, created_searches, preserved_defaults
+):
+    """One answer to "what should this list open with", per person per dataset.
+
+    A second default is not refused: somebody marking one has changed their
+    mind, and an error asking them to go and unmark the old one first is a
+    chore with no decision in it (§46).
+    """
+    headers = _authenticate(monkeypatch)
+    base = {
+        "resource_type": "task", "scope": "PRIVATE", "sort": "due_date",
+        "order": "asc", "columns": ["reference", "title"], "page_size": 25,
+        "view_mode": "table", "is_default": True,
+    }
+
+    first = client.post(
+        f"{PREFIX}/api/saved-searches", headers=headers,
+        json={**base, "name": f"Explorer default A {uuid4()}"},
+    )
+    assert first.status_code == 201
+    created_searches.append(first.get_json()["id"])
+    assert first.get_json()["is_default"] is True
+
+    second = client.post(
+        f"{PREFIX}/api/saved-searches", headers=headers,
+        json={**base, "name": f"Explorer default B {uuid4()}"},
+    )
+    created_searches.append(second.get_json()["id"])
+
+    listed = {
+        item["id"]: item
+        for item in client.get(
+            f"{PREFIX}/api/saved-searches?resource_type=task", headers=headers
+        ).get_json()["items"]
+    }
+    assert listed[second.get_json()["id"]]["is_default"] is True
+    assert listed[first.get_json()["id"]]["is_default"] is False
+    # Exactly one, which is the property a list can rely on when it decides
+    # what to open with.
+    mine = [
+        item for item in listed.values()
+        if item["is_default"] and item["can_edit"]
+    ]
+    assert len(mine) == 1
+
+    # A default of another dataset is a different question, so it stands.
+    other = client.post(
+        f"{PREFIX}/api/saved-searches", headers=headers,
+        json={
+            **base, "name": f"Explorer default C {uuid4()}",
+            "resource_type": "ticket", "sort": "created_at",
+            "columns": ["reference", "subject"],
+        },
+    )
+    created_searches.append(other.get_json()["id"])
+    assert other.get_json()["is_default"] is True
+    still = client.get(
+        f"{PREFIX}/api/saved-searches/{second.get_json()['id']}", headers=headers
+    ).get_json()
+    assert still["is_default"] is True
+
+    # And promoting through an update demotes the same way a creation does.
+    promoted = client.put(
+        f"{PREFIX}/api/saved-searches/{first.get_json()['id']}", headers=headers,
+        json={"is_default": True},
+    )
+    assert promoted.status_code == 200
+    assert promoted.get_json()["is_default"] is True
+    demoted = client.get(
+        f"{PREFIX}/api/saved-searches/{second.get_json()['id']}", headers=headers
+    ).get_json()
+    assert demoted["is_default"] is False
+
+    # Somebody else's default is somebody else's: the demotion is scoped to the
+    # owner, and getting that clause wrong would quietly change what every
+    # colleague's list opens with.
+    viewer_headers = _authenticate(monkeypatch, "user", "viewer")
+    theirs = client.post(
+        f"{PREFIX}/api/saved-searches", headers=viewer_headers,
+        json={**base, "name": f"Viewer default {uuid4()}"},
+    )
+    created_searches.append(theirs.get_json()["id"])
+    assert theirs.get_json()["is_default"] is True
+
+    _authenticate(monkeypatch)
+    client.put(
+        f"{PREFIX}/api/saved-searches/{second.get_json()['id']}", headers=headers,
+        json={"is_default": True},
+    )
+    _authenticate(monkeypatch, "user", "viewer")
+    assert client.get(
+        f"{PREFIX}/api/saved-searches/{theirs.get_json()['id']}", headers=viewer_headers
+    ).get_json()["is_default"] is True
+
+
+
+@pytest.mark.database
+def test_the_repair_makes_saved_searches_usable_on_a_list(created_searches):
+    """`--sync-searches`, on the two things it fixes (§46).
+
+    A filter key no dataset declares narrows nothing — `apply_filters` iterates
+    the *declared* fields — so the row looked correct until the entity lists
+    could apply one, at which point it put `f.q=overdue` in the address and
+    counted as a filter. And a database whose saved searches all carry
+    condition trees has a views menu that can only link to the Data Explorer,
+    because a tree is not expressible as facet selects.
+
+    Written through the session rather than the API, because the API would
+    reject the unusable key: the rows this repairs were written by the
+    generator, which does not go through it.
+    """
+    from src.core.db import session_scope
+    from src.models.identity import User
+    from src.models.personal import SavedSearch
+    from src.seed import catalog, runner
+
+    with session_scope() as session:
+        owner = session.scalars(
+            select(User).where(User.email == "admin@nucleus.example")
+        ).one()
+        row = SavedSearch(
+            name=f"Explorer repair {uuid4()}", resource_type="task",
+            owner_id=owner.id, organization_id=owner.organization_id, scope="PRIVATE",
+            filters={"q": "overdue", "priority": "HIGH"},
+            sort="due_date", order="asc", columns=["reference", "title"],
+            page_size=25, view_mode="table",
+        )
+        session.add(row)
+        session.flush()
+        created_searches.append(str(row.id))
+        identifier = row.id
+
+    with session_scope() as session:
+        first = runner.sync_searches(session)
+    with session_scope() as session:
+        again = runner.sync_searches(session)
+        repaired = session.get(SavedSearch, identifier)
+        assert repaired is not None
+        # The key that cannot work is gone; the one that can is untouched.
+        assert repaired.filters == {"priority": "HIGH"}
+
+        # And every dataset now has a view a list can show.
+        for name, resource_type, field, value in catalog.LIST_VIEWS:
+            view = session.scalars(
+                select(SavedSearch).where(
+                    SavedSearch.name == name, SavedSearch.deleted_at.is_(None)
+                )
+            ).unique().one()
+            assert view.resource_type == resource_type
+            assert view.filters == {field: value}
+            # No tree, which is what makes it applicable to a list at all.
+            assert view.condition_tree is None
+            assert view.rule_count == 0
+            assert view.scope == "PUBLIC"
+
+    assert first["cleaned"] >= 1
+    # Additive and idempotent: the second pass finds nothing left to do.
+    assert again == {"cleaned": 0, "added": 0}
 
 @pytest.mark.database
 def test_shared_search_is_readable_but_only_owner_can_mutate(client, monkeypatch, created_searches):

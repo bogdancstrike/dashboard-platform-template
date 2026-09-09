@@ -138,6 +138,123 @@ function echo<T extends object>(request: Request, body: T, status = 200) {
   });
 }
 
+/**
+ * Saved views of the task list, in the four shapes the menu must tell apart
+ * (§46): one plain, one the reader's own default, one built in the rule builder
+ * and so not applicable to a list, and one somebody else owns.
+ */
+export const savedViews = [
+  {
+    id: "5a5e0001-0000-0000-0000-000000000001",
+    name: "In progress, mine first",
+    description: "What the stand-up walks through.",
+    resource_type: "task",
+    scope: "PRIVATE",
+    owner: { id: currentUser.user.id, name: currentUser.user.full_name, email: currentUser.user.email },
+    can_edit: true,
+    members: [],
+    condition_tree: null,
+    condition_text: null,
+    filters: { status: "IN_PROGRESS" },
+    query_text: "",
+    sort: "due_date",
+    order: "asc",
+    columns: ["reference", "title", "status", "due_date"],
+    page_size: 25,
+    view_mode: "table",
+    is_favorite: false,
+    is_default: false,
+    rule_count: 0,
+    use_count: 12,
+    last_used_at: "2026-09-01T09:00:00Z",
+    created_at: "2026-06-01T09:00:00Z",
+    updated_at: "2026-09-01T09:00:00Z",
+  },
+  {
+    id: "5a5e0001-0000-0000-0000-000000000002",
+    name: "Critical only",
+    description: null,
+    resource_type: "task",
+    scope: "PRIVATE",
+    owner: { id: currentUser.user.id, name: currentUser.user.full_name, email: currentUser.user.email },
+    can_edit: true,
+    members: [],
+    condition_tree: null,
+    condition_text: null,
+    filters: { priority: "CRITICAL" },
+    query_text: "audit",
+    sort: "priority",
+    order: "desc",
+    columns: ["reference", "title", "priority"],
+    page_size: 50,
+    view_mode: "table",
+    is_favorite: true,
+    is_default: true,
+    rule_count: 0,
+    use_count: 40,
+    last_used_at: "2026-09-02T09:00:00Z",
+    created_at: "2026-05-01T09:00:00Z",
+    updated_at: "2026-09-02T09:00:00Z",
+  },
+  {
+    id: "5a5e0001-0000-0000-0000-000000000003",
+    name: "Overdue or unassigned",
+    description: "Built in the rule builder.",
+    resource_type: "task",
+    scope: "PUBLIC",
+    owner: { id: currentUser.user.id, name: currentUser.user.full_name, email: currentUser.user.email },
+    can_edit: true,
+    members: [],
+    condition_tree: { type: "group", conjunction: "OR", children1: {} },
+    condition_text: "Due date before today OR Assignee is empty",
+    filters: {},
+    query_text: "",
+    sort: "due_date",
+    order: "asc",
+    columns: ["reference", "title", "due_date"],
+    page_size: 25,
+    view_mode: "table",
+    is_favorite: false,
+    is_default: false,
+    rule_count: 2,
+    use_count: 3,
+    last_used_at: null,
+    created_at: "2026-04-01T09:00:00Z",
+    updated_at: "2026-04-01T09:00:00Z",
+  },
+  {
+    id: "5a5e0001-0000-0000-0000-000000000004",
+    name: "Delivery team backlog",
+    description: null,
+    resource_type: "task",
+    scope: "PUBLIC",
+    owner: {
+      id: "00000000-0000-0000-0000-000000000002",
+      name: "Marcus Manager",
+      email: "manager@nucleus.example",
+    },
+    can_edit: false,
+    members: [],
+    condition_tree: null,
+    condition_text: null,
+    filters: { status: "TODO" },
+    query_text: "",
+    sort: "created_at",
+    order: "desc",
+    columns: ["reference", "title", "status"],
+    page_size: 25,
+    view_mode: "table",
+    is_favorite: false,
+    // Somebody else's default, which must decide nothing for this reader.
+    is_default: true,
+    rule_count: 0,
+    use_count: 90,
+    last_used_at: "2026-08-01T09:00:00Z",
+    created_at: "2026-03-01T09:00:00Z",
+    updated_at: "2026-08-01T09:00:00Z",
+  },
+];
+
 export const dashboardSummary = {
   period: {
     key: "last_30_days",
@@ -5639,7 +5756,32 @@ export const handlers = [
     const body = (await request.json()) as { resource_type?: string };
     return echo(request, entityInsights(body.resource_type ?? "task"));
   }),
-  http.get("/platform/api/saved-searches", ({ request }) => echo(request, { items: [], total: 0 })),
+  /**
+   * Saved searches, which are also the entity lists' saved views (§5, §46).
+   *
+   * Empty by default: every list mounts this query, and a fixture that arrived
+   * with four views would silently rewrite the address of every entity-page
+   * test through the default-on-arrival rule. The tests that are about views
+   * hand the fixture in themselves.
+   */
+  http.get("/platform/api/saved-searches", ({ request }) =>
+    echo(request, { items: [], total: 0 }),
+  ),
+  http.post("/platform/api/saved-searches", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return echo(request, { ...savedViews[0], ...body, id: "5a5e0001-0000-0000-0000-0000000000ff" }, 201);
+  }),
+  http.put("/platform/api/saved-searches/:searchId", async ({ request, params }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const existing = savedViews.find((view) => view.id === params.searchId) ?? savedViews[0];
+    return echo(request, { ...existing, ...body });
+  }),
+  http.get("/platform/api/saved-searches/:searchId", ({ request, params }) => {
+    const existing = savedViews.find((view) => view.id === params.searchId);
+    return existing
+      ? echo(request, existing)
+      : echo(request, { error: "not_found", message: "No such saved search.", details: {} }, 404);
+  }),
 
   http.get("/platform/notifications/counts", ({ request }) => echo(request, notificationCounts)),
   http.get("/platform/notifications", ({ request }) => {
