@@ -44,9 +44,9 @@ SHARE_PERMISSION = "searches.share"
 #: renderer already themes, so a saved report cannot name a picture the
 #: platform has no way to paint.
 VISUALIZATIONS = frozenset({
-    "bar", "hbar", "line", "area", "pie", "multi-line", "stacked-bar",
-    "stacked-hbar", "treemap", "funnel", "scatter", "heatmap", "radar",
-    "gauge", "table",
+    "bar", "hbar", "line", "area", "pie", "multi-line", "stacked-area",
+    "stacked-bar", "stacked-hbar", "treemap", "funnel", "scatter", "heatmap",
+    "radar", "gauge", "table",
 })
 
 

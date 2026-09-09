@@ -212,7 +212,9 @@ vertical slice with its own tests, its own tracker entry and its own commit.
       alternatives, downloads, light/dark support and responsive layouts.
   - Shipped 16 panels across 14 kinds: line, area, vertical/horizontal bars,
     donut, multi-line, vertical/horizontal stacked bars, funnel, gauge, heatmap,
-    scatter, radar and treemap. Snapshots are labelled separately from period
+    scatter, radar and treemap. Since then a seventeenth, "What the revenue is
+    made of", brought the fifteenth kind — stacked area — and the donut got the
+    total in its hole. Snapshots are labelled separately from period
     totals; CSV/table views retain scatter coordinates and grouped dimensions.
     Names are escaped in HTML tooltips and spreadsheet formulas neutralized in
     downloads. Empty SLA samples show no data; funnel stages are nested and
@@ -3178,7 +3180,7 @@ told a reader that something is missing and not what.
 | § | Feature | Route / where | API | State |
 | --- | --- | --- | --- | --- |
 | 1 | Application shell, navigation | all | `/meta/*`, `/api/me` | [x] |
-| 2 | Overview dashboard, KPIs, charts | `/`, `/analytics` | `/dashboard/*`, `/api/analysis/*` | [~] |
+| 2 | Overview dashboard, KPIs, charts | `/`, `/analytics` | `/dashboard/*`, `/api/analysis/*` | [x] |
 | 3 | Advanced data table | every list | generic list | [~] |
 | 4 | Advanced search (simple + RAQB) | `/explore` | `/api/explorer/query` | [x] |
 | 5 | Saved searches | `/explore` (panel) | `/api/saved-searches` | [x] |
@@ -3255,13 +3257,11 @@ told a reader that something is missing and not what.
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*62 shipped · 15 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*63 shipped · 14 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
 Every section above that is not shipped, with the part that is open. A catalogue that grades something "partly there" and stops has told a reader that something is missing and not what.
-
-**§2 Overview dashboard, KPIs, charts** — Partly there. Sixteen panels, KPIs against the previous period, an alert strip and a feed all ship. The further chart kinds — stacked area, donut with a centre total, funnel — are listed in the tracker and open.
 
 **§3 Advanced data table** — Partly there. Filtering, sorting, paging, facets and column choice all happen in PostgreSQL on every list, off one `FieldSet` declaration. What is open is the *showcase* of the table on its own, which `/showcase/components` does not yet include.
 
@@ -4130,11 +4130,40 @@ everything else.
 
 - [x] KPI row with previous-period comparison and drill-down
 - [x] Alert strip, activity feed, six chart panels, chart/table toggle, CSV
-- [ ] **More chart types**, as gif_responder's dashboard does: stacked area,
+- [x] **More chart types**, as gif_responder's dashboard does: stacked area,
       horizontal bars, a donut with a centre total, a day/hour heatmap, a
       funnel, a gauge for SLA compliance, and a scatter of value against age
-  - **Acceptance**: every panel is readable in both themes, has an empty state,
-    and can be read as a table and exported
+  - All but two of those had shipped with the fourteen kinds; what was left was
+      the two the list names first, and both were the same kind of gap — a
+      picture that looks finished and is not
+  - **The donut's hole was empty.** "What share is each?" raises "of how
+      many?" immediately, and the middle of a ring is the most legible spot on
+      the chart. It now carries the total, summed from *what is drawn* — a
+      truncated breakdown folds its tail into "Other", so the slices are the
+      whole and no separate figure can disagree with the picture
+  - **Stacked area is a seventeenth panel**, "What the revenue is made of",
+      directly under the revenue line because it is that line broken up: the
+      top edge is the same number, and the backend test asserts the two add up.
+      Drawn by the multi-line renderer with `stack` set rather than by a
+      renderer of its own, because the two questions differ by one word and the
+      geometry does not — and filled, because an unfilled stack reads as lines
+      that happen not to cross
+  - `_grouped_series` takes the measure as a parameter now (defaulting to
+      counting rows), so "how many orders by channel" and "how much revenue by
+      channel" are one function; a second one differing by an expression would
+      be a second place to fix the `Other` fold
+  - The kind is a kind everywhere: `ChartKind`, `CHART_SHAPES` (so the chart
+      builder offers it, refused by name when the question has no second
+      grouping), `VISUALIZATIONS` (so it can be saved), and `SHAPES` on the
+      dashboard. `components/charts/options.test.ts` is new — the option is
+      where a renderer's claim lives, because a stacked area drawn without
+      `stack` looks exactly like a perfectly good multi-line chart of the same
+      numbers, and no screenshot review catches that
+  - The e2e counted sixteen panels by hand and therefore failed on the
+      seventeenth; it counts `CHART_KEYS.length` now
+  - **Acceptance**: met — every panel is a `ChartCard`, which carries the
+    table view, the CSV and the empty state for all seventeen, and
+    `e2e/a11y.spec.ts` audits `/dashboard` in both appearances
 
 ---
 

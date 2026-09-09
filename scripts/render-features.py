@@ -85,10 +85,7 @@ CATALOGUE: list[dict[str, object]] = [
     feature(1, "Application shell, navigation", "all", "`/meta/*`, `/api/me`", "done"),
     feature(
         2, "Overview dashboard, KPIs, charts", "`/`, `/analytics`",
-        "`/dashboard/*`, `/api/analysis/*`", "partial",
-        "Sixteen panels, KPIs against the previous period, an alert strip and a "
-        "feed all ship. The further chart kinds — stacked area, donut with a "
-        "centre total, funnel — are listed in the tracker and open.",
+        "`/dashboard/*`, `/api/analysis/*`", "done",
     ),
     feature(
         3, "Advanced data table", "every list", "generic list", "partial",

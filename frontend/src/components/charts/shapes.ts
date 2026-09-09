@@ -86,6 +86,14 @@ export const CHART_SHAPES: readonly ChartShape[] = [
     overTime: true,
   },
   {
+    kind: "stacked-area",
+    label: "Stacked area",
+    question: "What is the total made of, over time?",
+    dimensions: 2,
+    measures: 1,
+    overTime: true,
+  },
+  {
     kind: "stacked-bar",
     label: "Stacked bar",
     question: "What is each period made of?",

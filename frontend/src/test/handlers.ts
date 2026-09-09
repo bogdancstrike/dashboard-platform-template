@@ -294,6 +294,21 @@ export const dashboardSummary = {
       kind: "bar", title: "Tasks by status",
       series: [{ name: "DONE", value: 141 }, { name: "BLOCKED", value: 33 }],
     },
+    // A stacked shape as well as a flat one: the grouped kinds read `group`
+    // and `groups`, and a fixture with only ungrouped panels cannot tell a
+    // renderer that ignores them from one that does not.
+    revenue_by_channel: {
+      kind: "stacked-area", title: "What the revenue is made of",
+      description: "Booked orders in the selected period, by channel",
+      unit: "currency",
+      groups: ["WEB", "PARTNER"],
+      series: [
+        { bucket: "2026-08-04T00:00:00Z", group: "WEB", value: 900 },
+        { bucket: "2026-08-04T00:00:00Z", group: "PARTNER", value: 300 },
+        { bucket: "2026-08-05T00:00:00Z", group: "WEB", value: 1500 },
+        { bucket: "2026-08-05T00:00:00Z", group: "PARTNER", value: 900 },
+      ],
+    },
   },
   alerts: [
     {

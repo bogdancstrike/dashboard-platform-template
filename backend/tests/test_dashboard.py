@@ -39,8 +39,9 @@ def test_panels_reconcile_with_the_selected_period(client, monkeypatch):
     start = datetime.fromisoformat(body["period"]["from"].replace("Z", "+00:00"))
     end = datetime.fromisoformat(body["period"]["to"].replace("Z", "+00:00"))
     assert {panel["kind"] for panel in panels.values() if isinstance(panel, dict)} >= {
-        "area", "line", "bar", "pie", "hbar", "stacked-bar", "stacked-hbar",
-        "multi-line", "scatter", "heatmap", "funnel", "gauge", "radar", "treemap",
+        "area", "line", "bar", "pie", "hbar", "stacked-area", "stacked-bar",
+        "stacked-hbar", "multi-line", "scatter", "heatmap", "funnel", "gauge",
+        "radar", "treemap",
     }
     with session_scope() as session:
         orders = session.scalar(select(func.count()).select_from(Order).where(
@@ -54,6 +55,19 @@ def test_panels_reconcile_with_the_selected_period(client, monkeypatch):
                if point["group"] == "Resolved") == resolved
     assert all(0 <= point["value"] <= 100 for point in panels["sla_gauge"]["series"])
     assert all(point["value"] > 0 for point in panels["portfolio_budget"]["series"])
+
+    # The stacked area's top edge is the revenue line: same orders, same
+    # window, split by channel. Two panels of one number that disagree are
+    # worse than one panel, and the fold into "Other" is exactly where such a
+    # disagreement would come from.
+    revenue = sum(point["value"] for point in panels["revenue_over_time"]["series"])
+    by_channel = sum(point["value"] for point in panels["revenue_by_channel"]["series"])
+    assert round(by_channel, 2) == round(revenue, 2)
+    # Every cell names a group the panel declared, so nothing is drawn into a
+    # stack the legend does not list.
+    assert {point["group"] for point in panels["revenue_by_channel"]["series"]} <= set(
+        panels["revenue_by_channel"]["groups"]
+    )
 
 
 @pytest.mark.database

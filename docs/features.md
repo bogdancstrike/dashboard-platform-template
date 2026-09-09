@@ -25,7 +25,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | § | Feature | Route / where | API | State |
 | --- | --- | --- | --- | --- |
 | 1 | Application shell, navigation | all | `/meta/*`, `/api/me` | [x] |
-| 2 | Overview dashboard, KPIs, charts | `/`, `/analytics` | `/dashboard/*`, `/api/analysis/*` | [~] |
+| 2 | Overview dashboard, KPIs, charts | `/`, `/analytics` | `/dashboard/*`, `/api/analysis/*` | [x] |
 | 3 | Advanced data table | every list | generic list | [~] |
 | 4 | Advanced search (simple + RAQB) | `/explore` | `/api/explorer/query` | [x] |
 | 5 | Saved searches | `/explore` (panel) | `/api/saved-searches` | [x] |
@@ -102,13 +102,11 @@ either way, because a catalogue has to be able to say "every entity list".
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*62 shipped · 15 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*63 shipped · 14 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
 Every section above that is not shipped, with the part that is open. A catalogue that grades something "partly there" and stops has told a reader that something is missing and not what.
-
-**§2 Overview dashboard, KPIs, charts** — Partly there. Sixteen panels, KPIs against the previous period, an alert strip and a feed all ship. The further chart kinds — stacked area, donut with a centre total, funnel — are listed in the tracker and open.
 
 **§3 Advanced data table** — Partly there. Filtering, sorting, paging, facets and column choice all happen in PostgreSQL on every list, off one `FieldSet` declaration. What is open is the *showcase* of the table on its own, which `/showcase/components` does not yet include.
 

@@ -303,13 +303,25 @@ def _series(session, column, value_column, start: datetime, end: datetime, *clau
 
 
 def _grouped_series(
-    session, column, group_column, start: datetime, end: datetime, *clauses, limit: int = 5
+    session,
+    column,
+    group_column,
+    start: datetime,
+    end: datetime,
+    *clauses,
+    value_column=None,
+    limit: int = 5,
 ):
-    """A time series split by a second dimension — the stacked-bar shape.
+    """A time series split by a second dimension — the stacked shapes.
 
     Two GROUP BYs rather than one query per group: "orders by channel over
     twelve weeks" is one statement, and asking it five times because the chart
     has five stacks is five times the work for the same answer.
+
+    The measure is a parameter, defaulting to counting rows, because "how many
+    orders by channel" and "how much revenue by channel" are the same shape
+    asked of a different column — and a second function differing by one
+    expression is a second place to fix the `Other` fold.
 
     The groups are capped and the tail folded into `Other`, because a stack of
     twenty is a colour wheel, and because the palette only has ten colours that
@@ -317,8 +329,9 @@ def _grouped_series(
     """
     grain = _bucket(start, end)
     bucket = func.date_trunc(grain, column)
+    measure = func.count() if value_column is None else value_column
     statement = (
-        select(bucket.label("bucket"), group_column.label("group"), func.count().label("value"))
+        select(bucket.label("bucket"), group_column.label("group"), measure.label("value"))
         .where(and_(column >= start, column < end))
         .group_by(bucket, group_column)
         .order_by(bucket)
@@ -393,6 +406,15 @@ def charts(session, start: datetime, end: datetime) -> dict[str, Any]:
     channel_series, channels = _grouped_series(
         session, Order.placed_at, Order.channel, start, end, booked
     )
+    revenue_channel_series, revenue_channels = _grouped_series(
+        session,
+        Order.placed_at,
+        Order.channel,
+        start,
+        end,
+        booked,
+        value_column=func.sum(cast(Order.total, Numeric)),
+    )
     portfolio = _budget_vs_progress(session, Project)
 
     return {
@@ -428,6 +450,20 @@ def charts(session, start: datetime, end: datetime) -> dict[str, Any]:
             "title": "Orders by channel",
             "groups": channels,
             "series": channel_series,
+        },
+        "revenue_by_channel": {
+            # Stacked *area* rather than stacked bars: the question is what the
+            # revenue line is made of, and the answer wants a continuous total
+            # whose top edge is the line the revenue panel already draws. Bars
+            # of the same numbers read as discrete events, which an order book
+            # is not — and the two panels side by side would then disagree
+            # about what kind of thing revenue is.
+            "kind": "stacked-area",
+            "title": "What the revenue is made of",
+            "description": "Booked orders in the selected period, by channel",
+            "unit": "currency",
+            "groups": revenue_channels,
+            "series": revenue_channel_series,
         },
         "tickets_by_category": {
             "kind": "bar",

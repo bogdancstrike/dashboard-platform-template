@@ -1,6 +1,7 @@
 /** Exercise real ECharts canvases and their readable/downloadable data alternatives. */
 import { expect, test } from "@playwright/test";
 
+import { CHART_KEYS } from "../src/api/dashboard";
 import { apiAs, endpoint } from "./api";
 import { signIn } from "./auth";
 
@@ -8,7 +9,10 @@ test("the expanded dashboard renders, exports every scatter dimension, and keeps
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/dashboard?period=current_year");
-  await expect(page.locator(".nu-chartcard")).toHaveCount(16);
+  // Counted off the declaration rather than typed: the number was 16 and the
+  // seventeenth panel shipped without it, so the failure read as a broken
+  // dashboard rather than as a stale test.
+  await expect(page.locator(".nu-chartcard")).toHaveCount(CHART_KEYS.length);
   const radar = page.locator('[data-chart-id="support_profile"]');
   await expect(radar.locator("canvas")).toBeAttached();
   const treemap = page.locator('[data-chart-id="portfolio_budget"]');

@@ -250,9 +250,9 @@ def test_every_kind_the_renderer_themes_can_be_saved(client, monkeypatch):
     # rows rather than drawn. Everything else has a renderer.
     drawn = VISUALIZATIONS - {"table"}
     assert drawn == {
-        "bar", "hbar", "line", "area", "pie", "multi-line", "stacked-bar",
-        "stacked-hbar", "treemap", "funnel", "scatter", "heatmap", "radar",
-        "gauge",
+        "bar", "hbar", "line", "area", "pie", "multi-line", "stacked-area",
+        "stacked-bar", "stacked-hbar", "treemap", "funnel", "scatter",
+        "heatmap", "radar", "gauge",
     }
 
     body = client.get(REPORTS, headers=_authenticate(monkeypatch)).get_json()

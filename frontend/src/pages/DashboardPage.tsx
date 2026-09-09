@@ -59,6 +59,7 @@ const ICONS: Record<string, React.ReactNode> = {
  */
 const SHAPES: Partial<Record<ChartKind, { span: number; height: number }>> = {
   area: { span: 16, height: 280 },
+  "stacked-area": { span: 16, height: 280 },
   "stacked-bar": { span: 8, height: 280 },
   funnel: { span: 8, height: 260 },
   hbar: { span: 16, height: 260 },
@@ -82,6 +83,7 @@ const SHAPES: Partial<Record<ChartKind, { span: number; height: number }>> = {
  * category, and inventing one would send the reader somewhere arbitrary.
  */
 const DRILL_DOWN: Record<string, string> = {
+  revenue_by_channel: "/orders?f.channel=",
   tickets_by_category: "/tickets?f.category=",
   tasks_by_status: "/tasks?f.status=",
   projects_by_health: "/projects?f.health=",

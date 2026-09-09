@@ -53,7 +53,7 @@ docs/        Architecture notes and the implementation tracker
 
 ### Extending dashboards and record previews
 
-`/dashboard` displays 16 panels backed by PostgreSQL aggregates. Add a panel
+`/dashboard` displays 17 panels backed by PostgreSQL aggregates. Add a panel
 in `backend/src/services/dashboard.py`, declare its key in
 `frontend/src/api/dashboard.ts`, and use a builder from
 `frontend/src/components/charts/options.ts`. The shared chart card supplies

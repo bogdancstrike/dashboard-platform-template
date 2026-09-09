@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import DashboardPage from "@/pages/DashboardPage";
+import { dashboardSummary } from "@/test/handlers";
 import { renderWithProviders } from "@/test/render";
 
 describe("the dashboard", () => {
@@ -66,6 +67,38 @@ describe("the dashboard", () => {
     // The same data the chart drew, now as rows.
     expect(await within(card).findByText("DONE")).toBeInTheDocument();
     expect(within(card).getByText("141")).toBeInTheDocument();
+  });
+
+  /**
+   * The stacked shapes, which are the ones a renderer can silently flatten.
+   *
+   * A stacked area drawn without its stacks is five lines that happen not to
+   * cross — a different claim about the same numbers — and nothing in a
+   * screenshot review catches it. The table view is the honest witness: the
+   * cells are per group and per bucket, and they add up to the total the
+   * revenue panel draws.
+   */
+  it("draws what the total is made of, and reads back per group", async () => {
+    const panelRows = dashboardSummary.charts.revenue_by_channel.series.length;
+    const user = userEvent.setup();
+    renderWithProviders(<DashboardPage />);
+
+    const card = (await screen.findByText("What the revenue is made of")).closest(
+      ".ant-card",
+    ) as HTMLElement;
+    await user.click(within(card).getByTitle("Table"));
+
+    // A Group column, and one row per stack per bucket — the cells the chart
+    // drew, not a total that hides which channel it came from.
+    expect(
+      within(card).getByRole("columnheader", { name: "Group" }),
+    ).toBeInTheDocument();
+    const rows = within(card).getAllByRole("row");
+    // Header row plus one per cell the panel carries.
+    expect(rows).toHaveLength(panelRows + 1);
+    expect(within(card).getAllByText("WEB")).toHaveLength(2);
+    expect(within(card).getAllByText("PARTNER")).toHaveLength(2);
+    expect(within(card).getByText("1,500")).toBeInTheDocument();
   });
 
   it("shows the recent activity feed", async () => {

@@ -46,6 +46,7 @@ export type ChartKind =
   | "hbar"
   | "pie"
   | "multi-line"
+  | "stacked-area"
   | "stacked-bar"
   | "stacked-hbar"
   | "funnel"
@@ -141,6 +142,10 @@ export const dashboardApi = {
  */
 export const CHART_KEYS = [
   "revenue_over_time",
+  // Directly under the revenue line, because it is that line broken up: the
+  // top edge of the stack is the same number, and the two read as one answer
+  // when they sit together.
+  "revenue_by_channel",
   "orders_by_channel",
   "fulfilment_funnel",
   "top_customers",
