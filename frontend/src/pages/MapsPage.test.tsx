@@ -47,7 +47,7 @@ describe("the map page", () => {
     ).toBeInTheDocument();
   });
 
-  it("draws every blob as a row as well, at both levels", async () => {
+  it("draws every blob as a row as well, at all three levels", async () => {
     render();
 
     const regions = await screen.findByTestId("map-regions");
@@ -62,6 +62,28 @@ describe("the map page", () => {
     // records' name — the mismatch is the one failure a choropleth cannot
     // survive, so it is visible here too.
     expect(within(countries).getByText("United States of America")).toBeInTheDocument();
+
+    // And the cities, which is the level the *picture* stops being able to
+    // show: markers that would overlap are merged into one bubble (§50), so
+    // "which of those three is Munich" has to be answerable somewhere.
+    const cities = await screen.findByTestId("map-cities");
+    for (const city of ["Berlin", "Paris", "New York"]) {
+      expect(await within(cities).findByText(city)).toBeInTheDocument();
+    }
+  });
+
+  it("drills from a city into the records there", async () => {
+    const user = userEvent.setup();
+    render("/maps?dataset=customer&metric=count");
+
+    const cities = await screen.findByTestId("map-cities");
+    await user.click(await within(cities).findByText("Berlin"));
+
+    // The city column the *records* carry, not the map's marker — the same
+    // rule the country drill follows (§44).
+    await waitFor(() =>
+      expect(screen.getByTestId("address")).toHaveTextContent("/customers?f.city=Berlin"),
+    );
   });
 
   it("keeps the dataset, the measure and the period in the URL", async () => {

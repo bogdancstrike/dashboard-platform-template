@@ -3275,7 +3275,7 @@ Every section above that is not shipped, with the part that is open. A catalogue
 
 **§48 Timeline view** — Partly there. Every record page carries its own history, read from the audit ledger so the two cannot disagree. A cross-record timeline — one thread through several records — is open.
 
-**§50 Data relationships** — Partly there. The graph, the weighted relations, hub records and coverage all ship. Marker clustering and a per-record relationship tab are open.
+**§50 Data relationships** — Partly there. The graph, the weighted relations, hub records and coverage all ship, and the map merges markers that would overlap at the reader's zoom. A per-record relationship tab is open.
 
 **§53 Data refresh, auto-refresh** — Partly there. Notifications and the log tail arrive over the live channel. A general auto-refresh a reader can turn on per page is open.
 
@@ -4032,9 +4032,41 @@ everything else.
     of this asset drew two horizontal lines straight across the world. The
     script splits those rings at the meridian and closes each half, which is
     what a projection would have done
-- [ ] Markers do not cluster yet: at thirty cities there is nothing to cluster,
-      and a clustering rule tuned against thirty points is a rule that will be
-      wrong at three thousand
+- [x] **Markers that would overlap are one bubble, and zooming in splits them**
+  - The argument for leaving this open — "at thirty cities there is nothing to
+      cluster, and a rule tuned against thirty points will be wrong at three
+      thousand" — turned out to be about the *rule*, not the feature. At the
+      zoom the map opens on, **thirteen of the eighteen** European cities are
+      inside three bubbles: the smear was already there. What would have been
+      wrong is a rule written in kilometres or in "cluster above N points",
+      because both are wrong at every zoom but the one they were tuned at
+  - So the rule is **screen distance**: would these two circles overlap, at
+      the zoom the reader is looking at? `components/maps/cluster.ts` is plane
+      geometry — greedy from the largest marker outwards and transitive, so a
+      chain of overlapping cities is one smear rather than three overlapping
+      bubbles — and the projection stays in the component, which asks ECharts
+      for the pixels it is actually drawing at. Nine unit tests, no canvas
+  - The bubble sits at the **measure-weighted centre** of what it holds, so a
+      cluster of Berlin and a village sits on Berlin; a marker at the midpoint
+      would point at a place where almost nothing happened
+  - **What the picture is hiding is said on the picture** — "13 places are too
+      close together to draw separately at this zoom, and are shown as 3
+      bubbles" — the same rule the "cannot be placed" sentence follows. A map
+      that quietly draws thirteen cities as three has answered a different
+      question from the table beside it
+  - Clicking a bubble **zooms into it** rather than opening a menu: zooming is
+      the answer to "which of these did you mean", and each city then opens
+      its own list as before
+  - **A "By city" table** now sits under the map. Clustering is a drawing
+      decision, and the level the drawing stops being able to show is exactly
+      the level a keyboard and a screen reader had no path to (§55)
+  - The one real defect this found: `convertToPixel` answers `null` until the
+      geo component has been laid out, and it is still null inside
+      `onChartReady` *and* inside the first `finished` — `lazyUpdate` defers
+      the option by a frame. The first version therefore clustered nothing
+      until the reader happened to pan the map, which is a feature that works
+      only for people who did not need it. It retries once a frame until there
+      is a projection, bounded at ten
 
 ### `/workflows` — condition → action automation (§49)
 

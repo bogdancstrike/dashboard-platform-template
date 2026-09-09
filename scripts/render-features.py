@@ -177,8 +177,9 @@ CATALOGUE: list[dict[str, object]] = [
     feature(
         50, "Data relationships", "detail tabs + `/find/relationships`",
         "`/api/relationships/*`", "partial",
-        "The graph, the weighted relations, hub records and coverage all ship. "
-        "Marker clustering and a per-record relationship tab are open.",
+        "The graph, the weighted relations, hub records and coverage all ship, "
+        "and the map merges markers that would overlap at the reader's zoom. A "
+        "per-record relationship tab is open.",
     ),
     feature(51, "Query inspector", "`/explore`", "— (`core/rules.py`)", "done"),
     feature(52, "Pagination patterns", "various", "— (`core/pagination.py`)", "done"),

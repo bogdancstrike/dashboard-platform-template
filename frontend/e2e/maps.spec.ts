@@ -52,6 +52,59 @@ test.describe("maps", () => {
     expect(await sum("map-regions")).toBe(await sum("map-countries"));
   });
 
+  /**
+   * Markers that would overlap are one bubble, and zooming in splits them
+   * (§50).
+   *
+   * The tracker left clustering open with a good argument — "at thirty cities
+   * there is nothing to cluster" — and the argument turns out to be about the
+   * *rule*, not the feature: at the zoom this map opens on, thirteen of the
+   * eighteen European cities are inside three bubbles. A rule written in
+   * kilometres or in "cluster above N points" would be wrong at every zoom
+   * but the one it was tuned at; this one asks whether the circles would
+   * overlap on screen, which is the reader's own question.
+   *
+   * Asserted through the caption rather than by clicking a canvas: what the
+   * picture is hiding is *said*, because a map that quietly draws thirteen
+   * cities as three bubbles has answered a different question from the table
+   * beside it.
+   */
+  test("cities too close to draw separately are one bubble until you zoom in", async ({
+    page,
+  }) => {
+    await signIn(page, "admin", "/maps?dataset=customer&metric=count&period=all_time");
+    await expect(page.getByTestId("world-map").locator("canvas")).toBeVisible();
+
+    const note = page.getByTestId("map-clustered");
+    await expect(note).toBeVisible();
+    const merged = async () =>
+      Number(((await note.textContent()) ?? "").replace(/^(\d+).*/s, "$1"));
+
+    const before = await merged();
+    expect(before).toBeGreaterThan(1);
+    // No more places merged than there are, and the table below carries the
+    // cities as rows — clustering is a drawing decision, not an answer (§55).
+    const places = Number(
+      (((await page.getByTestId("map-coverage").textContent()) ?? "").match(/(\d+) places/) ??
+        [])[1] ?? 0,
+    );
+    expect(before).toBeLessThanOrEqual(places);
+    await expect(
+      page.getByTestId("map-cities").locator("tbody tr[data-row-key]").first(),
+    ).toBeVisible();
+
+    // Zooming in separates them: same data, more room.
+    const box = (await page.getByTestId("world-map").boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    for (let step = 0; step < 6; step += 1) await page.mouse.wheel(0, -120);
+
+    // Either fewer places are merged, or none are and the sentence is gone —
+    // both are the feature working.
+    await expect
+      .poll(async () => ((await note.count()) === 0 ? 0 : await merged()), { timeout: 10_000 })
+      .toBeLessThan(before);
+  });
+
   test("clicking a country opens the records that are there", async ({ page }) => {
     await signIn(page, "admin", "/maps?dataset=customer&metric=count&period=all_time");
 

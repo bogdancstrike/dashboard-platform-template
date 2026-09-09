@@ -29,7 +29,7 @@ import { Alert, Card, Col, Empty, Row, Select, Skeleton, Space, Table, Tag, Typo
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
-import { mapsApi, type MapBucket } from "@/api/maps";
+import { mapsApi, type MapBucket, type MapPoint } from "@/api/maps";
 import { analysisApi } from "@/api/analysis";
 import { PageHeader } from "@/components/PageHeader";
 import { WorldMap } from "@/components/maps/WorldMap";
@@ -302,8 +302,87 @@ export default function MapsPage() {
             }
           />
         </Col>
+        <Col xs={24}>
+          <Cities
+            rows={answer?.points ?? []}
+            loading={places.isFetching && !answer}
+            reads={reads}
+            measure={answer?.metric.label ?? ""}
+            onOpen={drill ? openCity : undefined}
+            hint={
+              drill?.via
+                ? "Opens the customers there — an order carries no city of its own."
+                : undefined
+            }
+          />
+        </Col>
       </Row>
     </>
+  );
+}
+
+/**
+ * The cities, as rows.
+ *
+ * The map merges markers that would overlap (§50), which is right for the
+ * picture and would be wrong as the only answer: at a wide zoom thirteen of
+ * these are inside three bubbles, and a reader who wants Munich rather than
+ * "central Europe" needs somewhere to read it. This is also the keyboard and
+ * screen-reader path to the same numbers, which a canvas cannot be (§55).
+ */
+function Cities({
+  rows,
+  loading,
+  reads,
+  measure,
+  onOpen,
+  hint,
+}: {
+  rows: MapPoint[];
+  loading: boolean;
+  reads: (value: number) => string;
+  measure: string;
+  onOpen?: (city: string) => void;
+  hint?: string;
+}) {
+  return (
+    <Card
+      size="small"
+      title="By city"
+      data-testid="map-cities"
+      extra={hint ? <Text type="secondary">{hint}</Text> : undefined}
+    >
+      <Table<MapPoint>
+        size="small"
+        rowKey="city"
+        loading={loading}
+        pagination={rows.length > 12 ? { pageSize: 12, size: "small" } : false}
+        dataSource={rows}
+        locale={{ emptyText: "Nothing placed yet" }}
+        onRow={(row) =>
+          onOpen ? { onClick: () => onOpen(row.city), style: { cursor: "pointer" } } : {}
+        }
+        columns={[
+          { title: "City", dataIndex: "city" },
+          { title: "Country", dataIndex: "country" },
+          { title: "Region", dataIndex: "region_name", responsive: ["lg"] },
+          {
+            title: "Records",
+            dataIndex: "rows",
+            width: 100,
+            align: "right",
+            render: (value: number) => formatNumber(value),
+          },
+          {
+            title: measure,
+            dataIndex: "value",
+            width: 140,
+            align: "right",
+            render: (value: number) => reads(value),
+          },
+        ]}
+      />
+    </Card>
   );
 }
 

@@ -120,7 +120,7 @@ Every section above that is not shipped, with the part that is open. A catalogue
 
 **§48 Timeline view** — Partly there. Every record page carries its own history, read from the audit ledger so the two cannot disagree. A cross-record timeline — one thread through several records — is open.
 
-**§50 Data relationships** — Partly there. The graph, the weighted relations, hub records and coverage all ship. Marker clustering and a per-record relationship tab are open.
+**§50 Data relationships** — Partly there. The graph, the weighted relations, hub records and coverage all ship, and the map merges markers that would overlap at the reader's zoom. A per-record relationship tab is open.
 
 **§53 Data refresh, auto-refresh** — Partly there. Notifications and the log tail arrive over the live channel. A general auto-refresh a reader can turn on per page is open.
 

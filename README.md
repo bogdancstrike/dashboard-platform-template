@@ -224,6 +224,13 @@ place. Which datasets can be mapped, and how each reaches a place, is the
 no city is placed one hop away, at its customer's. Country outlines are
 vendored (`frontend/src/assets/README.md`) because the stack runs offline.
 
+Markers that would overlap on screen are drawn as one bubble and split when the
+reader zooms in — the rule is pixels, in `frontend/src/components/maps/cluster.ts`,
+because whether two circles collide is the reader's own question and a rule in
+kilometres is wrong at every zoom but one. What the merge is hiding is said
+under the map, and the "By city" table carries every city as a row for the
+keyboard and the screen reader.
+
 ### Tags, and one store for one fact
 
 A tag is the only classification a reader invents; everything else — status,
