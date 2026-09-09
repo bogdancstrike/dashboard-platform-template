@@ -92,7 +92,19 @@ def _safe_metadata(value: Any) -> Any:
 
 
 def _lookup(resource: Resource, identifier):
-    statement = select(resource.model).where(resource.model.id == identifier)
+    """One record by id, or several — the soft-deleted excluded either way.
+
+    Takes a collection as well as a single id so that the bulk path (§43) asks
+    the same question about fifty records that a detail page asks about one. The
+    rule below is the reason: "gone means gone unless you are the audit trail"
+    is a decision that must not have a second implementation, and a bulk
+    selection that quietly included deleted rows would resurrect them.
+    """
+    column = resource.model.id
+    many = isinstance(identifier, (list, tuple, set, frozenset))
+    statement = select(resource.model).where(
+        column.in_(list(identifier)) if many else column == identifier
+    )
     deleted = getattr(resource.model, "deleted_at", None)
     # A soft-deleted record is gone as far as the application is concerned;
     # only the audit trail remembers it.

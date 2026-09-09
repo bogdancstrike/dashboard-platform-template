@@ -18,6 +18,7 @@ from typing import Any
 
 from src.core.auth import json_body, me, requires
 from src.core.db import session_scope
+from src.services import bulk as bulk_service
 from src.services import record_writes as writes
 from src.services import records as service
 
@@ -57,3 +58,40 @@ def item(
         if method == "DELETE":
             return writes.delete(session, kind, identifier, principal=principal), 200
         return service.detail(session, kind, identifier, principal=principal), 200
+
+
+@requires("records.view")
+def bulk_preview(
+    app=None, operation: str = "", request=None, resource_type: str = "", **kwargs: Any
+):
+    """What a bulk gesture would do, before it does it (§75).
+
+    A separate call and not a flag on the write, because the answer has to be
+    read by a person and then confirmed. `records.view` gates it: counting the
+    rows a filter names is reading them, and the narrower permission the write
+    needs is reported *in* the answer, as a refusal with a reason, rather than
+    as an error — somebody who may read but not delete should see how many rows
+    they are not allowed to delete, not a 403 with no number in it.
+    """
+    kind = resource_type or str(kwargs.get("resource_type") or "")
+    with session_scope() as session:
+        return bulk_service.preview(session, kind, json_body(), principal=me()), 200
+
+
+@requires("records.view")
+def bulk(app=None, operation: str = "", request=None, resource_type: str = "", **kwargs: Any):
+    """Apply one change to many records, and report both halves (§43).
+
+    200 rather than 207 or 400 when some rows fail. Partial success is the
+    normal outcome of a bulk gesture — a lost race here, a row somebody else
+    deleted there — and the response body carries the applied count and every
+    refusal with its reason. A status that says "error" would have a client
+    throw away the news that forty-eight of fifty worked.
+
+    `records.view` on the handler for the reason `item` documents: the write's
+    own permission is required by the service, so a caller who may read but not
+    write is told which permission is missing rather than which route to use.
+    """
+    kind = resource_type or str(kwargs.get("resource_type") or "")
+    with session_scope() as session:
+        return bulk_service.apply(session, kind, json_body(), principal=me()), 200

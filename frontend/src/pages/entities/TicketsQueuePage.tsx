@@ -27,17 +27,18 @@ import type { SorterResult } from "antd/es/table/interface";
 import { useNavigate } from "react-router-dom";
 
 import { EmptyState, NoResults } from "@/components/EmptyState";
+import { StatusTag } from "@/components/StatusTag";
 import {
   NewRecordButton,
   RecordActions,
   useRecordEditing,
 } from "@/components/records/useRecordEditing";
+import { opensRecord, useBulk } from "@/components/records/useBulk";
 import { usePageCommands } from "@/commands/CommandContext";
 import { duration, slaStanding, type SlaStanding } from "@/entities/sla";
 import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
 import { useEntityView } from "@/entities/useEntityView";
 import { absoluteTime, relativeTime } from "@/lib/time";
-import { knownStatusColor } from "@/theme/tokens";
 
 const { Text } = Typography;
 
@@ -88,6 +89,13 @@ export default function TicketsQueuePage() {
   const rows = (view.rows.data?.items ?? []) as TicketRow[];
   const records = useRecordEditing(view.resource, {
     onCreated: (id) => navigate(`/tickets/${id}`),
+  });
+  // The list's own request is what "everything matching this filter" means,
+  // sent unchanged — a hand-built copy of the filters would be a second
+  // question, and rows nobody saw would change the first time the two differed.
+  const bulk = useBulk(view.resource, {
+    request: view.request,
+    total: view.rows.data?.total ?? 0,
   });
 
   usePageCommands("entity:ticket", [
@@ -155,9 +163,7 @@ export default function TicketsQueuePage() {
       sorter: true,
       defaultSortOrder: "ascend",
       render: (value: string) => (
-        <Tag color={knownStatusColor(value)} bordered={false}>
-          {value}
-        </Tag>
+        <StatusTag status={value} bordered={false} />
       ),
     },
     {
@@ -166,9 +172,7 @@ export default function TicketsQueuePage() {
       width: 148,
       sorter: true,
       render: (value: string) => (
-        <Tag color={knownStatusColor(value)} bordered={false}>
-          {value}
-        </Tag>
+        <StatusTag status={value} bordered={false} />
       ),
     },
     {
@@ -272,16 +276,23 @@ export default function TicketsQueuePage() {
       <EntityError view={view} />
 
       <Card size="small" className="nu-block" data-testid="ticket-queue">
+        {/* Above the table, not floating over it: a bar that covers the last
+            row hides part of what the reader is deciding about (§43). */}
+        {bulk.bar}
         <Table<TicketRow>
           rowKey="id"
           size="small"
           columns={columns}
           dataSource={rows}
+          rowSelection={bulk.rowSelection}
           loading={view.rows.isLoading}
           onChange={onChange}
           scroll={{ x: 940 }}
           onRow={(row) => ({
-            onClick: () => navigate(`/tickets/${row.id}`),
+            // Not when the click was on a control — a tick box opens nothing.
+            onClick: (event) => {
+              if (opensRecord(event.target)) navigate(`/tickets/${row.id}`);
+            },
             style: { cursor: "pointer" },
           })}
           locale={{
@@ -308,6 +319,7 @@ export default function TicketsQueuePage() {
       </Card>
 
       {records.drawer}
+      {bulk.dialog}
     </>
   );
 }

@@ -13,24 +13,25 @@
  * anybody chases.
  */
 
-import { Card, Skeleton, Space, Table, Tag, Tooltip, Typography } from "antd";
+import { Card, Skeleton, Space, Table, Tooltip, Typography } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { useNavigate } from "react-router-dom";
 
 import type { SeriesPoint } from "@/api/explorer";
 import { ChartCard } from "@/components/ChartCard";
+import { StatusTag } from "@/components/StatusTag";
 import { EmptyState, NoResults } from "@/components/EmptyState";
 import {
   NewRecordButton,
   RecordActions,
   useRecordEditing,
 } from "@/components/records/useRecordEditing";
+import { opensRecord, useBulk } from "@/components/records/useBulk";
 import { usePageCommands } from "@/commands/CommandContext";
 import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
 import { useEntityView } from "@/entities/useEntityView";
 import { absoluteTime, relativeTime } from "@/lib/time";
-import { knownStatusColor } from "@/theme/tokens";
 
 const { Text } = Typography;
 
@@ -62,6 +63,13 @@ export default function OrdersLedgerPage() {
 
   const records = useRecordEditing(view.resource, {
     onCreated: (id) => navigate(`/orders/${id}`),
+  });
+  // The list's own request is what "everything matching this filter" means,
+  // sent unchanged — a hand-built copy of the filters would be a second
+  // question, and rows nobody saw would change the first time the two differed.
+  const bulk = useBulk(view.resource, {
+    request: view.request,
+    total: view.rows.data?.total ?? 0,
   });
 
   usePageCommands("entity:order", [
@@ -112,9 +120,7 @@ export default function OrdersLedgerPage() {
       width: 130,
       sorter: true,
       render: (value: string) => (
-        <Tag color={knownStatusColor(value)} bordered={false}>
-          {value}
-        </Tag>
+        <StatusTag status={value} bordered={false} />
       ),
     },
     {
@@ -125,9 +131,7 @@ export default function OrdersLedgerPage() {
       width: 130,
       sorter: true,
       render: (value: string) => (
-        <Tag color={knownStatusColor(value)} bordered={false}>
-          {value}
-        </Tag>
+        <StatusTag status={value} bordered={false} />
       ),
     },
     {
@@ -136,9 +140,7 @@ export default function OrdersLedgerPage() {
       width: 130,
       sorter: true,
       render: (value: string) => (
-        <Tag color={knownStatusColor(value)} bordered={false}>
-          {value}
-        </Tag>
+        <StatusTag status={value} bordered={false} />
       ),
     },
     { title: "Channel", dataIndex: "channel", width: 120, sorter: true },
@@ -222,17 +224,24 @@ export default function OrdersLedgerPage() {
       <EntityError view={view} />
 
       <Card size="small" className="nu-block">
+        {/* Above the table, not floating over it: a bar that covers the last
+            row hides part of what the reader is deciding about (§43). */}
+        {bulk.bar}
         <Table<OrderRow>
           rowKey="id"
           size="small"
           className="nu-ledger"
           columns={columns}
           dataSource={rows}
+          rowSelection={bulk.rowSelection}
           loading={view.rows.isLoading}
           onChange={onChange}
           scroll={{ x: 1080 }}
           onRow={(row) => ({
-            onClick: () => navigate(`/orders/${row.id}`),
+            // Not when the click was on a control — a tick box opens nothing.
+            onClick: (event) => {
+              if (opensRecord(event.target)) navigate(`/orders/${row.id}`);
+            },
             style: { cursor: "pointer" },
           })}
           locale={{
@@ -280,6 +289,7 @@ export default function OrdersLedgerPage() {
       </Card>
 
       {records.drawer}
+      {bulk.dialog}
     </>
   );
 }

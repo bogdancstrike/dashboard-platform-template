@@ -29,17 +29,18 @@ import type { SorterResult } from "antd/es/table/interface";
 import { useNavigate } from "react-router-dom";
 
 import { EmptyState, NoResults } from "@/components/EmptyState";
+import { StatusTag } from "@/components/StatusTag";
 import {
   NewRecordButton,
   RecordActions,
   useRecordEditing,
 } from "@/components/records/useRecordEditing";
+import { opensRecord, useBulk } from "@/components/records/useBulk";
 import { usePageCommands } from "@/commands/CommandContext";
 import { behindOn, projectStanding, type ProjectStanding } from "@/entities/delivery";
 import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
 import { useEntityView } from "@/entities/useEntityView";
 import { absoluteTime } from "@/lib/time";
-import { knownStatusColor } from "@/theme/tokens";
 
 const { Text } = Typography;
 
@@ -107,6 +108,13 @@ export default function ProjectsPortfolioPage() {
   const records = useRecordEditing(view.resource, {
     onCreated: (id) => navigate(`/projects/${id}`),
   });
+  // The list's own request is what "everything matching this filter" means,
+  // sent unchanged — a hand-built copy of the filters would be a second
+  // question, and rows nobody saw would change the first time the two differed.
+  const bulk = useBulk(view.resource, {
+    request: view.request,
+    total: view.rows.data?.total ?? 0,
+  });
 
   usePageCommands("entity:project", [
     {
@@ -166,9 +174,7 @@ export default function ProjectsPortfolioPage() {
       width: 116,
       sorter: true,
       render: (value: string) => (
-        <Tag color={knownStatusColor(value)} bordered={false}>
-          {value}
-        </Tag>
+        <StatusTag status={value} bordered={false} />
       ),
     },
     {
@@ -177,9 +183,7 @@ export default function ProjectsPortfolioPage() {
       width: 112,
       sorter: true,
       render: (value: string) => (
-        <Tag color={knownStatusColor(value)} bordered={false}>
-          {value}
-        </Tag>
+        <StatusTag status={value} bordered={false} />
       ),
     },
     {
@@ -330,16 +334,23 @@ export default function ProjectsPortfolioPage() {
       <EntityError view={view} />
 
       <Card size="small" className="nu-block" data-testid="project-table">
+        {/* Above the table, not floating over it: a bar that covers the last
+            row hides part of what the reader is deciding about (§43). */}
+        {bulk.bar}
         <Table<ProjectRow>
           rowKey="id"
           size="small"
           columns={columns}
           dataSource={rows}
+          rowSelection={bulk.rowSelection}
           loading={view.rows.isLoading}
           onChange={onChange}
           scroll={{ x: 1160 }}
           onRow={(row) => ({
-            onClick: () => navigate(`/projects/${row.id}`),
+            // Not when the click was on a control — a tick box opens nothing.
+            onClick: (event) => {
+              if (opensRecord(event.target)) navigate(`/projects/${row.id}`);
+            },
             style: { cursor: "pointer" },
           })}
           locale={{
@@ -363,6 +374,7 @@ export default function ProjectsPortfolioPage() {
       </Card>
 
       {records.drawer}
+      {bulk.dialog}
     </>
   );
 }

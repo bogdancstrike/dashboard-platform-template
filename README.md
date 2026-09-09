@@ -224,6 +224,37 @@ place. Which datasets can be mapped, and how each reaches a place, is the
 no city is placed one hop away, at its customer's. Country outlines are
 vendored (`frontend/src/assets/README.md`) because the stack runs offline.
 
+### Changing many records at once
+
+A list that can only be changed a row at a time is a list somebody changes with
+fifty clicks, and the fifty-first is the one they get wrong. Tick rows, or
+press "select all N matching this filter", then apply one change.
+
+Two decisions are worth knowing before extending it.
+
+**The preview is a separate call and it is not optional.**
+`POST /api/records/<type>/bulk/preview` answers with the count *split into
+ticked-by-hand and matched-by-filter*, a few of the records by name, and every
+reason a row would be left alone. Those two halves are trusted differently:
+somebody who ticked twelve boxes knows what is in them, and somebody who
+filtered does not.
+
+**Partial success is the normal outcome.** `POST /api/records/<type>/bulk`
+answers 200 with `applied`, `unchanged` and a `failed` entry per record
+carrying the server's own reason, and each row is written in its own savepoint
+so one refusal does not undo the rows before it. A 500 would hide the
+forty-nine that worked; a bare 200 would hide the one that did not.
+
+A filter selection is resolved by `explorer.statement_for` — the same statement
+the list ran — and the writes go through `record_writes.apply_values` and
+`remove_row`, the same functions a form uses. So a bulk cannot set a value the
+form would refuse, and two hundred records changed by one gesture leave the
+audit ledger saying what two hundred single edits would have said.
+
+`useBulk` in `frontend/src/components/records/useBulk.tsx` carries the whole
+interaction; a list adds `rowSelection={bulk.rowSelection}` and renders
+`bulk.bar` and `bulk.dialog`.
+
 ### When a page cannot be shown
 
 Six addresses, `/errors/401` through `/errors/session-expired`, all rendered

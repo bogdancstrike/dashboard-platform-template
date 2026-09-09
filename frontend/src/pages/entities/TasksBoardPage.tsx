@@ -35,7 +35,7 @@ import {
   Progress,
   Skeleton,
   Space,
-  Tag,
+  
   Tooltip,
   Typography,
 } from "antd";
@@ -57,6 +57,7 @@ import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entitie
 import { useEntityView } from "@/entities/useEntityView";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { knownStatusColor } from "@/theme/tokens";
+import { StatusTag } from "@/components/StatusTag";
 
 const { Text } = Typography;
 
@@ -361,9 +362,7 @@ function TaskCard({
     >
       <Space direction="vertical" size={6} style={{ width: "100%" }}>
         <Space size={6} wrap>
-          <Tag color={knownStatusColor(task.priority ?? "")} bordered={false}>
-            {task.priority}
-          </Tag>
+          <StatusTag status={task.priority} bordered={false} />
           <Text type="secondary" className="nu-task-ref">
             {task.reference}
           </Text>

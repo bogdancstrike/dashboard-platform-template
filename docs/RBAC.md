@@ -162,10 +162,22 @@ def list_projects(app=None, operation="", request=None, **_):
     ...
 
 
-@requires("records.update", "records.bulk")
-def bulk_update_projects(app=None, operation="", request=None, **_):
+@requires("records.view")
+def bulk(app=None, operation="", request=None, **_):
+    # The *read* permission gates the handler, because a bulk gesture begins by
+    # naming rows and naming rows is reading them. The write's own permission —
+    # `records.update` or `records.delete` — is required by the service, once,
+    # before anything is touched: a gesture that changed the first forty
+    # records and then discovered it was not allowed is worse than one that
+    # never started. See `src/api/records.py`.
     ...
 ```
+
+The illustration above used to name a `records.bulk` permission that does not
+exist. There is no separate permission for doing something to many records:
+changing fifty is the same act as changing one, fifty times, and a second
+permission would let an installation grant one without the other — which is a
+rule nobody could explain.
 
 `@requires()` with no arguments means authenticated-only. Public endpoints
 should be deliberately unguarded or use `@optional` when they can enrich a

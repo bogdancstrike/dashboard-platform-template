@@ -38,7 +38,6 @@ import { StatusTag } from "@/components/StatusTag";
 import { formatMetric } from "@/entities/EntityChrome";
 import { asText } from "@/lib/text";
 import { relativeTime } from "@/lib/time";
-import { knownStatusColor } from "@/theme/tokens";
 
 const { Text } = Typography;
 
@@ -325,9 +324,7 @@ function RowsBody({
           <Link to={`${path}/${row.id}`} className="nu-widget-row">
             <Text ellipsis>{asText(row[title]) || asText(row["id"])}</Text>
             {status && row[status] ? (
-              <Tag color={knownStatusColor(asText(row[status]))} bordered={false}>
-                {asText(row[status])}
-              </Tag>
+              <StatusTag status={asText(row[status])} bordered={false} />
             ) : null}
           </Link>
         </List.Item>

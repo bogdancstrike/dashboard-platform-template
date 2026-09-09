@@ -976,6 +976,34 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "record_bulk_preview",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/records/<string:resource_type>/bulk/preview",
+      "description": "What a bulk action would change, split into hand-picked and filter-matched.",
+      "exec_method": {
+        "module_name": "src.api.records",
+        "method_name": "bulk_preview"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "record_bulk",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/records/<string:resource_type>/bulk",
+      "description": "Apply one change to many records; the answer carries both halves.",
+      "exec_method": {
+        "module_name": "src.api.records",
+        "method_name": "bulk"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "comments_collection",
       "model_name": "Empty",
       "request_method": [

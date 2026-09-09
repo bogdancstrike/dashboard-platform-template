@@ -135,10 +135,22 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
         // a hundredth under the bar. The accent one step darker carries the
         // same white at 5.37:1 and reads as the same button.
         colorPrimary: dark ? ACCENT[500] : ACCENT[500],
-        // A dangerous button's label is the derived `#be2323`, which is
-        // 2.94:1 on a charcoal panel — a Delete nobody can read. The ink ramp
-        // is the same meaning at 6.5:1.
-        colorError: dark ? SEMANTIC_INK.dark.danger : SEMANTIC.danger,
+        // The *fill* of a solid danger button, in both appearances.
+        //
+        // This was the dark ink (`#f87171`) to fix the outlined button's
+        // label, which was the derived `#be2323` at 2.94:1 on a charcoal
+        // panel — a Delete nobody can read. But one token was carrying two
+        // roles: AntD also paints `type="primary" danger` with it and writes
+        // **white** on top, and white on a light red is 2.76:1. So every
+        // solid Delete in the dark appearance was illegible — including the
+        // OK button of every delete confirmation in the product, which no
+        // axe test had opened in dark until the bulk dialog.
+        //
+        // The fill stays fill-strength here (white on `#dc2626` is 4.83:1),
+        // and the outlined button's *ink* is named in the stylesheet instead —
+        // `.ant-btn-dangerous:not(.ant-btn-primary)` in `index.css`, the same
+        // way the preset tags are. Asserted in `contrast.test.ts`.
+        colorError: SEMANTIC.danger,
       },
       // An initials avatar's default ground is `#bfbfbf`, which carries white
       // text at 1.84:1 — every avatar in the product without a photograph was

@@ -18,6 +18,7 @@ import { MailOutlined, ShopOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
 import { ChartCard } from "@/components/ChartCard";
+import { StatusTag } from "@/components/StatusTag";
 import {
   NewRecordButton,
   RecordActions,
@@ -27,7 +28,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { EntityError, EntityFilters, EntityHeader, MetricStrip } from "@/entities/EntityChrome";
 import { useEntityView } from "@/entities/useEntityView";
 import { absoluteTime, relativeTime } from "@/lib/time";
-import { knownStatusColor, SEMANTIC } from "@/theme/tokens";
+import { SEMANTIC } from "@/theme/tokens";
 
 const { Text, Paragraph } = Typography;
 
@@ -187,9 +188,7 @@ export default function CustomersPage() {
                       {customer.code} · {customer.city}, {customer.country}
                     </Text>
                   </div>
-                  <Tag color={knownStatusColor(customer.status ?? "")} bordered={false}>
-                    {customer.status}
-                  </Tag>
+                  <StatusTag status={customer.status} bordered={false} />
                   <RecordActions
                     records={records}
                     id={customer.id}

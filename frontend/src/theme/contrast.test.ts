@@ -125,6 +125,25 @@ describe.each(["light", "dark"] as const)("text is legible in %s", (mode) => {
     },
   );
 
+  it("carries white text on a solid danger button", () => {
+    /**
+     * The fill of `<Button danger type="primary">`, which AntD writes white on.
+     *
+     * This token was the dark *ink* red for a while, to fix the outlined
+     * danger button's label — one token doing two jobs, and the solid variant
+     * then had white on `#f87171` at 2.76:1. Every solid Delete in the dark
+     * appearance, including the OK button of every delete confirmation in the
+     * product, was illegible; axe found it on the first dialog a spec opened
+     * in dark. The fill stays fill-strength and the outlined button's ink is
+     * named in `index.css` instead.
+     *
+     * Mode-independent on purpose: a fill that carries white text carries it
+     * in both appearances, and this is the assertion that stops somebody
+     * "fixing" the ink by changing the fill again.
+     */
+    expect(contrast("#ffffff", SEMANTIC.danger)).toBeGreaterThanOrEqual(4.5);
+  });
+
   it("carries white initials on an avatar", () => {
     // AntD's default ground is #bfbfbf — 1.84:1 with white, which is to say
     // an avatar nobody can read. One value for both appearances, because an

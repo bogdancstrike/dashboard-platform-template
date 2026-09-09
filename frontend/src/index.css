@@ -342,6 +342,27 @@ body {
 .nu-activity-item { font-size: 13px; line-height: 1.45; }
 .nu-activity-time { font-size: 11.5px; color: var(--nu-text-tertiary); margin-top: 2px; }
 
+/* ── bulk selection (§43, §75) ──────────────────────────────────────── */
+/* Above the table rather than floating over it: a bar pinned to the bottom of
+   the viewport covers the last row, which is part of what the reader is
+   deciding about. */
+.nu-bulkbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  margin: 0 0 8px; padding: 7px 10px;
+  border: 1px solid var(--nu-border);
+  border-radius: var(--nu-radius-control);
+  background: color-mix(in srgb, var(--nu-accent) 8%, transparent);
+}
+.nu-bulk-body { display: flex; flex-direction: column; gap: 12px; }
+.nu-bulk-form { margin-bottom: 0; }
+.nu-bulk-form .ant-form-item { margin-bottom: 8px; }
+.nu-bulk-preview { display: flex; flex-direction: column; gap: 8px; }
+.nu-bulk-split { display: flex; gap: 6px; flex-wrap: wrap; }
+.nu-bulk-sample ul { margin: 4px 0 0; padding-left: 18px; }
+.nu-bulk-sample li { font-size: 12.5px; color: var(--nu-text-secondary); }
+.nu-bulk-refusal { margin: 0; }
+
 /* ── problem pages (§34) ────────────────────────────────────────────── */
 /* Centred in the space it is given rather than pinned to the top: a failure
    is not a page of content, and a 404 clinging to the header with eight
@@ -1268,6 +1289,21 @@ mark.nu-mark {
     margin-bottom: 12px;
   }
   .nu-rgl .react-resizable-handle { display: none; }
+}
+
+/* A dangerous button that is not solid (§55).
+   Its label and border come from `colorError`, which has to stay
+   fill-strength so that the *solid* danger button can carry white text — see
+   `Button.colorError` in `theme/antd.ts`. On a charcoal panel that red is
+   2.94:1 as ink, so the readable half of the ramp is named here. The solid
+   variant is excluded: it is white on the fill, and it needs the fill. */
+.ant-btn-dangerous:not(.ant-btn-primary) {
+  color: var(--nu-danger-ink) !important;
+  border-color: var(--nu-danger-ink) !important;
+}
+.ant-btn-dangerous.ant-btn-text:not(.ant-btn-primary),
+.ant-btn-dangerous.ant-btn-link:not(.ant-btn-primary) {
+  border-color: transparent !important;
 }
 
 /* A preset-coloured tag's text (§55).

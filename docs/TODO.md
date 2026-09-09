@@ -1638,6 +1638,98 @@ commit — built, committed, pushed, redeployed and verified before the next.
       and lets the label take the click, which `NotificationsPage.test` had
       already documented
 
+- [x] **One gesture over many records** (§43, §75)
+  - **The preview is a separate call and it is not optional.** "Change the
+      status of everything matching this filter" is a sentence whose
+      consequences the reader cannot see — the filter might match nine rows or
+      nine hundred — so the server is asked first. It answers with the count
+      *split into ticked-by-hand and matched-by-filter*, which is what §75 asks
+      for and is the whole point: somebody who ticked twelve boxes knows what
+      is in them, and somebody who filtered does not
+  - **A filter selection is resolved by the list's own query**, sent unchanged.
+      `explorer.statement_for` hands bulk the same statement the list ran, so a
+      second filter implementation cannot decide "case-insensitive" differently
+      and change rows nobody saw. `excluded` carries the rows unticked
+      afterwards, because "all of these except that one" is a thing people do
+      and four hundred and ninety-nine ids is not how to say it
+  - **Partial success is the normal outcome and is reported as one.** Fifty
+      rows of which one lost a race is forty-nine applied and one refused —
+      not a failure, not a success. Each row is written in its own savepoint,
+      so a refusal does not undo the rows before it; the answer is a 200 with
+      `applied`, `unchanged` and a `failed` entry per record carrying the
+      server's own reason. A 500 would hide the forty-nine and a bare 200 would
+      hide the one. This is §34's "partial" state, which had been open since it
+      was written
+  - **`unchanged` is its own number.** A row that already had the value is not
+      work done and not a problem, and folding it either way misreports the
+      gesture — "3 selected, 3 already like that" is what stops somebody
+      pressing a button that does nothing and then wondering whether it worked
+  - **The writes are the single-record writes.** `record_writes.apply_values`
+      and `remove_row`, extracted from `update` and `delete` and shared, so two
+      hundred records changed by one gesture leave the ledger saying what two
+      hundred single edits would have said — including that a status change is
+      a status change rather than an edit, which is a decision that must not
+      have a second implementation. Asserted by counting `STATUS_CHANGE` rows
+  - **The cap is a refusal that names both numbers.** Five hundred is not a
+      technical limit — the statement would happily update a hundred thousand —
+      it is the point past which "are you sure" stops being a real question,
+      because the reader cannot check the number they are shown and the
+      recovery from a wrong filter is a restore. The preview *reports* being
+      over it so the dialog can say how much to narrow by; the write refuses
+  - **A bulk edit offers only closed vocabularies.** A status, a priority, a
+      health. The API accepts any writable field; what the dialog offers is
+      narrower on purpose, because a free-text box applied to two hundred
+      records is the most destructive control a list could have. Reference
+      fields — "assign these forty to her" — need a picker and are the obvious
+      next step
+  - **On the three list pages that are tables**, and not on the card grids or
+      the board: a tick box on a card grid is a different interaction, and the
+      six entity pages are deliberately shaped differently (§7). `/customers`,
+      `/devices` and `/tasks` remain
+  - **And it found two more defects on the way in.** Adding row selection to a
+      table whose rows navigate on click made *ticking a box open the record* —
+      the click bubbled to the row and the reader lost the page they were
+      selecting on. And AntD names only the header's checkbox, so a screen
+      reader met a column of twenty-five identical "checkbox"es; each one says
+      what it selects now. The first was caught by the first component test
+      that tried to tick a row, the second by the first axe run over the queue
+  - 13 backend tests, 15 component tests, 7 Playwright
+
+- [x] **A status tag nobody was obliged to use** (§55, §59)
+  - `StatusTag` was written to fix exactly one thing: `<Tag color={hex}>` fills
+      the tag and AntD writes **white** on it without measuring, and white on
+      this platform's grey is 2.56:1 and on its cyan 3.68:1 at 10px. Its own
+      docstring said why it was a component — "every page remembering to write
+      the same inline border is how six pages ended up with three different
+      status tags" — and then **thirteen call sites across nine files kept the
+      broken form**, including every entity list. No spec had run axe over a
+      list page, so nothing said so until the bulk suite did
+  - All thirteen use the component now, and the rule is a *test* rather than a
+      component nobody had to reach for: `StatusTag.test.tsx` reads every
+      shipped file and fails on a colour computed from the vocabulary being
+      handed to a `Tag` as a fill. A preset name stays fine — those are tinted
+      grounds whose ink `index.css` already names
+  - **And a solid Delete was illegible in the dark appearance.**
+      `Button.colorError` had been set to the dark *ink* red so the outlined
+      danger button's label could be read; one token doing two jobs, because
+      AntD also paints `type="primary" danger` with it and writes white on top
+      — 2.76:1. That is every solid Delete in the product, including the OK
+      button of every delete confirmation, and no axe test had opened one in
+      dark until the bulk dialog. The fill is fill-strength again, the outlined
+      button's ink is named in the stylesheet, and `contrast.test.ts` asserts
+      white-on-danger-fill so the next person cannot fix the ink by changing
+      the fill
+
+- [x] **The end-to-end suite runs two browsers, not three**
+  - Four consecutive full sweeps at three workers each failed one test, a
+      different one every time, and every one of them passed alone: a sign-in
+      stuck on "Signing you in…", a toast missed, a write that had not landed
+      yet. That is the same lesson the config already records at a hundred
+      tests, arriving again at three hundred. The same sweep at two workers is
+      green and costs ninety seconds — less than one investigation of a
+      failure that was never real. `expect`'s cap moved 15s → 30s for the same
+      reason: every failure it has ever produced was a timeout under load
+
 - [x] **A board key that ran out, and the e2e that walked into it** (§18)
   - **Ninety-eight boards, ever, per derived key.** `_board_key` tried `KEY2`
       … `KEY99` and then refused. A key is deliberately never freed — not even
@@ -2374,7 +2466,10 @@ operational enterprise application, not a marketing website.**
 - [x] **Error** — what failed, the correlation id, and retry
 - [x] **Forbidden** — which permission is missing, in words, and in the same
       sentence every disabled control in the product uses
-- [ ] **Partial** — a bulk operation that half-succeeded reports both halves
+- [x] **Partial** — a bulk operation that half-succeeded reports both halves
+      (§43): applied, unchanged and a refusal per record with the server's own
+      reason, each row written in its own savepoint so one refusal does not
+      undo the rest
 - [x] Dedicated pages: 401, 403, 404, 500, maintenance, session expired — at
       `/errors/*`, from one declaration, with a boundary that turns a render
       fault into the 500 rather than a white page
@@ -2475,8 +2570,11 @@ function is a slow test that fails for unrelated reasons.
       inspector, save it (§5), reopen it, get the same rows *and* columns
 - [ ] **CRUD** (§8, §9) — create, edit, delete; the audit trail shows all three
 - [ ] **Wizard** (§10) — save a draft midway, resume it, complete it
-- [ ] **Bulk operation** (§43, §75) — select across pages, see the affected-count
-      preview, confirm, read the partial result
+- [x] **Bulk operation** (§43, §75) — select across pages, see the
+      affected-count preview split into hand-picked and filter-matched,
+      confirm, read the partial result. The e2e deletes a record out from
+      under the gesture between the preview and the confirmation, which is the
+      race that happens for real
 - [x] **Import** (§29) — upload CSV, map columns, preview errors, execute,
       download the error report. The e2e sends the same bad value to the
       import and to the *form's* endpoint and asserts the same sentence comes
@@ -2549,7 +2647,7 @@ section is a cross-cutting rule rather than a page.
 | 40 | Personal preferences | `/settings/preferences` | `/api/me` | [x] |
 | 41 | Security settings, sessions | `/settings/security` | `/security/*` | [x] |
 | 42 | Organization settings | `/admin/organizations` | `/admin/organizations` | [x] |
-| 43 | Bulk operations | every list | `/{entity}/bulk` | [ ] |
+| 43 | Bulk operations | every list that is a table | `/api/records/{type}/bulk` | [x] |
 | 44 | Drill-down | dashboard, analytics → list | `/api/analysis/run` | [~] |
 | 45 | Dashboard builder | `/dashboards` | `/api/dashboards` | [x] |
 | 46 | Saved views | every list | `/saved-views` | [ ] |
@@ -2581,7 +2679,7 @@ section is a cross-cutting rule rather than a page.
 | 72 | Query state persistence | global | — | [ ] |
 | 73 | Optimistic vs confirmed actions | board, forms | — | [~] |
 | 74 | Unsaved changes protection | every form | — | [~] drawer |
-| 75 | Preview before bulk execution | every bulk action | `/{entity}/bulk/preview` | [ ] |
+| 75 | Preview before bulk execution | every bulk action | `/api/records/{type}/bulk/preview` | [x] |
 | 76 | Security-conscious UX | global | `core/auth.py` masking | [x] core |
 | 77 | Final goal — coherent template | everything | — | [ ] |
 
@@ -3428,8 +3526,9 @@ there was only one. The point of a template is the opposite.
   - Exporting is its own permission (`records.export`), separate from reading:
     taking a copy of the ledger off the platform is not the same act as looking
     at it
-  - Still open: **selection** (export these twelve rows) waits on bulk
-    selection, and the row cap becoming a background job waits on §23
+  - Still open: **selection** (export these twelve rows). Bulk selection now
+    exists (§43), so this is a matter of handing the same `Selection` to the
+    export plan; the row cap becoming a background job shipped with §30
 - [x] `core/importer.py` — delimiter detection, column naming, mapping
       suggestion, and the row/byte caps. Row *validation* is deliberately not
       here: it is `record_writes.coerce`, the same function a form uses, and a
@@ -3476,13 +3575,14 @@ Each endpoint ships with its five-case integration test and the page consuming i
   - **Acceptance**: every KPI links to the list that explains it with the same
     filters applied; "this month" means the same thing to the tile and the chart
     beneath it; drill-down keeps a back-stack (§44)
-- [~] Generic entity **read and write** ship for all six datasets (§3, §7, §8,
+- [x] Generic entity **read and write** ship for all six datasets (§3, §7, §8,
       §9). One declaration yields the list, its filters, facets, sort, search
       and export; `/api/records/<type>/<id>` adds the detail, the edit and the
-      delete, and `POST /api/records/<type>` the create — all from the same
+      delete, `POST /api/records/<type>` the create, and
+      `/api/records/<type>/bulk` one change over many (§43) — all from the same
       declaration, so a field filterable on the list is a field the detail page
-      shows and a field the form may write is one the API accepts. Bulk (§43)
-      is next
+      shows, a field the form may write is one the API accepts, and a value a
+      bulk edit may set is one the form would have accepted
   - The list endpoint is deliberately the explorer's `POST /api/explorer/query`
     rather than a second implementation. Two list endpoints is two places for
     "case-insensitive" to be decided differently
@@ -3492,11 +3592,13 @@ Each endpoint ships with its five-case integration test and the page consuming i
     touch and the bounds on them, `Identity` names the identifier the server
     generates. A dataset with neither is read-only and says so, rather than
     accepting a payload and quietly ignoring it
-  - **Acceptance**: partly met. One declaration → list, detail, export, filters,
-    facets, create, edit and delete, all in SQL and all audited. Bulk, and the
-    per-row partial result it has to report, are open
-- [ ] Bulk preview endpoint (§75) — affected count split into "selected
-      manually" and "selected by filter", before anything is applied
+  - **Acceptance**: met. One declaration → list, detail, export, filters,
+    facets, create, edit, delete and bulk, all in SQL and all audited — the
+    bulk path through the same write functions a form uses, so it leaves one
+    ledger row per record and reports the per-row partial result
+- [x] Bulk preview endpoint (§75) — affected count split into "selected
+      manually" and "selected by filter", the records by name, and every reason
+      a row will be left alone, before anything is applied
 - [~] Search: simple and advanced Data Explorer shipped; global and quick
       entity search remain (§4, §6, §31, §32)
   - **Acceptance**: the inspector's text and the executed SQL come from the same

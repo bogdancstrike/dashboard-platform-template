@@ -26,7 +26,14 @@ export default defineConfig({
   // that failed at four were sign-ins timing out — Keycloak, not the product —
   // and a suite whose failures are about its own concurrency teaches people to
   // rerun rather than to read.
-  workers: process.env["CI"] ? 1 : Number(process.env["E2E_WORKERS"] ?? 3),
+  //
+  // **Two rather than three since it passed three hundred.** Four consecutive
+  // full runs at three each failed one test, a different one every time, and
+  // every one of them passed alone: a stuck sign-in, a toast missed, a write
+  // that had not landed. That is the same lesson again at a larger size. The
+  // same sweep at two is green and costs ninety seconds, which is less than
+  // one investigation of a failure that was never real.
+  workers: process.env["CI"] ? 1 : Number(process.env["E2E_WORKERS"] ?? 2),
   reporter: process.env["CI"] ? [["github"], ["html", { open: "never" }]] : [["list"]],
   // 60s rather than 30. A test that fails on a wrong value fails in
   // milliseconds; this cap only ever binds on the slow-under-load path —

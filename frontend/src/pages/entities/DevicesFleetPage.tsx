@@ -13,11 +13,12 @@
  * problem from one reporting that it is unwell.
  */
 
-import { Card, Col, Empty, Pagination, Row, Skeleton, Space, Tag, Tooltip, Typography } from "antd";
+import { Card, Col, Empty, Pagination, Row, Skeleton, Space, Tooltip, Typography } from "antd";
 import { ApiOutlined, ThunderboltOutlined, WifiOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
 import { ChartCard } from "@/components/ChartCard";
+import { StatusTag } from "@/components/StatusTag";
 import {
   NewRecordButton,
   RecordActions,
@@ -224,9 +225,7 @@ export default function DevicesFleetPage() {
                   <Text strong ellipsis>
                     {device.name}
                   </Text>
-                  <Tag color={knownStatusColor(device.status ?? "")} bordered={false}>
-                    {device.status}
-                  </Tag>
+                  <StatusTag status={device.status} bordered={false} />
                   <RecordActions
                     records={records}
                     id={device.id}

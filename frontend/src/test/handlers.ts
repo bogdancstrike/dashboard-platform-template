@@ -248,10 +248,10 @@ explorerCatalogue.items.push(
     fields: [
       field("code", "Code", "text", { searchable: true }),
       field("name", "Name", "text", { searchable: true }),
-      field("status", "Status", "enum", { facet: true, choices: ["ACTIVE", "COMPLETED"] }),
-      field("phase", "Phase", "enum", { facet: true, choices: ["BUILD", "DISCOVERY"] }),
+      field("status", "Status", "enum", { facet: true, choices: ["ACTIVE", "COMPLETED"], editable: true }),
+      field("phase", "Phase", "enum", { facet: true, choices: ["BUILD", "DISCOVERY"], editable: true }),
       field("health", "Health", "enum", { facet: true, choices: ["ON_TRACK", "AT_RISK", "OFF_TRACK"] }),
-      field("priority", "Priority", "enum", { facet: true, choices: ["HIGH", "NORMAL"] }),
+      field("priority", "Priority", "enum", { facet: true, choices: ["HIGH", "NORMAL"], editable: true }),
       field("start_date", "Start date", "datetime"),
       field("due_date", "Due date", "datetime"),
       field("completed_at", "Completed", "datetime"),
@@ -294,8 +294,8 @@ explorerCatalogue.items.push(
     can_create: true, can_edit: true, can_delete: true,
     fields: [
       field("reference", "Reference", "text", { searchable: true }),
-      field("status", "Status", "enum", { facet: true, choices: ["CONFIRMED", "CANCELLED"] }),
-      field("payment_status", "Payment status", "enum", { facet: true, choices: ["PAID", "UNPAID"] }),
+      field("status", "Status", "enum", { facet: true, choices: ["CONFIRMED", "CANCELLED"], editable: true }),
+      field("payment_status", "Payment status", "enum", { facet: true, choices: ["PAID", "UNPAID"], editable: true }),
       field("fulfilment_status", "Fulfilment status", "enum", { facet: true, choices: ["SHIPPED", "PENDING"] }),
       field("channel", "Channel", "enum", { facet: true, choices: ["PORTAL", "DIRECT"] }),
       field("total", "Total", "number"),
@@ -315,7 +315,7 @@ explorerCatalogue.items.push(
       field("reference", "Reference", "text", { searchable: true }),
       field("subject", "Subject", "text", { searchable: true }),
       field("description", "Description", "text", { searchable: true }),
-      field("status", "Status", "enum", { facet: true, choices: ["OPEN", "RESOLVED"] }),
+      field("status", "Status", "enum", { facet: true, choices: ["OPEN", "RESOLVED"], editable: true }),
       field("priority", "Priority", "enum", { facet: true, choices: ["HIGH", "NORMAL"] }),
       field("severity", "Severity", "enum", { facet: true, choices: ["CRITICAL", "MAJOR", "MINOR"] }),
       field("category", "Category", "enum", { facet: true, choices: ["BILLING", "TECHNICAL"] }),
@@ -369,8 +369,13 @@ export const entityRows: Record<string, Record<string, unknown>[]> = {
   customer: [
     { id: "customer-1", code: "CUS-0001", name: "Northwind Partners", email: "ops@northwind.example", status: "ACTIVE", segment: "ENTERPRISE", industry: "Logistics", lifecycle_stage: "CUSTOMER", country: "DE", city: "Berlin", lifetime_value: 480000, satisfaction: 8.2, last_contact_at: "2026-09-01T10:00:00Z" },
   ],
+  // Three, not one: a ledger of one row demonstrates neither the total nor
+  // anything a *selection* does, and a bulk gesture over one record cannot
+  // show a partial outcome — which is the state that feature exists to report.
   order: [
     { id: "order-1", reference: "ORD-00311", status: "CONFIRMED", payment_status: "UNPAID", fulfilment_status: "PENDING", channel: "PORTAL", total: 18400, currency: "EUR", item_count: 6, placed_at: "2026-09-02T16:05:00Z" },
+    { id: "order-2", reference: "ORD-00312", status: "CONFIRMED", payment_status: "PAID", fulfilment_status: "SHIPPED", channel: "DIRECT", total: 6250, currency: "EUR", item_count: 2, placed_at: "2026-09-01T09:20:00Z" },
+    { id: "order-3", reference: "ORD-00313", status: "CANCELLED", payment_status: "UNPAID", fulfilment_status: "PENDING", channel: "PORTAL", total: 990, currency: "EUR", item_count: 1, placed_at: "2026-08-30T14:00:00Z" },
   ],
   ticket: [
     { id: "ticket-1", reference: "TIC-00042", subject: "Login fails after password reset", description: "Customer cannot sign in.", status: "OPEN", priority: "HIGH", severity: "CRITICAL", category: "TECHNICAL", channel: "EMAIL", due_at: "2026-09-04T09:00:00Z", sla_breached: true, resolution_minutes: 0, created_at: "2026-09-03T08:00:00Z" },
@@ -5199,6 +5204,87 @@ export const handlers = [
       ? entityResult(body)
       : explorerResult);
   }),
+  // ── bulk (§43, §75) ──────────────────────────────────────────────────
+  //
+  // The preview answers from the selection it is *sent*, so a test that ticks
+  // two rows sees two and a test that selects a filter sees the fixture's
+  // total. A handler returning a constant would let the page draw a number it
+  // never asked for and pass.
+  http.post("/platform/api/records/:resourceType/bulk/preview", async ({ params, request }) => {
+    const body = (await request.json()) as {
+      action?: string;
+      changes?: Record<string, unknown>;
+      selection?: { ids?: string[]; query?: { resource_type?: string }; excluded?: string[] };
+    };
+    const key = String(params["resourceType"]);
+    const resource = explorerCatalogue.items.find((item) => item.key === key);
+    const rows = entityRows[key] ?? [];
+    const ids = body.selection?.ids ?? [];
+    const excluded = new Set(body.selection?.excluded ?? []);
+    const matched = body.selection?.query
+      ? rows.filter((row) => !excluded.has(String(row["id"])))
+      : rows.filter((row) => ids.includes(String(row["id"])));
+    const byHand = matched.filter((row) => ids.includes(String(row["id"]))).length;
+    return echo(request, {
+      resource_type: key,
+      action: body.action ?? "update",
+      changes: body.changes ?? {},
+      total: matched.length,
+      by_hand: byHand,
+      by_filter: matched.length - byHand,
+      limit: 500,
+      over_limit: false,
+      sample: matched.slice(0, 5).map((row) => ({
+        id: String(row["id"]),
+        title: asText(row[resource?.title_field ?? "name"] ?? row["reference"] ?? ""),
+      })),
+      refused: [],
+      eligible: matched.length,
+      describes: `${matched.length} ${(resource?.label ?? "records").toLowerCase()} you selected`,
+    });
+  }),
+  http.post("/platform/api/records/:resourceType/bulk", async ({ params, request }) => {
+    const body = (await request.json()) as {
+      action?: string;
+      selection?: { ids?: string[]; query?: unknown; excluded?: string[] };
+    };
+    const key = String(params["resourceType"]);
+    const resource = explorerCatalogue.items.find((item) => item.key === key);
+    const rows = entityRows[key] ?? [];
+    const ids = body.selection?.ids ?? [];
+    const excluded = new Set(body.selection?.excluded ?? []);
+    const matched = body.selection?.query
+      ? rows.filter((row) => !excluded.has(String(row["id"])))
+      : rows.filter((row) => ids.includes(String(row["id"])));
+    // One refusal, always, when more than one row is selected: the partial
+    // outcome is the state this feature exists to report, and a fixture that
+    // only ever succeeds would let the result panel ship untested.
+    const failed = matched.length > 1
+      ? [{
+          id: String(matched[matched.length - 1]!["id"]),
+          title: asText(matched[matched.length - 1]![resource?.title_field ?? "name"] ?? ""),
+          error: "conflict",
+          message: "Somebody else changed it while you were looking.",
+        }]
+      : [];
+    const applied = matched.length - failed.length;
+    return echo(request, {
+      resource_type: key,
+      action: body.action ?? "update",
+      requested: matched.length,
+      applied,
+      unchanged: 0,
+      failed,
+      records: matched.slice(0, 5).map((row) => ({
+        id: String(row["id"]),
+        title: asText(row[resource?.title_field ?? "name"] ?? ""),
+      })),
+      message: failed.length
+        ? `Updated ${applied} ${(resource?.label ?? "records").toLowerCase()}; ${failed.length} could not be updated.`
+        : `Updated ${applied} ${(resource?.label ?? "records").toLowerCase()}.`,
+    });
+  }),
+
   http.post("/platform/api/explorer/insights", async ({ request }) => {
     const body = (await request.json()) as { resource_type?: string };
     return echo(request, entityInsights(body.resource_type ?? "task"));

@@ -780,6 +780,27 @@ def statement_of(plan: Plan) -> Select:
     return apply_sort(statement, page, resource.fields, default=resource.default_sort)
 
 
+def statement_for(payload: dict[str, Any], *, principal) -> Select:
+    """The rows a question names, unpaged, for a caller that is not exporting.
+
+    The same query the list ran, reached through the same validation — which is
+    what makes "everything matching this filter" (§43) mean exactly what the
+    reader was looking at. A second filter implementation for bulk is a second
+    place for "case-insensitive" to be decided differently, and the first time
+    the two disagreed somebody would have changed rows they never saw.
+
+    Authorised as a *read*, because naming rows is reading them; whether the
+    caller may then write to them is the bulk service's question.
+
+    It goes through `Plan`, which also carries a format and a column list that
+    a selection has no use for; both default harmlessly. Building the statement
+    a second way to avoid two unused fields would be trading a cosmetic
+    duplication for the one that matters.
+    """
+    resource_for(payload.get("resource_type"), principal=principal)
+    return statement_of(_plan(payload))
+
+
 def columns_of(plan: Plan) -> list[Any]:
     """The file's header, labelled as the field catalogue labels it."""
     from src.core import export as writer

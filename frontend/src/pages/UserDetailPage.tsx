@@ -29,11 +29,11 @@ import {
   type UserSessionRow,
 } from "@/api/users";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
+import { StatusTag } from "@/components/StatusTag";
 import { PageHeader } from "@/components/PageHeader";
 import { useImpersonation } from "@/auth/ImpersonationProvider";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
-import { knownStatusColor } from "@/theme/tokens";
 import { PersonAvatar } from "@/components/PersonAvatar";
 
 const { Text } = Typography;
@@ -158,9 +158,7 @@ export default function UserDetailPage() {
         }
         tag={
           <Space size={6}>
-            <Tag color={knownStatusColor(user.status)} data-testid="user-status">
-              {user.status}
-            </Tag>
+            <StatusTag status={user.status} data-testid="user-status" />
             {user.role_name && <Tag color={user.role_color}>{user.role_name}</Tag>}
             {user.mfa_enabled && (
               <Tooltip title="Multi-factor authentication is on">

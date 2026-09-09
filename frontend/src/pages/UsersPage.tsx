@@ -20,11 +20,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { usersApi, type UserQuery, type UserRow } from "@/api/users";
 import { EmptyState, NoResults } from "@/components/EmptyState";
+import { StatusTag } from "@/components/StatusTag";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
-import { knownStatusColor } from "@/theme/tokens";
 import { PersonAvatar } from "@/components/PersonAvatar";
 
 const { Text } = Typography;
@@ -158,7 +158,7 @@ export default function UsersPage() {
       dataIndex: "status",
       width: 130,
       sorter: true,
-      render: (value: string) => <Tag color={knownStatusColor(value)}>{value}</Tag>,
+      render: (value: string) => <StatusTag status={value} />,
     },
     {
       title: "Last sign-in",
