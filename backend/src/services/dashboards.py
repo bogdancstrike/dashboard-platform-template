@@ -304,10 +304,22 @@ def remove(session, dashboard_id: Any, *, principal) -> dict[str, Any]:
 
 
 def add_widget(session, dashboard_id: Any, payload: dict[str, Any], *, principal) -> dict[str, Any]:
-    """One more card on the grid, placed where it was dropped."""
+    """One more card on the grid, where it was dropped or else at the bottom.
+
+    A caller that says where it goes gets that. A caller that does not — the
+    widget drawer, and "add this saved chart to a dashboard" from anywhere else
+    in the product — used to get `(0, 0)`, which is *on top of* whatever the
+    dashboard already had: the grid then shoved every existing card down to
+    make room, so adding a card rearranged the dashboard somebody had
+    arranged. Appending below everything is the only placement that leaves the
+    rest of the layout alone.
+    """
     principal.require(MANAGE_PERMISSION)
     row = _owned(session, dashboard_id, principal)
     values = _validated_widget(payload, principal=principal, partial=False, columns=row.columns)
+    if "x" not in payload and "y" not in payload:
+        values["x"] = 0
+        values["y"] = max((w.y + w.height for w in row.widgets), default=0)
 
     widget = DashboardWidget(position=len(row.widgets), **values)
     # Appended to the relationship rather than inserted beside it: the loaded

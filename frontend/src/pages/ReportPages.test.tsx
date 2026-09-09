@@ -7,7 +7,7 @@ import { Route, Routes, useLocation } from "react-router-dom";
 import ReportBuilderPage from "@/pages/ReportBuilderPage";
 import ReportsPage from "@/pages/ReportsPage";
 import { CommandProvider } from "@/commands/CommandContext";
-import { resetReports, savedReports } from "@/test/handlers";
+import { resetDashboards, resetReports, savedDashboards, savedReports } from "@/test/handlers";
 import { renderWithProviders } from "@/test/render";
 import { server } from "@/test/server";
 
@@ -37,7 +37,10 @@ function render(route: string) {
   );
 }
 
-afterEach(() => resetReports());
+afterEach(() => {
+  resetReports();
+  resetDashboards();
+});
 
 describe("the reports page", () => {
   it("lists saved questions and answers the open one", async () => {
@@ -117,6 +120,31 @@ describe("the reports page", () => {
       "aria-disabled",
       "true",
     );
+  });
+
+  it("puts a saved report on a dashboard from where the report is (§45)", async () => {
+    // The reference, not a rebuilt question: the widget names the report and
+    // the dashboard runs the report's own stored definition.
+    const user = userEvent.setup();
+    const sent: Record<string, unknown>[] = [];
+    server.use(
+      http.post("/platform/api/dashboards/:id/widgets", async ({ request }) => {
+        sent.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json(savedDashboards[0], { status: 201 });
+      }),
+    );
+    render("/reports?report=report-1");
+
+    await screen.findByTestId("reports");
+    await user.click(screen.getByRole("button", { name: /^Actions for / }));
+    await user.click(await screen.findByRole("menuitem", { name: /Add to a dashboard/ }));
+
+    // The modal offers the reader's own dashboards by name.
+    await user.click(await screen.findByRole("radio", { name: /Support desk/ }));
+    await user.click(screen.getByTestId("add-to-dashboard-confirm"));
+
+    await waitFor(() => expect(sent).toHaveLength(1));
+    expect(sent[0]).toMatchObject({ kind: "REPORT", config: { report_id: "report-1" } });
   });
 });
 

@@ -859,6 +859,15 @@ mark.nu-mark {
 .nu-view-item .nu-view-name { max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nu-block { margin-top: 12px; }
 
+/* One dashboard in "add this to a dashboard": the name on the first line and
+   what it holds on the second, so a reader picks by what is on it rather than
+   by remembering which of their four dashboards is which. The label is a grid
+   because a radio's label is inline by default and the second line would sit
+   beside the first. */
+.nu-board-choice { align-items: flex-start; width: 100%; padding: 4px 0; }
+.nu-board-choice > span:last-child { display: grid; gap: 2px; }
+.nu-board-choice-name { display: inline-flex; align-items: center; gap: 6px; }
+
 .nu-nav-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 
 .nu-bell-panel {

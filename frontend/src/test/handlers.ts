@@ -5648,15 +5648,23 @@ export const handlers = [
     const body = (await request.json()) as Record<string, unknown>;
     const found = dashboardById(String(params["id"]));
     const widgets = found["widgets"] as Record<string, unknown>[];
+    // Under the others, as the service places a widget nobody dropped — a
+    // fixture that stacked them all at (0, 0) would hide the rearrangement
+    // that made the server place them at all.
+    const bottom = widgets.reduce(
+      (lowest, widget) => Math.max(lowest, Number(widget["y"]) + Number(widget["height"])),
+      0,
+    );
     widgets.push({
       id: `widget-${widgets.length + 1}`,
       subtitle: null,
-      x: 0, y: 0, width: 3, height: 2,
+      x: 0, y: bottom, width: 6, height: 2,
       position: widgets.length,
       config: {},
       ...body,
     });
     found["widget_count"] = widgets.length;
+    found["widget_kinds"] = [...new Set(widgets.map((widget) => widget["kind"]))];
     return HttpResponse.json(found, { status: 201 });
   }),
   http.put("/platform/api/dashboards/:id/widgets/:widgetId", async ({ request, params }) => {

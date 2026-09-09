@@ -36,6 +36,7 @@ import {
 } from "antd";
 import {
   CopyOutlined,
+  DashboardOutlined,
   DeleteOutlined,
   EditOutlined,
   GlobalOutlined,
@@ -53,6 +54,7 @@ import { panelFor } from "@/api/analysis";
 import { reportsApi, type SavedReport } from "@/api/reports";
 import type { ChartKind } from "@/api/dashboard";
 import { ChartCard } from "@/components/ChartCard";
+import { AddToDashboard, type DashboardSubject } from "@/components/dashboards/AddToDashboard";
 import { FailureAlert } from "@/components/FailureAlert";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
@@ -77,6 +79,8 @@ export default function ReportsPage() {
   const { message, modal } = AntApp.useApp();
   const [params, setParams] = useSearchParams();
   const [term, setTerm] = useState("");
+  /** The report on its way to a dashboard, or nothing (§45). */
+  const [pinning, setPinning] = useState<DashboardSubject | null>(null);
 
   const reports = useQuery({
     queryKey: ["reports"],
@@ -309,6 +313,11 @@ export default function ReportsPage() {
                         label: open.can_edit ? "Edit" : "Edit — only the owner may",
                         disabled: !open.can_edit,
                       },
+                      {
+                        key: "dashboard",
+                        icon: <DashboardOutlined />,
+                        label: "Add to a dashboard",
+                      },
                       { key: "duplicate", icon: <CopyOutlined />, label: "Duplicate" },
                       {
                         key: "delete",
@@ -320,6 +329,10 @@ export default function ReportsPage() {
                     ],
                     onClick: ({ key }) => {
                       if (key === "edit") navigate(`/reports/builder?id=${open.id}`);
+                      // The saved report itself goes on the dashboard, not a
+                      // copy of its question (§45).
+                      else if (key === "dashboard")
+                        setPinning({ kind: "REPORT", id: open.id, title: open.name });
                       else if (key === "duplicate") duplicate.mutate(open.id);
                       else
                         modal.confirm({
@@ -411,6 +424,12 @@ export default function ReportsPage() {
           )}
         </Card>
       </div>
+
+      <AddToDashboard
+        open={pinning !== null}
+        subject={pinning}
+        onClose={() => setPinning(null)}
+      />
     </>
   );
 

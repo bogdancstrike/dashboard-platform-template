@@ -4064,9 +4064,33 @@ everything else.
 - [x] Chart builder: every ECharts type the platform themes — line, area,
       bar, horizontal and stacked bars, multi-line, pie, treemap, funnel,
       radar, heatmap, scatter and gauge — with a live preview in both themes
-- [ ] A saved chart becomes a dashboard widget without being rebuilt — waits
-      on `/dashboards` (§45), which does not exist yet. The *saving* half is
-      done: a chart is a report, so whatever reads reports will read charts
+- [x] A saved chart becomes a dashboard widget without being rebuilt
+  - The dashboard half was already right: a `REPORT` widget *names* a saved
+      report and the card runs that report's stored definition through the same
+      compiler the builder previewed with, so the picture is the one that was
+      saved. What was missing was the **gesture**. To reuse a chart a reader
+      had to leave it, open `/dashboards`, add a widget, choose "A saved
+      report" and find theirs in a select — six steps to say "and put that one
+      there", which is how a chart ends up rebuilt in the widget drawer
+      instead, and a rebuilt chart is a second definition of one question that
+      drifts the first time either copy is edited
+  - `components/dashboards/AddToDashboard.tsx` is that gesture, from the
+      reports page and from the saved-search panel (a saved search is the other
+      referencing kind, and it had the same six steps). A modal, because it
+      asks one question — which dashboard — and it offers a new one because
+      "there is nowhere to put it yet" is the same decision, one field longer.
+      Only dashboards this reader may *change* are listed, each described by
+      what it holds rather than by how many cards: "alerts, revenue and a
+      heatmap" is recognisable and "7 widgets" is not
+  - A widget nobody dropped now lands **under** the others rather than at
+      `(0, 0)`. `add_widget` defaulted to the origin, so adding a card sat it
+      on top of the first one and the grid's vertical compaction pushed the
+      whole layout down a row — adding something to a dashboard rearranged the
+      dashboard. The reader arranged that layout
+  - Verification: 1191 backend (1 new), 1097 frontend (10 new), and an e2e that
+      adds a saved *pie* to a dashboard from the reports page and finds a pie
+      on the dashboard — a visualisation nothing in the flow ever named, which
+      is what "without being rebuilt" has to mean
   - **It is picture-first, which is the half the report builder is not.**
     That builder composes a question and then offers seven ways to draw it;
     somebody who wants a heatmap should not have to discover, after building a

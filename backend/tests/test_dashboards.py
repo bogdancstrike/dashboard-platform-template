@@ -99,6 +99,47 @@ def test_a_widget_is_placed_where_it_was_dropped_and_reads_back_the_same(client,
 
 
 @pytest.mark.database
+def test_a_widget_nobody_placed_lands_under_the_others_not_on_top_of_them(client, scratch):
+    """Adding a card must not rearrange the cards already there.
+
+    Every caller that is not a drag sends no geometry: the widget drawer, and
+    "add this saved chart to a dashboard" from the reports page. Those used to
+    land at `(0, 0)` — on top of the first card — and the grid's vertical
+    compaction then pushed the whole dashboard down a row to make room. The
+    reader arranged that layout; adding something to the bottom of it is not a
+    licence to move the rest.
+    """
+    dashboard, headers = scratch
+
+    def add(title: str) -> dict:
+        added = client.post(
+            f"{DASHBOARDS}/{dashboard['id']}/widgets",
+            json={"kind": "BAR_CHART", "title": title, "config": {"entity": "ticket"}},
+            headers=headers,
+        )
+        assert added.status_code == 201, added.get_json()
+        return added.get_json()
+
+    first = add("First")["widgets"][0]
+    assert (first["x"], first["y"]) == (0, 0)
+
+    widgets = {w["title"]: w for w in add("Second")["widgets"]}
+    # Below the first, by exactly its height, and the first has not moved.
+    assert (widgets["First"]["x"], widgets["First"]["y"]) == (0, 0)
+    assert widgets["Second"]["x"] == 0
+    assert widgets["Second"]["y"] == first["y"] + first["height"]
+
+    # A caller that *does* say where it goes still gets what it asked for.
+    dropped = client.post(
+        f"{DASHBOARDS}/{dashboard['id']}/widgets",
+        json={"kind": "KPI", "title": "Dropped", "x": 6, "y": 0, "config": {"entity": "ticket"}},
+        headers=headers,
+    ).get_json()
+    placed = next(w for w in dropped["widgets"] if w["title"] == "Dropped")
+    assert (placed["x"], placed["y"]) == (6, 0)
+
+
+@pytest.mark.database
 def test_a_widget_that_would_hang_off_the_grid_is_refused_not_clamped(client, scratch):
     """A card silently narrowed on save is a layout the reader did not choose
     and cannot undo."""

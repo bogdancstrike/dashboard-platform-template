@@ -27,6 +27,7 @@ import {
 } from "antd";
 import {
   CopyOutlined,
+  DashboardOutlined,
   DeleteOutlined,
   EditOutlined,
   FolderOpenOutlined,
@@ -38,6 +39,7 @@ import {
 } from "@ant-design/icons";
 
 import { explorerApi, type SavedSearch } from "@/api/explorer";
+import { AddToDashboard, type DashboardSubject } from "@/components/dashboards/AddToDashboard";
 
 const { Text } = Typography;
 
@@ -69,6 +71,8 @@ export function SavedSearchDrawer({
   const { message } = App.useApp();
   const queryClient = useQueryClient();
   const [term, setTerm] = useState("");
+  /** The search on its way to a dashboard, or nothing (§45). */
+  const [pinning, setPinning] = useState<DashboardSubject | null>(null);
 
   const query = useQuery({
     queryKey: ["saved-searches", resourceType],
@@ -173,6 +177,17 @@ export function SavedSearchDrawer({
                         />
                       </Tooltip>
                     )}
+                    <Tooltip title="Answer this on a dashboard">
+                      <Button
+                        type="text"
+                        size="small"
+                        aria-label={`Add ${item.name} to a dashboard`}
+                        icon={<DashboardOutlined />}
+                        onClick={() =>
+                          setPinning({ kind: "SEARCH", id: item.id, title: item.name })
+                        }
+                      />
+                    </Tooltip>
                     <Tooltip title="Duplicate as a private search">
                       <Button
                         type="text"
@@ -233,6 +248,11 @@ export function SavedSearchDrawer({
             </List.Item>
           );
         }}
+      />
+      <AddToDashboard
+        open={pinning !== null}
+        subject={pinning}
+        onClose={() => setPinning(null)}
       />
     </Drawer>
   );

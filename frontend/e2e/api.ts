@@ -493,6 +493,67 @@ export async function writeSavedSearch(
 }
 
 /**
+ * Save a report through the API, and hand back its id and name (§28, §45).
+ *
+ * For the tests that are about what happens *to* a saved chart — putting it on
+ * a dashboard, say — rather than about building one. Driving the chart builder
+ * first would make each of those a test of the builder as well, and its
+ * failure would read as a failure of the thing under test. The builder has its
+ * own spec.
+ */
+export async function writeReport(
+  report: Record<string, unknown>,
+  persona: Persona = "admin",
+): Promise<{ id: string; name: string }> {
+  const api = await apiAs(persona);
+  try {
+    const response = await api.post(endpoint("/reports"), {
+      data: {
+        resource_type: "ticket",
+        dimensions: ["severity"],
+        metrics: [{ aggregation: "count" }],
+        visualization: "bar",
+        scope: "PRIVATE",
+        ...report,
+      },
+    });
+    if (!response.ok()) {
+      throw new Error(`Could not save the report: ${response.status()} ${await response.text()}`);
+    }
+    const body = (await response.json()) as { id: string; name: string };
+    return { id: body.id, name: body.name };
+  } finally {
+    await api.dispose();
+  }
+}
+
+/**
+ * Create a dashboard through the API, and hand back its id (§45).
+ *
+ * The wizard is the product's create flow and has its own coverage; a test
+ * about what can be *added* to a dashboard should not walk three wizard steps
+ * to get one.
+ */
+export async function writeDashboard(
+  name: string,
+  widgets: Record<string, unknown>[] = [{ kind: "ALERTS", title: "What needs attention" }],
+  persona: Persona = "admin",
+): Promise<string> {
+  const api = await apiAs(persona);
+  try {
+    const response = await api.post(endpoint("/dashboards"), { data: { name, widgets } });
+    if (!response.ok()) {
+      throw new Error(
+        `Could not create the dashboard: ${response.status()} ${await response.text()}`,
+      );
+    }
+    return ((await response.json()) as { id: string }).id;
+  } finally {
+    await api.dispose();
+  }
+}
+
+/**
  * One seeded file of a given kind, with the folder it lives in (§20).
  *
  * The library's own list is folder-scoped — a search narrows *this folder* —

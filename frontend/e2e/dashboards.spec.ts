@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-import { sweepDashboards } from "./api";
+import { sweepDashboards, sweepReports, writeDashboard, writeReport } from "./api";
 import { signIn, storageStateFor } from "./auth";
 
 /**
@@ -30,7 +30,10 @@ test.describe.configure({ mode: "serial" });
  * So it goes through the API (`e2e/api.ts`), where there is no modal to wait
  * on and one request per leftover.
  */
-test.afterEach(() => sweepDashboards(["E2E "]));
+test.afterEach(async () => {
+  await sweepDashboards(["E2E "]);
+  await sweepReports(["E2E "]);
+});
 
 /**
  * Create one through the wizard, holding what was asked for.
@@ -147,6 +150,47 @@ test("a dashboard somebody composes is still there after a reload", async ({ pag
 
   await deleteDashboard(page, name);
   await expect(page.getByTestId("dashboard-gallery").getByText(name)).toHaveCount(0);
+});
+
+/**
+ * A saved chart goes on a dashboard from where the chart is (§45).
+ *
+ * The point is what the widget *stores*: a reference. The card is added from
+ * the reports page in two clicks, and what appears on the dashboard is the
+ * report's own picture — drawn by running the stored definition through the
+ * same compiler the builder previewed with, rather than by a question copied
+ * into the widget's config, which would be a second definition that drifts.
+ */
+test("a saved chart becomes a widget without being rebuilt", async ({ page }) => {
+  const stamp = Date.now();
+  const board = `E2E board ${stamp}`;
+  const report = await writeReport({ name: `E2E chart ${stamp}`, visualization: "pie" });
+  await writeDashboard(board);
+
+  await signIn(page, "admin", `/reports?report=${report.id}`);
+  await expect(page.getByTestId("reports")).toBeVisible();
+
+  await page.getByRole("button", { name: `Actions for ${report.name}` }).click();
+  await page.getByRole("menuitem", { name: /Add to a dashboard/ }).click();
+
+  const modal = page.getByRole("dialog");
+  // The dashboards are offered by name and by what they already hold, so a
+  // reader picks the right one of four without opening them.
+  await modal.getByRole("radio", { name: new RegExp(board) }).click();
+  await modal.getByTestId("add-to-dashboard-confirm").click();
+  await expect(modal).toBeHidden();
+
+  // Followed through the confirmation, which is the way the product offers.
+  await page.getByRole("button", { name: board }).click();
+  const grid = page.getByTestId("dashboard-grid");
+  await expect(grid.getByText(report.name)).toBeVisible();
+  // The report's own visualisation, from its own definition: a pie, which
+  // nothing in this flow ever mentioned.
+  await expect(grid.locator("canvas").first()).toBeVisible();
+
+  // And it is stored, not merely drawn.
+  await page.reload();
+  await expect(page.getByTestId("dashboard-grid").getByText(report.name)).toBeVisible();
 });
 
 test("moving a widget from the keyboard is stored, not just drawn", async ({ page }) => {
