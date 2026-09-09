@@ -3252,7 +3252,7 @@ told a reader that something is missing and not what.
 | --- | --- | --- | --- | --- |
 | 1 | Application shell, navigation | all | `/meta/*`, `/api/me` | [x] |
 | 2 | Overview dashboard, KPIs, charts | `/`, `/analytics` | `/dashboard/*`, `/api/analysis/*` | [x] |
-| 3 | Advanced data table | every list | generic list | [~] |
+| 3 | Advanced data table | every list, `/showcase/components` | generic list | [x] |
 | 4 | Advanced search (simple + RAQB) | `/explore` | `/api/explorer/query` | [x] |
 | 5 | Saved searches | `/explore` (panel) | `/api/saved-searches` | [x] |
 | 6 | Search results page | `/search` | `/api/search/global` | [x] |
@@ -3311,7 +3311,7 @@ told a reader that something is missing and not what.
 | 59 | UX quality bar | global | — | [~] |
 | 60 | Component showcase | `/showcase/components` | — | [x] |
 | 61 | Page template gallery | `/showcase/templates` | — | [x] |
-| 62 | Master / detail layout | `/mail`, `/tickets`, `/explore` | — | [~] |
+| 62 | Master / detail layout | `/mail`, `/tickets`, `/explore`, `/showcase/templates` | — | [x] |
 | 63 | Split view | `/mail`, `/tickets`, `/explore` | — | [x] |
 | 64 | Table row preview drawer | `/explore` | `/api/records/…` | [~] |
 | 65 | Data quality indicators | lists + `/admin/quality` | `/admin/quality` | [x] |
@@ -3328,17 +3328,13 @@ told a reader that something is missing and not what.
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*71 shipped · 6 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*73 shipped · 4 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
 Every section above that is not shipped, with the part that is open. A catalogue that grades something "partly there" and stops has told a reader that something is missing and not what.
 
-**§3 Advanced data table** — Partly there. Filtering, sorting, paging, facets and column choice all happen in PostgreSQL on every list, off one `FieldSet` declaration. What is open is the *showcase* of the table on its own, which `/showcase/components` does not yet include.
-
 **§59 UX quality bar** — Partly there. The standing bar rather than a deliverable: it is met on every page that has shipped and is re-argued on every page that ships next.
-
-**§62 Master / detail layout** — Partly there. The layout ships on three pages and the gallery documents when to reach for it. A dedicated showcase of the shape on its own is open.
 
 **§64 Table row preview drawer** — Partly there. The explorer opens a row without leaving the list, deep-linked and keyboard-driven. The other lists send a reader to the record page instead, which for a ledger or a fleet is the better answer — the open part is the lists where it is not.
 
@@ -4838,8 +4834,19 @@ Each endpoint ships with its five-case integration test and the page consuming i
     this kind". Asserted from both ends: a joined record's entries appear and
     an unrelated record of the same kind's do not
   - Forms (§9) ship as one declaration-driven drawer, opened from the detail
-    page and from the board. The data table showcase (§3) and the wizard (§10)
-    remain
+    page and from the board
+  - **Both of the showcase gaps are closed.** `/showcase/components` now
+    demonstrates the data table *on its own* (§3): one switch through the six
+    states, with the real `EmptyState`, `NoResults` and `FailureAlert` in each
+    — because the part a happy-path screenshot never shows is the states, and
+    in particular that the two empties are different questions. And
+    `/showcase/templates` demonstrates the split view *working* (§62): the
+    list keeps its place while the pane beside it changes, which is the one
+    claim about that layout neither a sentence nor a screenshot can carry
+  - Four more shared components are demonstrated rather than merely listed as
+    missing: `FailureAlert` (all four kinds), `AutoRefresh`, `NameModal` and
+    `EdgeTag` — thirteen of the shared toolkit now, with the rest still
+    published by name as absent
 - [x] Search: Data Explorer ships simple/faceted search, nested advanced RAQB,
       backend query inspector, saved searches and four URL-persistent result
       modes (§4–§6, §51)

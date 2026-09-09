@@ -31,13 +31,20 @@
  * somebody building on the template reaches for.
  */
 
-import { Alert, Card, Space, Table, Tag, Typography } from "antd";
+import { Alert, Button, Card, Segmented, Space, Table, Tag, Typography } from "antd";
 import { InboxOutlined, SearchOutlined, WarningOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { EmptyState } from "@/components/EmptyState";
+import { ApiError } from "@/api/client";
+import type { ChartPanel } from "@/api/dashboard";
+import { AutoRefresh } from "@/components/AutoRefresh";
+import { ChartCard } from "@/components/ChartCard";
+import { EdgeTag } from "@/components/EdgeTag";
+import { EmptyState, NoResults } from "@/components/EmptyState";
+import { FailureAlert } from "@/components/FailureAlert";
+import { NameModal } from "@/components/NameModal";
 import { ExportButton } from "@/components/ExportButton";
 import { HighlightedText } from "@/components/HighlightedText";
 import { PageHeader } from "@/components/PageHeader";
@@ -50,6 +57,7 @@ import {
 import { StatCard } from "@/components/StatCard";
 import { StatusTag } from "@/components/StatusTag";
 import { formatNumber } from "@/lib/formats";
+import { SERIES } from "@/theme/tokens";
 
 const { Text, Paragraph, Title } = Typography;
 
@@ -91,9 +99,14 @@ export function inventory(paths: string[] = Object.keys(FILES)): string[] {
  * published rather than hidden.
  */
 const DEMONSTRATED = [
+  "AutoRefresh",
+  "ChartCard",
+  "EdgeTag",
   "EmptyState",
   "ExportButton",
+  "FailureAlert",
   "HighlightedText",
+  "NameModal",
   "PageHeader",
   "PersonAvatar",
   "ProblemPage",
@@ -120,6 +133,80 @@ export function coverage(
   };
 }
 
+/** The four failure kinds, in the order they lead somewhere different. */
+const FAILURES: { status: number; title: string }[] = [
+  { status: 500, title: "Those records could not be loaded" },
+  { status: 403, title: "Your role does not include this dataset" },
+  { status: 404, title: "That record is no longer there" },
+  { status: 409, title: "Somebody else changed this first" },
+];
+
+/** A panel of the shape the analysis endpoints return. */
+const DEMO_PANEL: ChartPanel = {
+  kind: "bar",
+  title: "Tickets by severity",
+  series: [
+    { name: "CRITICAL", value: 4 },
+    { name: "HIGH", value: 11 },
+    { name: "NORMAL", value: 26 },
+    { name: "LOW", value: 7 },
+  ],
+};
+
+/** The six states every list has, and why each is its own state (§34). */
+const TABLE_STATES = [
+  {
+    key: "rows",
+    label: "Rows",
+    why: "The ordinary case: a page of the answer, with the whole dataset's count in the header.",
+  },
+  {
+    key: "loading",
+    label: "Loading",
+    why: "A skeleton in the final layout, never a centred spinner: a spinner says the page is busy, a skeleton says what is about to be there.",
+  },
+  {
+    key: "nothing",
+    label: "Nothing yet",
+    why: "An empty dataset, so it offers the action that makes the first row — and says nothing about filters, because none are set.",
+  },
+  {
+    key: "no-match",
+    label: "Nothing matched",
+    why: "A bad question rather than an empty system: it says how many filters are narrowing the list and clears them in one click.",
+  },
+  {
+    key: "error",
+    label: "Failed",
+    why: "What failed, the id to quote, and a retry — because a fault is worth trying again.",
+  },
+  {
+    key: "forbidden",
+    label: "Refused",
+    why: "The permission named in words, and no retry: a refusal does not become permission on a second press.",
+  },
+] as const;
+
+type TableState = (typeof TABLE_STATES)[number]["key"];
+
+/** Three rows of the shape a list draws. Enough to show the chrome. */
+const DEMO_ROWS = [
+  { id: "1", reference: "TIC-00041", title: "Printer on fire", status: "OPEN" },
+  { id: "2", reference: "TIC-00042", title: "Export finishes empty", status: "IN_PROGRESS" },
+  { id: "3", reference: "TIC-00043", title: "Login loops on Safari", status: "RESOLVED" },
+];
+
+const DEMO_COLUMNS: ColumnsType<(typeof DEMO_ROWS)[number]> = [
+  { title: "Reference", dataIndex: "reference", sorter: true, width: 140 },
+  { title: "Title", dataIndex: "title" },
+  {
+    title: "Status",
+    dataIndex: "status",
+    width: 140,
+    render: (value: string) => <StatusTag status={value} />,
+  },
+];
+
 /** One demonstration: what it is, why its states matter, and the thing itself. */
 function Demo({
   name,
@@ -145,6 +232,79 @@ function Demo({
 
 export default function ComponentsPage() {
   const found = useMemo(() => coverage(), []);
+  const [naming, setNaming] = useState(false);
+  const [named, setNamed] = useState("");
+  const [tableState, setTableState] = useState<TableState>("rows");
+
+  /**
+   * The table, in the state the reader chose.
+   *
+   * The real components in each case — `NoResults`, `EmptyState`,
+   * `FailureAlert` — rather than a picture of them, because a showcase drawn
+   * from copies is the thing this page's docstring warns about.
+   */
+  const tableStage = (state: TableState) => {
+    if (state === "error" || state === "forbidden") {
+      return (
+        <FailureAlert
+          error={
+            new ApiError(
+              state === "error" ? 500 : 403,
+              {
+                error: "demo",
+                message: "The server's own sentence about what happened.",
+                details: state === "forbidden" ? { missing: ["records.view"] } : {},
+              },
+              "b7f2c1a9-demo",
+            )
+          }
+          titles={{
+            failed: "Those records could not be loaded",
+            forbidden: "Your role does not include this dataset",
+          }}
+          onRetry={() => undefined}
+        />
+      );
+    }
+    return (
+      <Table<(typeof DEMO_ROWS)[number]>
+        size="small"
+        rowKey="id"
+        loading={state === "loading"}
+        rowSelection={{
+          selectedRowKeys: state === "rows" ? ["2"] : [],
+          // Named, as the real lists name them (`useBulk`): a column of
+          // unlabelled checkboxes is thirty violations and a screen reader
+          // saying "checkbox" forty times (§55).
+          getCheckboxProps: (row) =>
+            ({ "aria-label": `Select ${row.reference}` }) as Record<string, string>,
+        }}
+        dataSource={state === "rows" ? DEMO_ROWS : []}
+        columns={DEMO_COLUMNS}
+        pagination={{
+          current: 1,
+          pageSize: 25,
+          total: state === "rows" ? 1284 : 0,
+          showSizeChanger: true,
+          showTotal: (total) => `${formatNumber(total)} matching`,
+        }}
+        locale={{
+          emptyText:
+            state === "loading" ? (
+              <> </>
+            ) : state === "no-match" ? (
+              <NoResults filterCount={2} onClear={() => undefined} />
+            ) : (
+              <EmptyState
+                title="No tickets yet"
+                hint="A ticket is a customer's problem with a deadline attached."
+                action={<Button size="small">New ticket</Button>}
+              />
+            ),
+        }}
+      />
+    );
+  };
 
   const missingColumns: ColumnsType<{ name: string }> = [
     { title: "Component", dataIndex: "name" },
@@ -372,6 +532,144 @@ export default function ComponentsPage() {
             of them cannot be reached by asking.
           </Text>
         </div>
+      </Demo>
+
+      <Title level={4} className="nu-show-section">
+        Failure, and how current a page is
+      </Title>
+
+      <Demo
+        name="FailureAlert"
+        what="The failure state, once, for every data view that has one (§34). Four kinds that lead somewhere different: a refusal and a stale write are warnings because they are answers, a fault is an error. The permission is named in the same words a disabled control uses, the correlation id is always there and always copyable, and a retry appears only where trying again could work — a 'Try again' on a 404 promises the address will resolve on the second press."
+      >
+        <div className="nu-show-lines">
+          {FAILURES.map(({ status, title }) => (
+            <FailureAlert
+              key={status}
+              error={
+                new ApiError(
+                  status,
+                  {
+                    error: "demo",
+                    message: "The server's own sentence about what happened.",
+                    details: status === 403 ? { missing: ["records.update"] } : {},
+                  },
+                  "b7f2c1a9-demo",
+                )
+              }
+              titles={{ not_found: title, forbidden: title, conflict: title, failed: title }}
+              onRetry={() => undefined}
+            />
+          ))}
+        </div>
+      </Demo>
+
+      <Demo
+        name="AutoRefresh"
+        what="How old what is on screen is, and how often to ask again (§53). Off by default — a page that polls on a timer nobody asked for spends the database's time on a tab somebody left open — and parked while the tab is hidden. A split control, because 'reload it now' is one press and 'keep reloading it' is a decision made once."
+      >
+        <Space size={16} wrap>
+          <AutoRefresh page="showcase" refresh={() => undefined} updatedAt={Date.now() - 240_000} />
+          {/* Deliberately *not* a `busy` example: the icon spins while a
+              request is in flight, and an example that spins for ever is both
+              a lie and a page whose animations never settle — which is what
+              every accessibility sweep in this suite waits for. */}
+          <Text type="secondary">
+            While a request is in flight it says “Refreshing…” and the icon
+            spins.
+          </Text>
+        </Space>
+      </Demo>
+
+      <Demo
+        name="NameModal"
+        what="The plain modal, for a create whose whole decision is one word (§33). Enter submits, an empty name is refused in words rather than closing and creating nothing, and the value is trimmed — three defects the two places that asked one question with a confirm dialog each had."
+      >
+        <Space direction="vertical">
+          <Button onClick={() => setNaming(true)} data-testid="demo-name-modal">
+            New folder…
+          </Button>
+          <Text type="secondary">
+            {named ? `Last name given: ${named}` : "Nothing named yet."}
+          </Text>
+          <NameModal
+            open={naming}
+            title="New folder"
+            label="Folder name"
+            placeholder="Contracts"
+            onClose={() => setNaming(false)}
+            onSubmit={(value) => {
+              setNamed(value);
+              setNaming(false);
+            }}
+          />
+        </Space>
+      </Demo>
+
+      <Title level={4} className="nu-show-section">
+        Data
+      </Title>
+
+      <Demo
+        name="EdgeTag"
+        what="A chip whose colour comes from the *data* rather than from a palette choice at the call site — a tag's hue is the thing it names, so the same status is the same colour on every page. The ink is measured against its own ground (§55), which a hex handed to AntD's `color` is not."
+      >
+        <Space wrap>
+          {/* From the series palette rather than four hexes written here: a
+              colour literal outside `src/theme` is exactly what
+              `theme/palette.test.ts` refuses, and a showcase is not exempt
+              from the rule it is demonstrating. */}
+          {["Backend", "Shipped", "Blocked", "Design"].map((label, index) => (
+            <EdgeTag key={label} color={SERIES[index % SERIES.length]}>
+              {label}
+            </EdgeTag>
+          ))}
+        </Space>
+      </Demo>
+
+      <Demo
+        name="ChartCard"
+        what="A chart that can always be read as a table (§30). Charts are for shape and tables are for 'what exactly was the number on the 14th', so every panel offers both from the same data, remembers which one was chosen, and exports the same rows. A panel whose query failed says so rather than falling through to 'Nothing in this period', which is a finding and not a state."
+      >
+        <div className="nu-show-grid nu-show-grid--wide">
+          <ChartCard id="showcase-bars" height={180} panel={DEMO_PANEL} />
+          <ChartCard
+            id="showcase-empty"
+            height={180}
+            panel={{ ...DEMO_PANEL, series: [] }}
+            empty={{ title: "Nothing in this period", hint: "The question was fine." }}
+          />
+        </div>
+      </Demo>
+
+      <Title level={4} className="nu-show-section">
+        The data table, and the states it must have
+      </Title>
+
+      <Alert
+        type="info"
+        showIcon
+        className="nu-show-note"
+        data-testid="table-note"
+        message="One table, six states (§3, §34)"
+        description="Every list in the platform is one AntD table over a server-side query: filtering, sorting, paging, faceting and column choice all happen in PostgreSQL from one field declaration, so the header's count is the whole dataset rather than the page. What is worth demonstrating on its own is the part a screenshot of a happy path never shows — the states, and which of the two empties a reader is looking at."
+      />
+
+      <Demo
+        name="Data table"
+        what="Switch between the states. The loading one is a skeleton in the final layout rather than a centred spinner, because a spinner says the page is busy and a skeleton says what is about to be there; and the two empties are deliberately different — 'nothing yet' wants the action that makes the first row, 'nothing matched' wants the filters cleared."
+      >
+        <Space direction="vertical" size={12} style={{ width: "100%" }}>
+          <Segmented
+            size="small"
+            value={tableState}
+            onChange={(next) => setTableState(next)}
+            options={TABLE_STATES.map((state) => ({ value: state.key, label: state.label }))}
+            data-testid="table-state"
+          />
+          <Text type="secondary">{TABLE_STATES.find((s) => s.key === tableState)?.why}</Text>
+          <div data-testid="table-stage">{tableStage(tableState)}</div>
+        </Space>
       </Demo>
 
       <Alert

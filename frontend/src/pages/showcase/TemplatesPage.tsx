@@ -33,10 +33,11 @@
 
 import { Alert, Card, Space, Tag, Typography } from "antd";
 import { ArrowRightOutlined } from "@ant-design/icons";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { PageHeader } from "@/components/PageHeader";
+import { StatusTag } from "@/components/StatusTag";
 import {
   CREATE_FLOWS,
   CREATE_SHAPES,
@@ -49,6 +50,31 @@ import { formatNumber } from "@/lib/formats";
 const { Text, Paragraph } = Typography;
 
 /** How a route reads as a link label — the address, which is what somebody types. */
+/** Three rows, for the split-view miniature. A shape, not a dataset. */
+const PREVIEW_ROWS = [
+  {
+    reference: "TIC-00041",
+    title: "Printer on fire in the north wing",
+    status: "OPEN",
+    who: "Lakeside Group",
+    body: "Reported this morning. The smoke has stopped, which the reporter considers progress.",
+  },
+  {
+    reference: "TIC-00042",
+    title: "Export finishes but the file is empty",
+    status: "IN_PROGRESS",
+    who: "Northwind Trading",
+    body: "Reproduced on a filtered ledger of 40 000 rows. The queue accepted it and wrote nothing.",
+  },
+  {
+    reference: "TIC-00043",
+    title: "Login loops on Safari 17",
+    status: "RESOLVED",
+    who: "Harbour Logistics",
+    body: "The redirect kept its own hash. Fixed by reading the token before the router boots.",
+  },
+];
+
 export function routeLabel(route: string): string {
   return `/${route}`;
 }
@@ -97,6 +123,13 @@ function LayoutCard({ layout }: { layout: PageLayout }) {
         </div>
       </div>
 
+      {/* One layout gets a live miniature: the split view is the shape hardest
+          to judge from a sentence, because what makes it work is that the
+          list *stays put* while the detail changes (§62, §63). The rest are
+          better judged by opening a real page, which is what the links are
+          for. */}
+      {layout.key === "split" && <SplitPreview />}
+
       <div className="nu-tmpl-links" data-testid={`routes-${layout.key}`}>
         {layout.routes.map((route) => (
           // Real pages carrying real data: the fastest way to judge a layout
@@ -108,6 +141,56 @@ function LayoutCard({ layout }: { layout: PageLayout }) {
         ))}
       </div>
     </Card>
+  );
+}
+
+/**
+ * The split view, in miniature (§62).
+ *
+ * A demonstration rather than a picture: the list on the left keeps its own
+ * selection and scroll while the right pane changes, which is the whole claim
+ * of the layout and the one thing a screenshot cannot show. Three rows is
+ * enough — this is a shape, not a dataset.
+ */
+function SplitPreview() {
+  const [chosen, setChosen] = useState(PREVIEW_ROWS[0]!.reference);
+  const row = PREVIEW_ROWS.find((item) => item.reference === chosen) ?? PREVIEW_ROWS[0]!;
+
+  return (
+    <div className="nu-tmpl-preview" data-testid="split-preview">
+      <ul className="nu-tmpl-preview-list">
+        {PREVIEW_ROWS.map((item) => (
+          <li key={item.reference}>
+            <button
+              type="button"
+              className={`nu-tmpl-preview-row${
+                item.reference === chosen ? " is-active" : ""
+              }`}
+              onClick={() => setChosen(item.reference)}
+              aria-current={item.reference === chosen}
+            >
+              <span className="nu-tmpl-preview-ref">{item.reference}</span>
+              <span className="nu-tmpl-preview-title">{item.title}</span>
+              <StatusTag status={item.status} />
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="nu-tmpl-preview-detail" data-testid="split-preview-detail">
+        <Text strong>{row.title}</Text>
+        <Text type="secondary">
+          {row.reference} · {row.who}
+        </Text>
+        <Paragraph type="secondary" className="nu-tmpl-preview-body">
+          {row.body}
+        </Paragraph>
+        <Text type="secondary">
+          The list keeps its place. On <Link to="/mail">/mail</Link> and{" "}
+          <Link to="/tickets">/tickets</Link> the panes are addressable, so a
+          selected item is a link somebody can send.
+        </Text>
+      </div>
+    </div>
   );
 }
 

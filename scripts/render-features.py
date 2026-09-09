@@ -88,11 +88,8 @@ CATALOGUE: list[dict[str, object]] = [
         "`/dashboard/*`, `/api/analysis/*`", "done",
     ),
     feature(
-        3, "Advanced data table", "every list", "generic list", "partial",
-        "Filtering, sorting, paging, facets and column choice all happen in "
-        "PostgreSQL on every list, off one `FieldSet` declaration. What is open "
-        "is the *showcase* of the table on its own, which `/showcase/components` "
-        "does not yet include.",
+        3, "Advanced data table", "every list, `/showcase/components`", "generic list",
+        "done",
     ),
     feature(4, "Advanced search (simple + RAQB)", "`/explore`", "`/api/explorer/query`", "done"),
     feature(5, "Saved searches", "`/explore` (panel)", "`/api/saved-searches`", "done"),
@@ -183,9 +180,8 @@ CATALOGUE: list[dict[str, object]] = [
     feature(60, "Component showcase", "`/showcase/components`", "—", "done"),
     feature(61, "Page template gallery", "`/showcase/templates`", "—", "done"),
     feature(
-        62, "Master / detail layout", "`/mail`, `/tickets`, `/explore`", "—", "partial",
-        "The layout ships on three pages and the gallery documents when to reach "
-        "for it. A dedicated showcase of the shape on its own is open.",
+        62, "Master / detail layout", "`/mail`, `/tickets`, `/explore`, `/showcase/templates`",
+        "—", "done",
     ),
     feature(
         63, "Split view", "`/mail`, `/tickets`, `/explore`", "—", "done",

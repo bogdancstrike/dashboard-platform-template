@@ -1,4 +1,5 @@
 import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { Route, Routes } from "react-router-dom";
 
@@ -127,5 +128,31 @@ describe("the page", () => {
       expect(card).toHaveTextContent(flows[0]!.what);
       expect(card).toHaveTextContent(flows[0]!.because.slice(0, 30));
     }
+  });
+
+  /**
+   * The split view is demonstrated, not only described (§62).
+   *
+   * What makes the layout work is that the list *stays put* while the pane
+   * beside it changes — the one claim a sentence and a screenshot both fail
+   * to carry.
+   */
+  it("shows the split view working, with the list keeping its place", async () => {
+    const user = userEvent.setup();
+    render();
+
+    const preview = await screen.findByTestId("split-preview");
+    const detail = screen.getByTestId("split-preview-detail");
+    expect(detail).toHaveTextContent("Printer on fire in the north wing");
+
+    // The second row, chosen — and the list is still the same three rows in
+    // the same order, which is the point.
+    const rows = within(preview).getAllByRole("button");
+    await user.click(rows[1]!);
+    expect(screen.getByTestId("split-preview-detail")).toHaveTextContent(
+      "Export finishes but the file is empty",
+    );
+    expect(within(preview).getAllByRole("button")).toHaveLength(rows.length);
+    expect(rows[1]).toHaveAttribute("aria-current", "true");
   });
 });

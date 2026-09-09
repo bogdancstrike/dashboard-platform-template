@@ -26,7 +26,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | --- | --- | --- | --- | --- |
 | 1 | Application shell, navigation | all | `/meta/*`, `/api/me` | [x] |
 | 2 | Overview dashboard, KPIs, charts | `/`, `/analytics` | `/dashboard/*`, `/api/analysis/*` | [x] |
-| 3 | Advanced data table | every list | generic list | [~] |
+| 3 | Advanced data table | every list, `/showcase/components` | generic list | [x] |
 | 4 | Advanced search (simple + RAQB) | `/explore` | `/api/explorer/query` | [x] |
 | 5 | Saved searches | `/explore` (panel) | `/api/saved-searches` | [x] |
 | 6 | Search results page | `/search` | `/api/search/global` | [x] |
@@ -85,7 +85,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 59 | UX quality bar | global | — | [~] |
 | 60 | Component showcase | `/showcase/components` | — | [x] |
 | 61 | Page template gallery | `/showcase/templates` | — | [x] |
-| 62 | Master / detail layout | `/mail`, `/tickets`, `/explore` | — | [~] |
+| 62 | Master / detail layout | `/mail`, `/tickets`, `/explore`, `/showcase/templates` | — | [x] |
 | 63 | Split view | `/mail`, `/tickets`, `/explore` | — | [x] |
 | 64 | Table row preview drawer | `/explore` | `/api/records/…` | [~] |
 | 65 | Data quality indicators | lists + `/admin/quality` | `/admin/quality` | [x] |
@@ -102,17 +102,13 @@ either way, because a catalogue has to be able to say "every entity list".
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*71 shipped · 6 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*73 shipped · 4 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
 Every section above that is not shipped, with the part that is open. A catalogue that grades something "partly there" and stops has told a reader that something is missing and not what.
 
-**§3 Advanced data table** — Partly there. Filtering, sorting, paging, facets and column choice all happen in PostgreSQL on every list, off one `FieldSet` declaration. What is open is the *showcase* of the table on its own, which `/showcase/components` does not yet include.
-
 **§59 UX quality bar** — Partly there. The standing bar rather than a deliverable: it is met on every page that has shipped and is re-argued on every page that ships next.
-
-**§62 Master / detail layout** — Partly there. The layout ships on three pages and the gallery documents when to reach for it. A dedicated showcase of the shape on its own is open.
 
 **§64 Table row preview drawer** — Partly there. The explorer opens a row without leaving the list, deep-linked and keyboard-driven. The other lists send a reader to the record page instead, which for a ledger or a fleet is the better answer — the open part is the lists where it is not.
 

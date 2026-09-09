@@ -1,4 +1,5 @@
 import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { Route, Routes } from "react-router-dom";
 
@@ -134,5 +135,39 @@ describe("the page", () => {
     expect(screen.getByTestId("feature-note")).toHaveTextContent(
       /components\/mail, components\/kanban/,
     );
+  });
+
+  /**
+   * The table, on its own, in the states a happy path never shows (§3, §34).
+   *
+   * Every list in the platform is one table over a server-side query, and the
+   * part worth demonstrating separately is not the columns — it is the six
+   * states, and in particular that the two empties are *different*: one wants
+   * the action that makes the first row, the other wants the filters cleared.
+   */
+  it("demonstrates the table's states, and tells the two empties apart", async () => {
+    const user = userEvent.setup();
+    render();
+
+    const stage = await screen.findByTestId("table-stage");
+    expect(within(stage).getByText("Printer on fire")).toBeInTheDocument();
+
+    await user.click(screen.getByText("Nothing yet"));
+    const nothing = within(screen.getByTestId("table-stage")).getByTestId("empty-state");
+    expect(nothing).toHaveTextContent("No tickets yet");
+    // No filters are set, so it must not blame one.
+    expect(nothing).not.toHaveTextContent(/filter/i);
+
+    await user.click(screen.getByText("Nothing matched"));
+    const matched = within(screen.getByTestId("table-stage")).getByTestId("empty-state");
+    expect(matched).toHaveTextContent(/match/i);
+    expect(within(matched).getByRole("button", { name: /Clear/ })).toBeInTheDocument();
+
+    await user.click(screen.getByText("Refused"));
+    const refused = within(screen.getByTestId("table-stage")).getByTestId("failure-alert");
+    expect(refused).toHaveAttribute("data-failure", "forbidden");
+    // A refusal names the permission and offers no retry.
+    expect(refused).toHaveTextContent("records.view");
+    expect(within(refused).queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
   });
 });

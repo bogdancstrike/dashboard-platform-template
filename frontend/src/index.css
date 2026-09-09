@@ -1558,8 +1558,23 @@ mark.nu-mark {
 .nu-event-chip:hover,
 .nu-waitcard:hover,
 .nu-adminmap-card:hover,
+.nu-tmpl-preview-row.is-active,
 mark.nu-mark {
   --nu-text-tertiary: var(--nu-text-secondary);
+}
+
+/* A link inside a sentence is underlined (§55).
+   Colour alone is not enough to mark a link *within* a text block: axe reports
+   it as `link-in-text-block` and measures the contrast between the link and
+   the words around it — ours is 1.41:1, because both are ink on paper. On its
+   own line, a link is unambiguous and keeps the platform's plain look; inside
+   a paragraph it takes an underline. Scoped to prose (`.ant-typography` and
+   `p`) rather than to every anchor, so the navigation, the tables and the
+   chip rows are untouched. */
+p a:not(.ant-btn),
+.ant-typography a:not(.ant-btn) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* On a handheld, a link *button* is still a target (§56).
@@ -3007,5 +3022,32 @@ mark.nu-mark {
   display: flex; flex-direction: column; gap: 8px;
 }
 .nu-tmpl-flows li { display: flex; flex-direction: column; gap: 1px; }
+
+/* The split view in miniature (§62): the list keeps its place while the pane
+   beside it changes, which is the whole claim of the layout and the one thing
+   a screenshot cannot show. */
+.nu-tmpl-preview {
+  display: grid; grid-template-columns: minmax(min(220px, 100%), 1fr) 1.4fr; gap: 10px;
+  margin-top: 12px; padding-top: 10px;
+  border-top: 1px solid var(--nu-border-subtle);
+}
+@media (max-width: 767px) { .nu-tmpl-preview { grid-template-columns: 1fr; } }
+.nu-tmpl-preview-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.nu-tmpl-preview-row {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 6px; align-items: center;
+  width: 100%; padding: 6px 8px; text-align: start; cursor: pointer;
+  background: none; border: 1px solid var(--nu-border-subtle); border-radius: 6px;
+  font: inherit; color: inherit;
+}
+.nu-tmpl-preview-row.is-active { background: var(--nu-accent-soft); border-color: var(--nu-accent); }
+.nu-tmpl-preview-row:hover { border-color: var(--nu-accent); }
+.nu-tmpl-preview-ref { font-family: var(--nu-font-mono); font-size: 11px; }
+.nu-tmpl-preview-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.nu-tmpl-preview-detail {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 8px 10px; border: 1px solid var(--nu-border-subtle); border-radius: 6px;
+}
+.nu-tmpl-preview-body { margin: 6px 0 !important; font-size: 12px; }
+.nu-tmpl-preview-detail .ant-typography { font-size: 12px; }
 .nu-tmpl-flows .ant-typography { font-size: 12px; line-height: 1.5; }
 .nu-tmpl-flows .nu-tmpl-link { font-family: inherit; font-size: 13px; }
