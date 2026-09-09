@@ -2731,85 +2731,144 @@ function is a slow test that fails for unrelated reasons.
 Every section of the spec, its home in the app, and its state. `—` means the
 section is a cross-cutting rule rather than a page.
 
+**Generated**, from the catalogue in `scripts/render-features.py`, which also
+renders [`features.md`](features.md) and *checks* itself: a section marked
+shipped that names a route the router does not serve, or an endpoint the map
+does not mount, fails `make lint`. The hand-typed version of this table was
+wrong in about a dozen rows by the time anybody looked — features that had
+shipped months earlier still marked open, and `/showcase/table` sitting in it
+as §3's home for the life of the project without ever being built. `features.md`
+also carries, for every section that is not shipped, a sentence saying what is
+missing from it: a table that grades something "partly there" and stops has
+told a reader that something is missing and not what.
+
+<!-- generated:feature-matrix -->
+
 | § | Feature | Route / where | API | State |
 | --- | --- | --- | --- | --- |
-| 1 | Application shell, navigation | all | `/meta/*`, `/api/me` | [ ] |
+| 1 | Application shell, navigation | all | `/meta/*`, `/api/me` | [x] |
 | 2 | Overview dashboard, KPIs, charts | `/`, `/analytics` | `/dashboard/*`, `/api/analysis/*` | [~] |
-| 3 | Advanced data table | `/showcase/table` + every list | generic list | [ ] |
+| 3 | Advanced data table | every list | generic list | [~] |
 | 4 | Advanced search (simple + RAQB) | `/explore` | `/api/explorer/query` | [x] |
 | 5 | Saved searches | `/explore` (panel) | `/api/saved-searches` | [x] |
-| 6 | Search results, view modes | `/explore` | `/api/explorer/query` | [x] |
-| 7 | Entity list pages | `/{entity}` ×6 | generic list | [x] |
-| 8 | Entity detail page | `/{entity}/:id` | `/api/records/…` | [x] |
-| 9 | Create / edit forms | drawer on every entity page | `/api/records/*` | [x] |
-| 10 | Multi-step wizard | `/{entity}/new/wizard` | draft endpoints | [ ] |
-| 11 | Admin area | `/admin` | `/admin/*` | [x] |
-| 12 | User management, impersonation | `/admin/users` | `/admin/users` | [x] |
-| 13 | Roles and permission matrix | `/admin/roles` | `/admin/roles` | [x] |
-| 14 | Email inbox | `/mail` | `/api/mail/threads` | [x] |
-| 15 | Email detail, threading | `/mail?thread=…` | `/api/mail/threads/:id` | [x] |
-| 16 | Compose email | `/mail` (composer) | `/api/mail/messages` | [x] |
-| 17 | Notification centre | header + `/notifications` | `/notifications` | [x] |
-| 18 | Tasks / work queue (kanban) | `/tasks`, `/tasks/:id` | `/api/records/task` | [~] board, drag, card detail |
-| 19 | Calendar | `/calendar` | `/api/calendar/events` | [x] |
-| 20 | File manager | `/files` | `/api/files` | [x] |
-| 21 | **Audit logs** | `/admin/audit` | `/admin/audit` | [x] |
-| 22 | System logs | `/admin/logs` | `/admin/logs` | [x] |
+| 6 | Search results page | `/search` | `/api/search/global` | [x] |
+| 7 | Entity list pages | `/{entity}` | generic list | [x] |
+| 8 | Entity detail pages | `/{entity}/:id` | `/api/records/…` | [x] |
+| 9 | Create / edit / delete | every list and detail | `/api/records/…` | [x] |
+| 10 | Multi-step wizard | `/import`, `/dashboards` | `/imports`, `/api/dashboards` | [~] |
+| 11 | User administration | `/admin/users` | `/admin/users` | [x] |
+| 12 | Roles and permissions | `/admin/roles` | `/admin/roles` | [x] |
+| 13 | System settings | `/admin/settings` | `/admin/settings` | [x] |
+| 14 | Groups and teams | `/admin/groups` | `/admin/groups` | [x] |
+| 15 | Mail and threads | `/mail` | `/api/mail/threads/:id` | [x] |
+| 16 | Files and folders | `/files` | `/api/files` | [x] |
+| 17 | Notifications and announcements | `/notifications`, `/announcements` | `/notifications`, `/api/announcements` | [x] |
+| 18 | Tasks / work queue (kanban) | `/tasks`, `/kanban` | `/api/kanban/*` | [~] |
+| 19 | Calendar | `/calendar` | `/api/calendar/*` | [x] |
+| 20 | Object storage | `/files` | `/api/files/*` | [x] |
+| 21 | Audit explorer | `/admin/audit` | `/admin/audit` | [x] |
+| 22 | System logs, live tail | `/admin/logs` | `/admin/logs` | [x] |
 | 23 | Background jobs | `/admin/jobs` | `/admin/jobs` | [x] |
-| 24 | System health | `/admin/health` | `/health/status` | [x] API |
-| 25 | API management | `/admin/api` | `/admin/api-clients` | [x] |
+| 24 | System health | `/admin/health` | `/health/*` | [x] |
+| 25 | API clients | `/admin/api` | `/admin/api-clients` | [x] |
 | 26 | Integrations | `/admin/integrations` | `/admin/integrations` | [x] |
 | 27 | Feature flags | `/admin/flags` | `/admin/flags` | [x] |
-| 28 | Reports | `/reports`, `/reports/builder` | `/api/reports`, `/api/analysis/run` | [x] |
+| 28 | Reports and analysis | `/reports`, `/reports/builder` | `/api/analysis/*` | [x] |
 | 29 | Import wizard | `/import` | `/imports` | [x] |
-| 30 | Export | every list, `/exports` | `/exports`, `/{list}/export` | [x] |
-| 31 | Command palette (`cmdk`) | global | `/search/quick` | [ ] |
+| 30 | Export | every list, `/exports` | `/exports` | [x] |
+| 31 | Command palette (`cmdk`) | global | `/api/search/global` | [x] |
 | 32 | Global search | header + `/find/global` | `/api/search/global` | [x] |
-| 33 | Drawers and modals | — | — | [ ] |
-| 34 | Error and empty states | `/errors/*` | — | [ ] |
-| 35 | Activity feed | `/activity` + detail tabs | `/activity` | [ ] |
-| 36 | Comments | `/tasks/:id`, detail pages | `/api/comments` | [~] |
+| 33 | Drawers and modals | — | — | [x] |
+| 34 | Error and empty states | `/errors/*` | — | [x] |
+| 35 | Activity feed | `/activity`, `/profile` | `/api/activity` | [x] |
+| 36 | Comments | `/tasks/:id`, `/tickets/:id` | `/api/comments` | [~] |
 | 37 | Tags and labels | `/admin/tags` + inline | `/tags` | [ ] |
 | 38 | Favorites | `/favorites` | `/favorites` | [x] |
 | 39 | Recent items | `/favorites` | `/recents` | [x] |
-| 40 | Personal preferences | `/settings/preferences` | `/api/me` | [x] |
+| 40 | Personal preferences | `/settings/preferences`, `/profile` | `/api/me` | [x] |
 | 41 | Security settings, sessions | `/settings/security` | `/security/*` | [x] |
 | 42 | Organization settings | `/admin/organizations` | `/admin/organizations` | [x] |
 | 43 | Bulk operations | every list that is a table | `/api/records/{type}/bulk` | [x] |
-| 44 | Drill-down | dashboard, analytics → list | `/api/analysis/run` | [~] |
+| 44 | Drill-down | dashboard, analytics, `/admin/quality` → list | `/api/analysis/run` | [~] |
 | 45 | Dashboard builder | `/dashboards` | `/api/dashboards` | [x] |
 | 46 | Saved views | every list | `/saved-views` | [ ] |
 | 47 | Data comparison | `/{entity}/compare` | generic list | [ ] |
-| 48 | Timeline view | detail tabs | `/api/audit/timeline` | [~] |
+| 48 | Timeline view | detail tabs | `/admin/audit` | [~] |
 | 49 | Alerts and rules | `/workflows` | `/api/automations/rules` | [x] |
 | 50 | Data relationships | detail tabs + `/find/relationships` | `/api/relationships/*` | [~] |
 | 51 | Query inspector | `/explore` | — (`core/rules.py`) | [x] |
-| 52 | Pagination patterns | various | `core/pagination.py` | [x] core |
-| 53 | Data refresh, auto-refresh | data-heavy pages | — | [ ] |
-| 54 | Keyboard navigation | global | — | [ ] |
-| 55 | Accessibility | global | — | [ ] |
-| 56 | Responsive behaviour | global | — | [ ] |
+| 52 | Pagination patterns | various | — (`core/pagination.py`) | [x] |
+| 53 | Data refresh, auto-refresh | data-heavy pages | `/live` | [~] |
+| 54 | Keyboard navigation | global | — | [x] |
+| 55 | Accessibility | global | — | [x] |
+| 56 | Responsive behaviour | global | — | [~] |
 | 57 | Realistic demo data | — | `src/seed/` | [x] |
-| 58 | Demo roles / personas | — | `core/auth.py` | [x] core |
-| 59 | UX quality bar | global | — | [ ] |
+| 58 | Demo roles / personas | — | — (`core/auth.py`) | [x] |
+| 59 | UX quality bar | global | — | [~] |
 | 60 | Component showcase | `/showcase/components` | — | [x] |
 | 61 | Page template gallery | `/showcase/templates` | — | [x] |
-| 62 | Master / detail layout | `/showcase/master-detail` | — | [ ] |
-| 63 | Split view | mail, logs, files, tasks | — | [ ] |
-| 64 | Table row preview drawer | every list | — | [ ] |
+| 62 | Master / detail layout | `/mail`, `/tickets`, `/explore` | — | [~] |
+| 63 | Split view | `/mail`, `/tickets`, `/explore` | — | [x] |
+| 64 | Table row preview drawer | `/explore` | `/api/records/…` | [~] |
 | 65 | Data quality indicators | lists + `/admin/quality` | `/admin/quality` | [x] |
-| 66 | Dashboard alerts | `/` | `/dashboard/alerts` | [ ] |
+| 66 | Dashboard alerts | `/` | `/dashboard/alerts` | [x] |
 | 67 | Customisable home page | `/dashboards` | `/api/dashboards` | [x] |
-| 68 | Navigation history | global | `/recent` | [ ] |
-| 69 | Deep linking | global | — | [ ] |
-| 70 | Search within table data | every list | generic list | [ ] |
-| 71 | Server-side data model | — | `core/query.py` | [x] core |
-| 72 | Query state persistence | global | — | [ ] |
+| 68 | Navigation history | `/favorites` | `/recents` | [x] |
+| 69 | Deep linking | global | — | [x] |
+| 70 | Search within table data | every list | generic list | [x] |
+| 71 | Server-side data model | — | — (`core/query.py`) | [x] |
+| 72 | Query state persistence | global | — | [x] |
 | 73 | Optimistic vs confirmed actions | board, forms | — | [~] |
-| 74 | Unsaved changes protection | every form | — | [~] drawer |
+| 74 | Unsaved changes protection | every drawer | — | [~] |
 | 75 | Preview before bulk execution | every bulk action | `/api/records/{type}/bulk/preview` | [x] |
-| 76 | Security-conscious UX | global | `core/auth.py` masking | [x] core |
-| 77 | Final goal — coherent template | everything | — | [ ] |
+| 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
+| 77 | Final goal — coherent template | everything | — | [~] |
+
+*58 shipped · 16 partly there · 3 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+
+### What is not finished, and what is missing from it
+
+Every section above that is not shipped, with the part that is open. A catalogue that grades something "partly there" and stops has told a reader that something is missing and not what.
+
+**§2 Overview dashboard, KPIs, charts** — Partly there. Sixteen panels, KPIs against the previous period, an alert strip and a feed all ship. The further chart kinds — stacked area, donut with a centre total, funnel — are listed in the tracker and open.
+
+**§3 Advanced data table** — Partly there. Filtering, sorting, paging, facets and column choice all happen in PostgreSQL on every list, off one `FieldSet` declaration. What is open is the *showcase* of the table on its own, which `/showcase/components` does not yet include.
+
+**§10 Multi-step wizard** — Partly there. Two wizards ship — the import flow and dashboard creation — and both save between steps. A generic `/{entity}/new/wizard` does not exist and may never need to: a wizard is right when the decision has parts, which is a per-entity judgement rather than a default.
+
+**§18 Tasks / work queue (kanban)** — Partly there. Boards, lanes and cards with full CRUD, server-side filters, drag between lanes reconciled against the server, and a keyboard equivalent of the drag. Ordering *within* a lane and the comment and checklist counts on a card's face are open.
+
+**§36 Comments** — Partly there. Mentions, one level of replies and the audit timeline beside them, on the two record pages where a conversation actually happens. The other four entity detail pages do not carry it yet.
+
+**§37 Tags and labels** — Not built. Not built. The `tags` table and the polymorphic join exist in the model; no page reads them.
+
+**§44 Drill-down** — Partly there. Every KPI tile, chart segment and quality finding opens the rows behind it with the same filters applied. The back-stack that would return a reader to the picture they came from is open.
+
+**§46 Saved views** — Not built. Not built. A saved *search* keeps the question (§5); a saved view would keep the presentation — columns, sort, density — against a list.
+
+**§47 Data comparison** — Not built. Not built. Two or more records side by side, with the fields that differ marked.
+
+**§48 Timeline view** — Partly there. Every record page carries its own history, read from the audit ledger so the two cannot disagree. A cross-record timeline — one thread through several records — is open.
+
+**§50 Data relationships** — Partly there. The graph, the weighted relations, hub records and coverage all ship. Marker clustering and a per-record relationship tab are open.
+
+**§53 Data refresh, auto-refresh** — Partly there. Notifications and the log tail arrive over the live channel. A general auto-refresh a reader can turn on per page is open.
+
+**§56 Responsive behaviour** — Partly there. Four breakpoints, a collapsing sidebar, a mobile drawer and tables that scroll rather than squash. One page is asserted at mobile width end to end; the rest are not.
+
+**§59 UX quality bar** — Partly there. The standing bar rather than a deliverable: it is met on every page that has shipped and is re-argued on every page that ships next.
+
+**§62 Master / detail layout** — Partly there. The layout ships on three pages and the gallery documents when to reach for it. A dedicated showcase of the shape on its own is open.
+
+**§64 Table row preview drawer** — Partly there. The explorer opens a row without leaving the list, deep-linked and keyboard-driven. The other lists send a reader to the record page instead, which for a ledger or a fleet is the better answer — the open part is the lists where it is not.
+
+**§73 Optimistic vs confirmed actions** — Partly there. A dragged card moves at once and is reconciled against the server's answer, and a stale edit is refused with a 409 naming both moments. Forms are all confirmed rather than optimistic, which is the right default and leaves the optimistic half unexercised outside the board.
+
+**§74 Unsaved changes protection** — Partly there. The record drawer asks before discarding. The inline controls that write on change need no guard, and the two builders do not have one.
+
+**§77 Final goal — coherent template** — Partly there. Open while anything above is, by construction: the section is the conjunction of the rest.
+
+<!-- /generated:feature-matrix -->
 
 ---
 
@@ -3672,8 +3731,29 @@ there was only one. The point of a template is the opposite.
       the diagram had said 50, 499, 113 and 15 554). A prose
       `docs/architecture.md` on the layering rule and why QF is wired as it is
       remains
-- [ ] `docs/features.md` — the §1–§77 catalogue mapped to routes and endpoints,
+- [x] `docs/features.md` — the §1–§77 catalogue mapped to routes and endpoints,
       as a developer's index into the template (§77)
+  - **Generated, and *checked*.** The catalogue lives in
+      `scripts/render-features.py` and renders both this document and the
+      matrix in this tracker, so there is no second copy to go stale — the same
+      pattern the permission matrix uses. `make lint` fails when a section
+      marked shipped names a route the router does not serve or an endpoint the
+      map does not mount; both halves were verified by breaking them
+  - **The hand-typed table was wrong in about a dozen rows** by the time
+      anybody looked. The command palette, the error pages, the activity feed,
+      keyboard navigation, accessibility, split view, dashboard alerts, deep
+      linking, navigation history, table search and URL state had all shipped
+      and were all still marked open — a tracker that under-reports is as
+      useless as one that over-reports, and this one was doing both: it also
+      carried `/showcase/table` as §3's home for the life of the project, and
+      no page of that name was ever built
+  - **Every section that is not shipped says what is missing from it**, and the
+      renderer refuses a row that does not. "Partly there" with no explanation
+      tells a reader that something is missing and not what, which is the least
+      useful thing a catalogue can say
+  - Where it leaves the template: **58 shipped, 16 partly there, 3 not built**
+      — §37 tags, §46 saved views and §47 comparison. The count is rendered
+      rather than typed, so it cannot be the wrong count
 - [x] `docs/RBAC.md` — JWT/Redis verification flow, exact default role/access
       matrix, additive groups, backend enforcement and frontend behavior
 

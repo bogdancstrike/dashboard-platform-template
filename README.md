@@ -674,5 +674,6 @@ never sees anything raised by a mounted endpoint.
 
 | | |
 | --- | --- |
+| [`docs/features.md`](docs/features.md) | The §1–§77 catalogue: every feature, its page, its endpoints and its state — generated and checked against the router and the endpoint map |
 | [`docs/TODO.md`](docs/TODO.md) | Implementation tracker, updated after every task |
 | [`docs/RBAC.md`](docs/RBAC.md) | Authentication flow, role/access matrix, groups and enforcement rules |
