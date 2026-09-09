@@ -1,5 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Button, Collapse, Skeleton, Space, Tag, Tooltip, Typography } from "antd";
+import {
+  Alert,
+  Button,
+  Collapse,
+  Segmented,
+  Skeleton,
+  Space,
+  Tag,
+  Tooltip,
+  Typography,
+} from "antd";
+import { useState } from "react";
 import { UserSwitchOutlined } from "@ant-design/icons";
 
 import { ApiError } from "@/api/client";
@@ -22,6 +33,14 @@ const { Text } = Typography;
  * Entries are collapsed to one line each, because a timeline is read by
  * scanning *when* and *who* and expanding the one row that looks relevant. Ten
  * open diffs is a page nobody scrolls.
+ *
+ * **And it widens to a thread** (§48). A record's own history says when its
+ * severity changed; the thread says that the account it was filed against was
+ * edited an hour earlier and an order of theirs was refunded the day before —
+ * which is usually the actual story, and reading it otherwise means opening
+ * four history tabs and merging them by eye. Off by default, because "what
+ * happened to *this*" is the question the tab is for; the switch is one click
+ * and each entry then says which record it belongs to.
  */
 export function AuditTimeline({
   resourceType,
@@ -32,15 +51,51 @@ export function AuditTimeline({
   resourceId: string;
   limit?: number;
 }) {
+  const [thread, setThread] = useState(false);
   const timeline = useQuery({
-    queryKey: ["audit", "timeline", resourceType, resourceId, limit],
+    queryKey: ["audit", "timeline", resourceType, resourceId, limit, thread],
     queryFn: ({ signal }) =>
-      auditApi.timeline({ resource_type: resourceType, resource_id: resourceId, limit }, signal),
+      auditApi.timeline(
+        { resource_type: resourceType, resource_id: resourceId, limit, thread },
+        signal,
+      ),
     enabled: Boolean(resourceType && resourceId),
+    // Kept while the wider query runs, so flipping the switch does not blank
+    // the history somebody is reading.
+    placeholderData: (previous) => previous,
   });
 
+  /** The switch, rendered above every state so it is never the thing missing. */
+  const scope = (
+    <div className="nu-timeline-scope">
+      <Segmented
+        size="small"
+        value={thread ? "thread" : "record"}
+        onChange={(next) => setThread(next === "thread")}
+        options={[
+          { value: "record", label: "This record" },
+          { value: "thread", label: "And what it touches" },
+        ]}
+        data-testid="timeline-scope"
+      />
+      {thread && timeline.data?.subjects && (
+        // Whose history is being merged, by name: a merged feed that does not
+        // say what it merged is a feed nobody can check.
+        <Text type="secondary" data-testid="timeline-subjects">
+          {timeline.data.subjects.length} record
+          {timeline.data.subjects.length === 1 ? "" : "s"} in this thread
+        </Text>
+      )}
+    </div>
+  );
+
   if (timeline.isLoading) {
-    return <Skeleton active title={false} paragraph={{ rows: 4 }} />;
+    return (
+      <>
+        {scope}
+        <Skeleton active title={false} paragraph={{ rows: 4 }} />
+      </>
+    );
   }
 
   if (timeline.isError) {
@@ -79,21 +134,32 @@ export function AuditTimeline({
   const items = timeline.data?.items ?? [];
   if (items.length === 0) {
     return (
-      <EmptyState
-        compact
-        title="Nothing has happened to this record yet"
-        hint="Every create, update and delete against it will appear here."
-      />
+      <>
+        {scope}
+        <EmptyState
+          compact
+          title={
+            thread
+              ? "Nothing has happened to this record or the ones it touches"
+              : "Nothing has happened to this record yet"
+          }
+          hint="Every create, update and delete against it will appear here."
+        />
+      </>
     );
   }
 
   return (
     <div className="nu-timeline">
+      {scope}
       <Collapse
         ghost
         items={items.map((entry) => ({
           key: entry.id,
-          label: <TimelineHeading entry={entry} />,
+          // Which record an entry belongs to matters only in the thread: on a
+          // record's own history every row is about the same record, and
+          // repeating its name twelve times is noise.
+          label: <TimelineHeading entry={entry} showSubject={thread} />,
           children: <TimelineBody entry={entry} />,
         }))}
       />
@@ -106,10 +172,21 @@ export function AuditTimeline({
   );
 }
 
-function TimelineHeading({ entry }: { entry: AuditEntry }) {
+function TimelineHeading({
+  entry,
+  showSubject = false,
+}: {
+  entry: AuditEntry;
+  showSubject?: boolean;
+}) {
   return (
     <span className="nu-audit-head">
       <Tag color={actionColor(entry.action)}>{humaniseAction(entry.action)}</Tag>
+      {showSubject && (
+        <Text strong className="nu-audit-subject">
+          {entry.resource_label || entry.resource_type}
+        </Text>
+      )}
       <Text strong>{entry.actor_label}</Text>
       {entry.impersonated && (
         // Both identities, never just the effective one: "Uma did this" is

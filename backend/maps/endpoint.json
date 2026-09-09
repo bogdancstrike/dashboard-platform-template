@@ -952,7 +952,7 @@
         "GET"
       ],
       "api_url": "/api/audit/timeline",
-      "description": "Everything recorded against one record \u2014 the detail-page timeline.",
+      "description": "Everything recorded against one record \u2014 the detail-page timeline. With thread=true, the records it is joined to as well (\u00a748).",
       "exec_method": {
         "module_name": "src.api.audit",
         "method_name": "resource_timeline"

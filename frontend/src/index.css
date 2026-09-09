@@ -1212,6 +1212,16 @@ mark.nu-mark {
    project and refuses to tell them a number, and the number is what anybody
    acts on. */
 .nu-timeline { display: flex; flex-direction: column; }
+/* The scope switch above the history: this record, or the thread through the
+   records it touches (§48). The count beside it says what is being merged —
+   a merged feed that cannot say what it merged is one nobody can check. */
+.nu-timeline-scope {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.nu-timeline-scope .ant-typography { font-size: 12px; }
+/* Which record an entry belongs to, in the thread only. */
+.nu-audit-subject { max-width: 26ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Customers — account cards. */
 .nu-account-grid {

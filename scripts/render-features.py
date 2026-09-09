@@ -156,10 +156,7 @@ CATALOGUE: list[dict[str, object]] = [
     ),
     feature(47, "Data comparison", "`/compare`", "`/api/records/{type}/compare`", "done"),
     feature(
-        48, "Timeline view", "detail tabs", "`/admin/audit`", "partial",
-        "Every record page carries its own history, read from the audit ledger "
-        "so the two cannot disagree. A cross-record timeline — one thread "
-        "through several records — is open.",
+        48, "Timeline view", "detail tabs", "`/admin/audit`", "done",
     ),
     feature(
         50, "Data relationships", "detail tabs + `/find/relationships`",

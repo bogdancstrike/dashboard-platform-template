@@ -6550,12 +6550,32 @@ export const handlers = [
   ),
   http.get("/platform/api/audit/timeline", ({ request }) => {
     const query = new URL(request.url).searchParams;
+    const resourceType = query.get("resource_type") ?? "";
+    const resourceId = query.get("resource_id") ?? "";
+    // The thread, as the service builds it: the record's own entries plus the
+    // ones belonging to the records it is joined to (§48).
+    const thread = query.get("thread") === "true";
+    const neighbour = {
+      ...auditEntry,
+      id: "audit-neighbour",
+      resource_type: "customer",
+      resource_id: "customer-1",
+      resource_label: "Lakeside Group",
+      message: "the account was edited",
+    };
     return echo(request, {
-      items: [auditEntry],
-      total: 1,
-      resource_type: query.get("resource_type") ?? "",
-      resource_id: query.get("resource_id") ?? "",
+      items: thread ? [auditEntry, neighbour] : [auditEntry],
+      total: thread ? 2 : 1,
+      resource_type: resourceType,
+      resource_id: resourceId,
       limit: Number(query.get("limit") ?? 50),
+      thread,
+      subjects: thread
+        ? [
+            { resource_type: resourceType, resource_id: resourceId, label: "" },
+            { resource_type: "customer", resource_id: "customer-1", label: "Lakeside Group" },
+          ]
+        : [{ resource_type: resourceType, resource_id: resourceId, label: "" }],
     });
   }),
 ];

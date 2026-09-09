@@ -137,6 +137,87 @@ describe("the generic entity detail page", () => {
     expect(asked).toContain("relationships");
   });
 
+  /**
+   * The history widens to a thread (§48).
+   *
+   * A record's own history says when *it* changed; the thread says the
+   * account it is filed against was edited an hour earlier — which is usually
+   * the actual story, and reading it otherwise means opening four history
+   * tabs and merging them by eye. Off by default, because "what happened to
+   * this" is the question the tab is for.
+   */
+  it("widens the history to the records this one touches, and says whose it merged", async () => {
+    const user = userEvent.setup();
+    const asked: (string | null)[] = [];
+    server.use(
+      http.get("/platform/api/audit/timeline", ({ request }) => {
+        const query = new URL(request.url).searchParams;
+        asked.push(query.get("thread"));
+        const own = {
+          id: "audit-own",
+          action: "UPDATE",
+          result: "SUCCESS",
+          actor_label: "Ada Administrator",
+          impersonated: false,
+          impersonator_label: "",
+          resource_type: "task",
+          resource_id: recordDetail.id,
+          resource_label: "Review customer migration",
+          message: "status raised",
+          changes: [],
+          occurred_at: "2026-09-06T09:00:00Z",
+          ip_address: "",
+          correlation_id: "",
+        };
+        const neighbour = {
+          ...own,
+          id: "audit-neighbour",
+          resource_type: "customer",
+          resource_label: "Lakeside Group",
+          message: "the account was edited",
+        };
+        const thread = query.get("thread") === "true";
+        return HttpResponse.json({
+          items: thread ? [own, neighbour] : [own],
+          total: thread ? 2 : 1,
+          resource_type: "task",
+          resource_id: recordDetail.id,
+          limit: 25,
+          thread,
+          subjects: thread
+            ? [
+                { resource_type: "task", resource_id: recordDetail.id, label: "" },
+                { resource_type: "customer", resource_id: "customer-1", label: "Lakeside Group" },
+              ]
+            : [{ resource_type: "task", resource_id: recordDetail.id, label: "" }],
+        });
+      }),
+    );
+
+    renderDetail();
+    await user.click(await screen.findByRole("tab", { name: "History" }));
+
+    // The record's own history first, and it does not repeat the record's name
+    // on every row — every row is about the same record, and twelve copies of
+    // its name is noise.
+    expect(await screen.findByText("Ada Administrator")).toBeInTheDocument();
+    expect(screen.queryByText("Lakeside Group")).not.toBeInTheDocument();
+    await waitFor(() => expect(asked).toContain("false"));
+
+    await user.click(screen.getByText("And what it touches"));
+
+    // The joined record's entry, labelled with which record it belongs to,
+    // and a count of what is being merged — a merged feed that cannot say
+    // what it merged is one nobody can check.
+    expect(await screen.findByText("Lakeside Group")).toBeInTheDocument();
+    expect(screen.getByTestId("timeline-subjects")).toHaveTextContent("2 records in this thread");
+    await waitFor(() => expect(asked).toContain("true"));
+
+    // And the entry really is the neighbour's: expanded, it says so.
+    await user.click(screen.getByText("Lakeside Group"));
+    expect(await screen.findByText("the account was edited")).toBeInTheDocument();
+  });
+
   it("keeps the open tab in the URL", async () => {
     renderDetail("/tasks/task-1?tab=history");
 

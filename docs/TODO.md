@@ -3297,7 +3297,7 @@ told a reader that something is missing and not what.
 | 45 | Dashboard builder | `/dashboards` | `/api/dashboards` | [x] |
 | 46 | Saved views | every entity list, `/explore` | `/api/saved-searches` | [x] |
 | 47 | Data comparison | `/compare` | `/api/records/{type}/compare` | [x] |
-| 48 | Timeline view | detail tabs | `/admin/audit` | [~] |
+| 48 | Timeline view | detail tabs | `/admin/audit` | [x] |
 | 49 | Alerts and rules | `/workflows` | `/api/automations/rules` | [x] |
 | 50 | Data relationships | detail tabs + `/find/relationships` | `/api/relationships/*` | [x] |
 | 51 | Query inspector | `/explore` | — (`core/rules.py`) | [x] |
@@ -3328,15 +3328,13 @@ told a reader that something is missing and not what.
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*70 shipped · 7 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*71 shipped · 6 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
 Every section above that is not shipped, with the part that is open. A catalogue that grades something "partly there" and stops has told a reader that something is missing and not what.
 
 **§3 Advanced data table** — Partly there. Filtering, sorting, paging, facets and column choice all happen in PostgreSQL on every list, off one `FieldSet` declaration. What is open is the *showcase* of the table on its own, which `/showcase/components` does not yet include.
-
-**§48 Timeline view** — Partly there. Every record page carries its own history, read from the audit ledger so the two cannot disagree. A cross-record timeline — one thread through several records — is open.
 
 **§59 UX quality bar** — Partly there. The standing bar rather than a deliverable: it is met on every page that has shipped and is re-argued on every page that ships next.
 
@@ -4825,14 +4823,38 @@ Each endpoint ships with its five-case integration test and the page consuming i
   - Every detail page carries the audit timeline (§21, §48) on its History tab,
     reading the scoped endpoint so a reader who may open the record can read
     its history without the whole ledger
+  - **And it widens to a thread.** `?thread=true` merges the history of the
+    records this one is joined to: a ticket's own history says when its
+    severity changed, and the thread says the account it was filed against was
+    edited an hour earlier and an order of theirs was refunded the day before —
+    which is usually the actual story, and reading it otherwise means opening
+    four history tabs and merging them by eye. Off by default, because "what
+    happened to *this*" is the question the tab is for; each entry then says
+    which record it belongs to, and the panel says how many records it merged
+  - The neighbours come from `services/relationships`, which derives them from
+    the foreign keys the schema declares and drops the datasets this reader
+    may not see — so a **wider timeline is never a wider disclosure**, and it
+    is bounded by the relationship sample rather than being "everything of
+    this kind". Asserted from both ends: a joined record's entries appear and
+    an unrelated record of the same kind's do not
   - Forms (§9) ship as one declaration-driven drawer, opened from the detail
     page and from the board. The data table showcase (§3) and the wizard (§10)
     remain
-- [~] Search: Data Explorer ships simple/faceted search, nested advanced RAQB,
+- [x] Search: Data Explorer ships simple/faceted search, nested advanced RAQB,
       backend query inspector, saved searches and four URL-persistent result
-      modes; saved views, highlighting, suggestions and preview remain (§4–§6, §51)
-- [~] **Roles matrix `/admin/roles` (§13)** ships. The admin area itself (§11)
-      remains
+      modes (§4–§6, §51)
+  - The four that were outstanding all shipped: **saved views** (§46 — a saved
+    view *is* a saved search, reachable from the six lists as well),
+    **highlighting** (`HighlightedText`, marking the words the server says
+    matched, in the global results and the palette), **suggestions** (the
+    explorer's search box is a combobox over the reader's recent questions and
+    the datasets, not a text field) and the **preview drawer** (§64 — a row
+    opens beside the list, deep-linked and keyboard-driven)
+- [x] **Roles matrix `/admin/roles` (§13)** and the administration area
+      itself (§11) both ship — `/admin` is a map of fifteen pages: users,
+      roles, groups, organizations, settings, tags, feature flags,
+      integrations, API clients, jobs, logs, health, quality, the audit ledger
+      and the security overview
   - Built from the two things that actually decide access: the permission
     catalogue the code checks against, and the `roles` table
     `core/auth._permissions_for` reads on **every** request. So every

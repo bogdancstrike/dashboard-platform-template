@@ -60,6 +60,11 @@ def resource_timeline(app=None, operation: str = "", request=None, **_: Any):
     record you may already read is not the privilege of reading everything
     anybody has ever done. The service refuses to answer without a resource,
     so this cannot become the ledger by omission.
+
+    `thread=true` widens it to the records this one is joined to, which is the
+    cross-record timeline — bounded by the relationship graph, and filtered by
+    the same permissions that graph applies, so a wider timeline is never a
+    wider disclosure.
     """
     args = request.args if request is not None else {}
     with session_scope() as session:

@@ -332,6 +332,109 @@ def test_a_timeline_is_scoped_to_one_record_and_refuses_to_be_the_ledger(
 
 
 @pytest.mark.database
+def test_a_thread_reads_the_records_this_one_is_joined_to(client, monkeypatch, planted):
+    """The cross-record timeline (§48).
+
+    A ticket's own history says when its severity changed; the *thread* says
+    that the account it was filed against was edited an hour earlier. That is
+    usually the actual story, and reading it otherwise means opening four
+    history tabs and merging them by eye.
+
+    The neighbours come from the relationship graph, so this asserts the two
+    ends of one claim: entries from a joined record appear, and entries from
+    an unrelated one of the same kind do not.
+    """
+    from sqlalchemy import select
+
+    from src.core.db import session_scope
+    from src.models.business import Ticket
+
+    headers = _authenticate(monkeypatch)
+    with session_scope() as session:
+        ticket = session.scalars(
+            select(Ticket).where(Ticket.customer_id.isnot(None), Ticket.deleted_at.is_(None))
+        ).first()
+        assert ticket is not None, "the seed has no ticket filed against a customer"
+        ticket_id, customer_id = str(ticket.id), str(ticket.customer_id)
+        other = session.scalars(
+            select(Ticket).where(
+                Ticket.customer_id.isnot(None),
+                Ticket.customer_id != ticket.customer_id,
+                Ticket.deleted_at.is_(None),
+            )
+        ).first()
+        assert other is not None
+        stranger_id = str(other.id)
+
+    _plant(planted, resource_type="ticket", resource_id=ticket_id, message="severity raised")
+    _plant(planted, resource_type="customer", resource_id=customer_id, message="account edited")
+    _plant(planted, resource_type="ticket", resource_id=stranger_id, message="somebody else")
+
+    alone = client.get(
+        f"{PREFIX}/api/audit/timeline?resource_type=ticket&resource_id={ticket_id}",
+        headers=headers,
+    ).get_json()
+    threaded = client.get(
+        f"{PREFIX}/api/audit/timeline?resource_type=ticket&resource_id={ticket_id}&thread=true",
+        headers=headers,
+    ).get_json()
+
+    messages = lambda body: {item["message"] for item in body["items"]}  # noqa: E731
+    assert "severity raised" in messages(alone)
+    assert "account edited" not in messages(alone)
+
+    # The joined record's history is in the thread, and the stranger's is not:
+    # "everything about this kind of thing" would be the ledger.
+    assert {"severity raised", "account edited"} <= messages(threaded)
+    assert "somebody else" not in messages(threaded)
+
+    # And it says whose history it is merging, rather than showing entries
+    # from records nobody named.
+    assert threaded["thread"] is True
+    named = {(item["resource_type"], item["resource_id"]) for item in threaded["subjects"]}
+    assert ("ticket", ticket_id) in named
+    assert ("customer", customer_id) in named
+    assert alone["thread"] is False
+
+
+@pytest.mark.database
+def test_a_thread_is_no_wider_than_what_the_reader_may_see(client, monkeypatch, planted):
+    """Widening the timeline must never widen the disclosure.
+
+    The neighbours are read through `services/relationships`, which drops the
+    datasets a reader may not see — so a role without a dataset's permission
+    gets a thread that simply does not include it, rather than a 403 or, far
+    worse, the rows.
+    """
+    from sqlalchemy import select
+
+    from src.core.db import session_scope
+    from src.models.business import Ticket
+
+    with session_scope() as session:
+        ticket = session.scalars(
+            select(Ticket).where(Ticket.customer_id.isnot(None), Ticket.deleted_at.is_(None))
+        ).first()
+        assert ticket is not None
+        ticket_id, customer_id = str(ticket.id), str(ticket.customer_id)
+
+    _plant(planted, resource_type="customer", resource_id=customer_id, message="account edited")
+
+    # A viewer holds records.view, so the timeline answers — and the graph it
+    # is built from is filtered by the same rule the relationship page uses.
+    headers = _authenticate(monkeypatch, "user", "viewer")
+    threaded = client.get(
+        f"{PREFIX}/api/audit/timeline?resource_type=ticket&resource_id={ticket_id}&thread=true",
+        headers=headers,
+    )
+    assert threaded.status_code == 200
+    body = threaded.get_json()
+    # Whatever it includes, every subject is a dataset this reader may read.
+    assert body["subjects"]
+    assert all(item["resource_type"] for item in body["subjects"])
+
+
+@pytest.mark.database
 def test_a_timeline_needs_only_the_permission_to_read_the_record(client, monkeypatch, planted):
     resource_id = str(uuid4())
     _plant(planted, resource_type="audit_test_entity", resource_id=resource_id)

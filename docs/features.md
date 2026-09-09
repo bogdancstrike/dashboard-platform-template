@@ -71,7 +71,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 45 | Dashboard builder | `/dashboards` | `/api/dashboards` | [x] |
 | 46 | Saved views | every entity list, `/explore` | `/api/saved-searches` | [x] |
 | 47 | Data comparison | `/compare` | `/api/records/{type}/compare` | [x] |
-| 48 | Timeline view | detail tabs | `/admin/audit` | [~] |
+| 48 | Timeline view | detail tabs | `/admin/audit` | [x] |
 | 49 | Alerts and rules | `/workflows` | `/api/automations/rules` | [x] |
 | 50 | Data relationships | detail tabs + `/find/relationships` | `/api/relationships/*` | [x] |
 | 51 | Query inspector | `/explore` | — (`core/rules.py`) | [x] |
@@ -102,15 +102,13 @@ either way, because a catalogue has to be able to say "every entity list".
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*70 shipped · 7 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*71 shipped · 6 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
 Every section above that is not shipped, with the part that is open. A catalogue that grades something "partly there" and stops has told a reader that something is missing and not what.
 
 **§3 Advanced data table** — Partly there. Filtering, sorting, paging, facets and column choice all happen in PostgreSQL on every list, off one `FieldSet` declaration. What is open is the *showcase* of the table on its own, which `/showcase/components` does not yet include.
-
-**§48 Timeline view** — Partly there. Every record page carries its own history, read from the audit ledger so the two cannot disagree. A cross-record timeline — one thread through several records — is open.
 
 **§59 UX quality bar** — Partly there. The standing bar rather than a deliverable: it is met on every page that has shipped and is re-argued on every page that ships next.
 

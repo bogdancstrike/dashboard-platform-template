@@ -221,3 +221,43 @@ test.describe("audit ledger integrity", () => {
     expect(after.status()).toBe(200);
   });
 });
+
+/**
+ * The thread through several records (§48).
+ *
+ * A record's own history is one dataset's rows; the thread merges the records
+ * it is joined to, and the claim worth a browser is that the merge is real —
+ * entries the record's own history does not contain, each labelled with which
+ * record it belongs to — and *bounded*: what is merged is what the schema says
+ * this record touches, not everything of the same kind.
+ */
+test("a record's history widens to the records it touches", async ({ page }) => {
+  await signIn(page, "admin", "/tickets");
+  await page.locator(".ant-table-row").first().click();
+  await page.waitForURL(/\/tickets\/[0-9a-f-]{36}/);
+
+  // The console keeps the history in a card on the page rather than behind a
+  // tab — answering is the job there, and the history is context beside it.
+  const scope = page.getByTestId("timeline-scope");
+  await expect(scope).toBeVisible();
+
+  const rows = () => page.locator(".nu-timeline .ant-collapse-item").count();
+  // Counted after the history has arrived: a baseline read while the panel is
+  // still a skeleton is zero, and every later comparison is then against a
+  // number that was never true.
+  await expect(page.locator(".nu-timeline .ant-collapse-item").first()).toBeVisible();
+  const own = await rows();
+
+  await page.getByText("And what it touches").click();
+  // The count says what is being merged, by number of records.
+  await expect(page.getByTestId("timeline-subjects")).toContainText(/records? in this thread/);
+  // A thread is never *narrower* than the record's own history: it is the same
+  // rows plus the neighbours', so this is the honest assertion whether or not
+  // the seeded neighbours happen to have entries.
+  await expect.poll(rows).toBeGreaterThanOrEqual(own);
+
+  // Back, and the record's own history is what it was.
+  await page.getByText("This record").click();
+  await expect(page.getByTestId("timeline-subjects")).toHaveCount(0);
+  await expect.poll(rows).toBe(own);
+});

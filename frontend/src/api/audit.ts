@@ -81,6 +81,10 @@ export interface AuditTimelinePage {
   resource_type: string;
   resource_id: string;
   limit: number;
+  /** Whether the records this one is joined to are included (§48). */
+  thread: boolean;
+  /** Whose history is being merged, so the page can say. */
+  subjects: { resource_type: string; resource_id: string; label: string }[];
 }
 
 /**
@@ -129,7 +133,13 @@ export const auditApi = {
    * whole audit trail.
    */
   timeline: (
-    params: { resource_type: string; resource_id: string; limit?: number },
+    params: {
+      resource_type: string;
+      resource_id: string;
+      limit?: number;
+      /** Widen it to the records this one is joined to (§48). */
+      thread?: boolean;
+    },
     signal?: AbortSignal,
   ) => api.get<AuditTimelinePage>("/api/audit/timeline", { params, signal }),
 };
