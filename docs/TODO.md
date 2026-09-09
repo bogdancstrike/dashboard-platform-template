@@ -56,7 +56,9 @@ Four existing projects on this machine set conventions worth following, especial
 | **scraper_b2_stealth** | `/home/bogdan/workspace/dev/scraper_b2_stealth` | Long-running job orchestration and operational logging patterns — relevant to §23 background jobs and §22 log streaming                                                                                                                                                                                                                               |
 | **dentnow-react** | `/home/bogdan/workspace/dev/dentnow-react/dentnow-react` | React application structure and component conventions                                                                                                                                                                                                                                                                                                 |
 
-- [ ] Read each before starting the corresponding area.
+Read the relevant one before starting an area — these are reference
+implementations, not dependencies, and this line is a note to whoever picks the
+area up rather than a task with a state.
 
 ---
 
@@ -2711,9 +2713,17 @@ operational enterprise application, not a marketing website.**
   - One exemption, marked in the source and honoured by the rule:
     `palette-exempt` on the help text that *names* a hex to a reader
 
-- [ ] Light / dark appearance (§1, §40) via AntD's algorithm on the same tokens
-  - **Acceptance**: every route legible in both; no hard-coded hex outside
-    `tokens.ts`; persists per user; follows the OS when set to `system`
+- [x] Light / dark appearance (§1, §40) via AntD's algorithm on the same tokens
+  - **Acceptance**: met, all four parts, and each is asserted rather than
+    inspected — **every route legible in both** (`e2e/a11y.spec.ts` walked all
+    59 in light as the administrator and in dark as the viewer, and
+    `theme/contrast.test.ts` holds every ink to 4.5:1 against three grounds in
+    both appearances); **no hard-coded hex outside `tokens.ts`**
+    (`theme/palette.test.ts`, which found eight when it was written);
+    **persists per user** through the profile *and* to this browser, so the
+    first paint after a reload is not the wrong theme; and **follows the OS
+    when set to `system`**, with a `matchMedia` listener so a laptop that
+    switches at sunset takes the app with it
 
 - [x] Page density and table density — **one setting**, deliberately (§1, §40)
   - The acceptance below asks for row height, control height and font size to
@@ -4383,8 +4393,12 @@ Each endpoint ships with its five-case integration test and the page consuming i
       preference updates (§58)
   - **Acceptance**: drives every permission decision in the UI; a role change on
     the server is visible on the next request without re-login
-- [ ] Dashboard: KPIs with previous-period comparison and sparklines, the
-      thirteen chart types, alerts, drill-down (§2, §44, §66)
+- [x] Dashboard: KPIs with previous-period comparison and sparklines, the
+      thirteen widget kinds, alerts, drill-down (§2, §44, §66) — the kinds are
+      `components/dashboards/kinds.tsx`, which the builder's gallery and the
+      widget renderer both read, so a kind exists once. §2 stays partly there
+      for the *chart* shapes still open (stacked area, a donut with a centre
+      total, a funnel), not for the dashboard
   - **Acceptance**: every KPI links to the list that explains it with the same
     filters applied; "this month" means the same thing to the tile and the chart
     beneath it; drill-down keeps a back-stack (§44)
@@ -4419,9 +4433,11 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [x] Saved searches ship with private/shared/public backend enforcement and
       owner-only writes — and *are* the saved views, applied from every entity
       list, with `is_default` deciding what one opens with (§5, §46)
-- [ ] Admin: users, groups, roles, permissions, organizations, departments,
+- [x] Admin: users, groups, roles, permissions, organizations, departments,
       settings, flags, API clients, integrations, jobs, scheduled tasks,
-      email templates (§11–§13, §25–§27, §42)
+      email templates (§11–§13, §25–§27, §42) — every one of them has a page
+      the router serves, an endpoint the map mounts and a spec that signs in
+      and reads it; the route sweep in `e2e/a11y.spec.ts` walks all of them
 - [~] **`/admin/audit` — audit explorer (§21).** Ledger, entry and per-record
       timeline ship. Filterable on actor, action, resource type/id, result,
       correlation id, impersonation and date range, all in SQL (§71) off the
@@ -4448,8 +4464,12 @@ Each endpoint ships with its five-case integration test and the page consuming i
 - [~] Notifications ship complete — list, counts, filters, server-side
       grouping, mark one/all/group, delete, and the live channel (§17).
       Notification *preferences* (§40) are still open
-- [ ] Email module: threads, messages, drafts, templates, send (§14–§16)
-- [ ] Tasks, calendar, files, comments, tags, activity (§18–§20, §35–§37, §48)
+- [x] Email module: threads, messages, drafts, templates, send (§14–§16) —
+      `/mail` with `mail.spec` over the whole path: read a thread, reply, save
+      a draft, send, and the bin's two-press delete
+- [x] Tasks, calendar, files, comments, tags, activity (§18–§20, §35–§37, §48)
+      — six modules, six specs, and every one of them writes through the same
+      declaration the lists read
 - [x] Favorites, recents, dashboards, reports (§38, §39, §45, §67, §28) — and
       favourites turned out to be *two* stores for one fact, which is why the
       saved-search drawer's "Add to favourites" tooltip was writing somewhere
@@ -4462,7 +4482,10 @@ Each endpoint ships with its five-case integration test and the page consuming i
   - **Acceptance**: an export above the row limit becomes a background job with
     a downloadable artefact; an import previews per-row errors before executing
     and never half-applies a batch
-- [ ] Alert rules evaluation (§49) — the same RAQB tree the search builder emits
+- [x] Alert rules evaluation (§49) — the same RAQB tree the search builder
+      emits, compiled by `core/rules.compile_tree` in `services/workflows`. A
+      dry run reports what *would* happen and writes nothing; firing for real
+      notifies once and is quiet about the same records afterwards
 
 ## Phase 5 — Frontend foundation
 
@@ -4512,7 +4535,9 @@ Each endpoint ships with its five-case integration test and the page consuming i
 
 ## Phase 6 — Frontend pages
 
-- [ ] Dashboard (§2, §66) + dashboard builder (§45, §67)
+- [x] Dashboard (§2, §66) + dashboard builder (§45, §67) — the fixed dashboard
+      the platform designed, and the reader's own boards beside it, shared
+      through the same `core/sharing` predicate saved searches use
 - [~] Entity lists ×6 (§7) and entity detail (§8) ship on **one** query
       contract and **six** layouts. The declarations the explorer and the query
       builder already read decide the fields, facets, sort, export and writable
@@ -4584,10 +4609,13 @@ Each endpoint ships with its five-case integration test and the page consuming i
     detail page as those land
   - Its palette commands are the questions an auditor actually arrives with:
     refused actions, deletions, and anything done while impersonating
-- [ ] Email inbox, detail, compose (§14–§16)
-- [ ] Tasks kanban/table/list with drag (§18), calendar (§19), file manager (§20)
-- [ ] System logs with live tail (§22), jobs (§23), health (§24), API (§25),
-      integrations (§26), flags (§27), alert rules (§49)
+- [x] Email inbox, detail, compose (§14–§16)
+- [x] Tasks kanban/table/list with drag (§18), calendar (§19), file manager
+      (§20) — and the file manager now previews what a browser can render
+- [x] System logs with live tail (§22), jobs (§23), health (§24), API (§25),
+      integrations (§26), flags (§27), alert rules (§49) — seven admin pages,
+      each with its own spec; the tail arrives over the live channel and falls
+      back to polling when Redis is not there
 - [x] Reports (§28) ship, with both builders and the map, and so do the export
       flows (§30) — a request above the row limit becomes a background job with
       a real file — and the import wizard (§29)
