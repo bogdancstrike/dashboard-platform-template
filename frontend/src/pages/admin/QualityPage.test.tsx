@@ -123,10 +123,12 @@ describe("the page", () => {
     render();
     const open = await screen.findByTestId("quality-open-order_shipped_unpaid");
     // The check *is* the filter, so this is the same question rather than a
-    // second query that will one day disagree with the number beside it.
+    // second query that will one day disagree with the number beside it — and
+    // it carries where it came from, so the ledger offers one press back to
+    // this report (§44).
     expect(open).toHaveAttribute(
       "href",
-      "/orders?f.fulfilment_status=SHIPPED&f.payment_status=UNPAID",
+      "/orders?f.fulfilment_status=SHIPPED&f.payment_status=UNPAID&from=%2Fadmin%2Fquality",
     );
 
     await user.click(open);

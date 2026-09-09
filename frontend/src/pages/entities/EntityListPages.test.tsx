@@ -218,8 +218,11 @@ describe("what every entity page keeps in common", () => {
     expect(await screen.findByRole("menuitem", { name: /Edit/ })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /Delete/ })).toBeInTheDocument();
     // Longer than the default: the triage queue renders a list *and* opens a
-    // record, and this case runs six whole pages.
-  }, 15_000);
+    // record, and this case runs six whole pages — each of which now also
+    // renders the header's refresh control (§53). It sat at 15.5s under the
+    // full suite's parallelism against a 15s limit, which reads as a broken
+    // page rather than as a slow test.
+  }, 30_000);
 
   it("says which permission is missing rather than drawing an empty page", async () => {
     server.use(

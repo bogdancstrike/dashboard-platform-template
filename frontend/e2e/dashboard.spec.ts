@@ -88,3 +88,39 @@ test("a record written elsewhere changes the number on the front page", async ({
   // every list — the front page included.
   expect(await open()).toBe(before);
 });
+
+/**
+ * A drill-down leads somewhere, and back again (§44).
+ *
+ * The forward half was already asserted per picture; the return was not, and
+ * it is the half a reader notices. The origin travels in the address, so it
+ * survives the reload here — a way back that a refresh forgets is a way back
+ * nobody trusts.
+ */
+test("a number on the dashboard opens its rows, and offers the way back", async ({ page }) => {
+  await signIn(page, "admin", "/dashboard?period=current_year");
+
+  // The alert strip is the most direct drill on the page: it says what is
+  // wrong and its chip opens exactly those records.
+  const chart = page.locator('[data-chart-id="tickets_by_category"]');
+  await expect(chart.locator("canvas")).toBeVisible();
+  await chart.getByTitle("Table", { exact: true }).click();
+  // `tr[data-row-key]`, because AntD's first `tbody tr` is a hidden row it
+  // uses to measure the columns.
+  const firstCategory = chart.locator("tbody tr[data-row-key]").first();
+  await expect(firstCategory).toBeVisible();
+  await firstCategory.click();
+
+  // The rows behind it, already filtered — and the filter is in the address.
+  await expect(page).toHaveURL(/\/tickets\?f\.category=/);
+  await expect(page.getByTestId("entity-total")).toBeVisible();
+
+  // One press back to the picture, named, and it survives a reload because it
+  // is in the URL rather than in the history.
+  await page.reload();
+  const back = page.getByTestId("drill-back");
+  await expect(back).toHaveText(/Back to the dashboard/);
+  await back.click();
+  await expect(page).toHaveURL(/\/dashboard\?period=current_year/);
+  await expect(page.locator(".nu-chartcard").first()).toBeVisible();
+});

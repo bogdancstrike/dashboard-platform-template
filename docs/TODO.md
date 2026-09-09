@@ -3293,7 +3293,7 @@ told a reader that something is missing and not what.
 | 41 | Security settings, sessions | `/settings/security` | `/security/*` | [x] |
 | 42 | Organization settings | `/admin/organizations` | `/admin/organizations` | [x] |
 | 43 | Bulk operations | every list that is a table | `/api/records/{type}/bulk` | [x] |
-| 44 | Drill-down | dashboard, analytics, `/admin/quality` → list | `/api/analysis/run` | [~] |
+| 44 | Drill-down | dashboard, analytics, `/admin/quality` → list | `/api/analysis/run` | [x] |
 | 45 | Dashboard builder | `/dashboards` | `/api/dashboards` | [x] |
 | 46 | Saved views | every entity list, `/explore` | `/api/saved-searches` | [x] |
 | 47 | Data comparison | `/compare` | `/api/records/{type}/compare` | [x] |
@@ -3328,7 +3328,7 @@ told a reader that something is missing and not what.
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*68 shipped · 9 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*69 shipped · 8 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
@@ -3337,8 +3337,6 @@ Every section above that is not shipped, with the part that is open. A catalogue
 **§3 Advanced data table** — Partly there. Filtering, sorting, paging, facets and column choice all happen in PostgreSQL on every list, off one `FieldSet` declaration. What is open is the *showcase* of the table on its own, which `/showcase/components` does not yet include.
 
 **§18 Tasks / work queue (kanban)** — Partly there. Boards, lanes and cards with full CRUD, server-side filters, drag between lanes reconciled against the server, and a keyboard equivalent of the drag. Ordering *within* a lane and the comment and checklist counts on a card's face are open.
-
-**§44 Drill-down** — Partly there. Every KPI tile, chart segment and quality finding opens the rows behind it with the same filters applied. The back-stack that would return a reader to the picture they came from is open.
 
 **§48 Timeline view** — Partly there. Every record page carries its own history, read from the audit ledger so the two cannot disagree. A cross-record timeline — one thread through several records — is open.
 
@@ -3535,22 +3533,34 @@ everything else.
 
 - [x] Navigation and deep-linkable route shells for Analytics, Data Explorer,
       Global Search, Relationship Explorer and Data Catalog
-- [~] `/analytics` — cross-entity KPIs, trends, comparisons and drill-down with
+- [x] `/analytics` — cross-entity KPIs, trends, comparisons and drill-down with
       one shared period/filter context; analyses can become reports, charts or
       dashboard widgets
   - Shipped: the workspace, on one analysis endpoint shared with the builders.
     Dataset, period, grouping, granularity, measure and chart kind live in the
     URL; the headline, the trend, the breakdown and the composition are four
     `GROUP BY`s of one query, so they cannot disagree about what they measured
-  - "Save as a report" hands the current context to the report builder (§28),
-    which is the half still to come
-- [~] `/explore` — the canonical home for simple search, nested advanced
+  - **All three handovers now exist.** "Save as a report" navigates to the
+    report builder carrying the current context — one URL contract
+    (`entities/analysisDraft.ts`) shared by the workspace and both builders, so
+    the handover is a navigation rather than a translation; the chart builder
+    saves the same analysis with a picture; and a saved report goes onto a
+    dashboard as a *reference* from the reports page (§45), where the widget
+    names the report and runs its stored definition
+  - And the drill-down is now a round trip: a clicked segment carries this
+    page's own address, so the list it opens offers one press back to the
+    question that sent the reader there (§44)
+- [x] `/explore` — the canonical home for simple search, nested advanced
       search, query inspection, saved searches, saved views and result modes;
       legacy `/search*` URLs redirect here
   - Shipped: six declarative datasets, server-side simple/faceted/advanced
     query, URL state, configurable columns, four result modes, saved-search
-    lifecycle and legacy redirects. Saved views and the remaining saved-search
-    sharing UI are next
+    lifecycle and legacy redirects
+  - The two that were outstanding both shipped with §46: a saved view **is** a
+    saved search, reachable from the six lists as well as from here, and the
+    sharing half is `SavedSearchForm` — private by default, shared with named
+    members, public, and the owner handing it over — behind the same
+    `core/sharing` predicate reports and dashboards use
 - [x] `/find/global` — ranked cross-entity results with highlighted matches,
       recent queries and keyboard navigation
   - Reuses the explorer's resource declarations, so there is no second list of
@@ -4067,7 +4077,9 @@ everything else.
   - **What cannot be placed is on the screen, not in the gap.** "60 orders, 4
     of which we cannot place" is the honest sentence; a map that draws 56 dots
     and says nothing answers a different question from the list beside it
-- [x] Clicking a region or cluster drills into the filtered list (§44)
+- [x] Clicking a region or cluster drills into the filtered list (§44) — and
+      back: the list carries the map's own address, so one press returns to the
+      picture with its dataset, measure and period still chosen
   - Where the data actually is: customers and devices carry their own place, so
     a click filters their own list. Orders, tickets and projects borrow their
     customer's city, so a click opens the customers there — and the panel says

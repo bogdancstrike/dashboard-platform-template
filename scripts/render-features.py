@@ -150,10 +150,7 @@ CATALOGUE: list[dict[str, object]] = [
             "`/api/records/{type}/bulk`", "done"),
     feature(
         44, "Drill-down", "dashboard, analytics, `/admin/quality` → list",
-        "`/api/analysis/run`", "partial",
-        "Every KPI tile, chart segment and quality finding opens the rows behind "
-        "it with the same filters applied. The back-stack that would return a "
-        "reader to the picture they came from is open.",
+        "`/api/analysis/run`", "done",
     ),
     feature(
         45, "Dashboard builder", "`/dashboards`", "`/api/dashboards`", "done",

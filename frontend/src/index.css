@@ -861,6 +861,13 @@ mark.nu-mark {
 
 /* "Refreshed 2m ago" beside the control that decides how often (§53). The age
    is quiet and the control is not: one is context, the other is a button. */
+/* The way back from a drill-down, above the title: where the reader *was*,
+   rather than an action on what they are looking at now (§44). */
+.nu-page-origin {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; margin-bottom: 2px;
+}
+
 .nu-refresh { display: inline-flex; align-items: center; gap: 8px; }
 .nu-refresh-age { font-size: 12px; white-space: nowrap; }
 

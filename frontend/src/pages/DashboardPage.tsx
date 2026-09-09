@@ -17,7 +17,7 @@ import {
   UserOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   CHART_KEYS,
@@ -29,6 +29,7 @@ import {
 import { ChartCard } from "@/components/ChartCard";
 import { FailureAlert } from "@/components/FailureAlert";
 import { AutoRefresh } from "@/components/AutoRefresh";
+import { withOrigin } from "@/entities/drilldown";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 
@@ -110,6 +111,11 @@ const SEVERITY: Record<DashboardAlert["severity"], string> = {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  // The *router's* location, not the window's: under a MemoryRouter — which is
+  // what the component tests use — the two are different addresses, and the
+  // window's is the one that is wrong.
+  const location = useLocation();
+  const here = () => `${location.pathname}${location.search}`;
   const screens = Grid.useBreakpoint();
   const [params, setParams] = useSearchParams();
   // The period lives in the URL, so a dashboard somebody is looking at can be
@@ -216,13 +222,13 @@ export default function DashboardPage() {
                 key={alert.key}
                 color={SEVERITY[alert.severity]}
                 className="nu-alert-tag"
-                onClick={() => navigate(alert.link)}
+                onClick={() => navigate(withOrigin(alert.link, here()))}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
-                    navigate(alert.link);
+                    navigate(withOrigin(alert.link, here()));
                   }
                 }}
               >
@@ -256,7 +262,7 @@ export default function DashboardPage() {
                   polarity={kpi.polarity}
                   changePercent={kpi.change_percent}
                   previous={kpi.previous}
-                  onClick={() => navigate(kpi.link)}
+                  onClick={() => navigate(withOrigin(kpi.link, here()))}
                 />
               </Col>
             ))}
@@ -283,7 +289,15 @@ export default function DashboardPage() {
                 height={shape.height}
                 onSelect={
                   DRILL_DOWN[key]
-                    ? (name) => navigate(`${DRILL_DOWN[key]}${encodeURIComponent(name)}`)
+                    ? (name) =>
+                        navigate(
+                          // Carrying where it came from, so the list offers one
+                          // press back to this picture (§44).
+                          withOrigin(
+                            `${DRILL_DOWN[key]}${encodeURIComponent(name)}`,
+                            here(),
+                          ),
+                        )
                     : undefined
                 }
               />

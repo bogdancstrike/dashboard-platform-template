@@ -26,12 +26,13 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Card, Col, Empty, Row, Select, Skeleton, Space, Table, Tag, Typography } from "antd";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { mapsApi, type MapBucket, type MapPoint } from "@/api/maps";
 import { analysisApi } from "@/api/analysis";
 import { PageHeader } from "@/components/PageHeader";
+import { withOrigin } from "@/entities/drilldown";
 import { WorldMap } from "@/components/maps/WorldMap";
 import { usePageCommands } from "@/commands/CommandContext";
 import { formatNumber } from "@/lib/formats";
@@ -58,6 +59,9 @@ const DRILL: Record<string, { path: string; country?: string; city: string; via?
 export default function MapsPage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
+  // The router's location rather than the window's: under a MemoryRouter they
+  // are different addresses, and the window's is the wrong one.
+  const location = useLocation();
 
   const catalogue = useQuery({
     queryKey: ["maps-catalogue"],
@@ -99,16 +103,22 @@ export default function MapsPage() {
     placeholderData: (previous) => previous,
   });
 
+  const here = () => `${location.pathname}${location.search}`;
   const drill = DRILL[dataset];
+
   const openCity = (city: string) => {
     if (!drill) return;
-    navigate(`${drill.path}?f.${drill.city}=${encodeURIComponent(city)}`);
+    navigate(withOrigin(`${drill.path}?f.${drill.city}=${encodeURIComponent(city)}`, here()));
   };
   /** The map names countries its own way; the list filters by the record's. */
   const openCountry = (mapName: string) => {
     if (!drill?.country) return;
     const point = places.data?.points.find((item) => item.map_name === mapName);
-    if (point) navigate(`${drill.path}?f.${drill.country}=${encodeURIComponent(point.country)}`);
+    if (point) {
+      navigate(
+        withOrigin(`${drill.path}?f.${drill.country}=${encodeURIComponent(point.country)}`, here()),
+      );
+    }
   };
 
   usePageCommands("maps", [

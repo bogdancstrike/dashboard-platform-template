@@ -26,7 +26,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button, Card, Col, Row, Segmented, Select, Skeleton, Space, Tag } from "antd";
 import { ExportOutlined, SearchOutlined } from "@ant-design/icons";
 import { useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   analysisApi,
@@ -38,6 +38,7 @@ import {
 import type { ChartKind } from "@/api/dashboard";
 import { ChartCard } from "@/components/ChartCard";
 import { FailureAlert } from "@/components/FailureAlert";
+import { withOrigin } from "@/entities/drilldown";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { usePageCommands } from "@/commands/CommandContext";
@@ -48,6 +49,9 @@ const BREAKDOWN_KINDS: ChartKind[] = ["bar", "pie", "hbar", "treemap"];
 export default function AnalyticsPage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
+  // The router's location rather than the window's: under a MemoryRouter they
+  // are different addresses, and the window's is the wrong one.
+  const location = useLocation();
 
   const catalogue = useQuery({
     queryKey: ["analysis-catalogue"],
@@ -146,10 +150,20 @@ export default function AnalyticsPage() {
     );
   }
 
+  /** This page's own address, from the router rather than the window. */
+  const here = () => `${location.pathname}${location.search}`;
+
   /** Where a clicked value goes: the records behind it, already filtered (§44). */
   const drillInto = (field: string) => (value: string) => {
     if (!dataset || value === "Other" || value === "Not set") return;
-    navigate(`${dataset.path}?f.${field}=${encodeURIComponent(value)}`);
+    // With the analysis's own address attached, so the list can offer the way
+    // back to the question that sent the reader there (§44).
+    navigate(
+      withOrigin(
+        `${dataset.path}?f.${field}=${encodeURIComponent(value)}`,
+        here(),
+      ),
+    );
   };
 
   return (

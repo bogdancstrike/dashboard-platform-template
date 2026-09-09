@@ -67,7 +67,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 41 | Security settings, sessions | `/settings/security` | `/security/*` | [x] |
 | 42 | Organization settings | `/admin/organizations` | `/admin/organizations` | [x] |
 | 43 | Bulk operations | every list that is a table | `/api/records/{type}/bulk` | [x] |
-| 44 | Drill-down | dashboard, analytics, `/admin/quality` → list | `/api/analysis/run` | [~] |
+| 44 | Drill-down | dashboard, analytics, `/admin/quality` → list | `/api/analysis/run` | [x] |
 | 45 | Dashboard builder | `/dashboards` | `/api/dashboards` | [x] |
 | 46 | Saved views | every entity list, `/explore` | `/api/saved-searches` | [x] |
 | 47 | Data comparison | `/compare` | `/api/records/{type}/compare` | [x] |
@@ -102,7 +102,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*68 shipped · 9 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*69 shipped · 8 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
@@ -111,8 +111,6 @@ Every section above that is not shipped, with the part that is open. A catalogue
 **§3 Advanced data table** — Partly there. Filtering, sorting, paging, facets and column choice all happen in PostgreSQL on every list, off one `FieldSet` declaration. What is open is the *showcase* of the table on its own, which `/showcase/components` does not yet include.
 
 **§18 Tasks / work queue (kanban)** — Partly there. Boards, lanes and cards with full CRUD, server-side filters, drag between lanes reconciled against the server, and a keyboard equivalent of the drag. Ordering *within* a lane and the comment and checklist counts on a card's face are open.
-
-**§44 Drill-down** — Partly there. Every KPI tile, chart segment and quality finding opens the rows behind it with the same filters applied. The back-stack that would return a reader to the picture they came from is open.
 
 **§48 Timeline view** — Partly there. Every record page carries its own history, read from the audit ledger so the two cannot disagree. A cross-record timeline — one thread through several records — is open.
 

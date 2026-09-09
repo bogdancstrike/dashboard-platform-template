@@ -40,6 +40,7 @@ import { StatCard } from "@/components/StatCard";
 import { usePageCommands } from "@/commands/CommandContext";
 import { formatNumber } from "@/lib/formats";
 import { relativeTime } from "@/lib/time";
+import { withOrigin } from "@/entities/drilldown";
 
 const { Text, Paragraph } = Typography;
 
@@ -238,7 +239,10 @@ function Finding({ finding }: { finding: QualityFinding }) {
         finding.link ? (
           // The count *is* the link: the check is declared as the list's own
           // filter, so this opens exactly the rows that were counted (§44).
-          <Link to={finding.link} data-testid={`quality-open-${finding.key}`}>
+          <Link
+            to={withOrigin(finding.link, "/admin/quality")}
+            data-testid={`quality-open-${finding.key}`}
+          >
             Open {formatNumber(finding.count)}
           </Link>
         ) : (

@@ -3,8 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import DashboardPage from "@/pages/DashboardPage";
+import { PageHeader } from "@/components/PageHeader";
 import { dashboardSummary } from "@/test/handlers";
 import { renderWithProviders } from "@/test/render";
+import { Route, Routes } from "react-router-dom";
 
 describe("the dashboard", () => {
   it("renders each KPI with its movement against the previous period", async () => {
@@ -104,5 +106,43 @@ describe("the dashboard", () => {
   it("shows the recent activity feed", async () => {
     renderWithProviders(<DashboardPage />);
     expect(await screen.findByText("Ada Administrator")).toBeInTheDocument();
+  });
+
+  /**
+   * A drill-down carries the way back to the picture (§44).
+   *
+   * Clicking a bar opens the rows behind it with a filter the reader did not
+   * type, and their only way back used to be the browser's Back button —
+   * which, once they have narrowed the list twice, is three presses away and
+   * lands somewhere they did not expect. The origin is in the address, so it
+   * survives a reload and can be pasted with the link.
+   */
+  it("sends the reader on with a way back to the picture they came from", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <Routes>
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route
+          path="/tickets"
+          element={
+            <>
+              <span data-testid="landed">the queue</span>
+              <PageHeader title="Tickets" />
+            </>
+          }
+        />
+      </Routes>,
+      { route: "/dashboard?period=last_7_days" },
+    );
+
+    const tile = (await screen.findAllByText("SLA breaches"))[0]!;
+    await user.click(tile.closest(".nu-statcard")!);
+
+    await screen.findByTestId("landed");
+    // Named, and pointing at the dashboard *as it was* — the period included,
+    // because a dashboard on another period is a different place.
+    const back = screen.getByTestId("drill-back");
+    expect(back).toHaveTextContent("Back to the dashboard");
+    expect(back).toHaveAttribute("href", "/dashboard?period=last_7_days");
   });
 });
