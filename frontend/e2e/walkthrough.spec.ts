@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { expect, test } from "@playwright/test";
 
-import { signIn, type Persona } from "./auth";
+import { signIn, storageStateFor, type Persona } from "./auth";
 
 /**
  * The guided tour actually works, stop by stop (§77).
@@ -35,6 +35,7 @@ import { signIn, type Persona } from "./auth";
  * translated somewhere, and it is better here than in the sentence a person
  * follows.
  */
+/** The document names a username; the fixtures key on the role. */
 const PERSONA_KEYS: Record<string, Persona> = {
   admin: "admin",
   manager: "manager",
@@ -65,6 +66,13 @@ const STOPS: { route: string; persona: string; proof: string }[] = [
   { route: "/tickets", persona: "manager", proof: "[data-testid='ticket-queue']" },
 ];
 
+/** The fixture key for a username the document names. */
+function personaOf(username: string): Persona {
+  const key = PERSONA_KEYS[username];
+  if (!key) throw new Error(`the tour names a persona nobody seeds: ${username}`);
+  return key;
+}
+
 /** The stops as the document lists them: `| 3 | Title | \`/route\` | \`operator\` |`. */
 function documented(): { route: string; persona: string }[] {
   const source = readFileSync(join(process.cwd(), "..", "docs/WALKTHROUGH.md"), "utf8");
@@ -83,15 +91,34 @@ test("the document and this test walk the same tour", () => {
 });
 
 for (const [index, stop] of STOPS.entries()) {
-  test(`stop ${index + 1}: ${stop.route} works as ${stop.persona}`, async ({ page }) => {
-    await signIn(page, PERSONA_KEYS[stop.persona], stop.route);
+  test(`stop ${index + 1}: ${stop.route} works as ${stop.persona}`, async ({ browser }) => {
+    // Each stop in its own context, carrying *that persona's* stored session:
+    // the project's own storage state is the administrator's, and a page that
+    // is already somebody never sees a login form. `signIn` now notices and
+    // re-authenticates, but replaying a cookie is a round trip cheaper — and
+    // eighteen re-authentications through Keycloak is a minute of the suite.
+    const context = await browser.newContext({
+      storageState: storageStateFor(personaOf(stop.persona)),
+    });
+    const page = await context.newPage();
+    try {
+      await signIn(page, personaOf(stop.persona), stop.route);
 
-    // The page's own content, not the shell around it: a header renders
-    // whether or not the query behind it answered.
-    await expect(page.locator(stop.proof).first()).toBeVisible();
-    // And nothing on the way in was refused or broken — the two states a
-    // reader following a document cannot act on.
-    await expect(page.getByTestId("failure-alert")).toHaveCount(0);
+      // The page's own content, not the shell around it: a header renders
+      // whether or not the query behind it answered.
+      await expect(page.locator(stop.proof).first()).toBeVisible();
+      // And nothing on the way in was refused or broken — the two states a
+      // reader following a document cannot act on. Failures *inside a
+      // demonstration* do not count: one stop is the component showcase,
+      // whose job is to show what a refusal and a fault look like.
+      const failures = await page.getByTestId("failure-alert").count();
+      const demonstrated = await page
+        .locator("[data-testid^='demo-'] [data-testid='failure-alert']")
+        .count();
+      expect(failures - demonstrated).toBe(0);
+    } finally {
+      await context.close();
+    }
   });
 }
 
@@ -106,8 +133,13 @@ for (const [index, stop] of STOPS.entries()) {
  * every hop has to land on real seeded data.
  */
 test("one thread runs from a ticket to its account and out across the datasets", async ({
-  page,
+  browser,
 }) => {
+  // The manager's own session: the project carries the administrator's, and
+  // `signIn` now refuses to pretend otherwise (which is how this test was
+  // caught running as the administrator).
+  const context = await browser.newContext({ storageState: storageStateFor("manager") });
+  const page = await context.newPage();
   await signIn(page, "manager", "/tickets");
 
   // A ticket filed against somebody — the seed leaves a few filed against
@@ -158,4 +190,6 @@ test("one thread runs from a ticket to its account and out across the datasets",
   await hits.first().click();
   await expect(page).toHaveURL(/\/(tickets|customers|orders|projects|tasks|devices|explore)/);
   await expect(page.getByTestId("failure-alert")).toHaveCount(0);
+
+  await context.close();
 });

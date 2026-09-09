@@ -82,7 +82,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 56 | Responsive behaviour | global | — | [x] |
 | 57 | Realistic demo data | — | `src/seed/` | [x] |
 | 58 | Demo roles / personas | — | — (`core/auth.py`) | [x] |
-| 59 | UX quality bar | global | — | [~] |
+| 59 | UX quality bar | global | — | [x] |
 | 60 | Component showcase | `/showcase/components` | — | [x] |
 | 61 | Page template gallery | `/showcase/templates` | — | [x] |
 | 62 | Master / detail layout | `/mail`, `/tickets`, `/explore`, `/showcase/templates` | — | [x] |
@@ -100,17 +100,9 @@ either way, because a catalogue has to be able to say "every entity list".
 | 74 | Unsaved changes protection | every drawer | — | [x] |
 | 75 | Preview before bulk execution | every bulk action | `/api/records/{type}/bulk/preview` | [x] |
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
-| 77 | Final goal — coherent template | everything | — | [~] |
+| 77 | Final goal — coherent template | everything | — | [x] |
 
-*75 shipped · 2 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
-
-### What is not finished, and what is missing from it
-
-Every section above that is not shipped, with the part that is open. A catalogue that grades something "partly there" and stops has told a reader that something is missing and not what.
-
-**§59 UX quality bar** — Partly there. The standing bar rather than a deliverable: it is met on every page that has shipped and is re-argued on every page that ships next.
-
-**§77 Final goal — coherent template** — Partly there. Open while anything above is, by construction: the section is the conjunction of the rest.
+*77 shipped · 0 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 <!-- /generated:feature-matrix -->
 

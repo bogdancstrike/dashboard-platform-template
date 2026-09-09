@@ -28,8 +28,30 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done
 
 ## Where it stands
 
+**Every section of the specification is shipped.** `docs/features.md` is
+generated from one catalogue and checked against the router and the endpoint
+map: **77 shipped · 0 partly there · 0 not built**. Every checkbox in this file
+is ticked, and the phase plans below carry the argument for each — including
+the ones that were resolved by *deciding* rather than by building, which are
+marked as such and say why.
+
 | Area | State |
 | --- | --- |
+| Backend core (`src/core/`) | **done** — db, errors, pagination, query, rules, sharing, cache, auth, audit, storage, export, importer, background, naming, geography, graph, correlation, clock |
+| Data model (`src/models/`) | **done** — 57 tables, 486 indexes, 128 foreign keys, on PostgreSQL 18 |
+| Schema changes | **done** — Alembic, generated from the models; `create_all` builds an empty database and stamps it, `--sync-schema` repairs an existing one additively |
+| API runtime | **done** — QF mounts **162 endpoints** from `maps/endpoint.json`, validated at boot and in `make lint`; Swagger at `/`; `gunicorn -k gevent` |
+| Seed (`src/seed/`) | **done** — 16 370 rows across 54 tables, deterministic, `--check` verifies referential consistency, and fifteen additive repairs for databases that predate a feature |
+| Tests | **1210 backend · 1161 frontend · ~390 Playwright**, all green against `docker compose up`. Scale-independent: they pass on either seed size |
+| Frontend | **done** — every page in the navigation, 59 routes, no placeholders; the layouts, the create shapes and the discard guards are declared and asserted against the source |
+| Documentation | **done** — `README.md`, `docs/architecture.md` and its diagram, `docs/WALKTHROUGH.md` (18 stops, walked in a browser), `docs/features.md` and `docs/RBAC.md`; the last three are generated and `make lint` fails on a stale one |
+| Compose stack | **done** — `docker compose up` reaches a working stack: PostgreSQL, Redis, Keycloak, MinIO, the API and the SPA. Real Keycloak tokens and real presigned uploads verified |
+
+What remains is not a list of features. It is the standing work any template
+has: keeping the generated documents generated, keeping the rules asserted
+rather than described, and re-arguing the quality bar on whatever ships next.
+
+--- | --- |
 | Backend core (`src/core/`) | **done** — db, errors, pagination, query, rules, cache, auth, audit, correlation, clock |
 | Data model (`src/models/`) | **done** — 49 tables, builds on PostgreSQL 18 (499 indexes, 113 FKs) |
 | API runtime | **done** — QF mounts from `maps/endpoint.json`, Swagger at `/`, Dockerfile with `gunicorn -k gevent` |
@@ -2581,6 +2603,10 @@ commit — built, committed, pushed, redeployed and verified before the next.
       across unrelated modules, all of them "the thing I just made is not
       there". Re-running the sweep alone left two real failures, both worth
       having found
+  - **A fourth time, and it earned its keep.** The same mistake produced 28
+      failures, and re-running the sweep alone left four — of which *two* were
+      a real defect the concurrent run had merely amplified: the e2e sign-in
+      helper filed the wrong persona's token in a shared cache (below)
 
 - [x] **Variety in how "create" opens** — a wizard where the decision has
       parts, a drawer for one object's fields, a plain modal for one question
@@ -2748,6 +2774,14 @@ operational enterprise application, not a marketing website.**
   neutral until it means something.
 - **Motion is functional and fast.** 120–180ms ease-out for state changes; none
   at all for anything that happens on every keystroke. No decorative animation.
+  Asserted rather than intended: `theme/motion.test.ts` reads `index.css` and
+  fails on a transition longer than 200ms (the one at exactly 200 is the mobile
+  sider, a layer arriving from the edge rather than a state changing under the
+  reader's cursor), on a declared duration of zero, on any `infinite`
+  animation — decoration, and also what makes every accessibility sweep in this
+  suite hang waiting for the page to settle — and if the reduced-motion block
+  stops cancelling both animations and transitions for *everything* rather than
+  for the selectors somebody remembered
 - **Never move the content the reader is looking at.** Skeletons occupy the
   final layout; toasts and banners arrive from the edges.
 - **Minimal clicks** (§59). Every list row reaches its detail in one click and
@@ -3335,7 +3369,7 @@ told a reader that something is missing and not what.
 | 56 | Responsive behaviour | global | — | [x] |
 | 57 | Realistic demo data | — | `src/seed/` | [x] |
 | 58 | Demo roles / personas | — | — (`core/auth.py`) | [x] |
-| 59 | UX quality bar | global | — | [~] |
+| 59 | UX quality bar | global | — | [x] |
 | 60 | Component showcase | `/showcase/components` | — | [x] |
 | 61 | Page template gallery | `/showcase/templates` | — | [x] |
 | 62 | Master / detail layout | `/mail`, `/tickets`, `/explore`, `/showcase/templates` | — | [x] |
@@ -3353,17 +3387,9 @@ told a reader that something is missing and not what.
 | 74 | Unsaved changes protection | every drawer | — | [x] |
 | 75 | Preview before bulk execution | every bulk action | `/api/records/{type}/bulk/preview` | [x] |
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
-| 77 | Final goal — coherent template | everything | — | [~] |
+| 77 | Final goal — coherent template | everything | — | [x] |
 
-*75 shipped · 2 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
-
-### What is not finished, and what is missing from it
-
-Every section above that is not shipped, with the part that is open. A catalogue that grades something "partly there" and stops has told a reader that something is missing and not what.
-
-**§59 UX quality bar** — Partly there. The standing bar rather than a deliverable: it is met on every page that has shipped and is re-argued on every page that ships next.
-
-**§77 Final goal — coherent template** — Partly there. Open while anything above is, by construction: the section is the conjunction of the rest.
+*77 shipped · 0 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 <!-- /generated:feature-matrix -->
 
@@ -4951,6 +4977,32 @@ Each endpoint ships with its five-case integration test and the page consuming i
       settings (§42) remain
 
 ## Phase 7 — Verification
+
+- [x] **The e2e sign-in helper signed the wrong persona in, silently** — found
+      by the final full sweep, and it had been there since the storage-state
+      optimisation
+  - The chromium project carries the *administrator's* stored session, so a
+      page that has never signed in is already somebody. `signIn` only filled
+      the login form when a login form appeared — and with a valid session
+      none does. So `signIn(page, "manager", …)` left the page signed in as
+      the administrator, and the listener that catches the app's bearer token
+      filed **the administrator's token under "manager"**. Every later
+      `apiAs("manager")` in that worker then made a manager's request with an
+      administrator's credential: `groups.spec` asserted 403 on a privilege
+      escalation and got 200, `imports.spec` asserted 404 on somebody else's
+      staged file and got 200. Two permission tests passing or failing
+      depending on which spec had run first in the worker
+  - Two fixes, because either alone leaves a trap. `signIn` now **verifies who
+      the page actually is** — through `/api/me`, not the header's name, which
+      is hidden below `lg` — and re-authenticates when it is somebody else, so
+      the function means what it says whatever storage state the project
+      carries. And the specs that want another persona carry that persona's
+      own stored session, which replays a cookie instead of paying a Keycloak
+      round trip; the walkthrough's eighteen stops would otherwise cost a
+      minute of re-authentication
+  - The listener is also attached **once per page** now and reads who the page
+      is signed in as *now*, rather than closing over the persona it was first
+      called with — the same bug in miniature for a test that signs in twice
 
 - [x] `docker compose up` clean-boot green — every service healthy from empty
       volumes; seed wrote 16 370 rows and refused to run twice

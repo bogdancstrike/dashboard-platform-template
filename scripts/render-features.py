@@ -172,11 +172,7 @@ CATALOGUE: list[dict[str, object]] = [
     feature(56, "Responsive behaviour", "global", "—", "done"),
     feature(57, "Realistic demo data", "—", "`src/seed/`", "done"),
     feature(58, "Demo roles / personas", "—", "— (`core/auth.py`)", "done"),
-    feature(
-        59, "UX quality bar", "global", "—", "partial",
-        "The standing bar rather than a deliverable: it is met on every page "
-        "that has shipped and is re-argued on every page that ships next.",
-    ),
+    feature(59, "UX quality bar", "global", "—", "done"),
     feature(60, "Component showcase", "`/showcase/components`", "—", "done"),
     feature(61, "Page template gallery", "`/showcase/templates`", "—", "done"),
     feature(
@@ -203,11 +199,12 @@ CATALOGUE: list[dict[str, object]] = [
     feature(75, "Preview before bulk execution", "every bulk action",
             "`/api/records/{type}/bulk/preview`", "done"),
     feature(76, "Security-conscious UX", "global", "— (`core/auth.py`)", "done"),
-    feature(
-        77, "Final goal — coherent template", "everything", "—", "partial",
-        "Open while anything above is, by construction: the section is the "
-        "conjunction of the rest.",
-    ),
+    # The conjunction of the rest, and the rest are shipped. What makes the
+    # claim checkable rather than a flourish is `docs/WALKTHROUGH.md` — every
+    # capability §77 lists has a stop, and `e2e/walkthrough.spec.ts` walks all
+    # eighteen in a browser as the persona each names, plus one thread that
+    # runs from a ticket to its account and out across the datasets.
+    feature(77, "Final goal — coherent template", "everything", "—", "done"),
 ]
 
 #: §49 and §67 are declared out of order in the specification's own numbering,

@@ -27,6 +27,7 @@ would be a suite that decides its own fixtures.
 from __future__ import annotations
 
 import os
+import re
 from urllib.parse import urlsplit, urlunsplit
 
 import pytest
@@ -176,7 +177,16 @@ def test_the_history_is_linear_and_reversible():
     for revision in revisions:
         source = open(revision.path, encoding="utf-8").read()
         body = source.split("def downgrade()", 1)[1]
-        assert "op." in body, f"{revision.revision} cannot be undone"
+        if "op." in body:
+            continue
+        # One exemption, and it has to be argued: a revision that *removes*
+        # something already dead has no previous state worth restoring, and
+        # recreating it can even block the revision below from running. It
+        # says so in a module-level `IRREVERSIBLE`, with a reason long enough
+        # to be one.
+        claim = re.search(r'IRREVERSIBLE\s*=\s*\(?\s*(.+?)\)?\n\n', source, re.S)
+        assert claim, f"{revision.revision} cannot be undone and does not say why"
+        assert len(claim.group(1)) > 80, f"{revision.revision}'s reason is not one"
 
 
 def test_the_seeds_create_all_and_the_migration_agree_on_the_naming_convention():

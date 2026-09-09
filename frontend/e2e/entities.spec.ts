@@ -308,6 +308,12 @@ test.describe("entity page permissions", () => {
  * chosen interval outlives a reload, because it is the reader's habit rather
  * than a setting of the page's.
  */
+test.describe("what a manager does with the ledger", () => {
+  // That persona's stored session, so `signIn` replays a cookie rather than
+  // re-authenticating — and so the page is really the manager rather than the
+  // administrator the project's own storage state carries.
+  test.use({ storageState: storageStateFor("manager") });
+
 /**
  * The ledger can be peeked at without being left (§64).
  *
@@ -386,4 +392,5 @@ test("a list refreshes on the reader's own schedule and says when it last did", 
   await page.locator(".nu-refresh").getByRole("button", { name: /down/ }).click();
   await page.getByRole("menuitem", { name: "Off" }).click();
   await expect(page.getByTestId("refresh-now")).toContainText("Refresh");
+});
 });

@@ -12,6 +12,11 @@ export const PERSONAS = {
 
 export type Persona = keyof typeof PERSONAS;
 
+/** The last bearer token each page was seen using — who the page really is. */
+const seen = new WeakMap<Page, string>();
+/** Pages that already have the listener, so it is attached exactly once. */
+const watched = new WeakSet<Page>();
+
 /**
  * Where a persona's signed-in browser state is cached between runs.
  *
@@ -50,12 +55,29 @@ export async function signIn(
   // few hundred direct grants gets 401s that land on whichever spec happens
   // to be running. This costs nothing: the header is on every API request the
   // page makes anyway.
-  page.on("request", (request) => {
-    const header = request.headers()["authorization"];
-    if (header?.startsWith("Bearer ") && request.url().includes("/platform/")) {
-      rememberToken(persona, header.slice("Bearer ".length));
-    }
-  });
+  //
+  // **A token is filed under whoever it belongs to, read from the token.**
+  // The first version filed it under the persona `signIn` was *called* with,
+  // which is a different thing: the chromium project carries the
+  // administrator's stored session, so a page that has never signed in is
+  // already somebody and no login form appears. `signIn(page, "manager")`
+  // then left the page as the administrator and cached the administrator's
+  // token under "manager" — and every later `apiAs("manager")` in that worker
+  // made a manager's request with an administrator's credential. Two
+  // permission tests asserted 403 and 404 and got 200, depending on which
+  // spec had run first in the worker. The token says whose it is; nothing
+  // else has to.
+  if (!watched.has(page)) {
+    watched.add(page);
+    page.on("request", (request) => {
+      const header = request.headers()["authorization"];
+      if (!header?.startsWith("Bearer ") || !request.url().includes("/platform/")) return;
+      const token = header.slice("Bearer ".length);
+      seen.set(page, token);
+      const owner = personaOf(subjectOf(token));
+      if (owner) rememberToken(owner, token);
+    });
+  }
 
   await page.goto(path);
 
@@ -109,4 +131,42 @@ export async function signIn(
 
   await page.waitForURL((url) => url.port === "5174");
   await expect(banner).toBeVisible({ timeout: 90_000 });
+
+  // **And it is really this persona**, or the test says so loudly.
+  //
+  // A page carrying somebody else's stored session never sees a login form,
+  // so this used to pass while asserting a lesser role's experience *as the
+  // administrator* — a test that cannot fail. Repairing it here would mean
+  // signing out and back in through Keycloak in the middle of a page's life,
+  // which races the SPA's own redirect and broke seven specs when I tried;
+  // naming it is better, because the fix belongs in the spec:
+  // `test.use({ storageState: storageStateFor(persona) })`.
+  const token = seen.get(page);
+  const who = token ? subjectOf(token) : "";
+  expect(
+    who,
+    `this page is signed in as "${who || "nobody"}" rather than "${account.username}" — ` +
+      "add test.use({ storageState: storageStateFor(persona) }) to the describe",
+  ).toBe(account.username);
 }
+
+/** The `preferred_username` in a bearer token, without asking anybody. */
+function subjectOf(token: string): string {
+  const [, payload] = token.split(".");
+  if (!payload) return "";
+  try {
+    const decoded = JSON.parse(
+      Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"),
+    ) as { preferred_username?: string };
+    return decoded.preferred_username ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/** Which seeded persona a username belongs to, if any. */
+function personaOf(username: string): Persona | null {
+  const found = Object.entries(PERSONAS).find(([, account]) => account.username === username);
+  return (found?.[0] as Persona | undefined) ?? null;
+}
+
