@@ -1,10 +1,11 @@
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { readFileSync } from "node:fs";
+import { relative } from "node:path";
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { StatusTag } from "@/components/StatusTag";
+import { SRC, shippedFiles } from "@/test/sources";
 
 /**
  * A status is coloured in a way that can be *read* (§55, §59).
@@ -21,24 +22,6 @@ import { StatusTag } from "@/components/StatusTag";
  * component nobody was obliged to use — found when axe was first run over the
  * ticket queue, which no spec had done.
  */
-
-const SRC = join(process.cwd(), "src");
-
-/** Every source file that is part of the shipped application. */
-function shippedFiles(directory: string = SRC): string[] {
-  const out: string[] = [];
-  for (const entry of readdirSync(directory)) {
-    const path = join(directory, entry);
-    if (statSync(path).isDirectory()) {
-      if (entry === "test") continue;
-      out.push(...shippedFiles(path));
-      continue;
-    }
-    if (!/\.tsx$/.test(entry) || entry.includes(".test.")) continue;
-    out.push(path);
-  }
-  return out;
-}
 
 describe("the component", () => {
   it("keeps the surface's ink and puts the colour on the leading edge", () => {

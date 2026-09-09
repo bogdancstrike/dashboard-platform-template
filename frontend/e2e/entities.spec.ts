@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
 import { signIn, storageStateFor } from "./auth";
@@ -229,6 +230,58 @@ test.describe("what the six pages share", () => {
 
     expect(download.suggestedFilename()).toMatch(/^ticket-/);
   });
+});
+
+
+test.describe("every one of the six lists is legible and keyboard-reachable", () => {
+  /**
+   * The audit none of these pages had (§55, §56, §59).
+   *
+   * Twelve specs audit a page each and these six had none, which is exactly
+   * how the gap stays open: a rule that must be remembered per page covers the
+   * pages somebody thought of. Running it found eight unnamed progress bars on
+   * the board and one on the account grid — `role="progressbar"` takes no name
+   * from its contents, so a bar with a percentage drawn inside it is still
+   * announced as a number with no subject.
+   *
+   * `.ant-table-measure-row` is excluded, and only that. It is AntD's own
+   * zero-height row for measuring column widths under `scroll.x`, carrying
+   * `aria-hidden` and `tabindex="-1"` — not reachable by tab, not clickable,
+   * and not ours to remove without giving up the sticky reference and action
+   * columns three of these tables rely on. Everything else is asserted.
+   */
+  for (const [label, path] of [
+    ["the board", "/tasks"],
+    ["the portfolio", "/projects"],
+    ["the account grid", "/customers"],
+    ["the ledger", "/orders"],
+    ["the queue", "/tickets"],
+    ["the fleet", "/devices"],
+  ] as const) {
+    test(`${label} is axe-clean`, async ({ page }) => {
+      await signIn(page, "admin", path);
+      await expect(page.getByTestId("entity-total")).toBeVisible();
+      // Animations settle first: a bar still growing has a different
+      // computed colour from the one a reader ends up looking at.
+      await page.waitForFunction(() =>
+        document.getAnimations().every((animation) => animation.playState !== "running"),
+      );
+
+      const audit = await new AxeBuilder({ page })
+        .include("#nu-main")
+        .exclude(".ant-table-measure-row")
+        .analyze();
+      const serious = audit.violations.filter((violation) =>
+        ["serious", "critical"].includes(violation.impact ?? ""),
+      );
+      expect(
+        serious.map((violation) => ({
+          id: violation.id,
+          nodes: violation.nodes.map((node) => `${node.target.join(" ")} :: ${node.failureSummary}`),
+        })),
+      ).toEqual([]);
+    });
+  }
 });
 
 test.describe("entity page permissions", () => {

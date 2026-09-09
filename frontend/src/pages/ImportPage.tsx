@@ -666,7 +666,11 @@ function Wizard({
         >
           <Counts run={run} />
           {run.status === "RUNNING" ? (
-            <Progress percent={99} status="normal" showInfo={false} />
+            // Decoration: the percentage is invented (a run in progress has
+            // no measured one) and "RUNNING" is already said by the status
+            // beside it. A bar announcing "99%" would be a number the server
+            // never reported.
+            <Progress percent={99} status="normal" showInfo={false} aria-hidden="true" />
           ) : null}
           <Preview run={run} />
         </Card>

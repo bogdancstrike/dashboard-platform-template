@@ -402,6 +402,7 @@ function TaskCard({
           {task.title}
         </Text>
         <Progress
+          aria-label={`${task.reference}: ${Number(task.progress ?? 0)}% done`}
           percent={Number(task.progress ?? 0)}
           size="small"
           showInfo={false}

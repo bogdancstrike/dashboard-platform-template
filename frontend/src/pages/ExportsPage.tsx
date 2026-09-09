@@ -369,6 +369,9 @@ export default function ExportsPage() {
         value === null ? (
           working(row) ? (
             <Progress
+              // The only thing in the cell while the file is being written,
+              // so it is named rather than hidden.
+              aria-label={`${row.reference}: ${row.progress}% written`}
               percent={row.progress}
               size="small"
               showInfo={false}

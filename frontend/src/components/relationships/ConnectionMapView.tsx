@@ -214,6 +214,11 @@ export function ConnectionMapView({
                       title={`${edge.count.toLocaleString()} of ${edge.source_total.toLocaleString()} ${edge.source_label.toLowerCase()} carry this link`}
                     >
                       <Progress
+                        // Named from the row, because `role="progressbar"`
+                        // takes no name from its contents: the percentage
+                        // drawn inside it is announced as a number with no
+                        // subject, and the tooltip is not a name either (§55).
+                        aria-label={`${edge.source_label} → ${edge.target_label}: ${value}% carry this link`}
                         percent={value}
                         size="small"
                         status={value < 60 ? "exception" : "normal"}

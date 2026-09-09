@@ -1,7 +1,9 @@
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { readFileSync } from "node:fs";
+import { relative } from "node:path";
 
 import { describe, expect, it } from "vitest";
+
+import { SRC, shippedFiles } from "@/test/sources";
 
 /**
  * The test fixtures must not reach the shipped bundle.
@@ -27,28 +29,6 @@ import { describe, expect, it } from "vitest";
  * after globbing is too late, because the module graph is built from the
  * pattern.
  */
-
-const SRC = join(process.cwd(), "src");
-
-/** Every source file that is part of the shipped application. */
-function shippedFiles(directory: string = SRC): string[] {
-  const out: string[] = [];
-  for (const entry of readdirSync(directory)) {
-    const path = join(directory, entry);
-    if (statSync(path).isDirectory()) {
-      // `src/test` is the fixtures themselves; they are allowed to import
-      // each other.
-      if (entry === "test") continue;
-      out.push(...shippedFiles(path));
-      continue;
-    }
-    if (!/\.tsx?$/.test(entry)) continue;
-    // A `.test.` file is not shipped either — it is what must not be reached.
-    if (entry.includes(".test.")) continue;
-    out.push(path);
-  }
-  return out;
-}
 
 describe("the shipped bundle cannot reach the test fixtures", () => {
   it("finds the application's own files at all", () => {

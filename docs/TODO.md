@@ -3874,6 +3874,30 @@ there was only one. The point of a template is the opposite.
       settlement columns, a split queue, a gauge. The suite that came before
       asserted the same three things six times and would have passed against
       the page this work replaced
+- [x] **And all six are audited, which none of them was** (§55, §56, §59).
+      Twelve specs each audit a page and these six had none — which is how the
+      gap stays open: a rule that has to be remembered per page covers the
+      pages somebody thought of. The first run found **nine unnamed progress
+      bars** — eight on the board, one on the account grid — and `role=
+      "progressbar"` takes no name from its contents, so a bar with a
+      percentage drawn inside it is still announced as a number with no
+      subject
+  - Fixed everywhere rather than on the two pages axe happened to see: six
+    bars across the fleet, the ledger, the catalogue, the connection map, the
+    exports table and the import preview now either carry a name or are marked
+    `aria-hidden` — the second being the honest answer when the number is
+    already readable beside the bar. `src/test/a11y.test.ts` reads every
+    shipped file and fails on a `<Progress>` that is neither, so the rule no
+    longer depends on axe visiting the page
+  - `.ant-table-measure-row` is the one exclusion, and it is named and
+    argued: AntD's own zero-height measuring row under `scroll.x`, carrying
+    `aria-hidden` and `tabindex="-1"`, unreachable by tab and not ours to
+    remove without giving up the sticky reference and action columns three of
+    these tables rely on
+  - The walk over the shipped source is now `src/test/sources.ts`, shared by
+    the three rules that need it. Two of them had grown their own copy, and a
+    second copy is where a rule quietly stops covering a directory the first
+    one learnt about
 
 ---
 

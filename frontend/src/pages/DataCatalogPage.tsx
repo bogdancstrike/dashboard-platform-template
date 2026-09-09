@@ -172,6 +172,7 @@ function DatasetBody({ dataset, highlight }: { dataset: CatalogDataset; highligh
       render: (_value, field) => (
         <Tooltip title={`${field.filled.toLocaleString()} of ${dataset.record_count.toLocaleString()} records`}>
           <Progress
+            aria-label={`${field.label}: ${field.completeness}% of rows have a value`}
             percent={field.completeness}
             size="small"
             // Sparse is not broken: an optional field is allowed to be empty.

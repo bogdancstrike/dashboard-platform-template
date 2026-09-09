@@ -205,6 +205,7 @@ export default function CustomersPage() {
 
                 <Tooltip title={`Satisfaction ${score.toFixed(1)} out of 10`}>
                   <Progress
+                    aria-label={`Satisfaction ${score.toFixed(1)} out of 10`}
                     percent={score * 10}
                     size="small"
                     showInfo={false}
