@@ -1964,6 +1964,7 @@ function card(overrides: Record<string, unknown>): Record<string, unknown> {
     completed_at: null,
     checklist: [],
     checklist_done: 0,
+    comment_count: 0,
     created_at: "2026-09-01T09:00:00Z",
     updated_at: "2026-09-05T09:00:00Z",
     ...overrides,
@@ -2018,6 +2019,9 @@ function seedKanban(): void {
       id: "card-3", reference: "PLAT-00003", kind: "BUG",
       title: "Fix the edge case found in review", lane_id: "lane-2", position: 1,
       priority: "CRITICAL",
+      // Two people have said something: the chip on the tile is often the
+      // reason to open this card rather than the next (§18).
+      comment_count: 2,
     }),
     card({
       id: "card-4", reference: "PLAT-00004", kind: "TASK",

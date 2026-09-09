@@ -514,6 +514,55 @@ def test_a_card_can_be_talked_about_and_the_board_decides_who_may(client, monkey
 
 
 @pytest.mark.database
+def test_a_cards_face_says_how_much_has_been_said_on_it(client, monkeypatch):
+    """The count on the tile, counted once for the whole board (§18).
+
+    "Two comments" is often the reason to open one card rather than the next,
+    and a tile that cannot say so makes the reader open all of them. The count
+    comes back with the board — one `GROUP BY` over the polymorphic table —
+    because asking per card is forty queries for a picture of one board.
+    """
+    owner = _authenticate(monkeypatch)
+    created = _board(client, owner, name="Chatty", scope="PRIVATE")
+    quiet = _card(client, owner, created["id"], title="Nobody has said anything")
+    busy = _card(client, owner, created["id"], title="Two people have")
+
+    for body in ("First thought.", "Second thought."):
+        posted = client.post(
+            f"{PREFIX}/api/comments",
+            json={"resource_type": "kanban_card", "resource_id": busy["id"], "body": body},
+            headers=owner,
+        )
+        assert posted.status_code == 201, posted.get_data(as_text=True)
+
+    board = client.get(f"{PREFIX}/api/kanban/boards/{created['id']}", headers=owner).get_json()
+    counted = {
+        card["id"]: card["comment_count"]
+        for lane in board["lanes"]
+        for card in lane["cards"]
+    }
+    assert counted[busy["id"]] == 2
+    # Zero rather than absent: a tile deciding between "none" and "unknown"
+    # would draw the chip for a card nobody has commented on.
+    assert counted[quiet["id"]] == 0
+
+    # A withdrawn comment stops counting, because the deleted ones are still
+    # rows and a count that included them would say two where one is readable.
+    listed = client.get(
+        f"{PREFIX}/api/comments?resource_type=kanban_card&resource_id={busy['id']}",
+        headers=owner,
+    ).get_json()
+    client.delete(f"{PREFIX}/api/comments/{listed['items'][0]['id']}", headers=owner)
+    again = client.get(f"{PREFIX}/api/kanban/boards/{created['id']}", headers=owner).get_json()
+    assert [
+        card["comment_count"]
+        for lane in again["lanes"]
+        for card in lane["cards"]
+        if card["id"] == busy["id"]
+    ] == [1]
+
+
+@pytest.mark.database
 def test_an_unknown_commentable_kind_is_still_refused(client, monkeypatch):
     """The registry widened what may be commented on; it must not have opened
     the door to anything at all."""

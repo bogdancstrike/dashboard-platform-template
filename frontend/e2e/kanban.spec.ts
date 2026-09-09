@@ -138,6 +138,57 @@ test("a card dropped in another lane is still there after a reload", async ({ pa
   await expect(progress.getByText("Travels between lanes")).toBeVisible();
 });
 
+/**
+ * The order within a lane is the reader's, and reachable without a mouse
+ * (§18, §54).
+ *
+ * A hand-made order is what a board is *for* — "these three first" is a
+ * decision, not a fact the data carries — and the grip menu offered only
+ * "move to another lane", which left that decision to the drag. A drag is
+ * exactly the gesture somebody using a keyboard cannot make.
+ */
+test("a card reordered from the keyboard keeps its place after a reload", async ({ page }) => {
+  await signIn(page, "admin", "/kanban");
+  await newBoard(page, `${PREFIX} order ${Date.now()}`);
+
+  await addCard(page, "Backlog", "First in");
+  await addCard(page, "Backlog", "Second in");
+
+  const lane = page
+    .locator(".nu-lane-col")
+    .filter({ has: page.getByText("Backlog", { exact: true }) });
+  const titles = () => lane.locator(".nu-card-title").allTextContents();
+  expect(await titles()).toEqual(["First in", "Second in"]);
+
+  // The second card, moved up its own lane from the menu.
+  await lane
+    .locator(".nu-card")
+    .filter({ hasText: "Second in" })
+    .getByRole("button", { name: /^Move / })
+    .click();
+  await page.getByRole("menuitem", { name: /Move up in this lane/ }).click();
+  await expect.poll(titles).toEqual(["Second in", "First in"]);
+
+  // Stored, not merely drawn: the order came back from PostgreSQL. Waited on
+  // the lane rather than polled through the reload — a locator read while the
+  // document is being replaced throws rather than retrying.
+  await page.reload();
+  await expect(lane.locator(".nu-card-title").first()).toBeVisible();
+  await expect.poll(titles).toEqual(["Second in", "First in"]);
+
+  // And the ends say they are ends rather than offering a move that would do
+  // nothing.
+  await lane
+    .locator(".nu-card")
+    .filter({ hasText: "Second in" })
+    .getByRole("button", { name: /^Move / })
+    .click();
+  await expect(page.getByRole("menuitem", { name: /Move up in this lane/ })).toHaveAttribute(
+    "aria-disabled",
+    "true",
+  );
+});
+
 test("arriving in the done lane finishes a card", async ({ page }) => {
   await signIn(page, "admin", "/kanban");
   await newBoard(page, `${PREFIX} done ${Date.now()}`);

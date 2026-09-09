@@ -1779,6 +1779,7 @@ mark.nu-mark {
 }
 .nu-card-foot .ant-tag { margin: 0; font-size: 10.5px; }
 .nu-card-points,
+.nu-card-said,
 .nu-card-checklist { color: var(--nu-text-secondary); font-variant-numeric: tabular-nums; }
 .nu-card-who {
   margin-inline-start: auto;

@@ -18,7 +18,7 @@
  */
 
 import { Dropdown, Progress, Tag, Tooltip, Typography } from "antd";
-import { CheckSquareOutlined, DragOutlined } from "@ant-design/icons";
+import { CheckSquareOutlined, DragOutlined, MessageOutlined } from "@ant-design/icons";
 
 import type { KanbanCard, KanbanLane } from "@/api/kanban";
 import { absoluteTime, relativeTime } from "@/lib/time";
@@ -43,6 +43,10 @@ export interface KanbanCardTileProps {
   onOpen: () => void;
   /** A card dropped onto this one takes its place. */
   onDropBefore: (cardId: string) => void;
+  /** How many cards are in this lane, so the ends can be said to be ends. */
+  laneSize: number;
+  /** Reorder within the lane — the keyboard's equivalent of a short drag. */
+  onMoveWithin: (position: number) => void;
   /**
    * The keyboard equivalent of dragging this card to another lane.
    *
@@ -60,8 +64,10 @@ export function KanbanCardTile({
   lanes,
   currentLane,
   index,
+  laneSize,
   onOpen,
   onDropBefore,
+  onMoveWithin,
   onMoveToLane,
 }: KanbanCardTileProps) {
   const overdue =
@@ -102,11 +108,33 @@ export function KanbanCardTile({
           <Dropdown
             trigger={["click"]}
             menu={{
-              // The keyboard equivalent of the drag, through the same call.
-              items: lanes
-                .filter((lane) => lane.id !== currentLane.id)
-                .map((lane) => ({ key: lane.id, label: `Move to ${lane.name}` })),
-              onClick: ({ key }) => onMoveToLane(String(key)),
+              // The keyboard equivalent of the drag, through the same calls.
+              // Both directions of it: dragging a card *within* a lane is a
+              // reorder, and offering only "move to another lane" left the
+              // ordering half of this board mouse-only (§18, §54).
+              items: [
+                {
+                  key: "up",
+                  label: "Move up in this lane",
+                  disabled: index === 0,
+                },
+                {
+                  key: "down",
+                  label: "Move down in this lane",
+                  disabled: index >= laneSize - 1,
+                },
+                ...(lanes.length > 1
+                  ? [{ type: "divider" as const, key: "between" }]
+                  : []),
+                ...lanes
+                  .filter((lane) => lane.id !== currentLane.id)
+                  .map((lane) => ({ key: `lane:${lane.id}`, label: `Move to ${lane.name}` })),
+              ],
+              onClick: ({ key }) => {
+                if (key === "up") onMoveWithin(index - 1);
+                else if (key === "down") onMoveWithin(index + 1);
+                else if (key.startsWith("lane:")) onMoveToLane(key.slice("lane:".length));
+              },
             }}
           >
             <button
@@ -154,6 +182,18 @@ export function KanbanCardTile({
           <Tooltip title={`${card.checklist_done} of ${card.checklist.length} done`}>
             <span className="nu-card-checklist">
               <CheckSquareOutlined /> {card.checklist_done}/{card.checklist.length}
+            </span>
+          </Tooltip>
+        )}
+        {/* Two comments is often the reason to open *this* card rather than
+            the next one, and a tile that cannot say so makes the reader open
+            all of them (§18). Drawn only when there is something to say. */}
+        {card.comment_count > 0 && (
+          <Tooltip
+            title={`${card.comment_count} comment${card.comment_count === 1 ? "" : "s"}`}
+          >
+            <span className="nu-card-said" data-testid={`card-comments-${card.id}`}>
+              <MessageOutlined /> {card.comment_count}
             </span>
           </Tooltip>
         )}

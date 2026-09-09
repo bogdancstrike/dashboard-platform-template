@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
+import { HttpResponse, http } from "msw";
 import { Route, Routes, useLocation } from "react-router-dom";
 
 import KanbanPage, { withCardMoved } from "@/pages/KanbanPage";
@@ -8,6 +9,7 @@ import { CommandProvider } from "@/commands/CommandContext";
 import type { KanbanLane } from "@/api/kanban";
 import { kanbanCards, kanbanLanes, resetKanban } from "@/test/handlers";
 import { renderWithProviders } from "@/test/render";
+import { server } from "@/test/server";
 
 /**
  * The kanban board (§18).
@@ -278,5 +280,53 @@ describe("the kanban board", () => {
     // A board that does not exist is not a reason to draw nothing: the picker
     // is still there, and so is every board this reader can open.
     expect(await screen.findByTestId("board-picker")).toBeInTheDocument();
+  });
+
+  /**
+   * A tile says what is on the card besides its title (§18).
+   *
+   * The checklist ratio was already there; the conversation was not, and "two
+   * comments" is often the reason to open *this* card rather than the next
+   * one. Counted with the board rather than per card, so the chip costs no
+   * request.
+   */
+  it("shows how much has been said on a card, and nothing when nothing has", async () => {
+    render();
+
+    const busy = await screen.findByTestId("card-comments-card-3");
+    expect(busy).toHaveTextContent("2");
+    // Absent rather than "0": a zero chip is a row of noise on every tile.
+    expect(screen.queryByTestId("card-comments-card-1")).not.toBeInTheDocument();
+  });
+
+  /**
+   * Reordering within a lane is reachable without a mouse (§18, §54).
+   *
+   * The grip menu offered "move to another lane" only, which left the
+   * *ordering* half of the board mouse-only — and a drag is exactly the
+   * gesture somebody using a keyboard cannot make.
+   */
+  it("moves a card up and down its own lane from the keyboard", async () => {
+    const user = userEvent.setup();
+    const moves: Record<string, unknown>[] = [];
+    server.use(
+      http.post("/platform/api/kanban/cards/:id/move", async ({ request, params }) => {
+        moves.push({ id: String(params["id"]), ...(await request.json() as object) });
+        return HttpResponse.json({ ...kanbanCards[1] });
+      }),
+    );
+    render();
+
+    // The second card in "In progress": it can go up, and it is last, so it
+    // cannot go down.
+    await user.click(await screen.findByRole("button", { name: "Move PLAT-00003" }));
+    const down = await screen.findByRole("menuitem", { name: /Move down in this lane/ });
+    expect(down).toHaveAttribute("aria-disabled", "true");
+
+    await user.click(screen.getByRole("menuitem", { name: /Move up in this lane/ }));
+    await waitFor(() => expect(moves).toHaveLength(1));
+    // Its own lane, one place earlier — the same endpoint the drag uses, so
+    // the two paths cannot diverge.
+    expect(moves[0]).toMatchObject({ id: "card-3", lane_id: "lane-2", position: 0 });
   });
 });

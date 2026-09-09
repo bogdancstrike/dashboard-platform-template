@@ -32,6 +32,8 @@ export interface KanbanCard {
   completed_at: string | null;
   checklist: { text: string; done: boolean }[];
   checklist_done: number;
+  /** How many people have said something on it — counted with the board (§18). */
+  comment_count: number;
   created_at: string | null;
   updated_at: string | null;
 }

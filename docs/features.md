@@ -41,7 +41,7 @@ either way, because a catalogue has to be able to say "every entity list".
 | 15 | Mail and threads | `/mail` | `/api/mail/threads/:id` | [x] |
 | 16 | Files and folders | `/files` | `/api/files` | [x] |
 | 17 | Notifications and announcements | `/notifications`, `/announcements` | `/notifications`, `/api/announcements` | [x] |
-| 18 | Tasks / work queue (kanban) | `/tasks`, `/kanban` | `/api/kanban/*` | [~] |
+| 18 | Tasks / work queue (kanban) | `/tasks`, `/kanban` | `/api/kanban/*` | [x] |
 | 19 | Calendar | `/calendar` | `/api/calendar/*` | [x] |
 | 20 | Object storage | `/files` | `/api/files/*` | [x] |
 | 21 | Audit explorer | `/admin/audit` | `/admin/audit` | [x] |
@@ -102,15 +102,13 @@ either way, because a catalogue has to be able to say "every entity list".
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*69 shipped · 8 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*70 shipped · 7 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
 Every section above that is not shipped, with the part that is open. A catalogue that grades something "partly there" and stops has told a reader that something is missing and not what.
 
 **§3 Advanced data table** — Partly there. Filtering, sorting, paging, facets and column choice all happen in PostgreSQL on every list, off one `FieldSet` declaration. What is open is the *showcase* of the table on its own, which `/showcase/components` does not yet include.
-
-**§18 Tasks / work queue (kanban)** — Partly there. Boards, lanes and cards with full CRUD, server-side filters, drag between lanes reconciled against the server, and a keyboard equivalent of the drag. Ordering *within* a lane and the comment and checklist counts on a card's face are open.
 
 **§48 Timeline view** — Partly there. Every record page carries its own history, read from the audit ledger so the two cannot disagree. A cross-record timeline — one thread through several records — is open.
 

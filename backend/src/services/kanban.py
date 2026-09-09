@@ -195,6 +195,12 @@ def board(session, board_id: Any, args, *, principal) -> dict[str, Any]:
     for item in cards:
         by_lane.setdefault(item.lane_id, []).append(item)
 
+    # How many people have said something on each card, counted once for the
+    # whole board. A card's face shows it (§18) — "two comments" is often the
+    # reason to open a card rather than the next one — and asking per card
+    # would be forty queries for a picture of one board.
+    conversations = comment_counts(session, [item.id for item in cards])
+
     # Every label in use on this board, so the filter offers what is there
     # rather than a free-text box that matches nothing.
     labels = sorted(
@@ -225,7 +231,10 @@ def board(session, board_id: Any, args, *, principal) -> dict[str, Any]:
                 "over_limit": bool(
                     lane.wip_limit is not None and int(counts.get(lane.id, 0)) > lane.wip_limit
                 ),
-                "cards": [_card(item) for item in by_lane.get(lane.id, [])[:CARDS_PER_LANE]],
+                "cards": [
+                _card(item, comments=conversations.get(item.id, 0))
+                for item in by_lane.get(lane.id, [])[:CARDS_PER_LANE]
+            ],
             }
             for lane in row.lanes
             if lane.deleted_at is None
@@ -233,7 +242,10 @@ def board(session, board_id: Any, args, *, principal) -> dict[str, Any]:
         # A card whose lane was removed while somebody was looking at the page.
         # Shown rather than hidden: it is work, and work that is nowhere is
         # exactly what somebody needs to see.
-        "unplaced": [_card(item) for item in by_lane.get(None, [])],
+        "unplaced": [
+            _card(item, comments=conversations.get(item.id, 0))
+            for item in by_lane.get(None, [])
+        ],
         "labels": labels,
         "kinds": [{"key": name, "children": list(PARENT_OF[name])} for name in KINDS],
         "priorities": list(PRIORITIES),
@@ -1074,7 +1086,34 @@ def _lane(row) -> dict[str, Any]:
     }
 
 
-def _card(row) -> dict[str, Any]:
+def comment_counts(session, card_ids: list[Any]) -> dict[Any, int]:
+    """How many live comments each of these cards carries, in one query.
+
+    The conversation is polymorphic — `resource_type` + `resource_id`, the same
+    table the record pages use — so this is a `GROUP BY` over the ids rather
+    than a relationship the model could load. Empty in, empty out: `IN ()` is
+    not a query worth sending.
+    """
+    from src.models.content import Comment
+
+    if not card_ids:
+        return {}
+    rows = session.execute(
+        select(Comment.resource_id, func.count())
+        .where(
+            Comment.resource_type == "kanban_card",
+            Comment.resource_id.in_([str(identifier) for identifier in card_ids]),
+            Comment.deleted_at.is_(None),
+        )
+        .group_by(Comment.resource_id)
+    ).all()
+    # Keyed by the UUID the caller passed, not the string the column holds, so
+    # the caller can look up with what it has.
+    by_id = {str(resource_id): int(count) for resource_id, count in rows}
+    return {identifier: by_id.get(str(identifier), 0) for identifier in card_ids}
+
+
+def _card(row, *, comments: int = 0) -> dict[str, Any]:
     checklist = list(row.checklist or [])
     return {
         "id": str(row.id),
@@ -1099,6 +1138,10 @@ def _card(row) -> dict[str, Any]:
         "completed_at": iso(row.completed_at) if row.completed_at else None,
         "checklist": checklist,
         "checklist_done": sum(1 for item in checklist if item.get("done")),
+        # Zero unless the caller counted: a card fetched on its own draws the
+        # thread itself, and a number beside the thread it is showing would be
+        # a second answer to the same question.
+        "comment_count": comments,
         "created_at": iso(row.created_at) if row.created_at else None,
         "updated_at": iso(row.updated_at) if row.updated_at else None,
     }

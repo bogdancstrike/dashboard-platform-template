@@ -3267,7 +3267,7 @@ told a reader that something is missing and not what.
 | 15 | Mail and threads | `/mail` | `/api/mail/threads/:id` | [x] |
 | 16 | Files and folders | `/files` | `/api/files` | [x] |
 | 17 | Notifications and announcements | `/notifications`, `/announcements` | `/notifications`, `/api/announcements` | [x] |
-| 18 | Tasks / work queue (kanban) | `/tasks`, `/kanban` | `/api/kanban/*` | [~] |
+| 18 | Tasks / work queue (kanban) | `/tasks`, `/kanban` | `/api/kanban/*` | [x] |
 | 19 | Calendar | `/calendar` | `/api/calendar/*` | [x] |
 | 20 | Object storage | `/files` | `/api/files/*` | [x] |
 | 21 | Audit explorer | `/admin/audit` | `/admin/audit` | [x] |
@@ -3328,15 +3328,13 @@ told a reader that something is missing and not what.
 | 76 | Security-conscious UX | global | — (`core/auth.py`) | [x] |
 | 77 | Final goal — coherent template | everything | — | [~] |
 
-*69 shipped · 8 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
+*70 shipped · 7 partly there · 0 not built — generated from `scripts/render-features.py`, which also fails if a shipped section names a route the router does not serve or an endpoint the map does not mount.*
 
 ### What is not finished, and what is missing from it
 
 Every section above that is not shipped, with the part that is open. A catalogue that grades something "partly there" and stops has told a reader that something is missing and not what.
 
 **§3 Advanced data table** — Partly there. Filtering, sorting, paging, facets and column choice all happen in PostgreSQL on every list, off one `FieldSet` declaration. What is open is the *showcase* of the table on its own, which `/showcase/components` does not yet include.
-
-**§18 Tasks / work queue (kanban)** — Partly there. Boards, lanes and cards with full CRUD, server-side filters, drag between lanes reconciled against the server, and a keyboard equivalent of the drag. Ordering *within* a lane and the comment and checklist counts on a card's face are open.
 
 **§48 Timeline view** — Partly there. Every record page carries its own history, read from the audit ledger so the two cannot disagree. A cross-record timeline — one thread through several records — is open.
 
@@ -3649,24 +3647,46 @@ everything else.
       Verified against the shipped code rather than ticked: `kanbanApi` carries
       all of them, `LaneColumn` opens the three dialogues, and the e2e asserts
       that a removed lane hands its cards to another one
-- [~] **Drag a card between lanes and within a lane.** Optimistic on the client,
+- [x] **Drag a card between lanes and within a lane.** Optimistic on the client,
       reconciled against the server's answer (§73)
   - Lane-to-lane ships on `/tasks`, on the task's own `status` rather than a
     board table: the board is a view of the work queue, and a second copy of
-    "which lane is this in" is a second answer to the question. Ordering
-    *within* a lane waits on `board_position`, which the model already carries
-  - **Acceptance**: met for the lane change and asserted end to end — a card
-    moved and reloaded is where it was dropped, a refused move snaps back and
-    says why, and a stale edit is refused with a 409 rather than applied
+    "which lane is this in" is a second answer to the question
+  - **Ordering within a lane ships on `/kanban`**, where a card carries a
+    `position` and the order is a *decision* — "these three first" is not a
+    fact the data holds. Dropping a card onto another inserts it in front;
+    `move_card` renumbers densely within the two lanes involved, so no two
+    cards can claim one place
+  - **The status board deliberately has no hand-made order.** Its lanes are
+    statuses and its rows are the work queue, ordered by due date and
+    priority — facts about the work rather than somebody's arrangement of it.
+    An arrangement lives on a board, which is what boards are for
+  - And the reorder is **reachable without a mouse** (§54): the card's grip
+    menu offers "Move up in this lane" and "Move down", disabled at the ends,
+    through the same mutation the drag calls. Offering only "move to another
+    lane" left the ordering half of this board to a gesture a keyboard cannot
+    make
+  - **Acceptance**: met, and asserted end to end — a card moved and reloaded
+    is where it was dropped, a reorder survives a reload, a refused move snaps
+    back and says why, and a stale edit is refused with a 409 rather than
+    applied
 - [~] Card detail: description, assignee, due date, labels, **to-do checklist**
       with per-item completion, **comments** with mentions, attachments,
       activity timeline
   - Shipped on `/tasks/:id`: description, checklist with per-item completion,
     assignee, dates, effort, comments with mentions and one level of replies,
     and the audit timeline. Labels and attachments wait on §37 and §20
-  - **Acceptance**: met for the checklist and the conversation — ticking an
-    item writes the record and the progress moves with it, without a reload.
-    Counts on the card face are still open
+  - **The counts are on the card face now**, both of them: the checklist ratio
+    with its progress bar, and how many people have said something. "Two
+    comments" is often the reason to open *this* card rather than the next one,
+    and a tile that cannot say so makes the reader open all of them. Counted
+    once for the whole board — one `GROUP BY` over the polymorphic comments
+    table — because asking per card is forty queries for a picture of one
+    board, and drawn only when there is something to say: a zero chip on every
+    tile is a row of noise
+  - **Acceptance**: met — ticking an item writes the record and the progress
+    moves with it without a reload, and the conversation count comes back with
+    the board and drops when a comment is withdrawn
 - [x] Filters: assignee, label, kind, text — applied server-side (§71) and
       carried in the URL, so a narrowed board is a link. `BoardFilters` goes
       to the API; the page never narrows a downloaded column

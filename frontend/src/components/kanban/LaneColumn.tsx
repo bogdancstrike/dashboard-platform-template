@@ -221,8 +221,10 @@ export function LaneColumn({
               lanes={[lane, ...others]}
               currentLane={lane}
               index={index}
+              laneSize={lane.cards.length}
               onOpen={() => onOpenCard(card.id)}
               onDropBefore={(cardId) => onMove(cardId, index)}
+              onMoveWithin={(position) => onMove(card.id, position)}
               onMoveToLane={(laneId) => onMoveToLane(card.id, laneId)}
             />
           </li>

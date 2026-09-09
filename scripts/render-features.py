@@ -113,11 +113,7 @@ CATALOGUE: list[dict[str, object]] = [
     feature(17, "Notifications and announcements", "`/notifications`, `/announcements`",
             "`/notifications`, `/api/announcements`", "done"),
     feature(
-        18, "Tasks / work queue (kanban)", "`/tasks`, `/kanban`", "`/api/kanban/*`", "partial",
-        "Boards, lanes and cards with full CRUD, server-side filters, drag "
-        "between lanes reconciled against the server, and a keyboard equivalent "
-        "of the drag. Ordering *within* a lane and the comment and checklist "
-        "counts on a card's face are open.",
+        18, "Tasks / work queue (kanban)", "`/tasks`, `/kanban`", "`/api/kanban/*`", "done",
     ),
     feature(19, "Calendar", "`/calendar`", "`/api/calendar/*`", "done"),
     feature(20, "Object storage", "`/files`", "`/api/files/*`", "done"),
