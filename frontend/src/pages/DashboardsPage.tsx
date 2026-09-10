@@ -99,6 +99,7 @@ import { asText } from "@/lib/text";
 import { relativeTime } from "@/lib/time";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { useSticky } from "@/hooks/useSticky";
+import { COPY_MEANS, confirmCopy } from "@/lib/confirm";
 
 const { Text } = Typography;
 
@@ -499,7 +500,14 @@ export default function DashboardsPage() {
                 <Button
                   icon={<CopyOutlined />}
                   loading={duplicate.isPending}
-                  onClick={() => duplicate.mutate(board.id)}
+                  onClick={() =>
+                    confirmCopy(modal, {
+                      what: board.name,
+                      consequence:
+                        "Every widget keeps pointing at the same reports and searches — a copy of the layout, not of the data. " + COPY_MEANS,
+                      onOk: () => duplicate.mutateAsync(board.id),
+                    })
+                  }
                   data-testid="duplicate-dashboard"
                 >
                   Make a copy
@@ -568,7 +576,14 @@ export default function DashboardsPage() {
                 dashboard={item}
                 open={false}
                 canCopy={canCreate}
-                onCopy={() => duplicate.mutate(item.id)}
+                onCopy={() =>
+                  confirmCopy(modal, {
+                    what: item.name,
+                    consequence:
+                      "Every widget keeps pointing at the same reports and searches — a copy of the layout, not of the data. " + COPY_MEANS,
+                    onOk: () => duplicate.mutateAsync(item.id),
+                  })
+                }
                 onOpen={() => open(item.id)}
                 onSettings={() => {
                   open(item.id);

@@ -3676,3 +3676,41 @@ p a:not(.ant-btn),
 }
 .nu-tmpl-pieces { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
 .nu-tmpl-piece { font-family: var(--nu-font-mono); font-size: 11px; }
+
+/* The advanced editor's lesson (§4). Two nouns and three connectives, none of
+   them named anywhere else on screen — so the panel that used to sit here told
+   somebody to "build groups" without having said what a group was. */
+.nu-advanced-help {
+  border: 1px solid var(--nu-border-subtle); border-radius: var(--nu-radius-card);
+  background: var(--nu-bg);
+}
+.nu-advanced-help .ant-collapse-header { padding: 8px 12px !important; }
+.nu-advanced-lesson {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+}
+.nu-advanced-lesson .ant-typography { margin: 2px 0 0 !important; font-size: 12.5px; }
+.nu-advanced-hint { color: var(--nu-text-tertiary); }
+
+/* The library's own controls, brought into the product's look: they ship as a
+   row of default AntD buttons at three different sizes. */
+.nu-query-builder .query-builder .group--actions .ant-btn { border-radius: 6px; }
+.nu-query-builder .query-builder .group--header { gap: 8px; }
+.nu-query-builder .query-builder .rule--body { gap: 8px; align-items: center; }
+
+/* The connections tab: a picture and a list, switched. Which one somebody
+   wants is a fact about them rather than about the record, so the choice
+   sticks — and both are kept because they answer different questions (§50). */
+.nu-relations-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 10px;
+}
+.nu-relations-note { display: block; margin-top: 8px; font-size: 12px; }
+
+/* The tour's step counter. AntD draws dots by default, which say how many
+   steps there are and not which one you are on — and a reader deciding whether
+   to keep going wants the second (§77). */
+.nu-tour-count {
+  font-size: 12px; color: var(--nu-text-secondary);
+  font-variant-numeric: tabular-nums;
+}

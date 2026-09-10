@@ -17,6 +17,8 @@
  * on either side without the other fails the build rather than a user's query.
  */
 
+import { Tooltip } from "antd";
+import { createElement, type ReactElement } from "react";
 import { AntdConfig } from "@react-awesome-query-builder/antd";
 import type { Config, Operators, Type, Types } from "@react-awesome-query-builder/antd";
 
@@ -203,6 +205,54 @@ function humanise(value: string): string {
 }
 
 /**
+ * What each of the library's own buttons is for, in the reader's words.
+ *
+ * Keyed on the type the library asks for, so a control it grows tomorrow
+ * appears with its own label rather than silently unlabelled.
+ */
+const BUTTON_HELP: Record<string, { title: string; name: string }> = {
+  addRule: {
+    title: "One condition — a field, a comparison and a value",
+    name: "Add a rule",
+  },
+  addGroup: {
+    title: "A bracket. Rules inside it are answered together, then compared with the rest",
+    name: "Add a group",
+  },
+  addSubRule: { title: "A condition inside this group", name: "Add a rule here" },
+  addSubRuleSimple: { title: "A condition inside this group", name: "Add a rule here" },
+  addSubGroup: { title: "A bracket inside this one", name: "Add a group here" },
+  delRule: { title: "Remove this rule", name: "Remove this rule" },
+  delGroup: { title: "Remove this group and everything in it", name: "Remove this group" },
+  delRuleGroup: { title: "Remove this group and everything in it", name: "Remove this group" },
+};
+
+/**
+ * The library's buttons, with a name and a tooltip.
+ *
+ * The delete controls are icons the library renders with *no* text at all — so
+ * a screen reader announced "button" and a pointer got nothing on hover, which
+ * is how the editor came to have two adjacent circles nobody could tell apart.
+ * Wrapping rather than replacing keeps every behaviour the library gives them.
+ */
+type ButtonFactory = NonNullable<typeof AntdConfig.settings.renderButton>;
+
+/**
+ * The library types this as returning *its own* button element, and a tooltip
+ * wrapping one is a different element type. The cast is at the boundary and
+ * only here: what the library does with the result is render it.
+ */
+const renderLabelledButton = ((props, ctx) => {
+  const type = String(props.type ?? "");
+  const help = BUTTON_HELP[type];
+  const original = AntdConfig.settings.renderButton as ButtonFactory;
+  const button = original({ ...props, ...(help ? { "aria-label": help.name } : {}) }, ctx);
+  return help
+    ? (createElement(Tooltip, { title: help.title, key: type }, button) as ReactElement)
+    : button;
+}) as ButtonFactory;
+
+/**
  * Build the query-builder configuration from the catalogue the API published.
  *
  * Nothing here is hardcoded per dataset: adding a filterable column to an
@@ -234,6 +284,11 @@ export function queryBuilderConfig(fields: ExplorerField[]): Config {
       // columns, nor evaluate a function, so neither is offered: an operator
       // the builder shows is an operator the backend will honour.
       valueSourcesInfo: { value: { label: "Value" } },
+      // Every control says what it does on hover. The library's own buttons
+      // are icons with no accessible name and no title — "what does the
+      // circle-plus next to the plus do" is a question the editor was
+      // silently asking of everybody who opened it (§55, §76).
+      renderButton: renderLabelledButton,
     },
     fields: Object.fromEntries(
       fields

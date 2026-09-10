@@ -38,6 +38,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, groupByDay, relativeTime } from "@/lib/time";
 import { useLive, usePollInterval } from "@/live/LiveProvider";
+import { confirmDelete } from "@/lib/confirm";
 
 const { Text } = Typography;
 
@@ -93,7 +94,7 @@ export function withReadState(
 export default function NotificationsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { message } = AntApp.useApp();
+  const { message, modal } = AntApp.useApp();
   const [params, setParams] = useSearchParams();
   const { status } = useLive();
   const refetchInterval = usePollInterval(45_000);
@@ -546,7 +547,14 @@ export default function NotificationsPage() {
                               size="small"
                               icon={<DeleteOutlined />}
                               aria-label={`Delete ${item.title}`}
-                              onClick={() => remove.mutate(item.id)}
+                              onClick={() =>
+                                confirmDelete(modal, {
+                                  what: item.title,
+                                  consequence:
+                                    "It goes from the notification centre for good. Whatever it was telling you about is unaffected.",
+                                  onOk: () => remove.mutateAsync(item.id),
+                                })
+                              }
                             />
                           </Tooltip>
                         </Space>

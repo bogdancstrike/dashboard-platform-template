@@ -15,7 +15,6 @@ import {
   LogoutOutlined,
   MenuOutlined,
   MoonOutlined,
-  QuestionCircleOutlined,
   SafetyOutlined,
   SettingOutlined,
   SunOutlined,
@@ -42,6 +41,7 @@ import { usePreferences } from "@/settings/PreferencesProvider";
 import { LOGO } from "@/theme/tokens";
 import { useAppearance } from "@/theme/AppearanceProvider";
 import { useFeatures, type FeatureKey } from "@/settings/features";
+import { PageTour } from "@/app/PageTour";
 import { NAV_GROUPS, NAV_ITEMS, selectedKeyFor, trailFor } from "./navigation";
 
 const { Header, Sider, Content } = Layout;
@@ -285,9 +285,10 @@ export function AppShell() {
                 />
               </Tooltip>
             )}
-            <Tooltip title="Help">
-              <Button shape="circle" aria-label="Help" icon={<QuestionCircleOutlined />} />
-            </Tooltip>
+            {/* It used to be a circle that answered no press, which is worse
+                than absent: a control that does nothing teaches somebody the
+                chrome of this product is decorative (§77). */}
+            <PageTour />
             <Dropdown
               menu={{
                 items: [

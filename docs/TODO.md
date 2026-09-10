@@ -2971,15 +2971,53 @@ Ordered as asked: mail, then the admin pages, then the showcase.
     the layout has to make on their own page
   - One region per layout is drawn with weight: a wireframe where every box
     looks the same says the parts and not the shape
-- [ ] **Double confirmation on every delete, and on duplicating a dashboard or
-      a saved search.** Some confirm and some do not; the rule should be one
-      rule
-- [ ] **A per-page tutorial on the Help button**, using AntD's `Tour` — the
-      stops for whichever page the reader is on
-- [ ] **The Related records tab draws a graph**, the way
-      `/find/relationships` does, rather than listing groups
-- [ ] **Polish the advanced search** — wider, cleaner, hover text on every
-      control, and a short explanation of what a rule and a group *are*
+- [x] **One rule for confirming, in one module** (§73). Most deletes already
+      asked, each in its own words — "It disappears from every list", "The
+      layout goes", "This removes it from the database" — and a few had no
+      confirmation at all because nobody noticed they were missing
+  - `lib/confirm.tsx`: `confirmDelete`, `confirmRemove` and `confirmCopy`. The
+    consequence is a **required** field, because "Are you sure?" asks the
+    reader to supply it from memory — which is exactly what they were not
+    thinking about a moment ago
+  - The button says the verb. "Delete", never "OK": the last word somebody
+    reads before committing should be the thing being committed
+  - **Removing is not deleting**, and the two dialogs differ. A widget off a
+    dashboard survives; a dialog that says "delete" about it teaches the reader
+    to fear a reversible gesture, after which they stop reading the ones that
+    matter
+  - **Copying asks too**, for a different reason: a duplicate is private,
+    shares nothing and will drift from the original, and somebody who expected
+    "edit this" finds out an hour later having edited the wrong one
+- [x] **The Help button explains the page it is on** (§77), with AntD's `Tour`.
+      It used to render a circle that answered no press — worse than absent,
+      because a control that does nothing teaches somebody the chrome of this
+      product is decorative
+  - Stops point at real controls **by `data-testid`** — the same attribute the
+    tests address, deliberately: targets that were classes would break silently
+    on a restyle, and test ids break *a test* the moment a control is removed
+  - A stop whose target is not on the page is **dropped, not centred**: half
+    these pages differ by role, and pointing at a button that is not there is
+    worse than skipping it
+  - Every stop says **why, not what** — "this is the filter bar" is visible
+    already; that the filters run in PostgreSQL is not. `tours.test.ts` holds
+    the line, and checks every declared route against the router
+- [x] **The Related records tab draws the graph** (§50) — the same `EgoGraph`
+      `/find/relationships` uses, over the same endpoint, so the picture in the
+      drawer and the picture on the page cannot disagree. The list stays as the
+      *other* answer rather than a fallback: a graph is unreadable as a way of
+      finding one particular record, and a list is unreadable as a way of
+      seeing shape. Which one you get sticks (§72)
+- [x] **The advanced search explains itself** (§4). It is wider — at 920 pixels
+      a group three levels deep put its value field in a column two words wide,
+      so the editor's own shape argued with the thing being edited — and it
+      opens with **a lesson**: what a rule is, what a group is, what And, Or
+      and Not do, and that nothing runs until Search is pressed. Collapsible,
+      and it stays as the reader left it, because a tutorial that will not go
+      away is an alert
+  - **Every control says what it does on hover.** The library's own delete and
+    add buttons are icons with no accessible name and no title — "what does
+    the circle-plus next to the plus do" was a question the editor asked
+    silently of everybody who opened it (§55, §76)
 
 ### Known red, and not from this session's work
 

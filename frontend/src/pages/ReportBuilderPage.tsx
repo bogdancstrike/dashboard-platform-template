@@ -92,6 +92,7 @@ import { BlockPreview, type Capturable } from "@/components/documents/DocumentBl
 import { usePageCommands } from "@/commands/CommandContext";
 import { relativeTime } from "@/lib/time";
 import { PAPER } from "@/theme/tokens";
+import { COPY_MEANS, confirmCopy } from "@/lib/confirm";
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -357,7 +358,14 @@ export default function ReportBuilderPage() {
                 document={item}
                 canCopy={canCreate}
                 onOpen={() => open(item.id)}
-                onCopy={() => duplicate.mutate(item.id)}
+                onCopy={() =>
+                  confirmCopy(modal, {
+                    what: item.name,
+                    consequence:
+                      "Every block keeps naming the same saved reports and datasets, so the copy answers with today's data too. " + COPY_MEANS,
+                    onOk: () => duplicate.mutateAsync(item.id),
+                  })
+                }
               />
             ))}
           </div>
@@ -452,7 +460,14 @@ export default function ReportBuilderPage() {
               <Button
                 icon={<CopyOutlined />}
                 loading={duplicate.isPending}
-                onClick={() => duplicate.mutate(openId)}
+                onClick={() =>
+                  confirmCopy(modal, {
+                    what: stored?.name ?? "this document",
+                    consequence:
+                      "Every block keeps naming the same saved reports and datasets, so the copy answers with today's data too. " + COPY_MEANS,
+                    onOk: () => duplicate.mutateAsync(openId),
+                  })
+                }
                 data-testid="copy-document"
               >
                 Make a copy

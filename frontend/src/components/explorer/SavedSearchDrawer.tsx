@@ -40,6 +40,7 @@ import {
 
 import { explorerApi, type SavedSearch } from "@/api/explorer";
 import { AddToDashboard, type DashboardSubject } from "@/components/dashboards/AddToDashboard";
+import { COPY_MEANS, confirmCopy } from "@/lib/confirm";
 
 const { Text } = Typography;
 
@@ -68,7 +69,7 @@ export function SavedSearchDrawer({
   onOpen,
   onEdit,
 }: SavedSearchDrawerProps) {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const queryClient = useQueryClient();
   const [term, setTerm] = useState("");
   /** The search on its way to a dashboard, or nothing (§45). */
@@ -194,7 +195,14 @@ export function SavedSearchDrawer({
                         size="small"
                         aria-label={`Duplicate ${item.name}`}
                         icon={<CopyOutlined />}
-                        onClick={() => duplicate.mutate(item.id)}
+                        onClick={() =>
+                          confirmCopy(modal, {
+                            what: item.name,
+                            consequence:
+                              "The question is copied as it stands. " + COPY_MEANS,
+                            onOk: () => duplicate.mutateAsync(item.id),
+                          })
+                        }
                       />
                     </Tooltip>
                     {item.can_edit && (

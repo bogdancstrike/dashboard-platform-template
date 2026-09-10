@@ -111,6 +111,22 @@ describe("record preview", () => {
     expect(requested).not.toHaveBeenCalled();
     await user.click(screen.getByRole("tab", { name: "Related records" }));
     const related = within(screen.getByRole("tabpanel", { name: "Related records" }));
+
+    // The picture leads: "how is this record connected" is the question the
+    // tab is usually opened for, and no arrangement of headings answers it.
+    expect(await related.findByText(/Drag to rearrange/)).toBeInTheDocument();
+
+    // The list is the other answer rather than a fallback — a graph is
+    // unreadable as a way of finding one particular related record.
+    // The label rather than the radio: AntD's Segmented puts
+    // `pointer-events: none` on the input, and the label carries an icon
+    // beside the word so an exact-text query finds nothing.
+    await user.click(
+      related.getByText((_content, element) =>
+        element?.className === "ant-segmented-item-label" &&
+        (element.textContent ?? "").trim() === "List",
+      ),
+    );
     expect(await related.findByRole("link", { name: "Migration project" }))
       .toHaveAttribute("href", "/explore?resource=project&record=project-1");
   });
