@@ -2828,9 +2828,20 @@ tests pass and the stack has been rebuilt on it.
 - [x] **Notification pop-ups stop stacking** (§17) — at most three, the rest
       counted in one card pointing at the centre
 - [x] **`/settings/preferences`: pop-up and mailbox settings** (§17, §19, §40)
-      — pop-ups on/important-only/off, which kinds, how long, sound, and a
-      **Try it**; plus the mailbox's opening folder, reading pane, whether
-      opening marks read, and a signature
+      — pop-ups on/important-only/off, which kinds, how long, **where on the
+      screen**, **how much they say**, sound, and a **Try it**; plus the
+      mailbox's opening folder, reading pane, whether opening marks read, and
+      a signature
+  - **The tone had to move and grow up.** One `AudioContext` per tone, created
+    before the page had been clicked, stays `suspended` for the session — so
+    the first version made no sound at all on most pages. `lib/chime.ts` keeps
+    one context, resumes it on demand, and plays two notes rather than one
+    because a single sine reads as a system beep. "Try it" plays it, and so
+    does switching it on — which is also what satisfies the browser's
+    first-gesture rule
+  - **The page is masonry, not a row of columns.** Six cards of different
+    heights in a two-column grid leaves a hole under every short one, because
+    a row is as tall as its tallest member
 - [x] **A write is visible everywhere at once** (§9, §73) — after a bulk edit
       from the explorer the rows did not change until the page was reloaded.
       `lib/refresh.ts` inverts the rule: everything is stale after a record
@@ -2840,8 +2851,17 @@ tests pass and the stack has been rebuilt on it.
 
 Ordered as asked: mail, then the admin pages, then the showcase.
 
-- [ ] **`/mail` — make it beautiful.** The reading pane preference is stored
-      and not yet read by the page
+- [x] **`/mail` — made it beautiful, and gave the reader the layout** (§14,
+      §40). A face on every row, because a mailbox is a list of *people* and
+      the rows were text and nothing else — the eye had nothing to catch. The
+      tick box and the star are quiet until the row is hovered or focused, so
+      the words come first; unread is now a rule on the leading edge as well
+      as weight and a dot. A message in the reader sits on its own ground
+      rather than running into the next one. And the **reading pane goes where
+      the reader asked** — beside the list, under it, or nowhere, which is a
+      real mailbox rather than a degraded one; three layouts, one grid
+      statement each. The reader's toolbar gained reply, star and mark-unread
+      as named icons, and a way back when there is no pane to go back to
 - [ ] **`/admin/flags` does nothing.** Toggling a flag changes no navigation
       and no page. A flag that cannot be observed is a switch wired to nothing,
       and the platform already has `experimental` on nav items with no source

@@ -18,10 +18,8 @@ import {
   App as AntApp,
   Button,
   Card,
-  Col,
   Input,
   Radio,
-  Row,
   Segmented,
   Select,
   Space,
@@ -46,6 +44,7 @@ import type { UserPreferences } from "@/api/me";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { NOTIFICATION_CATEGORIES } from "@/api/notifications";
+import { chime } from "@/lib/chime";
 import { formatSample } from "@/lib/formats";
 import { PREFERENCE_DEFAULTS, usePreferences } from "@/settings/PreferencesProvider";
 import { useAppearance } from "@/theme/AppearanceProvider";
@@ -106,10 +105,17 @@ export default function PreferencesPage() {
       message.info("Pop-ups are off. Turn them on to see one.");
       return;
     }
+    // The sound too, which the first version of this forgot — a "Try it" that
+    // shows the card and stays silent is the one control on the page that
+    // does not do what it says.
+    if (notifications.sound) chime();
     notification.open({
       message: "This is a pop-up",
-      description: "Real ones name what happened and link to it.",
-      placement: "bottomRight",
+      description:
+        notifications.popup_style === "compact"
+          ? undefined
+          : "Real ones name what happened and link to it.",
+      placement: notifications.popup_placement,
       duration: notifications.popup_seconds,
     });
   };
@@ -173,8 +179,12 @@ export default function PreferencesPage() {
         />
       )}
 
-      <Row gutter={[12, 12]}>
-        <Col xs={24} xl={12}>
+      {/* Masonry rather than a row of columns. Six cards of different heights
+          in a two-column grid leaves a hole under every short one — the row
+          is as tall as its tallest member, and the gap is the difference.
+          CSS columns pack them, so the page has no empty space in it. */}
+      <div className="nu-prefs">
+        <div>
           <Card
             size="small"
             title={
@@ -227,9 +237,9 @@ export default function PreferencesPage() {
               </Setting>
             </Space>
           </Card>
-        </Col>
+        </div>
 
-        <Col xs={24} xl={12}>
+        <div>
           <Card
             size="small"
             title={
@@ -310,9 +320,9 @@ export default function PreferencesPage() {
               />
             </Space>
           </Card>
-        </Col>
+        </div>
 
-        <Col xs={24} xl={12}>
+        <div>
           <Card
             size="small"
             title={
@@ -359,9 +369,9 @@ export default function PreferencesPage() {
               </Setting>
             </Space>
           </Card>
-        </Col>
+        </div>
 
-        <Col xs={24} xl={12}>
+        <div>
           <Card
             size="small"
             title={
@@ -445,13 +455,62 @@ export default function PreferencesPage() {
                   </Setting>
 
                   <Setting
+                    label="Where it appears"
+                    hint="A corner, or centred. The default is the one furthest from what you are reading."
+                  >
+                    <Select
+                      aria-label="Where it appears"
+                      style={{ width: 160 }}
+                      value={notifications.popup_placement}
+                      onChange={(value: typeof notifications.popup_placement) =>
+                        save({ notifications: { popup_placement: value } })
+                      }
+                      options={[
+                        { value: "topLeft", label: "Top left" },
+                        { value: "top", label: "Top centre" },
+                        { value: "topRight", label: "Top right" },
+                        { value: "bottomLeft", label: "Bottom left" },
+                        { value: "bottom", label: "Bottom centre" },
+                        { value: "bottomRight", label: "Bottom right" },
+                      ]}
+                    />
+                  </Setting>
+
+                  <Setting
+                    label="How much it says"
+                    hint="Compact is the headline alone — five of those are five readable lines."
+                  >
+                    <Segmented
+                      aria-label="How much it says"
+                      value={notifications.popup_style}
+                      onChange={(next) =>
+                        save({
+                          notifications: {
+                            popup_style: next as typeof notifications.popup_style,
+                          },
+                        })
+                      }
+                      options={[
+                        { value: "full", label: "Title and detail" },
+                        { value: "compact", label: "Title only" },
+                      ]}
+                    />
+                  </Setting>
+
+                  <Setting
                     label="Sound"
                     hint="A short tone. Some browsers stay silent until you have clicked the page once."
                   >
                     <Switch
                       aria-label="Sound"
                       checked={notifications.sound}
-                      onChange={(value) => save({ notifications: { sound: value } })}
+                      onChange={(value) => {
+                        save({ notifications: { sound: value } });
+                        // Played on the way *on*, so switching it on is also
+                        // hearing it — and so the browser's first-gesture
+                        // rule is satisfied by the switch itself.
+                        if (value) chime();
+                      }}
                     />
                   </Setting>
                 </>
@@ -477,9 +536,9 @@ export default function PreferencesPage() {
               />
             </Space>
           </Card>
-        </Col>
+        </div>
 
-        <Col xs={24} xl={12}>
+        <div>
           <Card
             size="small"
             title={
@@ -553,9 +612,9 @@ export default function PreferencesPage() {
               </Setting>
             </Space>
           </Card>
-        </Col>
+        </div>
 
-        <Col xs={24} xl={12}>
+        <div>
           <Card size="small" title="Where these live">
             <Paragraph type="secondary">
               Preferences are stored against your account, not in this browser. Signing in on
@@ -578,8 +637,8 @@ export default function PreferencesPage() {
               .
             </Text>
           </Card>
-        </Col>
-      </Row>
+        </div>
+      </div>
     </>
   );
 }

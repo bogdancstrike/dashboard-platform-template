@@ -116,6 +116,8 @@ export const currentUser = {
       popup_categories: [] as string[],
       sound: false,
       popup_seconds: 4 as const,
+      popup_placement: "bottomRight" as const,
+      popup_style: "full" as const,
     },
     mail: {
       default_folder: "INBOX",

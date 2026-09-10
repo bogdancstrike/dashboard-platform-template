@@ -18,12 +18,20 @@
  * **The snippet is the server's.** It is the first 400 characters of the
  * latest message, recomputed whenever the thread changes — not something
  * assembled here from a `messages` array the list does not have.
+ *
+ * **A face, because a mailbox is a list of people.** The rows were text and
+ * nothing else, which made every conversation look like every other one — the
+ * eye had nothing to catch. The avatar carries the *other* party's initials,
+ * chosen by the same rule that names the row, so the picture and the words
+ * agree. Decoration only: the name is right beside it, so it is `aria-hidden`
+ * rather than a second announcement of the same fact (§55).
  */
 
 import { Badge, Checkbox, Space, Tag, Tooltip, Typography } from "antd";
 import { PaperClipOutlined, StarFilled, StarOutlined } from "@ant-design/icons";
 
 import type { MailThread } from "@/api/mail";
+import { PersonAvatar } from "@/components/PersonAvatar";
 import { absoluteTime, relativeTime } from "@/lib/time";
 
 const { Text } = Typography;
@@ -49,6 +57,20 @@ export function withWhom(
   if (others.length === 1) return others[0]!.name || others[0]!.email;
   if (others.length <= 3) return others.map(first).join(", ");
   return `${first(others[0]!)} and ${others.length - 1} others`;
+}
+
+/**
+ * The person a row's avatar stands for.
+ *
+ * The same "who is this with" rule the label uses, taken back to one person:
+ * a group conversation shows the first other participant, because an avatar is
+ * a *hint* about where to look and a stack of four at 26 pixels is a smudge.
+ */
+function faceOf(thread: MailThread, meEmail: string | null) {
+  const others = thread.participants.filter(
+    (person) => person.email.toLowerCase() !== (meEmail ?? "").toLowerCase(),
+  );
+  return others[0] ?? thread.participants[0];
 }
 
 export function ThreadList({
@@ -108,6 +130,15 @@ export function ThreadList({
                 {thread.is_starred ? <StarFilled className="nu-thread-starred" /> : <StarOutlined />}
               </button>
             </Tooltip>
+
+            {/* Decoration: the name is beside it, and announcing the initials
+                as well would be the same fact twice (§55). */}
+            <PersonAvatar
+              size={30}
+              className="nu-thread-face"
+              initials={faceOf(thread, meEmail)?.initials}
+              name={faceOf(thread, meEmail)?.name}
+            />
 
             <button
               type="button"

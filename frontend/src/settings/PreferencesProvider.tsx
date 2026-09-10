@@ -35,7 +35,14 @@ export const PREFERENCE_DEFAULTS: UserPreferences = {
   appearance: { theme: "system", density: "middle", sidebar_collapsed: false },
   formats: { date: "YYYY-MM-DD", time: "24h", number: "1,234.56" },
   defaults: { page_size: 25, landing_page: "dashboard" },
-  notifications: { popups: "all", popup_categories: [], sound: false, popup_seconds: 4 },
+  notifications: {
+    popups: "all",
+    popup_categories: [],
+    sound: false,
+    popup_seconds: 4,
+    popup_placement: "bottomRight",
+    popup_style: "full",
+  },
   mail: { default_folder: "INBOX", preview: "right", mark_read_on_open: true, signature: "" },
 };
 

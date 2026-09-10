@@ -22,6 +22,13 @@
  * numbers, the thread's message count, the snippet — all recomputed from rows
  * when anything changes. A badge this page decremented would drift, and a
  * wrong unread count is the single most irritating bug a mail client has.
+ *
+ * **Where the reading pane sits is the reader's** (§40). Beside the list,
+ * under it, or nowhere — and "nowhere" is a real mailbox, not a degraded one:
+ * some people triage a full-width list and open one thing at a time. The
+ * preference is stored against the account rather than in this browser, so it
+ * travels; the layout is a class on one element, because three panes and two
+ * panes are the same three components in a different grid.
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -37,14 +44,19 @@ import {
   Segmented,
   Skeleton,
   Space,
+  Tooltip,
   Typography,
 } from "antd";
 import {
+  ArrowLeftOutlined,
   DeleteOutlined,
+  EnterOutlined,
   FolderOpenOutlined,
   MailFilled,
   MailOutlined,
   PlusOutlined,
+  StarFilled,
+  StarOutlined,
   TagOutlined,
 } from "@ant-design/icons";
 import { useEffect, useState } from "react";
@@ -66,6 +78,7 @@ import { ThreadReader } from "@/components/mail/ThreadReader";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { usePreferences } from "@/settings/PreferencesProvider";
 
 const { Text } = Typography;
 
@@ -94,7 +107,14 @@ export default function MailPage() {
   const [replyTo, setReplyTo] = useState<MailThread | null>(null);
   const [editing, setEditing] = useState<MailMessage | null>(null);
 
-  const folder = asFolder(params.get("folder"));
+  const { preferences } = usePreferences();
+  /** Beside the list, under it, or nowhere — the reader's own choice (§40). */
+  const pane = preferences.mail.preview;
+
+  // The reader's default folder, unless the address names one. The URL still
+  // owns what is on screen (§69); the preference only decides where somebody
+  // lands when they have not said.
+  const folder = asFolder(params.get("folder") ?? preferences.mail.default_folder);
   const label = params.get("label") ?? "";
   const openId = params.get("thread");
   const page = Math.max(1, Number(params.get("page") ?? 1) || 1);
@@ -308,7 +328,7 @@ export default function MailPage() {
         }
       />
 
-      <div className="nu-fill nu-mail">
+      <div className={`nu-fill nu-mail nu-mail--${pane}`}>
         <Card size="small" className="nu-pane nu-mail-rail" data-testid="mail-rail">
           <FolderRail
             data={data}
@@ -321,9 +341,13 @@ export default function MailPage() {
           />
         </Card>
 
+        {/* With no reading pane, the list steps aside while something is open
+            — which is what "off" means on a phone-shaped mailbox and what it
+            should mean on a wide one too. */}
         <Card
           size="small"
           className="nu-pane nu-mail-list"
+          hidden={pane === "off" && Boolean(openId)}
           data-testid="mail-list"
           title={
             <div className="nu-mail-listbar">
@@ -446,12 +470,81 @@ export default function MailPage() {
         <Card
           size="small"
           className="nu-pane nu-mail-reader"
+          hidden={pane === "off" && !openId}
           data-testid="mail-reader"
           title={
             reading ? (
               <div className="nu-mail-readerbar">
+                {/* Back to the list when there is no pane to go back *to*: with
+                    the reader taking the whole width, a subject with no way out
+                    is a page somebody reaches for the browser button on. */}
+                {pane === "off" && (
+                  <Button
+                    size="small"
+                    type="text"
+                    icon={<ArrowLeftOutlined />}
+                    onClick={() => set({ thread: null })}
+                    data-testid="back-to-list"
+                  >
+                    All conversations
+                  </Button>
+                )}
                 <Text ellipsis>{reading.subject}</Text>
                 <Space size={4}>
+                  {/* The two gestures a reader reaches for most, as icons with
+                      their names on hover: reply is the verb of a mailbox, and
+                      a star is how somebody keeps hold of a thread they have
+                      finished reading but not finished with. */}
+                  <Tooltip title="Reply to this conversation">
+                    <Button
+                      size="small"
+                      type="text"
+                      icon={<EnterOutlined />}
+                      aria-label={`Reply to ${reading.subject}`}
+                      onClick={() => {
+                        setReplyTo(reading);
+                        setEditing(null);
+                        setComposing(true);
+                      }}
+                      data-testid="reader-reply"
+                    />
+                  </Tooltip>
+                  <Tooltip title={reading.is_starred ? "Remove the star" : "Star it"}>
+                    <Button
+                      size="small"
+                      type="text"
+                      aria-label={`${reading.is_starred ? "Unstar" : "Star"} ${reading.subject}`}
+                      aria-pressed={reading.is_starred}
+                      icon={
+                        reading.is_starred ? (
+                          <StarFilled className="nu-thread-starred" />
+                        ) : (
+                          <StarOutlined />
+                        )
+                      }
+                      onClick={() => star.mutate(reading)}
+                      data-testid="reader-star"
+                    />
+                  </Tooltip>
+                  <Tooltip title={reading.unread_count > 0 ? "Mark as read" : "Mark as unread"}>
+                    <Button
+                      size="small"
+                      type="text"
+                      aria-label={
+                        reading.unread_count > 0
+                          ? `Mark ${reading.subject} as read`
+                          : `Mark ${reading.subject} as unread`
+                      }
+                      icon={reading.unread_count > 0 ? <MailOutlined /> : <MailFilled />}
+                      onClick={() =>
+                        mailApi
+                          .updateThread(reading.id, { is_read: reading.unread_count === 0 })
+                          .then(refresh)
+                          .catch(() => message.error("That change was refused."))
+                      }
+                      data-testid="reader-read"
+                    />
+                  </Tooltip>
                   <Dropdown
                     trigger={["click"]}
                     menu={{

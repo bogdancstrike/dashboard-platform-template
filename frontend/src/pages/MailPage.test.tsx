@@ -2,14 +2,16 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { Route, Routes, useLocation } from "react-router-dom";
+import { http, HttpResponse } from "msw";
 
 import MailPage from "@/pages/MailPage";
 import { CommandProvider } from "@/commands/CommandContext";
 import { withWhom } from "@/components/mail/ThreadList";
 import { replyDefaults, unfilledPlaceholders } from "@/components/mail/Composer";
 import type { MailThread } from "@/api/mail";
-import { mailThreads, resetMail } from "@/test/handlers";
+import { currentUser, mailThreads, resetMail } from "@/test/handlers";
 import { renderWithProviders } from "@/test/render";
+import { server } from "@/test/server";
 
 /**
  * The mailbox (§14–§16).
@@ -376,5 +378,39 @@ describe("writing a message", () => {
     await waitFor(() =>
       expect(screen.getByTestId("address")).toHaveTextContent("folder=DRAFTS"),
     );
+  });
+
+  it("puts the reading pane where the reader asked for it (§40)", async () => {
+    // The preference travels with the account, so the page reads it from the
+    // profile rather than from this browser — which is why the fixture is
+    // patched rather than a local value set.
+    server.use(
+      http.get("/platform/api/me", ({ request }) =>
+        HttpResponse.json(
+          {
+            ...currentUser,
+            preferences: {
+              ...currentUser.preferences,
+              mail: { ...currentUser.preferences.mail, preview: "off" },
+            },
+          },
+          { headers: { "X-Correlation-Id": request.headers.get("X-Correlation-Id") ?? "" } },
+        ),
+      ),
+    );
+
+    const user = userEvent.setup();
+    render("/mail");
+    await screen.findByTestId("thread-list");
+
+    // With no pane, the list and the reader are the same column: opening
+    // something replaces the list rather than sitting beside it.
+    expect(screen.getByTestId("mail-reader")).not.toBeVisible();
+    await user.click(await screen.findByTestId(`open-${String(mailThreads[0]!["id"])}`));
+
+    await waitFor(() => expect(screen.getByTestId("mail-list")).not.toBeVisible());
+    // And there is a way back, because a subject with no way out is a page
+    // somebody reaches for the browser button on.
+    expect(await screen.findByTestId("back-to-list")).toBeInTheDocument();
   });
 });

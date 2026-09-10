@@ -52,6 +52,14 @@ PREFERENCE_DEFAULTS: dict[str, dict[str, Any]] = {
         # Seconds a pop-up stays. Short by default: a toast is a nudge, and
         # anything that has to be read belongs in the notification centre.
         "popup_seconds": 4,
+        # Which corner, or centred at the top. Bottom-right by default because
+        # that is the corner furthest from everything a person is reading, and
+        # a pop-up that lands over the toolbar interrupts twice.
+        "popup_placement": "bottomRight",
+        # `full` carries the body as well as the title; `compact` is the title
+        # alone. A burst of five is readable as five lines and unreadable as
+        # five paragraphs.
+        "popup_style": "full",
     },
     #: How the mailbox opens (§19, §40).
     "mail": {
@@ -83,6 +91,12 @@ _CHOICES: dict[tuple[str, str], set[Any]] = {
     },
     ("notifications", "popups"): {"all", "important", "none"},
     ("notifications", "popup_seconds"): {2, 4, 8, 15},
+    # AntD's own placement vocabulary, so the stored value needs no
+    # translation at the point it is used.
+    ("notifications", "popup_placement"): {
+        "top", "topLeft", "topRight", "bottom", "bottomLeft", "bottomRight",
+    },
+    ("notifications", "popup_style"): {"full", "compact"},
     # From the platform's own vocabulary rather than a copy: a folder added
     # there would otherwise be a folder this refuses to open in.
     ("mail", "default_folder"): set(vocabulary.EMAIL_FOLDER),

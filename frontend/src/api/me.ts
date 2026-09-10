@@ -33,6 +33,10 @@ export interface UserPreferences {
     popup_categories: string[];
     sound: boolean;
     popup_seconds: 2 | 4 | 8 | 15;
+    /** AntD's own placement vocabulary, so the value needs no translation. */
+    popup_placement: "top" | "topLeft" | "topRight" | "bottom" | "bottomLeft" | "bottomRight";
+    /** `full` carries the body too; `compact` is the title alone. */
+    popup_style: "full" | "compact";
   };
   /** How the mailbox opens (§19, §40). */
   mail: {

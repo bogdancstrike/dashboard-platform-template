@@ -14,6 +14,7 @@ import {
 import { accessToken } from "@/api/client";
 import type { Notification } from "@/api/notifications";
 import { API_PREFIX } from "@/config";
+import { chime } from "@/lib/chime";
 import { usePreferences } from "@/settings/PreferencesProvider";
 
 /**
@@ -69,40 +70,6 @@ const SILENCE_LIMIT_MS = 90_000;
 const MAX_TOASTS = 3;
 /** The overflow card reopens under one key, so it replaces itself. */
 const OVERFLOW_KEY = "nu-live-overflow";
-
-/**
- * A short tone, synthesised rather than fetched.
- *
- * No audio file to ship, cache or 404, and no request at the moment somebody
- * is being notified. Wrapped in a try because an `AudioContext` is refused
- * outright in some browsers until the page has been interacted with — and a
- * notification that throws while trying to make a noise is a notification
- * nobody sees.
- */
-function chime(): void {
-  try {
-    const Ctor =
-      window.AudioContext ??
-      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!Ctor) return;
-    const context = new Ctor();
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    oscillator.type = "sine";
-    oscillator.frequency.value = 880;
-    // Quiet, and faded rather than cut: a square-edged stop is a click.
-    gain.gain.setValueAtTime(0.0001, context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.06, context.currentTime + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.18);
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-    oscillator.start();
-    oscillator.stop(context.currentTime + 0.2);
-    oscillator.onended = () => void context.close();
-  } catch {
-    // A browser that will not make a sound is not an error worth reporting.
-  }
-}
 
 function socketUrl(): string {
   const base = window.location.origin.replace(/^http/, "ws");
@@ -188,8 +155,11 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       if (showing.size <= MAX_TOASTS) {
         toast.open({
           message: payload.data.title,
-          description: payload.data.body ?? undefined,
-          placement: "bottomRight",
+          // `compact` is the title alone: a burst of five is readable as five
+          // lines and unreadable as five paragraphs.
+          description:
+            wanted.popup_style === "compact" ? undefined : (payload.data.body ?? undefined),
+          placement: wanted.popup_placement,
           duration: wanted.popup_seconds,
           key: payload.data.id,
           onClose: () => showing.delete(payload.data!.id),
@@ -206,7 +176,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         key: OVERFLOW_KEY,
         message: `${overflow.current} more notification${overflow.current === 1 ? "" : "s"}`,
         description: "Open the notification centre to read them.",
-        placement: "bottomRight",
+        placement: wanted.popup_placement,
         duration: wanted.popup_seconds,
         onClose: () => {
           overflow.current = 0;
