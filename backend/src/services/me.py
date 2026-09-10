@@ -15,6 +15,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
+from src.core import vocabulary
 from src.core.clock import iso
 from src.core.errors import NotFoundError, ValidationError
 
@@ -32,6 +33,35 @@ PREFERENCE_DEFAULTS: dict[str, dict[str, Any]] = {
     "defaults": {
         "page_size": 25,
         "landing_page": "home",
+    },
+    #: How loudly the platform may interrupt (§17, §40).
+    #:
+    #: Separate from `notification_preferences`, which is per-category *delivery*
+    #: — in-app, email, digest. This is about the pop-up: whether one appears at
+    #: all, for what, for how long, and whether it makes a noise. The two are
+    #: different questions and joining them would make "stop the pop-ups" also
+    #: mean "stop the emails".
+    "notifications": {
+        # `all` · `important` (warnings and criticals) · `none`.
+        "popups": "all",
+        # Which categories may interrupt. Empty means every one of them —
+        # stored as a list because "all but security" is a real answer and a
+        # single choice cannot express it.
+        "popup_categories": [],
+        "sound": False,
+        # Seconds a pop-up stays. Short by default: a toast is a nudge, and
+        # anything that has to be read belongs in the notification centre.
+        "popup_seconds": 4,
+    },
+    #: How the mailbox opens (§19, §40).
+    "mail": {
+        "default_folder": "INBOX",
+        # Where the reading pane sits, or `off` for a list-then-page mailbox.
+        "preview": "right",
+        # Whether opening a thread marks it read. Off is a real preference:
+        # some people triage by leaving things bold.
+        "mark_read_on_open": True,
+        "signature": "",
     },
 }
 
@@ -51,6 +81,39 @@ _CHOICES: dict[tuple[str, str], set[Any]] = {
         "projects",
         "explore",
     },
+    ("notifications", "popups"): {"all", "important", "none"},
+    ("notifications", "popup_seconds"): {2, 4, 8, 15},
+    # From the platform's own vocabulary rather than a copy: a folder added
+    # there would otherwise be a folder this refuses to open in.
+    ("mail", "default_folder"): set(vocabulary.EMAIL_FOLDER),
+    ("mail", "preview"): {"right", "bottom", "off"},
+}
+
+#: Preferences that are a yes or a no.
+#:
+#: Listed rather than special-cased, because the first one — `sidebar_collapsed`
+#: — was an `if` in the middle of the validator, and the second boolean added
+#: would have been a second `if`.
+_FLAGS: set[tuple[str, str]] = {
+    ("appearance", "sidebar_collapsed"),
+    ("notifications", "sound"),
+    ("mail", "mark_read_on_open"),
+}
+
+#: Preferences that are a *set* of allowed values, and what is allowed.
+#:
+#: An empty list means "all of them" at every reader of these, which is why
+#: none of them is required to be non-empty: "no category may interrupt me" is
+#: what `popups: none` says, and a second way to say it would be a second
+#: state to reason about.
+_SETS: dict[tuple[str, str], set[Any]] = {
+    ("notifications", "popup_categories"): set(vocabulary.NOTIFICATION_CATEGORY),
+}
+
+#: Free text, and how much of it. Trimmed and truncated rather than refused:
+#: a signature two characters over a limit is not a decision worth a round trip.
+_TEXT: dict[tuple[str, str], int] = {
+    ("mail", "signature"): 500,
 }
 
 
@@ -170,9 +233,23 @@ def _validate_patch(patch: dict[str, Any]) -> dict[str, dict[str, Any]]:
             field = f"preferences.{section}.{key}"
             if key not in PREFERENCE_DEFAULTS[section]:
                 _invalid(field, "Unknown preference.")
-            if (section, key) == ("appearance", "sidebar_collapsed"):
+            if (section, key) in _FLAGS:
                 if not isinstance(value, bool):
                     _invalid(field, "Must be true or false.")
+            elif (section, key) in _TEXT:
+                if not isinstance(value, str):
+                    _invalid(field, "Must be text.")
+                value = value.strip()[: _TEXT[(section, key)]]
+            elif (section, key) in _SETS:
+                allowed = _SETS[(section, key)]
+                if not isinstance(value, list):
+                    _invalid(field, "Must be a list.")
+                unknown = [item for item in value if item not in allowed]
+                if unknown:
+                    _invalid(field, f"Must be one of: {_choice_text(allowed)}.")
+                # De-duplicated and ordered, so two clients sending the same
+                # answer in a different order store the same document.
+                value = sorted({str(item) for item in value})
             elif value not in _CHOICES[(section, key)]:
                 _invalid(field, f"Must be one of: {_choice_text(_CHOICES[(section, key)])}.")
             validated[section][key] = value

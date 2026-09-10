@@ -27,6 +27,7 @@ import { ApiError } from "@/api/client";
 import type { ExplorerResource } from "@/api/explorer";
 import { recordsApi } from "@/api/records";
 import { RecordForm } from "@/components/records/RecordForm";
+import { refreshRecordViews } from "@/lib/refresh";
 
 export interface RecordEditing {
   canCreate: boolean;
@@ -59,9 +60,7 @@ export function useRecordEditing(
 
   /** Everything that could be showing this record is now stale. */
   const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: ["entity-rows"] });
-    void queryClient.invalidateQueries({ queryKey: ["entity-insights"] });
-    void queryClient.invalidateQueries({ queryKey: ["task-lane"] });
+    refreshRecordViews(queryClient);
   };
 
   const remove = (id: string, label: string) => {

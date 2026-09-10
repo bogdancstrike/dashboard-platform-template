@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import PreferencesPage from "@/pages/PreferencesPage";
 import { CommandProvider } from "@/commands/CommandContext";
 import { absoluteTime } from "@/lib/time";
+import { currentUser } from "@/test/handlers";
 import { renderWithProviders } from "@/test/render";
 import { server } from "@/test/server";
 
@@ -138,5 +139,48 @@ describe("personal preferences", () => {
     renderPage();
 
     expect(await screen.findByTestId("save-state")).toHaveTextContent("Saved");
+  });
+
+  it("switches the pop-up off without switching the notification off (§17, §40)", async () => {
+    const user = userEvent.setup();
+    const sent: Record<string, unknown>[] = [];
+    server.use(
+      http.put("/platform/api/me", async ({ request }) => {
+        const body = (await request.json()) as { preferences: Record<string, unknown> };
+        sent.push(body.preferences);
+        return HttpResponse.json({
+          preferences: { ...currentUser.preferences, ...body.preferences },
+        });
+      }),
+    );
+
+    renderPage();
+    const card = await screen.findByTestId("pref-notifications");
+
+    // The three settings that only exist while pop-ups are on are hidden when
+    // they are off — a sound switch under a disabled pop-up is a control that
+    // does nothing.
+    expect(within(card).getByLabelText("Sound")).toBeInTheDocument();
+    // The label, not the radio: AntD's Segmented puts `pointer-events: none`
+    // on the input.
+    await user.click(within(card).getByText("Off", { selector: ".ant-segmented-item-label" }));
+
+    await waitFor(() => expect(sent).toHaveLength(1));
+    expect(sent[0]).toEqual({ notifications: { popups: "none" } });
+    // Only that section is sent, so the rest cannot be clobbered by a page
+    // that happened to hold a stale copy.
+    expect(Object.keys(sent[0]!)).toEqual(["notifications"]);
+  });
+
+  it("keeps the mailbox's own settings beside the rest of them", async () => {
+    renderPage();
+    const card = await screen.findByTestId("pref-mail");
+
+    expect(within(card).getByRole("combobox", { name: "Open in" })).toBeInTheDocument();
+    expect(within(card).getByText("Bottom", { selector: ".ant-segmented-item-label" }))
+      .toBeInTheDocument();
+    expect(within(card).getByRole("switch", { name: "Mark read when opened" }))
+      .toBeInTheDocument();
+    expect(within(card).getByRole("textbox", { name: "Signature" })).toBeInTheDocument();
   });
 });

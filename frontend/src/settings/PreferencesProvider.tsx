@@ -35,6 +35,8 @@ export const PREFERENCE_DEFAULTS: UserPreferences = {
   appearance: { theme: "system", density: "middle", sidebar_collapsed: false },
   formats: { date: "YYYY-MM-DD", time: "24h", number: "1,234.56" },
   defaults: { page_size: 25, landing_page: "dashboard" },
+  notifications: { popups: "all", popup_categories: [], sound: false, popup_seconds: 4 },
+  mail: { default_folder: "INBOX", preview: "right", mark_read_on_open: true, signature: "" },
 };
 
 interface PreferencesContextValue {
@@ -52,7 +54,27 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
 
-  const preferences = profile?.preferences ?? PREFERENCE_DEFAULTS;
+  /**
+   * The reader's preferences, section by section over the defaults.
+   *
+   * Not `profile?.preferences ?? DEFAULTS`, which is what this was: that takes
+   * the whole document or none of it, so a profile answered by a server that
+   * predates a *section* — or held in a cache from before one was added —
+   * leaves `preferences.notifications` undefined and every page reading it
+   * throws. The server merges the same way (`services/me.merged_preferences`);
+   * doing it here too is what makes adding a section a one-sided change.
+   */
+  const preferences = useMemo<UserPreferences>(() => {
+    const stored = profile?.preferences;
+    if (!stored) return PREFERENCE_DEFAULTS;
+    const merged = {} as UserPreferences;
+    for (const section of Object.keys(PREFERENCE_DEFAULTS) as (keyof UserPreferences)[]) {
+      Object.assign(merged, {
+        [section]: { ...PREFERENCE_DEFAULTS[section], ...(stored[section] ?? {}) },
+      });
+    }
+    return merged;
+  }, [profile?.preferences]);
 
   const mutation = useMutation({
     mutationFn: (patch: PreferencePatch) => meApi.updatePreferences(patch),

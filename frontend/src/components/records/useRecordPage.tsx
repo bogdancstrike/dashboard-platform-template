@@ -33,6 +33,7 @@ import { recordsApi, type RecordDetail } from "@/api/records";
 import { FailureAlert, failureKind, retryHelps } from "@/components/FailureAlert";
 import { PageHeader } from "@/components/PageHeader";
 import { useRecordEditing, type RecordEditing } from "@/components/records/useRecordEditing";
+import { refreshRecordViews } from "@/lib/refresh";
 
 export interface RecordPage {
   /** The record, once it has arrived. `undefined` while `fallback` is showing. */
@@ -87,11 +88,7 @@ export function useRecordPage(
       // Every list, lane and aggregate that could be showing this row is now
       // stale — including the counts, which are computed over the whole
       // dataset and cannot be adjusted in the browser without lying.
-      void queryClient.invalidateQueries({ queryKey: ["entity-rows"] });
-      void queryClient.invalidateQueries({ queryKey: ["entity-insights"] });
-      void queryClient.invalidateQueries({ queryKey: ["task-lane"] });
-      void queryClient.invalidateQueries({ queryKey: ["record-analysis"] });
-      void queryClient.invalidateQueries({ queryKey: ["audit", "timeline", resourceKey, id] });
+      refreshRecordViews(queryClient);
     },
     onError: (error) => {
       const stale = error instanceof ApiError && error.status === 409;

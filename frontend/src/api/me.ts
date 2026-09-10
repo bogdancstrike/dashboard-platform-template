@@ -18,6 +18,30 @@ export interface UserPreferences {
     page_size: 10 | 25 | 50 | 100;
     landing_page: string;
   };
+  /**
+   * How loudly the platform may interrupt (§17, §40).
+   *
+   * Separate from the per-category delivery settings, which decide whether a
+   * notification is *made* at all and how it reaches somebody. This decides
+   * only what happens on screen when one arrives, which is a different
+   * question — "stop the pop-ups" must not also mean "stop the emails".
+   */
+  notifications: {
+    /** `all` · `important` (warnings and criticals) · `none`. */
+    popups: "all" | "important" | "none";
+    /** Which categories may interrupt. Empty means every one of them. */
+    popup_categories: string[];
+    sound: boolean;
+    popup_seconds: 2 | 4 | 8 | 15;
+  };
+  /** How the mailbox opens (§19, §40). */
+  mail: {
+    default_folder: string;
+    /** Where the reading pane sits, or `off` for a list-then-page mailbox. */
+    preview: "right" | "bottom" | "off";
+    mark_read_on_open: boolean;
+    signature: string;
+  };
 }
 
 export interface CurrentUser {

@@ -60,6 +60,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { SEMANTIC } from "@/theme/tokens";
 import { formatNumber } from "@/lib/formats";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
+import { refreshRecordViews } from "@/lib/refresh";
 
 const { Text } = Typography;
 
@@ -112,7 +113,7 @@ export default function TagsPage() {
     void queryClient.invalidateQueries({ queryKey: ["tag-vocabulary"] });
     // Every record's chips and every list's rows carry tag names.
     void queryClient.invalidateQueries({ queryKey: ["record-tags"] });
-    void queryClient.invalidateQueries({ queryKey: ["entity-rows"] });
+    refreshRecordViews(queryClient);
   };
 
   const remove = useMutation({

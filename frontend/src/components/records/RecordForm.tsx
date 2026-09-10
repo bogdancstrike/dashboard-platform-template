@@ -49,6 +49,7 @@ import { PeoplePicker } from "@/components/PeoplePicker";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { asText } from "@/lib/text";
+import { refreshRecordViews } from "@/lib/refresh";
 
 const { Text } = Typography;
 
@@ -194,9 +195,7 @@ export function RecordForm({
       // Every list, lane and aggregate that could contain it is now stale. The
       // server stays the authority: nothing is patched into a cache by hand.
       void queryClient.invalidateQueries({ queryKey: ["record", saved.resource_type] });
-      void queryClient.invalidateQueries({ queryKey: ["entity-rows"] });
-      void queryClient.invalidateQueries({ queryKey: ["entity-insights"] });
-      void queryClient.invalidateQueries({ queryKey: ["task-lane"] });
+      refreshRecordViews(queryClient);
       onSaved?.(saved);
       onClose();
     },

@@ -8,6 +8,7 @@ import type { BulkAction, BulkSelection } from "@/api/bulk";
 import type { ExplorerRequest, ExplorerResource } from "@/api/explorer";
 import { BulkDialog, settableFields } from "@/components/records/BulkDialog";
 import { formatNumber } from "@/lib/formats";
+import { refreshRecordViews } from "@/lib/refresh";
 
 /**
  * The most records a comparison may hold — `compare.MAX_RECORDS` on the server.
@@ -139,11 +140,11 @@ export function useBulk(
     },
   };
 
-  const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: ["entity-rows"] });
-    void queryClient.invalidateQueries({ queryKey: ["entity-insights"] });
-    void queryClient.invalidateQueries({ queryKey: ["task-lane"] });
-  };
+  // Everything that reads records, not a list of the three families this hook
+  // used to remember: a bulk edit made from the data explorer changed two rows
+  // and left the explorer showing the old ones, because `explorer-results` was
+  // not on anybody's list (§9, §73).
+  const refresh = () => refreshRecordViews(queryClient);
 
   // Not memoised, deliberately: it is a dozen nodes that depend on nearly
   // every piece of state here, and a dependency list that long is a list that

@@ -13,14 +13,31 @@
  * a Save button on a preferences page is mostly a way to lose a change.
  */
 
-import { Alert, Card, Col, Radio, Row, Segmented, Select, Space, Switch, Tag, Typography } from "antd";
 import {
+  Alert,
+  App as AntApp,
+  Button,
+  Card,
+  Col,
+  Input,
+  Radio,
+  Row,
+  Segmented,
+  Select,
+  Space,
+  Switch,
+  Tag,
+  Typography,
+} from "antd";
+import {
+  BellOutlined,
   BgColorsOutlined,
   CheckCircleOutlined,
   ColumnHeightOutlined,
   FieldTimeOutlined,
   HomeOutlined,
   LoadingOutlined,
+  MailOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
@@ -28,6 +45,7 @@ import { ApiError } from "@/api/client";
 import type { UserPreferences } from "@/api/me";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
+import { NOTIFICATION_CATEGORIES } from "@/api/notifications";
 import { formatSample } from "@/lib/formats";
 import { PREFERENCE_DEFAULTS, usePreferences } from "@/settings/PreferencesProvider";
 import { useAppearance } from "@/theme/AppearanceProvider";
@@ -61,13 +79,40 @@ export function landingPath(value: string | undefined): string {
   return LANDING_PAGES.find((item) => item.value === value)?.path ?? "/home";
 }
 
+/** Every folder a mailbox may open on. The server's vocabulary, not a copy. */
+const MAIL_FOLDERS = ["INBOX", "SENT", "DRAFTS", "ARCHIVE", "SPAM", "TRASH"] as const;
+
 export default function PreferencesPage() {
   const navigate = useNavigate();
+  const { message, notification } = AntApp.useApp();
   const { preferences, save, saving, error } = usePreferences();
   const { appearance, density, setAppearance, setDensity } = useAppearance();
 
   const formats = preferences.formats;
   const defaults = preferences.defaults;
+  const notifications = preferences.notifications;
+  const mail = preferences.mail;
+
+  /**
+   * Show what a pop-up looks like, here and now.
+   *
+   * The one control on this page whose effect cannot be shown *beside* it —
+   * everything else prints its own worked example — so it is offered as a
+   * button instead. A reader turning pop-ups on wants to know what they have
+   * agreed to before the first real one arrives at an inconvenient moment.
+   */
+  const preview = () => {
+    if (notifications.popups === "none") {
+      message.info("Pop-ups are off. Turn them on to see one.");
+      return;
+    }
+    notification.open({
+      message: "This is a pop-up",
+      description: "Real ones name what happened and link to it.",
+      placement: "bottomRight",
+      duration: notifications.popup_seconds,
+    });
+  };
   const sample = formatSample(formats);
 
   /** Send one field of one section, so the rest cannot be clobbered. */
@@ -311,6 +356,200 @@ export default function PreferencesPage() {
                     <HomeOutlined /> {landingPath(defaults.landing_page)}
                   </Text>
                 </Space>
+              </Setting>
+            </Space>
+          </Card>
+        </Col>
+
+        <Col xs={24} xl={12}>
+          <Card
+            size="small"
+            title={
+              <Space>
+                <BellOutlined />
+                <span>When a notification arrives</span>
+              </Space>
+            }
+            data-testid="pref-notifications"
+            extra={
+              <Button size="small" onClick={() => preview()} data-testid="try-popup">
+                Try it
+              </Button>
+            }
+          >
+            <Space direction="vertical" size={16} style={{ width: "100%" }}>
+              {/* Deliberately about the *pop-up* and nothing else. Whether a
+                  notification is made at all, and whether it is emailed, is a
+                  per-category delivery setting — and joining the two would
+                  make "stop interrupting me" also mean "stop telling me". */}
+              <Setting
+                label="Pop-ups"
+                hint="The card in the corner. The bell and the notification centre are unaffected."
+              >
+                <Segmented
+                  aria-label="Pop-ups"
+                  value={notifications.popups}
+                  onChange={(next) =>
+                    save({ notifications: { popups: next as typeof notifications.popups } })
+                  }
+                  options={[
+                    { value: "all", label: "Everything" },
+                    { value: "important", label: "Important only" },
+                    { value: "none", label: "Off" },
+                  ]}
+                />
+              </Setting>
+
+              {notifications.popups !== "none" && (
+                <>
+                  <Setting
+                    label="Which kinds"
+                    hint="Leave empty for all of them. Chosen kinds interrupt; the rest wait in the centre."
+                  >
+                    <Select
+                      mode="multiple"
+                      allowClear
+                      aria-label="Which kinds"
+                      style={{ minWidth: 240 }}
+                      placeholder="All kinds"
+                      value={notifications.popup_categories}
+                      onChange={(value: string[]) =>
+                        save({ notifications: { popup_categories: value } })
+                      }
+                      options={NOTIFICATION_CATEGORIES.map((category) => ({
+                        value: category,
+                        label: category.charAt(0) + category.slice(1).toLowerCase(),
+                      }))}
+                    />
+                  </Setting>
+
+                  <Setting
+                    label="How long it stays"
+                    hint="A pop-up is a nudge. Anything worth reading twice is in the centre."
+                  >
+                    <Segmented
+                      aria-label="How long it stays"
+                      value={notifications.popup_seconds}
+                      onChange={(next) =>
+                        save({
+                          notifications: {
+                            popup_seconds: Number(next) as typeof notifications.popup_seconds,
+                          },
+                        })
+                      }
+                      options={[2, 4, 8, 15].map((seconds) => ({
+                        value: seconds,
+                        label: `${seconds}s`,
+                      }))}
+                    />
+                  </Setting>
+
+                  <Setting
+                    label="Sound"
+                    hint="A short tone. Some browsers stay silent until you have clicked the page once."
+                  >
+                    <Switch
+                      aria-label="Sound"
+                      checked={notifications.sound}
+                      onChange={(value) => save({ notifications: { sound: value } })}
+                    />
+                  </Setting>
+                </>
+              )}
+
+              <Alert
+                type="info"
+                showIcon={false}
+                message={
+                  <Text type="secondary">
+                    At most three pop-ups are shown at once; a burst collapses into one card
+                    pointing at{" "}
+                    <button
+                      type="button"
+                      className="nu-link-button"
+                      onClick={() => navigate("/notifications")}
+                    >
+                      the notification centre
+                    </button>
+                    .
+                  </Text>
+                }
+              />
+            </Space>
+          </Card>
+        </Col>
+
+        <Col xs={24} xl={12}>
+          <Card
+            size="small"
+            title={
+              <Space>
+                <MailOutlined />
+                <span>Mail</span>
+              </Space>
+            }
+            data-testid="pref-mail"
+          >
+            <Space direction="vertical" size={16} style={{ width: "100%" }}>
+              <Setting label="Open in" hint="The folder the mailbox lands on.">
+                <Select
+                  aria-label="Open in"
+                  style={{ width: 160 }}
+                  value={mail.default_folder}
+                  onChange={(value: string) => save({ mail: { default_folder: value } })}
+                  options={MAIL_FOLDERS.map((folder) => ({
+                    value: folder,
+                    label: folder.charAt(0) + folder.slice(1).toLowerCase(),
+                  }))}
+                />
+              </Setting>
+
+              <Setting
+                label="Reading pane"
+                hint="Beside the list, under it, or not at all — then a thread opens on its own."
+              >
+                <Segmented
+                  aria-label="Reading pane"
+                  value={mail.preview}
+                  onChange={(next) => save({ mail: { preview: next as typeof mail.preview } })}
+                  options={[
+                    { value: "right", label: "Right" },
+                    { value: "bottom", label: "Bottom" },
+                    { value: "off", label: "Off" },
+                  ]}
+                />
+              </Setting>
+
+              <Setting
+                label="Mark read when opened"
+                hint="Off keeps a thread bold until you say otherwise — some people triage that way."
+              >
+                <Switch
+                  aria-label="Mark read when opened"
+                  checked={mail.mark_read_on_open}
+                  onChange={(value) => save({ mail: { mark_read_on_open: value } })}
+                />
+              </Setting>
+
+              <Setting
+                label="Signature"
+                hint="Added to the bottom of a new message. Yours alone — nobody else sees it on theirs."
+              >
+                <Input.TextArea
+                  aria-label="Signature"
+                  rows={3}
+                  style={{ minWidth: 260 }}
+                  defaultValue={mail.signature}
+                  placeholder="Uma User · Support"
+                  // On blur rather than on every keystroke: this page saves as
+                  // you go, and a text field that saves per character is forty
+                  // writes for one signature.
+                  onBlur={(event) => {
+                    if (event.target.value !== mail.signature) {
+                      save({ mail: { signature: event.target.value } });
+                    }
+                  }}
+                />
               </Setting>
             </Space>
           </Card>

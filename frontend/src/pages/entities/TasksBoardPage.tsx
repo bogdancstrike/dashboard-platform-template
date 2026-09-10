@@ -88,6 +88,7 @@ import { useEntityView } from "@/entities/useEntityView";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { knownStatusColor } from "@/theme/tokens";
 import { StatusTag } from "@/components/StatusTag";
+import { refreshRecordViews } from "@/lib/refresh";
 
 const { Text } = Typography;
 
@@ -245,8 +246,7 @@ export default function TasksBoardPage() {
     onSettled: (_saved, _error, { task }) => {
       setPending((current) => current.filter((id) => id !== task.id));
       void queryClient.invalidateQueries({ queryKey: ["task-lane"] });
-      void queryClient.invalidateQueries({ queryKey: ["entity-rows"] });
-      void queryClient.invalidateQueries({ queryKey: ["entity-insights"] });
+      refreshRecordViews(queryClient);
     },
   });
 

@@ -125,6 +125,79 @@ def test_me_updates_only_valid_preferences(client, monkeypatch):
 
 
 @pytest.mark.database
+def test_me_holds_the_pop_up_and_mailbox_preferences(client, monkeypatch):
+    """How loudly the platform may interrupt, and how the mailbox opens (§17, §40).
+
+    Three shapes of preference that did not exist before this section: a *set*
+    (which categories may pop up), a *flag* (sound), and *free text* (a
+    signature). Each is validated differently, and each used to be impossible
+    to express — the validator knew about scalars and one hard-coded boolean.
+    """
+    from src.core.db import session_scope
+    from src.models.identity import User
+
+    headers = _authenticate(monkeypatch, "user", "viewer")
+    with session_scope() as session:
+        user = session.scalars(select(User).where(User.email == "user@nucleus.example")).one()
+        original = dict(user.preferences or {})
+
+    try:
+        saved = client.put(
+            f"{PREFIX}/api/me",
+            headers=headers,
+            json={
+                "preferences": {
+                    "notifications": {
+                        "popups": "important",
+                        # Out of order and with a duplicate, because two clients
+                        # sending the same answer must store the same document.
+                        "popup_categories": ["SYSTEM", "MENTION", "MENTION"],
+                        "sound": True,
+                        "popup_seconds": 8,
+                    },
+                    "mail": {
+                        "preview": "bottom",
+                        "mark_read_on_open": False,
+                        "signature": "  Uma User\n  Support  ",
+                    },
+                }
+            },
+        )
+        assert saved.status_code == 200, saved.get_json()
+        preferences = saved.get_json()["preferences"]
+        assert preferences["notifications"]["popups"] == "important"
+        assert preferences["notifications"]["popup_categories"] == ["MENTION", "SYSTEM"]
+        assert preferences["notifications"]["sound"] is True
+        # Trimmed, not refused: whitespace is not a decision worth a 400.
+        assert preferences["mail"]["signature"] == "Uma User\n  Support"
+        assert preferences["mail"]["mark_read_on_open"] is False
+
+        # A category the platform does not have is refused by name, so a client
+        # sending a stale vocabulary learns which value was the stale one.
+        refused = client.put(
+            f"{PREFIX}/api/me",
+            headers=headers,
+            json={"preferences": {"notifications": {"popup_categories": ["GOSSIP"]}}},
+        )
+        assert refused.status_code == 400
+        assert refused.get_json()["details"]["field"] == "preferences.notifications.popup_categories"
+
+        # And a flag is a flag.
+        assert (
+            client.put(
+                f"{PREFIX}/api/me",
+                headers=headers,
+                json={"preferences": {"notifications": {"sound": "loud"}}},
+            ).status_code
+            == 400
+        )
+    finally:
+        with session_scope() as session:
+            user = session.scalars(select(User).where(User.email == "user@nucleus.example")).one()
+            user.preferences = original
+
+
+@pytest.mark.database
 def test_me_reads_role_permissions_fresh_on_every_request(client, monkeypatch):
     from src.core.db import session_scope
     from src.models.identity import Role

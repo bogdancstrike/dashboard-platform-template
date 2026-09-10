@@ -111,6 +111,18 @@ export const currentUser = {
       number: "1,234.56" as const,
     },
     defaults: { page_size: 25 as const, landing_page: "dashboard" },
+    notifications: {
+      popups: "all" as const,
+      popup_categories: [] as string[],
+      sound: false,
+      popup_seconds: 4 as const,
+    },
+    mail: {
+      default_folder: "INBOX",
+      preview: "right" as const,
+      mark_read_on_open: true,
+      signature: "",
+    },
   },
   session: {
     id: "session-1",
@@ -1447,6 +1459,8 @@ export function resetReports(): void {
     ...(JSON.parse(JSON.stringify(DOCUMENT_SEED)) as Record<string, unknown>[]),
   );
   renderedDocuments.length = 0;
+  recordTags.clear();
+  recordTags.add("urgent");
 }
 
 /** The paper a document gets when nobody has said — the server's own default. */
@@ -1496,6 +1510,15 @@ export function documentShape(id: string, name: string): Record<string, unknown>
  * not change" is a state the composer has to draw differently, and a fixture
  * with only your own would never exercise it.
  */
+/**
+ * The tags on the fixture record, in a store the handlers mutate.
+ *
+ * A constant would let the picker send one set and draw another and still
+ * pass — and since a record write now re-reads every view of the record, the
+ * GET that follows a save has to agree with it.
+ */
+export const recordTags = new Set<string>(["urgent"]);
+
 export const savedDocuments: Record<string, unknown>[] = [
   documentShape("doc-1", "Quarterly review"),
   {
@@ -5254,21 +5277,24 @@ export const handlers = [
     echo(request, {
       resource_type: String(params["resourceType"]),
       resource_id: String(params["recordId"]),
-      items: [tagVocabulary[0]!],
+      items: tagVocabulary.filter((tag) => recordTags.has(tag.name)),
       can_apply: currentUser.permissions.includes("records.update"),
       limit: 12,
     }),
   ),
   http.put("/platform/api/records/:resourceType/:recordId/tags", async ({ params, request }) => {
     const body = (await request.json()) as { tags?: string[] };
-    const names = new Set(body.tags ?? []);
+    // Written to the store, not merely echoed. A write path that only answers
+    // with what it was asked leaves the *next* GET disagreeing with it — which
+    // is exactly what a page does after a record write now that every view of
+    // the record is re-read (§9, §73), and a handler that could not survive
+    // that was a handler asserting the request rather than the result.
+    recordTags.clear();
+    for (const name of body.tags ?? []) recordTags.add(name);
     return echo(request, {
       resource_type: String(params["resourceType"]),
       resource_id: String(params["recordId"]),
-      // Answers with what was *asked for*, so a test that saves two tags sees
-      // two — a handler returning a constant would let the picker send one
-      // thing and draw another and pass.
-      items: tagVocabulary.filter((tag) => names.has(tag.name)),
+      items: tagVocabulary.filter((tag) => recordTags.has(tag.name)),
       can_apply: true,
       limit: 12,
     });

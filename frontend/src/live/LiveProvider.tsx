@@ -14,6 +14,7 @@ import {
 import { accessToken } from "@/api/client";
 import type { Notification } from "@/api/notifications";
 import { API_PREFIX } from "@/config";
+import { usePreferences } from "@/settings/PreferencesProvider";
 
 /**
  * The live channel (§17): one WebSocket for the whole application.
@@ -66,9 +67,42 @@ const SILENCE_LIMIT_MS = 90_000;
  * which is where all of them are anyway (§17).
  */
 const MAX_TOASTS = 3;
-const TOAST_SECONDS = 4;
 /** The overflow card reopens under one key, so it replaces itself. */
 const OVERFLOW_KEY = "nu-live-overflow";
+
+/**
+ * A short tone, synthesised rather than fetched.
+ *
+ * No audio file to ship, cache or 404, and no request at the moment somebody
+ * is being notified. Wrapped in a try because an `AudioContext` is refused
+ * outright in some browsers until the page has been interacted with — and a
+ * notification that throws while trying to make a noise is a notification
+ * nobody sees.
+ */
+function chime(): void {
+  try {
+    const Ctor =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctor) return;
+    const context = new Ctor();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.value = 880;
+    // Quiet, and faded rather than cut: a square-edged stop is a click.
+    gain.gain.setValueAtTime(0.0001, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.06, context.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.18);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.2);
+    oscillator.onended = () => void context.close();
+  } catch {
+    // A browser that will not make a sound is not an error worth reporting.
+  }
+}
 
 function socketUrl(): string {
   const base = window.location.origin.replace(/^http/, "ws");
@@ -91,6 +125,18 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const shown = useRef<Set<string>>(new Set());
   const overflow = useRef(0);
 
+  /**
+   * The reader's pop-up settings, read through a ref.
+   *
+   * `onMessage` is memoised on the socket's behalf — it is what the effect
+   * below installs as the handler — so depending on the preferences directly
+   * would tear down and re-open the WebSocket every time somebody moved a
+   * switch on `/preferences`. A ref kept current is the whole fix.
+   */
+  const { preferences } = usePreferences();
+  const popups = useRef(preferences.notifications);
+  popups.current = preferences.notifications;
+
   const socketRef = useRef<WebSocket | null>(null);
   const attemptRef = useRef(0);
   const timerRef = useRef<number | undefined>(undefined);
@@ -109,6 +155,21 @@ export function LiveProvider({ children }: { children: ReactNode }) {
 
       setReceived((count) => count + 1);
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+
+      // The badge and the centre always update; the *pop-up* is the reader's
+      // to switch off (§40). Read from the live preference rather than
+      // captured at mount, so turning pop-ups off on `/preferences` takes
+      // effect on the next notification rather than on the next reload.
+      const wanted = popups.current;
+      if (wanted.popups === "none") return;
+      if (wanted.popups === "important" && payload.data.severity === "INFO") return;
+      if (
+        wanted.popup_categories.length > 0 &&
+        !wanted.popup_categories.includes(payload.data.category)
+      ) {
+        return;
+      }
+      if (wanted.sound) chime();
 
       // A toast is the difference between "the badge changed while you were
       // looking elsewhere" and a notification you actually saw arrive. Kept
@@ -129,7 +190,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
           message: payload.data.title,
           description: payload.data.body ?? undefined,
           placement: "bottomRight",
-          duration: TOAST_SECONDS,
+          duration: wanted.popup_seconds,
           key: payload.data.id,
           onClose: () => showing.delete(payload.data!.id),
         });
@@ -146,7 +207,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         message: `${overflow.current} more notification${overflow.current === 1 ? "" : "s"}`,
         description: "Open the notification centre to read them.",
         placement: "bottomRight",
-        duration: TOAST_SECONDS,
+        duration: wanted.popup_seconds,
         onClose: () => {
           overflow.current = 0;
           showing.clear();

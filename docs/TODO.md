@@ -2781,6 +2781,93 @@ commit — built, committed, pushed, redeployed and verified before the next.
 
 ---
 
+## Requested this session (2026-09-10)
+
+Everything asked for in this sitting, in the order it was asked, with what has
+landed and what has not. A request is only ticked when it is committed, its
+tests pass and the stack has been rebuilt on it.
+
+### Landed
+
+- [x] **Dashboards: the modules became widgets** (§45) — Tasks, Projects, Mail,
+      Calendar, Notifications, Announcements, Files, Data explorer,
+      Relationships and Favourites, plus `ANALYTICS`, `MAP` and `CHART`. Each
+      answered by that module's own endpoint under that module's own
+      permission; the server does not offer a kind it would refuse
+- [x] **Dashboards: easier to aim** — the whole heading drags, four resize
+      handles, a live `w × h` chip, arrow-key move and shift-arrow resize,
+      size presets, `isBounded`, and an optimistic drag so a card stops
+      snapping back for the length of the round trip
+- [x] **Dashboards: state across refreshes** (§72) — layout and audience on the
+      server, which dashboard is open in the URL, and *your* editor mode in
+      `lib/sticky.ts`
+- [x] **Dashboards: sharing** — its own drawer with what each scope means, who
+      has access today and a link to paste, plus **Make a copy**
+      (`POST /api/dashboards/<id>/duplicate`)
+- [x] **Adding a widget shows the widget** — a modal with the real `WidgetCard`
+      drawn from live data beside the form, title and note first, the kinds in
+      one grouped dropdown carrying the question each answers
+- [x] **Auto-arrange fills the row** as well as packing it, so the result reads
+      as full rather than ragged
+- [x] **No period selector on `/dashboards`** — a dashboard is windows onto
+      modules, most of which have no period
+- [x] **`/explore`: the delete button duplicated the row** — the duplicate
+      control was an invisible overlay sitting on the library's own delete, and
+      `opacity: 0` left it hit-testable
+- [x] **`/tasks` and `/kanban`: a drag that says what it will do** — the card
+      lifts, the lane is named, the cursor stops refusing, a slot opens where
+      the card will land, and the move carries **Undo**
+- [x] **`/home` is a front door** (§40) — a hero band with the date and one
+      sentence about the day, permission-aware doors into the modules, and
+      **Jump back in** from `/recents`
+- [x] **The report builder composes a document** (§28) — blocks on paper,
+      exported as a real PDF and a real DOCX, charts captured from the browser
+- [x] **`/explore`: tick boxes and the bulk bar** (§43, §75)
+- [x] **`/explore`: a star on every row and in the drawer** (§38)
+- [x] **`/explore`: tags in the record drawer** (§37)
+- [x] **Notification pop-ups stop stacking** (§17) — at most three, the rest
+      counted in one card pointing at the centre
+- [x] **`/settings/preferences`: pop-up and mailbox settings** (§17, §19, §40)
+      — pop-ups on/important-only/off, which kinds, how long, sound, and a
+      **Try it**; plus the mailbox's opening folder, reading pane, whether
+      opening marks read, and a signature
+- [x] **A write is visible everywhere at once** (§9, §73) — after a bulk edit
+      from the explorer the rows did not change until the page was reloaded.
+      `lib/refresh.ts` inverts the rule: everything is stale after a record
+      write except a short list of things that cannot have changed
+
+### Not started
+
+Ordered as asked: mail, then the admin pages, then the showcase.
+
+- [ ] **`/mail` — make it beautiful.** The reading pane preference is stored
+      and not yet read by the page
+- [ ] **`/admin/flags` does nothing.** Toggling a flag changes no navigation
+      and no page. A flag that cannot be observed is a switch wired to nothing,
+      and the platform already has `experimental` on nav items with no source
+      of truth behind it
+- [ ] **`/admin/health` over time** — line charts of what was healthy when,
+      with 8h / 1d / 7d / custom. Today it says only what is true now
+- [ ] **`/profile` — more on it, and more useful**
+- [ ] **`/showcase/components` — more components, from across the pages**
+- [ ] **`/showcase/templates` — enrich it**
+- [ ] **Double confirmation on every delete, and on duplicating a dashboard or
+      a saved search.** Some confirm and some do not; the rule should be one
+      rule
+- [ ] **A per-page tutorial on the Help button**, using AntD's `Tour` — the
+      stops for whichever page the reader is on
+- [ ] **The Related records tab draws a graph**, the way
+      `/find/relationships` does, rather than listing groups
+- [ ] **Polish the advanced search** — wider, cleaner, hover text on every
+      control, and a short explanation of what a rule and a group *are*
+
+### Known red, and not from this session's work
+
+- [ ] **26 backend tests fail on a stack whose object storage has not been
+      synced** — `test_files`, `test_exports` and `test_profile`. Baselined
+      before this session's first commit and unchanged by it; `make sync-files`
+      and friends are what they are waiting for
+
 ## Design foundations
 
 The rules every screen follows, decided once so eighty screens do not each

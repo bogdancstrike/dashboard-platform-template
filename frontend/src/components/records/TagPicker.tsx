@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import type { Tag } from "@/api/tags";
 import { tagsApi } from "@/api/tags";
+import { refreshRecordViews } from "@/lib/refresh";
 
 const { Text } = Typography;
 
@@ -73,9 +74,10 @@ export function TagPicker({
       queryClient.setQueryData(["record-tags", resourceType, recordId], answer);
       // The list's rows carry the tags too, from the derived column — so they
       // are stale until refetched.
-      void queryClient.invalidateQueries({ queryKey: ["entity-rows"] });
-      void queryClient.invalidateQueries({ queryKey: ["record", resourceType] });
-      void queryClient.invalidateQueries({ queryKey: ["tag-vocabulary"] });
+      // Everything that shows the record, and the vocabulary itself — the
+      // usage counts on `/admin/tags` are the same fact seen from the other
+      // end, and a tag applied here has just changed one of them (§37).
+      refreshRecordViews(queryClient);
       setEditing(false);
       message.success("Tags saved");
     },
