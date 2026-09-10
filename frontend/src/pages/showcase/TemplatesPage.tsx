@@ -106,6 +106,12 @@ function LayoutCard({ layout }: { layout: PageLayout }) {
     >
       <Paragraph className="nu-tmpl-shape">{layout.shape}</Paragraph>
 
+      {/* The shape itself. A gallery of *names* asks a reader to imagine it;
+          this does not. Structure rather than a picture, so it themes, scales
+          and can be read aloud — and cannot drift from the page it describes
+          the way a screenshot does. */}
+      <Wireframe layout={layout} />
+
       <div className="nu-tmpl-rules">
         <div className="nu-tmpl-rule">
           <Text strong className="nu-tmpl-label">
@@ -130,6 +136,29 @@ function LayoutCard({ layout }: { layout: PageLayout }) {
           for. */}
       {layout.key === "split" && <SplitPreview />}
 
+      {/* The question after "which shape" is always "what do I need", and a
+          gallery that answers the first and not the second has stopped one
+          step short of being useful. */}
+      <div className="nu-tmpl-pieces">
+        <Text strong className="nu-tmpl-label">
+          Built from
+        </Text>
+        <Space size={4} wrap>
+          {layout.pieces.map((piece) => (
+            <Tag key={piece} bordered={false} className="nu-tmpl-piece">
+              {piece}
+            </Tag>
+          ))}
+        </Space>
+      </div>
+
+      <div className="nu-tmpl-rule">
+        <Text strong className="nu-tmpl-label">
+          In the address
+        </Text>
+        <Text type="secondary">{layout.url}</Text>
+      </div>
+
       <div className="nu-tmpl-links" data-testid={`routes-${layout.key}`}>
         {layout.routes.map((route) => (
           // Real pages carrying real data: the fastest way to judge a layout
@@ -141,6 +170,45 @@ function LayoutCard({ layout }: { layout: PageLayout }) {
         ))}
       </div>
     </Card>
+  );
+}
+
+/**
+ * A layout's shape, drawn from its declaration.
+ *
+ * Twelve columns, because that is the grid the product is built on — so a
+ * region reading "span 4" here is a region that would be `span={4}` there.
+ * `role="img"` with one label rather than a dozen announced boxes: a screen
+ * reader gets the sentence the picture is making, which is the shape, and not
+ * a recitation of its parts.
+ */
+function Wireframe({ layout }: { layout: PageLayout }) {
+  return (
+    <div
+      className="nu-wire"
+      role="img"
+      data-testid={`wireframe-${layout.key}`}
+      aria-label={`${layout.name}: ${layout.wireframe
+        .map((row) => row.map((region) => region.label).join(", then "))
+        .join("; below that, ")}`}
+    >
+      {layout.wireframe.map((row, index) => (
+        <div className="nu-wire-row" key={index}>
+          {row.map((region) => (
+            <span
+              key={region.label + String(region.span)}
+              className={`nu-wire-box${region.primary ? " is-primary" : ""}`}
+              style={{
+                gridColumn: `span ${region.span}`,
+                ...(region.rows ? { gridRow: `span ${region.rows}` } : {}),
+              }}
+            >
+              {region.label}
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
   );
 }
 

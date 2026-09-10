@@ -129,11 +129,20 @@ describe("the page", () => {
     expect(within(empty).getByText("Nothing matches")).toBeInTheDocument();
   });
 
-  it("says why the feature components are absent", () => {
+  it("shows feature components, and says the shelf is a selection", () => {
     render();
-    // Otherwise their absence reads as an omission rather than a decision.
+    // The second shelf: components that belong to one page each, shown because
+    // their shape is worth borrowing.
+    expect(screen.getByTestId("feature-shelf")).toBeInTheDocument();
+    expect(screen.getByTestId("demo-WidgetCard")).toBeInTheDocument();
+    expect(screen.getByTestId("demo-KanbanCardTile")).toBeInTheDocument();
+    expect(screen.getByTestId("demo-AuditDiff")).toBeInTheDocument();
+
+    // And the promise it makes is the honest one: the shared toolkit above is
+    // complete, this shelf is chosen. Claiming coverage of a hundred feature
+    // components would be a promise the page could not keep.
     expect(screen.getByTestId("feature-note")).toHaveTextContent(
-      /components\/mail, components\/kanban/,
+      /selection, not an inventory/,
     );
   });
 

@@ -2941,8 +2941,36 @@ Ordered as asked: mail, then the admin pages, then the showcase.
   - **And it fixed a 500.** `profile._named` read `row.name` for the manager,
     and a `User` is named by `full_name` — so every profile page with a manager
     on it answered 500. Four of the suite's pre-existing failures were this
-- [ ] **`/showcase/components` — more components, from across the pages**
-- [ ] **`/showcase/templates` — enrich it**
+- [x] **`/showcase/components` grew a second shelf** (§60). The shared toolkit
+      is now complete — `PeoplePicker` and `CommandPalette` were the two
+      undemonstrated ones — and beneath it sits a selection of **feature
+      components**: `WidgetCard` in both its states, `KanbanCardTile`,
+      `ChartPreview` in both appearances at once, `ChartKindStrip`, `TagChip`
+      and `AuditDiff`
+  - **The two shelves promise different things, and the page says so.** The
+    toolkit's coverage is derived and complete; the feature shelf is *chosen*.
+    There are a hundred feature components, each with props only their own page
+    knows how to fill, and a gallery claiming to cover them all would be one
+    nobody could rely on
+  - The palette is demonstrated by **dispatching its own shortcut** rather than
+    by mounting a second copy — two would race for the same hotkey, and the
+    gesture is the thing worth showing anyway
+- [x] **`/showcase/templates` draws every layout** (§61). It named sixteen
+      shapes and asked the reader to imagine each one, which is the single
+      thing a layout gallery exists to save them doing
+  - A **wireframe per layout**, declared as regions on the product's own
+    twelve-column grid — so a region reading "span 4" here is one that would be
+    `span={4}` there. A declaration rather than a picture: a screenshot is a
+    second copy that drifts, cannot be themed and cannot be read aloud. The
+    test asserts every row adds to twelve, counting the columns a two-row side
+    panel carries down into the row beneath it
+  - **What each layout is built from**, because the question after "which
+    shape" is always "what do I need", and a gallery that answers only the
+    first has stopped one step short
+  - **What each keeps in the address** (§69) — the decision somebody copying
+    the layout has to make on their own page
+  - One region per layout is drawn with weight: a wireframe where every box
+    looks the same says the parts and not the shape
 - [ ] **Double confirmation on every delete, and on duplicating a dashboard or
       a saved search.** Some confirm and some do not; the rule should be one
       rule

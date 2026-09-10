@@ -25,10 +25,14 @@
  * vocabularies it colours — because those are what somebody reusing it needs
  * to see, and a single happy-path example teaches none of them.
  *
- * The feature directories (`components/mail`, `components/kanban`, …) are
- * deliberately absent: those belong to their features and are demonstrated by
- * the pages that use them. This page is the *shared* toolkit, which is what
- * somebody building on the template reaches for.
+ * **Two shelves, and they promise different things.** The *shared toolkit*
+ * (`components/*.tsx`) is what somebody building on the template reaches for,
+ * and every one of them is either demonstrated here or listed as not. The
+ * *feature components* (`components/mail`, `components/kanban`, …) belong to
+ * their own features, so the page shows a chosen few — the ones whose shape is
+ * worth borrowing — and says plainly that it is a selection rather than an
+ * inventory. Claiming coverage of a hundred feature components would be a
+ * promise this page could not keep.
  */
 
 import { Alert, Button, Card, Segmented, Space, Table, Tag, Typography } from "antd";
@@ -58,6 +62,21 @@ import { StatCard } from "@/components/StatCard";
 import { StatusTag } from "@/components/StatusTag";
 import { formatNumber } from "@/lib/formats";
 import { SERIES } from "@/theme/tokens";
+import type { AuditChange } from "@/api/audit";
+import type { DashboardWidget } from "@/api/dashboards";
+import type { KanbanCard, KanbanLane } from "@/api/kanban";
+import type { Tag as RecordTag } from "@/api/tags";
+import { AuditDiff } from "@/components/audit/AuditDiff";
+import { ChartKindStrip } from "@/components/charts/ChartKindStrip";
+import { ChartPreview } from "@/components/charts/ChartPreview";
+import { WidgetCard, type WidgetMoves } from "@/components/dashboards/WidgetCard";
+import { KanbanCardTile } from "@/components/kanban/KanbanCardTile";
+import { TagChip } from "@/components/records/TagPicker";
+import { PeoplePicker } from "@/components/PeoplePicker";
+// Tag colours from the palette, like every other colour in the product: a
+// demonstration that wrote its own hexes would be a demonstration of the one
+// rule this file exists to keep.
+import { SEMANTIC } from "@/theme/tokens";
 
 const { Text, Paragraph, Title } = Typography;
 
@@ -101,6 +120,7 @@ export function inventory(paths: string[] = Object.keys(FILES)): string[] {
 const DEMONSTRATED = [
   "AutoRefresh",
   "ChartCard",
+  "CommandPalette",
   "EdgeTag",
   "EmptyState",
   "ExportButton",
@@ -108,6 +128,7 @@ const DEMONSTRATED = [
   "HighlightedText",
   "NameModal",
   "PageHeader",
+  "PeoplePicker",
   "PersonAvatar",
   "ProblemPage",
   "StatCard",
@@ -139,6 +160,126 @@ const FAILURES: { status: number; title: string }[] = [
   { status: 403, title: "Your role does not include this dataset" },
   { status: 404, title: "That record is no longer there" },
   { status: 409, title: "Somebody else changed this first" },
+];
+
+/**
+ * The feature components this page shows, and why each earns a place.
+ *
+ * A *selection*: there are a hundred of them across mail, kanban, explorer and
+ * the rest, each with props only its own page knows how to fill. What is here
+ * is the ones whose shape somebody building on the template would want to
+ * borrow — and the page says so rather than implying coverage it cannot keep.
+ */
+const FEATURE_DEMOS = [
+  "WidgetCard",
+  "KanbanCardTile",
+  "ChartPreview",
+  "ChartKindStrip",
+  "TagChip",
+  "AuditDiff",
+] as const;
+
+/** A widget with no question behind it — the frame is the subject here. */
+const DEMO_WIDGET: DashboardWidget = {
+  id: "demo",
+  kind: "BAR_CHART",
+  title: "Tickets by severity",
+  subtitle: "Last 30 days",
+  x: 0,
+  y: 0,
+  width: 4,
+  height: 2,
+  position: 0,
+  config: { entity: "ticket" },
+};
+
+/** A card in a preview cannot be moved, so the moves are refused rather than absent. */
+const NO_MOVES: WidgetMoves = {
+  nudge: () => {},
+  resize: () => {},
+  setSize: () => {},
+  edit: () => {},
+  remove: () => {},
+};
+
+const DEMO_LANE: KanbanLane = {
+  id: "lane-demo",
+  name: "In progress",
+  position: 1,
+  wip_limit: 3,
+  is_done: false,
+  total: 4,
+  over_limit: true,
+  cards: [],
+};
+
+/** Enough facts to show the tile's rules, and no more — that *is* the rule. */
+const DEMO_CARD: KanbanCard = {
+  id: "card-demo",
+  board_id: "board-demo",
+  lane_id: "lane-demo",
+  reference: "PLAT-00042",
+  kind: "BUG",
+  title: "Export times out above 50 000 rows",
+  description: null,
+  parent_id: null,
+  position: 0,
+  priority: "HIGH",
+  story_points: 5,
+  assignee: { id: "user-1", name: "Ada Administrator", initials: "AA" },
+  labels: ["exports", "performance"],
+  due_date: "2026-09-04T09:00:00Z",
+  started_at: null,
+  completed_at: null,
+  checklist: [
+    { text: "Reproduce", done: true },
+    { text: "Fix", done: false },
+  ],
+  checklist_done: 1,
+  comment_count: 2,
+  created_at: "2026-08-20T09:00:00Z",
+  updated_at: "2026-09-01T09:00:00Z",
+};
+
+/** Three tags across three categories, so the edge colour has work to do. */
+const DEMO_TAGS: RecordTag[] = [
+  {
+    id: "tag-1",
+    name: "urgent",
+    slug: "urgent",
+    category: "PRIORITY",
+    color: SEMANTIC.danger,
+    description: "Needs attention today",
+    usage_count: 12,
+    is_system: true,
+  },
+  {
+    id: "tag-2",
+    name: "documentation",
+    slug: "documentation",
+    category: "ENGINEERING",
+    color: SEMANTIC.info,
+    description: "",
+    usage_count: 8,
+    is_system: false,
+  },
+  {
+    id: "tag-3",
+    name: "emea",
+    slug: "emea",
+    category: "REGION",
+    color: SEMANTIC.warning,
+    description: "",
+    usage_count: 30,
+    is_system: false,
+  },
+];
+
+/** One of each kind of change, which is the point of the component. */
+const DEMO_CHANGES: AuditChange[] = [
+  { field: "status", from: "IN_PROGRESS", to: "BLOCKED", kind: "changed" },
+  { field: "assignee", from: null, to: "Mara Manager", kind: "added" },
+  { field: "due_date", from: "2026-09-04", to: null, kind: "cleared" },
 ];
 
 /** A panel of the shape the analysis endpoints return. */
@@ -235,6 +376,10 @@ export default function ComponentsPage() {
   const [naming, setNaming] = useState(false);
   const [named, setNamed] = useState("");
   const [tableState, setTableState] = useState<TableState>("rows");
+  /** The widget tile has two states, and the difference is the demonstration. */
+  const [widgetEditing, setWidgetEditing] = useState(false);
+  const [chartKind, setChartKind] = useState("bar");
+  const [people, setPeople] = useState<string[]>([]);
 
   /**
    * The table, in the state the reader chose.
@@ -672,14 +817,153 @@ export default function ComponentsPage() {
         </Space>
       </Demo>
 
+      <Demo
+        name="PeoplePicker"
+        what="Choosing colleagues, searched on the server. The list is never filtered again in the browser — the server has already decided who this reader may see, and filtering the answer a second time would hide the person they just searched for. An option carries the face, the name and the role, because two people called Ana are told apart by the third."
+      >
+        <div style={{ maxWidth: 340 }}>
+          <PeoplePicker value={people} onChange={setPeople} />
+        </div>
+      </Demo>
+
+      <Demo
+        name="CommandPalette"
+        what="Every action on the page, by name (§54). Opened with ⌘K or Ctrl-K from anywhere; what it lists is whatever the current page registered plus the navigation this role may reach, so it is never a menu of things that would refuse."
+      >
+        <Space direction="vertical" size={8}>
+          {/* The real shortcut, dispatched — not a second copy of the palette
+              and not a context this page reaches into. The shell already
+              mounts one, and demonstrating the *gesture* is more honest than
+              demonstrating a duplicate that would race it for the hotkey. */}
+          <Button
+            onClick={() =>
+              window.dispatchEvent(
+                new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }),
+              )
+            }
+            data-testid="open-palette"
+          >
+            Open it
+          </Button>
+          <Text type="secondary">
+            Or press <Text keyboard>⌘K</Text> anywhere in the platform.
+          </Text>
+        </Space>
+      </Demo>
+
+      {/* ── the second shelf ─────────────────────────────────────────────
+          Components that belong to one feature each, shown because their
+          *shape* is worth borrowing — a card that fills a grid cell, a tile
+          that reads at a glance, a diff that says what changed. Announced as a
+          selection rather than an inventory: this page can promise coverage of
+          the shared toolkit and cannot promise it of a hundred feature
+          components, and claiming otherwise is how a showcase starts lying. */}
+      <div className="nu-show-shelf" data-testid="feature-shelf">
+        <Title level={4}>From the features</Title>
+        <Paragraph type="secondary">
+          A selection, not an inventory — {FEATURE_DEMOS.length} of the components that belong to
+          one page each, chosen because their shape is worth borrowing. Every one of them is the
+          real component with real props.
+        </Paragraph>
+      </div>
+
+      <Demo
+        name="WidgetCard"
+        what="A dashboard tile: the frame, the controls that appear only while the layout can change, and a body that scrolls inside a fixed height. In reading mode it carries its kind's icon; in editing mode the heading becomes a drag handle and three controls appear."
+      >
+        <Space direction="vertical" size={12} style={{ width: "100%" }}>
+          <Segmented
+            size="small"
+            value={widgetEditing ? "editing" : "reading"}
+            onChange={(next) => setWidgetEditing(next === "editing")}
+            options={[
+              { value: "reading", label: "Reading" },
+              { value: "editing", label: "Rearranging" },
+            ]}
+            data-testid="widget-mode"
+          />
+          <div style={{ maxWidth: 380, height: 190 }}>
+            <WidgetCard
+              widget={DEMO_WIDGET}
+              editable={widgetEditing}
+              columns={12}
+              moves={NO_MOVES}
+            >
+              <ChartPreview panel={DEMO_PANEL} height={120} />
+            </WidgetCard>
+          </div>
+        </Space>
+      </Demo>
+
+      <Demo
+        name="KanbanCardTile"
+        what="A board card. Only the facts that are *there* — a tile with five empty slots says nothing about a card that has none of them — and the kind is a coloured edge rather than a coloured tile, because a tinted card behind body text is a contrast failure and cannot then also use colour for priority."
+      >
+        <div style={{ maxWidth: 300 }}>
+          <KanbanCardTile
+            card={DEMO_CARD}
+            canEdit
+            lanes={[DEMO_LANE]}
+            currentLane={DEMO_LANE}
+            index={0}
+            laneSize={3}
+            onOpen={() => {}}
+            onDropBefore={() => {}}
+            onHoverAt={() => {}}
+            onCarry={() => {}}
+            onMoveWithin={() => {}}
+            onMoveToLane={() => {}}
+          />
+        </div>
+      </Demo>
+
+      <Demo
+        name="ChartPreview"
+        what="A chart with no chrome, drawn in a theme it is told to use. The mode is a prop rather than the reader's own setting, which is the whole reason it exists: a chart checked only in the appearance its author happens to use is a chart nobody checked in the other one — and half the readers are in the other one."
+      >
+        <div className="nu-show-pair">
+          <ChartPreview panel={DEMO_PANEL} mode="light" height={150} label="Light" />
+          <ChartPreview panel={DEMO_PANEL} mode="dark" height={150} label="Dark" />
+        </div>
+      </Demo>
+
+      <Demo
+        name="ChartKindStrip"
+        what="Which picture to draw, as a strip rather than a select. Thirteen shapes are a thing somebody browses — the icons are the vocabulary — and a dropdown hides twelve of them behind a click."
+      >
+        <ChartKindStrip
+          kinds={["bar", "line", "area", "pie", "treemap", "heatmap"]}
+          value={chartKind}
+          onChange={setChartKind}
+        />
+      </Demo>
+
+      <Demo
+        name="TagChip"
+        what="One tag, coloured on its leading edge and never as a fill. AntD writes white on a custom colour without measuring, and white on this palette's amber is 2.87:1 — so the colour identifies and the ink stays readable (§55)."
+      >
+        <Space size={6} wrap>
+          {DEMO_TAGS.map((tag) => (
+            <TagChip key={tag.id} tag={tag} listPath="/tasks" />
+          ))}
+        </Space>
+      </Demo>
+
+      <Demo
+        name="AuditDiff"
+        what="What one change actually changed, field by field. Added, removed and altered are three different rows rather than three shades of one, and a value nobody set reads as “not set” rather than as an empty cell that could be either."
+      >
+        <AuditDiff changes={DEMO_CHANGES} />
+      </Demo>
+
       <Alert
         type="info"
         showIcon
         icon={<WarningOutlined />}
         className="nu-show-note"
         data-testid="feature-note"
-        message="Feature components are demonstrated by their features"
-        description="components/mail, components/kanban, components/explorer and the rest belong to one page each. Putting them here would mean maintaining a second set of props for them, which is exactly how a showcase starts lying."
+        message="The second shelf is a selection, not an inventory"
+        description="The shared toolkit above is complete — every component in components/ is demonstrated or listed as missing. The feature components are chosen: there are a hundred of them across mail, kanban, explorer, dashboards and the rest, each with props that only its own page knows how to fill, and a gallery claiming to cover them all would be one nobody could rely on."
       />
     </div>
   );

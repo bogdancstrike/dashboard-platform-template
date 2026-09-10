@@ -114,3 +114,45 @@ describe("each layout says enough to choose by", () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 });
+
+
+describe("every layout is drawn, not only named", () => {
+  /**
+   * A gallery of *names* asks the reader to imagine each shape, which is the
+   * one thing a layout gallery exists to save them doing. The wireframe is a
+   * declaration rather than a picture so it cannot drift from the page it
+   * describes — and these assert it is a *shape* rather than a decoration.
+   */
+  it("gives every layout a wireframe on the product's own grid", () => {
+    for (const layout of LAYOUTS) {
+      expect(layout.wireframe.length, layout.key).toBeGreaterThan(0);
+      // Columns still occupied by a region that spans down from above. A row
+      // under a two-row side panel legitimately declares only the width that
+      // is left, which is what a CSS grid does and what a naive sum misses.
+      let carried = 0;
+      for (const row of layout.wireframe) {
+        expect(row.length, layout.key).toBeGreaterThan(0);
+        const width = row.reduce((sum, region) => sum + region.span, 0) + carried;
+        // Twelve, because that is the grid the product is built on: a row that
+        // added up to nine would draw a shape no page could have.
+        expect(width, `${layout.key}: ${row.map((r) => r.label).join(" + ")}`).toBe(12);
+        carried = row
+          .filter((region) => (region.rows ?? 1) > 1)
+          .reduce((sum, region) => sum + region.span, 0);
+        for (const region of row) {
+          expect(region.label.length, layout.key).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+
+  it("says what each layout is built from, and what it keeps in the address", () => {
+    for (const layout of LAYOUTS) {
+      // The question after "which shape" is always "what do I need".
+      expect(layout.pieces.length, layout.key).toBeGreaterThan(0);
+      // And §69: every layout here is linkable, and *which* state is in the
+      // URL is the decision somebody copying it has to make.
+      expect(layout.url.length, layout.key).toBeGreaterThan(20);
+    }
+  });
+});

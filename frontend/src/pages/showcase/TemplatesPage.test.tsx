@@ -36,12 +36,22 @@ describe("the summary", () => {
     expect(said).toContain("a test enforces");
   });
 
+  /** Everything a `PageLayout` needs but the two fields the test varies. */
+  const stub = {
+    shape: "x",
+    when: "y",
+    unless: "z",
+    wireframe: [[{ label: "x", span: 12 }]],
+    pieces: ["x"],
+    url: "x",
+  };
+
   it("counts shapes without counting the redirects", () => {
     // "Not a layout" is a category on the page and not a shape anybody can
     // choose, so including it in the count would overstate the offer.
     const said = summary([
-      { key: "list", name: "List", shape: "x", when: "y", unless: "z", routes: ["a"] },
-      { key: "redirect", name: "Not a layout", shape: "x", when: "y", unless: "z", routes: ["b"] },
+      { ...stub, key: "list", name: "List", routes: ["a"] },
+      { ...stub, key: "redirect", name: "Not a layout", routes: ["b"] },
     ]);
     expect(said).toMatch(/^1 page shapes/);
   });

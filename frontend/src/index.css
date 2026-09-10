@@ -3644,3 +3644,35 @@ p a:not(.ant-btn),
   display: flex; align-items: center; gap: 8px; font-size: 12px; min-width: 0;
 }
 .nu-health-message { font-size: 12px; }
+
+/* ── the layout gallery's wireframes (§61) ──────────────────────────────
+   The shape itself, drawn from the declaration rather than shown as a
+   screenshot: a picture is a second copy that drifts from the page it claims
+   to describe, cannot be themed, and cannot be read aloud. Twelve columns,
+   because that is the grid the product is built on — a region reading "span
+   4" here is one that would be `span={4}` there. */
+.nu-wire {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 8px; margin: 10px 0;
+  border-radius: 8px; border: 1px solid var(--nu-border-subtle);
+  background: var(--nu-bg);
+}
+.nu-wire-row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; }
+.nu-wire-box {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 26px; padding: 3px 6px; border-radius: 5px;
+  border: 1px dashed var(--nu-border-strong);
+  background: var(--nu-surface); color: var(--nu-text-secondary);
+  font-size: 10.5px; line-height: 1.2; text-align: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* The one region that carries the answer. A wireframe where every box weighs
+   the same says the parts and not the shape. */
+.nu-wire-box.is-primary {
+  border-style: solid; border-color: var(--nu-accent);
+  background: var(--nu-accent-soft); color: var(--nu-accent-ink);
+  font-weight: 600;
+  --nu-text-tertiary: var(--nu-text-secondary);
+}
+.nu-tmpl-pieces { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
+.nu-tmpl-piece { font-family: var(--nu-font-mono); font-size: 11px; }
