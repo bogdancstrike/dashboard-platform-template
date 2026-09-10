@@ -16,6 +16,15 @@
  * **Adding a card is one field, in place.** Description, assignee and points
  * are edited afterwards in the drawer; being asked for all of it before the
  * title exists is how a backlog stops being written down.
+ *
+ * **A drag shows where the card is going, not merely that it is moving.**
+ * Unlike `/tasks`, this board is *arranged* rather than sorted, so dropping
+ * between two cards is a real instruction — which makes it worth aiming at,
+ * and worth drawing. A slot opens at the position under the pointer, the lane
+ * says what the drop will do, and the card being carried steps back so the
+ * slot is the thing that reads. Before this the whole gesture was a one-pixel
+ * border change on the column, and the only way to find out where a card had
+ * landed was to drop it.
  */
 
 import {
@@ -31,7 +40,7 @@ import {
   Typography,
 } from "antd";
 import { MoreOutlined, PlusOutlined } from "@ant-design/icons";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 import type { KanbanLane } from "@/api/kanban";
 
@@ -39,12 +48,32 @@ import { KanbanCardTile } from "./KanbanCardTile";
 
 const { Text } = Typography;
 
+/**
+ * The gap a card will drop into.
+ *
+ * A card-sized space rather than a line between two cards. On a board where
+ * position is a real instruction, the honest picture of "it goes here" is the
+ * room it will take up — and a two-pixel line is a target nobody can see
+ * against a column of bordered tiles.
+ */
+function DropSlot() {
+  return (
+    <li className="nu-lane-col-slot" aria-hidden data-testid="drop-slot">
+      <span>lands here</span>
+    </li>
+  );
+}
+
 export interface LaneColumnProps {
   lane: KanbanLane;
   canEdit: boolean;
   /** The other lanes, for the keyboard move menu and for re-homing cards. */
   others: KanbanLane[];
   onOpenCard: (id: string) => void;
+  /** The card currently in the air, so the lane can show where it will land. */
+  carried: { id: string; laneId: string } | null;
+  /** Announce the card being dragged — see `carried`. */
+  onCarry: (card: { id: string; laneId: string } | null) => void;
   /** Reorder within this lane, at `position`. */
   onMove: (cardId: string, position: number) => void;
   /** Move a card to another lane — the keyboard equivalent of the drag. */
@@ -58,6 +87,7 @@ export interface LaneColumnProps {
 export function LaneColumn({
   lane,
   canEdit,
+  carried,
   others,
   onOpenCard,
   onMove,
@@ -65,8 +95,18 @@ export function LaneColumn({
   onAddCard,
   onChange,
   onRemove,
+  onCarry,
 }: LaneColumnProps) {
   const [over, setOver] = useState(false);
+  /**
+   * The index the slot is open at, or `null` while nothing is over this lane.
+   *
+   * Held here rather than derived from the pointer on every frame: the tiles
+   * report which of them is being crossed, and the lane itself reports the
+   * space below the last one. Two sources, one answer, so the slot cannot
+   * appear twice.
+   */
+  const [slot, setSlot] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
   const [dialog, setDialog] = useState<"rename" | "limit" | "remove" | null>(null);
@@ -105,23 +145,36 @@ export function LaneColumn({
       aria-label={lane.name}
       data-testid={`lane-${lane.id}`}
       onDragOver={(event) => {
-        if (!canEdit) return;
+        if (!canEdit || !carried) return;
         // Preventing the default is what marks this a valid drop target;
         // without it the browser refuses every drop silently.
         event.preventDefault();
+        // And this is what makes the *cursor* agree: until a drop effect is
+        // named the browser draws a "no entry" pointer, which is the loudest
+        // "this will not work" a drag can say.
+        event.dataTransfer.dropEffect = "move";
         setOver(true);
+        // The column itself only ever means "at the end". A tile crossed on
+        // the way down will have said otherwise, and it wins because it is the
+        // more specific answer — hence `setSlot` only when nothing has.
+        setSlot((current) => current ?? lane.cards.length);
       }}
       onDragLeave={(event) => {
         if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
         setOver(false);
+        setSlot(null);
       }}
       onDrop={(event) => {
         event.preventDefault();
+        const target = slot ?? lane.cards.length;
         setOver(false);
+        setSlot(null);
+        onCarry(null);
         const cardId = event.dataTransfer.getData("application/x-nucleus-card");
-        // Appended, because a drop on the column means "into this lane"; a
-        // drop onto a card is handled by the tile, which knows its index.
-        if (cardId) onMove(cardId, lane.cards.length);
+        // The position the slot was open at, which is the position the reader
+        // was looking at when they let go. Appending regardless — which is what
+        // this did — is a board that ignores half of every drag.
+        if (cardId) onMove(cardId, target);
       }}
     >
       <header className="nu-lane-col-head">
@@ -214,21 +267,28 @@ export function LaneColumn({
 
       <ol className="nu-lane-col-cards">
         {lane.cards.map((card, index) => (
-          <li key={card.id}>
-            <KanbanCardTile
-              card={card}
-              canEdit={canEdit}
-              lanes={[lane, ...others]}
-              currentLane={lane}
-              index={index}
-              laneSize={lane.cards.length}
-              onOpen={() => onOpenCard(card.id)}
-              onDropBefore={(cardId) => onMove(cardId, index)}
-              onMoveWithin={(position) => onMove(card.id, position)}
-              onMoveToLane={(laneId) => onMoveToLane(card.id, laneId)}
-            />
-          </li>
+          <Fragment key={card.id}>
+            {slot === index && carried && <DropSlot />}
+            <li>
+              <KanbanCardTile
+                card={card}
+                canEdit={canEdit}
+                lanes={[lane, ...others]}
+                currentLane={lane}
+                index={index}
+                laneSize={lane.cards.length}
+                carried={carried?.id === card.id}
+                onOpen={() => onOpenCard(card.id)}
+                onDropBefore={(cardId, position) => onMove(cardId, position)}
+                onHoverAt={(position) => setSlot(position)}
+                onCarry={(dragged) => onCarry(dragged ? { id: card.id, laneId: lane.id } : null)}
+                onMoveWithin={(position) => onMove(card.id, position)}
+                onMoveToLane={(laneId) => onMoveToLane(card.id, laneId)}
+              />
+            </li>
+          </Fragment>
         ))}
+        {carried && slot !== null && slot >= lane.cards.length && <DropSlot />}
       </ol>
 
       {canEdit &&

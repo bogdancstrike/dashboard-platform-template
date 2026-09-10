@@ -71,6 +71,14 @@ export default function KanbanPage() {
   const [openCard, setOpenCard] = useState<string | null>(null);
   /** The one-question modal for a new lane (§33). */
   const [namingLane, setNamingLane] = useState(false);
+  /**
+   * The card in the air, held for the whole board rather than per lane.
+   *
+   * A drag crosses columns, and the lane it *came from* has to know it is the
+   * source — so this cannot live inside a `LaneColumn`. `dataTransfer` would
+   * be the natural home and is deliberately unreadable in flight.
+   */
+  const [carried, setCarried] = useState<{ id: string; laneId: string } | null>(null);
   const [term, setTerm] = useState(params.get("q") ?? "");
 
   const boardId = params.get("board") ?? "";
@@ -421,6 +429,8 @@ export default function KanbanPage() {
                     key={lane.id}
                     lane={lane}
                     canEdit={canEdit}
+                    carried={carried}
+                    onCarry={setCarried}
                     onOpenCard={setOpenCard}
                     onMove={(cardId, position) =>
                       move.mutate({ id: cardId, laneId: lane.id, position })

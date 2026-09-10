@@ -4152,6 +4152,36 @@ everything else.
     copy that takes the original's name is the moment somebody edits the wrong
     one
 
+### Boards, and knowing where a card will land (§18, §33, §64)
+
+- [x] `/tasks` and `/kanban`: a drag that says what it is about to do
+  - **The complaint this fixes, verbatim: "I don't really know if it will work,
+    I have no feedback, it's hard to fit it between other two tasks."** Both
+    boards were an HTML5 drag with one piece of feedback between them — a
+    border colour on whichever column the pointer was over
+  - The card **lifts**; the lane under the pointer is **named** ("→ in review")
+    rather than merely tinted; `dropEffect` is set so the cursor stops drawing
+    a "no entry" sign; and `dragend` clears everything, so an escaped drag
+    leaves no ghost behind
+  - **A slot opens where the card will land.** On `/kanban`, where position is
+    a real instruction, it follows the pointer — and which *half* of a tile the
+    pointer is in decides before or after, without which the end of a lane is
+    unreachable. The drop then honours the slot; it used to append to the lane
+    regardless, which ignored half of every drag
+  - On `/tasks`, where the lane is a server-sorted query rather than an
+    arrangement, the slot opens at the position the *server's own ordering*
+    will put the card. You cannot aim between two cards on a sorted board, and
+    a board that lets you try is one that then puts the card somewhere else —
+    showing the destination is the honest version of the same courtesy
+  - The lane a card came from says **"back where it was"** instead of lighting
+    up, because a drop that changes nothing should look like one
+  - A card stays marked until the server confirms the move, and the
+    confirmation carries **Undo**. A board is a surface people drag on quickly,
+    which makes it a surface people drop on the wrong column quickly
+  - `dataTransfer` is unreadable while a drag is in flight — by design, in
+    every browser — so the carried card is mirrored into React state. That is
+    the reason none of this existed before
+
 ### `/announcements` — system messages (§17)
 
 - [x] Platform-wide announcements: scheduled banners for maintenance and

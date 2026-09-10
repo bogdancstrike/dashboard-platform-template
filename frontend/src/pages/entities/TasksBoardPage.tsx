@@ -19,6 +19,30 @@
  * moved on somebody else's screen has to come back to this one. A refused
  * move snaps back and says why.
  *
+ * **A drag says what it is about to do, before it is dropped.** This is the
+ * part a board lives or dies on, and the first version of this page had none
+ * of it: a card was picked up and nothing on screen changed except a tint on
+ * whichever column the pointer happened to be over. Somebody dragging had no
+ * way to know whether the drop would take, and — because the lane is sorted
+ * rather than arranged — no way to see where the card would end up.
+ *
+ * So four things happen while a card is in the air:
+ *
+ * * the card lifts, so it is obvious which one is moving;
+ * * the lane under the pointer is marked, and its heading says the state the
+ *   drop will write — "→ In review", not a highlight somebody has to
+ *   interpret;
+ * * a **slot opens where the card will actually land**, computed from the same
+ *   ordering the server sorts by. On a sorted board you do not aim between two
+ *   cards, and a board that lets you try is a board that then puts the card
+ *   somewhere else. Showing the destination is the honest version of that;
+ * * the lane it came from says "back where it was", because a drop that
+ *   changes nothing should look like one.
+ *
+ * And after the drop the card stays marked until the server has confirmed it,
+ * and the confirmation carries **Undo** — a move made by accident is one
+ * gesture, and so is taking it back.
+ *
  * Dragging is not the only way to do it. `Move to` on every card is the same
  * action from the keyboard (§54, §55), because a board reachable only by
  * pointer is a board half the readers cannot use.
@@ -40,7 +64,7 @@ import {
   Typography,
 } from "antd";
 import { ClockCircleOutlined, DragOutlined, TableOutlined } from "@ant-design/icons";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -98,6 +122,18 @@ export default function TasksBoardPage() {
 
   /** The lane a card is being dragged over, so the target is visible. */
   const [over, setOver] = useState<string | null>(null);
+  /**
+   * The card currently in the air.
+   *
+   * Held in React state as well as in `dataTransfer`, because the two answer
+   * different questions and only one of them can be asked mid-drag: the
+   * payload is readable on `drop` and *not* on `dragover` — browsers withhold
+   * it in flight — so every piece of feedback drawn while a card is moving has
+   * to come from here.
+   */
+  const [carried, setCarried] = useState<TaskRow | null>(null);
+  /** Cards whose move is written and not yet confirmed, so they stay marked. */
+  const [pending, setPending] = useState<string[]>([]);
   const records = useRecordEditing(resource, {
     onCreated: (id) => navigate(`/tasks/${id}`),
   });
@@ -141,6 +177,9 @@ export default function TasksBoardPage() {
     })),
   });
 
+  /** What a lane is called on screen — the vocabulary, not the enum. */
+  const laneName = (status: string) => status.replace(/_/g, " ").toLowerCase();
+
   /**
    * Moving a card writes the record's status.
    *
@@ -156,6 +195,7 @@ export default function TasksBoardPage() {
         expected_updated_at: task.updated_at ?? null,
       }),
     onMutate: async ({ task, to }) => {
+      setPending((current) => [...current, task.id]);
       await queryClient.cancelQueries({ queryKey: ["task-lane"] });
       // Move the card between the two lane caches by hand, so the drop lands
       // before the round trip. Counts are left alone deliberately — see above.
@@ -179,7 +219,31 @@ export default function TasksBoardPage() {
             : "That move could not be saved.",
       );
     },
-    onSettled: () => {
+    onSuccess: (_saved, { task, to }) => {
+      const from = task.status ?? "";
+      if (!from || from === to) return;
+      // Confirmed, and taking it back is one press. A board is a surface
+      // people drag on quickly, which means it is a surface people drop on
+      // the wrong column quickly — and hunting for the card to drag it back
+      // is a worse penalty than the mistake deserves.
+      message.success({
+        content: (
+          <span>
+            {task.reference ?? "Task"} moved to {laneName(to)}{" "}
+            <Button
+              type="link"
+              size="small"
+              onClick={() => move.mutate({ task: { ...task, status: to }, to: from })}
+            >
+              Undo
+            </Button>
+          </span>
+        ),
+        duration: 6,
+      });
+    },
+    onSettled: (_saved, _error, { task }) => {
+      setPending((current) => current.filter((id) => id !== task.id));
       void queryClient.invalidateQueries({ queryKey: ["task-lane"] });
       void queryClient.invalidateQueries({ queryKey: ["entity-rows"] });
       void queryClient.invalidateQueries({ queryKey: ["entity-insights"] });
@@ -259,28 +323,52 @@ export default function TasksBoardPage() {
           action={<NewRecordButton records={records} resource={view.resource} />}
         />
       ) : (
-      <div className="nu-board" data-testid="task-board">
+      <div className={`nu-board${carried ? " is-dragging" : ""}`} data-testid="task-board">
         {lanes.map((lane, index) => {
           const query = laneQueries[index];
           const items = (query?.data?.items ?? []) as TaskRow[];
           const total = query?.data?.total ?? lane.total;
+          const targeted = over === lane.status && carried !== null;
+          // Dropping a card back where it came from changes nothing, and a
+          // lane that lights up promising a move it will not make is worse
+          // than one that stays quiet.
+          const isSource = targeted && carried.status === lane.status;
+          // Where the card would actually appear, by the ordering the *server*
+          // sorts this lane by. On a sorted board there is no aiming between
+          // two cards — so rather than let somebody try and then put the card
+          // somewhere else, the slot opens where it is going.
+          const landing = targeted && !isSource ? landingIndex(items, carried) : -1;
+
           return (
             <section
               key={lane.status}
-              className={`nu-lane${over === lane.status ? " nu-lane-over" : ""}`}
+              className={`nu-lane${targeted ? (isSource ? " nu-lane-source" : " nu-lane-over") : ""}`}
               aria-label={lane.status}
               data-testid={`lane-${lane.status}`}
               onDragOver={(event) => {
-                if (!canEdit) return;
+                if (!canEdit || !carried) return;
                 // Preventing the default is what marks this a valid drop
                 // target; without it the browser refuses every drop silently.
                 event.preventDefault();
+                // And this is what makes the *cursor* say so — the browser
+                // shows a "no entry" pointer until a drop effect is named,
+                // which is the single loudest "this will not work" signal a
+                // drag can give.
+                event.dataTransfer.dropEffect = "move";
                 setOver(lane.status);
               }}
-              onDragLeave={() => setOver((current) => (current === lane.status ? null : current))}
+              onDragLeave={(event) => {
+                // Only when the pointer has actually left the column. A
+                // `dragleave` also fires crossing between the cards *inside*
+                // it, which made the target flicker off and on all the way
+                // down the lane.
+                if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+                setOver((current) => (current === lane.status ? null : current));
+              }}
               onDrop={(event) => {
                 event.preventDefault();
                 setOver(null);
+                setCarried(null);
                 const payload = event.dataTransfer.getData("application/x-nucleus-task");
                 if (!payload) return;
                 moveTo(JSON.parse(payload) as TaskRow, lane.status);
@@ -293,31 +381,47 @@ export default function TasksBoardPage() {
                   aria-hidden
                 />
                 <span className="nu-lane-title">{lane.status.replace(/_/g, " ")}</span>
-                <span className="nu-lane-count">{total.toLocaleString()}</span>
+                {/* What the drop will do, in words. A tint is a signal
+                    somebody has to have learned; "→ in review" is one they
+                    can read the first time (§34). */}
+                {targeted ? (
+                  <span className={`nu-lane-intent${isSource ? " is-noop" : ""}`}>
+                    {isSource ? "back where it was" : `→ ${laneName(lane.status)}`}
+                  </span>
+                ) : (
+                  <span className="nu-lane-count">{total.toLocaleString()}</span>
+                )}
               </header>
 
               {query?.isLoading ? (
                 <Skeleton active title={false} paragraph={{ rows: 4 }} />
-              ) : items.length === 0 ? (
+              ) : items.length === 0 && landing < 0 ? (
                 <Empty
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                   description={<Text type="secondary">Nothing here</Text>}
                 />
               ) : (
                 <ul className="nu-lane-cards">
-                  {items.map((task) => (
-                    <li key={task.id}>
-                      <TaskCard
-                        task={{ ...task, status: task.status ?? lane.status }}
-                        lane={lane.status}
-                        lanes={lanes.map((item) => item.status)}
-                        canEdit={canEdit}
-                        records={records}
-                        onOpen={() => navigate(`/tasks/${task.id}`)}
-                        onMove={moveTo}
-                      />
-                    </li>
+                  {items.map((task, position) => (
+                    <Fragment key={task.id}>
+                      {position === landing && <DropSlot />}
+                      <li>
+                        <TaskCard
+                          task={{ ...task, status: task.status ?? lane.status }}
+                          lane={lane.status}
+                          lanes={lanes.map((item) => item.status)}
+                          canEdit={canEdit}
+                          carried={carried?.id === task.id}
+                          saving={pending.includes(task.id)}
+                          records={records}
+                          onOpen={() => navigate(`/tasks/${task.id}`)}
+                          onMove={moveTo}
+                          onCarry={setCarried}
+                        />
+                      </li>
+                    </Fragment>
                   ))}
+                  {landing >= items.length && <DropSlot />}
                 </ul>
               )}
 
@@ -355,29 +459,46 @@ function TaskCard({
   lane,
   lanes,
   canEdit,
+  carried,
+  saving,
   records,
   onOpen,
   onMove,
+  onCarry,
 }: {
   task: TaskRow;
   lane: string;
   lanes: string[];
   canEdit: boolean;
+  /** This is the card in the air, so it steps back and lets the slot lead. */
+  carried: boolean;
+  /** Its move is written and not yet confirmed. */
+  saving: boolean;
   records: RecordEditing;
   onOpen: () => void;
   onMove: (task: TaskRow, to: string) => void;
+  onCarry: (task: TaskRow | null) => void;
 }) {
   return (
     <Card
       size="small"
-      className="nu-task-card"
+      className={`nu-task-card${carried ? " is-carried" : ""}${saving ? " is-saving" : ""}`}
       hoverable
       draggable={canEdit}
       data-testid={`task-card-${task.reference ?? task.id}`}
       onDragStart={(event) => {
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.setData("application/x-nucleus-task", JSON.stringify(task));
+        // Also into React state: `dataTransfer` is deliberately unreadable
+        // while a drag is in flight, and every hint the board draws — which
+        // lane is the source, where the card will land — needs the payload
+        // before the drop.
+        onCarry(task);
       }}
+      // Fires whether the drag ended in a drop or was abandoned, which is what
+      // makes an escaped drag clear the board rather than leave every lane
+      // showing a slot for a card that never moved.
+      onDragEnd={() => onCarry(null)}
       onClick={onOpen}
     >
       <Space direction="vertical" size={6} style={{ width: "100%" }}>
@@ -445,6 +566,43 @@ function TaskCard({
       </Space>
     </Card>
   );
+}
+
+/**
+ * Where the card will land, drawn as a gap in the lane.
+ *
+ * A gap rather than a line: a line between two cards promises an ordering the
+ * board does not have, and a space the size of a card is the honest picture of
+ * "this is where it goes".
+ */
+function DropSlot() {
+  return (
+    <li className="nu-lane-slot" aria-hidden data-testid="drop-slot">
+      <span>lands here</span>
+    </li>
+  );
+}
+
+/**
+ * The index a dragged card would appear at, in a lane it is not yet in.
+ *
+ * The lane is a server-sorted query — `priority` ascending, then `id` — so the
+ * position is *derived*, never chosen. Computing it with the same comparison
+ * the server uses is what lets the board show a destination instead of
+ * pretending the drop point is one.
+ *
+ * If the two ever disagree the cost is one frame of a slightly wrong preview:
+ * every lane is refetched on the way out of the move, so the board settles on
+ * the server's answer regardless.
+ */
+function landingIndex(items: TaskRow[], carried: TaskRow): number {
+  const rank = (row: TaskRow) => [String(row.priority ?? ""), String(row.id)] as const;
+  const [carriedPriority, carriedId] = rank(carried);
+  const index = items.findIndex((row) => {
+    const [priority, id] = rank(row);
+    return priority > carriedPriority || (priority === carriedPriority && id > carriedId);
+  });
+  return index < 0 ? items.length : index;
 }
 
 /** A lane's cached page, without one card. */

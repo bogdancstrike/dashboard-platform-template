@@ -40,9 +40,21 @@ export interface KanbanCardTileProps {
   lanes: KanbanLane[];
   currentLane: KanbanLane;
   index: number;
+  /** This is the card in the air, so it steps back and lets the slot lead. */
+  carried?: boolean;
   onOpen: () => void;
-  /** A card dropped onto this one takes its place. */
-  onDropBefore: (cardId: string) => void;
+  /** A card dropped on this tile, and the position the slot was open at. */
+  onDropBefore: (cardId: string, position: number) => void;
+  /**
+   * The position the slot should open at while a card crosses this tile.
+   *
+   * Above its midpoint means *before* it, below means after — the same rule
+   * every list with a drop indicator uses, and the reason a card dragged to
+   * the bottom half of the last tile lands at the end rather than second-last.
+   */
+  onHoverAt: (position: number) => void;
+  /** Announce that this tile is being dragged, or has stopped being. */
+  onCarry: (dragging: boolean) => void;
   /** How many cards are in this lane, so the ends can be said to be ends. */
   laneSize: number;
   /** Reorder within the lane — the keyboard's equivalent of a short drag. */
@@ -65,8 +77,11 @@ export function KanbanCardTile({
   currentLane,
   index,
   laneSize,
+  carried = false,
   onOpen,
   onDropBefore,
+  onHoverAt,
+  onCarry,
   onMoveWithin,
   onMoveToLane,
 }: KanbanCardTileProps) {
@@ -75,23 +90,41 @@ export function KanbanCardTile({
 
   return (
     <article
-      className={`nu-card nu-card--${card.kind.toLowerCase()}`}
+      className={`nu-card nu-card--${card.kind.toLowerCase()}${carried ? " is-carried" : ""}`}
       data-testid={`card-${card.id}`}
       draggable={canEdit}
       onDragStart={(event) => {
         event.dataTransfer.setData("application/x-nucleus-card", card.id);
         event.dataTransfer.effectAllowed = "move";
+        // Also as React state, up in the lane: `dataTransfer` is unreadable
+        // while a drag is in flight, so every hint drawn mid-gesture needs the
+        // identity from somewhere the browser is not hiding it.
+        onCarry(true);
       }}
+      // Fires on an abandoned drag as well as a completed one, which is what
+      // clears the slot when somebody presses Escape.
+      onDragEnd={() => onCarry(false)}
       onDragOver={(event) => {
-        if (canEdit) event.preventDefault();
+        if (!canEdit) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        // Which half of the tile the pointer is in decides whether the card
+        // goes before it or after it. Without this a drop anywhere on a tile
+        // means "before", and reaching the end of a lane is impossible.
+        const box = event.currentTarget.getBoundingClientRect();
+        const after = event.clientY > box.top + box.height / 2;
+        onHoverAt(after ? index + 1 : index);
       }}
       onDrop={(event) => {
         event.preventDefault();
         // Stopped here so the lane's own handler does not also append it: a
-        // drop on a card means "in front of this one".
+        // drop on a card means "at the place the slot is open".
         event.stopPropagation();
+        const box = event.currentTarget.getBoundingClientRect();
+        const after = event.clientY > box.top + box.height / 2;
         const dropped = event.dataTransfer.getData("application/x-nucleus-card");
-        if (dropped && dropped !== card.id) onDropBefore(dropped);
+        onCarry(false);
+        if (dropped && dropped !== card.id) onDropBefore(dropped, after ? index + 1 : index);
       }}
     >
       <header className="nu-card-head">
