@@ -4218,6 +4218,38 @@ everything else.
     form, collapsing it to an empty 32-pixel square with a dropdown hanging off
     it. A control whose size depends on its wrapper will keep doing this
 
+### `/explore` — acting on the answer, not only reading it (§38, §43, §75, §37)
+
+- [x] **Tick boxes on every row, and the bulk bar above them.** The explorer is
+      where somebody composes the narrowest question they can; making them
+      re-find the same rows on an entity list before acting on them was the
+      one step that undid the composing
+  - `useBulk` unchanged — the same hook the entity lists use, handed the
+    explorer's *own* request. That is what makes "select everything matching"
+    mean the question on screen rather than a hand-built copy of it, which is
+    the specific way a bulk action changes rows nobody saw
+  - Offered in the **table only**. A card grid with tick boxes on it is a table
+    wearing a costume, and the scanning views exist for reading (§6)
+- [x] **A star on every row, and in the record drawer** (§38)
+  - One store, and everything that stars writes to it. Starring from where the
+    record *is* rather than from a page that happens to list it, which is the
+    whole difference between a favourite and a bookmark bar somebody curates
+    by hand
+  - **One request for the page, not one per row.** Twenty-five rows asking "am
+    I starred" is twenty-five round trips for a glyph; the bookmark list is
+    small by design and every star reads from the one cached copy
+  - Optimistic, then reconciled from the answer — which *is* the whole list,
+    because that is what keeps `/favorites`' own count right
+  - A bookmark stores the label and the address, refreshed on a re-star, so it
+    survives a rename and a change to a route's shape
+- [x] **Tags on a record from the drawer** (§37)
+  - `TagPicker` was already built and lived only on the three detail pages.
+    The explorer is where somebody *finds* the thing they want to label, and
+    making them open a second screen to label it is how a vocabulary stays
+    unused
+  - Written through the same endpoint `/admin/tags` counts, so a tag applied
+    here appears there with its usage incremented — one store, one count
+
 ### Boards, and knowing where a card will land (§18, §33, §64)
 
 - [x] `/tasks` and `/kanban`: a drag that says what it is about to do

@@ -74,7 +74,7 @@ import {
   ShareAltOutlined,
 } from "@ant-design/icons";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { explorerApi } from "@/api/explorer";
@@ -942,6 +942,25 @@ function BlockSettings({
                 notFoundContent="You have not saved a report yet"
               />
             </Form.Item>
+            {reports.length === 0 && (
+              // Offered with the way out rather than left as an empty select:
+              // the chart builder is where a picture is composed, and this is
+              // the one moment somebody needs to be told that (§76).
+              <Alert
+                type="info"
+                showIcon
+                className="nu-block"
+                message="No saved reports yet"
+                description={
+                  <>
+                    A chart on a page is one you built in the{" "}
+                    <Link to="/charts/builder">chart builder</Link> and saved. Build one, then
+                    come back — this block will draw it with today&apos;s data every time the
+                    file is written.
+                  </>
+                }
+              />
+            )}
             <Form.Item label="Show" extra="The picture, its numbers, or both.">
               <Segmented
                 block

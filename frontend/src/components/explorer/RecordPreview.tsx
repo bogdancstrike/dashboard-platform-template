@@ -11,6 +11,8 @@ import { ApartmentOutlined, CopyOutlined, ExportOutlined, LinkOutlined } from "@
 import { Link, useNavigate } from "react-router-dom";
 
 import { recordsApi } from "@/api/records";
+import { FavoriteStar } from "@/components/records/FavoriteStar";
+import { TagPicker } from "@/components/records/TagPicker";
 import { knownStatusColor } from "@/theme/tokens";
 import { RecordContent } from "./RecordContent";
 import { RecordReadError } from "./RecordReadError";
@@ -50,6 +52,18 @@ export function RecordPreview({ resourceType, recordId, term = "", onClose }: Re
       onClose={onClose}
       title={<span role="heading" aria-level={2} className="nu-preview-title">{data?.title ?? "Record preview"}</span>}
       extra={<Space size={4}>
+        {/* Starring from where the record is, rather than from a page that
+            lists it. `/favorites` reads one store and everything that stars
+            writes to it (§38). */}
+        {data && (
+          <FavoriteStar
+            resourceType={resourceType}
+            recordId={recordId}
+            label={data.title || recordId.slice(0, 8)}
+            url={`${data.path}/${data.id}`}
+            size="middle"
+          />
+        )}
         <Tooltip title="Copy record ID">
           <Button icon={<CopyOutlined />} aria-label="Copy record id"
             onClick={() => void copy(recordId, "Record id")} />
@@ -73,6 +87,13 @@ export function RecordPreview({ resourceType, recordId, term = "", onClose }: Re
             Connections
           </Button>
         </Space>
+        {/* Tags, on the record rather than only on the record's own page.
+            The explorer is where somebody *finds* the thing they want to
+            label, and making them open a second screen to label it is how a
+            vocabulary stays unused. Written through the same endpoint
+            `/admin/tags` counts, so a tag applied here appears there with its
+            usage incremented — one store, one count (§37). */}
+        <TagPicker resourceType={resourceType} recordId={recordId} listPath={data.path} />
         <Tabs key={`${resourceType}:${recordId}`} defaultActiveKey="record" items={[
           { key: "record", label: "Record", children: <RecordContent record={data} term={term} /> },
           { key: "related", label: "Related records", children:

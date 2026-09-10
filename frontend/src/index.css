@@ -3548,3 +3548,9 @@ p a:not(.ant-btn),
 }
 .nu-doc-panel-note { margin: 2px 0 10px !important; font-size: 12px; }
 .nu-doc-panel .ant-form-item { margin-bottom: 12px; }
+
+/* The actions at the end of a result row: star it, or look at it without
+   leaving the list. Kept together so the column is one target group rather
+   than two floating glyphs. */
+.nu-result-actions { display: inline-flex; align-items: center; gap: 2px; }
+.nu-fav-star-on { color: var(--nu-warning, #ca8a04); }

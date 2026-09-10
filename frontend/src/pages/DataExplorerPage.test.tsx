@@ -1,5 +1,5 @@
 import { http, HttpResponse } from "msw";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
@@ -75,5 +75,38 @@ describe("Data Explorer", () => {
       kind: "SEARCH",
       config: { search_id: savedViews[0]!.id },
     });
+  });
+
+  it("ticks rows and acts on them where the question was asked (§43, §75)", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<DataExplorerPage />, { route: "/explore?resource=task" });
+    // A *row*, not the table: the table renders as soon as the columns are
+    // known, and the only checkbox on screen then is the header's.
+    await screen.findByText("Review customer migration");
+
+    const table = screen.getByRole("table");
+    const boxes = within(table).getAllByRole("checkbox");
+    // Every tick box is named. AntD names the header's and leaves the rows
+    // unnamed, which a screen reader reads as a column of identical
+    // "checkbox"es — and axe reports as a missing label.
+    expect(boxes.at(-1)).toHaveAccessibleName(/^Select /);
+    await user.click(boxes.at(-1)!);
+
+    // The bar appears only once something is ticked, and says what it covers.
+    expect(await screen.findByTestId("bulk-bar")).toBeInTheDocument();
+  });
+
+  it("stars a record from the results, into the one favourites store (§38)", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<DataExplorerPage />, { route: "/explore?resource=task" });
+    await screen.findByRole("table");
+
+    const stars = await screen.findAllByRole("button", { name: /^Star / });
+    await user.click(stars[0]!);
+
+    // Unstarring is the same control, which is what tells the reader it took.
+    await waitFor(() =>
+      expect(screen.getAllByRole("button", { name: /^Unstar / }).length).toBeGreaterThan(0),
+    );
   });
 });

@@ -36,6 +36,7 @@ import {
 } from "@/api/explorer";
 import { AdvancedSearchDrawer } from "@/components/explorer/AdvancedSearchDrawer";
 import { RecordPreview } from "@/components/explorer/RecordPreview";
+import { useBulk } from "@/components/records/useBulk";
 import { ExplorerSearch } from "@/components/explorer/ExplorerSearch";
 import { ExplorerResults, type ExplorerRecord } from "@/components/explorer/ExplorerResults";
 import type { QueryNode } from "@/components/explorer/queryTree";
@@ -122,6 +123,20 @@ export default function DataExplorerPage() {
   // numbers on screen already answer a question nobody is asking any more, and
   // saying so is the difference between "thinking" and "apparently ignored me".
   const settling = results.isFetching || request !== debouncedRequest;
+
+  /**
+   * One change over many records (§43, §75).
+   *
+   * The same hook the entity lists use, given the explorer's *own* request —
+   * which is what makes "select everything matching" mean the question on
+   * screen rather than a hand-built copy of it. The explorer is where a
+   * reader composes the narrowest question they can; acting on the answer
+   * without re-finding it somewhere else is the point.
+   */
+  const bulk = useBulk(resource, {
+    request: debouncedRequest,
+    total: results.data?.total ?? 0,
+  });
 
   /** The record shown in the preview drawer, if any. */
   const previewId = params.get("record") ?? "";
@@ -363,6 +378,9 @@ export default function DataExplorerPage() {
         {results.isError && (
           <Alert style={{ marginBottom: 12 }} type="error" showIcon message="This question could not be run" description={errorText(results.error)} />
         )}
+        {/* Above the rows it acts on, and only once something is ticked. A bar
+            that is always there is a bar nobody reads when it matters. */}
+        {bulk.bar}
         {!resource && catalogue.isLoading ? (
           <Skeleton active paragraph={{ rows: 8 }} />
         ) : !resource ? (
@@ -378,6 +396,12 @@ export default function DataExplorerPage() {
             onPage={(nextPage, nextSize) => set({ page: nextPage, page_size: nextSize })}
             onSort={(field, direction) => set({ sort: field, order: direction, page: null })}
             onPreview={(record) => set({ record: record.id, resource: results.data?.resource_type ?? requestedResource }, false)}
+            // Ticking is offered only in the table. A card grid with tick
+            // boxes on it is a table wearing a costume, and the scanning views
+            // exist for reading rather than for acting (§6).
+            {...(view === "table" ? { selection: bulk.rowSelection } : {})}
+            starrable
+            path={resource?.path ?? ""}
           />
         )}
       </Card>
@@ -396,6 +420,8 @@ export default function DataExplorerPage() {
           }}
         />
       )}
+
+      {bulk.dialog}
 
       <RecordPreview
         resourceType={requestedResource}

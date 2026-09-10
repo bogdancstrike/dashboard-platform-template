@@ -12,10 +12,11 @@
 
 import { Button, Card, Empty, List, Space, Table, Tag, Tooltip, Typography } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
-import type { ColumnsType, ColumnType, TablePaginationConfig } from "antd/es/table";
+import type { ColumnsType, ColumnType, TablePaginationConfig, TableProps } from "antd/es/table";
 
 import type { ExplorerField, ExplorerResult, ExplorerView } from "@/api/explorer";
 import { HighlightedText } from "@/components/HighlightedText";
+import { FavoriteStar } from "@/components/records/FavoriteStar";
 import { asText } from "@/lib/text";
 
 const { Text } = Typography;
@@ -44,6 +45,50 @@ export interface ExplorerResultsProps {
   onOpen?: (record: ExplorerRecord) => void;
   onLoadMore?: () => void;
   loadingMore?: boolean;
+  /**
+   * Row selection, spread from `useBulk`.
+   *
+   * Passed in rather than owned here, because a selection is only meaningful
+   * beside the bar that acts on it and the dialog that confirms it — and those
+   * belong to the page. Absent means the list is read-only, which is the
+   * state every scanning view is in: a card grid with tick boxes on it is a
+   * table wearing a costume.
+   */
+  selection?: TableProps<ExplorerRecord>["rowSelection"];
+  /** Where each record lives, so a star can store an address that survives. */
+  path?: string;
+  /** Star each row. Off where a list is a preview rather than a place to work. */
+  starrable?: boolean;
+}
+
+/**
+ * The star on one row.
+ *
+ * Named from the dataset's own title field rather than from the first column,
+ * because the columns are the reader's choice and a bookmark reading "PAID"
+ * helps nobody. The address is the record's own page, stored so the bookmark
+ * survives both a rename and a change to the route's shape (§38).
+ */
+function RowStar({
+  record,
+  result,
+  path,
+}: {
+  record: ExplorerRecord;
+  result: ExplorerResult | undefined;
+  path: string;
+}) {
+  const id = String(record.id);
+  const first = result?.columns?.[0];
+  const label = asText(record[first ?? ""]) || id.slice(0, 8);
+  return (
+    <FavoriteStar
+      resourceType={result?.resource_type ?? ""}
+      recordId={id}
+      label={label}
+      url={path ? `${path}/${id}` : `/explore?resource=${result?.resource_type ?? ""}&record=${id}`}
+    />
+  );
 }
 
 export function ExplorerResults({
@@ -58,6 +103,9 @@ export function ExplorerResults({
   onOpen,
   onLoadMore,
   loadingMore,
+  selection,
+  path = "",
+  starrable = false,
 }: ExplorerResultsProps) {
   const fields = new Map((result?.fields ?? []).map((field) => [field.name, field]));
   const term = result?.query_text ?? "";
@@ -83,12 +131,15 @@ export function ExplorerResults({
     }),
     {
       key: "actions",
-      width: 56,
+      width: starrable ? 92 : 56,
       fixed: "right",
       align: "center",
       title: "",
       render: (_value: unknown, record: ExplorerRecord) => (
-        <PreviewButton record={record} onPreview={onPreview} />
+        <span className="nu-result-actions">
+          {starrable && <RowStar record={record} result={result} path={path} />}
+          <PreviewButton record={record} onPreview={onPreview} />
+        </span>
       ),
     },
   ];
@@ -103,6 +154,7 @@ export function ExplorerResults({
         columns={columns}
         size="middle"
         scroll={{ x: "max-content" }}
+        rowSelection={selection}
         onRow={(record) => ({
           onClick: () => (onOpen ?? onPreview)(record),
           style: { cursor: "pointer" },
@@ -157,7 +209,10 @@ export function ExplorerResults({
                   </div>
                 ))}
               </div>
-              <PreviewButton record={item} onPreview={onPreview} />
+              <span className="nu-result-actions">
+                {starrable && <RowStar record={item} result={result} path={path} />}
+                <PreviewButton record={item} onPreview={onPreview} />
+              </span>
             </div>
           );
           const open = onOpen ?? onPreview;
