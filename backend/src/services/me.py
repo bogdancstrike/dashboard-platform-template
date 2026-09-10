@@ -16,6 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
 from src.core import vocabulary
+from src.services import settings
 from src.core.clock import iso
 from src.core.errors import NotFoundError, ValidationError
 
@@ -184,6 +185,11 @@ def get_profile(session, principal) -> dict[str, Any]:
         "team": _named(team, "slug"),
         "groups": list(principal.groups),
         "permissions": sorted(principal.permissions),
+        # Which *features* are on for this reader, beside which permissions
+        # they hold — the two answer the same shape of question, and a client
+        # that had to ask a second endpoint would draw the page once without
+        # the answer and again with it (§27).
+        "features": settings.enabled_for(session, principal),
         "preferences": merged_preferences(user.preferences),
         "session": {
             "id": principal.session_id,

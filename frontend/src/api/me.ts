@@ -79,6 +79,15 @@ export interface CurrentUser {
   team: { id: string; name: string; slug: string } | null;
   groups: string[];
   permissions: string[];
+  /**
+   * The feature flags that are on for *this* reader (§27).
+   *
+   * Beside the permissions because the two answer the same shape of question,
+   * and computed on the server by the same rollout function the flags screen
+   * reports `on_for_me` with — a browser deciding its own percentage would
+   * disagree with the screen that explains it.
+   */
+  features: string[];
   preferences: UserPreferences;
   session: {
     id: string;

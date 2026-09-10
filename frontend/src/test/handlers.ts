@@ -99,6 +99,19 @@ export const currentUser = {
     "admin.access", "records.view", "records.update",
     "users.view", "health.view", "tags.manage",
   ],
+  // Every flag this product reads, on — so a component test exercises the
+  // feature rather than the empty state behind it. The tests that care about
+  // a flag being *off* patch this fixture.
+  features: [
+    "advanced-search",
+    "bulk-operations",
+    "command-palette",
+    "csv-import",
+    "dashboard-builder",
+    "kanban-board",
+    "report-scheduling",
+    "saved-views",
+  ],
   preferences: {
     appearance: {
       theme: "system" as const,

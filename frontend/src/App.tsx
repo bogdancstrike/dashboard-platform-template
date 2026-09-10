@@ -624,6 +624,7 @@ export default function App() {
           path="errors/session-expired"
           element={<ProblemRoute kind="session_expired" />}
         />
+        <Route path="errors/switched-off" element={<ProblemRoute kind="switched_off" />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

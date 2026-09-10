@@ -55,6 +55,11 @@ import {
  * * **Badge-aware.** An item can name a counter that rides along on the
  *   `/api/me/counts` poll, so "12 waiting on you" is visible without opening
  *   the page.
+ * * **Flag-aware.** An item can name a feature flag (§27), and the shell hides
+ *   it when that flag is off for this reader. `experimental` used to be a
+ *   boolean here with no source of truth behind it — a marking that said "this
+ *   is new" and connected to nothing, while a whole flag screen sat in
+ *   administration changing nothing at all.
  */
 export interface NavItem {
   key: string;
@@ -64,6 +69,15 @@ export interface NavItem {
   permission?: string;
   /** Which counter from the badge poll rides along. */
   badge?: string;
+  /**
+   * The feature flag this item is behind (§27).
+   *
+   * Off means the item is not in the menu *and* the route is not reachable —
+   * a menu that hides a page whose address still works is a menu somebody
+   * routes around. A flag gates a feature; it never gates administration, so
+   * nothing under Administration names one.
+   */
+  flag?: string;
   /** Marks a feature still behind a flag (§1, §27). */
   experimental?: boolean;
   disabled?: boolean;
@@ -85,7 +99,7 @@ export const NAV_GROUPS: NavGroup[] = [
       // landing page is a navigation that disagrees with the logo.
       { key: "/home", label: "Home", icon: <HomeOutlined /> },
       { key: "/dashboard", label: "Dashboard", icon: <DashboardOutlined /> },
-      { key: "/dashboards", label: "My dashboards", icon: <LayoutOutlined />, permission: "dashboards.manage" },
+      { key: "/dashboards", label: "My dashboards", icon: <LayoutOutlined />, permission: "dashboards.manage", flag: "dashboard-builder" },
       { key: "/activity", label: "Activity", icon: <BranchesOutlined /> },
       { key: "/notifications", label: "Notifications", icon: <BellOutlined />, badge: "unread" },
       { key: "/announcements", label: "Announcements", icon: <NotificationOutlined /> },
@@ -107,7 +121,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Work",
     items: [
       { key: "/tasks", label: "Tasks", icon: <CheckSquareOutlined />, permission: "tasks.view", badge: "my_tasks" },
-      { key: "/kanban", label: "Kanban boards", icon: <ProjectOutlined />, permission: "tasks.view" },
+      { key: "/kanban", label: "Kanban boards", icon: <ProjectOutlined />, permission: "tasks.view", flag: "kanban-board" },
             // `automations.manage` and not `tasks.manage`: a rule's condition quotes
       // the fields and values of records its reader may have no other way to
       // see, so reading the list is privileged — and an operator who triages
@@ -192,7 +206,7 @@ export const NAV_GROUPS: NavGroup[] = [
       // find out what the tags *mean*, and it says which permission curating
       // them needs rather than hiding itself (§37, §76).
       { key: "/admin/tags", label: "Tags", icon: <TagsOutlined />, permission: "records.view" },
-      { key: "/import", label: "Import", icon: <ImportOutlined />, permission: "records.import" },
+      { key: "/import", label: "Import", icon: <ImportOutlined />, permission: "records.import", flag: "csv-import" },
       { key: "/exports", label: "Exports", icon: <ContainerOutlined />, permission: "records.export" },
     ],
   },

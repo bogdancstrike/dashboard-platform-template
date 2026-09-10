@@ -47,6 +47,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { errorText } from "@/lib/errors";
 import { asText } from "@/lib/text";
+import { FEATURES, useFeature } from "@/settings/features";
 
 const { Text } = Typography;
 
@@ -67,6 +68,9 @@ export default function DataExplorerPage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  /** Two features of this page live behind flags (§27). */
+  const advancedSearch = useFeature(FEATURES.advancedSearch);
+  const bulkAllowed = useFeature(FEATURES.bulkOperations);
   const [saveOpen, setSaveOpen] = useState(false);
   // "Save as…" inside the advanced editor names the draft condition, which
   // by definition has not been run yet, so the modal is handed that tree
@@ -341,9 +345,17 @@ export default function DataExplorerPage() {
             value={queryText}
             onChange={(next: string) => set({ q: next, page: null })}
           />
-          <Badge count={activeFilterCount} size="small">
-            <Button icon={<BuildOutlined />} onClick={() => setAdvancedOpen(true)}>Advanced</Button>
-          </Badge>
+          {/* Behind a flag (§27), and hidden rather than disabled: a control
+              a platform has switched off is not a control the reader failed
+              to qualify for. Their simple search and their filters are
+              untouched — a flag gates a feature, never access. */}
+          {advancedSearch && (
+            <Badge count={activeFilterCount} size="small">
+              <Button icon={<BuildOutlined />} onClick={() => setAdvancedOpen(true)}>
+                Advanced
+              </Button>
+            </Badge>
+          )}
           <ColumnPicker resource={resource} value={columns} onChange={(next) => set({ columns: next.join(","), page: null })} />
           {scanning && (
             <GroupPicker
@@ -380,7 +392,7 @@ export default function DataExplorerPage() {
         )}
         {/* Above the rows it acts on, and only once something is ticked. A bar
             that is always there is a bar nobody reads when it matters. */}
-        {bulk.bar}
+        {bulkAllowed && bulk.bar}
         {!resource && catalogue.isLoading ? (
           <Skeleton active paragraph={{ rows: 8 }} />
         ) : !resource ? (
@@ -399,14 +411,14 @@ export default function DataExplorerPage() {
             // Ticking is offered only in the table. A card grid with tick
             // boxes on it is a table wearing a costume, and the scanning views
             // exist for reading rather than for acting (§6).
-            {...(view === "table" ? { selection: bulk.rowSelection } : {})}
+            {...(view === "table" && bulkAllowed ? { selection: bulk.rowSelection } : {})}
             starrable
             path={resource?.path ?? ""}
           />
         )}
       </Card>
 
-      {resource && request && (
+      {resource && request && advancedSearch && (
         <AdvancedSearchDrawer
           open={advancedOpen}
           fields={resource.fields}

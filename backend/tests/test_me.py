@@ -220,3 +220,28 @@ def test_me_reads_role_permissions_fresh_on_every_request(client, monkeypatch):
         with session_scope() as session:
             role = session.scalars(select(Role).where(Role.code == "VIEWER")).one()
             role.permissions = original
+
+
+@pytest.mark.database
+def test_the_profile_says_which_features_are_on_for_this_reader(client, monkeypatch):
+    """A flag nothing reads is a switch wired to nothing (§27).
+
+    The profile carries the *features* this reader has beside the permissions
+    they hold, computed with the same `is_on` the flags screen reports
+    `on_for_me` with — because a second implementation of a rollout rule in
+    the browser is how "it says it is on and I do not have it" becomes
+    unanswerable.
+    """
+    headers = _authenticate(monkeypatch, "admin", "administrator")
+    profile = client.get(f"{PREFIX}/api/me", headers=headers).get_json()
+
+    assert isinstance(profile["features"], list)
+    assert all(isinstance(key, str) for key in profile["features"])
+    # Sorted, so two requests to the same reader produce the same document.
+    assert profile["features"] == sorted(profile["features"])
+
+    # And it agrees with the flags screen, which is the whole point of them
+    # sharing a function.
+    flags = client.get(f"{PREFIX}/admin/flags", headers=headers).get_json()
+    on_for_me = sorted(row["key"] for row in flags["items"] if row["on_for_me"])
+    assert profile["features"] == on_for_me

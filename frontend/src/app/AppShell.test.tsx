@@ -76,4 +76,33 @@ describe("authenticated application shell", () => {
     expect(screen.queryByText("Administration")).not.toBeInTheDocument();
     expect(screen.queryByText("Admin content")).not.toBeInTheDocument();
   });
+
+  it("hides a feature that is switched off, and refuses its address (§27)", async () => {
+    // A whole flag system, an administration screen for it, and nothing that
+    // read a flag: toggling one changed no navigation and no page. The
+    // profile now carries the keys that are on for this reader.
+    server.use(
+      http.get("/platform/api/me", ({ request }) =>
+        HttpResponse.json(
+          {
+            ...currentUser,
+            features: currentUser.features.filter((key) => key !== "kanban-board"),
+          },
+          { headers: { "X-Correlation-Id": request.headers.get("X-Correlation-Id") ?? "" } },
+        ),
+      ),
+    );
+
+    renderShell("/kanban");
+
+    // Not in the menu…
+    await waitFor(() =>
+      expect(screen.queryByRole("menuitem", { name: /Kanban boards/ })).not.toBeInTheDocument(),
+    );
+    // …and not reachable by address either, or the menu is one somebody
+    // routes around. Said as "switched off" rather than "forbidden": a
+    // permission is a fact about the reader, and blaming their role for an
+    // administrator's switch is a lie about them.
+    expect(await screen.findByText("This feature is switched off")).toBeInTheDocument();
+  });
 });

@@ -41,6 +41,7 @@ import { landingPath } from "@/pages/PreferencesPage";
 import { usePreferences } from "@/settings/PreferencesProvider";
 import { LOGO } from "@/theme/tokens";
 import { useAppearance } from "@/theme/AppearanceProvider";
+import { useFeatures, type FeatureKey } from "@/settings/features";
 import { NAV_GROUPS, NAV_ITEMS, selectedKeyFor, trailFor } from "./navigation";
 
 const { Header, Sider, Content } = Layout;
@@ -67,6 +68,8 @@ export function AppShell() {
   const screens = Grid.useBreakpoint();
   const { mode, setAppearance, appearance } = useAppearance();
   const auth = useAuth();
+  /** Which features are on for this reader, for the menu and the routes (§27). */
+  const features = useFeatures();
   const impersonation = useImpersonation();
   const { preferences, save: savePreference } = usePreferences();
 
@@ -155,6 +158,10 @@ export function AppShell() {
         type: "group" as const,
         children: group.items
           .filter((item) => auth.can(item.permission))
+          // A feature that is switched off is not in the menu (§27). The route
+          // is refused too, a few lines down — a menu that hides a page whose
+          // address still works is a menu somebody routes around.
+          .filter((item) => !item.flag || features(item.flag as FeatureKey))
           .map((item) => {
             const count = item.badge ? counters[item.badge] : undefined;
             return {
@@ -173,13 +180,24 @@ export function AppShell() {
           }),
       })).filter((group) => group.children.length > 0),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [auth.can, counts.data?.unread, showLabels],
+    [auth.can, counts.data?.unread, showLabels, auth.profile?.features],
   );
 
   const trail = trailFor(location.pathname);
   const activeItem = NAV_ITEMS.find((item) => item.key === selected);
   const forbidden =
     !auth.loading && Boolean(activeItem?.permission) && !auth.can(activeItem?.permission);
+  /**
+   * A page whose feature is switched off.
+   *
+   * Said differently from a permission refusal, and the difference matters: a
+   * permission is about *you* and a flag is about the platform, so "your role
+   * does not include this" would be a lie about the reader. It names the flag,
+   * because the person most likely to arrive here by address is the
+   * administrator who just turned it off (§34, §76).
+   */
+  const switchedOff =
+    !auth.loading && Boolean(activeItem?.flag) && !features(activeItem?.flag as FeatureKey);
 
   return (
     <Layout className="nu-shell">
@@ -384,6 +402,11 @@ export function AppShell() {
                 kind="forbidden"
                 missing={activeItem?.permission ? [activeItem.permission] : []}
               />
+            ) : switchedOff ? (
+              // Not "forbidden": a permission is a fact about the reader, and
+              // saying their role is the reason when an administrator turned
+              // the whole feature off is a lie about them (§27, §76).
+              <ProblemPage kind="switched_off" />
             ) : (
               // Every page renders inside the boundary, and the boundary
               // inside the shell: a fault in one page must not take the

@@ -33,6 +33,7 @@ export type ProblemKind =
   | "session_expired"
   | "forbidden"
   | "not_found"
+  | "switched_off"
   | "server"
   | "maintenance";
 
@@ -80,6 +81,24 @@ export const PROBLEMS: Record<ProblemKind, Problem> = {
     next: "Ask an administrator for it, or go somewhere you can act.",
     retryable: false,
   },
+  /**
+   * A page whose *feature* is off, which is not the same as a page you may
+   * not see (§27).
+   *
+   * Said differently from a permission refusal on purpose: a permission is a
+   * fact about the reader, and telling somebody "your role does not include
+   * this" when an administrator has switched the whole feature off is a lie
+   * about them. The person most likely to arrive here by address is that
+   * administrator, moments after doing it.
+   */
+  switched_off: {
+    status: "info",
+    title: "This feature is switched off",
+    happened:
+      "It is turned off for this platform, or not yet rolled out to you. Nothing about your role is the reason.",
+    next: "An administrator can turn it on under Administration → Feature flags.",
+    retryable: false,
+  },
   not_found: {
     status: "404",
     title: "No page answers to that address",
@@ -123,6 +142,10 @@ export const ERROR_SLUGS: Record<ProblemKind, string> = {
   server: "500",
   maintenance: "maintenance",
   session_expired: "session-expired",
+  // Reached by the shell rather than by address — a feature being off is a
+  // fact about a *route*, not a status somebody navigates to — but it is in
+  // the map so the gallery lists it and the router serves it.
+  switched_off: "switched-off",
 };
 
 /** In the order a reader meets them, which is roughly least to most alarming. */

@@ -434,6 +434,27 @@ def remove_flag(session, key: Any, *, principal) -> dict[str, Any]:
     return {"deleted": True, "key": row.key}
 
 
+def enabled_for(session, principal) -> list[str]:
+    """Every flag key that is on for this reader.
+
+    Published with the profile, beside the permission list, because the two
+    answer the same shape of question — *what may this person see* — and a
+    client that had to ask a second endpoint would render the page once
+    without the answer and again with it.
+
+    Computed with `is_on`, the same function the flags screen reports
+    `on_for_me` with. A flag is a rollout rule, and a second implementation of
+    it in the browser is how "it says it is on and I do not have it" becomes
+    unanswerable.
+    """
+    rows = session.scalars(select(FeatureFlag).where(FeatureFlag.enabled.is_(True))).all()
+    return sorted(
+        row.key
+        for row in rows
+        if is_on(row, user_id=principal.user_id, role_code=principal.role_code)
+    )
+
+
 def is_on(row: FeatureFlag, *, user_id: UUID | None, role_code: str | None) -> bool:
     """Whether one flag is on for one person.
 

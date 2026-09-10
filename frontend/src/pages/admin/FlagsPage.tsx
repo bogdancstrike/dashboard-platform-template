@@ -120,7 +120,14 @@ export default function FlagsPage() {
     queryFn: ({ signal }) => settingsApi.flags(state ? { state } : {}, signal),
   });
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin-flags"] });
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: ["admin-flags"] });
+    // And the profile, which carries the features that are on for this reader
+    // (§27). Without it, turning a flag on left the navigation unchanged
+    // until a reload — which is precisely the "this screen does nothing"
+    // impression the flags page used to give.
+    void queryClient.invalidateQueries({ queryKey: ["me"] });
+  };
 
   const write = useMutation({
     mutationFn: ({ key, body }: { key: string; body: Record<string, unknown> }) =>
