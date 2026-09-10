@@ -12,7 +12,13 @@
  */
 
 import { Button, Space, Tag, Tooltip, Typography } from "antd";
-import { DeleteOutlined, HomeFilled, SettingOutlined, TeamOutlined } from "@ant-design/icons";
+import {
+  CopyOutlined,
+  DeleteOutlined,
+  HomeFilled,
+  SettingOutlined,
+  TeamOutlined,
+} from "@ant-design/icons";
 
 import type { SavedDashboard } from "@/api/dashboards";
 import { EdgeTag } from "@/components/EdgeTag";
@@ -28,13 +34,18 @@ const SHOWN_KINDS = 5;
 export function DashboardCard({
   dashboard,
   open,
+  canCopy = false,
   onOpen,
+  onCopy,
   onSettings,
   onDelete,
 }: {
   dashboard: SavedDashboard;
   open: boolean;
+  /** Whether this reader may own dashboards, and so may take a copy. */
+  canCopy?: boolean;
   onOpen: () => void;
+  onCopy?: () => void;
   onSettings: () => void;
   onDelete: () => void;
 }) {
@@ -75,11 +86,26 @@ export function DashboardCard({
           )}
         </Space>
 
-        {dashboard.can_edit && (
-          // Stopped from bubbling: the card itself is the open control, and a
-          // click on Delete that also opened the dashboard would be a delete
-          // confirmation over a page that just changed underneath it.
-          <Space size={0} onClick={(event) => event.stopPropagation()}>
+        {/* Stopped from bubbling: the card itself is the open control, and a
+            click on Delete that also opened the dashboard would be a delete
+            confirmation over a page that just changed underneath it. */}
+        <Space size={0} onClick={(event) => event.stopPropagation()}>
+          {/* A colleague's layout, taken as your own. On the card rather than
+              only inside the dashboard, because the gallery is where somebody
+              is comparing layouts and deciding which one to work from. */}
+          {!dashboard.can_edit && canCopy && onCopy && (
+            <Tooltip title="Make a copy you can change">
+              <Button
+                type="text"
+                size="small"
+                aria-label={`Make a copy of ${dashboard.name}`}
+                icon={<CopyOutlined />}
+                onClick={onCopy}
+              />
+            </Tooltip>
+          )}
+          {dashboard.can_edit && (
+            <>
             <Tooltip title="Settings and sharing">
               <Button
                 type="text"
@@ -99,8 +125,9 @@ export function DashboardCard({
                 onClick={onDelete}
               />
             </Tooltip>
-          </Space>
-        )}
+            </>
+          )}
+        </Space>
       </div>
 
       <Paragraph type="secondary" className="nu-board-desc" ellipsis={{ rows: 2 }}>

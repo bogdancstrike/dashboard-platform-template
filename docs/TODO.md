@@ -4086,6 +4086,71 @@ everything else.
     see that report is decided when the widget is drawn, by the endpoint that
     owns it. A check at save time would go stale the moment its owner changed
     the audience
+- [x] **The modules are widgets too** — Tasks, Projects, Mail, Calendar,
+      Notifications, Announcements, Files, Data explorer, Relationships and
+      Favourites, plus `ANALYTICS` (a dataset's whole metric strip), `MAP`
+      (records on a map) and `CHART` (any of the chart builder's thirteen
+      pictures, chosen as configuration rather than as a widget kind per shape)
+  - **A dashboard whose widgets are only charts is a reporting page.** These
+    are what make it the place somebody starts their day: the work waiting in a
+    lane, the thread nobody has answered, what lands in the calendar this week
+  - Each is answered by *that module's own endpoint* under *that module's own
+    permission* — mail is `/api/mail/threads`, the calendar is the same window
+    `/calendar` expands. A widget that fetched differently from its page would
+    be a second answer to one question
+  - **The server does not offer what it would refuse.** `MODULE_PERMISSIONS`
+    filters the kinds published to the builder, so somebody without
+    `mail.access` is never handed a Mail card that draws a 403 the moment it
+    lands on the grid (§76)
+  - **Each says how to see the whole of it.** A card showing six of two hundred
+    rows with no way through makes somebody hunt the navigation for the page
+    they were just looking at
+  - Twenty-six kinds is a wall in one grid, so the picker and the kind select
+    are grouped into five families: numbers, charts, records, your modules, and
+    things you saved
+- [x] Rearranging made easier to *aim*
+  - **The whole heading is the drag handle.** A six-pixel grip is a target
+    people miss and then conclude the layout is stuck
+  - Four resize handles rather than one — a corner is precise, the edges are
+    forgiving, and widening a card is the commonest resize there is
+  - **A gesture says what it is about to do**: the card carries its size in
+    columns × rows while it moves, the rest of the grid steps back, and the
+    drop target reads as a target. The question mid-drag is "will it fit", and
+    a grid that answers it after the drop makes people undo
+  - Arrow keys move the focused card and shift-arrow resizes it, which is close
+    enough to the drag that a whole layout can be built from a keyboard without
+    feeling like the long way round (§54). "Set a size" names the four sizes
+    somebody actually means, rather than the one they arrive at by dragging
+  - `isBounded`, and a per-kind minimum applied on the client as well as the
+    server: a card that lands somewhere other than where it was released reads
+    as a bug in the drag
+  - **The drag is applied before it is confirmed.** The layout was already
+    saved on drop; what was missing was the half-second in between, where the
+    card snapped back to where it started and read as a failed drag. Optimistic
+    against the query cache, restored from the server on a refusal (§73)
+- [x] State that survives a refresh, in the right one of three places (§72)
+  - The layout, the name and the audience are the *object* and live on the
+    server. Which dashboard is open is the *address* and lives in the URL (§69)
+  - Whether **you** had the editor open, and which period **you** are reading a
+    colleague's dashboard over, are neither: nobody else should see them, they
+    must not change a shared object, and they should still be there when you
+    come back. `lib/sticky.ts` + `hooks/useSticky.ts`, namespaced and
+    versioned, and every read and write survives a browser that refuses storage
+  - The period picker moved into the dashboard's own toolbar, where a reader
+    reaches for it, instead of living only in the owner's settings drawer
+- [x] Sharing became a drawer of its own, and copying made it useful
+  - Sharing is not a setting. It was one segmented control among six fields,
+    which is how a dashboard goes public because a control happened to sit next
+    to the save button. Now: what each scope means in the sentence under it,
+    who has access today with the owner marked, and the link to paste
+  - **"Make a copy"** — `POST /api/dashboards/<id>/duplicate`. Without it the
+    only way to adapt a colleague's layout is to rebuild fourteen widgets by
+    hand, which is how one shared dashboard becomes fourteen private ones that
+    slowly disagree. The copy is private and shares nothing: inheriting the
+    original's audience would publish your adaptation to their members
+  - Named uniquely on the way in — "Revenue", then "Revenue (2)" — because a
+    copy that takes the original's name is the moment somebody edits the wrong
+    one
 
 ### `/announcements` — system messages (§17)
 

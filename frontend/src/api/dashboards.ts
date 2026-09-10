@@ -29,10 +29,31 @@ export type WidgetKind =
   | "BAR_CHART"
   | "PIE_CHART"
   | "HEATMAP"
+  /** A chart with the whole vocabulary — the picture is configuration. */
+  | "CHART"
+  /** The dataset's declared metrics as a strip, the way `/analytics` opens. */
+  | "ANALYTICS"
+  /** Records on a map, from the same places endpoint `/maps` reads. */
+  | "MAP"
   /** A saved report — the chart builder's own output, drawn where it was left. */
   | "REPORT"
   /** A saved search — a question composed in the explorer, answered here. */
-  | "SEARCH";
+  | "SEARCH"
+  // ── modules ───────────────────────────────────────────────────────────
+  // A window onto a page of the product rather than a question about a
+  // dataset. Each is answered by that module's own endpoint, under that
+  // module's own permission — so a widget is the page in miniature and not a
+  // second implementation of it.
+  | "TASKS"
+  | "MAIL"
+  | "FILES"
+  | "NOTIFICATIONS"
+  | "PROJECTS"
+  | "ANNOUNCEMENTS"
+  | "EXPLORER"
+  | "RELATIONSHIPS"
+  | "FAVORITES"
+  | "CALENDAR";
 
 /**
  * What one widget asks.
@@ -62,6 +83,30 @@ export interface WidgetConfig {
   report_id?: string;
   /** A saved search this widget answers, instead of an inline query. */
   search_id?: string;
+  /** For `CHART`: which picture, from the chart builder's own vocabulary. */
+  chart?: string;
+
+  // ── module options ────────────────────────────────────────────────────
+  // Each module widget reads only the keys its own module understands; the
+  // server drops the rest rather than storing configuration nothing reads.
+  /** `TASKS`: one kanban board's lanes, instead of the task dataset. */
+  board_id?: string;
+  /** `TASKS`, `FILES`, `PROJECTS`: narrowed to this reader. */
+  mine?: boolean;
+  /** `TASKS`, `PROJECTS`: one state only. */
+  status?: string;
+  /** `MAIL`: which folder. */
+  folder?: string;
+  /** `MAIL`, `NOTIFICATIONS`: only what has not been read. */
+  unread_only?: boolean;
+  /** `FILES`: one folder of the tree. */
+  folder_id?: string;
+  /** `NOTIFICATIONS`, `ANNOUNCEMENTS`: one category. */
+  category?: string;
+  /** `CALENDAR`: how far ahead to look. */
+  days?: number;
+  /** `FAVORITES`: bookmarks, or the places you have been. */
+  view?: string;
 }
 
 export interface DashboardWidget {
@@ -167,4 +212,13 @@ export const dashboardsApi = {
     api.delete<SavedDashboard>(`/api/dashboards/${id}/widgets/${widgetId}`),
   arrange: (id: string, widgets: Placement[]) =>
     api.put<SavedDashboard>(`/api/dashboards/${id}/arrange`, { widgets }),
+
+  /**
+   * A private copy of a dashboard, owned by whoever asked for it.
+   *
+   * What makes sharing worth having: a colleague's layout is something to
+   * adopt and adapt, not only to look at. The copy shares nothing — inheriting
+   * the original's audience would publish your adaptation to their members.
+   */
+  duplicate: (id: string) => api.post<SavedDashboard>(`/api/dashboards/${id}/duplicate`, {}),
 };

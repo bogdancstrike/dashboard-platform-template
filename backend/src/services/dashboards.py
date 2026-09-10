@@ -64,6 +64,14 @@ WIDGET_KINDS = frozenset({
     "BAR_CHART",
     "PIE_CHART",
     "HEATMAP",
+    # A chart with the *whole* vocabulary rather than five fixed shapes: the
+    # picture is part of the configuration, so a widget can be a treemap or a
+    # scatter without a widget kind per drawing.
+    "CHART",
+    # The metric strip the analytics workspace opens with — several declared
+    # numbers rather than one, which is what a dataset's headline actually is.
+    "ANALYTICS",
+    "MAP",
     # The two that put something the reader *already made* on the grid, rather
     # than asking them to describe it again. A chart composed in the chart
     # builder is a saved report; a question composed in the explorer is a saved
@@ -71,12 +79,73 @@ WIDGET_KINDS = frozenset({
     # widget that points at one inherits all of that instead of copying it.
     "REPORT",
     "SEARCH",
+    # ── modules ──────────────────────────────────────────────────────────
+    # A dashboard whose widgets are only charts is a reporting page. These put
+    # the *product* on the grid: the work waiting in Tasks, the unread thread
+    # in Mail, what lands in the calendar this week. Each is answered by the
+    # module's own endpoint under the module's own permission, so a widget is
+    # a window onto a page rather than a second implementation of it.
+    "TASKS",
+    "MAIL",
+    "FILES",
+    "NOTIFICATIONS",
+    "PROJECTS",
+    "ANNOUNCEMENTS",
+    "EXPLORER",
+    "RELATIONSHIPS",
+    "FAVORITES",
+    "CALENDAR",
 })
 
+#: Widgets that are a window onto a module rather than a question about a
+#: dataset. They name no entity — the module decides what it is about — and
+#: each is gated on the permission that gates the page it mirrors, so the
+#: builder never offers a card that could only ever say "forbidden".
+#:
+#: A kind mapped to `None` needs nothing beyond being signed in, which is the
+#: same rule its page uses: your own notifications and your own bookmarks are
+#: facts about *you*.
+MODULE_PERMISSIONS: dict[str, str | None] = {
+    "TASKS": "tasks.view",
+    "MAIL": "mail.access",
+    "FILES": "files.view",
+    "NOTIFICATIONS": None,
+    "PROJECTS": "records.view",
+    "ANNOUNCEMENTS": None,
+    "EXPLORER": "records.view",
+    "RELATIONSHIPS": "records.view",
+    "FAVORITES": None,
+    "CALENDAR": "calendar.view",
+}
+
+MODULE_KINDS = frozenset(MODULE_PERMISSIONS)
+
+#: What each module widget may be told, and how to read it. Anything else the
+#: caller sends is dropped rather than stored: a config that accumulates keys
+#: nothing reads is a config nobody can later reason about.
+#:
+#: `"flag"` is a boolean, `"text"` a short string, `"count"` a small positive
+#: number, `"id"` a UUID. Shallow on purpose — the module's own endpoint is
+#: what actually answers the question, and re-deriving its vocabulary here
+#: would be a second copy of it.
+MODULE_OPTIONS: dict[str, dict[str, str]] = {
+    "TASKS": {"board_id": "id", "mine": "flag", "status": "text"},
+    "MAIL": {"folder": "text", "unread_only": "flag"},
+    "FILES": {"folder_id": "id", "mine": "flag"},
+    "NOTIFICATIONS": {"unread_only": "flag", "category": "text"},
+    "PROJECTS": {"status": "text", "mine": "flag"},
+    "ANNOUNCEMENTS": {"category": "text"},
+    "EXPLORER": {"entity": "text"},
+    "RELATIONSHIPS": {"entity": "text"},
+    "FAVORITES": {"view": "text"},
+    "CALENDAR": {"days": "count"},
+}
+
 #: Kinds that read a dataset directly. The platform-wide feeds name no entity,
-#: and the two that reference a saved thing take their dataset from it — so the
-#: entity is required of these rather than of all of them.
-DATASET_KINDS = WIDGET_KINDS - {"ACTIVITY", "ALERTS", "REPORT", "SEARCH"}
+#: the modules take their subject from the module, and the two that reference a
+#: saved thing take their dataset from it — so the entity is required of these
+#: rather than of all of them.
+DATASET_KINDS = WIDGET_KINDS - {"ACTIVITY", "ALERTS", "REPORT", "SEARCH"} - MODULE_KINDS
 
 #: What each referencing kind must name, and where that thing lives.
 REFERENCE_KINDS: dict[str, tuple[str, str]] = {
@@ -106,12 +175,27 @@ DEFAULT_SIZES: dict[str, tuple[int, int]] = {
     "BAR_CHART": (6, 2),
     "PIE_CHART": (4, 2),
     "HEATMAP": (6, 2),
+    "CHART": (6, 2),
+    "ANALYTICS": (6, 1),
+    "MAP": (6, 3),
     "LIST": (4, 2),
     "TABLE": (6, 2),
     "ALERTS": (4, 2),
     "ACTIVITY": (4, 2),
     "REPORT": (6, 2),
     "SEARCH": (4, 2),
+    # The modules. Wider than a chart where the content is rows of text, and
+    # taller where it is a feed somebody scans rather than a number they read.
+    "TASKS": (6, 3),
+    "MAIL": (4, 3),
+    "FILES": (4, 2),
+    "NOTIFICATIONS": (4, 2),
+    "PROJECTS": (6, 3),
+    "ANNOUNCEMENTS": (4, 2),
+    "EXPLORER": (4, 2),
+    "RELATIONSHIPS": (4, 2),
+    "FAVORITES": (3, 2),
+    "CALENDAR": (4, 3),
 }
 
 #: What a widget is called when the caller did not say. A card headed "KPI"
@@ -124,17 +208,47 @@ _TITLES: dict[str, str] = {
     "BAR_CHART": "Comparison",
     "PIE_CHART": "Share of the whole",
     "HEATMAP": "Where it concentrates",
+    "CHART": "A chart",
+    "ANALYTICS": "The headline numbers",
+    "MAP": "Where it is",
     "LIST": "Newest records",
     "TABLE": "Records",
     "ALERTS": "What needs attention",
     "ACTIVITY": "Recent activity",
     "REPORT": "A saved report",
     "SEARCH": "A saved search",
+    "TASKS": "Work in progress",
+    "MAIL": "Mail",
+    "FILES": "Recent files",
+    "NOTIFICATIONS": "Notifications",
+    "PROJECTS": "Projects",
+    "ANNOUNCEMENTS": "Announcements",
+    "EXPLORER": "Saved searches",
+    "RELATIONSHIPS": "Most connected",
+    "FAVORITES": "Favourites",
+    "CALENDAR": "What is coming up",
 }
 
 
 def _default_title(kind: str) -> str:
     return _TITLES.get(kind, kind.replace("_", " ").title())
+
+
+def _offerable(principal) -> set[str]:
+    """The kinds a builder may put in front of *this* reader.
+
+    Every kind but the modules is answered by an endpoint this one already
+    required `records.view` for. The modules are windows onto other pages, and
+    a window onto a page you may not open is a card that says forbidden
+    forever — so they are filtered out here rather than refused later.
+    """
+    return {
+        kind
+        for kind in WIDGET_KINDS
+        if kind not in MODULE_PERMISSIONS
+        or MODULE_PERMISSIONS[kind] is None
+        or principal.can(MODULE_PERMISSIONS[kind])
+    }
 
 
 def listing(session, *, principal) -> dict[str, Any]:
@@ -149,7 +263,11 @@ def listing(session, *, principal) -> dict[str, Any]:
     return {
         "items": [_serialize(session, row, principal, widgets=False) for row in rows],
         "total": len(rows),
-        "widget_kinds": sorted(WIDGET_KINDS),
+        # Only the kinds this reader could actually see answered. A module
+        # widget is gated on the permission that gates the page it mirrors, so
+        # somebody without `mail.access` is not offered a Mail card that would
+        # draw a 403 the moment it landed on the grid (§76).
+        "widget_kinds": sorted(_offerable(principal)),
         "columns": COLUMNS,
         # The datasets a widget may point at, so the builder cannot offer one
         # this reader may not read.
@@ -283,6 +401,78 @@ def update(session, dashboard_id: Any, payload: dict[str, Any], *, principal) ->
         message=f"updated dashboard {row.name}", activity=False,
     )
     return _serialize(session, row, principal)
+
+
+def duplicate(session, dashboard_id: Any, *, principal) -> dict[str, Any]:
+    """A private copy of a dashboard, owned by whoever asked for it.
+
+    This is what makes sharing *useful* rather than merely visible. A colleague
+    publishes the layout they work from; you can open it, but you cannot change
+    it — and the thing you actually want is that layout with your own filters
+    on it. Without a copy the only route is rebuilding fourteen widgets by
+    hand, which is how a shared dashboard turns into fourteen private ones that
+    slowly disagree.
+
+    The copy is `PRIVATE` and shares nothing: inheriting the original's
+    audience would publish somebody's adaptation to the original's members the
+    moment it was made. Its widgets are copied by *value* — geometry and
+    config — because a widget is a reference to a question already; the
+    reports and searches it names stay the ones it named.
+    """
+    principal.require(MANAGE_PERMISSION)
+    source = _visible(session, dashboard_id, principal)
+
+    row = Dashboard(
+        owner_id=principal.user_id,
+        organization_id=principal.organization_id,
+        name=_copy_name(session, source.name, principal),
+        slug=_slug(source.name),
+        description=source.description,
+        scope="PRIVATE",
+        icon=source.icon,
+        is_home=False,
+        columns=source.columns or COLUMNS,
+        filters=dict(source.filters or {}),
+    )
+    session.add(row)
+    session.flush()
+    for widget in sorted(source.widgets, key=lambda item: (item.position, item.y, item.x)):
+        row.widgets.append(DashboardWidget(
+            kind=widget.kind,
+            title=widget.title,
+            subtitle=widget.subtitle,
+            x=widget.x, y=widget.y, width=widget.width, height=widget.height,
+            position=widget.position,
+            config=dict(widget.config or {}),
+        ))
+    session.flush()
+    audit.record(
+        session, action="CREATE", resource_type=KIND, resource_id=row.id,
+        resource_label=row.name, principal=principal, after=_state(row),
+        message=f"copied dashboard {source.name}", activity=False,
+    )
+    return _serialize(session, row, principal)
+
+
+def _copy_name(session, name: str, principal) -> str:
+    """"Revenue" once, then "Revenue (2)" — never two things with one name.
+
+    A copy that silently takes the original's name is indistinguishable from
+    the original in every list that shows it, which is the moment somebody
+    edits the wrong one.
+    """
+    taken = set(session.scalars(
+        select(Dashboard.name).where(
+            Dashboard.owner_id == principal.user_id, Dashboard.deleted_at.is_(None)
+        )
+    ).all())
+    if name not in taken:
+        return name[:200]
+    for suffix in range(2, 100):
+        candidate = f"{name} ({suffix})"[:200]
+        if candidate not in taken:
+            return candidate
+    return f"{name} (copy)"[:200]
 
 
 def remove(session, dashboard_id: Any, *, principal) -> dict[str, Any]:
@@ -521,6 +711,19 @@ def _config(raw: Any, *, kind: str, principal) -> dict[str, Any]:
     config = dict(raw or {})
     entity = str(config.get("entity") or "").strip()
 
+    if kind in MODULE_KINDS:
+        # A module widget is checked here as well as when it is drawn: a
+        # dashboard shared with somebody who lacks `mail.access` still holds
+        # the card, and its body says so — but *adding* one you could never
+        # see is a mistake worth refusing at the point it is made.
+        needed = MODULE_PERMISSIONS.get(kind)
+        if needed and not principal.can(needed):
+            raise ValidationError(
+                "That module is not one your role can open.",
+                details={"kind": kind, "permission": needed},
+            )
+        return _module_options(config, kind=kind, principal=principal)
+
     if kind in REFERENCE_KINDS:
         key, noun = REFERENCE_KINDS[kind]
         reference = str(config.get(key) or "").strip()
@@ -559,6 +762,42 @@ def _config(raw: Any, *, kind: str, principal) -> dict[str, Any]:
         raise ValidationError("config.filters must be an object.")
 
     return config
+
+
+def _module_options(config: dict[str, Any], *, kind: str, principal) -> dict[str, Any]:
+    """What a module widget was told, keeping only what that module reads.
+
+    Unknown keys are dropped rather than refused. A config is a place a client
+    would otherwise accumulate scratch state, and a stored key nothing reads is
+    a key somebody later has to work out the meaning of; but refusing the whole
+    write over one stray field would make every client upgrade a breaking
+    change.
+    """
+    declared = MODULE_OPTIONS.get(kind, {})
+    out: dict[str, Any] = {}
+    for key, shape in declared.items():
+        if key not in config or config[key] in (None, ""):
+            continue
+        value = config[key]
+        if shape == "flag":
+            out[key] = bool(value)
+        elif shape == "count":
+            try:
+                out[key] = max(1, min(365, int(value)))
+            except (TypeError, ValueError) as exc:
+                raise ValidationError(f"config.{key} must be a whole number.") from exc
+        elif shape == "id":
+            out[key] = str(parse_uuid(value, field=key))
+        else:
+            text = str(value).strip()[:120]
+            # An `entity` on a module widget names which dataset the module is
+            # pointed at — the explorer's saved searches for one resource, a
+            # relationship map rooted in one — so it is checked against the
+            # reader's own permissions exactly as a chart's dataset is.
+            if key == "entity":
+                resource_for(text, principal=principal)
+            out[key] = text
+    return out
 
 
 def _geometry(

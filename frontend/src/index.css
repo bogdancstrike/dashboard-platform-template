@@ -569,14 +569,34 @@ a:hover > .nu-tag-chip { border-color: var(--nu-accent); }
 /* The duplicate control rides alongside the library's own rule actions, which
    have no extension point of their own. It stays out of the way until the row
    is hovered or the button itself is focused, so the action bar reads the same
-   as it did before for anyone not looking for it. */
-.nu-query-builder .group-or-rule-container { position: relative; }
+   as it did before for anyone not looking for it.
+
+   The two rules that matter are the two that were missing, and together they
+   made Delete duplicate the row instead:
+
+   * **The row is given room for it.** The control is positioned against the
+     container's right edge, and the library puts its own delete button in
+     exactly that spot — so without reserving the space the overlay sits on top
+     of Delete and swallows the click. The padding pushes the library's action
+     bar left by the width of one button; nothing overlaps.
+   * **A control nobody can see takes no clicks.** `opacity: 0` hides a button
+     and leaves it hit-testable, which is the same bug wearing a different
+     hat. It is only a pointer target once it is actually visible. */
+.nu-query-builder .query-builder .group-or-rule-container { position: relative; }
+.nu-query-builder .query-builder .group-or-rule-container > .rule,
+.nu-query-builder .query-builder .group-or-rule-container > .group > .group--header,
+.nu-query-builder .query-builder .group-or-rule-container > .rule_group > .group--header,
+.nu-query-builder .query-builder .group-or-rule-container > .rule_group_ext > .group--header {
+  padding-right: 38px;
+}
 .nu-query-duplicate {
-  position: absolute; top: 6px; right: 6px; z-index: 2;
-  color: var(--nu-text-secondary); opacity: 0; transition: opacity 120ms ease;
+  position: absolute; top: 7px; right: 6px; z-index: 2;
+  color: var(--nu-text-secondary);
+  opacity: 0; pointer-events: none; transition: opacity 120ms ease;
 }
 .nu-query-builder .group-or-rule-container:hover > .nu-query-duplicate,
-.nu-query-duplicate:focus-visible { opacity: 1; }
+.nu-query-builder .group-or-rule-container:focus-within > .nu-query-duplicate,
+.nu-query-duplicate:focus-visible { opacity: 1; pointer-events: auto; }
 .nu-query-duplicate:hover { color: var(--nu-accent-ink); }
 /* The advanced editor is a column: guidance, the tree, what it reads as, and
    the actions that run or name it. The action row is sticky so the match count
@@ -1491,11 +1511,176 @@ mark.nu-mark {
 .nu-widget-scroll:focus-visible {
   outline: 2px solid var(--nu-accent); outline-offset: -2px; border-radius: 4px;
 }
-/* The grip is the drag handle react-grid-layout is told to use, so the rest of
-   a widget's heading — and everything in its body — stays clickable. */
+/* The whole heading is the drag handle, which is what makes a card easy to
+   pick up: a six-pixel grip is a target people miss and then conclude the
+   layout is stuck. Only the controls in the heading opt out. */
 .nu-widget-grip { cursor: grab; }
-.nu-rgl .react-grid-item.react-draggable-dragging { opacity: 0.85; z-index: 3; }
+.nu-widget-card > .ant-card-head { cursor: grab; user-select: none; }
+.nu-widget-card > .ant-card-head .nu-widget-nodrag { cursor: default; }
+.nu-rgl .react-grid-item.react-draggable-dragging { z-index: 5; }
+.nu-rgl .react-grid-item.react-draggable-dragging .nu-widget-card {
+  cursor: grabbing;
+  box-shadow: var(--nu-shadow-raised, 0 12px 28px rgb(0 0 0 / 22%));
+  border-color: var(--nu-accent);
+}
+/* While a gesture is in flight the rest of the grid steps back, so the card
+   being moved and the space it is heading for are the only two things
+   competing for attention. */
+.nu-rgl.is-gesturing .react-grid-item:not(.is-active):not(.react-draggable-dragging)
+  .nu-widget-card { opacity: 0.55; }
+/* What the card will be if the gesture ends here — columns × rows, the same
+   vocabulary the menu and the server use. */
+.nu-widget-size {
+  position: absolute; top: 8px; right: 10px; z-index: 6;
+  padding: 1px 7px; border-radius: 999px;
+  background: var(--nu-accent); color: #fff;
+  font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+/* Four handles instead of one, and each one visible while the layout can be
+   changed. An invisible handle is a handle nobody knows is there. */
+.nu-rgl .react-resizable-handle { opacity: 0; transition: opacity 120ms ease; }
+.nu-rgl .react-grid-item:hover > .react-resizable-handle,
+.nu-rgl .react-grid-item:focus-within > .react-resizable-handle { opacity: 1; }
+.nu-rgl .react-resizable-handle-e,
+.nu-rgl .react-resizable-handle-s {
+  background: transparent;
+}
+.nu-rgl .react-resizable-handle-e::after,
+.nu-rgl .react-resizable-handle-s::after {
+  content: ""; position: absolute; border: 0; border-radius: 2px;
+  background: var(--nu-accent);
+}
+.nu-rgl .react-resizable-handle-e::after {
+  top: 50%; right: 3px; width: 3px; height: 26px; transform: translateY(-50%);
+}
+.nu-rgl .react-resizable-handle-s::after {
+  left: 50%; bottom: 3px; height: 3px; width: 26px; transform: translateX(-50%);
+}
+/* The card itself is focusable while editing, because the arrow keys move it
+   (§54). The ring has to read as "this card is selected", not as a stray
+   outline on a container. */
+.nu-widget:focus-visible {
+  outline: 2px solid var(--nu-accent); outline-offset: 2px;
+  border-radius: var(--nu-radius-card);
+}
+.nu-widget-kind { display: inline-flex; align-items: center; font-size: 13px; }
 .nu-widget-subtitle { display: block; font-size: 12px; margin-bottom: 6px; }
+
+/* ── what the module widgets draw (§45) ─────────────────────────────────
+   Each of these is a page of the product at card size. The shared vocabulary
+   is deliberate: one row shape, one dim caption, one "and the rest" link, so
+   a dashboard holding six different modules still reads as one surface. */
+
+/* The link every module ends with. A card showing six of two hundred rows and
+   offering no way through makes somebody hunt the navigation for the page they
+   were just looking at. */
+.nu-widget-more {
+  display: block; margin-top: 6px; padding-top: 6px;
+  border-top: 1px solid var(--nu-border-subtle);
+  font-size: 12px; color: var(--nu-text-secondary);
+}
+.nu-widget-more:hover { color: var(--nu-accent-ink); }
+.nu-widget-dim { font-size: 11.5px; white-space: nowrap; }
+.nu-widget-star { color: var(--nu-warning, #ca8a04); }
+/* Unread is weight and a rule, never colour alone (§55). */
+.nu-widget-scroll .ant-list-item.is-unread {
+  box-shadow: inset 2px 0 0 var(--nu-accent);
+  padding-left: 6px;
+}
+
+/* Lane counts — a board or a status vocabulary, counted by the server. */
+.nu-widget-lanes {
+  display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;
+}
+.nu-widget-lane {
+  flex: 1 1 60px; min-width: 60px;
+  display: flex; flex-direction: column; gap: 1px;
+  padding: 5px 8px; border-radius: var(--nu-radius-control, 6px);
+  border: 1px solid var(--nu-border-subtle);
+  border-top: 2px solid var(--nu-border-strong);
+  background: var(--nu-bg); color: inherit;
+}
+.nu-widget-lane:hover { border-color: var(--nu-accent); }
+.nu-widget-lane.is-over { border-top-color: var(--nu-warning, #ca8a04); }
+.nu-widget-lane-count {
+  font-size: 17px; font-weight: 650; line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.nu-widget-lane-name {
+  font-size: 11px; color: var(--nu-text-secondary);
+  text-transform: capitalize; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nu-widget-lane-limit { font-size: 10.5px; color: var(--nu-text-tertiary); }
+
+/* Projects: a bar per row, because "how far along" is the question a portfolio
+   is read for and a state name answers it only coarsely. */
+.nu-widget-projects { list-style: none; margin: 0; padding: 0; }
+.nu-widget-projects > li + li { margin-top: 8px; }
+.nu-widget-project { display: block; color: inherit; }
+.nu-widget-project-head {
+  display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px;
+}
+.nu-widget-project-head > .ant-typography:first-child { flex: 1; min-width: 0; }
+
+/* Mail: sender, subject, and the marks somebody scans for. */
+.nu-widget-mail { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; color: inherit; }
+.nu-widget-mail-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.nu-widget-mail-subject { display: block; }
+.nu-widget-mail-marks { flex: none; color: var(--nu-text-tertiary); }
+
+.nu-widget-file { min-width: 0; flex: 1; }
+.nu-widget-file .ant-typography { min-width: 0; }
+
+/* Severity as a dot rather than a tinted row: a tinted row cannot then also
+   carry an unread rule, and coloured text at 11px fails contrast (§55). */
+.nu-widget-severity {
+  width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none;
+  background: var(--nu-text-tertiary);
+}
+.nu-widget-severity[data-severity="warning"] { background: var(--nu-warning, #ca8a04); }
+.nu-widget-severity[data-severity="critical"] { background: var(--nu-danger, #dc2626); }
+
+/* The calendar agenda. A month grid at card size is forty-two boxes with
+   nothing readable in them; what a person wants is the next few things. */
+.nu-widget-agenda { list-style: none; margin: 0; padding: 0; }
+.nu-widget-agenda-day {
+  display: block; margin: 8px 0 2px; font-size: 11px; font-weight: 650;
+  letter-spacing: 0.02em; text-transform: uppercase;
+  color: var(--nu-text-tertiary);
+}
+.nu-widget-agenda > li:first-child .nu-widget-agenda-day { margin-top: 0; }
+.nu-widget-agenda-row {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0;
+  padding: 2px 0; color: inherit;
+}
+.nu-widget-agenda-row > .ant-typography { flex: 1; min-width: 0; }
+.nu-widget-agenda-time {
+  flex: none; width: 48px; font-size: 11.5px;
+  font-variant-numeric: tabular-nums; color: var(--nu-text-secondary);
+}
+.nu-widget-agenda-bar { flex: none; width: 3px; align-self: stretch; border-radius: 2px; }
+
+/* The analytics strip: every number a dataset declares, each one a link that
+   reproduces it (§44). */
+.nu-widget-strip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); gap: 8px;
+}
+.nu-widget-strip-tile {
+  display: flex; flex-direction: column; gap: 1px; color: inherit;
+  padding: 4px 8px; border-radius: var(--nu-radius-control, 6px);
+  border: 1px solid transparent;
+}
+.nu-widget-strip-tile:hover { border-color: var(--nu-border); background: var(--nu-bg); }
+.nu-widget-strip-value {
+  font-size: 19px; font-weight: 650; line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.nu-widget-map { display: flex; flex-direction: column; gap: 4px; }
+
+/* Sharing: the scope control gets room for its icons and its sentence. */
+.nu-share-scope { margin-top: 6px; }
 /* A twelve-column grid on a phone is twelve slivers (§56), so the grid becomes
    one column and the cards take their content's height. The library still owns
    the vertical order; only the width and the row height are overridden. */

@@ -61,6 +61,24 @@ the theme, table view and CSV export; additional dimensions belong in
 `charts/data.ts` so downloads retain the values shown by the chart. Label
 current-state snapshots explicitly when they do not follow the period picker.
 
+`/dashboards` is the other thing: layouts somebody composed, on a 12-column
+grid, shared the way saved searches are. **A widget names a question and
+computes nothing** — a KPI is `/api/explorer/insights`, a chart is
+`/api/analysis/run`, and a *module* widget is that module's own endpoint under
+that module's own permission. Adding a kind is four edits: `WIDGET_KINDS` and
+`DEFAULT_SIZES` in `backend/src/services/dashboards.py`, the union in
+`frontend/src/api/dashboards.ts`, a spec in `components/dashboards/kinds.tsx`
+(the record is keyed on the whole union, so a missing one fails to compile),
+and a body in `WidgetBody.tsx` or `WidgetModules.tsx`. A module kind also
+names its permission in `MODULE_PERMISSIONS`, which is what stops the builder
+offering a card the reader could only ever be refused.
+
+Three kinds of state, three places, and mixing them is the bug worth avoiding:
+the layout and the audience are the object and go to the server; which
+dashboard is open is the address and goes in the URL; whether *you* left the
+editor open goes in `hooks/useSticky.ts` — per reader, never shared, and
+harmless when a browser refuses storage.
+
 `/explore?resource=ticket&record=<uuid>` opens a complete record beside the
 results. Preview data comes from `/platform/api/records/<type>/<uuid>` and is
 independent of visible columns. Declare prose fields through `Resource.content_fields`

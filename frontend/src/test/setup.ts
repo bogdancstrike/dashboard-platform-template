@@ -69,5 +69,12 @@ if (!URL.createObjectURL) {
 // `error` rather than `warn`: a request the handlers do not cover is a test
 // quietly exercising something nobody described, which is worth failing on.
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  // Preferences that survive a refresh survive a *test* too, and jsdom hands
+  // every test in a file the same `localStorage` (§72). Without this, one test
+  // opening the layout editor leaves the next one starting in it — which is
+  // exactly the cross-test coupling the MSW reset above exists to prevent.
+  window.localStorage.clear();
+});
 afterAll(() => server.close());

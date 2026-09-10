@@ -401,6 +401,20 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "dashboards_duplicate",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/dashboards/<uuid:dashboard_id>/duplicate",
+      "description": "A private copy of a dashboard, owned by the caller.",
+      "exec_method": {
+        "module_name": "src.api.dashboards",
+        "method_name": "duplicate"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "dashboards_arrange",
       "model_name": "Empty",
       "request_method": [

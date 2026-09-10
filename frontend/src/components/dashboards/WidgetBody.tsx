@@ -33,8 +33,23 @@ import { dashboardApi } from "@/api/dashboard";
 import type { DashboardWidget } from "@/api/dashboards";
 import { explorerApi, type ExplorerResource } from "@/api/explorer";
 import { reportsApi } from "@/api/reports";
+import { mapsApi } from "@/api/maps";
 import { ChartPreview } from "@/components/charts/ChartPreview";
+import { WorldMap } from "@/components/maps/WorldMap";
 import { StatusTag } from "@/components/StatusTag";
+import {
+  AnnouncementsBody,
+  CalendarBody,
+  ExplorerBody,
+  FavoritesBody,
+  FilesBody,
+  MailBody,
+  NotificationsBody,
+  ProjectsBody,
+  RelationshipsBody,
+  TasksBody,
+  type ModuleBodyProps,
+} from "./WidgetModules";
 import { formatMetric } from "@/entities/EntityChrome";
 import { asText } from "@/lib/text";
 import { relativeTime } from "@/lib/time";
@@ -62,10 +77,32 @@ const CHART_FOR: Partial<Record<DashboardWidget["kind"], ChartKind>> = {
   PIE_CHART: "pie",
   HEATMAP: "heatmap",
   GAUGE: "gauge",
+  // `CHART` names its own picture; "bar" is only what it falls back to.
+  CHART: "bar",
 };
 
 /** Kinds drawn by the chart renderer rather than by a bespoke body. */
 const IS_CHART = (kind: DashboardWidget["kind"]) => kind in CHART_FOR && kind !== "GAUGE";
+
+/**
+ * The module widgets, and the body that draws each (§45).
+ *
+ * A table rather than a chain of `if`s for the same reason `KINDS` is one: a
+ * module added to the union without a body here fails to compile instead of
+ * rendering an empty card somebody has to debug.
+ */
+const MODULE_BODIES: Partial<Record<DashboardWidget["kind"], (props: ModuleBodyProps) => JSX.Element>> = {
+  TASKS: TasksBody,
+  PROJECTS: ProjectsBody,
+  MAIL: MailBody,
+  FILES: FilesBody,
+  NOTIFICATIONS: NotificationsBody,
+  ANNOUNCEMENTS: AnnouncementsBody,
+  EXPLORER: ExplorerBody,
+  RELATIONSHIPS: RelationshipsBody,
+  FAVORITES: FavoritesBody,
+  CALENDAR: CalendarBody,
+};
 
 export function WidgetBody({
   widget,
@@ -89,6 +126,19 @@ export function WidgetBody({
   if (widget.kind === "ALERTS") return <AlertsBody />;
   if (widget.kind === "ACTIVITY") return <ActivityBody />;
 
+  // A module widget is about a *page*, not a dataset, so it needs nothing
+  // chosen to be complete — which is why this sits above the subject check.
+  const Module = MODULE_BODIES[widget.kind];
+  if (Module) {
+    return (
+      <Module
+        widget={widget}
+        resources={resources}
+        fallback={(error, subject) => <WidgetError error={error} entity={subject} />}
+      />
+    );
+  }
+
   // A widget created by the wizard has a shape and no subject yet. Said in
   // place, with the action, rather than drawn as an empty chart: a card that
   // looks like a failure and is only unfinished sends somebody debugging
@@ -111,6 +161,8 @@ export function WidgetBody({
   if (widget.kind === "KPI" || widget.kind === "GAUGE") {
     return <MetricBody widget={widget} gauge={widget.kind === "GAUGE"} />;
   }
+  if (widget.kind === "ANALYTICS") return <MetricStripBody widget={widget} />;
+  if (widget.kind === "MAP") return <MapBody widget={widget} period={effectivePeriod} />;
   if (widget.kind === "LIST" || widget.kind === "TABLE") {
     return <RowsBody widget={widget} resource={resource} table={widget.kind === "TABLE"} />;
   }
@@ -119,8 +171,122 @@ export function WidgetBody({
       widget={widget}
       dataset={dataset}
       period={effectivePeriod}
-      kind={CHART_FOR[widget.kind] ?? "bar"}
+      // A `CHART` names its own picture, so the widget kind is only the
+      // fallback. That is the whole difference between it and the five fixed
+      // chart kinds: the drawing is configuration rather than a kind per
+      // shape, which is what lets a treemap or a scatter exist on a dashboard
+      // without a `TREEMAP_CHART` on the server.
+      kind={
+        (widget.kind === "CHART" && config.chart
+          ? (config.chart as ChartKind)
+          : CHART_FOR[widget.kind]) ?? "bar"
+      }
     />
+  );
+}
+
+/**
+ * Every number a dataset declares about itself, the way `/analytics` opens.
+ *
+ * A `KPI` widget is one figure; this is the strip — and the difference matters
+ * because the strip is what a dataset's headline actually *is*. Four KPI
+ * widgets pointed at one dataset is four requests for one answer, four cards
+ * to keep aligned, and four titles somebody has to write.
+ *
+ * Each tile is a link that reproduces the number: the metric declares the
+ * filter that arrives at it, so pressing "12 overdue" opens the twelve rather
+ * than leaving somebody to reconstruct the question (§44).
+ */
+function MetricStripBody({ widget }: { widget: DashboardWidget }) {
+  const entity = widget.config.entity ?? "";
+  const insights = useQuery({
+    queryKey: ["entity-insights", entity, undefined, widget.config.filters],
+    queryFn: ({ signal }) =>
+      explorerApi.insights({ resource_type: entity, filters: widget.config.filters ?? {} }, signal),
+    enabled: Boolean(entity),
+    staleTime: 30_000,
+  });
+
+  if (insights.isLoading) return <Skeleton active title={false} paragraph={{ rows: 2 }} />;
+  if (insights.isError) return <WidgetError error={insights.error} entity={entity} />;
+
+  const metrics = insights.data?.metrics ?? [];
+  if (metrics.length === 0) {
+    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="This dataset declares no metrics" />;
+  }
+
+  return (
+    <div className="nu-widget-strip">
+      {metrics.slice(0, 6).map((metric) => {
+        const shown = formatMetric(metric);
+        const filter = new URLSearchParams({ resource: entity });
+        for (const [key, values] of Object.entries(metric.filter ?? {})) {
+          for (const value of values) filter.append(`f.${key}`, value);
+        }
+        return (
+          <Link
+            key={metric.key}
+            to={`/explore?${filter.toString()}`}
+            className="nu-widget-strip-tile"
+            title={metric.hint}
+          >
+            <span className="nu-widget-strip-value">
+              {shown.value}
+              {shown.unit && <span className="nu-widget-metric-unit">{shown.unit}</span>}
+            </span>
+            <Text type="secondary" ellipsis>
+              {metric.label}
+            </Text>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Records on a map, from the endpoint `/maps` reads.
+ *
+ * Deliberately not the analysis compiler: a place is usually one join away —
+ * an order is drawn at its *customer's* city — and `services/maps.py` is where
+ * that join lives. A widget that grouped by a city column would quietly show a
+ * different set of rows from the page it mirrors.
+ *
+ * What it will not do is hide the rows it could not draw. The endpoint counts
+ * them, and a map that silently omits four hundred unplaced records answers a
+ * different question from the list beside it (§34).
+ */
+function MapBody({ widget, period }: { widget: DashboardWidget; period: string }) {
+  const dataset = widget.config.entity ?? "";
+  const params = {
+    dataset,
+    ...(widget.config.metric ? { metric: widget.config.metric } : {}),
+    period,
+  };
+
+  const places = useQuery({
+    queryKey: ["map-places", params],
+    queryFn: ({ signal }) => mapsApi.places(params, signal),
+    enabled: Boolean(dataset),
+    staleTime: 60_000,
+  });
+
+  if (places.isLoading) return <Skeleton active title={false} paragraph={{ rows: 5 }} />;
+  if (places.isError) return <WidgetError error={places.error} entity={dataset} />;
+
+  const data = places.data;
+  if (!data || data.points.length === 0) {
+    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing placed in this period" />;
+  }
+
+  return (
+    <div className="nu-widget-map">
+      <WorldMap points={data.points} countries={data.countries} unit={data.metric.label} height={190} />
+      <Text type="secondary" className="nu-widget-dim">
+        {data.measured.toLocaleString()} of {data.total.toLocaleString()} placed
+        {data.unplaced.rows > 0 ? ` · ${data.unplaced.rows.toLocaleString()} without a place` : ""}
+      </Text>
+    </div>
   );
 }
 

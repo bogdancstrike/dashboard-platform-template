@@ -70,6 +70,18 @@ def widget(
 
 
 @requires("records.view")
+def duplicate(app=None, operation: str = "", request=None, dashboard_id: str = "", **kwargs: Any):
+    """A private copy of a dashboard the caller may see, owned by them.
+
+    What makes a shared dashboard worth sharing: you can adopt a colleague's
+    layout instead of rebuilding it. The copy is private and shares nothing.
+    """
+    identifier = dashboard_id or str(kwargs.get("dashboard_id") or "")
+    with session_scope() as session:
+        return service.duplicate(session, identifier, principal=me()), 201
+
+
+@requires("records.view")
 def arrange(app=None, operation: str = "", request=None, dashboard_id: str = "", **kwargs: Any):
     """Every widget's geometry at once, which is what one drag produces."""
     identifier = dashboard_id or str(kwargs.get("dashboard_id") or "")
