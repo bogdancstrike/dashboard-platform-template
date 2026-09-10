@@ -1,48 +1,41 @@
 /**
  * Choosing what a widget shows — with the widget drawn beside the form (§45).
  *
- * This was a 420-pixel drawer holding a form, which asked somebody to pick
- * "Heatmap · task · assignee · last 30 days" and then find out what they had
- * made by pressing Add and looking at the grid. Two problems with that, and
- * they compound: a person who does not already know what a heatmap of a
- * dataset looks like cannot choose one, and every correction costs a
- * round trip through a card on a grid they then have to find again.
+ * This was a 420-pixel drawer holding a form: pick "Heatmap · task · assignee
+ * · last 30 days", press Add, and then find out what you made by hunting for
+ * the card on the grid. Two problems, and they compound — somebody who does
+ * not already know what a heatmap of a dataset looks like cannot choose one,
+ * and every correction costs a round trip through a card they have to find
+ * again.
  *
- * So it is a modal, wide enough for two panes: the choice on the left, and
- * **the widget itself on the right, drawn from live data as it is configured**.
- * The preview is the real `WidgetBody` — not an illustration of one — so what
- * is previewed is what gets added, and a dataset that answers nothing shows
- * that here rather than after the fact.
+ * So it is a modal with two panes: the decision on the left, **the widget
+ * itself on the right, drawn from live data**. Four decisions shape it.
  *
- * Three decisions worth stating.
+ * **The preview is the real card, not a picture of one.** It renders
+ * `WidgetCard` around `WidgetBody` — the same two components the grid uses —
+ * inside a box the height of the grid rows the widget will occupy. A preview
+ * built out of different components is a preview that is wrong the first week
+ * either changes, and "a table in a box" tells nobody what the card will look
+ * like on the page.
  *
- * **The kinds are browsed, not selected from a list.** Twenty-six of them is
- * more than a select is good for, so they are cards on shelves, each carrying
- * the *question it answers* rather than only its name — somebody who does not
- * know what a heatmap is for can still tell whether they want one.
+ * **The name comes first.** Title and note are the two fields somebody always
+ * fills in, for every kind; the kind-specific controls appear underneath and
+ * change as the kind does. A form whose first field moves depending on an
+ * answer further down reads as a form that was assembled rather than designed.
  *
- * **The same modal configures an existing widget.** A preview is worth exactly
- * as much when changing what a card shows as when adding one, and two
- * components would be two vocabularies for one decision.
+ * **The kinds are a dropdown, not a wall.** Twenty-six of them laid out as
+ * cards was five shelves and four hundred pixels before the first real
+ * question. Grouped in one select, with the icon and the *question the kind
+ * answers* on each row, they cost one line and read better — the question is
+ * what somebody choosing between "Bars" and "Share" actually needs.
  *
  * **The preview is debounced by React Query, not by a timer.** Every field
- * change re-renders it, the request key changes only when the *question*
- * does, and an unchanged question is answered from cache — so dragging through
- * six chart kinds costs six draws and one fetch each, not one fetch per
- * keystroke in the title field.
+ * change re-renders it; the request key changes only when the *question* does,
+ * so typing a title redraws and does not refetch.
  */
 
 import { useQuery } from "@tanstack/react-query";
-import {
-  Empty,
-  Form,
-  Input,
-  Modal,
-  Segmented,
-  Select,
-  Switch,
-  Typography,
-} from "antd";
+import { Empty, Form, Input, Modal, Segmented, Select, Switch, Typography } from "antd";
 import { useState } from "react";
 
 import { analysisApi } from "@/api/analysis";
@@ -52,10 +45,25 @@ import { kanbanApi } from "@/api/kanban";
 import { reportsApi } from "@/api/reports";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 
-import { FAMILY_LABELS, KINDS, KIND_FAMILIES, kindsOf } from "./kinds";
+import { FAMILY_LABELS, KINDS, KIND_FAMILIES, kindsOf, type KindSpec } from "./kinds";
 import { WidgetBody } from "./WidgetBody";
+import { WidgetCard, type WidgetMoves } from "./WidgetCard";
+import { PREVIEW_SIZES, ROW_HEIGHT } from "./WidgetGrid";
 
 const { Text, Paragraph } = Typography;
+
+/**
+ * A card in a preview cannot be moved, so the moves are refused rather than
+ * absent: `WidgetCard` takes them whether or not it is editable, and passing
+ * handlers that quietly do nothing would be a control that looks live.
+ */
+const NO_MOVES: WidgetMoves = {
+  nudge: () => {},
+  resize: () => {},
+  setSize: () => {},
+  edit: () => {},
+  remove: () => {},
+};
 
 export function WidgetModal({
   open,
@@ -175,6 +183,10 @@ export function WidgetModal({
     config: configFor(kind, { ...initial, ...values }) ?? {},
   };
 
+  // The size the server will actually give it, mirrored so the preview is the
+  // shape the card will be rather than a rectangle chosen to look good here.
+  const size = PREVIEW_SIZES[kind];
+
   return (
     <Modal
       open={open}
@@ -213,22 +225,60 @@ export function WidgetModal({
           });
         }}
       >
-        {/* Browsed, not selected from a list. Twenty-six kinds is more than a
-            select is good for, and a card can carry the *question the kind
-            answers* — which is what somebody who does not already know what a
-            heatmap is for needs in order to choose one. */}
-        <Form.Item name="kind" label="What kind" className="nu-widget-modal-kinds">
-          <KindGallery available={kinds} />
-        </Form.Item>
+        {/* The two fields every kind has, first — and in the order somebody
+            fills them. What follows changes as the kind changes; a form whose
+            first field moves depending on an answer further down reads as one
+            that was assembled rather than designed. */}
         <Form.Item
           name="title"
           label="Title"
           rules={[{ required: true, message: "Say what this widget answers" }]}
         >
-          <Input placeholder="Open tickets by severity" />
+          <Input placeholder="Open tickets by severity" autoFocus />
         </Form.Item>
         <Form.Item name="subtitle" label="Note">
           <Input placeholder="Optional — scope, caveat, period" />
+        </Form.Item>
+
+        {/* One dropdown, grouped by family. Twenty-six kinds as cards was five
+            shelves and four hundred pixels before the first real question;
+            each row here still carries the *question the kind answers*, which
+            is what somebody choosing between "Bars" and "Share" needs. */}
+        <Form.Item name="kind" label="What kind" extra={KINDS[kind].question}>
+          <Select
+            aria-label="Widget kind"
+            showSearch
+            optionFilterProp="label"
+            listHeight={340}
+            popupMatchSelectWidth={false}
+            data-testid="widget-kind"
+            options={KIND_FAMILIES.map((family) => ({
+              label: FAMILY_LABELS[family].label,
+              options: kindsOf(family, kinds).map((item) => ({
+                value: item,
+                label: KINDS[item].label,
+                spec: KINDS[item],
+              })),
+            })).filter((group) => group.options.length > 0)}
+            optionRender={(option) => {
+              // The option as it was declared, which is the only place the
+              // spec is: AntD types `data` as the *group* shape here because
+              // the list is grouped, and the runtime value is the leaf.
+              const data = option.data as unknown as { value: WidgetKind; spec: KindSpec };
+              const spec = data.spec;
+              return (
+                <span className="nu-kindrow" data-testid={`kind-${data.value}`}>
+                  <span className="nu-kindrow-icon" style={{ color: spec.colour }}>
+                    {spec.icon}
+                  </span>
+                  <span className="nu-kindrow-text">
+                    <span className="nu-kindrow-label">{spec.label}</span>
+                    <span className="nu-kindrow-question">{spec.question}</span>
+                  </span>
+                </span>
+              );
+            }}
+          />
         </Form.Item>
 
         {shape.needs === "report" && (
@@ -487,23 +537,33 @@ export function WidgetModal({
       </Form>
       </div>
 
-      {/* The widget itself, drawn from live data. Not a picture of one: this
-          is the same `WidgetBody` the grid renders, so a dataset that answers
-          nothing says so here rather than after the card has been added and
-          found again. */}
+      {/* The card as it will appear on the grid — the same `WidgetCard` and
+          the same `WidgetBody`, at the height of the rows it will occupy. A
+          preview assembled from different components is one that is wrong the
+          first week either changes, and a table in a plain box tells nobody
+          what the thing will look like on the page. */}
       <aside className="nu-widget-modal-preview" aria-label="Preview">
         <Text type="secondary" className="nu-widget-modal-caption">
-          Preview · live data
+          How it will look
         </Text>
-        <div className="nu-widget-modal-frame">
-          <div className="nu-widget-modal-frame-head">
-            <span>{draft.title}</span>
-          </div>
-          <div className="nu-widget-modal-frame-body">
+        <div
+          className="nu-widget-modal-cell"
+          // The grid's own row height, so a one-row KPI is visibly a strip and
+          // a three-row calendar is visibly a panel. Guessing a height here is
+          // how a preview ends up flattering every kind equally.
+          style={{ height: size.h * ROW_HEIGHT + (size.h - 1) * 12 }}
+        >
+          <WidgetCard widget={draft} editable={false} columns={12} moves={NO_MOVES}>
             {KINDS[kind].needs !== "nothing" && !hasSubject(draft) ? (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={`Pick ${KINDS[kind].needs === "dataset" ? "a dataset" : `a saved ${KINDS[kind].needs}`} to see it`}
+                description={
+                  <Text type="secondary">
+                    {KINDS[kind].needs === "dataset"
+                      ? "Pick a dataset to see it"
+                      : `Pick a saved ${KINDS[kind].needs} to see it`}
+                  </Text>
+                }
               />
             ) : (
               <WidgetBody
@@ -513,10 +573,11 @@ export function WidgetModal({
                 resources={resources}
               />
             )}
-          </div>
+          </WidgetCard>
         </div>
         <Paragraph type="secondary" className="nu-widget-modal-question">
-          {KINDS[kind].question}
+          Lands at the bottom of the dashboard, {size.w} columns by {size.h}{" "}
+          {size.h === 1 ? "row" : "rows"} — drag its corner from there.
           {KINDS[kind].page ? ` It mirrors ${KINDS[kind].page}.` : ""}
         </Paragraph>
       </aside>
@@ -537,62 +598,6 @@ function hasSubject(draft: DashboardWidget): boolean {
   if (draft.kind === "REPORT") return Boolean(draft.config.report_id);
   if (draft.kind === "SEARCH") return Boolean(draft.config.search_id);
   return Boolean(draft.config.entity);
-}
-
-/**
- * The kinds, on shelves, as a form control.
- *
- * A `Form.Item` child rather than state of its own: AntD passes `value` and
- * `onChange`, so the gallery is the kind field — one source for what has been
- * chosen, and no second copy to keep in step with the form.
- */
-function KindGallery({
-  available,
-  value,
-  onChange,
-}: {
-  available: WidgetKind[];
-  value?: WidgetKind;
-  onChange?: (kind: WidgetKind) => void;
-}) {
-  return (
-    <div className="nu-kindpick" data-testid="widget-kind-gallery">
-      {KIND_FAMILIES.map((family) => {
-        const shelf = kindsOf(family, available);
-        if (shelf.length === 0) return null;
-        return (
-          <section key={family}>
-            <h4 className="nu-kindpick-shelf">
-              {FAMILY_LABELS[family].label}
-              <span>{FAMILY_LABELS[family].hint}</span>
-            </h4>
-            <div className="nu-kindpick-row">
-              {shelf.map((item) => {
-                const spec = KINDS[item];
-                const chosen = value === item;
-                return (
-                  <button
-                    key={item}
-                    type="button"
-                    className={`nu-kindpick-card${chosen ? " is-chosen" : ""}`}
-                    aria-pressed={chosen}
-                    title={spec.question}
-                    data-testid={`kind-${item}`}
-                    onClick={() => onChange?.(item)}
-                  >
-                    <span className="nu-kindpick-icon" style={{ color: spec.colour }}>
-                      {spec.icon}
-                    </span>
-                    <span className="nu-kindpick-label">{spec.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
-    </div>
-  );
 }
 
 /** Every picture a `CHART` widget may name — the chart builder's own list. */

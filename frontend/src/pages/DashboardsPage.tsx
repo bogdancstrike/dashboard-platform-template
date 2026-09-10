@@ -133,15 +133,7 @@ export default function DashboardsPage() {
    */
   const [editing, setEditing] = useSticky<boolean>(`dashboards.editing.${openId}`, false);
 
-  /**
-   * The period this reader is looking through, when it is not the one saved.
-   *
-   * A dashboard's own period is part of the object — the owner chose it and
-   * everybody sees it. But somebody reading a shared dashboard wants last
-   * quarter without changing what their colleagues see, so an override lives
-   * here and sticks to this reader. Empty means "whatever the dashboard says".
-   */
-  const [periodOverride, setPeriodOverride] = useSticky<string>(`dashboards.period.${openId}`, "");
+
 
   const dashboard = useQuery({
     queryKey: ["dashboard", openId],
@@ -295,9 +287,19 @@ export default function DashboardsPage() {
   const board = dashboard.data;
   const columns = board?.columns ?? listing.data?.columns ?? 12;
   const widgets = board?.widgets ?? [];
-  /** The dashboard's own period, unless this reader chose another (§72). */
-  const savedPeriod = asText(board?.filters["period"]) || "last_30_days";
-  const period = periodOverride || savedPeriod;
+  /**
+   * The window the chart-shaped widgets read over.
+   *
+   * There is deliberately **no period control on this page**. A dashboard here
+   * is a set of windows onto the product — what is in the inbox, what is in
+   * the lane, what lands this week — and almost none of that has a period at
+   * all; offering one above them implied every card answered to it, and put a
+   * prominent control on a page where most of the widgets ignored it. The
+   * charts that do need a window take the dashboard's saved default, which
+   * lives in Settings where an owner sets it once, and any widget may name its
+   * own (§45).
+   */
+  const period = asText(board?.filters["period"]) || "last_30_days";
 
   /** The layout with one widget changed, sent whole (§73). */
   const rewrite = (changed: DashboardWidget) =>
@@ -444,33 +446,6 @@ export default function DashboardsPage() {
         actions={
           openId && board ? (
             <>
-              {/* The period every widget follows unless it names its own.
-                  Here rather than only in settings, because it is the control
-                  a reader reaches for most and settings is where an *owner*
-                  changes an object. Changing it as a reader is a preference
-                  that sticks to this reader (§72); the owner's saved choice is
-                  what anybody else opening the dashboard still sees. */}
-              <Select
-                aria-label="Period"
-                value={period}
-                onChange={(next) => setPeriodOverride(next === savedPeriod ? "" : next)}
-                popupMatchSelectWidth={false}
-                data-testid="dashboard-period"
-                options={[
-                  { value: "all_time", label: "All time" },
-                  { value: "last_7_days", label: "Last 7 days" },
-                  { value: "last_30_days", label: "Last 30 days" },
-                  { value: "last_90_days", label: "Last 90 days" },
-                  { value: "last_365_days", label: "Last 365 days" },
-                ]}
-              />
-              {periodOverride && periodOverride !== savedPeriod && (
-                <Tooltip title={`The dashboard itself is set to ${savedPeriod.replace(/_/g, " ")}`}>
-                  <Button size="small" type="link" onClick={() => setPeriodOverride("")}>
-                    Reset
-                  </Button>
-                </Tooltip>
-              )}
               {board.can_edit && (
                 <Button
                   type={editing ? "primary" : "default"}

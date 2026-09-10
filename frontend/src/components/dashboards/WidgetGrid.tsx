@@ -44,8 +44,47 @@ import "react-resizable/css/styles.css";
 const GridLayout = WidthProvider(RGL);
 
 /** One grid row, in pixels. Small enough that a KPI tile is one row. */
-const ROW_HEIGHT = 96;
+export const ROW_HEIGHT = 96;
 const GUTTER: [number, number] = [12, 12];
+
+/**
+ * The size the server gives a new widget of each kind.
+ *
+ * A *mirror* of `DEFAULT_SIZES` in `services/dashboards.py`, and deliberately
+ * only used for the preview — the server still decides, so the two disagreeing
+ * costs a slightly wrong picture rather than a wrong layout. It is here at all
+ * because a preview drawn at some rectangle chosen to look good is a preview
+ * that flatters every kind equally, and the useful thing to know before adding
+ * a card is whether it will be a strip or a panel.
+ */
+export const PREVIEW_SIZES: Record<DashboardWidget["kind"], { w: number; h: number }> = {
+  KPI: { w: 3, h: 1 },
+  GAUGE: { w: 3, h: 2 },
+  ANALYTICS: { w: 6, h: 1 },
+  CHART: { w: 6, h: 2 },
+  LINE_CHART: { w: 6, h: 2 },
+  AREA_CHART: { w: 6, h: 2 },
+  BAR_CHART: { w: 6, h: 2 },
+  PIE_CHART: { w: 4, h: 2 },
+  HEATMAP: { w: 6, h: 2 },
+  MAP: { w: 6, h: 3 },
+  LIST: { w: 4, h: 2 },
+  TABLE: { w: 6, h: 2 },
+  ALERTS: { w: 4, h: 2 },
+  ACTIVITY: { w: 4, h: 2 },
+  REPORT: { w: 6, h: 2 },
+  SEARCH: { w: 4, h: 2 },
+  TASKS: { w: 6, h: 3 },
+  MAIL: { w: 4, h: 3 },
+  FILES: { w: 4, h: 2 },
+  NOTIFICATIONS: { w: 4, h: 2 },
+  PROJECTS: { w: 6, h: 3 },
+  ANNOUNCEMENTS: { w: 4, h: 2 },
+  EXPLORER: { w: 4, h: 2 },
+  RELATIONSHIPS: { w: 4, h: 2 },
+  FAVORITES: { w: 3, h: 2 },
+  CALENDAR: { w: 4, h: 3 },
+};
 
 /** The smallest a widget may be, per kind — a chart in one column is a line. */
 const MINIMUMS: Partial<Record<DashboardWidget["kind"], { w: number; h: number }>> = {
@@ -277,8 +316,35 @@ export function autoArranged(
     x += width;
   }
 
-  // Then pulled upwards, so a short card beside a tall one rises into the gap
-  // the tall one leaves rather than waiting for the whole row to end.
+  // Then the leftover width in each row is given back to the cards in it, so
+  // the dashboard reads as full rather than as a page with a ragged right
+  // edge. This is the part that makes "auto-arrange" worth pressing: packing
+  // alone leaves three quarters of a row of white space whenever the cards in
+  // it do not happen to add up to twelve.
+  for (const row of groupByRow(placed)) {
+    let spare = columns - row.reduce((sum, item) => sum + item.width, 0);
+    if (spare <= 0) continue;
+    // Widest first, because a wide card absorbing the slack keeps the row's
+    // proportions; spreading it evenly turns a 6/3/3 row into 8/2/2 as often
+    // as into 6/4/4.
+    const order = [...row].sort((a, b) => b.width - a.width);
+    for (let index = 0; spare > 0; index = (index + 1) % order.length) {
+      const target = order[index];
+      if (!target) break;
+      target.width += 1;
+      spare -= 1;
+    }
+    // Re-laid left to right, because the widths just changed underneath the
+    // x positions that were computed from them.
+    let cursor = 0;
+    for (const item of row) {
+      item.x = cursor;
+      cursor += item.width;
+    }
+  }
+
+  // Finally pulled upwards, so a short card beside a tall one rises into the
+  // gap the tall one leaves rather than waiting for the whole row to end.
   return compacted(
     placed.map((item) => {
       const source = widgets.find((widget) => widget.id === item.id);
@@ -286,6 +352,17 @@ export function autoArranged(
     }),
     columns,
   );
+}
+
+/** The placements grouped by the row they were packed into. */
+function groupByRow<T extends { y: number }>(placed: T[]): T[][] {
+  const rows = new Map<number, T[]>();
+  for (const item of placed) {
+    const row = rows.get(item.y);
+    if (row) row.push(item);
+    else rows.set(item.y, [item]);
+  }
+  return [...rows.values()];
 }
 
 /**

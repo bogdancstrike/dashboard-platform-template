@@ -1722,12 +1722,12 @@ mark.nu-mark {
 .nu-share-scope { margin-top: 6px; }
 
 /* ── choosing a widget, with the widget beside the choice (§45) ──────────
-   Two panes: what it will show on the left, what that looks like on the
-   right. The preview is the real body, so the frame around it has to read as
-   a card without being one — a second `.nu-widget-card` here would inherit
-   the grid's own sizing rules and fight them. */
+   Two panes: what it will show on the left, what that will look like on the
+   right. The preview renders the *real* `WidgetCard`, so nothing here restyles
+   a card — it only gives one a cell of the right height to sit in. */
+.nu-widget-modal .ant-modal-body { padding-top: 4px; }
 .nu-widget-modal-panes {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: 20px;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); gap: 24px;
   align-items: start;
 }
 .nu-widget-modal-form { min-width: 0; max-height: 62vh; overflow-y: auto; padding-right: 4px; }
@@ -1738,54 +1738,35 @@ mark.nu-mark {
 .nu-widget-modal-caption {
   font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
 }
-.nu-widget-modal-frame {
-  border: 1px solid var(--nu-border); border-radius: var(--nu-radius-card);
-  background: var(--nu-surface); overflow: hidden;
+/* A cell of the grid, standing in for the place the card will land. The card
+   inside it is the same component the dashboard renders, and it stretches to
+   fill — which is what makes the preview show the *shape* a kind gets and not
+   only its contents. */
+.nu-widget-modal-cell {
+  display: flex; min-height: 120px; max-height: 46vh;
+  padding: 10px; border-radius: var(--nu-radius-card);
+  background: var(--nu-bg); border: 1px dashed var(--nu-border);
 }
-.nu-widget-modal-frame-head {
-  padding: 8px 12px; border-bottom: 1px solid var(--nu-border-subtle);
-  font-size: 13px; font-weight: 600;
-  background: var(--nu-surface-raised);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.nu-widget-modal-frame-body {
-  padding: 12px; min-height: 190px; max-height: 320px; overflow: auto;
-}
+.nu-widget-modal-cell > .nu-widget { width: 100%; }
 .nu-widget-modal-question { margin: 0 !important; font-size: 12px; }
 
-/* The kinds, on shelves. A card can carry the question a kind answers, which
-   is what somebody who does not know what a heatmap is for needs in order to
-   choose one; a select entry can only carry its name. */
-.nu-widget-modal-kinds .ant-form-item-control-input { min-height: 0; }
-.nu-kindpick { display: flex; flex-direction: column; gap: 10px; }
-.nu-kindpick-shelf {
-  margin: 0 0 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
-  text-transform: uppercase; color: var(--nu-text-secondary);
-  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+/* One row of the kind dropdown: what it is called, and the question it
+   answers. The second line is the whole reason this is not a plain select —
+   somebody choosing between "Bars" and "Share" is choosing between questions,
+   not between words. */
+.nu-kindrow { display: flex; align-items: flex-start; gap: 9px; padding: 2px 0; max-width: 420px; }
+.nu-kindrow-icon { display: inline-flex; font-size: 15px; line-height: 1.5; }
+.nu-kindrow-text { display: flex; flex-direction: column; min-width: 0; }
+.nu-kindrow-label { font-size: 13px; line-height: 1.4; }
+.nu-kindrow-question {
+  font-size: 11.5px; line-height: 1.35; color: var(--nu-text-secondary);
+  white-space: normal;
 }
-.nu-kindpick-shelf > span {
-  font-size: 11px; font-weight: 400; letter-spacing: 0;
-  text-transform: none; color: var(--nu-text-tertiary);
-}
-.nu-kindpick-row { display: flex; flex-wrap: wrap; gap: 6px; }
-.nu-kindpick-card {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 5px 10px; border-radius: var(--nu-radius-control, 6px);
-  border: 1px solid var(--nu-border); background: var(--nu-surface);
-  color: var(--nu-text); font: inherit; font-size: 12.5px; cursor: pointer;
-}
-.nu-kindpick-card:hover { border-color: var(--nu-accent); }
-.nu-kindpick-card:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; }
-.nu-kindpick-card.is-chosen {
-  border-color: var(--nu-accent); box-shadow: inset 0 0 0 1px var(--nu-accent);
-  background: color-mix(in srgb, var(--nu-accent) 8%, var(--nu-surface));
-}
-.nu-kindpick-icon { display: inline-flex; font-size: 14px; }
-.nu-kindpick-label { white-space: nowrap; }
 
-/* One pane on a phone: 380 pixels of preview beside a form is two columns
-   neither of which is usable (§56). */
-@media (max-width: 860px) {
+/* One pane below 720: 340 pixels of preview beside a form is two columns
+   neither of which is usable (§56). The old breakpoint was 860, which put a
+   perfectly ordinary laptop window into the stacked layout. */
+@media (max-width: 720px) {
   .nu-widget-modal-panes { grid-template-columns: minmax(0, 1fr); }
   .nu-widget-modal-preview { position: static; }
   .nu-widget-modal-form { max-height: none; }

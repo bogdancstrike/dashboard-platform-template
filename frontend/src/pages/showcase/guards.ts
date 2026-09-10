@@ -99,9 +99,15 @@ export const LAYERS: readonly GuardedLayer[] = [
   },
   {
     module: "pages/DashboardsPage.tsx",
+    what: "dashboard",
+    guarded: true,
+    because: "The settings drawer holds the dashboard's own name, what it is for, its audience and whether it is home — six answers, and the drawer closes on a click outside it.",
+  },
+  {
+    module: "components/dashboards/WidgetModal.tsx",
     what: "widget",
     guarded: true,
-    because: "A widget's question is a dataset, a dimension, a measure and a period; the settings drawer holds the dashboard's own name, audience and home flag.",
+    because: "A widget's question is a kind, a dataset, a grouping, a measure and a period, chosen against a live preview — and a modal closes on Esc and on a click outside it.",
   },
   {
     module: "pages/admin/GroupsPage.tsx",

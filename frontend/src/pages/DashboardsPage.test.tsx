@@ -117,11 +117,15 @@ describe("the dashboards page", () => {
     await user.click(screen.getByTestId("add-widget"));
 
     const dialog = await screen.findByRole("dialog");
-    // Pressed on its shelf rather than typed into a select: the kinds are
-    // browsed, because a card can say what a kind *answers* and a select entry
-    // can only say its name.
-    await user.click(within(dialog).getByTestId("kind-ACTIVITY"));
+    // The name first, because it is the field every kind has; then the kind,
+    // from a grouped dropdown where each row carries the question it answers.
     await user.type(within(dialog).getByLabelText("Title"), "What just happened");
+    await user.click(within(dialog).getByRole("combobox", { name: "Widget kind" }));
+    await user.type(
+      within(dialog).getByRole("combobox", { name: "Widget kind" }),
+      "Recent activity",
+    );
+    await user.click(await screen.findByTestId("kind-ACTIVITY"));
     await user.click(within(dialog).getByTestId("save-widget"));
 
     await waitFor(() => {
