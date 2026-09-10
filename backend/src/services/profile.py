@@ -149,9 +149,19 @@ def _team(session, person) -> dict[str, Any] | None:
 
 
 def _named(row) -> dict[str, Any] | None:
+    """An organization, a department, a team — or a *person*.
+
+    All four are drawn the same way on the profile, and three of them carry a
+    `name`. A `User` does not: people are named by `full_name`, because a
+    platform with both would eventually disagree with itself about which was
+    the display name. `manager` went through here anyway and raised
+    `AttributeError` — a 500 on the page a person opens to look at themselves,
+    and on every colleague's page too.
+    """
     if row is None:
         return None
-    return {"id": str(row.id), "name": row.name}
+    name = getattr(row, "name", None) or getattr(row, "full_name", None) or ""
+    return {"id": str(row.id), "name": name}
 
 
 # ── the numbers ──────────────────────────────────────────────────────────

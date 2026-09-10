@@ -245,3 +245,67 @@ def test_the_profile_says_which_features_are_on_for_this_reader(client, monkeypa
     flags = client.get(f"{PREFIX}/admin/flags", headers=headers).get_json()
     on_for_me = sorted(row["key"] for row in flags["items"] if row["on_for_me"])
     assert profile["features"] == on_for_me
+
+
+@pytest.mark.database
+def test_a_person_may_correct_their_own_details(client, monkeypatch):
+    """There was nowhere to change your own job title (§40).
+
+    The profile page displayed it and the only writer was an administrator on
+    `/admin/users/:id` — the page the person concerned cannot open. What is
+    editable is exactly what a person is the authority on: what they are
+    called, how to reach them, what they do, and what clock they keep.
+    """
+    from src.core.db import session_scope
+    from src.models.identity import User
+
+    headers = _authenticate(monkeypatch, "user", "viewer")
+    with session_scope() as session:
+        user = session.scalars(select(User).where(User.email == "user@nucleus.example")).one()
+        original = {
+            "full_name": user.full_name,
+            "job_title": user.job_title,
+            "phone": user.phone,
+            "timezone": user.timezone,
+        }
+
+    try:
+        saved = client.put(
+            f"{PREFIX}/api/me",
+            headers=headers,
+            json={"user": {"job_title": "  Support lead  ", "timezone": "Europe/Bucharest"}},
+        )
+        assert saved.status_code == 200, saved.get_json()
+        # The whole profile back, because the client redraws its identity
+        # chrome from it — a partial answer leaves the header showing the old
+        # name.
+        assert saved.get_json()["user"]["job_title"] == "Support lead"
+        assert saved.get_json()["user"]["timezone"] == "Europe/Bucharest"
+
+        # An empty string clears a field: "I have no phone number here" is an
+        # answer, and refusing it would leave a wrong number in place forever.
+        assert (
+            client.put(
+                f"{PREFIX}/api/me", headers=headers, json={"user": {"phone": ""}}
+            ).get_json()["user"]["phone"]
+            is None
+        )
+
+        # But not the name, which every list, avatar and mention renders.
+        blank = client.put(f"{PREFIX}/api/me", headers=headers, json={"user": {"full_name": " "}})
+        assert blank.status_code == 400
+        assert blank.get_json()["details"]["field"] == "user.full_name"
+
+        # And nothing that is somebody else's decision about you, or the
+        # platform's own record of you.
+        for field in ("email", "status", "role_id", "department_id"):
+            refused = client.put(
+                f"{PREFIX}/api/me", headers=headers, json={"user": {field: "x"}}
+            )
+            assert refused.status_code == 400, field
+            assert refused.get_json()["details"]["field"] == f"user.{field}"
+    finally:
+        with session_scope() as session:
+            user = session.scalars(select(User).where(User.email == "user@nucleus.example")).one()
+            for key, value in original.items():
+                setattr(user, key, value)

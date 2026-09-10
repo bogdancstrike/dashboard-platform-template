@@ -2914,7 +2914,33 @@ Ordered as asked: mail, then the admin pages, then the showcase.
   - A window that cannot be parsed **falls back rather than refusing**: a
     health page that answers a malformed query with a 400 is a health page
     nobody can use during the incident it exists for
-- [ ] **`/profile` — more on it, and more useful**
+- [x] **`/profile` — a person can change their own details** (§40). The page
+      *displayed* a job title and a timezone, and the only writer was an
+      administrator on `/admin/users/:id` — the page the person concerned
+      cannot open. So the commonest correction anybody makes to a directory
+      ("my title changed", "I moved") went through a support request
+  - `PUT /api/me` takes a `user` object as well as `preferences`, against a
+    short allowlist. Three kinds of field are absent on purpose: **identity**
+    (`email`, `username` — they prove who you are to Keycloak, and a copy that
+    drifted from the realm would authenticate one person and show another's
+    records), **placement** (role, team, department — decisions somebody else
+    makes about you, and a page where you may promote yourself is not an
+    access model) and **state** (`status`, `last_login_at` — recorded, not
+    typed)
+  - Trimmed and truncated rather than refused; an empty string **clears** a
+    field, because "I have no phone number here" is an answer. The one field
+    that may not be blanked is the name, which every list, avatar and mention
+    renders
+  - The answer is the **whole profile**, because the identity chrome redraws
+    from it and a partial one leaves the old name in the header until a reload
+  - The timezone comes from `Intl.supportedValuesOf`, not a hand-typed list —
+    and it matters more than it looks, because the activity heatmap is drawn in
+    the person's own hours
+  - A colleague's page gained the two things anybody actually wants from one:
+    write to them, and see their week
+  - **And it fixed a 500.** `profile._named` read `row.name` for the manager,
+    and a `User` is named by `full_name` — so every profile page with a manager
+    on it answered 500. Four of the suite's pre-existing failures were this
 - [ ] **`/showcase/components` — more components, from across the pages**
 - [ ] **`/showcase/templates` — enrich it**
 - [ ] **Double confirmation on every delete, and on duplicating a dashboard or

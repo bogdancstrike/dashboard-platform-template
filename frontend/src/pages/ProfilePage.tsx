@@ -31,10 +31,11 @@
  * week at all — the server sends the empty buckets and this draws them.
  */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Alert,
+  Button,
   Card,
   Descriptions,
   Empty,
@@ -47,7 +48,10 @@ import {
 } from "antd";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
+  CalendarOutlined,
   ClockCircleOutlined,
+  EditOutlined,
+  MailOutlined,
   SafetyOutlined,
   SettingOutlined,
   TeamOutlined,
@@ -66,6 +70,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { formatNumber } from "@/lib/formats";
+import { EditProfileDrawer } from "@/components/profile/EditProfileDrawer";
 
 const { Text, Paragraph } = Typography;
 
@@ -143,6 +148,7 @@ export default function ProfilePage() {
   const { userId } = useParams();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
+  const [editing, setEditing] = useState(false);
   const auth = useAuth();
   const tab = tabFrom(params.get("tab"));
 
@@ -200,6 +206,18 @@ export default function ProfilePage() {
         actions={
           mine ? (
             <Space size={8} wrap>
+              {/* The gap this page had: it *displayed* a job title and a
+                  timezone, and the only writer was an administrator on
+                  `/admin/users/:id` — the page the person concerned cannot
+                  open (§40). */}
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={() => setEditing(true)}
+                data-testid="edit-profile"
+              >
+                Edit your details
+              </Button>
               <Link to="/settings/preferences">
                 <Tag icon={<SettingOutlined />} className="nu-profile-jump">
                   Preferences
@@ -211,7 +229,24 @@ export default function ProfilePage() {
                 </Tag>
               </Link>
             </Space>
-          ) : undefined
+          ) : (
+            // A colleague's page, and the two things somebody actually wants
+            // from one: write to them, and see what they are booked into.
+            <Space size={8} wrap>
+              {profile.user.email && (
+                <Link to={`/mail?compose=${encodeURIComponent(profile.user.email)}`}>
+                  <Tag icon={<MailOutlined />} className="nu-profile-jump">
+                    Write to them
+                  </Tag>
+                </Link>
+              )}
+              <Link to={`/calendar?view=week&person=${profile.user.id}`}>
+                <Tag icon={<CalendarOutlined />} className="nu-profile-jump">
+                  Their week
+                </Tag>
+              </Link>
+            </Space>
+          )
         }
       />
 
@@ -313,6 +348,14 @@ export default function ProfilePage() {
           },
         ]}
       />
+
+      {mine && (
+        <EditProfileDrawer
+          open={editing}
+          profile={auth.profile ?? undefined}
+          onClose={() => setEditing(false)}
+        />
+      )}
     </>
   );
 }

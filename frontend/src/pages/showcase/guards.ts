@@ -110,6 +110,12 @@ export const LAYERS: readonly GuardedLayer[] = [
     because: "The composer's own dialog holds two fields — a name and a sentence about what the document is for — and the *document* is guarded by something better than a prompt: an explicit Save, an unsaved badge in the header, and a draft that is never silently discarded because closing the dialog does not close the document.",
   },
   {
+    module: "components/profile/EditProfileDrawer.tsx",
+    what: "profile",
+    guarded: true,
+    because: "Eight fields about a person — their name, how to reach them, what they do and what clock they keep — and the drawer closes on a click outside it, which is a whole form's worth of typing lost to a stray press.",
+  },
+  {
     module: "components/dashboards/WidgetModal.tsx",
     what: "widget",
     guarded: true,

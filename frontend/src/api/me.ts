@@ -101,8 +101,30 @@ export type PreferencePatch = {
   [Section in keyof UserPreferences]?: Partial<UserPreferences[Section]>;
 };
 
+/**
+ * What a person may change about themselves (§40).
+ *
+ * Short on purpose. Identity (`email`, `username`) proves who you are to
+ * Keycloak; placement (role, team, department) is a decision somebody else
+ * makes about you; state (`status`, `mfa_enabled`) is recorded rather than
+ * typed. What is left is what a person is the authority on.
+ */
+export interface ProfilePatch {
+  full_name?: string;
+  first_name?: string;
+  last_name?: string;
+  job_title?: string;
+  phone?: string;
+  avatar_url?: string;
+  locale?: string;
+  timezone?: string;
+}
+
 export const meApi = {
   get: (signal?: AbortSignal) => api.get<CurrentUser>("/api/me", { signal }),
   updatePreferences: (preferences: PreferencePatch, signal?: AbortSignal) =>
     api.put<{ preferences: UserPreferences }>("/api/me", { preferences }, { signal }),
+  /** Answers with the whole profile, because the identity chrome redraws from it. */
+  updateProfile: (user: ProfilePatch, signal?: AbortSignal) =>
+    api.put<CurrentUser>("/api/me", { user }, { signal }),
 };

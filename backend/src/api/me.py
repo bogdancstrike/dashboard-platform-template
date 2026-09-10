@@ -19,14 +19,26 @@ def profile(app=None, operation: str = "", request=None, **_: Any):
     with session_scope() as session:
         if method == "PUT":
             body = json_body()
-            unknown = set(body) - {"preferences"}
+            unknown = set(body) - {"preferences", "user"}
             if unknown:
                 raise ValidationError(
-                    "Only preferences can be updated here.",
+                    "Only your preferences and your own details can be updated here.",
                     details={"field": sorted(unknown)[0]},
                 )
-            preferences = service.update_preferences(
-                session, principal.user_id, body.get("preferences")
+            # Both in one request when both are sent, because they are one
+            # save on one page — and a client that had to make two would
+            # leave the second half unsent when the first failed.
+            if "user" in body:
+                service.update_profile(session, principal.user_id, body.get("user"))
+            preferences = (
+                service.update_preferences(session, principal.user_id, body["preferences"])
+                if "preferences" in body
+                else service.merged_preferences(None)
             )
+            # The whole profile back, not only what changed: the client redraws
+            # its identity chrome from this, and a partial answer would leave
+            # the avatar in the header showing the old name.
+            if "user" in body:
+                return service.get_profile(session, principal), 200
             return {"preferences": preferences}, 200
         return service.get_profile(session, principal), 200

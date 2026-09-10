@@ -221,6 +221,81 @@ def update_preferences(
     return preferences
 
 
+#: What a person may change about *themselves*, and how far each may go.
+#:
+#: Deliberately short, and deliberately not the whole row. Three kinds of field
+#: are absent on purpose:
+#:
+#: * **identity** — `email` and `username` prove who you are to Keycloak, and a
+#:   platform that let its own copy drift from the realm's would authenticate
+#:   somebody as one person and show them another's records;
+#: * **placement** — role, organization, department, team. Those are decisions
+#:   somebody else makes about you, and a page where you may promote yourself
+#:   is not an access model;
+#: * **state** — `status`, `mfa_enabled`, `last_login_at`. Recorded by the
+#:   platform, not typed by anybody.
+#:
+#: What is left is exactly the set a person is the authority on: what they are
+#: called, how to reach them, what they do, and what clock they keep.
+EDITABLE_FIELDS: dict[str, int] = {
+    "full_name": 160,
+    "first_name": 80,
+    "last_name": 80,
+    "job_title": 120,
+    "phone": 48,
+    "avatar_url": 500,
+    "locale": 12,
+    "timezone": 64,
+}
+
+
+def update_profile(session, user_id: UUID, patch: Any) -> dict[str, Any]:
+    """Change what a person is the authority on about themselves (§40).
+
+    There was nowhere in this platform somebody could correct their own job
+    title or say which timezone they keep — the profile page displayed both and
+    the only writer was an administrator on `/admin/users/:id`, which is the
+    page the person concerned cannot open.
+
+    Trimmed and truncated rather than refused, for the same reason the
+    preferences are: a job title two characters over a limit is not a decision
+    worth a round trip. An empty string clears the field, because "I have no
+    phone number here" is an answer.
+    """
+    if not isinstance(patch, dict) or not patch:
+        raise ValidationError(
+            "At least one detail is required.", details={"field": "user"}
+        )
+
+    unknown = set(patch) - set(EDITABLE_FIELDS)
+    if unknown:
+        _invalid(f"user.{sorted(unknown)[0]}", "This is not yours to change here.")
+
+    user = session.get(_user_model(), user_id)
+    if user is None:
+        raise NotFoundError("No profile for the signed-in user.")
+
+    for key, value in patch.items():
+        if value is not None and not isinstance(value, str):
+            _invalid(f"user.{key}", "Must be text.")
+        text = str(value or "").strip()[: EDITABLE_FIELDS[key]]
+        # `full_name` is what every list, avatar and mention renders, so it is
+        # the one field that may not be blanked: a person with no name is a row
+        # nobody can identify.
+        if key == "full_name" and not text:
+            _invalid("user.full_name", "A name is how everybody else finds you.")
+        setattr(user, key, text or (None if key != "full_name" else user.full_name))
+
+    session.flush()
+    return {"updated": sorted(patch)}
+
+
+def _user_model():
+    from src.models.identity import User
+
+    return User
+
+
 def merged_preferences(stored: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
     result = deepcopy(PREFERENCE_DEFAULTS)
     if not isinstance(stored, dict):

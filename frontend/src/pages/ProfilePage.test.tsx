@@ -13,6 +13,7 @@ import ProfilePage, {
 } from "@/pages/ProfilePage";
 import type { Profile } from "@/api/profile";
 import { CommandProvider } from "@/commands/CommandContext";
+import { currentUser } from "@/test/handlers";
 import { server } from "@/test/server";
 import { renderWithProviders } from "@/test/render";
 
@@ -298,5 +299,35 @@ describe("when it cannot be loaded", () => {
     );
     render("/profile/00000000-0000-0000-0000-0000000000aa");
     expect(await screen.findByText("That page could not be loaded")).toBeInTheDocument();
+  });
+
+  it("lets a person correct their own details, which nothing else could (§40)", async () => {
+    const user = userEvent.setup();
+    const sent: Record<string, unknown>[] = [];
+    server.use(
+      http.put("/platform/api/me", async ({ request }) => {
+        const body = (await request.json()) as { user?: Record<string, unknown> };
+        if (body.user) sent.push(body.user);
+        return HttpResponse.json({
+          ...currentUser,
+          user: { ...currentUser.user, ...body.user },
+        });
+      }),
+    );
+
+    render();
+    await user.click(await screen.findByTestId("edit-profile"));
+
+    const field = await screen.findByLabelText("Job title");
+    await user.clear(field);
+    await user.type(field, "Support lead");
+    await user.click(screen.getByTestId("save-profile"));
+
+    await waitFor(() => expect(sent).toHaveLength(1));
+    expect(sent[0]).toMatchObject({ job_title: "Support lead" });
+    // Never the address or the role: the first proves who they are to
+    // Keycloak, the second is somebody else's decision about them.
+    expect(sent[0]).not.toHaveProperty("email");
+    expect(sent[0]).not.toHaveProperty("role");
   });
 });
