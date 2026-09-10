@@ -4156,19 +4156,38 @@ everything else.
   - The configure step was a 420-pixel drawer holding a form: pick "Heatmap ·
     task · assignee · last 30 days", press Add, and find out what you made by
     hunting for the card on the grid. A modal wide enough for two panes puts
-    **the widget itself, drawn from live data, beside the choice** — and it is
-    the real `WidgetBody`, so what is previewed is what gets added
-  - The kinds are **browsed on shelves**, each card carrying the question the
-    kind answers rather than only its name. Somebody who does not know what a
-    heatmap is for cannot pick one out of a select
+    **the card itself, drawn from live data, beside the choice**
+  - **The preview is the real card.** `WidgetCard` around `WidgetBody` — the
+    same two components the grid renders — in a cell the height of the rows
+    the widget will actually occupy, so a one-row KPI reads as a strip and a
+    three-row calendar reads as a panel. A preview assembled from different
+    components is wrong the first week either changes, and a bare table in a
+    box tells nobody what the thing will look like on the page
+  - **Title and note first**, because they are the two fields every kind has.
+    A form whose first field moves depending on an answer further down reads
+    as one that was assembled rather than designed
+  - **The kinds are one grouped dropdown**, each row carrying the icon and the
+    *question the kind answers*. As cards on shelves they were five headings
+    and four hundred pixels before the first real question — the second line
+    is what somebody choosing between "Bars" and "Share" needs, and a select
+    row holds it fine
   - The same modal configures an existing widget: a preview is worth as much
     when changing a card as when adding one, and two components would be two
     vocabularies for one decision
 - [x] **Auto-arrange**, beside "Tidy up", because they answer different
       questions. Tidy up closes gaps and leaves everything where it is — the
-      rule the grid already applies during a drag. Auto-arrange also *packs the
-      rows*, which is the only thing that rescues a dashboard whose cards were
-      each dropped under the last with half the width left empty
+      rule the grid already applies during a drag. Auto-arrange packs the rows
+      **and then gives the leftover width back to the cards in each row**, so
+      the dashboard reads as full rather than as a page with a ragged right
+      edge. Widest card first, because a wide card absorbing the slack keeps
+      the row's proportions
+- [x] **No period control on `/dashboards`.** A dashboard here is a set of
+      windows onto the product — what is in the inbox, what is in the lane,
+      what lands this week — and almost none of that has a period at all. A
+      picker above them implied every card answered to it and put a prominent
+      control on a page most of whose widgets ignored it. The charts that do
+      need a window take the dashboard's saved default, set once in Settings,
+      and any widget may still name its own
 - [x] The people picker is full width wherever it is used
   - Inside a `Form.Item` AntD stretches a select for you, which is why nobody
     noticed — and why it broke the moment the share drawer used one outside a
