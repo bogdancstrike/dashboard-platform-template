@@ -2862,10 +2862,29 @@ Ordered as asked: mail, then the admin pages, then the showcase.
       real mailbox rather than a degraded one; three layouts, one grid
       statement each. The reader's toolbar gained reply, star and mark-unread
       as named icons, and a way back when there is no pane to go back to
-- [ ] **`/admin/flags` does nothing.** Toggling a flag changes no navigation
-      and no page. A flag that cannot be observed is a switch wired to nothing,
-      and the platform already has `experimental` on nav items with no source
-      of truth behind it
+- [x] **`/admin/flags` gates real features now** (§27). There was a whole flag
+      system — rollout percentages, target roles, named users, a stable hash so
+      a flag cannot flicker between requests — an administration screen to
+      manage it, and **nothing anywhere that read a flag**
+  - `/api/me` publishes `features`: the keys that are on for *this* reader,
+    computed by `settings.enabled_for` — which calls the same `is_on` the flags
+    screen reports `on_for_me` with. A browser deciding its own rollout
+    percentage would disagree with the screen that explains it, and "it says it
+    is on and I do not have it" would be unanswerable
+  - `settings/features.ts` declares the flags this product actually reads, so
+    the list is findable; a key typed at one call site is a key nobody can find
+  - A flag gates a **feature**, never a permission: `bulk-operations` off takes
+    the tick boxes away and does not make somebody unable to delete a record
+    they may delete. Nothing under Administration names a flag, or an
+    administrator could switch off their own way back
+  - Off means **not in the menu and not reachable by address** — a menu that
+    hides a page whose address still works is a menu somebody routes around
+  - And it is said as **"this feature is switched off"**, not as a permission
+    refusal: a permission is a fact about the reader, and blaming their role
+    for an administrator's switch is a lie about them (§34, §76)
+  - Toggling one invalidates the profile, so the navigation changes on the
+    press rather than on the next reload — which is precisely the "this screen
+    does nothing" impression it used to give
 - [ ] **`/admin/health` over time** — line charts of what was healthy when,
       with 8h / 1d / 7d / custom. Today it says only what is true now
 - [ ] **`/profile` — more on it, and more useful**

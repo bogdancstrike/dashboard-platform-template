@@ -132,9 +132,9 @@ export default function FlagsPage() {
   const write = useMutation({
     mutationFn: ({ key, body }: { key: string; body: Record<string, unknown> }) =>
       settingsApi.updateFlag(key, body),
-    onSuccess: async (flag) => {
+    onSuccess: (flag) => {
       message.success(`${flag.name} is ${flag.enabled ? "on" : "off"}`);
-      await refresh();
+      refresh();
     },
     onError: (error) =>
       message.error(error instanceof ApiError ? error.message : "That change was refused."),
@@ -143,12 +143,12 @@ export default function FlagsPage() {
   const create = useMutation({
     mutationFn: (values: { key: string; name: string; description?: string }) =>
       settingsApi.createFlag(values),
-    onSuccess: async (flag) => {
+    onSuccess: (flag) => {
       settled();
       message.success(`${flag.name} exists, and it is off`);
       form.resetFields();
       setCreating(false);
-      await refresh();
+      refresh();
     },
     onError: (error) =>
       message.error(error instanceof ApiError ? error.message : "That flag could not be created."),
@@ -156,9 +156,9 @@ export default function FlagsPage() {
 
   const remove = useMutation({
     mutationFn: (key: string) => settingsApi.removeFlag(key),
-    onSuccess: async (answer) => {
+    onSuccess: (answer) => {
       message.success(`${answer.key} is gone`);
-      await refresh();
+      refresh();
     },
     onError: (error) =>
       message.error(error instanceof ApiError ? error.message : "That flag could not be removed."),

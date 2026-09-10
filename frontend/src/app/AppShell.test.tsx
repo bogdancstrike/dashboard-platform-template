@@ -1,6 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { App as AntApp } from "antd";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
@@ -28,6 +28,9 @@ function renderShell(route = "/dashboard") {
                     <Route element={<AppShell />}>
                       <Route path="dashboard" element={<div>Dashboard content</div>} />
                       <Route path="admin" element={<div>Admin content</div>} />
+                      {/* A page behind a feature flag (§27), so the shell has
+                          something to refuse when the flag is off. */}
+                      <Route path="kanban" element={<div>Kanban content</div>} />
                     </Route>
                   </Routes>
                 </CommandProvider>
@@ -86,6 +89,10 @@ describe("authenticated application shell", () => {
         HttpResponse.json(
           {
             ...currentUser,
+            // The permission is *held*; only the feature is off. That is the
+            // whole distinction being asserted — a permission refusal here
+            // would prove nothing about flags.
+            permissions: [...currentUser.permissions, "tasks.view"],
             features: currentUser.features.filter((key) => key !== "kanban-board"),
           },
           { headers: { "X-Correlation-Id": request.headers.get("X-Correlation-Id") ?? "" } },
@@ -103,6 +110,6 @@ describe("authenticated application shell", () => {
     // routes around. Said as "switched off" rather than "forbidden": a
     // permission is a fact about the reader, and blaming their role for an
     // administrator's switch is a lie about them.
-    expect(await screen.findByText("This feature is switched off")).toBeInTheDocument();
+    expect(await screen.findByTestId("problem-switched_off")).toBeInTheDocument();
   });
 });

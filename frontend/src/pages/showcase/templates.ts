@@ -229,6 +229,9 @@ export const LAYOUTS: PageLayout[] = [
       "errors/500",
       "errors/maintenance",
       "errors/session-expired",
+      // A feature switched off, which is not a permission refusal: the shell
+      // shows it in place, and it is addressable so it can be looked at (§27).
+      "errors/switched-off",
     ],
   },
   {
