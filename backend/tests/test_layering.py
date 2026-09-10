@@ -138,9 +138,16 @@ def test_a_handler_names_a_permission_and_calls_a_service():
     nobody found it (`test_endpoint_map.py` is the other half of that).
     """
     public = _modules_serving_only_public_endpoints()
-    # The health probes, and nothing else — asserted, so a module that becomes
-    # entirely public by accident shows up here rather than being waved past.
-    assert public == {"health"}, public
+    # Nothing is *entirely* public any more, and the module that used to be is
+    # the interesting case: `health` serves three unauthenticated probes — what
+    # an orchestrator and an uptime monitor poll, neither of which holds a
+    # token — and one gated endpoint, the *history*, because a record of when
+    # the platform was broken is operational detail rather than a liveness
+    # signal (§24). So it falls through to the check below and has to pass it.
+    #
+    # Asserted as a set rather than ignored, so a module that becomes entirely
+    # public by accident shows up here rather than being waved past.
+    assert public == set(), public
 
     for path in modules("api"):
         text = path.read_text()

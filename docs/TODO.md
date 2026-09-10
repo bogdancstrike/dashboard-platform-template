@@ -3019,12 +3019,24 @@ Ordered as asked: mail, then the admin pages, then the showcase.
     the circle-plus next to the plus do" was a question the editor asked
     silently of everybody who opened it (§55, §76)
 
-### Known red, and not from this session's work
+### Known red
 
-- [ ] **26 backend tests fail on a stack whose object storage has not been
-      synced** — `test_files`, `test_exports` and `test_profile`. Baselined
-      before this session's first commit and unchanged by it; `make sync-files`
-      and friends are what they are waiting for
+Twenty-six at the start of this session; two now.
+
+- [x] **Twenty of them were `boto3` missing from the local virtualenv.** Every
+      `test_files` and `test_exports` failure was one 500 with `No module named
+      'boto3'` behind it — the package is in `requirements.txt` and the
+      container has it, so only a suite run on the host was affected. Nothing
+      in the code
+- [x] **Four were a real 500**: `profile._named` read `row.name` for a manager,
+      and a `User` is named by `full_name`. Every profile page with a manager
+      on it answered 500 — see the `/profile` entry above
+- [ ] **Two remain, and both are about the shape of *this* database's seed
+      rather than about code.** `test_activity` wants the feed to carry an
+      entry against a project, and `test_announcements` wants at least one
+      category nobody has used. A fresh `make reseed` would settle both, at the
+      cost of everything created since the last one — so it is somebody's
+      decision rather than a repair to run unasked
 
 ## Design foundations
 
