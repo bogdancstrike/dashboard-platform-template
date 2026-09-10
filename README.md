@@ -112,6 +112,22 @@ arrive renders its own numbers as a table.
 make migrate    # report_documents arrived in 20260910_1750
 ```
 
+### Health, and what it was doing earlier
+
+`GET /platform/health/{live,ready,status}` are unauthenticated on purpose —
+orchestrators and uptime monitors hold no token. `GET /platform/health/history`
+is not: it is the record of *when the platform was broken*, so it sits behind
+`health.view`, and it is what `/admin/health` draws its charts from.
+
+The series lives on `service_health.history`, at two resolutions — four-hourly
+out to thirty days, hourly for the last two. Windows longer than 180 readings
+are bucketed by taking the **worst** status and the **mean** latency, because
+an outage inside a bucket is an outage and a majority vote would round it away.
+
+```bash
+make sync-health   # give every monitored service a month of history to draw
+```
+
 ### Files, and where the bytes live
 
 `/files` never moves bytes through the API. A browser asks for a presigned URL

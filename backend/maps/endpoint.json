@@ -53,6 +53,20 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "health_history",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/health/history",
+      "description": "What each dependency was doing across a window.",
+      "exec_method": {
+        "module_name": "src.api.health",
+        "method_name": "history"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "meta_app",
       "model_name": "Empty",
       "request_method": [

@@ -5,8 +5,19 @@ from __future__ import annotations
 import pytest
 
 from src.config import Config
+from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX
+
+
+def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):
+    monkeypatch.setattr(
+        "src.core.auth.verify_token",
+        lambda token: persona_claims(
+            str(token).split("-")[1], str(token).split("-")[2], sid=f"health-{username}"
+        ),
+    )
+    return {"Authorization": f"Bearer health-{username}-{role}"}
 
 
 def test_liveness_never_touches_a_dependency(client):
@@ -117,3 +128,68 @@ def test_snapshot_leaks_no_configuration(client):
     raw = client.get(f"{PREFIX}/health/status").get_data(as_text=True)
     for secret in (Config.DATABASE_URL, Config.SECRET_KEY, Config.REDIS_URL):
         assert secret not in raw
+
+
+@pytest.mark.database
+def test_the_history_says_what_each_service_was_doing(client, monkeypatch):
+    """The snapshot answers "is it working now"; this answers "was it" (§24).
+
+    A page that can only report the present cannot answer the question people
+    are actually on it for — *was the platform part of what happened at four
+    o'clock* — and the incident is then reconstructed from memory. The history
+    was already recorded on `service_health.history`; nothing served it.
+    """
+    headers = _authenticate(monkeypatch, "admin", "administrator")
+    body = client.get(
+        f"{PREFIX}/health/history?period=7d", headers=headers
+    ).get_json()
+
+    assert body["period"] == "7d"
+    assert body["periods"] == ["8h", "1d", "7d", "30d"]
+    assert body["services"], "the seed monitors at least one service"
+
+    service = body["services"][0]
+    assert service["series"], "a window of a week has readings in it"
+    # Bucketed rather than truncated: dropping the end of a window answers a
+    # different question from the one that was asked.
+    assert len(service["series"]) <= 180
+    # Two uptime figures, and they are different questions: one is the row's
+    # lifetime, one is the window on screen.
+    assert "uptime_percent" in service
+    assert 0 <= service["window_uptime_percent"] <= 100
+
+    # An outage is a period, not a run of points: consecutive not-healthy
+    # readings collapse, so a three-hour outage is one incident and not three.
+    for incident in service["incidents"]:
+        assert incident["status"] != "HEALTHY"
+        assert incident["started_at"] <= incident["ended_at"]
+
+
+@pytest.mark.database
+def test_a_history_needs_a_permission_where_the_probes_do_not(client, monkeypatch):
+    """The probes are polled by things that hold no token; this is not one.
+
+    A history is a record of when the platform was broken — operational
+    detail rather than a liveness signal — so it is the one health endpoint
+    behind `health.view`.
+    """
+    assert client.get(f"{PREFIX}/health/status").status_code in (200, 503)
+    assert client.get(f"{PREFIX}/health/history").status_code == 401
+
+    # But not an administrators-only page: `health.view` is a permission every
+    # built-in role carries, because "is the platform all right" is a question
+    # anybody using it is entitled to ask. What the token buys is the *record*
+    # of when it was not.
+    headers = _authenticate(monkeypatch, "user", "viewer")
+    assert client.get(f"{PREFIX}/health/history", headers=headers).status_code == 200
+
+
+@pytest.mark.database
+def test_an_unreadable_window_falls_back_rather_than_refusing(client, monkeypatch):
+    """A health page that answers a malformed query with a 400 is a health page
+    somebody cannot use during the incident it exists for."""
+    headers = _authenticate(monkeypatch, "admin", "administrator")
+    body = client.get(
+        f"{PREFIX}/health/history?period=fortnight&from=not-a-date", headers=headers
+    ).get_json()
+    assert body["period"] == "1d"

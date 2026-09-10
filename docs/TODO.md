@@ -2885,8 +2885,35 @@ Ordered as asked: mail, then the admin pages, then the showcase.
   - Toggling one invalidates the profile, so the navigation changes on the
     press rather than on the next reload — which is precisely the "this screen
     does nothing" impression it used to give
-- [ ] **`/admin/health` over time** — line charts of what was healthy when,
-      with 8h / 1d / 7d / custom. Today it says only what is true now
+- [x] **`/admin/health` says what each dependency *has been* doing** (§24).
+      The page could only report the present, which is the right answer for a
+      deploy pipeline and the wrong one for a person — who is almost always
+      here because something happened earlier and they want to know whether
+      the platform was part of it
+  - `GET /health/history?period=8h|1d|7d|30d`, or `from`/`to` for a custom
+    window. The one health endpoint behind a permission: the other three are
+    polled by orchestrators and uptime monitors that hold no token, and a
+    history is a record of *when the platform was broken*
+  - The series was already recorded on `service_health.history` and **nothing
+    served it**. It was also one day long, so 7d and 30d drew nothing —
+    `make sync-health` gives every service a month, at two resolutions
+    (four-hourly out to thirty days, hourly for the last two) because a flat
+    hourly month is seven hundred points nobody can read
+  - **A bucket takes the worst status and the mean latency.** An outage that
+    lasted twenty minutes inside an hourly bucket is an outage, and a majority
+    vote would round it away — which is exactly the reading somebody is on this
+    page to avoid
+  - **An outage is a period, not a run of points.** Consecutive not-healthy
+    readings collapse, so a three-hour outage is one incident and not three
+  - **Two uptime figures, both named**: the row's lifetime number and the
+    window's. They are usually different, and an unlabelled one gets quoted
+    wrongly in a report
+  - Latency is the line and status is the ground under it — status as a second
+    line would put two unrelated scales on one axis, and the band is a second
+    carrier for what height only hints at (§55)
+  - A window that cannot be parsed **falls back rather than refusing**: a
+    health page that answers a malformed query with a 400 is a health page
+    nobody can use during the incident it exists for
 - [ ] **`/profile` — more on it, and more useful**
 - [ ] **`/showcase/components` — more components, from across the pages**
 - [ ] **`/showcase/templates` — enrich it**

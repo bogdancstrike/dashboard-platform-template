@@ -126,19 +126,51 @@ def _service_health(world: World) -> None:
                     "UNAVAILABLE": "Connection refused on the last three checks.",
                     "UNKNOWN": "No probe has run since the last restart.",
                 }[status],
-                # A short series so the health page draws a sparkline per
-                # service without a second table.
-                history=[
-                    {
-                        "at": (world.anchor - timedelta(hours=hours)).isoformat(),
-                        "latency_ms": float(rng.decimal(0.5, 350)),
-                        "status": rng.weighted((("HEALTHY", 0.85), ("DEGRADED", 0.12), ("UNAVAILABLE", 0.03))),
-                    }
-                    for hours in range(23, -1, -1)
-                ],
+                # Thirty days of it, at two resolutions: hourly for the last
+                # two days and every four hours before that. The page asks
+                # "was it working at four o'clock" as often as "is it working
+                # now", and a series that stopped at twenty-four hours could
+                # only answer the second — while a flat hourly month would be
+                # seven hundred points nobody can read.
+                history=_health_series(rng, world.anchor),
                 created_at=rng.ago(days_min=60, days_max=400),
             )
         )
+
+
+def _health_series(rng, anchor) -> list[dict[str, Any]]:
+    """One service's month, coarse at the far end and hourly at the near one.
+
+    Incidents come in *runs* rather than as independent draws, because that is
+    what an outage is: a service that flickers unhealthy for one isolated hour
+    every day is a pattern no real dependency has, and a page drawn from it
+    teaches somebody to read noise.
+    """
+    points: list[dict[str, Any]] = []
+    # Four-hourly from 30 days back to 2 days back, then hourly to now.
+    steps = [(hours, 4) for hours in range(30 * 24, 48, -4)]
+    steps += [(hours, 1) for hours in range(48, -1, -1)]
+
+    # How many more points the current incident has left to run.
+    remaining = 0
+    status = "HEALTHY"
+    for hours, _width in steps:
+        if remaining > 0:
+            remaining -= 1
+        elif rng.chance(0.04):
+            status = rng.weighted((("DEGRADED", 0.75), ("UNAVAILABLE", 0.25)))
+            remaining = rng.integer(1, 5)
+        else:
+            status = "HEALTHY"
+        points.append({
+            "at": (anchor - timedelta(hours=hours)).isoformat(),
+            # A degraded service is slow, which is usually how it is noticed.
+            "latency_ms": float(
+                rng.decimal(0.5, 60) if status == "HEALTHY" else rng.decimal(120, 900)
+            ),
+            "status": status,
+        })
+    return points
 
 
 def _feature_flags(world: World) -> None:

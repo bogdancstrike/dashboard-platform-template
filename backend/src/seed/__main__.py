@@ -19,6 +19,7 @@
     python -m src.seed --sync-settings   # bring each setting's declaration up to date
     python -m src.seed --sync-jobs       # give every job status at least one job
     python -m src.seed --sync-org        # make each department's headcount agree with its people
+    python -m src.seed --sync-health     # give every service a month of history to draw
     python -m src.seed --dry-run          # build in memory, write nothing
 
 It refuses to seed a database that already has data unless `--reset` or
@@ -94,6 +95,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-org", action="store_true",
         help="recount each department's headcount from the people actually in it",
+    )
+    parser.add_argument(
+        "--sync-health", action="store_true",
+        help="give every monitored service a month of history, so the charts have something to draw",
     )
     parser.add_argument(
         "--sync-jobs", action="store_true",
@@ -312,6 +317,20 @@ def main(argv: list[str] | None = None) -> int:
             f"{result['corrected']} departments recounted"
             if result["corrected"]
             else "every department already agrees with its people"
+        )
+        return 0
+
+    if args.sync_health:
+        # The history column was seeded with twenty-four points, which is one
+        # day — so the 7d and 30d windows on `/admin/health` drew nothing on a
+        # database seeded before this. An *edit*, and safe for the same reason
+        # `--sync-org` is: nothing here is a decision anybody made.
+        with session_scope() as session:
+            result = runner.sync_health(session)
+        print(
+            f"{result['extended']} services given {result['points']} points of history"
+            if result["extended"]
+            else "every service already has a month of history"
         )
         return 0
 

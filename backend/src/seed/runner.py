@@ -934,6 +934,39 @@ def _headcount_drift(session) -> list[str]:
     return problems
 
 
+def sync_health(session) -> dict[str, int]:
+    """Give every monitored service a month of history to draw.
+
+    The seventh repair, and an *edit* like `sync_org` — safe for the same
+    reason: a health history is a recording, not a decision anybody made.
+
+    The column was seeded with twenty-four hourly points, which is exactly one
+    day, so `/admin/health`'s 7d and 30d windows drew empty charts on any
+    database seeded before the page could ask for them. Rewritten rather than
+    appended to, because a series stitched from two generators has a visible
+    seam at the join and somebody would read it as an incident.
+    """
+    from src.models.platform import ServiceHealth
+    from src.seed.operations import _health_series
+
+    # Anchored on *now* rather than on the original seed's moment: a history
+    # that ends a fortnight ago draws a chart with nothing in the window
+    # anybody actually looks at.
+    anchor = now()
+    rng = Rng(int(anchor.timestamp() * 1000), anchor)
+    rows = session.scalars(select(ServiceHealth)).all()
+    extended = 0
+    points = 0
+    for row in rows:
+        if len(row.history or []) >= 200:
+            continue
+        series = _health_series(rng.derive(f"health:{row.key}"), anchor)
+        row.history = series
+        extended += 1
+        points = len(series)
+    return {"extended": extended, "points": points}
+
+
 def sync_org(session) -> dict[str, int]:
     """Make every department's `headcount` agree with the people in it.
 

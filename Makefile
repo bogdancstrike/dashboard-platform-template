@@ -164,6 +164,10 @@ sync-mailboxes: ## Give each demo persona an inbox worth opening
 sync-org: ## Recount each department's headcount from the people in it
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-org seed
 
+.PHONY: sync-health
+sync-health: ## Give every monitored service a month of history to draw
+	$(COMPOSE) run --rm -e SEED_ARGS=--sync-health seed
+
 .PHONY: sync-jobs
 sync-jobs: ## Give every background-job status at least one job
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-jobs seed

@@ -83,8 +83,60 @@ export interface HealthSnapshot {
   checks: Record<string, { status: string; latency_ms: number | null; error?: string }>;
 }
 
+/**
+ * What one dependency was doing across a window (§24).
+ *
+ * The snapshot answers "is it working now", which is what a deploy pipeline
+ * asks. This answers the question a person on the health page is almost
+ * always asking instead: **was it working at four o'clock**, when the thing
+ * they are investigating happened.
+ */
+export interface HealthPoint {
+  at: string;
+  status: string;
+  latency_ms: number;
+}
+
+/** A run of not-healthy, as a period rather than as three separate points. */
+export interface HealthIncident {
+  status: string;
+  started_at: string;
+  ended_at: string;
+  points: number;
+}
+
+export interface ServiceHistory {
+  key: string;
+  name: string;
+  category: string;
+  status: string;
+  latency_ms: number;
+  /** The lifetime figure on the row, which is not the window's. */
+  uptime_percent: number;
+  message: string | null;
+  last_checked_at: string | null;
+  series: HealthPoint[];
+  incidents: HealthIncident[];
+  /** Over the window asked for, and named as such so the two cannot be confused. */
+  window_uptime_percent: number;
+}
+
+export interface HealthHistory {
+  period: string;
+  from: string;
+  to: string;
+  periods: string[];
+  services: ServiceHistory[];
+  counts: { services: number; healthy_now: number; incidents: number };
+}
+
 export const healthApi = {
   live: (signal?: AbortSignal) => api.get<{ status: string }>("/health/live", { signal }),
   ready: (signal?: AbortSignal) => api.get<{ status: string }>("/health/ready", { signal }),
   status: (signal?: AbortSignal) => api.get<HealthSnapshot>("/health/status", { signal }),
+  /** Needs `health.view`, unlike the probes: a history is operational detail. */
+  history: (
+    params: { period?: string; from?: string; to?: string } = {},
+    signal?: AbortSignal,
+  ) => api.get<HealthHistory>("/health/history", { params, signal }),
 };

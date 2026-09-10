@@ -5610,6 +5610,50 @@ export const handlers = [
     return echo(request, { preferences: merged });
   }),
   http.get("/platform/health/status", ({ request }) => echo(request, healthSnapshot)),
+  http.get("/platform/health/history", ({ request }) => {
+    const period = new URL(request.url).searchParams.get("period") ?? "1d";
+    // Points that follow the window asked for, so a test that changes the
+    // period can assert the page redrew rather than merely re-rendered.
+    const hours = { "8h": 8, "1d": 24, "7d": 24 * 7, "30d": 24 * 30 }[period] ?? 24;
+    const now = Date.parse("2026-09-06T12:00:00Z");
+    const series = Array.from({ length: Math.min(hours, 24) }, (_value, index) => ({
+      at: new Date(now - (index + 1) * 3_600_000).toISOString(),
+      // One period of trouble, in the middle, so the incident list has
+      // something to collapse and the band something to colour.
+      status: index === 5 || index === 6 ? "DEGRADED" : "HEALTHY",
+      latency_ms: index === 5 || index === 6 ? 420 : 24,
+    })).reverse();
+
+    return echo(request, {
+      period,
+      from: new Date(now - hours * 3_600_000).toISOString(),
+      to: new Date(now).toISOString(),
+      periods: ["8h", "1d", "7d", "30d"],
+      services: [
+        {
+          key: "postgres",
+          name: "PostgreSQL",
+          category: "DATABASE",
+          status: "HEALTHY",
+          latency_ms: 12,
+          uptime_percent: 99.98,
+          message: null,
+          last_checked_at: new Date(now).toISOString(),
+          series,
+          incidents: [
+            {
+              status: "DEGRADED",
+              started_at: series[Math.max(series.length - 7, 0)]!.at,
+              ended_at: series[Math.max(series.length - 6, 0)]!.at,
+              points: 2,
+            },
+          ],
+          window_uptime_percent: 91.67,
+        },
+      ],
+      counts: { services: 1, healthy_now: 1, incidents: 1 },
+    });
+  }),
   http.get("/platform/dashboard/summary", ({ request }) => echo(request, dashboardSummary)),
   http.get("/platform/api/explorer/catalog", ({ request }) => echo(request, explorerCatalogue)),
   http.get("/platform/api/files/tree", ({ request }) =>
