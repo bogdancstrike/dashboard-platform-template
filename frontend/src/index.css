@@ -1720,6 +1720,76 @@ mark.nu-mark {
 
 /* Sharing: the scope control gets room for its icons and its sentence. */
 .nu-share-scope { margin-top: 6px; }
+
+/* ── choosing a widget, with the widget beside the choice (§45) ──────────
+   Two panes: what it will show on the left, what that looks like on the
+   right. The preview is the real body, so the frame around it has to read as
+   a card without being one — a second `.nu-widget-card` here would inherit
+   the grid's own sizing rules and fight them. */
+.nu-widget-modal-panes {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: 20px;
+  align-items: start;
+}
+.nu-widget-modal-form { min-width: 0; max-height: 62vh; overflow-y: auto; padding-right: 4px; }
+.nu-widget-modal-preview {
+  position: sticky; top: 0; min-width: 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.nu-widget-modal-caption {
+  font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.nu-widget-modal-frame {
+  border: 1px solid var(--nu-border); border-radius: var(--nu-radius-card);
+  background: var(--nu-surface); overflow: hidden;
+}
+.nu-widget-modal-frame-head {
+  padding: 8px 12px; border-bottom: 1px solid var(--nu-border-subtle);
+  font-size: 13px; font-weight: 600;
+  background: var(--nu-surface-raised);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-widget-modal-frame-body {
+  padding: 12px; min-height: 190px; max-height: 320px; overflow: auto;
+}
+.nu-widget-modal-question { margin: 0 !important; font-size: 12px; }
+
+/* The kinds, on shelves. A card can carry the question a kind answers, which
+   is what somebody who does not know what a heatmap is for needs in order to
+   choose one; a select entry can only carry its name. */
+.nu-widget-modal-kinds .ant-form-item-control-input { min-height: 0; }
+.nu-kindpick { display: flex; flex-direction: column; gap: 10px; }
+.nu-kindpick-shelf {
+  margin: 0 0 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--nu-text-secondary);
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+}
+.nu-kindpick-shelf > span {
+  font-size: 11px; font-weight: 400; letter-spacing: 0;
+  text-transform: none; color: var(--nu-text-tertiary);
+}
+.nu-kindpick-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.nu-kindpick-card {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border-radius: var(--nu-radius-control, 6px);
+  border: 1px solid var(--nu-border); background: var(--nu-surface);
+  color: var(--nu-text); font: inherit; font-size: 12.5px; cursor: pointer;
+}
+.nu-kindpick-card:hover { border-color: var(--nu-accent); }
+.nu-kindpick-card:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; }
+.nu-kindpick-card.is-chosen {
+  border-color: var(--nu-accent); box-shadow: inset 0 0 0 1px var(--nu-accent);
+  background: color-mix(in srgb, var(--nu-accent) 8%, var(--nu-surface));
+}
+.nu-kindpick-icon { display: inline-flex; font-size: 14px; }
+.nu-kindpick-label { white-space: nowrap; }
+
+/* One pane on a phone: 380 pixels of preview beside a form is two columns
+   neither of which is usable (§56). */
+@media (max-width: 860px) {
+  .nu-widget-modal-panes { grid-template-columns: minmax(0, 1fr); }
+  .nu-widget-modal-preview { position: static; }
+  .nu-widget-modal-form { max-height: none; }
+}
 /* A twelve-column grid on a phone is twelve slivers (§56), so the grid becomes
    one column and the cards take their content's height. The library still owns
    the vertical order; only the width and the row height are overridden. */

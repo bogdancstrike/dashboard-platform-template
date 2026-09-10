@@ -4152,6 +4152,29 @@ everything else.
     copy that takes the original's name is the moment somebody edits the wrong
     one
 
+- [x] Adding a widget shows you the widget
+  - The configure step was a 420-pixel drawer holding a form: pick "Heatmap ·
+    task · assignee · last 30 days", press Add, and find out what you made by
+    hunting for the card on the grid. A modal wide enough for two panes puts
+    **the widget itself, drawn from live data, beside the choice** — and it is
+    the real `WidgetBody`, so what is previewed is what gets added
+  - The kinds are **browsed on shelves**, each card carrying the question the
+    kind answers rather than only its name. Somebody who does not know what a
+    heatmap is for cannot pick one out of a select
+  - The same modal configures an existing widget: a preview is worth as much
+    when changing a card as when adding one, and two components would be two
+    vocabularies for one decision
+- [x] **Auto-arrange**, beside "Tidy up", because they answer different
+      questions. Tidy up closes gaps and leaves everything where it is — the
+      rule the grid already applies during a drag. Auto-arrange also *packs the
+      rows*, which is the only thing that rescues a dashboard whose cards were
+      each dropped under the last with half the width left empty
+- [x] The people picker is full width wherever it is used
+  - Inside a `Form.Item` AntD stretches a select for you, which is why nobody
+    noticed — and why it broke the moment the share drawer used one outside a
+    form, collapsing it to an empty 32-pixel square with a dropdown hanging off
+    it. A control whose size depends on its wrapper will keep doing this
+
 ### Boards, and knowing where a card will land (§18, §33, §64)
 
 - [x] `/tasks` and `/kanban`: a drag that says what it is about to do

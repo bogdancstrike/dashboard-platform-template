@@ -116,14 +116,13 @@ describe("the dashboards page", () => {
     await user.click(await screen.findByTestId("toggle-edit"));
     await user.click(screen.getByTestId("add-widget"));
 
-    const drawer = await screen.findByRole("dialog");
-    // Typed rather than scrolled: thirteen kinds is more than a list somebody
-    // reads top to bottom, and AntD virtualises the ones past the window.
-    await user.click(within(drawer).getByRole("combobox", { name: "Widget kind" }));
-    await user.type(within(drawer).getByRole("combobox", { name: "Widget kind" }), "Recent");
-    await user.click(await screen.findByTitle("Recent activity"));
-    await user.type(within(drawer).getByLabelText("Title"), "What just happened");
-    await user.click(within(drawer).getByTestId("save-widget"));
+    const dialog = await screen.findByRole("dialog");
+    // Pressed on its shelf rather than typed into a select: the kinds are
+    // browsed, because a card can say what a kind *answers* and a select entry
+    // can only say its name.
+    await user.click(within(dialog).getByTestId("kind-ACTIVITY"));
+    await user.type(within(dialog).getByLabelText("Title"), "What just happened");
+    await user.click(within(dialog).getByTestId("save-widget"));
 
     await waitFor(() => {
       const stored = savedDashboards[0]!["widgets"] as { title: string; kind: string }[];

@@ -66,6 +66,13 @@ export function PeoplePicker({
   return (
     <Select
       {...rest}
+      // Full width, always. Inside a `Form.Item` AntD stretches a select for
+      // you, which is why this was missing and why it only broke where the
+      // picker is used *outside* one — the share drawer, where it collapsed to
+      // an empty 32-pixel square with a dropdown hanging off it. A control
+      // whose size depends on which wrapper it happens to be in is a control
+      // that will keep doing this.
+      style={{ width: "100%" }}
       mode={multiple ? "multiple" : undefined}
       showSearch
       allowClear

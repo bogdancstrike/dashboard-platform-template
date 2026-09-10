@@ -55,6 +55,7 @@ import {
   Typography,
 } from "antd";
 import {
+  AppstoreOutlined,
   ColumnHeightOutlined,
   CopyOutlined,
   PlusOutlined,
@@ -77,22 +78,22 @@ import {
   type WidgetKind,
 } from "@/api/dashboards";
 import { explorerApi } from "@/api/explorer";
-import { kanbanApi } from "@/api/kanban";
 import { reportsApi } from "@/api/reports";
 import { PageHeader } from "@/components/PageHeader";
 import { MemberPicker } from "@/components/PeoplePicker";
 import { WidgetBody } from "@/components/dashboards/WidgetBody";
 import { CreateDashboardWizard } from "@/components/dashboards/CreateDashboardWizard";
-import {
-  FAMILY_LABELS,
-  KINDS,
-  KIND_FAMILIES,
-  kindsOf,
-} from "@/components/dashboards/kinds";
+import { WidgetModal } from "@/components/dashboards/WidgetModal";
 import { DashboardCard } from "@/components/dashboards/DashboardCard";
 import { ShareDrawer } from "@/components/dashboards/ShareDrawer";
 import { WidgetCard, type WidgetMoves } from "@/components/dashboards/WidgetCard";
-import { WidgetGrid, compacted, minimumFor, MAX_ROWS } from "@/components/dashboards/WidgetGrid";
+import {
+  WidgetGrid,
+  autoArranged,
+  compacted,
+  minimumFor,
+  MAX_ROWS,
+} from "@/components/dashboards/WidgetGrid";
 import { usePageCommands } from "@/commands/CommandContext";
 import { asText } from "@/lib/text";
 import { relativeTime } from "@/lib/time";
@@ -489,9 +490,13 @@ export default function DashboardsPage() {
                   >
                     Add a widget
                   </Button>
-                  {/* The same rule the grid applies during a drag, on demand:
-                      a dashboard edited for a while accumulates gaps, and
-                      closing them is something a person wants to press. */}
+                  {/* Two arrangers, because they answer different questions.
+                      "Tidy up" is the rule the grid already applies during a
+                      drag — close the gaps, leave everything where it is —
+                      and it is what somebody wants after moving one card.
+                      "Auto-arrange" also *packs the rows*, which is the only
+                      thing that rescues a dashboard whose cards were each
+                      dropped under the last and left half the width empty. */}
                   <Button
                     icon={<ColumnHeightOutlined />}
                     loading={arrange.isPending}
@@ -500,6 +505,15 @@ export default function DashboardsPage() {
                     data-testid="tidy-up"
                   >
                     Tidy up
+                  </Button>
+                  <Button
+                    icon={<AppstoreOutlined />}
+                    loading={arrange.isPending}
+                    disabled={widgets.length === 0}
+                    onClick={() => arrange.mutate(autoArranged(widgets, columns))}
+                    data-testid="auto-arrange"
+                  >
+                    Auto-arrange
                   </Button>
                 </>
               )}
@@ -677,12 +691,14 @@ export default function DashboardsPage() {
         }}
       />
 
-      <WidgetDrawer
+      <WidgetModal
         open={widgetForm !== null}
         widget={widgetForm === "new" ? null : widgetForm}
         datasets={listing.data?.datasets ?? []}
         kinds={listing.data?.widget_kinds ?? []}
         saving={saveWidget.isPending}
+        period={period}
+        resources={resources.data?.items ?? []}
         onClose={() => setWidgetForm(null)}
         onSave={(input) =>
           saveWidget.mutate({
@@ -725,504 +741,6 @@ export default function DashboardsPage() {
       />
     </>
   );
-}
-
-/**
- * What a widget shows, as a form.
- *
- * The kind decides which controls appear, because a heatmap needs a second
- * grouping and an alert strip needs nothing at all. Offering every field for
- * every kind would be a form that mostly does not apply — and a config the
- * server would then have to ignore.
- */
-function WidgetDrawer({
-  open,
-  widget,
-  datasets,
-  kinds,
-  saving,
-  onClose,
-  onSave,
-}: {
-  open: boolean;
-  widget: DashboardWidget | null;
-  datasets: { key: string; label: string }[];
-  kinds: WidgetKind[];
-  saving: boolean;
-  onClose: () => void;
-  onSave: (input: WidgetInput) => void;
-}) {
-  const [form] = Form.useForm();
-  const [kind, setKind] = useState<WidgetKind>(widget?.kind ?? "KPI");
-  // A widget's question is several choices — a dataset, a dimension, a
-  // period — and closing the drawer would take them all (§74).
-  const { touch, requestClose } = useDiscardGuard({ close: onClose, what: "widget" });
-
-  const catalogue = useQuery({
-    queryKey: ["analysis-catalogue"],
-    queryFn: ({ signal }) => analysisApi.catalogue(signal),
-    staleTime: 300_000,
-  });
-
-  // What the reader has already made. Fetched only when a kind that references
-  // one is chosen, so opening the drawer for a KPI costs nothing.
-  const shape = KINDS[kind];
-  const reports = useQuery({
-    queryKey: ["reports"],
-    queryFn: ({ signal }) => reportsApi.list(signal),
-    enabled: open && shape.needs === "report",
-    staleTime: 60_000,
-  });
-  const searches = useQuery({
-    queryKey: ["saved-searches", "all"],
-    queryFn: ({ signal }) => explorerApi.saved(undefined, signal),
-    enabled: open && shape.needs === "search",
-    staleTime: 60_000,
-  });
-  // Only a `TASKS` widget pointed at a board needs the board list, so it is
-  // asked for only then — a drawer opened on a KPI should cost nothing.
-  const boards = useQuery({
-    queryKey: ["kanban-boards", {}],
-    queryFn: ({ signal }) => kanbanApi.boards({}, signal),
-    enabled: open && kind === "TASKS",
-    staleTime: 300_000,
-  });
-
-  const initial = {
-    kind: widget?.kind ?? "KPI",
-    title: widget?.title ?? "",
-    subtitle: widget?.subtitle ?? "",
-    entity: widget?.config.entity ?? datasets[0]?.key ?? "",
-    dimension: widget?.config.dimension ?? "",
-    stack: widget?.config.stack ?? "",
-    period: widget?.config.period ?? "",
-    chart: widget?.config.chart ?? "bar",
-    metric: widget?.config.metric ?? "",
-    report_id: widget?.config.report_id ?? "",
-    search_id: widget?.config.search_id ?? "",
-    // Module options. Every one of them optional, because a module widget with
-    // nothing said is complete — it shows the module's own default view.
-    board_id: widget?.config.board_id ?? "",
-    folder: widget?.config.folder ?? "INBOX",
-    folder_id: widget?.config.folder_id ?? "",
-    unread_only: widget?.config.unread_only ?? false,
-    category: widget?.config.category ?? "",
-    status: widget?.config.status ?? "",
-    view: widget?.config.view ?? "bookmarks",
-    days: widget?.config.days ?? 7,
-  };
-
-  const dataset = catalogue.data?.datasets.find(
-    (item) => item.key === (form.getFieldValue("entity") ?? initial.entity),
-  );
-
-  return (
-    <Drawer
-      open={open}
-      onClose={requestClose}
-      width={460}
-      destroyOnClose
-      title={widget ? `Configure ${widget.title}` : "Add a widget"}
-      extra={
-        <Button type="primary" loading={saving} onClick={() => void form.submit()}
-                data-testid="save-widget">
-          {widget ? "Save" : "Add"}
-        </Button>
-      }
-    >
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={initial}
-        onValuesChange={(changed: { kind?: WidgetKind }) => {
-          touch();
-          if (changed.kind) setKind(changed.kind);
-        }}
-        onFinish={(values: Record<string, string | boolean | number>) => {
-          const chosen = (values["kind"] ?? "KPI") as WidgetKind;
-          onSave({
-            kind: chosen,
-            title: String(values["title"] ?? ""),
-            subtitle: (values["subtitle"] as string) || null,
-            // The size a new widget gets comes from the server, which is the
-            // one place that knows a KPI wants three columns. An edited one
-            // keeps where the reader put it.
-            ...(widget ? {} : { x: 0 }),
-            config: configFor(chosen, values),
-          });
-        }}
-      >
-        <Form.Item
-          name="kind"
-          label="What kind"
-          extra={KINDS[kind].question}
-        >
-          <Select
-            aria-label="Widget kind"
-            // Searchable, because twenty-six kinds is more than a list somebody
-            // reads top to bottom — and typing "heat" is faster than scrolling
-            // past six chart shapes to reach it.
-            showSearch
-            optionFilterProp="label"
-            // Grouped by family and named the way the picker names them — one
-            // vocabulary for the kinds, wherever they are offered. Flat, this
-            // list was twenty-six unrelated words.
-            options={KIND_FAMILIES.map((family) => ({
-              label: FAMILY_LABELS[family].label,
-              options: kindsOf(family, kinds).map((item) => ({
-                value: item,
-                label: KINDS[item].label,
-              })),
-            })).filter((group) => group.options.length > 0)}
-          />
-        </Form.Item>
-        <Form.Item
-          name="title"
-          label="Title"
-          rules={[{ required: true, message: "Say what this widget answers" }]}
-        >
-          <Input placeholder="Open tickets by severity" />
-        </Form.Item>
-        <Form.Item name="subtitle" label="Note">
-          <Input placeholder="Optional — scope, caveat, period" />
-        </Form.Item>
-
-        {shape.needs === "report" && (
-          <Form.Item
-            name="report_id"
-            label="Which report"
-            rules={[{ required: true, message: "Pick a report to draw" }]}
-            extra="Drawn the way the report itself says it should be. Editing the report takes its widgets with it."
-          >
-            <Select
-              aria-label="Report"
-              loading={reports.isLoading}
-              options={(reports.data?.items ?? []).map((item) => ({
-                value: item.id,
-                label: `${item.name} · ${item.visualization}`,
-              }))}
-              notFoundContent={
-                reports.isLoading ? "Loading…" : "You have not saved a report yet"
-              }
-            />
-          </Form.Item>
-        )}
-
-        {shape.needs === "search" && (
-          <Form.Item
-            name="search_id"
-            label="Which search"
-            rules={[{ required: true, message: "Pick a saved search to answer" }]}
-            extra="Answered through the explorer query, under the same permissions."
-          >
-            <Select
-              aria-label="Saved search"
-              loading={searches.isLoading}
-              options={(searches.data?.items ?? []).map((item) => ({
-                value: item.id,
-                label: `${item.name} · ${item.resource_type}`,
-              }))}
-              notFoundContent={
-                searches.isLoading ? "Loading…" : "You have not saved a search yet"
-              }
-            />
-          </Form.Item>
-        )}
-
-        {shape.needs === "dataset" && (
-          <>
-            <Form.Item name="entity" label="Dataset">
-              <Select
-                aria-label="Dataset"
-                options={datasets.map((item) => ({ value: item.key, label: item.label }))}
-              />
-            </Form.Item>
-            {/* A `CHART` names its own picture — that is the whole of what
-                separates it from the five fixed chart kinds. */}
-            {kind === "CHART" && (
-              <Form.Item
-                name="chart"
-                label="Draw it as"
-                extra="Every shape the chart builder can draw, on a dashboard."
-              >
-                <Select
-                  aria-label="Chart kind"
-                  showSearch
-                  optionFilterProp="label"
-                  options={WIDGET_CHARTS.map((item) => ({ value: item.key, label: item.label }))}
-                />
-              </Form.Item>
-            )}
-            {(kind === "KPI" || kind === "GAUGE") && (
-              <Form.Item
-                name="metric"
-                label="Which number"
-                extra="Leave empty to take the dataset's first declared metric."
-              >
-                <Select
-                  aria-label="Metric"
-                  allowClear
-                  options={(dataset?.measures ?? []).map((item) => ({
-                    value: item.name,
-                    label: item.label,
-                  }))}
-                />
-              </Form.Item>
-            )}
-            {kind !== "KPI" &&
-              kind !== "GAUGE" &&
-              kind !== "LIST" &&
-              kind !== "TABLE" &&
-              kind !== "MAP" &&
-              kind !== "ANALYTICS" && (
-                <Form.Item
-                  name="dimension"
-                  label="Group by"
-                  extra="Leave empty to use the dataset's own default."
-                >
-                  <Select
-                    aria-label="Group by"
-                    allowClear
-                    options={(dataset?.dimensions ?? []).map((item) => ({
-                      value: item.name,
-                      label: item.label,
-                    }))}
-                  />
-                </Form.Item>
-              )}
-            {(kind === "HEATMAP" || kind === "CHART") && (
-              <Form.Item
-                name="stack"
-                label="And by"
-                extra="A second grouping — a stack, or a heatmap's columns."
-              >
-                <Select
-                  aria-label="And by"
-                  allowClear
-                  options={(dataset?.dimensions ?? []).map((item) => ({
-                    value: item.name,
-                    label: item.label,
-                  }))}
-                />
-              </Form.Item>
-            )}
-            <Form.Item
-              name="period"
-              label="Period"
-              extra="Leave empty to follow the dashboard's own period."
-            >
-              <Select
-                aria-label="Period"
-                allowClear
-                options={[
-                  { value: "all_time", label: "All time" },
-                  ...(catalogue.data?.periods ?? []).map((item) => ({
-                    value: item.key,
-                    label: item.label,
-                  })),
-                ]}
-              />
-            </Form.Item>
-          </>
-        )}
-
-        {/* The module options. Each one narrows the page the widget mirrors;
-            none of them is required, because a module widget with nothing said
-            shows that module's own default view. */}
-        {kind === "TASKS" && (
-          <>
-            <Form.Item
-              name="board_id"
-              label="A board, or the whole dataset"
-              extra="A board shows the lanes that team agreed. Leave empty for every task, by status."
-            >
-              <Select
-                aria-label="Board"
-                allowClear
-                loading={boards.isLoading}
-                options={(boards.data?.items ?? []).map((item) => ({
-                  value: item.id,
-                  label: item.name,
-                }))}
-                notFoundContent={boards.isLoading ? "Loading…" : "No boards yet"}
-              />
-            </Form.Item>
-            <Form.Item name="status" label="One lane only" extra="Leave empty to show them all.">
-              <Input placeholder="IN_PROGRESS" />
-            </Form.Item>
-          </>
-        )}
-
-        {kind === "MAIL" && (
-          <>
-            <Form.Item name="folder" label="Folder">
-              <Select
-                aria-label="Folder"
-                options={["INBOX", "SENT", "DRAFTS", "ARCHIVE", "SPAM", "TRASH"].map((item) => ({
-                  value: item,
-                  label: item.charAt(0) + item.slice(1).toLowerCase(),
-                }))}
-              />
-            </Form.Item>
-            <Form.Item name="unread_only" label="Unread only" valuePropName="checked">
-              <Switch />
-            </Form.Item>
-          </>
-        )}
-
-        {kind === "NOTIFICATIONS" && (
-          <>
-            <Form.Item name="category" label="One category only">
-              <Input placeholder="Leave empty for all" />
-            </Form.Item>
-            <Form.Item name="unread_only" label="Unread only" valuePropName="checked">
-              <Switch />
-            </Form.Item>
-          </>
-        )}
-
-        {kind === "ANNOUNCEMENTS" && (
-          <Form.Item name="category" label="One category only">
-            <Input placeholder="Leave empty for all" />
-          </Form.Item>
-        )}
-
-        {kind === "PROJECTS" && (
-          <Form.Item name="status" label="One state only" extra="Leave empty to show them all.">
-            <Input placeholder="IN_PROGRESS" />
-          </Form.Item>
-        )}
-
-        {kind === "CALENDAR" && (
-          <Form.Item
-            name="days"
-            label="How far ahead"
-            extra="An agenda, not a month — a month grid at card size has nothing readable in it."
-          >
-            <Select
-              aria-label="How far ahead"
-              options={[
-                { value: 1, label: "Today" },
-                { value: 3, label: "The next three days" },
-                { value: 7, label: "The next week" },
-                { value: 14, label: "The next fortnight" },
-                { value: 30, label: "The next month" },
-              ]}
-            />
-          </Form.Item>
-        )}
-
-        {kind === "FAVORITES" && (
-          <Form.Item
-            name="view"
-            label="Which list"
-            extra="A bookmark is a decision you made; a recent is a by-product. They are not the same list."
-          >
-            <Segmented
-              options={[
-                { value: "bookmarks", label: "Favourites" },
-                { value: "recents", label: "Recently visited" },
-              ]}
-            />
-          </Form.Item>
-        )}
-
-        {(kind === "EXPLORER" || kind === "RELATIONSHIPS") && (
-          <Form.Item
-            name="entity"
-            label="One dataset only"
-            extra="Leave empty to cover every dataset you can read."
-          >
-            <Select
-              aria-label="Dataset"
-              allowClear
-              options={datasets.map((item) => ({ value: item.key, label: item.label }))}
-            />
-          </Form.Item>
-        )}
-      </Form>
-    </Drawer>
-  );
-}
-
-/** Every picture a `CHART` widget may name — the chart builder's own list. */
-const WIDGET_CHARTS: { key: string; label: string }[] = [
-  { key: "bar", label: "Bars" },
-  { key: "hbar", label: "Bars, sideways" },
-  { key: "line", label: "Line" },
-  { key: "area", label: "Area" },
-  { key: "pie", label: "Share" },
-  { key: "stacked-bar", label: "Stacked bars" },
-  { key: "stacked-area", label: "Stacked area" },
-  { key: "multi-line", label: "Several lines" },
-  { key: "treemap", label: "Treemap" },
-  { key: "scatter", label: "Scatter" },
-  { key: "radar", label: "Radar" },
-  { key: "funnel", label: "Funnel" },
-  { key: "heatmap", label: "Heatmap" },
-];
-
-/**
- * The config a form's values make, for the kind that was chosen.
- *
- * Keyed on the kind rather than sending everything, because the server refuses
- * a dataset on a feed and a dataset on a reference — both would be a second
- * opinion about where the widget's data comes from. Anything a kind does not
- * read is left out here rather than dropped there, so what is stored is what
- * the form actually asked.
- */
-function configFor(
-  kind: WidgetKind,
-  values: Record<string, string | boolean | number>,
-): WidgetInput["config"] {
-  const text = (key: string) => {
-    const value = values[key];
-    return typeof value === "string" && value.trim() ? value.trim() : undefined;
-  };
-  const flag = (key: string) => (values[key] ? true : undefined);
-  const only = <T,>(entries: Record<string, T | undefined>) =>
-    Object.fromEntries(Object.entries(entries).filter(([, value]) => value !== undefined));
-
-  switch (kind) {
-    case "REPORT":
-      return { report_id: String(values["report_id"] ?? "") };
-    case "SEARCH":
-      return { search_id: String(values["search_id"] ?? "") };
-    case "TASKS":
-      return only({ board_id: text("board_id"), status: text("status") });
-    case "MAIL":
-      return only({ folder: text("folder"), unread_only: flag("unread_only") });
-    case "FILES":
-      return only({ folder_id: text("folder_id") });
-    case "NOTIFICATIONS":
-      return only({ category: text("category"), unread_only: flag("unread_only") });
-    case "ANNOUNCEMENTS":
-      return only({ category: text("category") });
-    case "PROJECTS":
-      return only({ status: text("status") });
-    case "CALENDAR":
-      return only({ days: Number(values["days"] ?? 7) });
-    case "FAVORITES":
-      return only({ view: text("view") });
-    case "EXPLORER":
-    case "RELATIONSHIPS":
-      return only({ entity: text("entity") });
-    case "ALERTS":
-    case "ACTIVITY":
-      return {};
-    default:
-      // The dataset kinds. Every optional part omitted when empty, so a widget
-      // that named no grouping keeps taking the dataset's declared default
-      // rather than freezing today's answer into its config.
-      return only({
-        entity: text("entity"),
-        metric: text("metric"),
-        dimension: text("dimension"),
-        stack: text("stack"),
-        period: text("period"),
-        chart: kind === "CHART" ? text("chart") : undefined,
-      });
-  }
 }
 
 /** The dashboard itself: its name, who sees it, and whether it is home. */

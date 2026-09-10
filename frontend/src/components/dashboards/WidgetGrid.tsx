@@ -238,6 +238,57 @@ export function compacted(
 }
 
 /**
+ * The layout auto-arranged: gaps closed *and* rows packed.
+ *
+ * `compacted` only pulls cards upwards, which is the rule the grid applies
+ * during a drag — so a dashboard whose cards were dropped one under another
+ * stays a single column of half-width cards with the right-hand side empty.
+ * Tidying that is the thing somebody actually wants when they press a button
+ * called auto-arrange: it fills the row before starting a new one.
+ *
+ * Reading order is preserved, because that is the order the reader put things
+ * in and the order the one-column phone layout falls back to. Nothing is
+ * resized: a card's size is a decision, and an arranger that shrinks a chart
+ * to make it fit has overruled it.
+ */
+export function autoArranged(
+  widgets: DashboardWidget[],
+  columns: number,
+): { id: string; x: number; y: number; width: number; height: number }[] {
+  const ordered = [...widgets].sort((a, b) => a.y - b.y || a.x - b.x);
+
+  const placed: { id: string; x: number; y: number; width: number; height: number }[] = [];
+  let x = 0;
+  let y = 0;
+  let rowHeight = 0;
+
+  for (const widget of ordered) {
+    const width = Math.min(Math.max(1, widget.width), columns);
+    // A card that does not fit in what is left of the row starts the next one,
+    // and the row advances by the *tallest* card in it — advancing by the last
+    // one is what leaves a dashboard full of the holes this is meant to close.
+    if (x + width > columns) {
+      x = 0;
+      y += rowHeight;
+      rowHeight = 0;
+    }
+    placed.push({ id: widget.id, x, y, width, height: widget.height });
+    rowHeight = Math.max(rowHeight, widget.height);
+    x += width;
+  }
+
+  // Then pulled upwards, so a short card beside a tall one rises into the gap
+  // the tall one leaves rather than waiting for the whole row to end.
+  return compacted(
+    placed.map((item) => {
+      const source = widgets.find((widget) => widget.id === item.id);
+      return { ...source, ...item } as DashboardWidget;
+    }),
+    columns,
+  );
+}
+
+/**
  * The sizes a widget can be set to in one press.
  *
  * Dragging a corner is how somebody arrives at *a* size; these are how they
