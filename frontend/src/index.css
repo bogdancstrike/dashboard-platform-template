@@ -3414,3 +3414,137 @@ p a:not(.ant-btn),
 .nu-tmpl-preview-detail .ant-typography { font-size: 12px; }
 .nu-tmpl-flows .ant-typography { font-size: 12px; line-height: 1.5; }
 .nu-tmpl-flows .nu-tmpl-link { font-family: inherit; font-size: 13px; }
+
+
+/* ── the report document composer (§28) ─────────────────────────────────
+   Three columns: what the document is made of, the document, and the settings
+   for whatever is selected. The middle one is drawn to look like paper,
+   because the thing being composed is a page — and a composer whose preview
+   looks like a web page teaches somebody the wrong thing about what they are
+   about to export. */
+.nu-doc-workspace {
+  display: grid; gap: 16px; align-items: start;
+  grid-template-columns: minmax(0, 250px) minmax(0, 1fr) minmax(0, 300px);
+}
+@media (max-width: 1180px) {
+  .nu-doc-workspace { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* The outline. A list rather than the page itself: reordering by dragging
+   paragraphs around a preview is a gesture nobody can aim. */
+.nu-doc-outline, .nu-doc-inspector {
+  border: 1px solid var(--nu-border); border-radius: var(--nu-radius-card);
+  background: var(--nu-surface); padding: 12px;
+  position: sticky; top: 12px; max-height: calc(100vh - 140px); overflow: auto;
+}
+.nu-doc-outline-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 8px;
+}
+.nu-doc-outline-list { list-style: none; margin: 0; padding: 0; }
+.nu-doc-outline-empty { display: block; font-size: 12.5px; padding: 8px 0; }
+.nu-doc-outline-row {
+  display: flex; align-items: center; gap: 4px;
+  border-radius: 8px; border: 1px solid transparent;
+}
+.nu-doc-outline-row:hover { background: var(--nu-bg); }
+.nu-doc-outline-row.is-chosen {
+  border-color: var(--nu-accent); background: var(--nu-accent-soft);
+  --nu-text-tertiary: var(--nu-text-secondary);
+}
+.nu-doc-outline-face {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; background: none; border: 0; color: inherit;
+  font: inherit; text-align: start; cursor: pointer;
+}
+.nu-doc-outline-face:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: -2px; }
+.nu-doc-outline-icon { color: var(--nu-text-tertiary); flex: none; }
+.nu-doc-outline-text { display: flex; flex-direction: column; min-width: 0; }
+.nu-doc-outline-label {
+  font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-doc-outline-kind { font-size: 10.5px; color: var(--nu-text-tertiary); }
+.nu-doc-additem { display: flex; flex-direction: column; }
+.nu-doc-additem > span:last-child { font-size: 11px; color: var(--nu-text-secondary); }
+
+/* The paper. A white sheet in both appearances, deliberately: the export is
+   printed on white whatever the reader's theme is, and a preview that follows
+   the dark ramp is a preview of a document nobody will ever hold. */
+.nu-doc-paper-wrap { min-width: 0; display: flex; justify-content: center; }
+.nu-doc-paper {
+  width: 100%; max-width: 820px; background: #ffffff; color: #0f172a;
+  border: 1px solid var(--nu-border); border-radius: 6px;
+  box-shadow: 0 6px 24px rgb(15 23 42 / 12%);
+  display: flex; flex-direction: column; min-height: 60vh;
+}
+.nu-doc-paper.is-landscape { max-width: 1100px; }
+.nu-doc-runhead, .nu-doc-runfoot {
+  padding: 8px 20px; font-size: 11px; color: #64748b;
+  display: flex; justify-content: space-between; gap: 12px;
+}
+.nu-doc-runhead { border-bottom: 1px solid #e2e8f0; }
+.nu-doc-runfoot { border-top: 1px solid #e2e8f0; margin-top: auto; }
+.nu-doc-body { flex: 1; }
+.nu-doc-cover { text-align: center; padding: 48px 0 8px; }
+.nu-doc-cover-title { color: var(--nu-doc-accent) !important; margin: 0 !important; }
+.nu-doc-cover-sub { color: #475569 !important; margin: 8px 0 0 !important; }
+
+/* One block on the page. Selectable, because the settings rail edits whatever
+   is selected — and clicking the thing you want to change is the shortest
+   route there is. */
+.nu-doc-block {
+  border: 1px solid transparent; border-radius: 6px; padding: 2px 6px;
+  cursor: pointer;
+}
+.nu-doc-block:hover { border-color: #e2e8f0; }
+.nu-doc-block.is-chosen {
+  border-color: var(--nu-doc-accent);
+  box-shadow: inset 0 0 0 1px var(--nu-doc-accent);
+}
+.nu-doc-heading { color: var(--nu-doc-accent) !important; }
+.nu-doc-paper .nu-doc-heading,
+.nu-doc-paper .nu-doc-text,
+.nu-doc-paper .ant-typography { color: #0f172a; }
+.nu-doc-paper h1.nu-doc-heading, .nu-doc-paper h2.nu-doc-heading,
+.nu-doc-paper h3.nu-doc-heading { color: var(--nu-doc-accent); }
+.nu-doc-text { white-space: pre-wrap; }
+.nu-doc-rule { border: 0; border-top: 1px solid #e2e8f0; margin: 12px 0; }
+.nu-doc-spacer.is-small { height: 8px; }
+.nu-doc-spacer.is-medium { height: 20px; }
+.nu-doc-spacer.is-large { height: 40px; }
+/* A break is drawn as a marked seam rather than as a real new sheet: the
+   preview is one continuous column, and a reader needs to know a break is
+   *there* far more than they need the scroll to jump. */
+.nu-doc-break {
+  display: flex; align-items: center; gap: 10px; margin: 16px 0;
+  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #94a3b8;
+}
+.nu-doc-break::before, .nu-doc-break::after {
+  content: ""; flex: 1; border-top: 1px dashed #cbd5e1;
+}
+.nu-doc-figure { margin: 0 0 12px; }
+.nu-doc-caption { font-size: 11.5px; color: #64748b; margin-bottom: 4px; }
+.nu-doc-note { display: block; font-size: 11px; color: #64748b !important; margin-top: 4px; }
+.nu-doc-table .ant-table { background: transparent; }
+.nu-doc-unfinished { padding: 8px 0; }
+.nu-doc-refused { margin: 0; font-size: 12px; color: #b45309; font-style: italic; }
+.nu-doc-metrics {
+  display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+.nu-doc-metric {
+  border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.nu-doc-metric-value {
+  font-size: 20px; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums;
+}
+.nu-doc-metric-unit { font-size: 13px; font-weight: 500; margin-left: 2px; }
+.nu-doc-metric-label { font-size: 11.5px; color: #64748b; }
+
+/* The settings rail: one column, two subjects — the selected block, or the
+   paper it is all printed on. */
+.nu-doc-panel-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.nu-doc-panel-note { margin: 2px 0 10px !important; font-size: 12px; }
+.nu-doc-panel .ant-form-item { margin-bottom: 12px; }

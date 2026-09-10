@@ -1442,7 +1442,74 @@ const REPORT_SEED = JSON.parse(JSON.stringify(savedReports)) as Record<string, u
 export function resetReports(): void {
   savedReports.length = 0;
   savedReports.push(...(JSON.parse(JSON.stringify(REPORT_SEED)) as Record<string, unknown>[]));
+  savedDocuments.length = 0;
+  savedDocuments.push(
+    ...(JSON.parse(JSON.stringify(DOCUMENT_SEED)) as Record<string, unknown>[]),
+  );
+  renderedDocuments.length = 0;
 }
+
+/** The paper a document gets when nobody has said — the server's own default. */
+export function documentPage(): Record<string, unknown> {
+  return {
+    size: "A4",
+    orientation: "portrait",
+    margin_mm: 20,
+    header: "",
+    footer: "",
+    subtitle: "",
+    page_numbers: true,
+    cover: true,
+    accent: "#5b5bd6",
+  };
+}
+
+/** Everything a document carries but its content, so a stub is one line. */
+export function documentShape(id: string, name: string): Record<string, unknown> {
+  return {
+    id,
+    name,
+    slug: name.toLowerCase().replace(/\W+/g, "-"),
+    description: null,
+    scope: "PRIVATE",
+    page: documentPage(),
+    owner: { id: "user-1", name: "Ada Administrator", email: "admin@nucleus.example" },
+    can_edit: true,
+    members: [],
+    block_count: 2,
+    block_kinds: ["HEADING", "TEXT"],
+    render_count: 0,
+    last_rendered_at: null,
+    created_at: "2026-09-01T09:00:00Z",
+    updated_at: "2026-09-01T09:00:00Z",
+    blocks: [
+      { id: "b1", kind: "HEADING", text: "Summary", level: 2 },
+      { id: "b2", kind: "TEXT", text: "What this report covers." },
+    ],
+  };
+}
+
+/**
+ * Composed report documents, in a store the handlers mutate (§28).
+ *
+ * Two of them, and the second is somebody else's: "a document you may read and
+ * not change" is a state the composer has to draw differently, and a fixture
+ * with only your own would never exercise it.
+ */
+export const savedDocuments: Record<string, unknown>[] = [
+  documentShape("doc-1", "Quarterly review"),
+  {
+    ...documentShape("doc-2", "Board pack"),
+    owner: { id: "user-2", name: "Mara Manager", email: "manager@nucleus.example" },
+    can_edit: false,
+    scope: "PUBLIC",
+  },
+];
+
+const DOCUMENT_SEED = JSON.parse(JSON.stringify(savedDocuments)) as Record<string, unknown>[];
+
+/** Every render request a test provoked, so the payload can be asserted. */
+export const renderedDocuments: Record<string, unknown>[] = [];
 
 /**
  * A conversation on the fixture task (§36), in a store the handlers mutate —
@@ -5795,6 +5862,90 @@ export const handlers = [
     const index = savedReports.findIndex((item) => item["id"] === params["id"]);
     if (index >= 0) savedReports.splice(index, 1);
     return HttpResponse.json({ deleted: true, id: params["id"] });
+  }),
+
+  // ── report documents (§28) ────────────────────────────────────────────
+  // A composed page, exported as PDF or DOCX. A store the handlers mutate,
+  // for the same reason the reports one is: a builder test that could not read
+  // back what it saved would be asserting the request rather than the result.
+  http.get("/platform/api/report-documents", ({ request }) =>
+    echo(request, {
+      items: savedDocuments,
+      total: savedDocuments.length,
+      block_kinds: [
+        "DIVIDER", "HEADING", "METRICS", "PAGE_BREAK", "REPORT", "SPACER", "TABLE", "TEXT",
+      ],
+      formats: ["docx", "pdf"],
+      page_sizes: ["A4", "LETTER"],
+      defaults: documentPage(),
+      datasets: [
+        { key: "order", label: "Orders", path: "/orders" },
+        { key: "ticket", label: "Tickets", path: "/tickets" },
+      ],
+      can_create: true,
+      can_share: true,
+    }),
+  ),
+  http.post("/platform/api/report-documents", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const created = {
+      ...documentShape(
+        `doc-${savedDocuments.length + 1}`,
+        typeof body["name"] === "string" ? body["name"] : "Untitled",
+      ),
+      ...body,
+      page: { ...documentPage(), ...((body["page"] as object) ?? {}) },
+    };
+    savedDocuments.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+  http.get("/platform/api/report-documents/:id", ({ request, params }) =>
+    echo(
+      request,
+      savedDocuments.find((item) => item["id"] === params["id"]) ?? savedDocuments[0]!,
+    ),
+  ),
+  http.put("/platform/api/report-documents/:id", async ({ request, params }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const index = savedDocuments.findIndex((item) => item["id"] === params["id"]);
+    const updated = {
+      ...savedDocuments[Math.max(index, 0)],
+      ...body,
+      // The server answers with a fresh `updated_at`, and the builder reloads
+      // its draft from it — so a stub that kept the old one would leave the
+      // page showing what it sent rather than what came back.
+      updated_at: new Date().toISOString(),
+    };
+    if (index >= 0) savedDocuments[index] = updated;
+    return HttpResponse.json(updated);
+  }),
+  http.post("/platform/api/report-documents/:id/duplicate", ({ params }) => {
+    const source =
+      savedDocuments.find((item) => item["id"] === params["id"]) ?? savedDocuments[0]!;
+    const copy = {
+      ...source,
+      id: `${String(source["id"])}-copy`,
+      name: `${String(source["name"])} (2)`,
+      scope: "PRIVATE",
+      can_edit: true,
+    };
+    savedDocuments.push(copy);
+    return HttpResponse.json(copy, { status: 201 });
+  }),
+  http.post("/platform/api/report-documents/:id/render", async ({ request }) => {
+    renderedDocuments.push((await request.json()) as Record<string, unknown>);
+    // A real PDF is a byte stream, and the download helper reads it as a blob.
+    return new HttpResponse(new Blob([new Uint8Array([37, 80, 68, 70])]), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": 'attachment; filename="document.pdf"',
+      },
+    });
+  }),
+  http.delete("/platform/api/report-documents/:id", ({ params }) => {
+    const index = savedDocuments.findIndex((item) => item["id"] === params["id"]);
+    if (index >= 0) savedDocuments.splice(index, 1);
+    return HttpResponse.json({ deleted: true, id: params["id"], name: "gone" });
   }),
   http.post("/platform/api/analysis/run", async ({ request }) =>
     HttpResponse.json(analysisResult((await request.json()) as Parameters<typeof analysisResult>[0]), {

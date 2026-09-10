@@ -251,6 +251,15 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
       "Three parts that narrow each other: what it is called, which cards it holds, and a review. A dashboard cannot be finished empty, so the shapes are chosen before anything is written.",
   },
   {
+    what: "A report document",
+    shape: "page",
+    where: "reports/builder",
+    testId: "new-document",
+    opens: "pages/ReportBuilderPage.tsx",
+    because:
+      "Nothing to ask up front: a document arrives holding a heading and a paragraph, and everything about it — its name, its paper, what it holds — is changed in the composer with the page visible. A dialog demanding a title before the first block would be a form standing between somebody and the thing they came to make.",
+  },
+  {
     what: "An import",
     shape: "wizard",
     where: "import",

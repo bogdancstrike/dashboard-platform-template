@@ -78,7 +78,12 @@ async function start() {
         <AppearanceProvider>
           {/* AntApp supplies the message/notification/modal contexts that the
               static `message.*` helpers cannot theme. */}
-          <AntApp>
+          {/* `maxCount` as well as the cap in `LiveProvider`, and for a
+              different reason: that one decides what is *worth* showing, this
+              one is the floor under every other caller in the product. Without
+              it a page raising a toast per row in a bulk action stacks forty
+              cards the same way live notifications used to (§17). */}
+          <AntApp notification={{ maxCount: 3, placement: "bottomRight" }}>
             <AuthProvider>
               {/* Inside AuthProvider because the preferences arrive with the
                   profile, and outside everything that renders a value: the

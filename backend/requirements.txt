@@ -58,6 +58,18 @@ boto3>=1.35.0,<2
 # need nothing; a spreadsheet is a zip container and does not.
 openpyxl>=3.1.5,<4
 
+# ── Report documents (§28) ───────────────────────────────────────────────
+# A composed report exports as a real PDF and a real DOCX, which are the two
+# formats somebody actually forwards. Neither is writable from the standard
+# library: a PDF is a page description and a DOCX is a zip of XML parts.
+#
+# What is deliberately *not* here is a chart engine. The browser has already
+# drawn every chart with ECharts, and it posts the PNG with the render request
+# — so the picture in the file is the picture that was on screen, rather than a
+# second rendering with different fonts and a legend that disagrees.
+reportlab>=4.2,<5
+python-docx>=1.1.2,<2
+
 # ── Config / utils ───────────────────────────────────────────────────────
 python-dotenv>=1.0.1
 

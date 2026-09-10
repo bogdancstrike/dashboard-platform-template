@@ -32,6 +32,7 @@ export function ChartPreview({
   height = 200,
   label,
   compact = false,
+  onChart,
 }: {
   panel: ChartPanel | undefined;
   /** The appearance to draw in. Defaults to the reader's own. */
@@ -41,6 +42,16 @@ export function ChartPreview({
   label?: string;
   /** Strip every label: at thumbnail size the words are noise, not reading. */
   compact?: boolean;
+  /**
+   * The ECharts instance, once it exists.
+   *
+   * Exposed for exactly one caller: the report-document builder, which asks
+   * the chart for its own PNG so the file it exports carries the picture that
+   * was on screen. The alternative is a chart engine on the server — a second
+   * implementation of every drawing in the product, with different fonts and
+   * a legend that disagrees.
+   */
+  onChart?: (chart: { getDataURL: (options?: object) => string } | null) => void;
 }) {
   const appearance = useAppearance();
   const drawn = mode ?? appearance.mode;
@@ -59,6 +70,9 @@ export function ChartPreview({
           opts={{ renderer: "canvas" }}
           notMerge
           lazyUpdate
+          onChartReady={(chart: { getDataURL: (options?: object) => string }) =>
+            onChart?.(chart)
+          }
         />
       ) : (
         <div className="nu-chart-preview-empty" style={{ height }} />

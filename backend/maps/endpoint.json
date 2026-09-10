@@ -589,6 +589,65 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "report_documents_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/report-documents",
+      "description": "Every composed report document this reader may open, or one more.",
+      "exec_method": {
+        "module_name": "src.api.report_documents",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "report_documents_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/report-documents/<uuid:document_id>",
+      "description": "One document: read it, change it, or remove it.",
+      "exec_method": {
+        "module_name": "src.api.report_documents",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "report_documents_duplicate",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/report-documents/<uuid:document_id>/duplicate",
+      "description": "A private copy, owned by the caller.",
+      "exec_method": {
+        "module_name": "src.api.report_documents",
+        "method_name": "duplicate"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "report_documents_render",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/report-documents/<uuid:document_id>/render",
+      "description": "The document as a PDF or a DOCX.",
+      "exec_method": {
+        "module_name": "src.api.report_documents",
+        "method_name": "render"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "explorer_export",
       "model_name": "Empty",
       "request_method": [

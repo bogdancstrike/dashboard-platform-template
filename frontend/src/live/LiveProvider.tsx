@@ -56,6 +56,20 @@ const BACKOFF = [1_000, 2_000, 5_000, 10_000, 30_000];
 /** Cap on how long a socket may stay silent before it is treated as dead. */
 const SILENCE_LIMIT_MS = 90_000;
 
+/**
+ * How many notifications may be on screen at once, and for how long.
+ *
+ * Three, because a burst is a real thing this platform produces — one
+ * automation can fire across forty records — and forty stacked cards cover
+ * half the screen for a minute with something nobody reads. Past the third,
+ * the rest are counted in one card that points at the notification centre,
+ * which is where all of them are anyway (§17).
+ */
+const MAX_TOASTS = 3;
+const TOAST_SECONDS = 4;
+/** The overflow card reopens under one key, so it replaces itself. */
+const OVERFLOW_KEY = "nu-live-overflow";
+
 function socketUrl(): string {
   const base = window.location.origin.replace(/^http/, "ws");
   return `${base}${API_PREFIX}/live`;
@@ -66,6 +80,16 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const { notification: toast } = AntApp.useApp();
   const [status, setStatus] = useState<LiveStatus>("connecting");
   const [received, setReceived] = useState(0);
+
+  /**
+   * Which notifications are currently on screen, and how many were not shown.
+   *
+   * A ref rather than state: nothing renders from it, and making it state
+   * would re-run this provider — and so the socket effect — on every arriving
+   * notification.
+   */
+  const shown = useRef<Set<string>>(new Set());
+  const overflow = useRef(0);
 
   const socketRef = useRef<WebSocket | null>(null);
   const attemptRef = useRef(0);
@@ -89,12 +113,44 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       // A toast is the difference between "the badge changed while you were
       // looking elsewhere" and a notification you actually saw arrive. Kept
       // brief, bottom-right, and never for something the reader just did.
+      //
+      // **And never more than three at once.** A burst — an automation firing
+      // across forty records, a batch job finishing — used to raise forty
+      // stacked cards that covered the right-hand half of the screen for the
+      // best part of a minute, and there is no reading forty toasts. Past the
+      // third, the rest are *counted* rather than drawn, in one card that says
+      // how many and points at the page where they all are. The notification
+      // centre is the place that holds everything; a toast is only ever a
+      // nudge (§17).
+      const showing = shown.current;
+      showing.add(payload.data.id);
+      if (showing.size <= MAX_TOASTS) {
+        toast.open({
+          message: payload.data.title,
+          description: payload.data.body ?? undefined,
+          placement: "bottomRight",
+          duration: TOAST_SECONDS,
+          key: payload.data.id,
+          onClose: () => showing.delete(payload.data!.id),
+        });
+        return;
+      }
+
+      // One card for the overflow, reopened under the same key so it replaces
+      // itself rather than becoming the fortieth toast. Its own timer is
+      // restarted by each arrival, because a burst that is still arriving is
+      // one event, not several.
+      overflow.current += 1;
       toast.open({
-        message: payload.data.title,
-        description: payload.data.body ?? undefined,
+        key: OVERFLOW_KEY,
+        message: `${overflow.current} more notification${overflow.current === 1 ? "" : "s"}`,
+        description: "Open the notification centre to read them.",
         placement: "bottomRight",
-        duration: 4,
-        key: payload.data.id,
+        duration: TOAST_SECONDS,
+        onClose: () => {
+          overflow.current = 0;
+          showing.clear();
+        },
       });
     },
     [queryClient, toast],

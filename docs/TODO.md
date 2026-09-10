@@ -4383,13 +4383,54 @@ everything else.
 
 ### `/reports/builder` and `/charts/builder` (§28, §44)
 
-- [x] Report builder: pick an entity, then its dimensions, metrics, filters,
-      grouping and period; preview server-side as you build; save, share,
-      schedule, export
-  - Shipped. The preview *is* the query that gets saved, and what may be
-    picked comes from `/api/analysis/catalog` — so the builder cannot offer a
-    column the compiler will reject. Scheduling stores its cron string;
-    running one on a schedule waits on §23
+- [x] **The two builders were the same screen with two names, and now they are
+      not.** Both picked a dataset, a grouping and a picture, and both saved a
+      `SavedReport`; one of them was redundant, and it was the report builder.
+      The chart builder keeps the *question* — it is good at it. The report
+      builder became the thing nothing owned: **a document**
+  - **A report is a question; a document is a page.** A cover, headings,
+    paragraphs somebody wrote, and the answers to several questions arranged
+    between them, on paper of a stated size with a running header, a footer
+    and a page number. There was nowhere in the analysis stack to put a
+    footer, which is exactly why the two builders had converged
+  - `report_documents`: `page` (size, orientation, margins, header, footer,
+    cover, numbering, accent) and `blocks` (heading, paragraph, a saved
+    report, rows of a dataset, a dataset's headline numbers, a rule, a spacer,
+    a page break). Sharing is `core/sharing`, the fourth adopter
+  - **Exports as a real PDF and a real DOCX** — `reportlab` and `python-docx`,
+    both added for this. Word gets *structure* and paginates it itself, because
+    reproducing the PDF's breaks would make a file nobody could edit, which is
+    the whole reason somebody asks for DOCX rather than PDF
+  - **The charts are captured by the browser.** There is no chart engine in the
+    API process and adding one would be a second implementation of every
+    picture in the product — different fonts, different colours, a legend that
+    disagrees with the screen. Each chart registers itself by block id, Export
+    asks it for a PNG at twice the screen resolution on paper white, and what
+    lands in the file is what was previewed. A block whose image did not
+    arrive renders **its own numbers as a table** rather than a blank space
+  - **A document stores no answers.** Rendering runs every question again, so
+    the same layout exported in March and in June is two months of data — which
+    is what "the monthly report" means. A document that cached its numbers
+    would be a screenshot with a file extension
+  - **A block that cannot be resolved is a sentence, not an exception.** A
+    deleted report, a dataset the reader's role cannot reach, a table that
+    matched nothing: each is one line of text in the file. The person
+    exporting is usually about to send it to somebody, and one honest gap
+    beats a 500 (§34, §76)
+  - Every block is resolved **under the reader's own permissions**, so a
+    document shared with somebody who may not read the dataset behind block
+    four renders that block as a refusal rather than as rows. Sharing a layout
+    has never been sharing data
+  - The composer is three columns: the outline, the paper, and the settings for
+    whichever block is selected — or the page itself when none is. The paper is
+    drawn white in both appearances, because that is what the export is printed
+    on and a preview following the dark ramp is a preview of a document nobody
+    will ever hold
+  - The paper is **clamped rather than refused**: a 400mm margin is a slider
+    somebody dragged too far, not a decision worth a round trip
+  - 14 backend tests (six of them with no database at all — `core/documents`
+    lays out content `services/report_documents` has already resolved, and
+    keeping that seam testable is why they are two modules), 5 component tests
 - [x] Chart builder: every ECharts type the platform themes — line, area,
       bar, horizontal and stacked bars, multi-line, pie, treemap, funnel,
       radar, heatmap, scatter and gauge — with a live preview in both themes

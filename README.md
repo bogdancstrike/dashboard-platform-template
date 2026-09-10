@@ -87,6 +87,31 @@ catalogue. The detail contract also includes structured `metadata`, with known
 secret keys masked recursively. Text is rendered as escaped prose, preserving
 paragraphs. Related records use the existing schema-derived relationship API.
 
+### Reports, and the two builders that are not the same builder
+
+`/charts/builder` composes a **question** — a dataset, a grouping, a measure
+and a picture — and saves a `Report`. `/reports/builder` composes a
+**document**: a cover, headings, paragraphs, and the answers to several
+questions arranged between them, on paper of a stated size with a running
+header, a footer and a page number. The two used to be one screen with two
+names, because nothing in the analysis stack had anywhere to put a footer.
+
+A document is blocks plus paper (`backend/src/models/personal.py:ReportDocument`).
+Adding a block kind is three edits: `BLOCK_KINDS` and a resolver in
+`services/report_documents.py`, a renderer arm in `core/documents.py`, and a
+spec in `frontend/src/components/documents/blocks.tsx` — the record is keyed on
+the whole union, so a missing one fails to compile.
+
+Rendering runs every question again, so a document exported twice is one layout
+over two sets of data. **Charts are captured by the browser**: there is no chart
+engine in the API process, so the render request carries a PNG per chart block
+and the file shows the picture that was on screen. A block whose image did not
+arrive renders its own numbers as a table.
+
+```bash
+make migrate    # report_documents arrived in 20260910_1750
+```
+
 ### Files, and where the bytes live
 
 `/files` never moves bytes through the API. A browser asks for a presigned URL

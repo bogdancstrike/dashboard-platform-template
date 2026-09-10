@@ -7,7 +7,14 @@ import { Route, Routes, useLocation } from "react-router-dom";
 import ReportBuilderPage from "@/pages/ReportBuilderPage";
 import ReportsPage from "@/pages/ReportsPage";
 import { CommandProvider } from "@/commands/CommandContext";
-import { resetDashboards, resetReports, savedDashboards, savedReports } from "@/test/handlers";
+import {
+  renderedDocuments,
+  resetDashboards,
+  resetReports,
+  savedDashboards,
+  savedDocuments,
+  savedReports,
+} from "@/test/handlers";
 import { renderWithProviders } from "@/test/render";
 import { server } from "@/test/server";
 
@@ -148,89 +155,84 @@ describe("the reports page", () => {
   });
 });
 
-describe("the report builder", () => {
-  it("previews the question as it is composed, server-side", async () => {
-    const user = userEvent.setup();
-    const asked: Record<string, unknown>[] = [];
-    server.use(
-      http.post("/platform/api/analysis/run", async ({ request }) => {
-        const body = (await request.json()) as Record<string, unknown>;
-        asked.push(body);
-        const { analysisResult } = await import("@/test/handlers");
-        return HttpResponse.json(analysisResult(body));
-      }),
-    );
-
+describe("the report builder — a document, not a chart", () => {
+  /**
+   * The page and `/charts/builder` used to be the same screen with two names.
+   * What is asserted here is the difference: a document is a *page* — blocks
+   * in an order, on paper with a header and a footer — and it exports as a
+   * file. The question it draws is still owned by the chart builder, and a
+   * report block only names one.
+   */
+  it("opens on the documents somebody composed, not on a dataset picker", async () => {
     render("/reports/builder");
-    await screen.findByTestId("report-question");
-
-    await user.click(screen.getByRole("combobox", { name: "Group by" }));
-    await user.click(await screen.findByTitle("Channel"));
-
-    await waitFor(() =>
-      expect(asked.some((body) => JSON.stringify(body["dimensions"]).includes("channel"))).toBe(true),
-    );
+    const gallery = await screen.findByTestId("document-gallery");
+    expect(within(gallery).getByText("Quarterly review")).toBeInTheDocument();
+    // Somebody else's, which a reader may open and copy but not change.
+    expect(within(gallery).getByText("Board pack")).toBeInTheDocument();
   });
 
-  it("saves exactly what was previewed", async () => {
+  it("composes a page out of blocks, and previews it as paper", async () => {
     const user = userEvent.setup();
-    const posted: Record<string, unknown>[] = [];
-    server.use(
-      http.post("/platform/api/reports", async ({ request }) => {
-        const body = (await request.json()) as Record<string, unknown>;
-        posted.push(body);
-        return HttpResponse.json({ ...savedReports[0], ...body, id: "report-new" }, { status: 201 });
-      }),
-    );
+    render("/reports/builder?doc=doc-1");
 
-    render("/reports/builder?resource=order&group=status&agg=count&period=last_30_days&chart=pie");
-    await screen.findByTestId("report-question");
+    const paper = await screen.findByTestId("document-paper");
+    // The starter blocks are drawn on the page itself, not merely listed.
+    expect(within(paper).getByText("Summary")).toBeInTheDocument();
+    expect(within(paper).getByText("What this report covers.")).toBeInTheDocument();
 
-    // Saving is a dialog from the header now: on a page whose purpose is to
-    // produce the thing this button saves, the button was below the fold.
-    await user.click(screen.getByTestId("open-save-report"));
-    await user.type(await screen.findByLabelText("Name"), "Orders by status");
-    await user.click(screen.getByTestId("save-report"));
+    await user.click(screen.getByTestId("add-block"));
+    await user.click(await screen.findByRole("menuitem", { name: /A saved report/ }));
 
-    await waitFor(() => expect(posted).toHaveLength(1));
-    // The definition sent is the one the preview ran — there is no step in
-    // between that could reinterpret it.
-    expect(posted[0]).toMatchObject({
-      name: "Orders by status",
-      resource_type: "order",
-      dimensions: [{ field: "status", granularity: "" }],
-      metrics: [{ aggregation: "count" }],
-      period: "last_30_days",
-      visualization: "pie",
+    // The new block is in the outline, on the page, and selected — so the rail
+    // is already showing the one question it needs answering.
+    expect(await screen.findByTestId("outline-b3")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Report" })).toBeInTheDocument();
+  });
+
+  it("saves the blocks and the paper together, because they are one document", async () => {
+    const user = userEvent.setup();
+    render("/reports/builder?doc=doc-1");
+    await screen.findByTestId("document-paper");
+
+    // Nothing has changed yet, so there is nothing to save.
+    expect(screen.getByTestId("save-document")).toBeDisabled();
+
+    await user.click(screen.getByLabelText("Number the pages"));
+    await waitFor(() => expect(screen.getByTestId("save-document")).toBeEnabled());
+    await user.click(screen.getByTestId("save-document"));
+
+    await waitFor(() => {
+      const stored = savedDocuments.find((item) => item["id"] === "doc-1");
+      expect((stored?.["page"] as { page_numbers: boolean }).page_numbers).toBe(false);
     });
-    // And it lands on the saved report rather than leaving the form open.
-    expect(await screen.findByTestId("address")).toHaveTextContent("/reports?report=report-new");
   });
 
-  it("keeps the draft in the URL, so a half-built report can be pasted", async () => {
+  it("exports the document, carrying the charts the browser drew", async () => {
     const user = userEvent.setup();
-    render("/reports/builder");
-    await screen.findByTestId("report-question");
+    render("/reports/builder?doc=doc-1");
+    await screen.findByTestId("document-paper");
 
-    await user.click(screen.getByRole("combobox", { name: "Group by" }));
-    await user.click(await screen.findByTitle("Channel"));
+    await user.click(screen.getByTestId("export-pdf"));
 
-    expect(screen.getByTestId("address")).toHaveTextContent("group=channel");
+    await waitFor(() => expect(renderedDocuments).toHaveLength(1));
+    // The format is the request's; the images map is present even when empty,
+    // because a document of prose has no charts to capture and that is not an
+    // error — the server renders every data block's numbers instead.
+    expect(renderedDocuments[0]).toMatchObject({ format: "pdf" });
+    expect(renderedDocuments[0]).toHaveProperty("images");
   });
 
-  it("will not let an aggregation be saved without the column it measures", async () => {
-    const user = userEvent.setup();
-    render("/reports/builder?resource=order&agg=sum");
-    await screen.findByTestId("report-question");
+  it("offers a copy rather than an edit on somebody else's document", async () => {
+    render("/reports/builder?doc=doc-2");
+    await screen.findByTestId("document-paper");
 
-    // Refused at the door: the header's save button is disabled and the page
-    // says what is missing, rather than opening a dialog that cannot succeed.
-    expect(screen.getByTestId("open-save-report")).toBeDisabled();
-    expect(screen.getByText("Pick a column to measure")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("combobox", { name: "Measured column" }));
-    await user.click(await screen.findByTitle("Total"));
-
-    await waitFor(() => expect(screen.getByTestId("open-save-report")).toBeEnabled());
+    // Read-only says so, and says what to do about it — rather than showing
+    // controls that refuse (§76).
+    expect(screen.getByText("This document is read-only for you")).toBeInTheDocument();
+    expect(screen.queryByTestId("save-document")).not.toBeInTheDocument();
+    // Addressed by test id: the icon contributes its own label, so the
+    // accessible name reads "copy Make a copy" — the trap the export control
+    // documents.
+    expect(screen.getByTestId("copy-document")).toBeInTheDocument();
   });
 });

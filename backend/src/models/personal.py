@@ -244,6 +244,45 @@ class Report(Base, TimestampMixin, SoftDeleteMixin):
     owner = relationship("User", foreign_keys=[owner_id], lazy="joined")
 
 
+class ReportDocument(Base, TimestampMixin, SoftDeleteMixin):
+    """A *document*, composed of blocks, that renders to PDF or DOCX (§28).
+
+    Deliberately not a `Report`. A report is a saved *question* — a dataset, a
+    grouping, a measure, a picture — and running one answers it. A document is
+    a **page**: a cover, headings, paragraphs somebody wrote, and the answers
+    to several questions arranged between them. The two were the same screen
+    for a while, and the result was two builders that looked alike and did the
+    same thing.
+
+    So a block that shows data *names a report* rather than restating one, for
+    the reason a dashboard widget does: a question with two definitions has two
+    answers the first time either is edited.
+
+    `page` holds the paper — size, orientation, margins, the running header and
+    footer, whether pages are numbered — because that is exactly the part a
+    person means when they say they want to customise a report, and it is the
+    part a chart builder has no place for.
+    """
+
+    __tablename__ = "report_documents"
+
+    id: Mapped[UUID] = uuid_pk()
+    name: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
+    slug: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    description: Mapped[str | None] = mapped_column(Text)
+    owner_id: Mapped[UUID | None] = fk("users.id", ondelete="CASCADE")
+    organization_id: Mapped[UUID | None] = fk("organizations.id")
+    scope: Mapped[str] = mapped_column(String(16), default="PRIVATE", index=True)
+    #: Paper and furniture: size, orientation, margins, header, footer, cover.
+    page: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    #: The body, in order. Each entry is one block — see `services/report_documents`.
+    blocks: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB)
+    last_rendered_at: Mapped[Any | None] = mapped_column(DateTime(timezone=True), index=True)
+    render_count: Mapped[int] = mapped_column(Integer, default=0)
+
+    owner = relationship("User", foreign_keys=[owner_id], lazy="joined")
+
+
 class NotificationPreference(Base, TimestampMixin):
     """Per-user, per-category delivery settings (§17, §40)."""
 
