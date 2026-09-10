@@ -3,7 +3,12 @@ import { describe, expect, it } from "vitest";
 import { Route, Routes } from "react-router-dom";
 import { HttpResponse, http } from "msw";
 
-import HomePage, { greeting, whatIsWaiting } from "@/pages/HomePage";
+import HomePage, {
+  SHORTCUTS,
+  dayInAWord,
+  greeting,
+  whatIsWaiting,
+} from "@/pages/HomePage";
 import { CommandProvider } from "@/commands/CommandContext";
 import { currentUser } from "@/test/handlers";
 import { server } from "@/test/server";
@@ -28,6 +33,61 @@ function render(route = "/home") {
     { route },
   );
 }
+
+describe("the sentence about the day", () => {
+  /**
+   * The strip says *what* is waiting; this says whether today is busy, which
+   * is the thing a glance at a landing page is actually for. Asserted here
+   * because the wording is the whole feature — a summary that says "0 kinds of
+   * thing waiting" is worse than no summary.
+   */
+  it("says the day is clear when it is", () => {
+    expect(dayInAWord([], 0)).toBe("Nothing is waiting for you, and nothing in your calendar.");
+  });
+
+  it("counts kinds of thing, not things, because five is not a to-do list", () => {
+    const waiting = whatIsWaiting({
+      acknowledgements: 0,
+      invitations: 2,
+      mail: 9,
+      notifications: 0,
+      overdue: 0,
+    });
+    // Two kinds — invitations and mail — over eleven items. "11 things waiting"
+    // would be true and useless: they are two errands, not eleven.
+    expect(dayInAWord(waiting, 1)).toBe(
+      "2 kinds of thing waiting on you, and one thing in your calendar.",
+    );
+  });
+
+  it("agrees in number", () => {
+    const one = whatIsWaiting({
+      acknowledgements: 0,
+      invitations: 0,
+      mail: 3,
+      notifications: 0,
+      overdue: 0,
+    });
+    expect(dayInAWord(one, 3)).toBe("one thing waiting on you, and 3 things in your calendar.");
+  });
+});
+
+describe("the doors out of the lobby", () => {
+  it("names a permission for anything that needs one", () => {
+    // A front door that opens onto a 403 is worse than one fewer door (§76).
+    // Favourites is the deliberate exception: they are yours, and being signed
+    // in is the qualification.
+    const open = SHORTCUTS.filter((door) => !door.permission).map((door) => door.key);
+    expect(open).toEqual(["favorites"]);
+  });
+
+  it("points every door at a real destination", () => {
+    for (const door of SHORTCUTS) {
+      expect(door.to.startsWith("/"), door.key).toBe(true);
+      expect(door.hint.length, door.key).toBeGreaterThan(8);
+    }
+  });
+});
 
 describe("the greeting", () => {
   it("follows the reader's own clock", () => {

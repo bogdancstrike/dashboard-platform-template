@@ -32,6 +32,26 @@
  * no mailbox does not get a mailbox card reading nought; they get one fewer
  * card. An empty card for a feature you cannot use is a worse answer than no
  * card at all (§76).
+ *
+ * **It is a front door, not a report.** The page used to be a greeting, a
+ * strip of counts and four identical cards of lists — correct, and about as
+ * welcoming as a spreadsheet. Three things changed that without adding an
+ * endpoint or a claim:
+ *
+ * * a **hero band** carrying the date, who you are signed in as, and one
+ *   sentence saying what the day looks like — because the first thing a
+ *   landing page should do is orient somebody, and "Good morning" alone does
+ *   not;
+ * * **shortcuts into the modules**, permission-aware, because a front door
+ *   with no doors is a lobby;
+ * * **"jump back in"**, from `/recents` — the single most useful thing a
+ *   landing page can offer, since most mornings start by reopening whatever
+ *   was being worked on yesterday.
+ *
+ * The layout is a wide column and a rail rather than four equal cards: what
+ * is *yours* (today, your work, what happened) reads left to right and gets
+ * the width; what is *the platform's* (notices, shortcuts, where you have
+ * been) sits beside it.
  */
 
 import { useQuery } from "@tanstack/react-query";
@@ -47,12 +67,18 @@ import {
   Typography,
 } from "antd";
 import {
+  AreaChartOutlined,
   ArrowRightOutlined,
   BellOutlined,
   CalendarOutlined,
   CheckSquareOutlined,
+  ClockCircleOutlined,
+  FolderOpenOutlined,
+  HeartOutlined,
+  LayoutOutlined,
   MailOutlined,
   NotificationOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -61,6 +87,7 @@ import { activityApi } from "@/api/activity";
 import { announcementsApi } from "@/api/announcements";
 import { calendarApi } from "@/api/calendar";
 import { explorerApi } from "@/api/explorer";
+import { favoritesApi } from "@/api/favorites";
 import { mailApi } from "@/api/mail";
 import { metaApi } from "@/api/meta";
 import { notificationsApi } from "@/api/notifications";
@@ -161,6 +188,109 @@ export function whatIsWaiting(counts: {
   return all.filter((item) => item.count > 0);
 }
 
+/** One door out of the lobby: where it goes, and what it needs to be open. */
+export interface Shortcut {
+  key: string;
+  label: string;
+  hint: string;
+  to: string;
+  icon: ReactNode;
+  /** The permission it needs. Absent means everybody. */
+  permission?: string;
+}
+
+/**
+ * The modules a person actually starts in.
+ *
+ * Deliberately *destinations* and not "create" buttons. A tile labelled
+ * "New email" that lands on an inbox is a lie somebody only falls for once,
+ * and the pages own their own creating — this is a front door, not a second
+ * set of verbs. Each names the permission that gates its page, so the row
+ * holds no door that opens onto a 403 (§76).
+ *
+ * Exported and pure, because "which of these does this role see" is the
+ * interesting part and it is worth asserting without rendering a page.
+ */
+export const SHORTCUTS: Shortcut[] = [
+  {
+    key: "explore",
+    label: "Explore data",
+    hint: "Ask anything of any dataset",
+    to: "/explore",
+    icon: <SearchOutlined />,
+    permission: "records.view",
+  },
+  {
+    key: "dashboards",
+    label: "Dashboards",
+    hint: "The layouts you composed",
+    to: "/dashboards",
+    icon: <LayoutOutlined />,
+    permission: "dashboards.manage",
+  },
+  {
+    key: "analytics",
+    label: "Analytics",
+    hint: "Trends, breakdowns, comparisons",
+    to: "/analytics",
+    icon: <AreaChartOutlined />,
+    permission: "records.view",
+  },
+  {
+    key: "mail",
+    label: "Mail",
+    hint: "Your conversations",
+    to: "/mail",
+    icon: <MailOutlined />,
+    permission: "mail.access",
+  },
+  {
+    key: "files",
+    label: "Files",
+    hint: "Documents and uploads",
+    to: "/files",
+    icon: <FolderOpenOutlined />,
+    permission: "files.view",
+  },
+  {
+    key: "favorites",
+    label: "Favourites",
+    hint: "What you starred",
+    to: "/favorites",
+    icon: <HeartOutlined />,
+  },
+];
+
+/** Today, written the way somebody would say it out loud. */
+export function longDate(now: Date = new Date()): string {
+  return now.toLocaleDateString(undefined, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
+/**
+ * One sentence describing the day, from the same counts the strip draws.
+ *
+ * The strip says *what* is waiting; this says whether the day is busy — which
+ * is the thing somebody actually wants from a glance at a landing page, and
+ * which no arrangement of five tiles conveys. Pure, so the wording is
+ * testable without a page around it.
+ */
+export function dayInAWord(waiting: Waiting[], meetings: number): string {
+  const jobs = waiting.reduce((sum, item) => sum + item.count, 0);
+  const diary =
+    meetings === 0
+      ? "nothing in your calendar"
+      : meetings === 1
+        ? "one thing in your calendar"
+        : `${meetings} things in your calendar`;
+  if (jobs === 0) return `Nothing is waiting for you, and ${diary}.`;
+  const items = waiting.length === 1 ? "one thing" : `${waiting.length} kinds of thing`;
+  return `${items} waiting on you, and ${diary}.`;
+}
+
 export default function HomePage() {
   const { profile } = useAuth();
   const navigate = useNavigate();
@@ -227,6 +357,19 @@ export default function HomePage() {
     queryFn: ({ signal }) => activityApi.feed({ period: "last_7_days" }, signal),
   });
 
+  /**
+   * Where this reader has been.
+   *
+   * The most useful thing a landing page can offer, and the one it had none
+   * of: most mornings start by reopening whatever was open yesterday. Needs no
+   * permission — a recent is a fact about *you*, and the rows behind each one
+   * are still gated by the page it points at.
+   */
+  const recents = useQuery({
+    queryKey: ["favorites", "recents"],
+    queryFn: ({ signal }) => favoritesApi.recents(signal),
+  });
+
   usePageCommands("home", [
     {
       id: "home.preferences",
@@ -280,17 +423,23 @@ export default function HomePage() {
   const live = (notices.data?.items ?? []).filter((item) => item.is_live).slice(0, 3);
   const mine = events.data?.items ?? [];
 
+  const doors = SHORTCUTS.filter((item) => !item.permission || can(item.permission));
+
   return (
     <div className="nu-home">
-      <header className="nu-home-head">
-        <Space size={12} align="center">
-          <PersonAvatar size={44} src={me?.avatar_url} initials={me?.initials} />
-          <div>
+      {/* The band that orients somebody: who they are signed in as, what day
+          it is, and one sentence about the day. A greeting on its own is
+          decoration; a greeting that answers "is today busy" is a landing
+          page doing its job. */}
+      <header className="nu-hero">
+        <div className="nu-hero-who">
+          <PersonAvatar size={52} src={me?.avatar_url} initials={me?.initials} />
+          <div className="nu-hero-words">
             <Title level={3} className="nu-home-greeting">
               {greeting()}, {me?.first_name || me?.full_name}
             </Title>
-            <Text type="secondary">
-              {profile.role.name} · {app.data?.name ?? "Nucleus"}{" "}
+            <Text type="secondary" className="nu-hero-line">
+              {longDate()} · {profile.role.name} · {app.data?.name ?? "Nucleus"}{" "}
               {app.data?.version ? `v${app.data.version}` : ""}
               {app.data && app.data.environment !== "production" && (
                 <Tooltip title="Set by ENVIRONMENT. A demo that looked like production would be a demo somebody trusted.">
@@ -300,10 +449,18 @@ export default function HomePage() {
                 </Tooltip>
               )}
             </Text>
+            {/* Held back until the counts have settled, for the same reason
+                the strip is: a reassuring sentence that turns out to be wrong
+                is worse than a moment with no sentence at all. */}
+            {!settling && (
+              <Text className="nu-hero-summary" data-testid="home-summary">
+                {dayInAWord(waiting, mine.length)}
+              </Text>
+            )}
           </div>
-        </Space>
+        </div>
 
-        <Space size={8}>
+        <Space size={8} wrap>
           <Link to="/preferences">
             <Button>How you like things</Button>
           </Link>
@@ -350,7 +507,13 @@ export default function HomePage() {
         )}
       </section>
 
-      <div className="nu-home-grid">
+      {/* A wide column and a rail. What is *yours* — today, your work, what
+          happened — reads left to right and gets the width; what is the
+          platform's — the doors, where you have been, the noticeboard — sits
+          beside it. Four equal cards gave a diary the same weight as a
+          shortcut, which is how the page read as a wall of lists. */}
+      <div className="nu-home-columns">
+      <div className="nu-home-main">
         {can("calendar.view") && (
           <Card
             size="small"
@@ -445,6 +608,99 @@ export default function HomePage() {
 
         <Card
           size="small"
+          title="What has been happening"
+          data-testid="home-activity"
+          extra={
+            <Link to="/activity">
+              <Button type="link" size="small">
+                The feed
+              </Button>
+            </Link>
+          }
+        >
+          {feed.isLoading ? (
+            <Skeleton active paragraph={{ rows: 4 }} />
+          ) : (feed.data?.items.length ?? 0) === 0 ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="Nothing has happened this week"
+            />
+          ) : (
+            <Space direction="vertical" size={6} className="nu-block">
+              {(feed.data?.items ?? []).slice(0, 6).map((entry) => (
+                <div key={entry.id} className="nu-home-feed">
+                  <Text>{entry.summary}</Text>
+                  <Text type="secondary" className="nu-home-feed-when">
+                    {relativeTime(entry.occurred_at)}
+                  </Text>
+                </div>
+              ))}
+            </Space>
+          )}
+        </Card>
+      </div>
+
+      <aside className="nu-home-rail">
+        {/* A front door with no doors is a lobby. Permission-aware, so the row
+            holds nothing that opens onto a refusal (§76). */}
+        <Card size="small" title="Where to start" data-testid="home-shortcuts">
+          <div className="nu-home-doors">
+            {doors.map((door) => (
+              <Link key={door.key} to={door.to} className="nu-door" data-testid={`door-${door.key}`}>
+                <span className="nu-door-icon" aria-hidden>
+                  {door.icon}
+                </span>
+                <span className="nu-door-text">
+                  <span className="nu-door-label">{door.label}</span>
+                  <span className="nu-door-hint">{door.hint}</span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </Card>
+
+        {/* Most mornings start by reopening whatever was open yesterday. The
+            visit count is what separates a place somebody works from one they
+            wandered into once, so it is on the row rather than implied by the
+            order. */}
+        <Card
+          size="small"
+          title="Jump back in"
+          data-testid="home-recents"
+          extra={
+            <Link to="/favorites">
+              <Button type="link" size="small">
+                Favourites
+              </Button>
+            </Link>
+          }
+        >
+          {recents.isLoading ? (
+            <Skeleton active paragraph={{ rows: 3 }} title={false} />
+          ) : (recents.data?.items.length ?? 0) === 0 ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="Nowhere yet — the trail fills itself as you work"
+            />
+          ) : (
+            <Space direction="vertical" size={4} className="nu-block">
+              {(recents.data?.items ?? []).slice(0, 6).map((visit) => (
+                <Link key={visit.id} to={visit.url} className="nu-home-recent">
+                  <ClockCircleOutlined aria-hidden />
+                  <Text ellipsis className="nu-home-recent-label">
+                    {visit.label}
+                  </Text>
+                  <Text type="secondary" className="nu-home-recent-note">
+                    {visit.visit_count > 1 ? `${visit.visit_count} visits` : visit.resource_type}
+                  </Text>
+                </Link>
+              ))}
+            </Space>
+          )}
+        </Card>
+
+        <Card
+          size="small"
           title="What the platform has said"
           data-testid="home-notices"
           extra={
@@ -489,38 +745,7 @@ export default function HomePage() {
           )}
         </Card>
 
-        <Card
-          size="small"
-          title="What has been happening"
-          data-testid="home-activity"
-          extra={
-            <Link to="/activity">
-              <Button type="link" size="small">
-                The feed
-              </Button>
-            </Link>
-          }
-        >
-          {feed.isLoading ? (
-            <Skeleton active paragraph={{ rows: 4 }} />
-          ) : (feed.data?.items.length ?? 0) === 0 ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="Nothing has happened this week"
-            />
-          ) : (
-            <Space direction="vertical" size={6} className="nu-block">
-              {(feed.data?.items ?? []).slice(0, 6).map((entry) => (
-                <div key={entry.id} className="nu-home-feed">
-                  <Text>{entry.summary}</Text>
-                  <Text type="secondary" className="nu-home-feed-when">
-                    {relativeTime(entry.occurred_at)}
-                  </Text>
-                </div>
-              ))}
-            </Space>
-          )}
-        </Card>
+      </aside>
       </div>
     </div>
   );

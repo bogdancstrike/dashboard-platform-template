@@ -1146,7 +1146,31 @@ commit — built, committed, pushed, redeployed and verified before the next.
       notice is waiting to be agreed to. It arranges the state it names now,
       and its opposite is asserted beside it. A test whose name describes a
       state it never arranged is a test that passes on the opposite of its claim
-  - 13 component tests, 11 Playwright
+  - **It became a front door rather than a report.** Correct is not the same as
+      welcoming, and the page was a greeting, a strip of counts and four
+      identical cards of lists. Three things changed that without adding an
+      endpoint or a claim:
+    - a **hero band** — the date, who you are signed in as, and *one sentence
+      saying what the day looks like*. The strip says what is waiting; the
+      sentence says whether today is busy, which is what a glance is actually
+      for. It counts **kinds of thing, not things**: two invitations and nine
+      unread are two errands, and "11 things waiting" would be true and useless
+    - **doors into the modules**, permission-aware, because a front door with
+      no doors is a lobby. Destinations rather than "create" buttons: a tile
+      reading "New email" that lands on an inbox is a lie somebody falls for
+      once, and the pages own their own verbs
+    - **"Jump back in"**, from `/recents` — the most useful thing a landing
+      page can offer, since most mornings begin by reopening yesterday. Needs
+      no permission: a recent is a fact about *you*, and the rows behind each
+      one are still gated by the page it points at
+  - The layout is a **wide column and a rail**, not four equal cards: what is
+      yours (today, your work, what happened) gets the width, and what is the
+      platform's (the doors, the trail, the noticeboard) sits beside it. Four
+      equal cards gave a diary the same weight as a shortcut
+  - Both new tinted surfaces are declared in the accent-tint rule, so their
+      quiet ink is lifted in the dark ramp — `test/a11y.test.ts` fails on a
+      surface that paints the tint and forgets, and it did
+  - 17 component tests, 11 Playwright
 - [x] **A pass over every page for hardcoded data and missing CRUD**, asked for
       directly. What it found:
   - **Four vocabularies were typed into the browser** that the server already

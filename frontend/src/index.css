@@ -1832,6 +1832,8 @@ mark.nu-mark {
 .nu-month-cell-date:hover,
 .nu-event-chip:hover,
 .nu-waitcard:hover,
+.nu-waitcard-icon,
+.nu-door:hover,
 .nu-adminmap-card:hover,
 .nu-tmpl-preview-row.is-active,
 mark.nu-mark {
@@ -2769,10 +2771,28 @@ p a:not(.ant-btn),
    cards, a strip and a greeting — nothing competes for attention with the
    thing that is actually waiting. */
 .nu-home { display: flex; flex-direction: column; gap: 20px; }
-.nu-home-head {
+
+/* The band a person lands on. A tinted surface rather than a picture: it has
+   to read as *this* application at any brand colour, in both appearances, and
+   an image behind text is a contrast failure waiting to happen (§55). The
+   accent is carried at 7%, which is a tint on white and a lift in the dark
+   ramp — the same value doing opposite work, which is what `color-mix`
+   against the surface buys. */
+.nu-hero {
   display: flex; align-items: center; justify-content: space-between;
   gap: 20px; flex-wrap: wrap;
+  padding: 20px 22px; border-radius: 14px;
+  border: 1px solid var(--nu-border);
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--nu-accent) 12%, transparent), transparent 60%),
+    color-mix(in srgb, var(--nu-accent) 5%, var(--nu-surface));
 }
+.nu-hero-who { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.nu-hero-words { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.nu-hero-line { font-size: 12.5px; }
+/* The sentence that says whether today is busy. A greeting alone is
+   decoration; this is the page doing its job. */
+.nu-hero-summary { font-size: 13.5px; margin-top: 2px; }
 .nu-home-greeting { margin: 0 !important; }
 .nu-home-env { margin-inline-start: 6px; text-transform: uppercase; font-size: 10px; }
 
@@ -2784,32 +2804,83 @@ p a:not(.ant-btn),
   grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
 }
 .nu-waitcard {
-  display: grid; grid-template-columns: auto auto 1fr; align-items: center;
-  column-gap: 10px; padding: 14px 16px;
-  border: 1px solid var(--nu-border); border-radius: 10px;
+  display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto;
+  align-items: center; column-gap: 12px; row-gap: 2px; padding: 14px 16px;
+  border: 1px solid var(--nu-border); border-radius: 12px;
+  border-left: 3px solid var(--nu-accent);
   background: var(--nu-surface); color: var(--nu-text);
+  transition: border-color 120ms ease, background-color 120ms ease, transform 120ms ease;
+}
+.nu-waitcard:hover {
+  border-color: var(--nu-accent); border-left-color: var(--nu-accent);
+  background: var(--nu-accent-soft); transform: translateY(-1px);
+}
+.nu-waitcard-icon {
+  grid-row: 1 / 3; display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 10px;
+  background: var(--nu-accent-soft); color: var(--nu-accent-ink);
+  font-size: 17px; line-height: 1;
+}
+.nu-waitcard-count { font-size: 24px; font-weight: 650; line-height: 1.05; }
+.nu-waitcard-label { font-size: 12.5px; color: var(--nu-text-secondary); line-height: 1.3; }
+
+/* A wide column and a rail, not four equal cards. What is *yours* — today,
+   your work, what happened — gets the width and reads left to right; what is
+   the platform's — the doors, where you have been, the noticeboard — sits
+   beside it. Four equal cards gave a diary the same weight as a shortcut,
+   which is how the page read as a wall of lists.
+
+   `align-items: start`, so each card is as tall as its own contents. Stretched
+   to the tallest in the row, an empty "Today" beside a full "Your work" became
+   a large panel of nothing — the crowded-looking version of a calm page (§20). */
+.nu-home-columns {
+  display: grid; gap: 16px; align-items: start;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+}
+.nu-home-main, .nu-home-rail { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+/* One column below the point where the rail stops being a rail and starts
+   being a second narrow column of ellipsed text (§56). */
+@media (max-width: 1000px) {
+  .nu-home-columns { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* The doors. Two across where there is room, because six of them in one
+   column is a menu — and the navigation is already a menu. */
+.nu-home-doors {
+  display: grid; gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+}
+.nu-door {
+  display: flex; align-items: center; gap: 10px; min-width: 0;
+  padding: 9px 10px; border-radius: 10px; color: var(--nu-text);
+  border: 1px solid var(--nu-border-subtle); background: var(--nu-bg);
   transition: border-color 120ms ease, background-color 120ms ease;
 }
-.nu-waitcard:hover { border-color: var(--nu-accent); background: var(--nu-accent-soft); }
-.nu-waitcard-icon { color: var(--nu-accent-ink); font-size: 18px; line-height: 1; }
-.nu-waitcard-count { font-size: 26px; font-weight: 650; line-height: 1; }
-.nu-waitcard-label { font-size: 12.5px; color: var(--nu-text-secondary); }
-
-/* Two columns of cards on a wide screen, one below. Not four across: this
-   page is read, not scanned, and four narrow columns of prose is the crowded
-   version of the same information. */
-/* `align-items: start`, so each card is as tall as its own contents. Stretched
-   to the tallest in the row, an empty "Today" beside a full "Your work" became
-   a large panel of nothing — which is the crowded-looking version of a calm
-   page (§20). */
-.nu-home-grid {
-  display: grid; gap: 16px; align-items: start;
-  /* 420 and not 340: at 340 a wide screen fits three columns, four cards land
-     as three-plus-one, and the fourth sits alone beside a hole. Two columns
-     take the same cards as two-plus-two — balanced, and each card wide enough
-     to read a sentence in. */
-  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+.nu-door:hover { border-color: var(--nu-accent); background: var(--nu-accent-soft); color: var(--nu-text); }
+.nu-door:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; }
+.nu-door-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; flex: none; border-radius: 8px;
+  background: var(--nu-surface); color: var(--nu-accent-ink); font-size: 15px;
 }
+.nu-door-text { display: flex; flex-direction: column; min-width: 0; }
+.nu-door-label { font-size: 13px; font-weight: 600; line-height: 1.3; }
+.nu-door-hint {
+  font-size: 11px; color: var(--nu-text-secondary); line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Where you have been. The visit count is on the row rather than implied by
+   the order: it is what separates a place somebody works from one they
+   wandered into once. */
+.nu-home-recent {
+  display: flex; align-items: center; gap: 8px; min-width: 0;
+  color: var(--nu-text); padding: 3px 0;
+}
+.nu-home-recent:hover { color: var(--nu-accent-ink); }
+.nu-home-recent > .anticon { color: var(--nu-text-tertiary); flex: none; }
+.nu-home-recent-label { flex: 1; min-width: 0; font-size: 13px; }
+.nu-home-recent-note { flex: none; font-size: 11px; }
 
 .nu-home-event, .nu-home-task, .nu-home-feed {
   display: flex; align-items: baseline; gap: 10px; min-width: 0;
