@@ -694,3 +694,50 @@ def test_the_preferences_repair_fills_keys_in_and_expands_the_sidebar():
     assert current.preferences == {
         section: dict(keys) for section, keys in PREFERENCE_DEFAULTS.items()
     }
+
+
+def test_every_dataset_is_demonstrable_in_the_activity_feed(world):
+    """A feed exists to be filtered, and the filter has to find something.
+
+    The history was drawn from one flat pool of every record, picked from
+    uniformly — so a dataset was the subject of an event in proportion to how
+    many rows it had. Eight hundred orders against fifty projects meant a
+    project was the subject of one event in forty, and once the feed is scoped
+    to an organization there were demo accounts whose project filter matched
+    nothing at all. The page then reads "nothing has happened", which is a
+    different and wrong answer (§34).
+
+    The dataset is chosen before the record now, so each gets roughly the same
+    share of the history whatever its volume.
+    """
+    from collections import Counter
+
+    seen = Counter(entry.resource_type for entry in world.activity_entries)
+    expected = {"project", "task", "ticket", "order", "customer", "user"}
+    assert expected <= set(seen), f"no activity against {sorted(expected - set(seen))}"
+
+    # And not merely present: the rarest dataset is within an order of
+    # magnitude of the commonest, or the filter is technically demonstrable and
+    # practically empty once an organization is chosen.
+    assert min(seen[kind] for kind in expected) * 10 > max(seen.values())
+
+
+def test_each_persona_can_filter_the_feed_by_any_dataset(world):
+    """The scoped version of the claim above, which is the one that bit.
+
+    The feed a demo account sees is its own organization's. A dataset that is
+    well represented across twenty organizations and absent from the one the
+    administrator belongs to is a dataset whose filter is broken for the person
+    most likely to try it.
+    """
+    from collections import Counter
+
+    assert world.personas, "the seed builds no personas"
+    for persona in world.personas.values():
+        seen = Counter(
+            entry.resource_type
+            for entry in world.activity_entries
+            if entry.organization_id == persona.organization_id
+        )
+        for kind in ("project", "task", "ticket", "order", "customer", "user"):
+            assert seen[kind] > 0, f"{persona.email} sees no {kind} activity"

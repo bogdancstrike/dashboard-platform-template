@@ -3281,7 +3281,8 @@ and did not yet name.
 
 ### Known red
 
-Twenty-six at the start of this session; two now.
+**None.** Twenty-six at the start of this session, then two, now zero — 1239
+backend tests and 1229 frontend ones pass.
 
 - [x] **Twenty of them were `boto3` missing from the local virtualenv.** Every
       `test_files` and `test_exports` failure was one 500 with `No module named
@@ -3291,12 +3292,33 @@ Twenty-six at the start of this session; two now.
 - [x] **Four were a real 500**: `profile._named` read `row.name` for a manager,
       and a `User` is named by `full_name`. Every profile page with a manager
       on it answered 500 — see the `/profile` entry above
-- [ ] **Two remain, and both are about the shape of *this* database's seed
-      rather than about code.** `test_activity` wants the feed to carry an
-      entry against a project, and `test_announcements` wants at least one
-      category nobody has used. A fresh `make reseed` would settle both, at the
-      cost of everything created since the last one — so it is somebody's
-      decision rather than a repair to run unasked
+- [x] **The last two were seed shape, and both are fixed at the right level
+      rather than by a reseed.** A `make reseed` would have settled them at the
+      cost of everything created since the last one, which is not a repair
+  - **`/activity` could not be filtered by dataset.** The history was drawn
+    from one flat pool of every record, picked uniformly — so a dataset was the
+    subject of an event *in proportion to how many rows it had*. Eight hundred
+    orders against fifty projects means a project is the subject of one event
+    in forty, and once the feed is scoped to an organization the administrator's
+    own project filter matched nothing and the page reported that nothing had
+    happened (§34). The seed now picks the **dataset first, then a record in
+    it**, so each gets roughly the same share whatever its volume — and
+    `test_seed.py` asserts both the global spread and the scoped one, because
+    the scoped one is what bit
+  - **`make sync-activity`** repairs a database already seeded. An *addition*,
+    never an edit: an activity entry records something that happened, and
+    rewriting one would be a lie about the past. It writes a real event over a
+    real record, and skips an organization that has no records of that kind —
+    an organization with no orders *should* have no order activity, and
+    inventing one would put a row in the feed that opens on a 404. It added 9
+    entries across 20 organizations here, and says so on a second run
+  - **The announcements test was asserting the seed, not the code.** "Some
+    category in the response has a count of nought" fails the day the demo
+    gains a notice in all five, and nothing is wrong when it does. The
+    behaviour it meant to pin is one line of `_category_counts` —
+    `counted.get(key, 0)` — so it is asserted there, against a stub, with the
+    endpoint test keeping the claims that *are* about the endpoint: exactly the
+    declared categories, in declaration order, counted over the whole match
 
 ## Design foundations
 

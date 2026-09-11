@@ -172,6 +172,25 @@ which is what makes the switch on `/settings/preferences` mean anything.
 make sync-preferences   # fill in keys an account predates, and expand the sidebar
 ```
 
+### Activity, and why it is filterable
+
+`/activity` offers a filter per dataset, and the history has to have something
+in each. The seed picks the **dataset before the record**: drawn from one flat
+pool, a dataset is the subject of an event in proportion to how many rows it
+has, so eight hundred orders against fifty projects means a project is the
+subject of one event in forty — and once the feed is scoped to an
+organization, a demo account's project filter matches nothing and the page
+says nothing has happened (§34).
+
+The repair below is additive and never edits: an activity entry records
+something that happened. It writes a real event over a real record, and skips
+an organization that has no records of that kind, because an organization with
+no orders should have no order activity.
+
+```bash
+make sync-activity   # one entry per dataset each organization has records for
+```
+
 ### Health, and what it was doing earlier
 
 `GET /platform/health/{live,ready,status}` are unauthenticated on purpose —

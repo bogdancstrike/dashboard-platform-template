@@ -235,8 +235,50 @@ def test_every_category_is_offered_with_a_count_over_the_whole_match(client, mon
     assert [entry["key"] for entry in body["categories"]] == [key for key, _ in CATEGORIES]
     # The counts are the period's, not the one row returned (§71).
     assert sum(entry["count"] for entry in body["categories"]) > len(body["items"])
-    # And a category with nothing in it is still offered, at zero.
-    assert any(entry["count"] == 0 for entry in body["categories"])
+    # Every declared category, whatever the data — a chip that vanishes teaches
+    # a reader that the platform has stopped publishing releases. That the
+    # missing ones come back at *zero* is asserted below, against the function
+    # rather than against whichever categories this database happens to hold.
+    assert all(isinstance(entry["count"], int) for entry in body["categories"])
+
+
+def test_a_category_nobody_has_used_is_still_offered_at_zero():
+    """The zero-fill, asserted without a database.
+
+    This used to be checked through the endpoint — "some category in the
+    response has a count of nought" — which is a claim about the *seed*, not
+    about the code: the day the demo gained a notice in all five categories the
+    test failed and nothing was wrong. The behaviour it meant to pin lives in
+    one line of `_category_counts`, and that is what this reads.
+    """
+    from src.services.announcements import CATEGORIES, _category_counts
+
+    from uuid import uuid4
+
+    class _Session:
+        """Just enough of a session: the function runs one grouped count."""
+
+        def execute(self, _statement):
+            class _Result:
+                # One category in use, out of five.
+                def all(self):
+                    return [("RELEASE", 3)]
+
+            return _Result()
+
+    class _Principal:
+        """And just enough of a caller for the audience clause to build."""
+
+        organization_id = uuid4()
+        user_id = uuid4()
+        role_code = "ADMINISTRATOR"
+
+    counts = _category_counts(_Session(), _Principal(), now())
+
+    assert [key for key, _, _ in counts] == [key for key, _ in CATEGORIES]
+    assert dict((key, count) for key, _, count in counts)["RELEASE"] == 3
+    # The other four are offered rather than dropped, at nought.
+    assert sorted(count for _, _, count in counts) == [0, 0, 0, 0, 3]
 
 
 @pytest.mark.database

@@ -21,6 +21,7 @@
     python -m src.seed --sync-org        # make each department's headcount agree with its people
     python -m src.seed --sync-health     # give every service a month of history to draw
     python -m src.seed --sync-flags      # turn on every flag that hides something shipped
+    python -m src.seed --sync-activity   # give each organization a feed it can filter
     python -m src.seed --sync-preferences # fill in preference keys an account predates
     python -m src.seed --dry-run          # build in memory, write nothing
 
@@ -101,6 +102,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-flags", action="store_true",
         help="turn on every feature flag that gates a shipped page, at a full rollout",
+    )
+    parser.add_argument(
+        "--sync-activity", action="store_true",
+        help="give every organization at least one activity entry per dataset it has records for",
     )
     parser.add_argument(
         "--sync-preferences", action="store_true",
@@ -341,6 +346,21 @@ def main(argv: list[str] | None = None) -> int:
             f"{result['repaired']} of {result['checked']} navigation flags turned on"
             if result["repaired"]
             else "every navigation flag is already on"
+        )
+        return 0
+
+    if args.sync_activity:
+        # The history was drawn from one flat pool of every record, so a
+        # dataset was the subject of an event in proportion to its volume —
+        # and once scoped to an organization, the administrator's own project
+        # filter matched nothing (§34). Additive: an entry records something
+        # that happened, and rewriting one would be a lie about the past.
+        with session_scope() as session:
+            result = runner.sync_activity(session)
+        print(
+            f"{result['added']} entries added across {result['organizations']} organizations"
+            if result["added"]
+            else "every organization can already filter the feed by any dataset"
         )
         return 0
 

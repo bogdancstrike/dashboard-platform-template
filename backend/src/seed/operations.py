@@ -895,21 +895,30 @@ def _audit_and_activity(world: World) -> None:
     if not world.users:
         return
 
-    targets: list[tuple[str, object, str, object]] = []
-    for project in world.projects:
-        targets.append(("project", project.id, project.name, project.organization_id))
-    for task in world.tasks:
-        targets.append(("task", task.id, task.title, task.organization_id))
-    for ticket in world.tickets:
-        targets.append(("ticket", ticket.id, ticket.subject, ticket.organization_id))
-    for order in world.orders:
-        targets.append(("order", order.id, order.reference, order.organization_id))
-    for customer in world.customers:
-        targets.append(("customer", customer.id, customer.name, customer.organization_id))
-    for user in world.users:
-        targets.append(("user", user.id, user.full_name, user.organization_id))
-    if not targets:
+    # Grouped by dataset rather than pooled, because of *how* one is chosen
+    # below. A single flat list picked from uniformly picks a dataset in
+    # proportion to how many records it has — eight hundred orders against
+    # fifty projects means a project is the subject of one event in forty, and
+    # after the feed is scoped to an organization there are demo accounts whose
+    # project filter matches nothing at all. A feed exists to be filtered, and
+    # a filter that can only be demonstrated on some datasets demonstrates the
+    # wrong thing.
+    by_dataset: dict[str, list[tuple[str, object, str, object]]] = {}
+
+    def offer(kind: str, rows, label) -> None:
+        entries = [(kind, row.id, label(row), row.organization_id) for row in rows]
+        if entries:
+            by_dataset[kind] = entries
+
+    offer("project", world.projects, lambda row: row.name)
+    offer("task", world.tasks, lambda row: row.title)
+    offer("ticket", world.tickets, lambda row: row.subject)
+    offer("order", world.orders, lambda row: row.reference)
+    offer("customer", world.customers, lambda row: row.name)
+    offer("user", world.users, lambda row: row.full_name)
+    if not by_dataset:
         return
+    datasets = sorted(by_dataset)
 
     projects_by_org: dict = {}
     for project in world.projects:
@@ -918,7 +927,11 @@ def _audit_and_activity(world: World) -> None:
     for _ in range(world.scale.audit_logs):
         actor = rng.pick(world.users)
         action = rng.weighted(AUDIT_ACTIONS)
-        resource_type, resource_id, label, organization_id = rng.pick(targets)
+        # The dataset first, then a record in it: every dataset gets roughly
+        # the same share of the history, whatever its volume.
+        resource_type, resource_id, label, organization_id = rng.pick(
+            by_dataset[rng.pick(datasets)]
+        )
         occurred = rng.business_hour(rng.recent(days=180))
         result = rng.weighted((("SUCCESS", 0.9), ("FAILURE", 0.05), ("DENIED", 0.04), ("PARTIAL", 0.01)))
 
