@@ -31,6 +31,8 @@ export type BlockKind =
   | "HEADING"
   | "TEXT"
   | "REPORT"
+  /** A chart that composes its own question, the way a `TABLE` block does. */
+  | "CHART"
   | "TABLE"
   | "METRICS"
   | "DIVIDER"
@@ -50,8 +52,20 @@ export interface DocumentBlock {
   caption?: string;
   /** `REPORT`: the saved report it draws. */
   report_id?: string;
-  /** `REPORT`: the picture, its numbers, or both. */
+  /** `REPORT` and `CHART`: the picture, its numbers, or both. */
   show?: "chart" | "table" | "both";
+  /** `CHART`: which picture, from the chart builder's own vocabulary. */
+  chart?: string;
+  /** `CHART`: what to group by, and the bucket when it is a date. */
+  dimension?: string;
+  granularity?: string;
+  /** `CHART`: a second grouping — a stack, or a heatmap's columns. */
+  stack?: string;
+  /** `CHART`: how to measure. Counting rows is the only one every dataset can. */
+  aggregation?: string;
+  measure?: string;
+  /** `CHART`: the window it reads over. */
+  period?: string;
   /** `TABLE`, `METRICS`: the dataset. */
   entity?: string;
   /** `TABLE`: which columns, in order. */
@@ -131,6 +145,17 @@ export const reportDocumentsApi = {
     api.delete<{ id: string; deleted: boolean; name: string }>(`/api/report-documents/${id}`),
   duplicate: (id: string) =>
     api.post<ReportDocument>(`/api/report-documents/${id}/duplicate`, {}),
+
+  /**
+   * A whole document about one dataset, composed from its declarations.
+   *
+   * The empty document is honest and it is still a blank page. This is the
+   * report somebody would have written — summary, headline numbers, a chart
+   * per declared grouping, the newest rows — and every block it makes is an
+   * ordinary block they can edit or remove.
+   */
+  compose: (input: { entity: string; period?: string }) =>
+    api.post<ReportDocument>("/api/report-documents/compose", input),
 
   /**
    * The file itself.

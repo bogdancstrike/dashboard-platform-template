@@ -3083,6 +3083,69 @@ Ordered as asked: mail, then the admin pages, then the showcase.
     *ungated*. `AppShell.test.tsx` asserts that a platform with no flags at all
     hides nothing
 
+### The report builder answers its own questions
+
+- [x] **A `CHART` block composes its own question** (§28). The builder could
+      draw a saved report and nothing else, so putting one picture on a page
+      meant leaving for `/charts/builder`, inventing a report, saving it, and
+      coming back — and the report then existed forever because a page
+      depended on it. A chart block names the four things the chart builder
+      names — *which rows, grouped how, measured how, drawn how* — and the
+      **same `analysis.run`** answers it. One compiler, so a document cannot
+      disagree with the chart builder about what a grouping means
+  - Only the **shapes the question can actually feed** are offered, out of
+    `charts/shapes.ts` — the same declaration the chart builder filters with.
+    A line of categories implies an order the categories do not have, so
+    `line` is not in the strip until the grouping is a date; and changing the
+    grouping under a chosen kind moves the kind to one that fits rather than
+    leaving the block drawing nothing
+  - `show` decides, and the **file has to agree with the preview**: the browser
+    posts a captured PNG for every chart on screen, including one whose reader
+    asked for the numbers instead, and drawing it anyway would put something in
+    the export that was never on the page. Asserted out of the DOCX, where an
+    embedded picture is a file under `word/media/`
+  - The outline names a chart by its **question** — `order by channel` — not by
+    its kind. Four rows reading "Group a dataset and draw it" is an outline
+    nobody navigates by
+- [x] **`POST /api/report-documents/compose` writes the first draft** (§28).
+      The blank page is the honest starting point and it is still a blank page:
+      the add menu names nine kinds, and knowing which of them answers "how is
+      this quarter going" is exactly what somebody opening the screen does not
+      have yet. The server reads the dataset's **own declarations** — its
+      insights, its groupings, its default columns and date — and composes a
+      cover, a summary, the headline numbers, a chart over time, up to three
+      charts of declared groupings (a bar under eight choices, a treemap over),
+      a page break and a table of the newest rows
+  - Nothing in it is invented: every block names a question the explorer and
+    the analysis catalogue already publish, and **every block is an ordinary
+    block** — editable, movable, removable. A first draft rather than a black
+    box, which is why the dialog says what it will produce before it produces it
+
+### The sidebar opens with its words on
+
+- [x] **The navigation is expanded by default, and the preference is the only
+      thing that decides** (§40). There was a responsive rule — collapsed below
+      the `xl` breakpoint — so on every ordinary laptop the product opened on a
+      rail of unlabelled icons *whatever* the reader had chosen on
+      `/settings/preferences`. A 1280px window has room for the sidebar and a
+      thousand pixels of page; the width at which it genuinely does not fit is
+      the width at which it becomes a drawer, and that is already a separate
+      branch
+  - **248 → 272px.** The longest item in the navigation wrapped onto a second
+    line in a list where nothing else did
+  - The seed gave a quarter of the demo personas `sidebar_collapsed: true`,
+    which is the same class of bug as the five-per-cent rollout on
+    `/dashboards`: a demo that ships a state hiding shipped navigation. It is
+    `false` for everybody now, and `test_seed.py` says so
+  - **`make sync-preferences`** repairs a database already seeded — additive,
+    so a value somebody chose survives it, with the collapsed sidebar as the
+    one documented exception. It also fills in preference keys an account's
+    stored blob predates, which is the ordinary reason to run it on a deploy
+  - Every `AppShell` test until now ran in the *mobile* branch, because the
+    suite's `matchMedia` stub answers `false` to everything — which is how a
+    responsive rule could collapse the desktop sidebar unnoticed. The two new
+    tests state a width first
+
 ### Known red
 
 Twenty-six at the start of this session; two now.

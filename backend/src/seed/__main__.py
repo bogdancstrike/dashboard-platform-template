@@ -21,6 +21,7 @@
     python -m src.seed --sync-org        # make each department's headcount agree with its people
     python -m src.seed --sync-health     # give every service a month of history to draw
     python -m src.seed --sync-flags      # turn on every flag that hides something shipped
+    python -m src.seed --sync-preferences # fill in preference keys an account predates
     python -m src.seed --dry-run          # build in memory, write nothing
 
 It refuses to seed a database that already has data unless `--reset` or
@@ -100,6 +101,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-flags", action="store_true",
         help="turn on every feature flag that gates a shipped page, at a full rollout",
+    )
+    parser.add_argument(
+        "--sync-preferences", action="store_true",
+        help="fill in preference keys an account's stored blob predates, and expand collapsed sidebars",
     )
     parser.add_argument(
         "--sync-health", action="store_true",
@@ -336,6 +341,20 @@ def main(argv: list[str] | None = None) -> int:
             f"{result['repaired']} of {result['checked']} navigation flags turned on"
             if result["repaired"]
             else "every navigation flag is already on"
+        )
+        return 0
+
+    if args.sync_preferences:
+        # The declaration in `services/me.py` gains a key and every account
+        # seeded before it has a blob without one (§40). Additive, except the
+        # seeded collapsed sidebar — a rail of unlabelled icons on first sign-in
+        # reads as broken navigation, not as somebody's preference.
+        with session_scope() as session:
+            result = runner.sync_preferences(session)
+        print(
+            f"{result['filled']} accounts filled in, {result['expanded']} sidebars expanded"
+            if result["filled"]
+            else "every account's preferences are already complete"
         )
         return 0
 

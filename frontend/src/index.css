@@ -160,7 +160,7 @@ body {
   position: fixed !important; z-index: 60; transform: translateX(-100%);
   transition: transform 0.2s ease;
 }
-.nu-sider--open { transform: translateX(0); width: 248px !important; min-width: 248px !important; }
+.nu-sider--open { transform: translateX(0); width: 272px !important; min-width: 272px !important; }
 .nu-scrim { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.55); z-index: 50; }
 
 .nu-logo {

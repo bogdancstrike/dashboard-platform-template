@@ -12,6 +12,7 @@
  */
 
 import {
+  AreaChartOutlined,
   BarChartOutlined,
   BorderHorizontalOutlined,
   ColumnHeightOutlined,
@@ -42,6 +43,11 @@ export const BLOCK_SPECS: Record<BlockKind, BlockSpec> = {
     label: "Paragraph",
     hint: "Your own words — what the numbers mean, and what to do about them.",
     icon: <FileTextOutlined />,
+  },
+  CHART: {
+    label: "Chart",
+    hint: "Group a dataset and draw it — any picture the chart builder can.",
+    icon: <AreaChartOutlined />,
   },
   REPORT: {
     label: "A saved report",
@@ -79,6 +85,7 @@ export const BLOCK_SPECS: Record<BlockKind, BlockSpec> = {
 export const BLOCK_ORDER: BlockKind[] = [
   "HEADING",
   "TEXT",
+  "CHART",
   "REPORT",
   "TABLE",
   "METRICS",
@@ -110,6 +117,19 @@ export function newBlock(kind: BlockKind, existing: DocumentBlock[]): DocumentBl
       return { id, kind, text: "" };
     case "SPACER":
       return { id, kind, size: "medium" };
+    case "CHART":
+      // Counting rows is the only measure every dataset can answer, so it is
+      // the default: a block that needed a numeric column chosen before it
+      // could draw anything would open as an error.
+      return {
+        id,
+        kind,
+        chart: "bar",
+        aggregation: "count",
+        show: "chart",
+        caption: "",
+        filters: {},
+      };
     case "REPORT":
       return { id, kind, show: "both", caption: "" };
     case "TABLE":

@@ -74,7 +74,6 @@ export function AppShell() {
   const { preferences, save: savePreference } = usePreferences();
 
   const isMobile = screens.lg === false;
-  const roomy = screens.xl === true;
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try {
@@ -85,21 +84,24 @@ export function AppShell() {
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Collapse on a cramped desktop, and leave it wherever the reader put it
-  // afterwards until the window changes class again.
-  useEffect(() => {
-    if (!isMobile) setCollapsed(!roomy);
-  }, [isMobile, roomy]);
-
   // The stored preference wins once, when the profile arrives (§40). Only
   // once: a reader who expands the sidebar has overridden their own default
   // for this session, and re-collapsing it on the next render would fight them.
+  //
+  // **Nothing else collapses it.** There used to be a responsive rule here —
+  // collapsed below the `xl` breakpoint — and the effect of it was that on
+  // every ordinary laptop the sidebar started as a rail of unlabelled icons,
+  // whatever the reader had chosen. A 1280px window has room for a 272px
+  // sidebar and a thousand pixels of page; the width at which it genuinely
+  // does not fit is the width at which it becomes a drawer, and that is
+  // `isMobile`. So the preference is the only thing that decides, which is
+  // what makes the switch on `/settings/preferences` mean anything.
   const preferenceApplied = useRef(false);
   useEffect(() => {
     if (preferenceApplied.current || !auth.profile) return;
     preferenceApplied.current = true;
-    if (!isMobile && roomy) setCollapsed(auth.profile.preferences.appearance.sidebar_collapsed);
-  }, [auth.profile, isMobile, roomy]);
+    if (!isMobile) setCollapsed(auth.profile.preferences.appearance.sidebar_collapsed);
+  }, [auth.profile, isMobile]);
 
   /**
    * Collapsing the sidebar is a decision, and decisions are preferences (§40).
@@ -213,7 +215,10 @@ export function AppShell() {
         collapsible={!isMobile}
         collapsed={!isMobile && collapsed}
         onCollapse={chooseCollapsed}
-        width={248}
+        // 272, not 248: the longest item in the navigation is "Relationship
+        // explorer" at this weight, and at 248 it wrapped to a second line in
+        // a list where nothing else did.
+        width={272}
         // 56, not 72: the rail holds a 16px icon, and the extra sixteen
         // pixels were pure margin on a control that is already a compromise.
         collapsedWidth={isMobile ? 0 : 56}

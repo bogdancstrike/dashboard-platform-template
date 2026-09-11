@@ -637,3 +637,60 @@ def test_every_persona_owns_a_board(world):
     owners = {board.owner_id for board in world.kanban_boards}
     personas = [user.id for user in world.personas.values()]
     assert owners & set(personas), "no persona owns a board"
+
+
+def test_no_persona_signs_in_to_a_collapsed_sidebar(world):
+    """A rail of unlabelled icons on first sign-in reads as broken navigation.
+
+    The seed gave a quarter of the personas `sidebar_collapsed: True`, which is
+    a preference nobody set for themselves, on the one control that decides
+    whether the product looks like it has any features. The same class of bug
+    as the five-per-cent rollout on `/dashboards` (§27, §40) and fixed the same
+    way: the demo never ships a state that hides shipped navigation.
+    """
+    assert world.users
+    for user in world.users:
+        appearance = (user.preferences or {}).get("appearance", {})
+        assert appearance.get("sidebar_collapsed") is False, user.email
+
+
+def test_the_preferences_repair_fills_keys_in_and_expands_the_sidebar():
+    """`sync_preferences` is additive, except for the collapsed sidebar (§40).
+
+    A value somebody chose survives it — that is what makes it safe to run on
+    every deploy — and a key the declaration has gained appears with its
+    default rather than being absent until the next write.
+    """
+    from src.services.me import PREFERENCE_DEFAULTS
+
+    class _User:
+        def __init__(self, preferences):
+            self.preferences = preferences
+
+    stale = _User({
+        "appearance": {"theme": "dark", "sidebar_collapsed": True},
+        "formats": {"date": "DD/MM/YYYY"},
+    })
+    current = _User({section: dict(keys) for section, keys in PREFERENCE_DEFAULTS.items()})
+
+    class _Session:
+        def scalars(self, _statement):
+            return _Rows([stale, current])
+
+    class _Rows(list):
+        def all(self):
+            return list(self)
+
+    result = runner.sync_preferences(_Session())
+
+    assert result == {"filled": 1, "expanded": 1}
+    # The choices survive; the missing keys arrive; the sidebar is expanded.
+    assert stale.preferences["appearance"]["theme"] == "dark"
+    assert stale.preferences["appearance"]["sidebar_collapsed"] is False
+    assert stale.preferences["formats"]["date"] == "DD/MM/YYYY"
+    assert stale.preferences["formats"]["time"] == PREFERENCE_DEFAULTS["formats"]["time"]
+    assert set(stale.preferences) == set(PREFERENCE_DEFAULTS)
+    # And an account already up to date is not rewritten.
+    assert current.preferences == {
+        section: dict(keys) for section, keys in PREFERENCE_DEFAULTS.items()
+    }

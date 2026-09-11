@@ -168,6 +168,10 @@ sync-org: ## Recount each department's headcount from the people in it
 sync-flags: ## Turn on every feature flag that gates a shipped page
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-flags seed
 
+.PHONY: sync-preferences
+sync-preferences: ## Fill in preference keys an account predates, and expand collapsed sidebars
+	$(COMPOSE) run --rm -e SEED_ARGS=--sync-preferences seed
+
 .PHONY: sync-health
 sync-health: ## Give every monitored service a month of history to draw
 	$(COMPOSE) run --rm -e SEED_ARGS=--sync-health seed

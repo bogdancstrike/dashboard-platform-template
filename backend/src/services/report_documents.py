@@ -63,6 +63,14 @@ BLOCK_KINDS = frozenset({
     "HEADING",
     "TEXT",
     "REPORT",
+    # A chart that composes its *own* question, the way a `TABLE` block does.
+    #
+    # `REPORT` draws something already saved, which is right when the question
+    # exists — and useless when it does not, because it made "put a chart in
+    # this report" begin with "go and build a report". A table block was always
+    # allowed to name a dataset and a sort; there is no reason a chart may not
+    # name a dataset and a grouping, and one compiler answers both.
+    "CHART",
     "TABLE",
     "METRICS",
     "DIVIDER",
@@ -71,7 +79,16 @@ BLOCK_KINDS = frozenset({
 })
 
 #: Blocks that ask the platform a question, and so need permission checking.
-DATA_KINDS = frozenset({"REPORT", "TABLE", "METRICS"})
+DATA_KINDS = frozenset({"REPORT", "CHART", "TABLE", "METRICS"})
+
+#: Every picture a `CHART` block may ask for — the chart builder's vocabulary,
+#: because a block that could draw a shape the product cannot is a block that
+#: renders an apology.
+CHART_KINDS = frozenset({
+    "bar", "hbar", "line", "area", "pie", "multi-line", "stacked-area",
+    "stacked-bar", "stacked-hbar", "funnel", "treemap", "scatter", "radar",
+    "heatmap",
+})
 
 #: A document longer than this is a book, and a JSON column is the wrong home.
 MAX_BLOCKS = 80
@@ -339,6 +356,9 @@ def resolve(
         elif kind == "REPORT":
             out.extend(_resolve_report(session, block, principal=principal,
                                        image=images.get(block_id), orientation=orientation))
+        elif kind == "CHART":
+            out.extend(_resolve_chart(session, block, principal=principal,
+                                      image=images.get(block_id), orientation=orientation))
         elif kind == "TABLE":
             out.append(_resolve_table(session, block, principal=principal,
                                       orientation=orientation))
@@ -389,6 +409,89 @@ def _resolve_report(
             "text": "The chart could not be captured, so its numbers are below.",
         })
     return pieces or [{"kind": "NOTE", "text": f"{name} produced nothing to show."}]
+
+
+def _resolve_chart(
+    session, block: dict[str, Any], *, principal, image: Any, orientation: str
+) -> list[dict[str, Any]]:
+    """A chart the block composed itself, through the one analysis compiler.
+
+    Identical in shape to `_resolve_report` and deliberately so: the only
+    difference between the two is where the question came from. A saved report
+    is a question somebody kept; this is one they asked here — and both are
+    answered by `analysis.run`, so a document cannot disagree with the chart
+    builder about what the same grouping means.
+    """
+    entity = str(block.get("entity") or "")
+    caption = str(block.get("caption") or "")
+    if not entity:
+        return [{"kind": "NOTE", "text": "A chart block with no dataset chosen."}]
+
+    request = {
+        "resource_type": entity,
+        "dimensions": [
+            {
+                "field": str(block.get("dimension") or ""),
+                "granularity": str(block.get("granularity") or ""),
+            }
+        ],
+        "measures": [_measure_of(block)],
+        "filters": block.get("filters") or {},
+        "period": block.get("period") or "",
+    }
+    if block.get("stack"):
+        request["dimensions"].append({"field": str(block["stack"]), "granularity": ""})
+
+    try:
+        result = analysis.run(session, request, principal=principal)
+    except Exception as error:  # noqa: BLE001 — every failure is one sentence
+        return [{"kind": "NOTE", "text": _why("chart", error)}]
+
+    show = str(block.get("show") or "chart")
+    pieces: list[dict[str, Any]] = []
+    # A block asking for the numbers alone does not get a picture even when the
+    # browser captured one — otherwise the file disagrees with the preview.
+    png = documents.decode_png(image) if show != "table" else None
+    if png:
+        pieces.append({"kind": "IMAGE", "png": png, "caption": caption})
+
+    # The numbers, when the picture could not be captured — and when the block
+    # asked for both. The same honest degradation a report block makes: the
+    # numbers are the point and the picture was the presentation of them.
+    if show in ("both", "table") or not png:
+        columns, rows = _tabulate(result)
+        if rows:
+            fitted, cut, dropped = documents.fit_columns(columns, rows, orientation)
+            pieces.append({
+                "kind": "TABLE",
+                "caption": caption,
+                "columns": fitted,
+                "rows": cut,
+                "note": f"{dropped} more columns in the full result." if dropped else "",
+            })
+
+    if not pieces:
+        return [{"kind": "NOTE", "text": "This chart matched nothing."}]
+    if not png and show == "chart":
+        pieces.insert(0, {
+            "kind": "NOTE",
+            "text": "The chart could not be captured, so its numbers are below.",
+        })
+    return pieces
+
+
+def _measure_of(block: dict[str, Any]) -> dict[str, Any]:
+    """What a chart block counts, or sums, or averages.
+
+    Counting rows is the default because it is the only measure every dataset
+    can answer — a block that defaulted to summing would need a numeric column
+    chosen before it could draw anything at all.
+    """
+    aggregation = str(block.get("aggregation") or "count")
+    field = str(block.get("measure") or "")
+    if aggregation == "count" or not field:
+        return {"aggregation": "count"}
+    return {"aggregation": aggregation, "field": field}
 
 
 def _tabulate(result: dict[str, Any]) -> tuple[list[str], list[list[str]]]:
@@ -664,6 +767,26 @@ def _blocks(raw: Any, *, principal) -> list[dict[str, Any]]:
             show = str(entry.get("show") or "both")
             block["show"] = show if show in SHOW_MODES else "both"
             block["caption"] = str(entry.get("caption") or "")[:200]
+        elif kind == "CHART":
+            entity = str(entry.get("entity") or "").strip()
+            if entity:
+                explorer.resource_for(entity, principal=principal)
+                block["entity"] = entity
+            chart = str(entry.get("chart") or "bar")
+            block["chart"] = chart if chart in CHART_KINDS else "bar"
+            for key in ("dimension", "granularity", "stack", "measure", "period"):
+                value = str(entry.get(key) or "").strip()[:64]
+                if value:
+                    block[key] = value
+            aggregation = str(entry.get("aggregation") or "count").strip()
+            block["aggregation"] = aggregation[:16] or "count"
+            show = str(entry.get("show") or "chart")
+            block["show"] = show if show in SHOW_MODES else "chart"
+            filters = entry.get("filters")
+            if filters is not None and not isinstance(filters, dict):
+                raise ValidationError("A chart block's filters must be an object.")
+            block["filters"] = filters or {}
+            block["caption"] = str(entry.get("caption") or "")[:200]
         elif kind == "TABLE":
             entity = str(entry.get("entity") or "").strip()
             if entity:
@@ -726,6 +849,141 @@ def _owned(session, document_id: Any, principal) -> ReportDocument:
     row = _visible(session, document_id, principal)
     sharing.require_owner(row, principal, kind=KIND)
     return row
+
+
+# ── composing one automatically ──────────────────────────────────────────
+
+
+def compose(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
+    """A whole document about a dataset, from what the dataset declares.
+
+    The empty document is the honest starting point and it is still a blank
+    page: somebody who wants "the monthly orders report" has to choose eight
+    blocks, name a grouping for each, and know which of them are worth having
+    before they have seen one. That is a lot to ask of a first use.
+
+    So this composes the report a person would have written: a summary, the
+    dataset's own headline numbers, a chart per grouping it declares worth
+    grouping by, and the newest rows. **Nothing here is invented.** Every part
+    comes from the same declarations the explorer and the analysis catalogue
+    publish — `Insight`s for the numbers, `dimensions` for the charts,
+    `default_columns` for the table — so a dataset that gains a field gains a
+    section, and one that declares nothing produces a document that says so
+    rather than a page of empty frames.
+
+    It is a *starting point*, not an answer: the blocks are ordinary blocks and
+    every one of them can be edited or removed. A generator whose output could
+    not be changed would be a template with extra steps.
+    """
+    principal.require(MANAGE_PERMISSION)
+    entity = str((payload or {}).get("entity") or "").strip()
+    resource = explorer.resource_for(entity, principal=principal)
+    period = str((payload or {}).get("period") or "last_30_days")
+
+    catalogue = analysis.catalogue(principal=principal)
+    dataset = next(
+        (item for item in catalogue["datasets"] if item["key"] == entity), None
+    )
+    dimensions = (dataset or {}).get("dimensions") or []
+    date_field = (dataset or {}).get("default_date") or ""
+
+    blocks: list[dict[str, Any]] = []
+
+    def add(block: dict[str, Any]) -> None:
+        block["id"] = f"b{len(blocks) + 1}"
+        blocks.append(block)
+
+    add({"kind": "HEADING", "text": "Summary", "level": 2})
+    add({
+        "kind": "TEXT",
+        # Written as a prompt rather than as filler: a paragraph of generated
+        # prose about data nobody has looked at is the kind of thing that gets
+        # sent to a board unedited.
+        "text": (
+            f"{resource.label} over the last thirty days. "
+            "Replace this paragraph with what the numbers below actually mean — "
+            "the figures are computed when the file is written, the reading of "
+            "them is yours."
+        ),
+    })
+    add({"kind": "METRICS", "entity": entity, "caption": "Where it stands", "filters": {}})
+
+    # Over time, when the dataset declares a date worth counting by. A report
+    # without a trend line is a snapshot, and most of what anybody wants from
+    # one of these is the direction.
+    if date_field:
+        add({"kind": "HEADING", "text": "Over time", "level": 2})
+        add({
+            "kind": "CHART",
+            "entity": entity,
+            "dimension": date_field,
+            "granularity": "month",
+            "aggregation": "count",
+            "chart": "area",
+            "period": period,
+            "show": "chart",
+            "caption": f"{resource.label} by month",
+            "filters": {},
+        })
+
+    # One chart per declared grouping, to a limit: three sections is a report
+    # somebody reads and nine is one they skim.
+    for dimension in dimensions[:3]:
+        add({"kind": "HEADING", "text": f"By {dimension['label'].lower()}", "level": 2})
+        add({
+            "kind": "CHART",
+            "entity": entity,
+            "dimension": dimension["name"],
+            "aggregation": "count",
+            # A bar for a handful of categories, a treemap when there are many:
+            # twenty bars is a picture nobody reads the labels of.
+            "chart": "bar" if len(dimension.get("choices") or []) <= 8 else "treemap",
+            "period": period,
+            "show": "chart",
+            "caption": f"By {dimension['label'].lower()}",
+            "filters": {},
+        })
+
+    add({"kind": "PAGE_BREAK"})
+    add({"kind": "HEADING", "text": "The records themselves", "level": 2})
+    add({
+        "kind": "TABLE",
+        "entity": entity,
+        "columns": list(resource.default_columns[:5]),
+        "sort": resource.default_sort,
+        "order": "desc",
+        "limit": 25,
+        "caption": f"The twenty-five most recent {resource.label.lower()}",
+        "filters": {},
+    })
+
+    values = {
+        "name": _copy_name(session, f"{resource.label} report", principal),
+        "description": f"Composed from what the {resource.label.lower()} dataset declares.",
+        "scope": "PRIVATE",
+        "page": {**DEFAULT_PAGE, "subtitle": _period_label(period)},
+        "blocks": _blocks(blocks, principal=principal),
+    }
+
+    row = ReportDocument(
+        owner_id=principal.user_id,
+        organization_id=principal.organization_id,
+        slug=_slug(values["name"]),
+        **values,
+    )
+    session.add(row)
+    session.flush()
+    audit.record(
+        session, action="CREATE", resource_type=KIND, resource_id=row.id,
+        resource_label=row.name, principal=principal, after=_state(row),
+        message=f"composed a report about {resource.label}", activity=False,
+    )
+    return _serialize(session, row, principal)
+
+
+def _period_label(period: str) -> str:
+    """The window, written the way a cover page would say it."""
+    return str(period).replace("_", " ").replace("last ", "The last ").strip().capitalize()
 
 
 def _copy_name(session, name: str, principal) -> str:

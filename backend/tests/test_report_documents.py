@@ -258,3 +258,167 @@ def test_an_image_that_did_not_arrive_is_none_rather_than_an_exception():
 def test_a_file_name_survives_being_downloaded():
     assert documents.filename("Q3 / Review: final", "pdf") == "q3-review-final.pdf"
     assert documents.filename("", "docx") == "document.docx"
+
+
+@pytest.mark.database
+def test_a_document_can_be_composed_from_what_a_dataset_declares(client, monkeypatch):
+    """The empty document is honest and it is still a blank page (§28).
+
+    Somebody who wants "the monthly orders report" would otherwise have to
+    choose eight blocks, name a grouping for each, and know which are worth
+    having before seeing one. This composes the report they would have written
+    — and every part of it comes from a *declaration*: `Insight`s for the
+    numbers, `dimensions` for the charts, `default_columns` for the table.
+    Nothing is invented, so a dataset that gains a field gains a section.
+    """
+    headers = _authenticate(monkeypatch)
+    response = client.post(
+        f"{DOCUMENTS}/compose", json={"entity": "order"}, headers=headers
+    )
+    assert response.status_code == 201, response.get_json()
+    document = response.get_json()
+
+    try:
+        kinds = [block["kind"] for block in document["blocks"]]
+        # A report, not a pile of blocks: it opens with prose, states where
+        # things stand, shows the shape, and ends with the records.
+        assert kinds[:3] == ["HEADING", "TEXT", "METRICS"]
+        assert "CHART" in kinds
+        assert kinds[-1] == "TABLE"
+
+        charts = [block for block in document["blocks"] if block["kind"] == "CHART"]
+        assert charts, "a dataset that declares groupings gets a chart for them"
+        for chart in charts:
+            assert chart["entity"] == "order"
+            assert chart["dimension"], "a chart block names what it groups by"
+
+        # The table draws the dataset's own default columns rather than a list
+        # this function chose.
+        table = document["blocks"][-1]
+        assert table["entity"] == "order"
+        assert table["columns"], "the table names columns the dataset declared"
+
+        # And it renders — which is the property that matters, because a
+        # generator whose output cannot be exported has produced a draft
+        # nobody can use.
+        pdf = client.post(
+            f"{DOCUMENTS}/{document['id']}/render", json={"format": "pdf"}, headers=headers
+        )
+        assert pdf.status_code == 200, pdf.get_data()[:200]
+        assert pdf.data.startswith(b"%PDF")
+    finally:
+        _erase(document["id"])
+
+
+@pytest.mark.database
+def test_a_chart_block_composes_its_own_question(client, monkeypatch):
+    """`REPORT` draws something already saved, which is useless when it is not.
+
+    A table block was always allowed to name a dataset and a sort; there is no
+    reason a chart may not name a dataset and a grouping. One compiler answers
+    both, so a document cannot disagree with the chart builder about what the
+    same grouping means.
+    """
+    headers = _authenticate(monkeypatch)
+    created = client.post(DOCUMENTS, json={"name": "Charted"}, headers=headers).get_json()
+    try:
+        saved = client.put(
+            f"{DOCUMENTS}/{created['id']}",
+            json={
+                "blocks": [
+                    {
+                        "id": "b1",
+                        "kind": "CHART",
+                        "entity": "order",
+                        "dimension": "channel",
+                        "aggregation": "count",
+                        "chart": "bar",
+                        "period": "all_time",
+                    }
+                ]
+            },
+            headers=headers,
+        )
+        assert saved.status_code == 200, saved.get_json()
+        block = saved.get_json()["blocks"][0]
+        assert block["chart"] == "bar"
+        assert block["dimension"] == "channel"
+
+        # A picture the platform cannot draw falls back rather than being
+        # stored — a block naming a shape nothing renders is a block that
+        # renders an apology.
+        odd = client.put(
+            f"{DOCUMENTS}/{created['id']}",
+            json={"blocks": [{"id": "b1", "kind": "CHART", "entity": "order", "chart": "sankey"}]},
+            headers=headers,
+        )
+        assert odd.get_json()["blocks"][0]["chart"] == "bar"
+
+        # With no image captured, the export carries the numbers instead — the
+        # honest degradation, because the numbers are the point.
+        pdf = client.post(
+            f"{DOCUMENTS}/{created['id']}/render", json={"format": "pdf"}, headers=headers
+        )
+        assert pdf.status_code == 200
+        assert pdf.data.startswith(b"%PDF")
+    finally:
+        _erase(created["id"])
+
+
+def test_a_chart_block_asking_for_numbers_alone_gets_no_picture(client, monkeypatch):
+    """`show` decides, and the file has to agree with the preview.
+
+    The browser captures a PNG for every chart on screen and posts the lot, so
+    an image arrives for a block whose reader asked to see the numbers instead.
+    Drawing it anyway would mean the export quietly contained something the
+    page did not — and the one promise this feature makes is that it does not.
+
+    Read out of the DOCX rather than the PDF because a DOCX is a zip: an
+    embedded picture is a file under `word/media/`, so "did the image make it
+    in" is a question the container answers without parsing a page.
+    """
+    import zipfile
+    from io import BytesIO
+
+    headers = _authenticate(monkeypatch)
+    created = client.post(DOCUMENTS, json={"name": "Numbers"}, headers=headers).get_json()
+
+    def media(response) -> list[str]:
+        with zipfile.ZipFile(BytesIO(response.data)) as archive:
+            return [name for name in archive.namelist() if name.startswith("word/media/")]
+
+    try:
+        block = {"id": "b1", "kind": "CHART", "entity": "order", "dimension": "channel"}
+
+        def export(show: str):
+            saved = client.put(
+                f"{DOCUMENTS}/{created['id']}",
+                json={"blocks": [{**block, "show": show}]},
+                headers=headers,
+            )
+            assert saved.status_code == 200, saved.get_json()
+            return client.post(
+                f"{DOCUMENTS}/{created['id']}/render",
+                json={"format": "docx", "images": {"b1": _PIXEL}},
+                headers=headers,
+            )
+
+        # The same captured picture, posted with both — and only the block that
+        # asked for a chart carries it.
+        drawn = export("chart")
+        assert drawn.status_code == 200, drawn.data[:200]
+        assert media(drawn), "a chart block was given an image and drew nothing"
+
+        counted = export("table")
+        assert counted.status_code == 200, counted.data[:200]
+        assert media(counted) == []
+    finally:
+        _erase(created["id"])
+
+
+#: A one-pixel PNG, as the browser posts one: a real capture, so the only
+#: reason it can be left out of a file is the one under test.
+_PIXEL = (
+    "data:image/png;base64,"
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+)

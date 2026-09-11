@@ -19,6 +19,7 @@ wrong way round.
 from __future__ import annotations
 
 import time
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -971,6 +972,52 @@ def sync_flags(session) -> dict[str, int]:
             row.enabled = True
         repaired += 1
     return {"repaired": repaired, "checked": len(rows)}
+
+
+def sync_preferences(session) -> dict[str, int]:
+    """Fill in preference keys an account's stored blob predates (§40).
+
+    The ninth repair, and a sibling of `sync_settings`: the declaration in
+    `services/me.py` gains a key — a pop-up placement, a mail preview side —
+    and every account seeded before it has a blob without that key. Reading
+    falls back to the default, so nothing breaks; *writing* one section of a
+    blob that has never held the key is where a half-populated preference comes
+    from, and the preferences screen then renders a control with no value.
+
+    Additive only, and that is what makes it safe on a live database: a key
+    already present keeps whatever value somebody chose, whether or not it
+    matches the default. The single exception is `sidebar_collapsed`, seeded
+    `True` for a quarter of the demo personas — signing in to a rail of
+    unlabelled icons reads as broken navigation rather than as a preference,
+    so it is reset the way `sync_flags` resets a rollout on a shipped feature.
+
+    Idempotent, so it can run on every deploy.
+    """
+    from src.models.identity import User
+    from src.services.me import PREFERENCE_DEFAULTS
+
+    filled = reset = 0
+    for row in session.scalars(select(User)).all():
+        stored = dict(row.preferences or {})
+        changed = False
+        for section, defaults in PREFERENCE_DEFAULTS.items():
+            block = dict(stored.get(section) or {})
+            for key, default in defaults.items():
+                if key not in block:
+                    block[key] = deepcopy(default)
+                    changed = True
+            if block != (stored.get(section) or {}):
+                stored[section] = block
+        if stored.get("appearance", {}).get("sidebar_collapsed"):
+            stored["appearance"]["sidebar_collapsed"] = False
+            reset += 1
+            changed = True
+        if changed:
+            # Reassigned rather than mutated: the column is JSON, and SQLAlchemy
+            # does not see an in-place edit of a dict it handed out.
+            row.preferences = stored
+            filled += 1
+    return {"filled": filled, "expanded": reset}
 
 
 def sync_health(session) -> dict[str, int]:

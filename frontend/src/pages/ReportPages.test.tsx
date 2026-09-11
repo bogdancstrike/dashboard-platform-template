@@ -222,6 +222,86 @@ describe("the report builder — a document, not a chart", () => {
     expect(renderedDocuments[0]).toHaveProperty("images");
   });
 
+  it("asks a chart block its own question, out of the analysis catalogue", async () => {
+    const user = userEvent.setup();
+    render("/reports/builder?doc=doc-1");
+    await screen.findByTestId("document-paper");
+
+    await user.click(screen.getByTestId("add-block"));
+    await user.click(await screen.findByRole("menuitem", { name: /Chart/ }));
+
+    // The rail asks the four things the chart builder asks, in its words —
+    // and it asks them here rather than sending somebody to another screen to
+    // save a report first, which is what a REPORT block requires.
+    const dataset = await screen.findByRole("combobox", { name: "Dataset" });
+    await user.click(dataset);
+    await user.click(await screen.findByTitle("Orders"));
+
+    const groupBy = screen.getByRole("combobox", { name: "Group by" });
+    await user.click(groupBy);
+    await user.click(await screen.findByTitle("Channel"));
+
+    // A question is enough to draw one: the block goes from "nothing to group
+    // by" to a picture without anything being saved anywhere.
+    await waitFor(() =>
+      expect(screen.queryByText("Nothing to group by yet")).not.toBeInTheDocument(),
+    );
+
+    await user.click(screen.getByTestId("save-document"));
+    await waitFor(() => {
+      const stored = savedDocuments.find((item) => item["id"] === "doc-1");
+      const blocks = stored?.["blocks"] as Record<string, unknown>[];
+      expect(blocks.at(-1)).toMatchObject({
+        kind: "CHART",
+        entity: "order",
+        dimension: "channel",
+        aggregation: "count",
+      });
+    });
+  });
+
+  it("offers only the shapes the question can actually feed", async () => {
+    const user = userEvent.setup();
+    render("/reports/builder?doc=doc-1");
+    await screen.findByTestId("document-paper");
+
+    await user.click(screen.getByTestId("add-block"));
+    await user.click(await screen.findByRole("menuitem", { name: /Chart/ }));
+
+    await user.click(await screen.findByRole("combobox", { name: "Dataset" }));
+    await user.click(await screen.findByTitle("Orders"));
+    await user.click(screen.getByRole("combobox", { name: "Group by" }));
+    await user.click(await screen.findByTitle("Channel"));
+
+    const strip = await screen.findByLabelText("Visualization");
+    // A category can be a bar or a pie. It cannot be a line: a line of
+    // categories implies an order the categories do not have, so the kind is
+    // not offered rather than being offered and silently ignored.
+    expect(within(strip).getByTitle("bar")).toBeInTheDocument();
+    expect(within(strip).getByTitle("pie")).toBeInTheDocument();
+    expect(within(strip).queryByTitle("line")).not.toBeInTheDocument();
+  });
+
+  it("composes a whole draft from a dataset, rather than opening on a blank page", async () => {
+    const user = userEvent.setup();
+    render("/reports/builder");
+    await screen.findByTestId("document-gallery");
+
+    await user.click(screen.getByTestId("compose-document"));
+    // It says what it will produce before it produces it.
+    expect(await screen.findByText(/A draft about orders/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Compose it" }));
+
+    // What comes back is opened, and it is a page of ordinary blocks — not a
+    // preview of something that has to be accepted.
+    const paper = await screen.findByTestId("document-paper");
+    expect(within(paper).getByText("Orders")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId("outline-b4")).toBeInTheDocument());
+    // Including the chart, which is editable the way a hand-placed one is.
+    await user.click(screen.getByRole("button", { name: /order by channel/ }));
+    expect(await screen.findByRole("combobox", { name: "Group by" })).toBeInTheDocument();
+  });
+
   it("offers a copy rather than an edit on somebody else's document", async () => {
     render("/reports/builder?doc=doc-2");
     await screen.findByTestId("document-paper");

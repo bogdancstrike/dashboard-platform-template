@@ -47,6 +47,21 @@ def duplicate(app=None, operation: str = "", request=None, document_id: str = ""
         return service.duplicate(session, identifier, principal=me()), 201
 
 
+@requires("reports.manage")
+def compose(app=None, operation: str = "", request=None, **_: Any):
+    """A whole document about one dataset, composed from its declarations.
+
+    The empty document is the honest starting point and it is still a blank
+    page. This produces the report a person would have written — summary,
+    headline numbers, a chart per declared grouping, the newest rows — out of
+    the same declarations the explorer and the analysis catalogue publish, so
+    nothing in it is invented. It is a starting point: every block it makes is
+    an ordinary block somebody can edit or remove.
+    """
+    with session_scope() as session:
+        return service.compose(session, json_body(), principal=me()), 201
+
+
 @requires("reports.view", "records.export")
 def render(app=None, operation: str = "", request=None, document_id: str = "", **kwargs: Any):
     """The document as a file.

@@ -361,7 +361,10 @@ def _users(world: World) -> None:
                 "appearance": {
                     "theme": rng.pick(("light", "dark", "system")),
                     "density": rng.pick(("compact", "middle", "comfortable")),
-                    "sidebar_collapsed": rng.chance(0.25),
+                    # Never seeded collapsed: a demo persona who signs in to a
+                    # rail of unlabelled icons reads it as the navigation being
+                    # broken, not as a preference somebody set for them.
+                    "sidebar_collapsed": False,
                 },
                 "formats": {
                     "date": rng.pick(("YYYY-MM-DD", "DD/MM/YYYY", "MM/DD/YYYY")),

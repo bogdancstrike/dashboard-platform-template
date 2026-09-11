@@ -648,6 +648,20 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "report_documents_compose",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/report-documents/compose",
+      "description": "Compose a whole document about one dataset.",
+      "exec_method": {
+        "module_name": "src.api.report_documents",
+        "method_name": "compose"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "report_documents_render",
       "model_name": "Empty",
       "request_method": [

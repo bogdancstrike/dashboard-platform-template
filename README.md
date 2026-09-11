@@ -154,6 +154,24 @@ decides whether it exists.
 make sync-flags   # turn on every flag that gates a shipped page
 ```
 
+### Preferences, and what the sidebar does
+
+Preferences are read from `services/me.py:PREFERENCE_DEFAULTS`, so an account
+whose stored blob predates a key answers with that key's default. Writing one
+section of such a blob is where a half-populated preference comes from, which
+is what the repair below is for. It is additive — a value somebody chose
+survives it — with one documented exception: `sidebar_collapsed` is reset,
+because a rail of unlabelled icons on first sign-in reads as broken navigation
+rather than as somebody's preference.
+
+Nothing else collapses the sidebar. There is no responsive rule: below `lg` it
+becomes a drawer, and above it the preference is the only thing that decides —
+which is what makes the switch on `/settings/preferences` mean anything.
+
+```bash
+make sync-preferences   # fill in keys an account predates, and expand the sidebar
+```
+
 ### Health, and what it was doing earlier
 
 `GET /platform/health/{live,ready,status}` are unauthenticated on purpose —

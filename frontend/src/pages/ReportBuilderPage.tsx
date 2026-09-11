@@ -71,11 +71,14 @@ import {
   SaveOutlined,
   SettingOutlined,
   ShareAltOutlined,
+  ThunderboltOutlined,
 } from "@ant-design/icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
+import { analysisApi, type AnalysisCatalogue } from "@/api/analysis";
+import type { ChartKind } from "@/api/dashboard";
 import { explorerApi } from "@/api/explorer";
 import { reportsApi } from "@/api/reports";
 import {
@@ -88,6 +91,8 @@ import {
 import { PageHeader } from "@/components/PageHeader";
 import { BLOCK_SPECS, BLOCK_ORDER, newBlock } from "@/components/documents/blocks";
 import { BlockPreview, type Capturable } from "@/components/documents/DocumentBlocks";
+import { ChartKindStrip } from "@/components/charts/ChartKindStrip";
+import { fittingShapes, missingFor, shapeFor } from "@/components/charts/shapes";
 import { usePageCommands } from "@/commands/CommandContext";
 import { relativeTime } from "@/lib/time";
 import { PAPER } from "@/theme/tokens";
@@ -105,6 +110,7 @@ export default function ReportBuilderPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [draft, setDraft] = useState<{ page: DocumentPage; blocks: DocumentBlock[] } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [composeOpen, setComposeOpen] = useState(false);
 
   /**
    * The chart instances currently on screen, by block id.
@@ -142,6 +148,15 @@ export default function ReportBuilderPage() {
     staleTime: 300_000,
   });
 
+  // What a chart block can be asked — the same catalogue the chart builder and
+  // the analytics workspace compose from, so a question posed on a page is a
+  // question those screens would also accept.
+  const catalogue = useQuery({
+    queryKey: ["analysis-catalogue"],
+    queryFn: ({ signal }) => analysisApi.catalogue(signal),
+    staleTime: 300_000,
+  });
+
   // The server's answer is the starting point for the draft, and replaces it
   // whenever a *different* document is opened or a save comes back. Held
   // locally in between so typing in a paragraph does not cost a round trip.
@@ -174,6 +189,30 @@ export default function ReportBuilderPage() {
       queryClient.setQueryData(["report-document", saved.id], saved);
       void queryClient.invalidateQueries({ queryKey: ["report-documents"] });
       open(saved.id);
+    },
+    onError: failed,
+  });
+
+  /**
+   * A whole document, composed from what a dataset declares about itself.
+   *
+   * The blank page is the honest starting point and it is still a blank page:
+   * the block menu names nine kinds, and knowing which of them answers "how is
+   * this quarter going" is exactly the knowledge somebody opening this screen
+   * does not have yet. So the server reads the dataset's own declared
+   * insights, groupings and columns and writes the report a person would have
+   * written from them — and every block it makes is an ordinary block, editable
+   * and removable, so this is a first draft rather than a black box.
+   */
+  const compose = useMutation({
+    mutationFn: (input: { entity: string; period?: string }) =>
+      reportDocumentsApi.compose(input),
+    onSuccess: (saved) => {
+      queryClient.setQueryData(["report-document", saved.id], saved);
+      void queryClient.invalidateQueries({ queryKey: ["report-documents"] });
+      setComposeOpen(false);
+      open(saved.id);
+      message.success(`Composed ${saved.name} — edit anything in it.`);
     },
     onError: failed,
   });
@@ -324,26 +363,49 @@ export default function ReportBuilderPage() {
           subtitle="A page you compose — a cover, your words, and the answers to several questions between them. Exported as a PDF or a Word file."
           actions={
             <Tooltip title={canCreate ? "" : "Your role does not include reports.manage"}>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                disabled={!canCreate}
-                loading={create.isPending}
-                onClick={() => create.mutate()}
-                data-testid="new-document"
-              >
-                New document
-              </Button>
+              <Space>
+                <Button
+                  icon={<ThunderboltOutlined />}
+                  disabled={!canCreate}
+                  onClick={() => setComposeOpen(true)}
+                  data-testid="compose-document"
+                >
+                  Compose one for me
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  disabled={!canCreate}
+                  loading={create.isPending}
+                  onClick={() => create.mutate()}
+                  data-testid="new-document"
+                >
+                  New document
+                </Button>
+              </Space>
             </Tooltip>
           }
         />
         {documents.length === 0 ? (
           <Card size="small">
-            <EmptyState compact title="No documents yet. One starts as a heading and a paragraph." action={<>{canCreate && (
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => create.mutate()}>
-                  New document
-                </Button>
-              )}</>} />
+            <EmptyState
+              compact
+              title="No documents yet. One starts as a heading and a paragraph — or have one composed from a dataset."
+              action={
+                <>
+                  {canCreate && (
+                    <Space>
+                      <Button icon={<ThunderboltOutlined />} onClick={() => setComposeOpen(true)}>
+                        Compose one for me
+                      </Button>
+                      <Button type="primary" icon={<PlusOutlined />} onClick={() => create.mutate()}>
+                        New document
+                      </Button>
+                    </Space>
+                  )}
+                </>
+              }
+            />
           </Card>
         ) : (
           <div className="nu-boards" data-testid="document-gallery">
@@ -365,6 +427,13 @@ export default function ReportBuilderPage() {
             ))}
           </div>
         )}
+        <ComposeDialog
+          open={composeOpen}
+          catalogue={catalogue.data}
+          composing={compose.isPending}
+          onClose={() => setComposeOpen(false)}
+          onCompose={(input) => compose.mutate(input)}
+        />
       </>
     );
   }
@@ -640,6 +709,7 @@ export default function ReportBuilderPage() {
               canEdit={canEdit}
               datasets={listing.data?.datasets ?? []}
               reports={savedReports.data?.items ?? []}
+              catalogue={catalogue.data}
               onChange={(patch) => editBlock(chosen.id, patch)}
               onClose={() => setSelected(null)}
             />
@@ -671,6 +741,12 @@ function describe(block: DocumentBlock, reports: { id: string; name: string }[])
   }
   if (block.kind === "TABLE" || block.kind === "METRICS") {
     return block.entity || "No dataset chosen";
+  }
+  // The question, not the kind: an outline of four charts all reading "Group a
+  // dataset and draw it" is an outline nobody navigates by.
+  if (block.kind === "CHART") {
+    if (!block.entity) return "No dataset chosen";
+    return block.dimension ? `${block.entity} by ${block.dimension}` : block.entity;
   }
   return BLOCK_SPECS[block.kind].hint;
 }
@@ -851,6 +927,7 @@ function BlockSettings({
   canEdit,
   datasets,
   reports,
+  catalogue,
   onChange,
   onClose,
 }: {
@@ -858,6 +935,7 @@ function BlockSettings({
   canEdit: boolean;
   datasets: { key: string; label: string }[];
   reports: { id: string; name: string; visualization: string }[];
+  catalogue?: AnalysisCatalogue;
   onChange: (patch: Partial<DocumentBlock>) => void;
   onClose: () => void;
 }) {
@@ -979,6 +1057,10 @@ function BlockSettings({
           </>
         )}
 
+        {block.kind === "CHART" && (
+          <ChartQuestion block={block} catalogue={catalogue} onChange={onChange} />
+        )}
+
         {(block.kind === "TABLE" || block.kind === "METRICS") && (
           <Form.Item label="Dataset">
             <Select
@@ -1041,6 +1123,288 @@ function BlockSettings({
           )}
       </Form>
     </div>
+  );
+}
+
+/**
+ * Have a first draft written, from one dataset (§28).
+ *
+ * Two questions, because two is what the server needs and a form that asked
+ * for the title, the sections and the charts would be the builder again. What
+ * comes back is a real document — a cover, a summary, the dataset's headline
+ * numbers, a chart per declared grouping and a table of the newest rows — with
+ * every block editable. The preview below the form says so in advance, because
+ * "compose" with no statement of what it will produce is a button people press
+ * once.
+ */
+function ComposeDialog({
+  open,
+  catalogue,
+  composing,
+  onClose,
+  onCompose,
+}: {
+  open: boolean;
+  catalogue?: AnalysisCatalogue;
+  composing: boolean;
+  onClose: () => void;
+  onCompose: (input: { entity: string; period?: string }) => void;
+}) {
+  const datasets = catalogue?.datasets ?? [];
+  const [picked, setEntity] = useState("");
+  const [period, setPeriod] = useState("");
+
+  // Falls back to the first dataset rather than being seeded into state by an
+  // effect: the catalogue can land after the dialog opens, and a select that is
+  // empty until a second render is one somebody presses Compose against.
+  const entity = picked || datasets[0]?.key || "";
+  const chosen = datasets.find((item) => item.key === entity);
+
+  return (
+    <Modal
+      open={open}
+      title="Compose a report"
+      okText="Compose it"
+      onOk={() => onCompose({ entity, period: period || undefined })}
+      okButtonProps={{ disabled: !entity, loading: composing }}
+      onCancel={onClose}
+      destroyOnHidden
+    >
+      <Form layout="vertical" size="small">
+        <Form.Item label="About which dataset">
+          <Select
+            value={entity || undefined}
+            onChange={setEntity}
+            aria-label="Dataset"
+            showSearch
+            optionFilterProp="label"
+            options={datasets.map((item) => ({ value: item.key, label: item.label }))}
+            placeholder="Choose a dataset"
+          />
+        </Form.Item>
+        <Form.Item label="Covering" extra="Every chart and table in it reads this window.">
+          <Select
+            value={period}
+            onChange={setPeriod}
+            aria-label="Period"
+            options={[
+              { value: "", label: "All time" },
+              ...(catalogue?.periods ?? []).map((item) => ({
+                value: item.key,
+                label: item.label,
+              })),
+            ]}
+          />
+        </Form.Item>
+      </Form>
+      {chosen && (
+        <Alert
+          type="info"
+          showIcon
+          message={`A draft about ${chosen.label.toLowerCase()}`}
+          description={
+            <>
+              A cover and a summary, {chosen.label.toLowerCase()} by the numbers,
+              {chosen.default_date ? " a chart over time," : ""} up to three charts of its
+              declared groupings, and a table of the newest rows. Every block is yours to
+              edit or remove afterwards.
+            </>
+          }
+        />
+      )}
+    </Modal>
+  );
+}
+
+/**
+ * A chart block's question, composed in the rail (§28).
+ *
+ * The same four parts the chart builder asks for — *which rows, grouped how,
+ * measured how, drawn how* — in the same order and out of the same catalogue.
+ * A person who has built a chart once already knows this form, and a question
+ * posed here is one `/charts/builder` would accept verbatim.
+ *
+ * The one rule this enforces that a free-form builder does not: **a kind that
+ * cannot read the question is never left selected.** Switching the grouping
+ * from a date to a category makes a line chart nonsense, so the kind falls
+ * back to one that fits rather than the block rendering an empty picture and
+ * leaving somebody to work out which of the two controls was at fault.
+ */
+function ChartQuestion({
+  block,
+  catalogue,
+  onChange,
+}: {
+  block: DocumentBlock;
+  catalogue?: AnalysisCatalogue;
+  onChange: (patch: Partial<DocumentBlock>) => void;
+}) {
+  const datasets = catalogue?.datasets ?? [];
+  const dataset = datasets.find((item) => item.key === block.entity);
+  const groupings = [
+    ...(dataset?.dates ?? []).map((date) => ({ ...date, date: true })),
+    ...(dataset?.dimensions ?? []).map((dimension) => ({ ...dimension, date: false })),
+  ];
+  const chosen = groupings.find((item) => item.name === block.dimension);
+  const overTime = Boolean(chosen?.date);
+  const aggregation = block.aggregation ?? "count";
+
+  const draft = {
+    dimensions: block.stack ? 2 : 1,
+    measures: 1,
+    overTime,
+  };
+  const fits = fittingShapes(draft);
+  const kind = (block.chart ?? "bar") as ChartKind;
+
+  /** A question changed, with the kind kept legal. */
+  const ask = (patch: Partial<DocumentBlock>) => {
+    const next = { ...block, ...patch };
+    const nextChosen = groupings.find((item) => item.name === next.dimension);
+    const nextDraft = {
+      dimensions: next.stack ? 2 : 1,
+      measures: 1,
+      overTime: Boolean(nextChosen?.date),
+    };
+    const shape = shapeFor((next.chart ?? "bar") as ChartKind);
+    if (shape && missingFor(shape, nextDraft)) {
+      const fallback = fittingShapes(nextDraft)[0];
+      if (fallback) patch = { ...patch, chart: fallback.kind };
+    }
+    onChange(patch);
+  };
+
+  return (
+    <>
+      <Form.Item label="Dataset" extra="Which rows the question is asked of.">
+        <Select
+          value={block.entity}
+          // A new dataset invalidates every column name the old one offered,
+          // so the grouping and the measure go with it rather than pointing at
+          // a field this dataset has never heard of.
+          onChange={(value) => ask({ entity: value, dimension: "", stack: "", measure: "" })}
+          aria-label="Dataset"
+          showSearch
+          optionFilterProp="label"
+          options={datasets.map((item) => ({ value: item.key, label: item.label }))}
+          placeholder="Choose a dataset"
+        />
+      </Form.Item>
+
+      <Form.Item label="Group by" extra="One bar, slice or point per value of this.">
+        <Select
+          value={block.dimension || undefined}
+          onChange={(value) => ask({ dimension: value })}
+          aria-label="Group by"
+          disabled={!dataset}
+          showSearch
+          optionFilterProp="label"
+          options={groupings.map((item) => ({
+            value: item.name,
+            label: item.date ? `${item.label} (date)` : item.label,
+          }))}
+          placeholder={dataset ? "Choose a column" : "Choose a dataset first"}
+        />
+      </Form.Item>
+
+      {overTime && (
+        <Form.Item label="Bucketed by">
+          <Segmented
+            block
+            value={block.granularity || "month"}
+            onChange={(value) => ask({ granularity: String(value) })}
+            options={(catalogue?.granularities ?? []).map((grain) => ({
+              value: grain,
+              label: grain[0]!.toUpperCase() + grain.slice(1),
+            }))}
+          />
+        </Form.Item>
+      )}
+
+      <Form.Item label="Split by" extra="Optional — a second grouping, for stacks and heatmaps.">
+        <Select
+          value={block.stack || undefined}
+          onChange={(value) => ask({ stack: value || "" })}
+          aria-label="Split by"
+          allowClear
+          disabled={!dataset}
+          showSearch
+          optionFilterProp="label"
+          options={(dataset?.dimensions ?? [])
+            .filter((item) => item.name !== block.dimension)
+            .map((item) => ({ value: item.name, label: item.label }))}
+          placeholder="Nothing"
+        />
+      </Form.Item>
+
+      <Form.Item label="Measure" extra="What the height of a bar means.">
+        <Space.Compact block>
+          <Select
+            value={aggregation}
+            onChange={(value) => ask({ aggregation: value, ...(value === "count" ? { measure: "" } : {}) })}
+            aria-label="Measure"
+            style={{ width: aggregation === "count" ? "100%" : "40%" }}
+            options={(catalogue?.aggregations ?? []).map((item) => ({
+              value: item.key,
+              label: item.label,
+            }))}
+          />
+          {aggregation !== "count" && (
+            <Select
+              value={block.measure || undefined}
+              onChange={(value) => ask({ measure: value })}
+              aria-label="Measure column"
+              style={{ width: "60%" }}
+              showSearch
+              optionFilterProp="label"
+              options={(dataset?.measures ?? []).map((item) => ({
+                value: item.name,
+                label: item.label,
+              }))}
+              placeholder="of what"
+            />
+          )}
+        </Space.Compact>
+      </Form.Item>
+
+      <Form.Item label="Over" extra="The window the rows are taken from.">
+        <Select
+          value={block.period || ""}
+          onChange={(value) => ask({ period: value })}
+          aria-label="Period"
+          options={[
+            { value: "", label: "All time" },
+            ...(catalogue?.periods ?? []).map((item) => ({ value: item.key, label: item.label })),
+          ]}
+        />
+      </Form.Item>
+
+      <Form.Item
+        label="Drawn as"
+        // Only the kinds this question can actually feed: an unfittable kind
+        // offered and then silently ignored is worse than one not offered.
+        extra={`${fits.length} shapes fit this question.`}
+      >
+        <ChartKindStrip
+          kinds={fits.map((shape) => shape.kind)}
+          value={kind}
+          onChange={(value) => onChange({ chart: value })}
+        />
+      </Form.Item>
+
+      <Form.Item label="Show" extra="The picture, its numbers, or both.">
+        <Segmented
+          block
+          value={block.show ?? "chart"}
+          onChange={(value) => onChange({ show: value as DocumentBlock["show"] })}
+          options={[
+            { value: "chart", label: "Chart" },
+            { value: "table", label: "Table" },
+            { value: "both", label: "Both" },
+          ]}
+        />
+      </Form.Item>
+    </>
   );
 }
 

@@ -5958,7 +5958,8 @@ export const handlers = [
       items: savedDocuments,
       total: savedDocuments.length,
       block_kinds: [
-        "DIVIDER", "HEADING", "METRICS", "PAGE_BREAK", "REPORT", "SPACER", "TABLE", "TEXT",
+        "CHART", "DIVIDER", "HEADING", "METRICS", "PAGE_BREAK", "REPORT", "SPACER",
+        "TABLE", "TEXT",
       ],
       formats: ["docx", "pdf"],
       page_sizes: ["A4", "LETTER"],
@@ -6003,6 +6004,36 @@ export const handlers = [
     };
     if (index >= 0) savedDocuments[index] = updated;
     return HttpResponse.json(updated);
+  }),
+  http.post("/platform/api/report-documents/compose", async ({ request }) => {
+    // Shaped like the service's own composition — a cover, the numbers, a
+    // chart per grouping, the newest rows — so a test asserting "this is a
+    // draft somebody can edit" is asserting the real answer's shape.
+    const body = (await request.json()) as { entity?: string; period?: string };
+    const entity = body.entity ?? "order";
+    const composed = {
+      ...documentShape(`doc-${savedDocuments.length + 1}`, `Orders report`),
+      blocks: [
+        { id: "b1", kind: "HEADING", text: "Orders", level: 1 },
+        { id: "b2", kind: "TEXT", text: "Composed from what this dataset declares." },
+        { id: "b3", kind: "METRICS", entity, caption: "By the numbers", filters: {} },
+        {
+          id: "b4",
+          kind: "CHART",
+          entity,
+          dimension: "channel",
+          chart: "bar",
+          aggregation: "count",
+          show: "chart",
+          caption: "Orders by channel",
+          filters: {},
+        },
+        { id: "b5", kind: "PAGE_BREAK" },
+        { id: "b6", kind: "TABLE", entity, order: "desc", limit: 20, filters: {} },
+      ],
+    };
+    savedDocuments.push(composed);
+    return HttpResponse.json(composed, { status: 201 });
   }),
   http.post("/platform/api/report-documents/:id/duplicate", ({ params }) => {
     const source =
