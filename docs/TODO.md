@@ -3244,6 +3244,41 @@ Ordered as asked: mail, then the admin pages, then the showcase.
       re-point the quiet ink — `a11y.test.ts` caught that the moment they were
       written, which is what that rule is for
 
+### Three more places the platform was two designs
+
+Reported as "on preferences some buttons look one way, others look different —
+the whole platform should feel uniform". All three were one component chosen
+twice for one job, which is exactly what `theme/conventions.ts` exists to catch
+and did not yet name.
+
+- [x] **A choice between a few short options is a `Segmented`** (§60). AntD has
+      two components for this and they look nothing alike: `Segmented` is one
+      joined control, `Radio.Group optionType="button"` is a row of bordered
+      buttons. The product used `Segmented` in thirty-nine places and the other
+      in two — and one of those two was `/settings/preferences`, where the date
+      format sat as a button strip **directly above three `Segmented` controls
+      asking exactly the same kind of question**. That is what "looks assembled
+      rather than designed" means in practice
+  - `Radio.Group` is untouched where it is genuinely right: a vertical list in
+    which each option carries its own description, like picking a dashboard
+    from its name and what it holds. The rule names the button-strip spelling,
+    not the radio
+- [x] **A navigation inside a sentence is a `<Link>`.** Two on the preferences
+      page were `<button className="nu-link-button">` calling `navigate()` — a
+      hyperlink wearing the wrong element: no middle-click, no new tab, no copy
+      link, and announced as a button. `index.css` already underlines links in
+      prose for exactly this case (§55); a `<button>` bypassed it
+  - The class itself is load-bearing and stays: a row that responds only to a
+    click is a control no keyboard can reach. The test catches the *misuse* —
+    the class and a `navigate()` in the same element — with the one documented
+    exception, a toast, which AntD portals outside the router
+- [x] **An empty state's action is an AntD `Button`.** Eight of the nine were;
+      the ninth was the kanban gallery's "Create the first one", a text link —
+      on the one screen somebody meets on their *first* visit to that feature
+- [x] Both new rules are shown on `/showcase/components` rather than only
+      described, beside the four button roles. A rule a reader cannot see is a
+      rule they interpret
+
 ### Known red
 
 Twenty-six at the start of this session; two now.

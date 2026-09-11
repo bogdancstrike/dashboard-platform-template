@@ -35,7 +35,7 @@
  * promise this page could not keep.
  */
 
-import { Alert, Button, Card, Segmented, Space, Table, Tag, Typography } from "antd";
+import { Alert, Button, Card, Radio, Segmented, Space, Table, Tag, Typography } from "antd";
 import {
   AppstoreOutlined,
   InboxOutlined,
@@ -611,6 +611,54 @@ export default function ComponentsPage() {
           <Text code>size=&quot;small&quot;</Text> overrides somebody who asked for the
           comfortable one. A shared component may, when it is structurally dense — and it says
           which constraint earned it.
+        </Paragraph>
+      </Demo>
+
+      <Demo
+        name="Choosing one of a few"
+        what="AntD offers two components for this and they look nothing alike. This product uses Segmented — a single joined control — everywhere. A Radio.Group of bordered buttons beside one is two designs in the same card, which is what /settings/preferences had: a date format as a button strip directly above three Segmented controls asking the same kind of question."
+      >
+        <div className="nu-show-roles">
+          <div className="nu-show-role">
+            <div className="nu-show-role-stage">
+              <Segmented
+                aria-label="How this product spells a choice"
+                defaultValue="middle"
+                options={[
+                  { label: "Compact", value: "compact" },
+                  { label: "Default", value: "middle" },
+                  { label: "Comfortable", value: "comfortable" },
+                ]}
+              />
+            </div>
+            <Text strong>Segmented</Text>
+            <Text type="secondary">A few short labels, one of them chosen.</Text>
+          </div>
+          <div className="nu-show-role">
+            <div className="nu-show-role-stage">
+              <Radio.Group
+                defaultValue="revenue"
+                // The shape radios are actually for: each option carries its
+                // own description, so they stack rather than sitting in a row.
+                options={[
+                  { label: "Revenue by channel", value: "revenue" },
+                  { label: "Tickets by severity", value: "tickets" },
+                ]}
+              />
+            </div>
+            <Text strong>Radio.Group</Text>
+            <Text type="secondary">
+              A vertical list where each option needs its own description.
+            </Text>
+          </div>
+        </div>
+        <Paragraph type="secondary" className="nu-show-rule">
+          <Text strong>And a navigation inside a sentence is a <Text code>&lt;Link&gt;</Text>.</Text>{" "}
+          The <Text code>nu-link-button</Text> class exists for a real thing AntD has no component
+          for — a row, a name or a card title that <em>is</em> the control — but a{" "}
+          <Text code>&lt;button&gt;</Text> that navigates cannot be middle-clicked, opened in a new
+          tab or copied, and is announced as a button. Prose gets a link, which the stylesheet
+          already underlines for exactly this case.
         </Paragraph>
       </Demo>
 

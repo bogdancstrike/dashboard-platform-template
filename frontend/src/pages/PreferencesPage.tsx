@@ -19,7 +19,6 @@ import {
   Button,
   Card,
   Input,
-  Radio,
   Segmented,
   Select,
   Space,
@@ -37,7 +36,7 @@ import {
   LoadingOutlined,
   MailOutlined,
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import type { UserPreferences } from "@/api/me";
@@ -269,10 +268,10 @@ export default function PreferencesPage() {
           >
             <Space direction="vertical" size={16} style={{ width: "100%" }}>
               <Setting label="Date" hint="Used by every timestamp in the platform.">
-                <Radio.Group
+                <Segmented
                   aria-label="Date format"
                   value={formats.date}
-                  onChange={(event) => setFormat("date", event.target.value as typeof formats.date)}
+                  onChange={(next) => setFormat("date", next)}
                   // Each label is the *same function* the rest of the app
                   // renders with, so an option cannot promise a shape it does
                   // not produce. The hardcoded labels did: `MM/DD/YYYY` said
@@ -282,7 +281,6 @@ export default function PreferencesPage() {
                     label: formatSample({ ...formats, date: pattern }).date,
                     value: pattern,
                   }))}
-                  optionType="button"
                 />
               </Setting>
 
@@ -540,13 +538,7 @@ export default function PreferencesPage() {
                   <Text type="secondary">
                     At most three pop-ups are shown at once; a burst collapses into one card
                     pointing at{" "}
-                    <button
-                      type="button"
-                      className="nu-link-button"
-                      onClick={() => navigate("/notifications")}
-                    >
-                      the notification centre
-                    </button>
+                    <Link to="/notifications">the notification centre</Link>
                     .
                   </Text>
                 }
@@ -644,13 +636,7 @@ export default function PreferencesPage() {
             </Paragraph>
             <Text type="secondary">
               Security, sessions and sign-in history live on{" "}
-              <button
-                type="button"
-                className="nu-link-button"
-                onClick={() => navigate("/settings/security")}
-              >
-                Security
-              </button>
+              <Link to="/settings/security">Security</Link>
               .
             </Text>
           </Card>

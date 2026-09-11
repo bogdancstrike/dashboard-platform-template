@@ -59,6 +59,31 @@
  * A page header, a drawer and a modal are three surfaces and each may have one
  * primary. Two primaries side by side is a page that has not decided what it
  * is for, and the reader pays for the indecision by reading both.
+ *
+ * ── Choosing one of a few is a `Segmented` ───────────────────────────────
+ *
+ * AntD offers two components for "pick one of these short labels" and they
+ * look nothing alike: `Segmented` is a single joined control, and
+ * `Radio.Group optionType="button"` is a row of bordered buttons. This
+ * product uses `Segmented`, in thirty-nine places — and used the other in two,
+ * one of which was `/settings/preferences`, where the date format sat as a row
+ * of buttons directly above three `Segmented` controls asking exactly the same
+ * kind of question. That is what somebody means when they say a page looks
+ * assembled rather than designed.
+ *
+ * `Radio.Group` is still right for the shape it is actually for: a **vertical
+ * list where each option carries its own description**, like choosing a
+ * dashboard from a list of names and what each one holds. The rule is about
+ * the button-strip spelling, not about radios.
+ *
+ * ── Navigation inside a sentence is a `<Link>` ───────────────────────────
+ *
+ * `nu-link-button` exists for a real thing AntD has no component for: a row,
+ * a name or a card title that *is* the control. It is an action in the shape
+ * of text. It is not a way to put a hyperlink in a paragraph — a `<button>`
+ * that navigates cannot be middle-clicked, opened in a new tab, or copied,
+ * and it is announced as a button by a screen reader. Prose gets a `<Link>`,
+ * which `index.css` already underlines for exactly this case (§55).
  */
 
 /** The button roles, as the product spells them. */
@@ -157,6 +182,16 @@ export const EMPTY_STATE = {
   use: "EmptyState, or NoResults when a filter is the reason",
   not: "AntD's <Empty> — three illustrations in one product is not a design",
   owner: "components/EmptyState.tsx",
+  /**
+   * And its action is an AntD `Button`.
+   *
+   * Eight of the nine were; the ninth — the kanban gallery's "Create the first
+   * one" — was a bare `<button className="nu-link-button">`, so the one empty
+   * state somebody meets on their *first* visit to a feature offered a text
+   * link where every other offered a button. An empty state's action is the
+   * page's primary verb at the moment it matters most.
+   */
+  action: "<Button>, usually type=\"primary\" — never a bare <button>",
 } as const;
 
 /** Where a page's own controls live, so two pages do not invent two toolbars. */
@@ -164,4 +199,33 @@ export const ACTION_PLACEMENT = {
   page: "PageHeader's `actions` — one primary, then secondary verbs, then quiet glyphs.",
   row: 'Inside the row, `type="text"`, icon-only, with the verb and its object as the label.',
   surface: "A drawer or a modal owns its own primary, in `extra` or `okText`.",
+} as const;
+
+/**
+ * How a choice between a few short options is spelled.
+ *
+ * Declared as a pair rather than as one rule, because the wrong half of it is
+ * still right somewhere: the offence is the button-strip, not the radio.
+ */
+export const ONE_OF_N = {
+  use: "Segmented",
+  not: 'Radio.Group optionType="button" — a row of bordered buttons beside a Segmented is two designs',
+  radiosAreFor: "a vertical list where each option carries its own description",
+} as const;
+
+/**
+ * The `nu-link-button` class, and the one thing it is not for.
+ *
+ * A `<button>` that calls `navigate()` is a hyperlink wearing the wrong
+ * element: no middle-click, no new tab, no copy-link, and announced as a
+ * button. The class itself is fine — it is how a record's name in a list
+ * becomes reachable by keyboard — so this names the misuse rather than the
+ * class.
+ */
+export const IN_PROSE_NAVIGATION = {
+  use: "<Link to=…>",
+  not: 'a <button className="nu-link-button"> that calls navigate()',
+  // The one documented exception, with its reason: a toast is portalled by
+  // AntApp, which sits outside the router, so a <Link> inside one throws.
+  exception: "components/dashboards/AddToDashboard.tsx — inside an AntD toast, outside the router",
 } as const;

@@ -25,13 +25,14 @@ describe("personal preferences", () => {
 
     expect(await screen.findByRole("heading", { name: /Preferences/ })).toBeInTheDocument();
     const formats = screen.getByTestId("pref-formats");
-    // The profile says ISO dates and 24-hour time; the controls agree.
-    // AntD marks the chosen option on the wrapper; the input carries the
-    // attribute but not the DOM property, which `toBeChecked` reads.
+    // The profile says ISO dates and 24-hour time; the controls agree. Both
+    // are `Segmented` now — the date format was a strip of radio buttons
+    // directly above two Segmenteds asking the same kind of question, which
+    // is the inconsistency `theme/conventions.ts` exists to name.
     await waitFor(() =>
       expect(
-        formats.querySelector(".ant-radio-button-wrapper-checked"),
-      ).toHaveTextContent("2026-09-06"),
+        formats.querySelector(".ant-segmented-item-selected [title='2026-09-06']"),
+      ).not.toBeNull(),
     );
     expect(
       formats.querySelector(".ant-segmented-item-selected [title='24-hour']"),
@@ -74,9 +75,11 @@ describe("personal preferences", () => {
     await waitFor(() => expect(absoluteTime("2026-09-06T15:42:08Z")).toMatch(/^09\/06\/2026/));
 
     // Put it back so the module store does not leak into the next test.
+    // A `Segmented` puts `pointer-events: none` on its radio, so the label is
+    // what takes the click.
     await user.click(
       within(screen.getByTestId("pref-formats")).getByText("2026-09-06", {
-        selector: ".ant-radio-button-wrapper span",
+        selector: ".ant-segmented-item-label",
       }),
     );
     await waitFor(() => expect(absoluteTime("2026-09-06T15:42:08Z")).toMatch(/^2026-09-06/));

@@ -11,7 +11,7 @@
  * reader can see, so the gallery is for switching and for the first visit.
  */
 
-import { Card, Tag, Tooltip, Typography } from "antd";
+import { Button, Card, Tag, Tooltip, Typography } from "antd";
 import { GlobalOutlined, LockOutlined, PlusOutlined, TeamOutlined } from "@ant-design/icons";
 
 import type { KanbanBoard } from "@/api/kanban";
@@ -46,9 +46,9 @@ export function BoardGallery({
           hint="A board is a workspace whose columns are yours to name — unlike the task board, whose lanes are the platform's."
           action={
             canCreate ? (
-              <button type="button" className="nu-link-button" onClick={onCreate}>
+              <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
                 Create the first one
-              </button>
+              </Button>
             ) : undefined
           }
         />

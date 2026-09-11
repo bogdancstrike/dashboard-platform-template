@@ -4,6 +4,8 @@ import {
   DENSE_BY_CONSTRUCTION,
   EMPTY_STATE,
   FORBIDDEN_BUTTON_TYPES,
+  IN_PROSE_NAVIGATION,
+  ONE_OF_N,
 } from "@/theme/conventions";
 import { shippedSources } from "@/test/sources";
 
@@ -163,5 +165,84 @@ describe("one empty state", () => {
     // Guard against the rule above passing because nothing draws an empty at
     // all — which is the other way a product loses its empty states.
     expect(using.length).toBeGreaterThan(30);
+  });
+});
+
+describe("choosing one of a few", () => {
+  it("is a Segmented, never a strip of radio buttons", () => {
+    /**
+     * The two look nothing alike, and `/settings/preferences` had both: the
+     * date format as a row of bordered buttons directly above three
+     * `Segmented` controls asking exactly the same kind of question. That is
+     * what "the platform should feel uniform" is about — not a colour, a
+     * component chosen twice for one job.
+     *
+     * `Radio.Group` on its own is untouched: a vertical list where each option
+     * carries its own description is what radios are for.
+     */
+    const offenders: string[] = [];
+    for (const file of shippedSources(/\.tsx$/)) {
+      if (!file.source.includes('optionType="button"')) continue;
+      offenders.push(`${file.name}: ${ONE_OF_N.not}`);
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe("navigation inside a sentence", () => {
+  it("is a Link, not a button that calls navigate", () => {
+    /**
+     * A `<button>` that navigates cannot be middle-clicked, opened in a new
+     * tab or copied, and a screen reader announces it as a button. The
+     * `nu-link-button` class itself is fine — it is how a record's name in a
+     * list becomes reachable by keyboard — so this catches the misuse: the
+     * class *and* a `navigate()` in the same element.
+     */
+    const offenders: string[] = [];
+    for (const file of shippedSources(/\.tsx$/)) {
+      if (file.name === IN_PROSE_NAVIGATION.exception.split(" — ")[0]) continue;
+      for (const element of file.source.split("<button").slice(1)) {
+        const tag = element.slice(0, element.indexOf(">") + 1);
+        const body = element.slice(0, element.indexOf("</button>"));
+        if (!tag.includes("nu-link-button")) continue;
+        if (!/\bnavigate\(/.test(body)) continue;
+        offenders.push(`${file.name}: ${IN_PROSE_NAVIGATION.not}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("still allows the class for a name that is its own control", () => {
+    // The guard on the guard: the rule above must not have been satisfied by
+    // deleting the pattern it polices. `nu-link-button` is load-bearing —
+    // a row that responds only to a click is a control no keyboard can reach.
+    const uses = shippedSources(/\.tsx$/).filter((file) =>
+      file.source.includes("nu-link-button"),
+    );
+    expect(uses.length).toBeGreaterThan(5);
+  });
+});
+
+describe("an empty state's action", () => {
+  it("is an AntD Button, never a bare one", () => {
+    /**
+     * An empty state is what somebody meets on their *first* visit to a
+     * feature, so its action is the page's primary verb at the moment it
+     * matters most. Eight of the nine were a `<Button>`; the ninth offered a
+     * text link, on the kanban gallery — the first thing a new reader of that
+     * feature ever sees.
+     */
+    const offenders: string[] = [];
+    for (const file of shippedSources(/\.tsx$/)) {
+      for (const element of file.source.split("<EmptyState").slice(1)) {
+        // The prop's value, up to the close of the element it sits in.
+        const at = element.indexOf("action=");
+        if (at === -1) continue;
+        const value = element.slice(at, element.indexOf("/>", at));
+        if (!/<button\b/.test(value)) continue;
+        offenders.push(`${file.name}: an EmptyState action must be ${EMPTY_STATE.action}`);
+      }
+    }
+    expect(offenders).toEqual([]);
   });
 });

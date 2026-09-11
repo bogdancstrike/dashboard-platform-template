@@ -22,7 +22,7 @@ import {
   Input,
   Modal,
   Popconfirm,
-  Radio,
+  Segmented,
   Space,
   Typography,
 } from "antd";
@@ -181,12 +181,10 @@ export function SavedSearchForm({
         </Form.Item>
 
         <Form.Item name="scope" label="Visibility">
-          <Radio.Group
+          <Segmented
             data-testid="saved-search-scope"
-            optionType="button"
-            buttonStyle="solid"
             value={scope}
-            onChange={(event) => setScope(event.target.value as Scope)}
+            onChange={(next) => setScope(next)}
             options={SCOPES.map((option) => ({
               value: option.value,
               label: option.label,
