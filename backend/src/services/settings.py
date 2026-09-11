@@ -434,25 +434,31 @@ def remove_flag(session, key: Any, *, principal) -> dict[str, Any]:
     return {"deleted": True, "key": row.key}
 
 
-def enabled_for(session, principal) -> list[str]:
-    """Every flag key that is on for this reader.
+def enabled_for(session, principal) -> dict[str, bool]:
+    """Every flag the platform *has*, and whether it is on for this reader.
 
     Published with the profile, beside the permission list, because the two
     answer the same shape of question — *what may this person see* — and a
     client that had to ask a second endpoint would render the page once
     without the answer and again with it.
 
+    **A map rather than a list of the enabled ones, and the difference is a
+    bug this had.** A client holding only "what is on" cannot tell a flag that
+    is off from one that does not exist, so an unknown key reads as off — and a
+    page gated on a flag nobody has created yet disappears. A feature that has
+    no flag is not a feature somebody switched off; it is one nothing is gating.
+    The client can only draw that distinction if it is told both.
+
     Computed with `is_on`, the same function the flags screen reports
     `on_for_me` with. A flag is a rollout rule, and a second implementation of
     it in the browser is how "it says it is on and I do not have it" becomes
     unanswerable.
     """
-    rows = session.scalars(select(FeatureFlag).where(FeatureFlag.enabled.is_(True))).all()
-    return sorted(
-        row.key
-        for row in rows
-        if is_on(row, user_id=principal.user_id, role_code=principal.role_code)
-    )
+    rows = session.scalars(select(FeatureFlag)).all()
+    return {
+        row.key: is_on(row, user_id=principal.user_id, role_code=principal.role_code)
+        for row in sorted(rows, key=lambda item: item.key)
+    }
 
 
 def is_on(row: FeatureFlag, *, user_id: UUID | None, role_code: str | None) -> bool:

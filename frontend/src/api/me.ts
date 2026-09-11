@@ -80,14 +80,20 @@ export interface CurrentUser {
   groups: string[];
   permissions: string[];
   /**
-   * The feature flags that are on for *this* reader (§27).
+   * Every feature flag the platform has, and whether it is on for *this*
+   * reader (§27).
    *
    * Beside the permissions because the two answer the same shape of question,
    * and computed on the server by the same rollout function the flags screen
    * reports `on_for_me` with — a browser deciding its own percentage would
    * disagree with the screen that explains it.
+   *
+   * A map rather than a list of the enabled ones, so an absent key means
+   * *ungated* rather than *off*. A client holding only "what is on" cannot
+   * tell a flag that was switched off from one that was never created, and a
+   * page gated on the second disappears.
    */
-  features: string[];
+  features: Record<string, boolean>;
   preferences: UserPreferences;
   session: {
     id: string;

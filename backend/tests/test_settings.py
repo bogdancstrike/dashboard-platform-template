@@ -439,3 +439,36 @@ def test_a_partial_rollout_reaches_roughly_the_share_it_names():
 def test_a_partial_rollout_reaches_nobody_it_cannot_identify():
     """An anonymous caller has no stable bucket, so the honest answer is no."""
     assert service.is_on(_Flag(rollout_percentage=50), user_id=None, role_code=None) is False
+
+
+@pytest.mark.database
+def test_a_flag_that_hides_something_shipped_is_on(client, monkeypatch):
+    """A rollout percentage is for shipping gradually, not for finished pages.
+
+    The seed applied one to every non-GA flag, and `dashboard-builder` came out
+    **disabled at five per cent** — so `/dashboards`, a complete and tested
+    page, was absent from the navigation of every demo persona and looked
+    deleted. `/import` was there for one reader in ten.
+
+    The flag still exists and turning it off still hides the page, which is
+    what a flag is for. What it must not do is decide at random that a shipped
+    feature was never built — so every key in `NAVIGATION_FLAGS` is seeded on,
+    at a hundred per cent, with nobody singled out (§27).
+    """
+    from src.seed import catalog
+
+    headers = _authenticate(monkeypatch, "admin", "administrator")
+    body = client.get(f"{PREFIX}/admin/flags?page_size=100", headers=headers).get_json()
+    rows = {row["key"]: row for row in body["items"]}
+
+    for key in sorted(catalog.NAVIGATION_FLAGS):
+        flag = rows.get(key)
+        # A key named as gating navigation and absent from the platform is the
+        # other half of the same bug: the page would be gated on nothing.
+        assert flag is not None, f"{key} gates navigation and does not exist"
+        assert flag["enabled"] is True, key
+        assert flag["rollout_percentage"] == 100, key
+        assert flag["target_user_ids"] == [], key
+        # And therefore on for whoever is asking, which is the property the
+        # navigation actually reads.
+        assert flag["on_for_me"] is True, key

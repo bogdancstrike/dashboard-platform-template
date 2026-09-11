@@ -20,6 +20,7 @@
     python -m src.seed --sync-jobs       # give every job status at least one job
     python -m src.seed --sync-org        # make each department's headcount agree with its people
     python -m src.seed --sync-health     # give every service a month of history to draw
+    python -m src.seed --sync-flags      # turn on every flag that hides something shipped
     python -m src.seed --dry-run          # build in memory, write nothing
 
 It refuses to seed a database that already has data unless `--reset` or
@@ -95,6 +96,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-org", action="store_true",
         help="recount each department's headcount from the people actually in it",
+    )
+    parser.add_argument(
+        "--sync-flags", action="store_true",
+        help="turn on every feature flag that gates a shipped page, at a full rollout",
     )
     parser.add_argument(
         "--sync-health", action="store_true",
@@ -317,6 +322,20 @@ def main(argv: list[str] | None = None) -> int:
             f"{result['corrected']} departments recounted"
             if result["corrected"]
             else "every department already agrees with its people"
+        )
+        return 0
+
+    if args.sync_flags:
+        # A rollout percentage is how a team ships something gradually, and the
+        # seed was applying one to finished features — so `/dashboards` was
+        # missing from the navigation of every demo persona (§27). Only ever
+        # turns one *on*: somebody who switched a flag off made a decision.
+        with session_scope() as session:
+            result = runner.sync_flags(session)
+        print(
+            f"{result['repaired']} of {result['checked']} navigation flags turned on"
+            if result["repaired"]
+            else "every navigation flag is already on"
         )
         return 0
 

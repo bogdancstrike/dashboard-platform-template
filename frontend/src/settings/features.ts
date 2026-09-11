@@ -61,19 +61,31 @@ export type FeatureKey = (typeof FEATURES)[keyof typeof FEATURES];
 /**
  * Whether one feature is on for the signed-in reader.
  *
- * Returns `true` while the profile is still loading *only* for nothing —
- * there is no such case: an absent profile means an absent answer, and an
- * absent answer is off. A control that appears and then vanishes as the
- * profile lands is worse than one that appears a moment late.
+ * **A flag nobody has created cannot hide anything.** The first version of
+ * this asked "is the key in the list of enabled flags", so an unknown key read
+ * as *off* — and the consequence was not hypothetical: the seed gave
+ * `dashboard-builder` a five-per-cent rollout, `/dashboards` vanished from the
+ * navigation of every demo persona, and a complete page looked deleted. A
+ * feature with no flag is not a feature somebody switched off; it is one
+ * nothing is gating.
+ *
+ * So the profile publishes a *map* of every flag the platform has, and an
+ * absent key means ungated. The two cases the browser must not confuse are now
+ * distinguishable, which they were not when it held only a list.
+ *
+ * While the profile is still loading there is no map, and the answer is the
+ * same: ungated. A control that appears and then vanishes as the profile lands
+ * is worse than one that appears a moment late — and hiding half the
+ * navigation for that moment is worse than either.
  */
 export function useFeature(key: FeatureKey): boolean {
   const { profile } = useAuth();
-  return profile?.features?.includes(key) ?? false;
+  return profile?.features?.[key] ?? true;
 }
 
 /** Several at once, for a page that gates more than one thing. */
 export function useFeatures(): (key: FeatureKey) => boolean {
   const { profile } = useAuth();
-  const on = new Set(profile?.features ?? []);
-  return (key: FeatureKey) => on.has(key);
+  const flags = profile?.features;
+  return (key: FeatureKey) => flags?.[key] ?? true;
 }

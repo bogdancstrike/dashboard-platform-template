@@ -99,19 +99,19 @@ export const currentUser = {
     "admin.access", "records.view", "records.update",
     "users.view", "health.view", "tags.manage",
   ],
-  // Every flag this product reads, on — so a component test exercises the
-  // feature rather than the empty state behind it. The tests that care about
-  // a flag being *off* patch this fixture.
-  features: [
-    "advanced-search",
-    "bulk-operations",
-    "command-palette",
-    "csv-import",
-    "dashboard-builder",
-    "kanban-board",
-    "report-scheduling",
-    "saved-views",
-  ],
+  // Every flag this product reads, and whether it is on — a *map*, so an
+  // absent key can mean "nothing is gating this" rather than "switched off".
+  // The tests that care about a flag being off patch this fixture.
+  features: {
+    "advanced-search": true,
+    "bulk-operations": true,
+    "command-palette": true,
+    "csv-import": true,
+    "dashboard-builder": true,
+    "kanban-board": true,
+    "report-scheduling": true,
+    "saved-views": true,
+  } as Record<string, boolean>,
   preferences: {
     appearance: {
       theme: "system" as const,

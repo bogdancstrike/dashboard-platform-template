@@ -463,6 +463,32 @@ SCHEDULED_TASKS: tuple[tuple[str, str, str, str], ...] = (
     ("alert-evaluation", "Evaluate alert rules", "*/15 * * * *", "MAINTENANCE"),
 )
 
+#: Flags that **hide something shipped** when they are off (§27).
+#:
+#: These are the ones the frontend gates a route or a control on, and they are
+#: seeded *on, at a hundred per cent*, for a reason worth stating: a rollout
+#: percentage is how a team ships something gradually, and applying one to a
+#: finished feature means a dice roll decides whether a page exists. It did:
+#: `dashboard-builder` seeded disabled at 5%, and `/dashboards` — a complete,
+#: tested page — disappeared from the navigation of every demo persona.
+#:
+#: The flag still exists, and turning it off still hides the page. That is what
+#: a flag is *for*. What it is not for is deciding, at random, that a shipped
+#: feature was never built.
+#:
+#: `frontend/src/settings/features.ts` names the same keys; a flag added here
+#: and gated there without being listed here is caught by `test_settings.py`.
+NAVIGATION_FLAGS: frozenset[str] = frozenset({
+    "advanced-search",
+    "bulk-operations",
+    "command-palette",
+    "csv-import",
+    "dashboard-builder",
+    "kanban-board",
+    "report-scheduling",
+    "saved-views",
+})
+
 #: (key, name, description, stage, experimental)
 FEATURE_FLAGS: tuple[tuple[str, str, str, str, bool], ...] = (
     ("advanced-search", "Advanced search builder", "Nested condition builder on list pages.", "GA", False),

@@ -93,7 +93,9 @@ describe("authenticated application shell", () => {
             // whole distinction being asserted — a permission refusal here
             // would prove nothing about flags.
             permissions: [...currentUser.permissions, "tasks.view"],
-            features: currentUser.features.filter((key) => key !== "kanban-board"),
+            // Switched *off*, not merely absent — an absent key means nothing
+            // is gating the page, which is the distinction the map exists for.
+            features: { ...currentUser.features, "kanban-board": false },
           },
           { headers: { "X-Correlation-Id": request.headers.get("X-Correlation-Id") ?? "" } },
         ),
@@ -111,5 +113,29 @@ describe("authenticated application shell", () => {
     // permission is a fact about the reader, and blaming their role for an
     // administrator's switch is a lie about them.
     expect(await screen.findByTestId("problem-switched_off")).toBeInTheDocument();
+  });
+
+  it("does not hide a page whose flag nobody has created (§27)", async () => {
+    // The bug this exists for: the client held only *which flags are on*, so
+    // an unknown key read as "off" — and a complete, tested page looked
+    // deleted. A feature with no flag is not one somebody switched off.
+    server.use(
+      http.get("/platform/api/me", ({ request }) =>
+        HttpResponse.json(
+          {
+            ...currentUser,
+            permissions: [...currentUser.permissions, "tasks.view"],
+            // The platform knows about no flags at all.
+            features: {},
+          },
+          { headers: { "X-Correlation-Id": request.headers.get("X-Correlation-Id") ?? "" } },
+        ),
+      ),
+    );
+
+    renderShell("/kanban");
+
+    expect(await screen.findByText("Kanban content")).toBeInTheDocument();
+    expect(screen.queryByTestId("problem-switched_off")).not.toBeInTheDocument();
   });
 });

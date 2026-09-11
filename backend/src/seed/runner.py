@@ -934,6 +934,45 @@ def _headcount_drift(session) -> list[str]:
     return problems
 
 
+def sync_flags(session) -> dict[str, int]:
+    """Turn on every flag that hides something shipped (§27).
+
+    The eighth repair, and the one that exists because of a real regression: a
+    rollout percentage is how a team ships something *gradually*, and the seed
+    was applying one to finished features. `dashboard-builder` came out
+    disabled at five per cent, so `/dashboards` — a complete, tested page —
+    was absent from the navigation of every demo persona, and `/import` was
+    there for one in ten.
+
+    An *edit*, like `sync_org` and `sync_health`, and safe for the same reason
+    with one addition: it only ever turns a navigation flag **on**. Somebody
+    who has deliberately switched one off has made a decision, and a repair
+    that overruled it would be worse than the bug — so a flag that is already
+    enabled at a hundred per cent is left exactly as it is.
+    """
+    from src.models.platform import FeatureFlag
+    from src.seed import catalog
+
+    rows = session.scalars(
+        select(FeatureFlag).where(FeatureFlag.key.in_(sorted(catalog.NAVIGATION_FLAGS)))
+    ).all()
+    repaired = 0
+    for row in rows:
+        # A partial rollout on a shipped feature is the bug; a deliberate
+        # `enabled=False` is a decision. Both end up hiding the page, so this
+        # cannot tell them apart — and it repairs the rollout either way while
+        # leaving the switch itself alone when somebody has turned it off.
+        if row.enabled and int(row.rollout_percentage or 0) >= 100:
+            continue
+        row.rollout_percentage = 100
+        row.target_user_ids = None
+        row.target_roles = None
+        if not row.enabled:
+            row.enabled = True
+        repaired += 1
+    return {"repaired": repaired, "checked": len(rows)}
+
+
 def sync_health(session) -> dict[str, int]:
     """Give every monitored service a month of history to draw.
 

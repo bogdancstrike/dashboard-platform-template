@@ -180,8 +180,15 @@ def _feature_flags(world: World) -> None:
     admins = [u for u in world.users if u.id in {p.id for p in world.personas.values()}]
 
     for key, name, description, stage, experimental in catalog.FEATURE_FLAGS:
-        enabled = stage == "GA" or (stage == "BETA" and rng.chance(0.6))
-        rollout = 100 if stage == "GA" else rng.pick((0, 5, 10, 25, 50, 75))
+        # A flag that *hides something shipped* is on, at a hundred per cent.
+        # A rollout percentage is how a team ships something gradually, and
+        # applying one to a finished feature means a dice roll decides whether
+        # a page exists — which is exactly what happened to `/dashboards` (§27).
+        gates_navigation = key in catalog.NAVIGATION_FLAGS
+        enabled = gates_navigation or stage == "GA" or (stage == "BETA" and rng.chance(0.6))
+        rollout = (
+            100 if gates_navigation or stage == "GA" else rng.pick((0, 5, 10, 25, 50, 75))
+        )
         world.feature_flags.append(
             FeatureFlag(
                 id=rng.uuid(),
@@ -194,7 +201,7 @@ def _feature_flags(world: World) -> None:
                 rollout_percentage=rollout,
                 target_user_ids=(
                     [str(u.id) for u in rng.sample(world.users, rng.integer(1, 4))]
-                    if stage == "ALPHA" and world.users else None
+                    if stage == "ALPHA" and not gates_navigation and world.users else None
                 ),
                 target_roles=["ADMINISTRATOR"] if stage == "ALPHA" else None,
                 owner_id=rng.pick(admins).id if admins else None,

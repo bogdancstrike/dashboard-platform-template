@@ -135,6 +135,25 @@ arrive renders its own numbers as a table.
 make migrate    # report_documents arrived in 20260910_1750
 ```
 
+### Feature flags, and the two ways they go wrong
+
+`/api/me` publishes `features`: a **map of every flag the platform has** to
+whether it is on for this reader, computed by the same `is_on` the flags screen
+reports `on_for_me` with. A map rather than a list of the enabled ones, because
+a client holding only "what is on" cannot tell a flag that was switched off
+from one that was never created — and a page gated on the second disappears.
+An absent key means *ungated*.
+
+`frontend/src/settings/features.ts` names the flags this product reads.
+`backend/src/seed/catalog.py:NAVIGATION_FLAGS` names the ones that hide
+something shipped, and the seed gives those a full rollout: a percentage is how
+a team ships gradually, and applying one to a finished page means a dice roll
+decides whether it exists.
+
+```bash
+make sync-flags   # turn on every flag that gates a shipped page
+```
+
 ### Health, and what it was doing earlier
 
 `GET /platform/health/{live,ready,status}` are unauthenticated on purpose —

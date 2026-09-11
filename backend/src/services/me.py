@@ -185,10 +185,14 @@ def get_profile(session, principal) -> dict[str, Any]:
         "team": _named(team, "slug"),
         "groups": list(principal.groups),
         "permissions": sorted(principal.permissions),
-        # Which *features* are on for this reader, beside which permissions
-        # they hold — the two answer the same shape of question, and a client
-        # that had to ask a second endpoint would draw the page once without
-        # the answer and again with it (§27).
+        # Every feature the platform has, and whether it is on for this reader
+        # — beside which permissions they hold, because the two answer the same
+        # shape of question and a client that had to ask a second endpoint
+        # would draw the page once without the answer and again with it (§27).
+        #
+        # A *map*, not a list of the enabled ones: a client holding only "what
+        # is on" cannot tell a flag that is off from one that was never
+        # created, so a page gated on a flag nobody has made yet vanishes.
         "features": settings.enabled_for(session, principal),
         "preferences": merged_preferences(user.preferences),
         "session": {

@@ -3060,6 +3060,29 @@ Ordered as asked: mail, then the admin pages, then the showcase.
       reported 166 unlabelled icon-only buttons that all had words in them, and
       would have gone on missing the real ones for the same reason
 
+### A regression, and the two mistakes behind it
+
+- [x] **`/dashboards` disappeared from the navigation**, reported by the person
+      using it. Gating it on the `dashboard-builder` flag was right; everything
+      about *how* was wrong
+  - **A rollout percentage is for shipping gradually, not for finished pages.**
+    The seed applied one to every non-GA flag, so `dashboard-builder` came out
+    **disabled at five per cent** and `csv-import` at ten. A complete, tested
+    page looked deleted. `NAVIGATION_FLAGS` names the flags that hide something
+    shipped, the seed puts them on at a hundred per cent with nobody singled
+    out, and `test_settings.py` asserts it. The flag still works — turning it
+    off still hides the page, which is the whole point — it just no longer
+    decides at random that a feature was never built
+  - **`make sync-flags`** repairs a database already seeded, and only ever
+    turns one *on*: somebody who switched a flag off made a decision, and a
+    repair that overruled it would be worse than the bug
+  - **The client could not tell "off" from "does not exist".** It held a list
+    of enabled keys, so an unknown one read as off — meaning a page gated on a
+    flag nobody had created would vanish too. `/api/me` now publishes a **map
+    of every flag** with its state for this reader, and an absent key means
+    *ungated*. `AppShell.test.tsx` asserts that a platform with no flags at all
+    hides nothing
+
 ### Known red
 
 Twenty-six at the start of this session; two now.

@@ -235,16 +235,18 @@ def test_the_profile_says_which_features_are_on_for_this_reader(client, monkeypa
     headers = _authenticate(monkeypatch, "admin", "administrator")
     profile = client.get(f"{PREFIX}/api/me", headers=headers).get_json()
 
-    assert isinstance(profile["features"], list)
-    assert all(isinstance(key, str) for key in profile["features"])
-    # Sorted, so two requests to the same reader produce the same document.
-    assert profile["features"] == sorted(profile["features"])
+    features = profile["features"]
+    assert isinstance(features, dict)
+    assert all(isinstance(value, bool) for value in features.values())
 
     # And it agrees with the flags screen, which is the whole point of them
-    # sharing a function.
+    # sharing a function — *every* flag, on or off, because a client holding
+    # only the enabled ones cannot tell a flag that was switched off from one
+    # that was never created, and a page gated on the second disappears.
     flags = client.get(f"{PREFIX}/admin/flags", headers=headers).get_json()
-    on_for_me = sorted(row["key"] for row in flags["items"] if row["on_for_me"])
-    assert profile["features"] == on_for_me
+    assert set(features) == {row["key"] for row in flags["items"]}
+    for row in flags["items"]:
+        assert features[row["key"]] == row["on_for_me"], row["key"]
 
 
 @pytest.mark.database
