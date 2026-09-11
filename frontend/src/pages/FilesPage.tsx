@@ -30,7 +30,6 @@ import {
   App as AntApp,
   Button,
   Card,
-  Empty,
   Input,
   Dropdown,
   Modal,
@@ -73,6 +72,7 @@ import { StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { relativeTime } from "@/lib/time";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -504,7 +504,6 @@ export default function FilesPage() {
                 }}
               >
                 <Button
-                  size="small"
                   icon={<MoreOutlined />}
                   loading={dropFolder.isPending}
                   aria-label={`Actions for ${folderName}`}
@@ -518,7 +517,7 @@ export default function FilesPage() {
             <div className="nu-transfers" data-testid="upload-tray">
               <div className="nu-transfers-head">
                 <Text strong>{active.length > 0 ? `Uploading ${active.length}` : "Uploads"}</Text>
-                <Button type="text" size="small" onClick={() => setTransfers([])}>
+                <Button type="text" onClick={() => setTransfers([])}>
                   Clear
                 </Button>
               </div>
@@ -578,16 +577,13 @@ export default function FilesPage() {
               }
               locale={{
                 emptyText: (
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description={
+                  <EmptyState compact title={
                       term
                         ? "Nothing here matches that"
                         : canManage
                           ? "Nothing here yet — drop files in, or use Upload files"
                           : "Nothing here yet"
-                    }
-                  />
+                    } />
                 ),
               }}
               columns={[
@@ -631,7 +627,6 @@ export default function FilesPage() {
                       <Tooltip title="Download">
                         <Button
                           type="text"
-                          size="small"
                           aria-label={`Download ${row.name}`}
                           icon={<DownloadOutlined />}
                           loading={download.isPending}
@@ -641,7 +636,6 @@ export default function FilesPage() {
                       <Tooltip title={canManage ? "Rename" : "Needs files.manage"}>
                         <Button
                           type="text"
-                          size="small"
                           disabled={!canManage}
                           aria-label={`Rename ${row.name}`}
                           icon={<EditOutlined />}
@@ -651,7 +645,6 @@ export default function FilesPage() {
                       <Tooltip title={canManage ? "Delete" : "Needs files.manage"}>
                         <Button
                           type="text"
-                          size="small"
                           danger
                           disabled={!canManage}
                           aria-label={`Delete ${row.name}`}

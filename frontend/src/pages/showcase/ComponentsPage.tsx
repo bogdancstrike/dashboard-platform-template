@@ -443,7 +443,7 @@ export default function ComponentsPage() {
               <EmptyState
                 title="No tickets yet"
                 hint="A ticket is a customer's problem with a deadline attached."
-                action={<Button size="small">New ticket</Button>}
+                action={<Button>New ticket</Button>}
               />
             ),
         }}
@@ -520,6 +520,56 @@ export default function ComponentsPage() {
       <Title level={4} className="nu-show-section">
         Numbers
       </Title>
+
+      {/* ── the vocabulary ───────────────────────────────────────────────
+          Before the components themselves: the four roles a control can play
+          and how each is spelled. A gallery of components without this is a
+          gallery of parts — somebody reads it, picks the one that looks right,
+          and the product gains a fifth kind of grey. */}
+      <Demo
+        name="The button vocabulary"
+        what="Four roles, one spelling each, asserted against the source by theme/conventions.test.ts. There is deliberately no fifth: type=&quot;link&quot; looks like a link and is not one — no new tab, no middle-click, and a screen reader announces a button — so navigation is a <Link> and a quiet action is type=&quot;text&quot;."
+      >
+        <div className="nu-show-roles">
+          {[
+            {
+              name: "Primary",
+              when: "The one thing this surface is for.",
+              node: <Button type="primary">Create a report</Button>,
+            },
+            {
+              name: "Secondary",
+              when: "Other verbs beside it.",
+              node: <Button>Export</Button>,
+            },
+            {
+              name: "Quiet",
+              when: "Repeated per row, or a glyph in a toolbar.",
+              node: (
+                <Button type="text" icon={<SearchOutlined />} aria-label="Preview this record" />
+              ),
+            },
+            {
+              name: "Destructive",
+              when: "Cannot be taken back — and always behind a confirmation.",
+              node: <Button danger>Delete</Button>,
+            },
+          ].map((role) => (
+            <div key={role.name} className="nu-show-role">
+              <div className="nu-show-role-stage">{role.node}</div>
+              <Text strong>{role.name}</Text>
+              <Text type="secondary">{role.when}</Text>
+            </div>
+          ))}
+        </div>
+        <Paragraph type="secondary" className="nu-show-rule">
+          <Text strong>And none of them names a size.</Text> The reader&apos;s density
+          preference drives AntD&apos;s <Text code>componentSize</Text>, so a page that writes{" "}
+          <Text code>size=&quot;small&quot;</Text> overrides somebody who asked for the
+          comfortable one. A shared component may, when it is structurally dense — and it says
+          which constraint earned it.
+        </Paragraph>
+      </Demo>
 
       <Demo
         name="StatCard"

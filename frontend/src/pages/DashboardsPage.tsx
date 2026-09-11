@@ -42,7 +42,6 @@ import {
   Button,
   Card,
   Drawer,
-  Empty,
   Form,
   Input,
   Segmented,
@@ -100,6 +99,7 @@ import { relativeTime } from "@/lib/time";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { useSticky } from "@/hooks/useSticky";
 import { COPY_MEANS, confirmCopy } from "@/lib/confirm";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -557,16 +557,11 @@ export default function DashboardsPage() {
         // card says what its dashboard holds.
         items.length === 0 ? (
           <Card size="small">
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="No dashboards yet. One is three steps away."
-            >
-              {canCreate && (
+            <EmptyState compact title="No dashboards yet. One is three steps away." action={<>{canCreate && (
                 <Button type="primary" icon={<PlusOutlined />} onClick={() => setWizardOpen(true)}>
                   New dashboard
                 </Button>
-              )}
-            </Empty>
+              )}</>} />
           </Card>
         ) : (
           <div className="nu-boards" data-testid="dashboard-gallery">
@@ -618,15 +613,14 @@ export default function DashboardsPage() {
               : "That dashboard could not be opened"
           }
           action={
-            <Button size="small" onClick={() => open("")}>
+            <Button onClick={() => open("")}>
               All dashboards
             </Button>
           }
         />
       ) : widgets.length === 0 ? (
         <Card size="small">
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No widgets yet">
-            {board?.can_edit && (
+          <EmptyState compact title="No widgets yet" action={<>{board?.can_edit && (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
@@ -637,8 +631,7 @@ export default function DashboardsPage() {
               >
                 Add the first one
               </Button>
-            )}
-          </Empty>
+            )}</>} />
         </Card>
       ) : (
         <div data-testid="dashboard-grid">

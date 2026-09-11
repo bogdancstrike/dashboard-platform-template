@@ -16,7 +16,6 @@ import {
   Button,
   Card,
   Drawer,
-  Empty,
   Input,
   List,
   Popconfirm,
@@ -41,6 +40,7 @@ import {
 import { explorerApi, type SavedSearch } from "@/api/explorer";
 import { AddToDashboard, type DashboardSubject } from "@/components/dashboards/AddToDashboard";
 import { COPY_MEANS, confirmCopy } from "@/lib/confirm";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -134,12 +134,7 @@ export function SavedSearchDrawer({
         dataSource={items}
         locale={{
           emptyText: (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={
-                needle ? "No saved search matches that" : "No saved searches for this dataset"
-              }
-            />
+            <EmptyState compact title={needle ? "No saved search matches that" : "No saved searches for this dataset"} />
           ),
         }}
         renderItem={(item) => {

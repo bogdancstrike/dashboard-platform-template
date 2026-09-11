@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Badge, Button, Dropdown, Empty, Skeleton, Space, Tooltip, Typography } from "antd";
+import { Badge, Button, Dropdown, Skeleton, Space, Tooltip, Typography } from "antd";
 import { BellOutlined, CheckOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { notificationsApi, type Notification } from "@/api/notifications";
 import { useLive, usePollInterval } from "@/live/LiveProvider";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { EmptyState } from "@/components/EmptyState";
 import { categoryIcon, severityColor } from "./presentation";
 
 const { Text } = Typography;
@@ -113,16 +114,12 @@ export function NotificationBell() {
           ))}
         </ul>
       ) : (
-        <Empty
-          className="nu-bell-empty"
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="Nothing to catch up on"
-        />
+        <EmptyState compact title="Nothing to catch up on" />
       )}
 
       <div className="nu-bell-foot">
         <Button
-          type="link"
+          type="text"
           size="small"
           onClick={() => {
             setOpen(false);

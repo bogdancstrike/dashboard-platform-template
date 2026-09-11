@@ -29,7 +29,6 @@ import {
   App as AntApp,
   Button,
   Card,
-  Empty,
   Form,
   Input,
   Modal,
@@ -55,6 +54,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -328,7 +328,6 @@ export default function FlagsPage() {
           >
             <Button
               type="text"
-              size="small"
               danger
               icon={<DeleteOutlined />}
               // Disabled with the reason rather than absent: deleting a flag
@@ -396,10 +395,7 @@ export default function FlagsPage() {
             dataSource={data.items}
             locale={{
               emptyText: (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description="No flag is in this state"
-                />
+                <EmptyState compact title="No flag is in this state" />
               ),
             }}
           />

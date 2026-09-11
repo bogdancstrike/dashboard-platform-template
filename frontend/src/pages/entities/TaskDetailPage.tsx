@@ -200,7 +200,6 @@ export default function TaskDetailPage() {
                   {task.can_edit && (
                     <Button
                       type="text"
-                      size="small"
                       aria-label={`Remove ${item.text}`}
                       icon={<DeleteOutlined />}
                       onClick={() =>

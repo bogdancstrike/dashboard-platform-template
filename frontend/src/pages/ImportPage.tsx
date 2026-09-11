@@ -52,7 +52,6 @@ import {
   Button,
   Card,
   Descriptions,
-  Empty,
   Popconfirm,
   Progress,
   Select,
@@ -88,6 +87,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { errorText } from "@/lib/errors";
 import { formatNumber } from "@/lib/formats";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text, Paragraph } = Typography;
 
@@ -554,12 +554,11 @@ function Wizard({
                 cancelText="Keep it"
                 onConfirm={onDiscard}
               >
-                <Button size="small" type="text" data-testid="discard-run">
+                <Button type="text" data-testid="discard-run">
                   {run.holds_file ? "Discard" : "Remove"}
                 </Button>
               </Popconfirm>
               <Button
-                size="small"
                 type="primary"
                 data-testid="check-mapping"
                 loading={checking}
@@ -633,7 +632,6 @@ function Wizard({
             <Space>
               {run.error_count ? (
                 <Button
-                  size="small"
                   icon={<DownloadOutlined />}
                   data-testid="download-problems"
                   onClick={() => void importsApi.problems(run.id, run.reference)}
@@ -650,7 +648,6 @@ function Wizard({
               >
                 <Button
                   type="primary"
-                  size="small"
                   data-testid="execute-import"
                   disabled={!run.can_execute || run.status === "RUNNING"}
                   loading={executing || run.status === "RUNNING"}
@@ -740,10 +737,7 @@ function Preview({ run }: { run: ImportDetail }) {
 
   if (!run.preview.length) {
     return (
-      <Empty
-        image={null}
-        description="This import is no longer holding the file — the rows have become records."
-      />
+      <EmptyState title="This import is no longer holding the file — the rows have become records." />
     );
   }
 
@@ -787,7 +781,7 @@ function History({
       width: 120,
       render: (value: string, row) => (
         <Button
-          type="link"
+          type="text"
           className="nu-imp-open"
           data-testid={`imp-${value}`}
           onClick={() => onOpen(row.id)}
@@ -838,7 +832,7 @@ function History({
             cancelText="Keep it"
             onConfirm={() => onDiscard(row.id)}
           >
-            <Button size="small" type="text" data-testid={`discard-${row.reference}`}>
+            <Button type="text" data-testid={`discard-${row.reference}`}>
               {row.holds_file ? "Discard" : "Remove"}
             </Button>
           </Popconfirm>
@@ -855,10 +849,7 @@ function History({
       pagination={false}
       locale={{
         emptyText: (
-          <Empty
-            image={null}
-            description="Nothing imported yet. A drafted import stays here until you finish or discard it."
-          />
+          <EmptyState title="Nothing imported yet. A drafted import stays here until you finish or discard it." />
         ),
       }}
     />

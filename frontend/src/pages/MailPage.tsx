@@ -38,7 +38,6 @@ import {
   Button,
   Card,
   Dropdown,
-  Empty,
   Input,
   Pagination,
   Segmented,
@@ -79,6 +78,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { usePreferences } from "@/settings/PreferencesProvider";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -276,7 +276,7 @@ export default function MailPage() {
               : "The mailbox could not be loaded."
           }
           action={
-            <Button size="small" onClick={() => void list.refetch()}>
+            <Button onClick={() => void list.refetch()}>
               Retry
             </Button>
           }
@@ -370,7 +370,6 @@ export default function MailPage() {
                 <Space size={4} data-testid="bulk-bar">
                   <Text type="secondary">{selected.length} selected</Text>
                   <Button
-                    size="small"
                     icon={<MailOutlined />}
                     loading={act.isPending}
                     onClick={() => act.mutate({ action: "READ" })}
@@ -383,7 +382,6 @@ export default function MailPage() {
                       mailbox that can only mark read is one where that
                       intention has nowhere to go. */}
                   <Button
-                    size="small"
                     icon={<MailFilled />}
                     loading={act.isPending}
                     onClick={() => act.mutate({ action: "UNREAD" })}
@@ -403,7 +401,7 @@ export default function MailPage() {
                         })),
                     }}
                   >
-                    <Button size="small" icon={<FolderOpenOutlined />} data-testid="bulk-move">
+                    <Button icon={<FolderOpenOutlined />} data-testid="bulk-move">
                       Move
                     </Button>
                   </Dropdown>
@@ -421,11 +419,11 @@ export default function MailPage() {
                           : [{ key: "none", label: "No labels in use yet", disabled: true }],
                     }}
                   >
-                    <Button size="small" icon={<TagOutlined />} data-testid="bulk-label">
+                    <Button icon={<TagOutlined />} data-testid="bulk-label">
                       Label
                     </Button>
                   </Dropdown>
-                  <Button size="small" onClick={() => setSelected([])}>
+                  <Button onClick={() => setSelected([])}>
                     Clear
                   </Button>
                 </Space>
@@ -434,14 +432,11 @@ export default function MailPage() {
           }
         >
           {data.items.length === 0 ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={
+            <EmptyState compact title={
                 debounced
                   ? `Nothing in ${FOLDER_META[folder].label.toLowerCase()} matches “${debounced}”`
                   : `${FOLDER_META[folder].label} is empty`
-              }
-            />
+              } />
           ) : (
             <>
               <ThreadList
@@ -480,7 +475,6 @@ export default function MailPage() {
                     is a page somebody reaches for the browser button on. */}
                 {pane === "off" && (
                   <Button
-                    size="small"
                     type="text"
                     icon={<ArrowLeftOutlined />}
                     onClick={() => set({ thread: null })}
@@ -497,7 +491,6 @@ export default function MailPage() {
                       finished reading but not finished with. */}
                   <Tooltip title="Reply to this conversation">
                     <Button
-                      size="small"
                       type="text"
                       icon={<EnterOutlined />}
                       aria-label={`Reply to ${reading.subject}`}
@@ -511,7 +504,6 @@ export default function MailPage() {
                   </Tooltip>
                   <Tooltip title={reading.is_starred ? "Remove the star" : "Star it"}>
                     <Button
-                      size="small"
                       type="text"
                       aria-label={`${reading.is_starred ? "Unstar" : "Star"} ${reading.subject}`}
                       aria-pressed={reading.is_starred}
@@ -528,7 +520,6 @@ export default function MailPage() {
                   </Tooltip>
                   <Tooltip title={reading.unread_count > 0 ? "Mark as read" : "Mark as unread"}>
                     <Button
-                      size="small"
                       type="text"
                       aria-label={
                         reading.unread_count > 0
@@ -561,12 +552,11 @@ export default function MailPage() {
                         })),
                     }}
                   >
-                    <Button size="small" icon={<FolderOpenOutlined />} data-testid="move-thread">
+                    <Button icon={<FolderOpenOutlined />} data-testid="move-thread">
                       Move
                     </Button>
                   </Dropdown>
                   <Button
-                    size="small"
                     danger
                     icon={<DeleteOutlined />}
                     loading={bin.isPending}
@@ -592,10 +582,7 @@ export default function MailPage() {
           }
         >
           {!openId ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="Choose a conversation to read it"
-            />
+            <EmptyState compact title="Choose a conversation to read it" />
           ) : opened.isLoading ? (
             <Skeleton active paragraph={{ rows: 8 }} />
           ) : opened.isError ? (

@@ -36,7 +36,6 @@ import {
   Button,
   Card,
   Descriptions,
-  Empty,
   Form,
   Input,
   Modal,
@@ -70,6 +69,7 @@ import { PersonAvatar } from "@/components/PersonAvatar";
 import { usePageCommands } from "@/commands/CommandContext";
 import { formatNumber } from "@/lib/formats";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -477,10 +477,7 @@ function Structure({
         data-testid="org-tree"
       >
         {tree.departments.length === 0 ? (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="No departments yet."
-          />
+          <EmptyState compact title="No departments yet." />
         ) : (
           <ul className="nu-orgtree" role="tree" aria-label="Department structure">
             {tree.departments.map((node) => (
@@ -580,7 +577,6 @@ function Branch({
               <Tooltip title="Add a department inside this one">
                 <Button
                   type="text"
-                  size="small"
                   icon={<PlusOutlined />}
                   aria-label={`Add inside ${node.name}`}
                   data-testid={`add-in-${node.code}`}
@@ -625,7 +621,6 @@ function Branch({
                   hint was a third copy of the word as well as a bug. */}
               <Button
                 type="text"
-                size="small"
                 danger
                 icon={<DeleteOutlined />}
                 aria-label={`Retire ${node.name}`}

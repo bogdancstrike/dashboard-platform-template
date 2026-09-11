@@ -20,7 +20,6 @@ import {
   Alert,
   Card,
   Collapse,
-  Empty,
   Input,
   Progress,
   Skeleton,
@@ -36,6 +35,7 @@ import { DatabaseOutlined, SearchOutlined } from "@ant-design/icons";
 
 import { catalogApi, type CatalogDataset, type CatalogField } from "@/api/catalog";
 import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -104,7 +104,7 @@ export default function DataCatalogPage() {
       {catalog.isLoading && <Skeleton active paragraph={{ rows: 8 }} />}
 
       {catalog.data && datasets.length === 0 && (
-        <Empty description={`No dataset or field matches “${term}”`} />
+        <EmptyState title={`No dataset or field matches “${term}”`} />
       )}
 
       {datasets.length > 0 && (

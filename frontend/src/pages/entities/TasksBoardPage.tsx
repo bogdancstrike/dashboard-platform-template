@@ -55,7 +55,6 @@ import {
   Button,
   Card,
   Dropdown,
-  Empty,
   Progress,
   Skeleton,
   Space,
@@ -89,6 +88,7 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 import { knownStatusColor } from "@/theme/tokens";
 import { StatusTag } from "@/components/StatusTag";
 import { refreshRecordViews } from "@/lib/refresh";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -232,8 +232,7 @@ export default function TasksBoardPage() {
           <span>
             {task.reference ?? "Task"} moved to {laneName(to)}{" "}
             <Button
-              type="link"
-              size="small"
+              type="text"
               onClick={() => move.mutate({ task: { ...task, status: to }, to: from })}
             >
               Undo
@@ -396,10 +395,7 @@ export default function TasksBoardPage() {
               {query?.isLoading ? (
                 <Skeleton active title={false} paragraph={{ rows: 4 }} />
               ) : items.length === 0 && landing < 0 ? (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description={<Text type="secondary">Nothing here</Text>}
-                />
+                <EmptyState compact title="Nothing here" />
               ) : (
                 <ul className="nu-lane-cards">
                   {items.map((task, position) => (
@@ -427,8 +423,7 @@ export default function TasksBoardPage() {
 
               {total > items.length && (
                 <Button
-                  type="link"
-                  size="small"
+                  type="text"
                   block
                   onClick={() => navigate(`/explore?resource=task&f.status=${lane.status}`)}
                 >
@@ -529,7 +524,6 @@ function TaskCard({
               }}
             >
               <Button
-                size="small"
                 type="text"
                 aria-label={`Move ${task.title ?? task.reference} to another lane`}
                 onClick={(event) => event.stopPropagation()}

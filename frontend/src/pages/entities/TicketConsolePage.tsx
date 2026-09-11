@@ -35,7 +35,6 @@ import {
   Card,
   Col,
   Descriptions,
-  Empty,
   List,
   Row,
   Select,
@@ -61,6 +60,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { duration, slaStanding } from "@/entities/sla";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { asText } from "@/lib/text";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text, Paragraph } = Typography;
 
@@ -410,10 +410,7 @@ export default function TicketConsolePage() {
             }
           >
             {!customerId ? (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="This ticket is not filed against a customer"
-              />
+              <EmptyState compact title="This ticket is not filed against a customer" />
             ) : account.isLoading ? (
               <Skeleton active title={false} paragraph={{ rows: 3 }} />
             ) : (

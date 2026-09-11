@@ -166,7 +166,7 @@ export function useBulk(
               to select the four rows already ticked is noise. */}
           {!allMatching && request && total > ticked.length && (
             <Button
-              type="link"
+              type="text"
               size="small"
               onClick={() => {
                 setAllMatching(true);

@@ -25,7 +25,6 @@ import {
   Button,
   Card,
   Dropdown,
-  Empty,
   Input,
   Segmented,
   Skeleton,
@@ -182,7 +181,7 @@ export default function ReportsPage() {
             ) : undefined
           }
           action={
-            <Button size="small" onClick={() => void reports.refetch()}>
+            <Button onClick={() => void reports.refetch()}>
               Retry
             </Button>
           }
@@ -243,7 +242,7 @@ export default function ReportsPage() {
                 }
               />
             ) : (
-              <Empty description={`Nothing matches “${term}”`} />
+              <EmptyState title={`Nothing matches “${term}”`} />
             )
           ) : (
             <ul className="nu-queue">
@@ -296,7 +295,6 @@ export default function ReportsPage() {
             open && (
               <Space>
                 <Button
-                  size="small"
                   icon={<ReloadOutlined />}
                   loading={run.isFetching}
                   onClick={() => void run.refetch()}
@@ -345,14 +343,14 @@ export default function ReportsPage() {
                     },
                   }}
                 >
-                  <Button size="small" icon={<MoreOutlined />} aria-label={`Actions for ${open.name}`} />
+                  <Button icon={<MoreOutlined />} aria-label={`Actions for ${open.name}`} />
                 </Dropdown>
               </Space>
             )
           }
         >
           {!open ? (
-            <Empty description="Choose a report from the list" />
+            <EmptyState title="Choose a report from the list" />
           ) : run.isError ? (
             <FailureAlert
               error={run.error}

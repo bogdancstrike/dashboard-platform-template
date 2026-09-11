@@ -34,7 +34,6 @@ import {
   Button,
   Card,
   Drawer,
-  Empty,
   Input,
   Segmented,
   Skeleton,
@@ -62,6 +61,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { asText } from "@/lib/text";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text, Paragraph } = Typography;
 
@@ -411,10 +411,7 @@ export default function IntegrationsPage() {
           }
           locale={{
             emptyText: (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={term || category ? "No integration matches that." : "None configured."}
-              />
+              <EmptyState compact title={term || category ? "No integration matches that." : "None configured."} />
             ),
           }}
           pagination={false}
@@ -577,7 +574,7 @@ function IntegrationPanel({
           </Tooltip>
           {row.docs_url && (
             <Button
-              type="link"
+              type="text"
               icon={<LinkOutlined />}
               href={row.docs_url}
               target="_blank"

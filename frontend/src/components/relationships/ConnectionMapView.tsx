@@ -162,7 +162,7 @@ export function ConnectionMapView({
             className="nu-fill-height"
             extra={
               selected && (
-                <Button size="small" type="link" onClick={() => setSelected(null)}>
+                <Button size="small" type="text" onClick={() => setSelected(null)}>
                   Clear
                 </Button>
               )
@@ -267,7 +267,7 @@ export function ConnectionMapView({
                   <Space size={4}>
                     <Button
                       size="small"
-                      type="link"
+                      type="text"
                       icon={<ApartmentOutlined />}
                       onClick={() => onStart(hub.resource_type, hub.id)}
                     >
@@ -276,7 +276,7 @@ export function ConnectionMapView({
                     {hub.explorable && (
                       <Button
                         size="small"
-                        type="link"
+                        type="text"
                         icon={<ExportOutlined />}
                         onClick={() => navigate(`/${hub.resource_type}s/${hub.id}`)}
                       >

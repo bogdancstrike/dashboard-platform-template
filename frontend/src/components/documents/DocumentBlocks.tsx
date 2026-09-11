@@ -21,7 +21,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { Empty, Skeleton, Table, Typography } from "antd";
+import { Skeleton, Table, Typography } from "antd";
 
 import { ApiError } from "@/api/client";
 import { panelFor } from "@/api/analysis";
@@ -32,6 +32,7 @@ import { reportsApi } from "@/api/reports";
 import { ChartPreview } from "@/components/charts/ChartPreview";
 import { formatMetric } from "@/entities/EntityChrome";
 import { asText } from "@/lib/text";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -277,7 +278,7 @@ function MetricsBlock({ block }: { block: DocumentBlock }) {
 function Unfinished({ what }: { what: string }) {
   return (
     <div className="nu-doc-unfinished">
-      <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<Text type="secondary">{what}</Text>} />
+      <EmptyState compact title={<Text type="secondary">{what}</Text>} />
     </div>
   );
 }

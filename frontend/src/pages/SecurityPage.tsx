@@ -43,7 +43,6 @@ import {
   App as AntApp,
   Button,
   Card,
-  Empty,
   Popconfirm,
   Segmented,
   Skeleton,
@@ -72,6 +71,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { errorText } from "@/lib/errors";
 import { formatNumber } from "@/lib/formats";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text, Paragraph } = Typography;
 
@@ -344,7 +344,7 @@ export default function SecurityPage() {
             cancelText="Leave it"
             onConfirm={() => revoked.mutate(row.id)}
           >
-            <Button size="small" data-testid={`revoke-${row.id}`} danger={row.current}>
+            <Button data-testid={`revoke-${row.id}`} danger={row.current}>
               {row.current ? "Sign me out" : "Sign out"}
             </Button>
           </Popconfirm>
@@ -534,7 +534,7 @@ export default function SecurityPage() {
               rowClassName={(row) => (row.current ? "nu-sec-row is-current" : "")}
               locale={{
                 emptyText: (
-                  <Empty image={null} description="No sign-ins recorded on this account yet." />
+                  <EmptyState title="No sign-ins recorded on this account yet." />
                 ),
               }}
             />
@@ -575,14 +575,11 @@ export default function SecurityPage() {
               rowClassName={(row) => (row.result === "SUCCESS" ? "" : "nu-sec-row is-failure")}
               locale={{
                 emptyText: (
-                  <Empty
-                    image={null}
-                    description={
+                  <EmptyState title={
                       signInFilter === "FAILURE"
                         ? "No failed sign-ins. That is the answer you want."
                         : "No sign-ins recorded in this window."
-                    }
-                  />
+                    } />
                 ),
               }}
             />
@@ -616,10 +613,7 @@ export default function SecurityPage() {
             rowClassName={(row) => (row.resolved ? "nu-sec-row is-resolved" : "")}
             locale={{
               emptyText: (
-                <Empty
-                  image={null}
-                  description="Nothing noticed on this account. New devices, changed passwords and unusual sign-ins would appear here."
-                />
+                <EmptyState title="Nothing noticed on this account. New devices, changed passwords and unusual sign-ins would appear here." />
               ),
             }}
           />

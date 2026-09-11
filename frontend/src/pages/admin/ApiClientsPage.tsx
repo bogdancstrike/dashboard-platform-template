@@ -38,7 +38,6 @@ import {
   Card,
   Descriptions,
   Drawer,
-  Empty,
   Form,
   Input,
   InputNumber,
@@ -73,6 +72,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { formatNumber } from "@/lib/formats";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text, Paragraph } = Typography;
 
@@ -383,10 +383,7 @@ export default function ApiClientsPage() {
           })}
           locale={{
             emptyText: (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={term ? "No client matches that." : "No API clients yet."}
-              />
+              <EmptyState compact title={term ? "No client matches that." : "No API clients yet."} />
             ),
           }}
           pagination={false}
@@ -666,7 +663,6 @@ function ClientDetail({
         <Space size={8} align="center">
           <Text strong>Keys</Text>
           <Button
-            size="small"
             icon={<PlusOutlined />}
             disabled={busy}
             onClick={() => onRotate(undefined)}
@@ -707,7 +703,6 @@ function ClientDetail({
                   >
                     <Button
                       type="text"
-                      size="small"
                       icon={<RetweetOutlined />}
                       disabled={busy}
                       aria-label={`Rotate ${credential.prefix}`}
@@ -723,7 +718,6 @@ function ClientDetail({
                   >
                     <Button
                       type="text"
-                      size="small"
                       danger
                       icon={<StopOutlined />}
                       disabled={busy}

@@ -36,7 +36,6 @@ import {
   App as AntApp,
   Button,
   Drawer,
-  Empty,
   Form,
   Input,
   Modal,
@@ -62,6 +61,7 @@ import { MemberPicker } from "@/components/PeoplePicker";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -337,10 +337,7 @@ export default function GroupsPage() {
           })}
           locale={{
             emptyText: (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={term || kind ? "No group matches that." : "No groups yet."}
-              />
+              <EmptyState compact title={term || kind ? "No group matches that." : "No groups yet."} />
             ),
           }}
           pagination={false}

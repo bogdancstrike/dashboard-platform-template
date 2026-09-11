@@ -38,7 +38,6 @@ import {
   App as AntApp,
   Button,
   Card,
-  Empty,
   Popconfirm,
   Segmented,
   Skeleton,
@@ -71,6 +70,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { errorText } from "@/lib/errors";
 import { formatNumber } from "@/lib/formats";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -248,7 +248,6 @@ export default function FavoritesPage() {
                 sends the top item to the bottom on a mis-click. */}
             <Tooltip title="Move up">
               <Button
-                size="small"
                 type="text"
                 icon={<ArrowUpOutlined />}
                 aria-label={`Move ${row.label} up`}
@@ -259,7 +258,6 @@ export default function FavoritesPage() {
             </Tooltip>
             <Tooltip title="Move down">
               <Button
-                size="small"
                 type="text"
                 icon={<ArrowDownOutlined />}
                 aria-label={`Move ${row.label} down`}
@@ -275,7 +273,6 @@ export default function FavoritesPage() {
             </Tooltip>
             <Tooltip title="Stop keeping this">
               <Button
-                size="small"
                 type="text"
                 icon={<StarFilled />}
                 aria-label={`Stop keeping ${row.label}`}
@@ -339,7 +336,6 @@ export default function FavoritesPage() {
         ) : (
           <Tooltip title="Keep this">
             <Button
-              size="small"
               type="text"
               icon={<StarOutlined />}
               aria-label={`Keep ${row.label}`}
@@ -405,14 +401,11 @@ export default function FavoritesPage() {
           pagination={false}
           locale={{
             emptyText: (
-              <Empty
-                image={null}
-                description={
+              <EmptyState title={
                   kind === "all"
                     ? "Nothing kept yet. Star a record, a report or a saved search — or keep one of the things you have looked at, below."
                     : `Nothing of that kind kept.`
-                }
-              />
+                } />
             ),
           }}
         />
@@ -438,7 +431,6 @@ export default function FavoritesPage() {
             onConfirm={() => cleared.mutate()}
           >
             <Button
-              size="small"
               icon={<DeleteOutlined />}
               data-testid="clear-recents"
               loading={cleared.isPending}
@@ -462,10 +454,7 @@ export default function FavoritesPage() {
               pagination={false}
               locale={{
                 emptyText: (
-                  <Empty
-                    image={null}
-                    description="Nothing yet. Records, reports and saved searches you open appear here."
-                  />
+                  <EmptyState title="Nothing yet. Records, reports and saved searches you open appear here." />
                 ),
               }}
             />

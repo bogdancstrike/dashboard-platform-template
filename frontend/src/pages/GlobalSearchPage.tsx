@@ -15,7 +15,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Alert, Badge, Button, Card, Empty, Skeleton, Space, Tag, Tooltip, Typography } from "antd";
+import { Alert, Badge, Button, Card, Skeleton, Space, Tag, Tooltip, Typography } from "antd";
 import { ArrowRightOutlined, SearchOutlined } from "@ant-design/icons";
 
 import { searchApi, type GlobalHit } from "@/api/search";
@@ -23,6 +23,7 @@ import { HighlightedText } from "@/components/HighlightedText";
 import { PageHeader } from "@/components/PageHeader";
 import { SimpleSearch } from "@/components/explorer/SimpleSearch";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text, Title } = Typography;
 
@@ -130,14 +131,11 @@ export default function GlobalSearchPage() {
         {results.isLoading && <Skeleton active paragraph={{ rows: 6 }} />}
 
         {!term.trim() && !results.isLoading && (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="Search for a reference, a name, an address — anything a record carries."
-          />
+          <EmptyState compact title="Search for a reference, a name, an address — anything a record carries." />
         )}
 
         {results.data && results.data.total === 0 && !tooShort && term.trim() && (
-          <Empty description={`Nothing matches “${results.data.query}”`} />
+          <EmptyState title={`Nothing matches “${results.data.query}”`} />
         )}
 
         {results.data?.groups.map((group) => {
@@ -156,7 +154,7 @@ export default function GlobalSearchPage() {
               extra={
                 <Tooltip title={`Explore ${group.label.toLowerCase()} matching this term`}>
                   <Button
-                    type="link"
+                    type="text"
                     icon={<SearchOutlined />}
                     onClick={() =>
                       navigate(

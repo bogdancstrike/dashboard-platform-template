@@ -34,7 +34,6 @@ import {
   Breadcrumb,
   Button,
   Card,
-  Empty,
   List,
   Segmented,
   Skeleton,
@@ -59,6 +58,7 @@ import { NetworkView } from "@/components/relationships/NetworkView";
 import { EgoGraph } from "@/components/graph/EgoGraph";
 import { SimpleSearch } from "@/components/explorer/SimpleSearch";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -179,7 +179,7 @@ export default function RelationshipExplorerPage() {
       {graph.isLoading && <Skeleton active paragraph={{ rows: 8 }} />}
 
       {graph.data && graph.data.total === 0 && (
-        <Empty description="Nothing links to this record, and it links to nothing." />
+        <EmptyState title="Nothing links to this record, and it links to nothing." />
       )}
 
       {graph.data && graph.data.total > 0 && view === "graph" && (
@@ -213,7 +213,7 @@ export default function RelationshipExplorerPage() {
               extra={
                 group.has_more && (
                   <Button
-                    type="link"
+                    type="text"
                     onClick={() =>
                       navigate(
                         `/explore?resource=${group.target}&f.${relationColumn(group.relation)}=${id}`,
@@ -235,7 +235,7 @@ export default function RelationshipExplorerPage() {
                         ? [
                             <Button
                               key="open"
-                              type="link"
+                              type="text"
                               icon={<ApartmentOutlined />}
                               onClick={() => open(node, group.target)}
                             >
@@ -320,7 +320,7 @@ function StartHere({ onStart }: { onStart: (node: RelatedNode, entity: string) =
       {searching ? (
         <>
           {results.isLoading && <Skeleton active paragraph={{ rows: 4 }} />}
-          {results.data?.total === 0 && <Empty description={`Nothing matches “${debounced}”`} />}
+          {results.data?.total === 0 && <EmptyState title={`Nothing matches “${debounced}”`} />}
           {results.data?.groups.map((group) => (
             <Card key={group.resource_type} size="small" title={group.label} className="nu-block">
               <List
@@ -331,7 +331,7 @@ function StartHere({ onStart }: { onStart: (node: RelatedNode, entity: string) =
                     actions={[
                       <Button
                         key="start"
-                        type="link"
+                        type="text"
                         icon={<ApartmentOutlined />}
                         onClick={() =>
                           onStart(

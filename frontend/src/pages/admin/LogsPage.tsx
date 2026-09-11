@@ -40,7 +40,6 @@ import {
   Button,
   Descriptions,
   Drawer,
-  Empty,
   Input,
   Popconfirm,
   Select,
@@ -68,6 +67,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -489,14 +489,11 @@ export default function LogsPage() {
           rowClassName={(row) => `nu-log-row is-${row.level.toLowerCase()}`}
           locale={{
             emptyText: (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={
+              <EmptyState compact title={
                   term || minLevel || service
                     ? "No line matches that."
                     : "Nothing has been logged yet."
-                }
-              />
+                } />
             ),
           }}
           pagination={

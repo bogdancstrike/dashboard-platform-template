@@ -190,7 +190,6 @@ export default function TagsPage() {
                 <Tooltip title="Rename, recolour or describe">
                   <Button
                     type="text"
-                    size="small"
                     icon={<EditOutlined />}
                     aria-label={`Edit ${tag.name}`}
                     onClick={() => setEditing(tag)}
@@ -205,7 +204,6 @@ export default function TagsPage() {
                 >
                   <Button
                     type="text"
-                    size="small"
                     danger
                     disabled={tag.is_system}
                     icon={<DeleteOutlined />}

@@ -36,7 +36,6 @@ import {
   Card,
   Col,
   Descriptions,
-  Empty,
   Progress,
   Row,
   Select,
@@ -64,6 +63,7 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 import { formatNumber } from "@/lib/formats";
 import { asText } from "@/lib/text";
 import { knownStatusColor, SEMANTIC } from "@/theme/tokens";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text, Paragraph } = Typography;
 
@@ -308,10 +308,7 @@ export default function ProjectDeliveryPage() {
             {rollup.isLoading ? (
               <Skeleton active title={false} paragraph={{ rows: 2 }} />
             ) : lanes.length === 0 ? (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No work has been raised under this project yet"
-              />
+              <EmptyState compact title="No work has been raised under this project yet" />
             ) : (
               <div className="nu-rollup">
                 {lanes.map((lane) => (

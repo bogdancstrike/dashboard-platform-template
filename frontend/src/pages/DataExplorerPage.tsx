@@ -7,7 +7,6 @@ import {
   Button,
   Card,
   Checkbox,
-  Empty,
   Popover,
   Segmented,
   Select,
@@ -48,6 +47,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { errorText } from "@/lib/errors";
 import { asText } from "@/lib/text";
 import { FEATURES, useFeature } from "@/settings/features";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -396,7 +396,7 @@ export default function DataExplorerPage() {
         {!resource && catalogue.isLoading ? (
           <Skeleton active paragraph={{ rows: 8 }} />
         ) : !resource ? (
-          <Empty description="Your role has no explorable datasets" />
+          <EmptyState title="Your role has no explorable datasets" />
         ) : (
           <ExplorerResults
             result={results.data}

@@ -38,7 +38,6 @@ import {
   Button,
   Descriptions,
   Drawer,
-  Empty,
   Input,
   Popconfirm,
   Progress,
@@ -62,6 +61,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { AutoRefresh } from "@/components/AutoRefresh";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -366,7 +366,6 @@ export default function JobsPage() {
                   <Tooltip title={`Allow ${row.max_attempts + 1} attempts, so it can run again`}>
                     <Button
                       type="text"
-                      size="small"
                       icon={<PlusOutlined />}
                       disabled={act.isPending}
                       aria-label={`Grant ${row.reference} another attempt`}
@@ -488,14 +487,11 @@ export default function JobsPage() {
           })}
           locale={{
             emptyText: (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={
+              <EmptyState compact title={
                   term || status || queue
                     ? "No job matches that."
                     : "Nothing has been queued yet."
-                }
-              />
+                } />
             ),
           }}
           pagination={{
@@ -575,7 +571,6 @@ function JobAction({
   const button = (
     <Button
       type="text"
-      size="small"
       icon={icon}
       disabled={!allowed || busy}
       aria-label={`${label} ${job.reference}`}

@@ -38,7 +38,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, App as AntApp, Button, Card, Col, Empty, Row, Skeleton, Space, Tooltip, Typography } from "antd";
+import { Alert, App as AntApp, Button, Card, Col, Row, Skeleton, Space, Tooltip, Typography } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -57,6 +57,7 @@ import { ChartPreview } from "@/components/charts/ChartPreview";
 import { CHART_SHAPES, missingFor, type ChartShape } from "@/components/charts/shapes";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
+import { EmptyState } from "@/components/EmptyState";
 import {
   DRAFT_KEYS,
   draftDimensions,
@@ -255,10 +256,7 @@ export default function ChartBuilderPage() {
           question cannot feed refused with the reason (§76). */}
       <Card size="small" title="The picture" data-testid="chart-gallery">
         {!draftIsRunnable(draft) ? (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="Pick a measure and the pictures will draw themselves"
-          />
+          <EmptyState compact title="Pick a measure and the pictures will draw themselves" />
         ) : (
           <div className="nu-gallery">
             {CHART_SHAPES.map((shape) => (

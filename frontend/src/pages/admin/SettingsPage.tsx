@@ -275,7 +275,6 @@ function SettingRow({
           <Tooltip title="Back to what the platform ships with">
             <Button
               type="text"
-              size="small"
               icon={<UndoOutlined />}
               loading={saving}
               onClick={onReset}

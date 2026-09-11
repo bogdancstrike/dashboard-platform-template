@@ -23,7 +23,6 @@ import {
   Alert,
   App as AntApp,
   Button,
-  Empty,
   Input,
   Skeleton,
   Space,
@@ -37,6 +36,7 @@ import { ApiError } from "@/api/client";
 import { commentsApi, type RecordComment } from "@/api/comments";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { PersonAvatar } from "@/components/PersonAvatar";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text, Paragraph } = Typography;
 
@@ -135,10 +135,7 @@ export function CommentThread({
   return (
     <div data-testid="comment-thread">
       {conversation.length === 0 ? (
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={<Text type="secondary">No comments yet</Text>}
-        />
+        <EmptyState compact title="No comments yet" />
       ) : (
         <ul className="nu-comments">
           {conversation.map(({ comment, replies }) => (
@@ -186,7 +183,7 @@ export function CommentThread({
           {replyTo && (
             <Space size={6} className="nu-block">
               <Text type="secondary">Replying to a comment</Text>
-              <Button size="small" type="link" onClick={() => setReplyTo(null)}>
+              <Button size="small" type="text" onClick={() => setReplyTo(null)}>
                 Cancel
               </Button>
             </Space>
@@ -289,16 +286,16 @@ function CommentLine({
         {editing === null && (
           <Space size={4}>
             {onReply && (
-              <Button size="small" type="link" onClick={onReply}>
+              <Button size="small" type="text" onClick={onReply}>
                 Reply
               </Button>
             )}
             {comment.can_edit && (
               <>
-                <Button size="small" type="link" onClick={onEditStart}>
+                <Button size="small" type="text" onClick={onEditStart}>
                   Edit
                 </Button>
-                <Button size="small" type="link" danger onClick={onDelete}>
+                <Button size="small" type="text" danger onClick={onDelete}>
                   Delete
                 </Button>
               </>

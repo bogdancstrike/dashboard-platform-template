@@ -28,7 +28,6 @@ import {
   App as AntApp,
   Button,
   Card,
-  Empty,
   Segmented,
   Select,
   Skeleton,
@@ -62,6 +61,7 @@ import {
 import { ResponseButtons } from "@/components/calendar/ResponseButtons";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
+import { EmptyState } from "@/components/EmptyState";
 import {
   agendaHeading,
   fromIsoDay,
@@ -192,7 +192,7 @@ export default function CalendarPage() {
               : "The calendar could not be loaded."
           }
           action={
-            <Button size="small" onClick={() => void events.refetch()}>
+            <Button onClick={() => void events.refetch()}>
               Retry
             </Button>
           }
@@ -280,7 +280,7 @@ export default function CalendarPage() {
                   aria-label="Next"
                   data-testid="cal-next"
                 />
-                <Button size="small" onClick={() => set({ on: null })} data-testid="cal-today">
+                <Button onClick={() => set({ on: null })} data-testid="cal-today">
                   Today
                 </Button>
               </Space>
@@ -490,10 +490,7 @@ function Agenda({
 }) {
   if (items.length === 0) {
     return (
-      <Empty
-        image={Empty.PRESENTED_IMAGE_SIMPLE}
-        description="Nothing in this stretch of the calendar"
-      />
+      <EmptyState compact title="Nothing in this stretch of the calendar" />
     );
   }
 

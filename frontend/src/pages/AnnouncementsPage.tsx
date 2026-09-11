@@ -35,7 +35,6 @@ import {
   Button,
   Card,
   Dropdown,
-  Empty,
   Segmented,
   Skeleton,
   Space,
@@ -181,7 +180,7 @@ export default function AnnouncementsPage() {
               : "Announcements could not be loaded."
           }
           action={
-            <Button size="small" onClick={() => void feed.refetch()}>
+            <Button onClick={() => void feed.refetch()}>
               Retry
             </Button>
           }
@@ -596,7 +595,6 @@ function AuthoringTable({
         >
           <Button
             type="text"
-            size="small"
             icon={<MoreOutlined />}
             aria-label={`Actions for ${row.title}`}
           />
@@ -641,10 +639,7 @@ function AuthoringTable({
             emptyText: drafts.isLoading ? (
               " "
             ) : (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="Nothing written in this state"
-              />
+              <EmptyState compact title="Nothing written in this state" />
             ),
           }}
         />

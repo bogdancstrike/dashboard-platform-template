@@ -25,7 +25,6 @@ import {
   Button,
   Card,
   Col,
-  Empty,
   Row,
   Segmented,
   Skeleton,
@@ -53,6 +52,7 @@ import {
 import { ForceGraph, type GraphLink, type GraphNode } from "@/components/graph/ForceGraph";
 import { StatCard } from "@/components/StatCard";
 import { NEUTRAL, SERIES } from "@/theme/tokens";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -211,14 +211,14 @@ export function NetworkView({
             }
             extra={
               highlighted && (
-                <Button size="small" type="link" onClick={() => setHighlighted(null)}>
+                <Button size="small" type="text" onClick={() => setHighlighted(null)}>
                   Show every cluster
                 </Button>
               )
             }
           >
             {data.nodes.length === 0 ? (
-              <Empty description="There is nothing linked to cluster yet." />
+              <EmptyState title="There is nothing linked to cluster yet." />
             ) : (
               <>
                 <ForceGraph
@@ -353,7 +353,7 @@ function ChosenRecord({
           {node.explorable && (
             <Button
               size="small"
-              type="link"
+              type="text"
               icon={<ApartmentOutlined />}
               onClick={() => onExplore(node.entity, node.id)}
             >
@@ -363,7 +363,7 @@ function ChosenRecord({
           {node.explorable && (
             <Button
               size="small"
-              type="link"
+              type="text"
               icon={<ExportOutlined />}
               onClick={() => onOpen(`/${node.entity}s/${node.id}`)}
             >

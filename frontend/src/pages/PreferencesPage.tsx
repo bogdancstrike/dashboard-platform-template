@@ -382,7 +382,7 @@ export default function PreferencesPage() {
             }
             data-testid="pref-notifications"
             extra={
-              <Button size="small" onClick={() => preview()} data-testid="try-popup">
+              <Button onClick={() => preview()} data-testid="try-popup">
                 Try it
               </Button>
             }

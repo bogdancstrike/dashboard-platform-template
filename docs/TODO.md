@@ -3019,6 +3019,47 @@ Ordered as asked: mail, then the admin pages, then the showcase.
     the circle-plus next to the plus do" was a question the editor asked
     silently of everybody who opened it (§55, §76)
 
+### The pages follow one design, and a test says so
+
+- [x] **The button vocabulary is four roles with one spelling each** (§60), in
+      `theme/conventions.ts` and asserted against the source by
+      `conventions.test.ts`. A style guide nothing checks is a document, and a
+      document is what the drift happened underneath
+  - **Primary** for the one thing a surface is for, **secondary** for the other
+    verbs, **quiet** (`type="text"`) for anything repeated per row, and
+    **destructive** (`danger`, behind a confirm). There is deliberately no
+    fifth
+  - **`type="link"` is gone — 28 of them.** It looks like a link and is not
+    one: no new tab, a middle-click that does nothing, and a screen reader
+    announcing a button. Five were `<Link><Button type="link">`, which is an
+    interactive control nested inside an anchor — invalid, and it was on the
+    home page. Navigation is a `<Link>`; a quiet *action* is `type="text"`
+- [x] **Size belongs to the reader, not to the page — 77 removed.**
+      `AppearanceProvider` already maps the density preference onto AntD's
+      `componentSize`, so every `size="small"` a page wrote was a page
+      overriding somebody who had asked for the comfortable one
+  - Shared components may still set one, and 22 do: a widget is a fixed number
+    of grid rows, a mail row is three lines, a lane header shares the space a
+    card title needs. Each says which constraint earned it, and the test
+    refuses an entry that is a page, or a reason under 25 characters, or a file
+    that no longer exists
+- [x] **One empty state — 69 converted.** There were three on screen at once:
+      AntD's default illustration (the grey cartoon box every React admin panel
+      ships with), its `PRESENTED_IMAGE_SIMPLE` outline, and this product's
+      own. A reader meeting all three in one session is not meeting a design.
+      `EmptyState` also carries §34's distinction the AntD ones cannot —
+      *nothing yet* wants the control that makes the first record, *nothing
+      matched* wants the filters cleared
+- [x] **The vocabulary is on `/showcase/components`**, shown as four roles
+      rather than described. A gallery of parts without it is one somebody
+      reads, picks whatever looks right from, and the product gains a fifth
+      kind of grey
+- [x] The scanner behind these rules is **brace-aware rather than a regex**.
+      `<Button[^>]*?/?>` stops at the first `>` it meets, which in
+      `<Button icon={<DeleteOutlined />} …>` is the *icon's* — the first version
+      reported 166 unlabelled icon-only buttons that all had words in them, and
+      would have gone on missing the real ones for the same reason
+
 ### Known red
 
 Twenty-six at the start of this session; two now.

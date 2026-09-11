@@ -228,7 +228,7 @@ export default function KanbanPage() {
               : "Boards could not be loaded."
           }
           action={
-            <Button size="small" onClick={() => void boards.refetch()}>
+            <Button onClick={() => void boards.refetch()}>
               Retry
             </Button>
           }

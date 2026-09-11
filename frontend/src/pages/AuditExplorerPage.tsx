@@ -404,7 +404,7 @@ export default function AuditExplorerPage() {
             ) : undefined
           }
           action={
-            <Button size="small" onClick={() => void ledger.refetch()}>
+            <Button onClick={() => void ledger.refetch()}>
               Retry
             </Button>
           }

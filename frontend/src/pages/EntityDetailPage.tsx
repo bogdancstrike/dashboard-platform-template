@@ -140,7 +140,7 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
           onRetry={() => void record.refetch()}
           action={
             retryHelps(kind) ? undefined : (
-              <Button size="small" onClick={() => navigate(-1)}>
+              <Button onClick={() => navigate(-1)}>
                 Go back
               </Button>
             )

@@ -174,7 +174,7 @@ export default function RolesPage() {
             ) : undefined
           }
           action={
-            <Button size="small" onClick={() => void matrix.refetch()}>
+            <Button onClick={() => void matrix.refetch()}>
               Retry
             </Button>
           }
@@ -353,7 +353,6 @@ export default function RolesPage() {
                   >
                     <Button
                       type="text"
-                      size="small"
                       danger
                       icon={<DeleteOutlined />}
                       loading={remove.isPending}

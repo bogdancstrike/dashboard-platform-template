@@ -188,7 +188,6 @@ export default function OrdersLedgerPage() {
           <Tooltip title={`Look at ${row.reference ?? "this order"} without leaving the ledger`}>
             <Button
               type="text"
-              size="small"
               icon={<EyeOutlined />}
               aria-label={`Preview ${row.reference ?? "this order"}`}
               data-testid={`peek-${row.id}`}

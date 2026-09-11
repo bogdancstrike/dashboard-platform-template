@@ -25,7 +25,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Card, Col, Empty, Row, Select, Skeleton, Space, Table, Tag, Typography } from "antd";
+import { Alert, Card, Col, Row, Select, Skeleton, Space, Table, Tag, Typography } from "antd";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -36,6 +36,7 @@ import { withOrigin } from "@/entities/drilldown";
 import { WorldMap } from "@/components/maps/WorldMap";
 import { usePageCommands } from "@/commands/CommandContext";
 import { formatNumber } from "@/lib/formats";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -242,10 +243,7 @@ export default function MapsPage() {
         {places.isLoading && !answer ? (
           <Skeleton active paragraph={{ rows: 10 }} />
         ) : !answer || answer.points.length === 0 ? (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={`No ${chosen?.label.toLowerCase() ?? "records"} in this period could be placed`}
-          />
+          <EmptyState compact title={`No ${chosen?.label.toLowerCase() ?? "records"} in this period could be placed`} />
         ) : (
           <figure className="nu-map" style={{ margin: 0 }}>
             {/* A canvas has no text and no tab stop. Rather than pretend

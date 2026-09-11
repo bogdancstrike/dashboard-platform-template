@@ -23,7 +23,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Empty, List, Skeleton, Table, Tag, Typography } from "antd";
+import { Alert, List, Skeleton, Table, Tag, Typography } from "antd";
 import { Link } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -53,6 +53,7 @@ import {
 import { formatMetric } from "@/entities/EntityChrome";
 import { asText } from "@/lib/text";
 import { relativeTime } from "@/lib/time";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -145,14 +146,7 @@ export function WidgetBody({
   // (§34).
   if (!hasSubject(widget)) {
     return (
-      <Empty
-        image={Empty.PRESENTED_IMAGE_SIMPLE}
-        description={
-          <Text type="secondary">
-            Nothing chosen yet — open this widget&apos;s settings to say what it shows.
-          </Text>
-        }
-      />
+      <EmptyState compact title="Nothing chosen yet — open this widget&apos;s settings to say what it shows." />
     );
   }
 
@@ -212,7 +206,7 @@ function MetricStripBody({ widget }: { widget: DashboardWidget }) {
 
   const metrics = insights.data?.metrics ?? [];
   if (metrics.length === 0) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="This dataset declares no metrics" />;
+    return <EmptyState compact title="This dataset declares no metrics" />;
   }
 
   return (
@@ -276,7 +270,7 @@ function MapBody({ widget, period }: { widget: DashboardWidget; period: string }
 
   const data = places.data;
   if (!data || data.points.length === 0) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing placed in this period" />;
+    return <EmptyState compact title="Nothing placed in this period" />;
   }
 
   return (
@@ -317,7 +311,7 @@ function MetricBody({ widget, gauge }: { widget: DashboardWidget; gauge: boolean
     metrics[0];
 
   if (!metric) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No metric to show" />;
+    return <EmptyState compact title="No metric to show" />;
   }
 
   if (gauge) {
@@ -399,10 +393,7 @@ function ChartBody({
 
   if (!config.entity || !group) {
     return (
-      <Empty
-        image={Empty.PRESENTED_IMAGE_SIMPLE}
-        description="This widget has nothing to group by yet"
-      />
+      <EmptyState compact title="This widget has nothing to group by yet" />
     );
   }
   if (analysis.isLoading) return <Skeleton active title={false} paragraph={{ rows: 4 }} />;
@@ -410,7 +401,7 @@ function ChartBody({
     return <WidgetError error={analysis.error} entity={config.entity} />;
   }
   if ((analysis.data?.rows.length ?? 0) === 0) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing in this period" />;
+    return <EmptyState compact title="Nothing in this period" />;
   }
 
   return <ChartPreview panel={panelFor(analysis.data, kind)} height={160} />;
@@ -449,7 +440,7 @@ function RowsBody({
 
   const items = rows.data?.items ?? [];
   if (items.length === 0) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing here yet" />;
+    return <EmptyState compact title="Nothing here yet" />;
   }
 
   const path = resource?.path ?? "";
@@ -512,7 +503,7 @@ function AlertsBody() {
 
   const items = alerts.data?.items ?? [];
   if (items.length === 0) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing needs attention" />;
+    return <EmptyState compact title="Nothing needs attention" />;
   }
 
   return (
@@ -555,7 +546,7 @@ function ActivityBody() {
 
   const items = (summary.data?.activity ?? []).slice(0, 6);
   if (items.length === 0) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing has happened yet" />;
+    return <EmptyState compact title="Nothing has happened yet" />;
   }
 
   return (
@@ -597,7 +588,7 @@ function ReportBody({ widget, period }: { widget: DashboardWidget; period: strin
   });
 
   if (!reportId) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No report chosen" />;
+    return <EmptyState compact title="No report chosen" />;
   }
   if (run.isLoading) return <Skeleton active title={false} paragraph={{ rows: 4 }} />;
   if (run.isError) return <WidgetError error={run.error} entity="" />;
@@ -678,7 +669,7 @@ function SearchBody({
   });
 
   if (!searchId) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No search chosen" />;
+    return <EmptyState compact title="No search chosen" />;
   }
   if (search.isLoading || rows.isLoading) {
     return <Skeleton active title={false} paragraph={{ rows: 4 }} />;
@@ -689,7 +680,7 @@ function SearchBody({
   const resource = resources.find((item) => item.key === stored?.resource_type);
   const items = rows.data?.items ?? [];
   if (items.length === 0) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing matches it now" />;
+    return <EmptyState compact title="Nothing matches it now" />;
   }
 
   const title = resource?.title_field ?? "";

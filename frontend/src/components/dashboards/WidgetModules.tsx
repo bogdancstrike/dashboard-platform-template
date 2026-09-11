@@ -30,7 +30,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { Empty, List, Progress, Skeleton, Space, Tag, Tooltip, Typography } from "antd";
+import { List, Progress, Skeleton, Space, Tag, Tooltip, Typography } from "antd";
 import {
   CheckCircleTwoTone,
   ClockCircleOutlined,
@@ -56,6 +56,7 @@ import { StatusTag } from "@/components/StatusTag";
 import { asText } from "@/lib/text";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { knownStatusColor, SEMANTIC } from "@/theme/tokens";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -81,7 +82,7 @@ function Loading() {
 }
 
 function Nothing({ what }: { what: string }) {
-  return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={what} />;
+  return <EmptyState compact title={what} />;
 }
 
 /** The footer every module carries: the whole of it, one press away. */

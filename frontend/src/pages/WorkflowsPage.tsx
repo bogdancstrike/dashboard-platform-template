@@ -32,7 +32,6 @@ import {
   Button,
   Card,
   Dropdown,
-  Empty,
   Segmented,
   Skeleton,
   Space,
@@ -195,7 +194,7 @@ export default function WorkflowsPage() {
             error instanceof ApiError ? error.message : "Automations could not be loaded."
           }
           action={
-            <Button size="small" onClick={() => void rules.refetch()}>
+            <Button onClick={() => void rules.refetch()}>
               Retry
             </Button>
           }
@@ -438,10 +437,7 @@ export default function WorkflowsPage() {
               pagination={false}
               locale={{
                 emptyText: (
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="Nothing in this state"
-                  />
+                  <EmptyState compact title="Nothing in this state" />
                 ),
               }}
             />

@@ -47,7 +47,6 @@ import {
   Button,
   Card,
   Dropdown,
-  Empty,
   Form,
   Input,
   InputNumber,
@@ -93,6 +92,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { relativeTime } from "@/lib/time";
 import { PAPER } from "@/theme/tokens";
 import { COPY_MEANS, confirmCopy } from "@/lib/confirm";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -339,16 +339,11 @@ export default function ReportBuilderPage() {
         />
         {documents.length === 0 ? (
           <Card size="small">
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="No documents yet. One starts as a heading and a paragraph."
-            >
-              {canCreate && (
+            <EmptyState compact title="No documents yet. One starts as a heading and a paragraph." action={<>{canCreate && (
                 <Button type="primary" icon={<PlusOutlined />} onClick={() => create.mutate()}>
                   New document
                 </Button>
-              )}
-            </Empty>
+              )}</>} />
           </Card>
         ) : (
           <div className="nu-boards" data-testid="document-gallery">
@@ -387,7 +382,7 @@ export default function ReportBuilderPage() {
             : "That document could not be opened"
         }
         action={
-          <Button size="small" onClick={() => open("")}>
+          <Button onClick={() => open("")}>
             All documents
           </Button>
         }
@@ -512,7 +507,7 @@ export default function ReportBuilderPage() {
                   onClick: ({ key }) => addBlock(key as BlockKind),
                 }}
               >
-                <Button size="small" type="primary" icon={<PlusOutlined />} data-testid="add-block">
+                <Button type="primary" icon={<PlusOutlined />} data-testid="add-block">
                   Add
                 </Button>
               </Dropdown>
@@ -545,7 +540,6 @@ export default function ReportBuilderPage() {
                     <Space size={0}>
                       <Button
                         type="text"
-                        size="small"
                         aria-label={`Move ${BLOCK_SPECS[block.kind].label} up`}
                         disabled={index === 0}
                         icon={<ArrowUpOutlined />}
@@ -553,7 +547,6 @@ export default function ReportBuilderPage() {
                       />
                       <Button
                         type="text"
-                        size="small"
                         aria-label={`Move ${BLOCK_SPECS[block.kind].label} down`}
                         disabled={index === blocks.length - 1}
                         icon={<ArrowDownOutlined />}
@@ -561,7 +554,6 @@ export default function ReportBuilderPage() {
                       />
                       <Button
                         type="text"
-                        size="small"
                         danger
                         aria-label={`Remove ${BLOCK_SPECS[block.kind].label}`}
                         icon={<DeleteOutlined />}
@@ -626,10 +618,7 @@ export default function ReportBuilderPage() {
                 </section>
               ))}
               {blocks.length === 0 && (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description="An empty document. Add a block from the left."
-                />
+                <EmptyState compact title="An empty document. Add a block from the left." />
               )}
             </div>
             {(page.footer || page.page_numbers) && (
@@ -713,7 +702,6 @@ function DocumentCard({
             <Tooltip title="Make a copy you can change">
               <Button
                 type="text"
-                size="small"
                 aria-label={`Make a copy of ${document.name}`}
                 icon={<CopyOutlined />}
                 onClick={onCopy}
@@ -878,7 +866,7 @@ function BlockSettings({
     <div className="nu-doc-panel">
       <div className="nu-doc-panel-head">
         <Text strong>{spec.label}</Text>
-        <Button size="small" type="link" onClick={onClose}>
+        <Button type="text" onClick={onClose}>
           The page
         </Button>
       </div>

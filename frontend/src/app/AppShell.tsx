@@ -382,7 +382,7 @@ export function AppShell() {
               <strong>{impersonation.target.full_name}</strong>. Everything you do is
               recorded under both names.
             </span>
-            <Button size="small" onClick={impersonation.stop}>
+            <Button onClick={impersonation.stop}>
               Return to your own account
             </Button>
           </div>

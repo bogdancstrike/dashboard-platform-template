@@ -24,12 +24,13 @@
  * unlabelled is how a number gets quoted wrongly in a report.
  */
 
-import { Empty, Space, Tag, Tooltip, Typography } from "antd";
+import { Space, Tag, Tooltip, Typography } from "antd";
 
 import type { ServiceHistory } from "@/api/meta";
 import { ChartPreview } from "@/components/charts/ChartPreview";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { statusColor } from "@/theme/tokens";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -73,12 +74,7 @@ export function ServiceHistoryCard({ service }: { service: ServiceHistory }) {
       </header>
 
       {points.length === 0 ? (
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={
-            <Text type="secondary">Nothing recorded in this window</Text>
-          }
-        />
+        <EmptyState compact title="Nothing recorded in this window" />
       ) : (
         <>
           <ChartPreview

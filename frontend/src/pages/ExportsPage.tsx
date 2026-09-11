@@ -50,7 +50,6 @@ import {
   Button,
   Descriptions,
   Drawer,
-  Empty,
   Form,
   Popconfirm,
   Progress,
@@ -86,6 +85,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { errorText } from "@/lib/errors";
 import { formatNumber } from "@/lib/formats";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text, Paragraph } = Typography;
 
@@ -311,7 +311,7 @@ export default function ExportsPage() {
       width: 130,
       render: (value: string, row) => (
         <Button
-          type="link"
+          type="text"
           className="nu-exp-open"
           data-testid={`exp-${row.reference}`}
           onClick={() =>
@@ -410,7 +410,6 @@ export default function ExportsPage() {
         <Space size={4}>
           {row.downloadable ? (
             <Button
-              size="small"
               type="primary"
               icon={<DownloadOutlined />}
               data-testid={`download-${row.reference}`}
@@ -423,7 +422,6 @@ export default function ExportsPage() {
             // Offered wherever there is no file, which is the only useful
             // action left on such a row.
             <Button
-              size="small"
               icon={<RedoOutlined />}
               data-testid={`again-${row.reference}`}
               loading={asked.isPending && asked.variables === row.id}
@@ -449,7 +447,6 @@ export default function ExportsPage() {
             onConfirm={() => discarded.mutate(row.id)}
           >
             <Button
-              size="small"
               type="text"
               data-testid={`discard-${row.reference}`}
               disabled={working(row)}
@@ -532,15 +529,12 @@ export default function ExportsPage() {
           pagination={false}
           locale={{
             emptyText: (
-              <Empty
-                image={null}
-                description={
+              <EmptyState title={
                   <span>
                     You have not exported anything yet. Any list in the platform can be
                     exported, and one too large to download arrives here.
                   </span>
-                }
-              />
+                } />
             ),
           }}
         />

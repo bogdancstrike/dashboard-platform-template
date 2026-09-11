@@ -59,7 +59,6 @@ import {
   Alert,
   Button,
   Card,
-  Empty,
   Skeleton,
   Space,
   Tag,
@@ -97,6 +96,7 @@ import { clock } from "@/components/calendar/MonthGrid";
 import { rangeFor } from "@/lib/calendarGrid";
 import { relativeTime } from "@/lib/time";
 import { PersonAvatar } from "@/components/PersonAvatar";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -520,20 +520,15 @@ export default function HomePage() {
             title="Today"
             data-testid="home-today"
             extra={
-              <Link to="/calendar?view=day">
-                <Button type="link" size="small">
-                  The calendar
-                </Button>
-              </Link>
+              <Link to="/calendar?view=day" className="nu-quiet-link">
+              The calendar
+            </Link>
             }
           >
             {events.isLoading ? (
               <Skeleton active paragraph={{ rows: 3 }} />
             ) : mine.length === 0 ? (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="Nothing in your calendar today"
-              />
+              <EmptyState compact title="Nothing in your calendar today" />
             ) : (
               <Space direction="vertical" size={6} className="nu-block">
                 {mine.map((event) => (
@@ -564,20 +559,15 @@ export default function HomePage() {
             title="Your work"
             data-testid="home-tasks"
             extra={
-              <Link to="/tasks">
-                <Button type="link" size="small">
-                  The queue
-                </Button>
-              </Link>
+              <Link to="/tasks" className="nu-quiet-link">
+              The queue
+            </Link>
             }
           >
             {tasks.isLoading ? (
               <Skeleton active paragraph={{ rows: 3 }} />
             ) : (tasks.data?.items.length ?? 0) === 0 ? (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="Nothing is assigned to you"
-              />
+              <EmptyState compact title="Nothing is assigned to you" />
             ) : (
               <Space direction="vertical" size={6} className="nu-block">
                 {(tasks.data?.items ?? []).map((row) => (
@@ -611,20 +601,15 @@ export default function HomePage() {
           title="What has been happening"
           data-testid="home-activity"
           extra={
-            <Link to="/activity">
-              <Button type="link" size="small">
-                The feed
-              </Button>
+            <Link to="/activity" className="nu-quiet-link">
+              The feed
             </Link>
           }
         >
           {feed.isLoading ? (
             <Skeleton active paragraph={{ rows: 4 }} />
           ) : (feed.data?.items.length ?? 0) === 0 ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="Nothing has happened this week"
-            />
+            <EmptyState compact title="Nothing has happened this week" />
           ) : (
             <Space direction="vertical" size={6} className="nu-block">
               {(feed.data?.items ?? []).slice(0, 6).map((entry) => (
@@ -668,20 +653,15 @@ export default function HomePage() {
           title="Jump back in"
           data-testid="home-recents"
           extra={
-            <Link to="/favorites">
-              <Button type="link" size="small">
-                Favourites
-              </Button>
+            <Link to="/favorites" className="nu-quiet-link">
+              Favourites
             </Link>
           }
         >
           {recents.isLoading ? (
             <Skeleton active paragraph={{ rows: 3 }} title={false} />
           ) : (recents.data?.items.length ?? 0) === 0 ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="Nowhere yet — the trail fills itself as you work"
-            />
+            <EmptyState compact title="Nowhere yet — the trail fills itself as you work" />
           ) : (
             <Space direction="vertical" size={4} className="nu-block">
               {(recents.data?.items ?? []).slice(0, 6).map((visit) => (
@@ -704,17 +684,15 @@ export default function HomePage() {
           title="What the platform has said"
           data-testid="home-notices"
           extra={
-            <Link to="/announcements">
-              <Button type="link" size="small">
-                The noticeboard
-              </Button>
+            <Link to="/announcements" className="nu-quiet-link">
+              The noticeboard
             </Link>
           }
         >
           {notices.isLoading ? (
             <Skeleton active paragraph={{ rows: 3 }} />
           ) : live.length === 0 ? (
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No notices are live" />
+            <EmptyState compact title="No notices are live" />
           ) : (
             <Space direction="vertical" size={10} className="nu-block">
               {live.map((notice) => (

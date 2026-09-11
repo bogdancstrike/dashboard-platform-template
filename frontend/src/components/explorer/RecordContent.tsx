@@ -1,10 +1,11 @@
 /** Read long-form text as prose and structured attributes as labelled values. */
-import { Descriptions, Empty, Tag, Typography } from "antd";
+import { Descriptions, Tag, Typography } from "antd";
 import type { RecordDetail, RecordField } from "@/api/records";
 import { HighlightedText } from "@/components/HighlightedText";
 import { asText } from "@/lib/text";
 import { formatDateTime, formatNumber } from "@/lib/formats";
 import { knownStatusColor } from "@/theme/tokens";
+import { EmptyState } from "@/components/EmptyState";
 
 export function RecordContent({ record, term }: { record: RecordDetail; term: string }) {
   const contentNames = new Set(record.content_fields);
@@ -20,8 +21,7 @@ export function RecordContent({ record, term }: { record: RecordDetail; term: st
           {/* React escapes stored text; paragraph boundaries survive verbatim. */}
           <p><HighlightedText text={asText(field.value)} term={term} /></p>
         </article>
-      ) : null) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE}
-        description="This record has no full text. Its details are shown below." />}
+      ) : null) : <EmptyState compact title="This record has no full text. Its details are shown below." />}
     </section>
     <section aria-label="Metadata">
       <Typography.Title level={3}>Metadata</Typography.Title>

@@ -87,6 +87,29 @@ catalogue. The detail contract also includes structured `metadata`, with known
 secret keys masked recursively. Text is rendered as escaped prose, preserving
 paragraphs. Related records use the existing schema-derived relationship API.
 
+### One design, and the test that keeps it
+
+`frontend/src/theme/conventions.ts` is where "which button is this" has an
+answer. Four roles, one spelling each — **primary** for the single thing a
+surface is for, **secondary** for the other verbs, **quiet** (`type="text"`)
+for anything repeated per row, **destructive** (`danger`, behind a confirm from
+`lib/confirm`) — and no fifth. `type="link"` is not used: it looks like a link
+and is not one.
+
+**Pages never set a control's size.** `AppearanceProvider` maps the reader's
+density preference onto AntD's `componentSize`, so a page writing
+`size="small"` overrides somebody who asked for the comfortable one. A shared
+component may, when it is structurally dense, and names the constraint in
+`DENSE_BY_CONSTRUCTION`.
+
+**One empty state**: `EmptyState` / `NoResults`, never AntD's `<Empty>` —
+which ships two illustrations of its own, and three on one screen is not a
+design.
+
+`conventions.test.ts` asserts all of it against the source, so a page that
+drifts fails the suite rather than the eye. The roles are also rendered on
+[`/showcase/components`](http://localhost:5174/showcase/components).
+
 ### Reports, and the two builders that are not the same builder
 
 `/charts/builder` composes a **question** — a dataset, a grouping, a measure

@@ -82,7 +82,7 @@ export function RecordPreview({ resourceType, recordId, term = "", onClose }: Re
           {data.subtitle && <Typography.Text code>{data.subtitle}</Typography.Text>}
           {data.status && <Tag style={{ borderInlineStart: `3px solid ${knownStatusColor(data.status) ?? "var(--nu-border)"}` }}>{data.status}</Tag>}
           <Link to={`${data.path}/${data.id}`}><ExportOutlined /> Open full record</Link>
-          <Button type="link" aria-label="Show connections" icon={<ApartmentOutlined />}
+          <Button type="text" aria-label="Show connections" icon={<ApartmentOutlined />}
             onClick={() => navigate(`/find/relationships?resource=${resourceType}&id=${recordId}`)}>
             Connections
           </Button>

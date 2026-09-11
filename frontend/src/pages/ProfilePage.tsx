@@ -38,7 +38,6 @@ import {
   Button,
   Card,
   Descriptions,
-  Empty,
   Skeleton,
   Space,
   Tabs,
@@ -557,10 +556,7 @@ function AccessTab({ profile }: { profile: Profile }) {
 
       <Card size="small" title="Groups" extra={<TeamOutlined />}>
         {groups.length === 0 ? (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="Not in any group — everything above comes from the role"
-          />
+          <EmptyState compact title="Not in any group — everything above comes from the role" />
         ) : (
           <ul className="nu-profile-groups">
             {groups.map((group) => (

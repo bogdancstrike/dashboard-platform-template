@@ -26,13 +26,14 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { Empty, List, Segmented, Skeleton, Space, Typography } from "antd";
+import { List, Segmented, Skeleton, Space, Typography } from "antd";
 import { ApartmentOutlined, BarsOutlined } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
 
 import { relationshipsApi } from "@/api/relationships";
 import { EgoGraph } from "@/components/graph/EgoGraph";
 import { useSticky } from "@/hooks/useSticky";
+import { EmptyState } from "@/components/EmptyState";
 
 import { RecordReadError } from "./RecordReadError";
 
@@ -61,7 +62,7 @@ export function RecordRelations({
 
   const groups = relations.data?.groups.filter((group) => group.total > 0) ?? [];
   const root = relations.data?.root;
-  if (groups.length === 0 || !root) return <Empty description="No related records" />;
+  if (groups.length === 0 || !root) return <EmptyState title="No related records" />;
 
   return (
     <div className="nu-record-content">

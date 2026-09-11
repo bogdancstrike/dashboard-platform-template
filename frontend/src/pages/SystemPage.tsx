@@ -6,7 +6,6 @@ import {
   Col,
   DatePicker,
   Descriptions,
-  Empty,
   Row,
   Segmented,
   Space,
@@ -22,6 +21,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { ServiceHistoryCard } from "@/components/health/ServiceHistoryCard";
 import { absoluteTime } from "@/lib/time";
 import { statusColor } from "@/theme/tokens";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -240,10 +240,7 @@ export default function SystemPage() {
             {history.isError ? (
               <ErrorPanel error={history.error} />
             ) : (history.data?.services.length ?? 0) === 0 ? (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No service has recorded anything in this window"
-              />
+              <EmptyState compact title="No service has recorded anything in this window" />
             ) : (
               <div className="nu-health-grid">
                 {(history.data?.services ?? []).map((service) => (

@@ -413,7 +413,7 @@ export default function NotificationsPage() {
             ) : undefined
           }
           action={
-            <Button size="small" onClick={() => void listing.refetch()}>
+            <Button onClick={() => void listing.refetch()}>
               Retry
             </Button>
           }
@@ -520,7 +520,6 @@ export default function NotificationsPage() {
                             <Tooltip title="Mark this group read">
                               <Button
                                 type="text"
-                                size="small"
                                 icon={<CheckOutlined />}
                                 aria-label={`Mark the ${item.title} group read`}
                                 onClick={() =>
@@ -532,7 +531,6 @@ export default function NotificationsPage() {
                             <Tooltip title={item.is_read ? "Mark unread" : "Mark read"}>
                               <Button
                                 type="text"
-                                size="small"
                                 icon={item.is_read ? <UndoOutlined /> : <CheckOutlined />}
                                 aria-label={`Mark ${item.title} as ${item.is_read ? "unread" : "read"}`}
                                 onClick={() =>
@@ -544,7 +542,6 @@ export default function NotificationsPage() {
                           <Tooltip title="Delete">
                             <Button
                               type="text"
-                              size="small"
                               icon={<DeleteOutlined />}
                               aria-label={`Delete ${item.title}`}
                               onClick={() =>

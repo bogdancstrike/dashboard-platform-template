@@ -10,7 +10,7 @@
  * where a page boundary interrupts a read that had no reason to stop (§52).
  */
 
-import { Button, Card, Empty, List, Space, Table, Tag, Tooltip, Typography } from "antd";
+import { Button, Card, List, Space, Table, Tag, Tooltip, Typography } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
 import type { ColumnsType, ColumnType, TablePaginationConfig, TableProps } from "antd/es/table";
 
@@ -18,6 +18,7 @@ import type { ExplorerField, ExplorerResult, ExplorerView } from "@/api/explorer
 import { HighlightedText } from "@/components/HighlightedText";
 import { FavoriteStar } from "@/components/records/FavoriteStar";
 import { asText } from "@/lib/text";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -110,7 +111,7 @@ export function ExplorerResults({
   const fields = new Map((result?.fields ?? []).map((field) => [field.name, field]));
   const term = result?.query_text ?? "";
   const searchable = new Set(result?.searchable ?? []);
-  const empty = <Empty description="No records match this question" />;
+  const empty = <EmptyState title="No records match this question" />;
 
   const columns: ColumnsType<ExplorerRecord> = [
     ...(result?.columns ?? []).map((name): ColumnType<ExplorerRecord> => {

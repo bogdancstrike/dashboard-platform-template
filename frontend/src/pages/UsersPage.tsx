@@ -300,7 +300,7 @@ export default function UsersPage() {
             ) : undefined
           }
           action={
-            <Button size="small" onClick={() => void people.refetch()}>
+            <Button onClick={() => void people.refetch()}>
               Retry
             </Button>
           }

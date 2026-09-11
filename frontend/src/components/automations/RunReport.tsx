@@ -16,12 +16,13 @@
  * it looks like the real thing.
  */
 
-import { Alert, Empty, Space, Table, Tag, Tooltip, Typography } from "antd";
+import { Alert, Space, Table, Tag, Tooltip, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Link } from "react-router-dom";
 
 import type { AutomationOutcome, AutomationRun } from "@/api/automations";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -150,14 +151,11 @@ export function RunReport({ run, dense }: { run: AutomationRun; dense?: boolean 
       )}
 
       {run.sample.length === 0 ? (
-        <Empty
-          image={null}
-          description={
+        <EmptyState title={
             run.matched === 0
               ? "Nothing matched. That is the quiet answer, not an error."
               : "No detail was kept for this run."
-          }
-        />
+          } />
       ) : (
         <Table<AutomationOutcome>
           rowKey="record_id"

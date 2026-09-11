@@ -35,7 +35,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { Empty, Form, Input, Modal, Segmented, Select, Switch, Typography } from "antd";
+import { Form, Input, Modal, Segmented, Select, Switch, Typography } from "antd";
 import { useState } from "react";
 
 import { analysisApi } from "@/api/analysis";
@@ -44,6 +44,7 @@ import { explorerApi, type ExplorerResource } from "@/api/explorer";
 import { kanbanApi } from "@/api/kanban";
 import { reportsApi } from "@/api/reports";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
+import { EmptyState } from "@/components/EmptyState";
 
 import { FAMILY_LABELS, KINDS, KIND_FAMILIES, kindsOf, type KindSpec } from "./kinds";
 import { WidgetBody } from "./WidgetBody";
@@ -555,16 +556,13 @@ export function WidgetModal({
         >
           <WidgetCard widget={draft} editable={false} columns={12} moves={NO_MOVES}>
             {KINDS[kind].needs !== "nothing" && !hasSubject(draft) ? (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={
+              <EmptyState compact title={
                   <Text type="secondary">
                     {KINDS[kind].needs === "dataset"
                       ? "Pick a dataset to see it"
                       : `Pick a saved ${KINDS[kind].needs} to see it`}
                   </Text>
-                }
-              />
+                } />
             ) : (
               <WidgetBody
                 widget={draft}

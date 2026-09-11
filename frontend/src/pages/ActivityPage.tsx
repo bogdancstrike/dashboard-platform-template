@@ -172,7 +172,7 @@ export default function ActivityPage() {
             ) : undefined
           }
           action={
-            <Button size="small" onClick={() => void feed.refetch()}>
+            <Button onClick={() => void feed.refetch()}>
               Retry
             </Button>
           }
