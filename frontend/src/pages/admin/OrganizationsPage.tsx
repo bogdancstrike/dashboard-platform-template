@@ -55,7 +55,7 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import {
@@ -124,6 +124,7 @@ export function peopleLabel(node: DepartmentNode): string {
 }
 
 export default function OrganizationsPage() {
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { message } = AntApp.useApp();
@@ -207,6 +208,18 @@ export default function OrganizationsPage() {
       label: "Add a department",
       keywords: "department org structure team",
       run: () => setAdding({ parentId: null }),
+    },
+    {
+      id: "orgs.people",
+      label: "See the people instead",
+      keywords: "users people accounts staff directory",
+      run: () => navigate("/admin/users"),
+    },
+    {
+      id: "orgs.groups",
+      label: "See the groups instead",
+      keywords: "groups teams membership sharing",
+      run: () => navigate("/admin/groups"),
     },
   ]);
 

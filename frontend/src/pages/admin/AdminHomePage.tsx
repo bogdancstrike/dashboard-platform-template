@@ -36,7 +36,8 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { usePageCommands } from "@/commands/CommandContext";
 
 import { settingsApi } from "@/api/settings";
 import { usersApi } from "@/api/users";
@@ -157,6 +158,7 @@ export function destinations(counts: {
 }
 
 export default function AdminHomePage() {
+  const navigate = useNavigate();
   const { profile } = useAuth();
   const can = (permission: string) => profile?.permissions.includes(permission) ?? false;
 
@@ -180,6 +182,26 @@ export default function AdminHomePage() {
     enabled: can("flags.manage"),
     staleTime: 60_000,
   });
+
+  /**
+   * What this page can do, for the palette (§31).
+   *
+   * Built from the same `destinations()` the tiles are, filtered by the same
+   * permission — so a command here can never open a page the tile beside it
+   * refuses. Two lists of administration areas is how one of them goes stale.
+   */
+  usePageCommands(
+    "admin",
+    destinations({})
+      .filter((card) => can(card.permission))
+      .map((card) => ({
+        id: `admin.${card.to}`,
+        label: `Administer ${card.title.toLowerCase()}`,
+        icon: card.icon,
+        keywords: `${card.title} ${card.what} admin`,
+        run: () => navigate(card.to),
+      })),
+  );
 
   if (!profile) return <Skeleton active paragraph={{ rows: 8 }} />;
 

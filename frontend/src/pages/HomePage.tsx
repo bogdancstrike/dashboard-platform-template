@@ -377,13 +377,31 @@ export default function HomePage() {
       keywords: "preferences settings theme density",
       // `navigate` and not `location.href`: a full page reload from inside a
       // single-page application throws away every cache the page just filled.
-      run: () => navigate("/preferences"),
+      run: () => navigate("/settings/preferences"),
     },
     {
       id: "home.dashboard",
       label: "Open the dashboard",
       keywords: "numbers kpi dashboard",
       run: () => navigate("/dashboard"),
+    },
+    {
+      id: "home.explore",
+      label: "Ask the data something",
+      keywords: "explore query records search datasets filter",
+      run: () => navigate("/explore"),
+    },
+    {
+      id: "home.tasks",
+      label: "Open my work",
+      keywords: "tasks assigned mine todo work board",
+      run: () => navigate("/tasks"),
+    },
+    {
+      id: "home.mail",
+      label: "Open the mailbox",
+      keywords: "mail inbox email messages unread",
+      run: () => navigate("/mail"),
     },
   ]);
 
@@ -461,7 +479,7 @@ export default function HomePage() {
         </div>
 
         <Space size={8} wrap>
-          <Link to="/preferences">
+          <Link to="/settings/preferences">
             <Button>How you like things</Button>
           </Link>
           <Link to="/dashboard">

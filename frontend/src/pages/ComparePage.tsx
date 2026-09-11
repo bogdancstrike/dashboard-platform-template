@@ -27,7 +27,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Card, Segmented, Skeleton, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import type { ComparedField, Comparison } from "@/api/compare";
 import { compareApi } from "@/api/compare";
@@ -66,6 +66,7 @@ export function idsFrom(raw: string | null): string[] {
 }
 
 export default function ComparePage() {
+  const navigate = useNavigate();
   const [params] = useSearchParams();
   const resourceType = params.get("type") ?? "";
   const ids = useMemo(() => idsFrom(params.get("ids")), [params]);
@@ -80,11 +81,35 @@ export default function ComparePage() {
 
   usePageCommands("compare", [
     {
-      id: "compare.everything",
-      label: "Show the fields that are the same as well",
-      keywords: "compare all fields same identical",
-      run: () => setShow("everything"),
+      id: "compare.show",
+      label:
+        show === "everything"
+          ? "Show only the fields that differ"
+          : "Show the fields that are the same as well",
+      keywords: "compare all fields same identical differences only",
+      // One command that toggles rather than two that each only work in one
+      // direction: a palette offering "show everything" while everything is
+      // already shown is a palette that has stopped reading the page.
+      run: () => setShow(show === "everything" ? "differences" : "everything"),
     },
+    {
+      id: "compare.back",
+      label: `Back to the ${resourceType} list`,
+      keywords: "list records explorer return selection",
+      run: () => navigate(`/explore?resource=${resourceType}`),
+    },
+    ...(ids.length > 0
+      ? [
+          {
+            id: "compare.copy",
+            label: "Copy a link to this comparison",
+            keywords: "share link url send colleague",
+            // The address *is* the comparison — the ids are in it — which is
+            // the whole reason this page has no state of its own to share.
+            run: () => void navigator.clipboard?.writeText(window.location.href),
+          },
+        ]
+      : []),
   ]);
 
   const rows = useMemo(

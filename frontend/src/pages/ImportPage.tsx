@@ -71,7 +71,7 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 import {
   importsApi,
@@ -233,6 +233,7 @@ export default function ImportPage() {
       return merged;
     });
 
+  const navigate = useNavigate();
   const close = () =>
     setParams((next) => {
       const merged = new URLSearchParams(next);
@@ -305,6 +306,23 @@ export default function ImportPage() {
       label: "Import a spreadsheet",
       keywords: "import csv upload spreadsheet load data",
       run: () => close(),
+    },
+    {
+      id: "import.history",
+      label: "Show what has been imported before",
+      keywords: "history runs past previous imports log",
+      run: () => {
+        close();
+        document
+          .querySelector('[data-testid="import-history"]')
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      },
+    },
+    {
+      id: "import.export",
+      label: "Take data out instead",
+      keywords: "export download csv out extract",
+      run: () => navigate("/exports"),
     },
   ]);
 

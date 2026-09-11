@@ -177,6 +177,24 @@ export default function FlagsPage() {
       keywords: "flag enabled live",
       run: () => set({ state: "ON" }),
     },
+    {
+      id: "flags.off",
+      label: "Show the flags that are off",
+      keywords: "flag disabled hidden switched off",
+      run: () => set({ state: "OFF" }),
+    },
+    {
+      id: "flags.partial",
+      label: "Show the flags mid-rollout",
+      keywords: "flag rollout percentage partial gradual some",
+      run: () => set({ state: "PARTIAL" }),
+    },
+    {
+      id: "flags.all",
+      label: "Show every flag",
+      keywords: "flag all clear filter everything",
+      run: () => set({ state: null, q: null }),
+    },
   ]);
 
   if (flags.isLoading) return <Skeleton active paragraph={{ rows: 10 }} />;

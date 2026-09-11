@@ -51,7 +51,7 @@ import {
 import { DeleteOutlined, PlusOutlined, TeamOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { groupsApi, type Group, type GroupDetail, type GroupKind } from "@/api/groups";
@@ -117,6 +117,7 @@ export default function GroupsPage() {
     what: "group",
   });
 
+  const navigate = useNavigate();
   const set = (changes: Record<string, string | null>) =>
     setParams(
       (current) => {
@@ -199,6 +200,24 @@ export default function GroupsPage() {
       label: "Make a group",
       keywords: "group create new team permissions",
       run: () => setCreating(true),
+    },
+    {
+      id: "groups.all",
+      label: "Show every group",
+      keywords: "groups all clear filter search",
+      run: () => set({ q: null }),
+    },
+    {
+      id: "groups.roles",
+      label: "See what a role may do instead",
+      keywords: "roles permissions grants what may do",
+      run: () => navigate("/admin/roles"),
+    },
+    {
+      id: "groups.people",
+      label: "See the people",
+      keywords: "users people accounts members directory",
+      run: () => navigate("/admin/users"),
     },
   ]);
 

@@ -47,7 +47,7 @@ import {
 import { CheckCircleOutlined, LinkOutlined, ReloadOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import {
@@ -116,6 +116,7 @@ export default function IntegrationsPage() {
   const category = params.get("category") ?? "";
   const opened = params.get("integration");
 
+  const navigate = useNavigate();
   const set = (changes: Record<string, string | null>) =>
     setParams(
       (current) => {
@@ -208,6 +209,18 @@ export default function IntegrationsPage() {
       label: "Show the integrations that need attention",
       keywords: "integrations broken failing error connected",
       run: () => set({ category: null, q: null }),
+    },
+    {
+      id: "integrations.recheck",
+      label: "Check every integration now",
+      keywords: "refresh probe recheck reachable connection test",
+      run: () => void listing.refetch(),
+    },
+    {
+      id: "integrations.health",
+      label: "See the platform's own dependencies",
+      keywords: "health status database storage cache uptime",
+      run: () => navigate("/admin/health"),
     },
   ]);
 

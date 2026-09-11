@@ -12,12 +12,20 @@ import {
   Table,
   Typography,
 } from "antd";
+import {
+  ClockCircleOutlined,
+  FileTextOutlined,
+  ReloadOutlined,
+  ThunderboltOutlined,
+} from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { healthApi, metaApi, type HealthSnapshot } from "@/api/meta";
 import { PageHeader } from "@/components/PageHeader";
+import { usePageCommands } from "@/commands/CommandContext";
 import { ServiceHistoryCard } from "@/components/health/ServiceHistoryCard";
 import { absoluteTime } from "@/lib/time";
 import { statusColor } from "@/theme/tokens";
@@ -123,6 +131,7 @@ const PERIOD_LABELS: Record<string, string> = {
  * platform was part of it.
  */
 export default function SystemPage() {
+  const navigate = useNavigate();
   const [period, setPeriod] = useState("1d");
   /** A custom window, as two moments. Empty until somebody picks one. */
   const [range, setRange] = useState<[Dayjs, Dayjs] | null>(null);
@@ -145,6 +154,53 @@ export default function SystemPage() {
     // redraw eight charts under somebody's pointer.
     refetchInterval: 60_000,
   });
+
+  /**
+   * What this page can do, for the palette (§31).
+   *
+   * The window is the whole interaction on this screen — "was it unhealthy
+   * last night" is a different press from "is it unhealthy now" — and the
+   * named windows are the server's own, so the palette cannot ask for one the
+   * history endpoint would refuse.
+   */
+  usePageCommands("health", [
+    ...(history.data?.periods ?? ["8h", "1d", "7d", "30d"])
+      .filter((key) => range !== null || key !== period)
+      .map((key) => ({
+        id: `health.period.${key}`,
+        label: `Show the last ${(PERIOD_LABELS[key] ?? key).toLowerCase()}`,
+        icon: <ClockCircleOutlined />,
+        keywords: "window period range history hours days",
+        run: () => {
+          setRange(null);
+          setPeriod(key);
+        },
+      })),
+    {
+      id: "health.refresh",
+      label: "Check the dependencies now",
+      icon: <ReloadOutlined />,
+      keywords: "refresh probe recheck current status",
+      run: () => {
+        void health.refetch();
+        void history.refetch();
+      },
+    },
+    {
+      id: "health.jobs",
+      label: "See what the platform is running",
+      icon: <ThunderboltOutlined />,
+      keywords: "jobs queue background workers",
+      run: () => navigate("/admin/jobs"),
+    },
+    {
+      id: "health.logs",
+      label: "Open the logs",
+      icon: <FileTextOutlined />,
+      keywords: "log errors warnings trace lines",
+      run: () => navigate("/admin/logs"),
+    },
+  ]);
 
   return (
     <>

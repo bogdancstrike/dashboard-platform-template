@@ -49,7 +49,7 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import type { Tag, TagCategory, TagVocabulary } from "@/api/tags";
@@ -88,6 +88,7 @@ export function summarise(vocabulary: TagVocabulary | undefined): string {
 }
 
 export default function TagsPage() {
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const category = params.get("category") ?? "";
   const { message, modal } = AntApp.useApp();
@@ -106,6 +107,27 @@ export default function TagsPage() {
       label: "Add a tag to the vocabulary",
       keywords: "tag label new create",
       run: () => setEditing("new"),
+    },
+    {
+      id: "tags.all",
+      label: "Show the whole vocabulary",
+      keywords: "tags all clear filter category every",
+      run: () => setParams(new URLSearchParams()),
+    },
+    {
+      id: "tags.unused",
+      label: "Find the tags nobody uses",
+      keywords: "tags unused retire empty zero prune",
+      // Sorted rather than filtered: a tag at zero is a candidate for
+      // retirement, not a mistake, so the page shows them first rather than
+      // showing them alone.
+      run: () => setParams(new URLSearchParams({ sort: "usage", order: "asc" })),
+    },
+    {
+      id: "tags.records",
+      label: "See the records that carry tags",
+      keywords: "explore records tagged labelled find",
+      run: () => navigate("/explore"),
     },
   ]);
 

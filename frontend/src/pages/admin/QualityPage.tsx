@@ -30,7 +30,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Card, Segmented, Skeleton, Space, Tag, Tooltip, Typography } from "antd";
 import { CheckCircleOutlined } from "@ant-design/icons";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 
 import type { QualityFinding, QualityOverview, QualitySeverity } from "@/api/quality";
 import { qualityApi } from "@/api/quality";
@@ -84,6 +84,7 @@ export function summarise(overview: QualityOverview | undefined): string {
 }
 
 export default function QualityPage() {
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const chosen = params.get("resource_type") ?? "";
 
@@ -99,6 +100,18 @@ export default function QualityPage() {
       label: "Show every dataset's data-quality checks",
       keywords: "quality data problems all",
       run: () => setParams(new URLSearchParams()),
+    },
+    {
+      id: "quality.rerun",
+      label: "Run the checks again",
+      keywords: "refresh rerun recheck now generated",
+      run: () => void query.refetch(),
+    },
+    {
+      id: "quality.catalogue",
+      label: "Read what each dataset declares",
+      keywords: "catalog fields declaration schema types",
+      run: () => navigate("/find/catalog"),
     },
   ]);
 

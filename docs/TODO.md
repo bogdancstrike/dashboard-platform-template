@@ -3146,6 +3146,60 @@ Ordered as asked: mail, then the admin pages, then the showcase.
     responsive rule could collapse the desktop sidebar unnoticed. The two new
     tests state a width first
 
+### Help works on every page, and the palette knows where it is
+
+- [x] **A tour for all fifty pages** (§77). The Help button was written for
+      eleven, which meant it was *disabled* on the other thirty-nine — and a
+      control that works on some pages and is greyed on most teaches somebody
+      it is unreliable faster than one that is missing altogether
+  - `tours.test.ts` now asserts **coverage against the router**: a page added
+    without a tour fails the suite rather than shipping with the button greyed
+    out. The exemptions are named and reasoned — the error screens *are* the
+    explanation, three routes are redirects into a page that has its own tour,
+    and `*` and `:id` are patterns rather than destinations
+  - Every stop still points at a real `data-testid` and still says **why**
+    rather than what, both asserted. Four pages had nothing to point at, so
+    they gained anchors — which is the convention working as intended: the
+    tour and the tests address the same attribute, so a control removed breaks
+    a test rather than silently emptying a tour
+  - The router check learnt the **second declaration form**: the five entity
+    routes are generated from an array, so `path: "projects"` counts alongside
+    `path="projects"`
+- [x] **Every page contributes to the palette** (§31). Nine contributed
+      nothing — including `/explore`, the screen with the most controls on it,
+      where the palette earns its keystroke best. 192 page commands now, and
+      `CommandContext.test.tsx` fails on a page that adds none
+  - Commands **read the page's current state**: the view the explorer is not
+    in, the periods the dashboard is not showing, the health windows the server
+    actually offers. A palette offering "show everything" while everything is
+    already shown is one that has stopped reading the page
+  - Anything a **flag has switched off is absent**, not offered and refused
+    (§27, §76) — and every command runs the same handler the visible control
+    does rather than a second implementation that can drift
+  - The test also found a real **duplicate id**: the portfolio's
+    `project.at-risk` *filters* to the projects at risk and the delivery page's
+    wrote the status. Same key, two meanings, and the palette keys its items by
+    id
+  - `renderWithProviders` now mounts `CommandProvider`, which it should always
+    have: it claims to be "the same nesting as main.tsx" and was missing the
+    one provider `usePageCommands` throws without
+- [x] **A link that goes nowhere now fails a test.** `/home`'s "How you like
+      things" button and its palette command both pointed at `/preferences`,
+      and the route is `/settings/preferences` — so the friendly button on the
+      landing page of the application was a 404, and nothing caught it because
+      a `navigate()` with a wrong string is valid TypeScript and a `<Link>` to
+      nowhere renders perfectly. `app/routes.test.ts` reads every static
+      `navigate("/…")` and `to="/…"` in the shipped source and checks it
+      against the router
+  - Narrow on purpose: **computed paths are out of scope**, because `:id`
+    segments make them unverifiable from source — and a computed path is built
+    from a route somebody had to look up anyway. The static ones are where this
+    typo lives
+  - It needed a second pass to have teeth. The first version treated the bare
+    `:id` child route as a whole path, so *every* single-segment address
+    matched and `/preferences` passed. Verified by reintroducing the bug and
+    watching it fail
+
 ### Known red
 
 Twenty-six at the start of this session; two now.

@@ -31,7 +31,14 @@ import {
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { DatabaseOutlined, SearchOutlined } from "@ant-design/icons";
+import {
+  ClearOutlined,
+  DatabaseOutlined,
+  DeploymentUnitOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
+import { usePageCommands } from "@/commands/CommandContext";
 
 import { catalogApi, type CatalogDataset, type CatalogField } from "@/api/catalog";
 import { PageHeader } from "@/components/PageHeader";
@@ -43,6 +50,7 @@ const { Text } = Typography;
 const SPARSE = 50;
 
 export default function DataCatalogPage() {
+  const navigate = useNavigate();
   const [term, setTerm] = useState("");
   const catalog = useQuery({
     queryKey: ["catalog"],
@@ -64,6 +72,41 @@ export default function DataCatalogPage() {
         ),
     );
   }, [catalog.data, needle]);
+
+  /**
+   * What this page can do, for the palette (§31).
+   *
+   * The catalogue is where somebody lands wondering *which* dataset has the
+   * field they want; the useful commands are the two places they go next once
+   * they know, plus a way to empty a search that matched nothing.
+   */
+  usePageCommands("catalog", [
+    ...(needle
+      ? [
+          {
+            id: "catalog.clear",
+            label: "Clear the filter",
+            icon: <ClearOutlined />,
+            keywords: "reset empty all datasets",
+            run: () => setTerm(""),
+          },
+        ]
+      : []),
+    {
+      id: "catalog.explore",
+      label: "Query a dataset in the explorer",
+      icon: <SearchOutlined />,
+      keywords: "explore query rows filter records",
+      run: () => navigate("/explore"),
+    },
+    {
+      id: "catalog.relationships",
+      label: "See how the datasets connect",
+      icon: <DeploymentUnitOutlined />,
+      keywords: "graph relationships schema foreign keys links",
+      run: () => navigate("/find/relationships"),
+    },
+  ]);
 
   return (
     <>

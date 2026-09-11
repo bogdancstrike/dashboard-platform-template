@@ -16,7 +16,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Alert, Badge, Button, Card, Skeleton, Space, Tag, Tooltip, Typography } from "antd";
-import { ArrowRightOutlined, SearchOutlined } from "@ant-design/icons";
+import {
+  ArrowRightOutlined,
+  ClearOutlined,
+  DatabaseOutlined,
+  FilterOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
+import { usePageCommands } from "@/commands/CommandContext";
 
 import { searchApi, type GlobalHit } from "@/api/search";
 import { HighlightedText } from "@/components/HighlightedText";
@@ -53,6 +60,41 @@ export default function GlobalSearchPage() {
   );
 
   useEffect(() => setCursor(0), [debounced]);
+
+  /**
+   * What this page can do, for the palette (§31).
+   *
+   * The palette searches records itself, so the useful commands here are the
+   * ones it cannot do: taking a term that matched too much into a page that
+   * can narrow it, and clearing a term that matched nothing.
+   */
+  usePageCommands("global-search", [
+    ...(term
+      ? [
+          {
+            id: "search.explore",
+            label: "Narrow this search in the explorer",
+            icon: <FilterOutlined />,
+            keywords: "filter refine conditions advanced narrow",
+            run: () => navigate(`/explore?q=${encodeURIComponent(term)}`),
+          },
+          {
+            id: "search.clear",
+            label: "Clear the search",
+            icon: <ClearOutlined />,
+            keywords: "reset empty start over",
+            run: () => setParams({}, { replace: true }),
+          },
+        ]
+      : []),
+    {
+      id: "search.catalogue",
+      label: "See what there is to search",
+      icon: <DatabaseOutlined />,
+      keywords: "catalog datasets fields schema declaration",
+      run: () => navigate("/find/catalog"),
+    },
+  ]);
 
   /** Where a hit lives: the explorer, narrowed to that one record. */
   const open = (hit: GlobalHit) => {

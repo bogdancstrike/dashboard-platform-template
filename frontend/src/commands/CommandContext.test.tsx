@@ -9,6 +9,7 @@ import {
   useCommands,
   usePageCommands,
 } from "@/commands/CommandContext";
+import { shippedSources } from "@/test/sources";
 
 /**
  * The keyboard's two ways into the palette, and the guard on the plain one (§54).
@@ -180,5 +181,57 @@ describe("page commands", () => {
     // palette offering "Assign selected tasks" from the billing screen.
     renderProbe();
     expect(screen.getByTestId("commands").textContent).toBe("probe.one");
+  });
+});
+
+describe("what the palette can offer on a page", () => {
+  /**
+   * Every page contributes something (§31).
+   *
+   * The palette's first group is "On this page", and nine pages contributed
+   * nothing — including `/explore`, the screen with the most controls on it,
+   * where the palette would earn its keystroke best. A group that is empty on
+   * a fifth of the product is a group people stop looking at, and then the
+   * pages that *do* fill it get no benefit either.
+   *
+   * Asserted from the source rather than by rendering every page: the claim is
+   * about a call existing, and rendering eighty pages to check for one would
+   * be eighty fixtures to keep in step with it.
+   */
+  const PAGES = shippedSources(/Page\.tsx$/).filter((file) =>
+    file.name.startsWith("pages/"),
+  );
+
+  it("has pages to check at all", () => {
+    // A guard on the guard: a rename that emptied this list would otherwise
+    // turn the assertion below into a test that passes by describing nothing.
+    expect(PAGES.length).toBeGreaterThan(40);
+  });
+
+  it("is filled in by every page", () => {
+    const silent = PAGES.filter((file) => !file.source.includes("usePageCommands("))
+      .map((file) => file.name)
+      .sort();
+
+    expect(silent, "these pages contribute nothing to the palette").toEqual([]);
+  });
+
+  it("gives each page an id nothing else uses", () => {
+    /**
+     * Command ids are the palette's keys, and `cmdk` filters on the value
+     * string they are built into. Two pages sharing one is a duplicate key
+     * on any screen that mounts both — a record drawer over a list, say.
+     */
+    const seen = new Map<string, string>();
+    const clashes: string[] = [];
+    for (const file of PAGES) {
+      for (const match of file.source.matchAll(/\bid: "([a-z][\w.-]*)"/g)) {
+        const id = match[1]!;
+        const owner = seen.get(id);
+        if (owner && owner !== file.name) clashes.push(`${id}: ${owner} and ${file.name}`);
+        else seen.set(id, file.name);
+      }
+    }
+    expect(clashes).toEqual([]);
   });
 });

@@ -4,6 +4,8 @@ import { Card, Col, Grid, Row, Segmented, Select, Skeleton, Space, Tag, Timeline
 import {
   AlertOutlined,
   ApiOutlined,
+  AreaChartOutlined,
+  CalendarOutlined,
   CheckSquareOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
@@ -12,6 +14,8 @@ import {
   ExclamationCircleOutlined,
   FolderOutlined,
   FundOutlined,
+  LayoutOutlined,
+  ReloadOutlined,
   ShoppingCartOutlined,
   TeamOutlined,
   UserOutlined,
@@ -31,6 +35,7 @@ import { FailureAlert } from "@/components/FailureAlert";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { withOrigin } from "@/entities/drilldown";
 import { PageHeader } from "@/components/PageHeader";
+import { usePageCommands } from "@/commands/CommandContext";
 import { StatCard } from "@/components/StatCard";
 
 const { Text } = Typography;
@@ -147,6 +152,47 @@ export default function DashboardPage() {
     setParams(updated, { replace: true });
   };
 
+  /**
+   * What this page can do, for the palette (§31).
+   *
+   * The period and the refresh are the two things somebody actually reaches
+   * for here, and both are otherwise a mouse journey to the top-right corner.
+   * The periods are the server's own options rather than a list typed here, so
+   * the palette cannot offer a window the dashboard would refuse.
+   */
+  usePageCommands("dashboard", [
+    {
+      id: "dashboard.refresh",
+      label: "Refresh the numbers",
+      icon: <ReloadOutlined />,
+      keywords: "reload update refetch current",
+      run: () => void refetch(),
+    },
+    ...periodOptions
+      .filter((option) => option.key !== period)
+      .map((option) => ({
+        id: `dashboard.period.${option.key}`,
+        label: `Measure over ${option.label.toLowerCase()}`,
+        icon: <CalendarOutlined />,
+        keywords: "period range window compare",
+        run: () => choosePeriod(option.key),
+      })),
+    {
+      id: "dashboard.analytics",
+      label: "Ask a question of my own",
+      icon: <AreaChartOutlined />,
+      keywords: "analytics analyse group cut explore",
+      run: () => navigate("/analytics"),
+    },
+    {
+      id: "dashboard.mine",
+      label: "Open my dashboards",
+      icon: <LayoutOutlined />,
+      keywords: "custom layout widgets board personal",
+      run: () => navigate("/dashboards"),
+    },
+  ]);
+
   return (
     <>
       <PageHeader
@@ -211,7 +257,7 @@ export default function DashboardPage() {
 
       {/* ── alerts (§66): only what is actually wrong, each one clickable ── */}
       {data && data.alerts.length > 0 && (
-        <Card size="small" className="nu-alert-strip" style={{ marginBottom: 16 }}>
+        <Card size="small" className="nu-alert-strip" data-testid="dashboard-alerts" style={{ marginBottom: 16 }}>
           <Space size={6} wrap>
             <AlertOutlined style={{ color: "var(--nu-warning-ink)" }} />
             <Text strong style={{ marginRight: 4 }}>
@@ -240,7 +286,7 @@ export default function DashboardPage() {
       )}
 
       {/* ── KPI row (§2) ────────────────────────────────────────────────── */}
-      <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
+      <Row gutter={[12, 12]} data-testid="dashboard-kpis" style={{ marginBottom: 16 }}>
         {isLoading
           ? Array.from({ length: 8 }).map((_, index) => (
               <Col key={index} xs={12} sm={12} md={8} lg={6} xxl={4}>
@@ -272,7 +318,7 @@ export default function DashboardPage() {
           Sized by what each chart needs rather than by a uniform grid: a
           twenty-four-column heatmap in a third of the width is unreadable, and
           a gauge in two thirds is mostly whitespace. */}
-      <Row gutter={[12, 12]}>
+      <Row gutter={[12, 12]} data-testid="dashboard-charts">
         {isLoading && [16, 8, 8, 16].map((span, index) => (
           <Col key={`loading-${index}`} xs={24} lg={span}>
             <Card style={{ minHeight: 330 }}><Skeleton active paragraph={{ rows: 6 }} /></Card>
@@ -306,7 +352,7 @@ export default function DashboardPage() {
         })}
 
         <Col xs={24} lg={8}>
-          <Card size="small" title="Recent activity" className="nu-activity-card">
+          <Card size="small" title="Recent activity" className="nu-activity-card" data-testid="dashboard-activity">
             {isLoading ? (
               <Skeleton active paragraph={{ rows: 6 }} />
             ) : (

@@ -223,6 +223,30 @@ export default function JobsPage() {
       keywords: "jobs failed errors queue retry",
       run: () => set({ status: "FAILED" }),
     },
+    {
+      id: "jobs.running",
+      label: "Show what is running now",
+      keywords: "jobs running in progress active current",
+      run: () => set({ status: "RUNNING" }),
+    },
+    {
+      id: "jobs.queued",
+      label: "Show what is waiting to run",
+      keywords: "jobs queued pending backlog waiting",
+      run: () => set({ status: "QUEUED" }),
+    },
+    {
+      id: "jobs.all",
+      label: "Show every job",
+      keywords: "jobs all clear filter everything",
+      run: () => set({ status: null }),
+    },
+    {
+      id: "jobs.refresh",
+      label: "Check the queue again",
+      keywords: "refresh reload poll now",
+      run: () => void listing.refetch(),
+    },
   ]);
 
   if (catalogue.isLoading) return <Skeleton active paragraph={{ rows: 10 }} />;

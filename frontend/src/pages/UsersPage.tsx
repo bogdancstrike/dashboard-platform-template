@@ -244,7 +244,7 @@ export default function UsersPage() {
         }
       />
 
-      <Card size="small" className="nu-filter-bar">
+      <Card size="small" className="nu-filter-bar" data-testid="user-filters">
         <Space wrap size={8} align="center">
           <Input.Search
             allowClear
@@ -309,6 +309,7 @@ export default function UsersPage() {
 
       <Card size="small" className="nu-block">
         <Table<UserRow>
+          data-testid="user-table"
           rowKey="id"
           size="small"
           columns={columns}

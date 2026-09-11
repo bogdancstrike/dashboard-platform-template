@@ -58,7 +58,7 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { logsApi, type LogLevel, type LogLine } from "@/api/logs";
@@ -110,6 +110,7 @@ export function paceOf(ms: number | null): "quick" | "fine" | "slow" | "unknown"
 }
 
 export default function LogsPage() {
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { message } = AntApp.useApp();
@@ -249,6 +250,24 @@ export default function LogsPage() {
       label: "Follow the log live",
       keywords: "logs tail follow live stream",
       run: () => setLive(true),
+    },
+    {
+      id: "logs.warnings",
+      label: "Show warnings and worse",
+      keywords: "logs warnings warn notice attention",
+      run: () => set({ min_level: "WARNING" }),
+    },
+    {
+      id: "logs.all",
+      label: "Show every line",
+      keywords: "logs all clear filter debug info everything",
+      run: () => set({ min_level: null, q: null }),
+    },
+    {
+      id: "logs.jobs",
+      label: "See what the platform is running",
+      keywords: "jobs queue background workers",
+      run: () => navigate("/admin/jobs"),
     },
   ]);
 

@@ -344,6 +344,23 @@ export default function FilesPage() {
       keywords: "loose root",
       run: () => setFolderId(UNFILED),
     },
+    {
+      id: "files.upload",
+      label: "Upload into this folder",
+      keywords: "upload add attach drop file new",
+      // The dropzone's own input, so the palette opens the same picker the
+      // visible control does rather than a second one that could drift.
+      run: () =>
+        document
+          .querySelector<HTMLInputElement>('[data-testid="dropzone"] input[type="file"]')
+          ?.click(),
+    },
+    {
+      id: "files.first",
+      label: "Back to the first folder",
+      keywords: "root top folders start clear",
+      run: () => setFolderId(tree.data?.folders[0]?.id ?? UNFILED),
+    },
   ]);
 
 

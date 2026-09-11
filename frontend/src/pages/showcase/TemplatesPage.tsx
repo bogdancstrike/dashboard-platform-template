@@ -32,9 +32,10 @@
  */
 
 import { Alert, Card, Space, Tag, Typography } from "antd";
-import { ArrowRightOutlined } from "@ant-design/icons";
+import { AppstoreOutlined, ArrowRightOutlined, BuildOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { usePageCommands } from "@/commands/CommandContext";
 
 import { PageHeader } from "@/components/PageHeader";
 import { StatusTag } from "@/components/StatusTag";
@@ -312,6 +313,7 @@ function CreateCard({ shape }: { shape: CreateShapeSpec }) {
 }
 
 export default function TemplatesPage() {
+  const navigate = useNavigate();
   const shapes = useMemo(
     () => LAYOUTS.filter((layout) => layout.key !== "redirect"),
     [],
@@ -320,6 +322,36 @@ export default function TemplatesPage() {
     () => LAYOUTS.filter((layout) => layout.key === "redirect"),
     [],
   );
+
+  /**
+   * What this page can do, for the palette (§31).
+   *
+   * A gallery is a page somebody arrives at from a question — "what does a
+   * split view look like here" — so the commands are the shapes themselves,
+   * each scrolling to its own section rather than leaving somebody to find it
+   * in a page of eleven.
+   */
+  usePageCommands("showcase-templates", [
+    ...shapes.map((layout) => ({
+      id: `templates.${layout.key}`,
+      label: `Show the ${layout.name.toLowerCase()} shape`,
+      icon: <AppstoreOutlined />,
+      keywords: `${layout.name} ${layout.shape} ${layout.when} layout template`,
+      // Addressed by the same `data-testid` the tour and the tests use, rather
+      // than by an `id` added for this: one anchor per card, three readers.
+      run: () =>
+        document
+          .querySelector(`[data-testid="layout-${layout.key}"]`)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    })),
+    {
+      id: "templates.components",
+      label: "See the components instead",
+      icon: <BuildOutlined />,
+      keywords: "components parts gallery showcase widgets",
+      run: () => navigate("/showcase/components"),
+    },
+  ]);
 
   return (
     <div className="nu-tmpl">

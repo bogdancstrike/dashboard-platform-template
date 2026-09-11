@@ -138,6 +138,23 @@ export default function PreferencesPage() {
         save({ formats: PREFERENCE_DEFAULTS.formats, defaults: PREFERENCE_DEFAULTS.defaults });
       },
     },
+    {
+      id: "preferences.sidebar",
+      label: preferences.appearance.sidebar_collapsed
+        ? "Keep the navigation expanded"
+        : "Keep the navigation collapsed to icons",
+      keywords: "sidebar navigation collapse expand rail icons width",
+      run: () =>
+        save({
+          appearance: { sidebar_collapsed: !preferences.appearance.sidebar_collapsed },
+        }),
+    },
+    {
+      id: "preferences.security",
+      label: "See where I am signed in",
+      keywords: "security sessions sign-ins devices revoke",
+      run: () => navigate("/settings/security"),
+    },
   ]);
 
   return (

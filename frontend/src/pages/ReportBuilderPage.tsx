@@ -329,6 +329,36 @@ export default function ReportBuilderPage() {
       keywords: "export pdf download",
       run: () => exporting.mutate("pdf"),
     },
+    {
+      id: "documents.docx",
+      label: "Export this document as a Word file",
+      keywords: "export docx word download office",
+      run: () => exporting.mutate("docx"),
+    },
+    {
+      id: "documents.compose",
+      label: "Have a report composed from a dataset",
+      keywords: "compose auto generate draft first automatic",
+      run: () => setComposeOpen(true),
+    },
+    {
+      id: "documents.chart",
+      label: "Add a chart to this document",
+      keywords: "chart graph picture block add visual",
+      run: () => addBlock("CHART"),
+    },
+    {
+      id: "documents.table",
+      label: "Add a table of records",
+      keywords: "table rows records block add list",
+      run: () => addBlock("TABLE"),
+    },
+    {
+      id: "documents.metrics",
+      label: "Add the headline numbers",
+      keywords: "metrics numbers statistics figures kpi block",
+      run: () => addBlock("METRICS"),
+    },
   ]);
 
   if (listing.isLoading) return <Skeleton active paragraph={{ rows: 10 }} />;

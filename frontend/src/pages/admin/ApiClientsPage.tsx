@@ -240,6 +240,24 @@ export default function ApiClientsPage() {
       keywords: "api client credential key token scope",
       run: () => setCreating(true),
     },
+    {
+      id: "api.live",
+      label: "Show the clients with a live key",
+      keywords: "api clients active live key enabled working",
+      run: () => set({ status: "ACTIVE" }),
+    },
+    {
+      id: "api.all",
+      label: "Show every client",
+      keywords: "api clients all clear filter retired",
+      run: () => set({ status: null, q: null }),
+    },
+    {
+      id: "api.refresh",
+      label: "Check the traffic again",
+      keywords: "refresh reload requests errors now",
+      run: () => void listing.refetch(),
+    },
   ]);
 
   if (catalogue.isLoading) return <Skeleton active paragraph={{ rows: 10 }} />;

@@ -181,6 +181,18 @@ export default function ChartBuilderPage() {
       run: () => navigate(`/reports/builder?${params.toString()}`),
     },
     { id: "chart.reports", label: "Back to reports", keywords: "list saved", run: () => navigate("/reports") },
+    {
+      id: "chart.records",
+      label: "See the records behind this chart",
+      keywords: "explore rows records underneath drill",
+      run: () => navigate(`/explore?resource=${draft.resource}`),
+    },
+    {
+      id: "chart.restart",
+      label: "Start a new chart",
+      keywords: "new clear reset blank fresh question",
+      run: () => navigate("/charts/builder"),
+    },
   ]);
 
   if (catalogue.isLoading || (editingId && existing.isLoading)) {

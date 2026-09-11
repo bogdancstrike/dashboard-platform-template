@@ -15,6 +15,7 @@ import { MemoryRouter } from "react-router-dom";
 
 import { AuthProvider } from "@/auth/AuthProvider";
 import { PreferencesProvider } from "@/settings/PreferencesProvider";
+import { CommandProvider } from "@/commands/CommandContext";
 import { AppearanceProvider } from "@/theme/AppearanceProvider";
 
 export function makeQueryClient(): QueryClient {
@@ -39,13 +40,22 @@ export function Providers({
   // The same nesting as main.tsx, AuthProvider included: components ask it
   // what the signed-in person may do, and one rendered outside it throws. The
   // profile it fetches is answered by the mock handlers like any other request.
+  //
+  // `CommandProvider` is here for the same reason, and it earned its place the
+  // hard way: `usePageCommands` throws outside it, so the first page to
+  // contribute to the palette broke its own test suite rather than failing in
+  // the browser. Under a nested one — a few tests bring their own to read what
+  // was registered — the inner provider wins, which is the behaviour those
+  // tests already relied on.
   return (
     <QueryClientProvider client={makeQueryClient()}>
       <AppearanceProvider>
         <AntApp>
           <AuthProvider>
             <PreferencesProvider>
-              <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+              <MemoryRouter initialEntries={[route]}>
+                <CommandProvider>{children}</CommandProvider>
+              </MemoryRouter>
             </PreferencesProvider>
           </AuthProvider>
         </AntApp>

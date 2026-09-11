@@ -36,10 +36,18 @@
  */
 
 import { Alert, Button, Card, Segmented, Space, Table, Tag, Typography } from "antd";
-import { InboxOutlined, SearchOutlined, WarningOutlined } from "@ant-design/icons";
+import {
+  AppstoreOutlined,
+  InboxOutlined,
+  LayoutOutlined,
+  SearchOutlined,
+  TableOutlined,
+  WarningOutlined,
+} from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { usePageCommands } from "@/commands/CommandContext";
 
 import { ApiError } from "@/api/client";
 import type { ChartPanel } from "@/api/dashboard";
@@ -372,6 +380,7 @@ function Demo({
 }
 
 export default function ComponentsPage() {
+  const navigate = useNavigate();
   const found = useMemo(() => coverage(), []);
   const [naming, setNaming] = useState(false);
   const [named, setNamed] = useState("");
@@ -380,6 +389,40 @@ export default function ComponentsPage() {
   const [widgetEditing, setWidgetEditing] = useState(false);
   const [chartKind, setChartKind] = useState("bar");
   const [people, setPeople] = useState<string[]>([]);
+
+  /**
+   * What this page can do, for the palette (§31).
+   *
+   * The gallery's point is that each part is shown in *every* state it has,
+   * and the states behind a segmented control are the ones nobody presses. The
+   * palette names them, which is also how somebody reviewing a design finds
+   * the empty state without knowing which shelf it is on.
+   */
+  usePageCommands("showcase-components", [
+    ...(["rows", "empty", "filtered", "error", "forbidden", "loading"] as TableState[])
+      .filter((state) => state !== tableState)
+      .map((state) => ({
+        id: `showcase.table.${state}`,
+        label: `Show the table ${state === "rows" ? "with rows" : `as ${state}`}`,
+        icon: <TableOutlined />,
+        keywords: "table state empty error forbidden loading no results",
+        run: () => setTableState(state),
+      })),
+    {
+      id: "showcase.widget",
+      label: widgetEditing ? "Leave the widget's edit mode" : "Show a widget being edited",
+      icon: <LayoutOutlined />,
+      keywords: "widget dashboard card edit handles resize",
+      run: () => setWidgetEditing(!widgetEditing),
+    },
+    {
+      id: "showcase.templates",
+      label: "See the page shapes instead",
+      icon: <AppstoreOutlined />,
+      keywords: "templates layouts gallery pages shapes",
+      run: () => navigate("/showcase/templates"),
+    },
+  ]);
 
   /**
    * The table, in the state the reader chose.

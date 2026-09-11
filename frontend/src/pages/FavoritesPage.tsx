@@ -57,7 +57,7 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import {
   favoritesApi,
@@ -123,6 +123,7 @@ export function capacityNote(list: BookmarkList): string {
 export default function FavoritesPage() {
   const { message } = AntApp.useApp();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [kind, setKind] = useState<string>("all");
 
   const bookmarks = useQuery({
@@ -199,6 +200,27 @@ export default function FavoritesPage() {
       label: "Forget what I have looked at",
       keywords: "recents clear history forget visited",
       run: () => cleared.mutate(),
+    },
+    {
+      id: "favorites.bookmarks",
+      label: "Show only what I starred",
+      keywords: "bookmarks starred favorites kept mine",
+      run: () => setKind("all"),
+    },
+    {
+      id: "favorites.refresh",
+      label: "Check for anything new",
+      keywords: "refresh reload update recents",
+      run: () => {
+        void bookmarks.refetch();
+        void recents.refetch();
+      },
+    },
+    {
+      id: "favorites.explore",
+      label: "Find something to star",
+      keywords: "explore records search browse datasets",
+      run: () => navigate("/explore"),
     },
   ]);
 

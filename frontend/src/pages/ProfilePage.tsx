@@ -171,6 +171,18 @@ export default function ProfilePage() {
       keywords: "security sessions devices sign in",
       run: () => navigate("/settings/security"),
     },
+    {
+      id: "profile.activity",
+      label: "See what I have been doing",
+      keywords: "activity history feed actions mine recent",
+      run: () => navigate("/activity"),
+    },
+    {
+      id: "profile.favorites",
+      label: "See what I starred",
+      keywords: "favorites bookmarks starred kept recents",
+      run: () => navigate("/favorites"),
+    },
   ]);
 
   const activity = useQuery({

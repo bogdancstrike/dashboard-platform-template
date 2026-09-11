@@ -259,6 +259,7 @@ export default function OrdersLedgerPage() {
             row hides part of what the reader is deciding about (§43). */}
         {bulk.bar}
         <Table<OrderRow>
+          data-testid="order-ledger"
           rowKey="id"
           size="small"
           className="nu-ledger"

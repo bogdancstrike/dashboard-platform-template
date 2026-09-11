@@ -45,10 +45,14 @@ import {
 import {
   ApartmentOutlined,
   ArrowLeftOutlined,
+  ClearOutlined,
+  DeploymentUnitOutlined,
   ExportOutlined,
+  FileSearchOutlined,
   LoginOutlined,
   LogoutOutlined,
 } from "@ant-design/icons";
+import { usePageCommands } from "@/commands/CommandContext";
 
 import { relationshipsApi, type RelatedNode } from "@/api/relationships";
 import { searchApi } from "@/api/search";
@@ -83,6 +87,45 @@ export default function RelationshipExplorerPage() {
     queryFn: ({ signal }) => relationshipsApi.of(resource, id, signal),
     enabled: Boolean(resource && id),
   });
+
+  /**
+   * What this page can do, for the palette (§31).
+   *
+   * Two readings of one answer and a way back out of a trail twelve records
+   * deep — which is exactly the point at which somebody stops wanting to find
+   * the small control that does it.
+   */
+  usePageCommands("relationships", [
+    {
+      id: "relationships.view",
+      label: view === "graph" ? "Read the connections as a list" : "Draw the connections",
+      icon: <DeploymentUnitOutlined />,
+      keywords: "graph list picture force directed nodes",
+      run: () => setView(view === "graph" ? "list" : "graph"),
+    },
+    ...(resource && id
+      ? [
+          {
+            id: "relationships.record",
+            label: "Open this record",
+            icon: <FileSearchOutlined />,
+            keywords: "explore detail row open",
+            run: () => navigate(`/explore?resource=${resource}&f.id=${id}`),
+          },
+        ]
+      : []),
+    ...(trail.length > 0
+      ? [
+          {
+            id: "relationships.restart",
+            label: `Start again (${trail.length} followed)`,
+            icon: <ClearOutlined />,
+            keywords: "reset trail back clear breadcrumb",
+            run: () => setParams({}, { replace: true }),
+          },
+        ]
+      : []),
+  ]);
 
   /** Follow a connection, remembering where it was followed from. */
   const open = (node: RelatedNode, entity: string) => {

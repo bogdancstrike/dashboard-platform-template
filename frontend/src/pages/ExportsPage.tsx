@@ -70,7 +70,7 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 import { readableSize } from "@/api/files";
 import {
@@ -169,6 +169,7 @@ const STATUS_LABELS: Record<ExportStatus, string> = {
 export default function ExportsPage() {
   const { message } = AntApp.useApp();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [composing, setComposing] = useState(false);
   const [dataset, setDataset] = useState<string>("");
@@ -301,6 +302,24 @@ export default function ExportsPage() {
       label: "Show the exports that are ready",
       keywords: "export finished ready download",
       run: () => setParams(new URLSearchParams({ status: "SUCCEEDED" })),
+    },
+    {
+      id: "exports.failed",
+      label: "Show the exports that failed",
+      keywords: "export failed error problem broken",
+      run: () => setParams(new URLSearchParams({ status: "FAILED" })),
+    },
+    {
+      id: "exports.all",
+      label: "Show every export",
+      keywords: "export all clear filter everything mine",
+      run: () => setParams(new URLSearchParams()),
+    },
+    {
+      id: "exports.import",
+      label: "Bring data in instead",
+      keywords: "import csv upload spreadsheet load",
+      run: () => navigate("/import"),
     },
   ]);
 

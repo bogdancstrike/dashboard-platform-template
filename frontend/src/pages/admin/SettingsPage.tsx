@@ -42,7 +42,7 @@ import {
 } from "antd";
 import { UndoOutlined } from "@ant-design/icons";
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { settingsApi, type Setting } from "@/api/settings";
@@ -55,6 +55,7 @@ const { Text } = Typography;
 
 export default function SettingsPage() {
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { message } = AntApp.useApp();
   const [term, setTerm] = useState(params.get("q") ?? "");
@@ -109,6 +110,18 @@ export default function SettingsPage() {
       keywords: "settings changed drift default",
       run: () => set({ q: null, category: null }),
     },
+    {
+      id: "settings.reload",
+      label: "Reload the configuration",
+      keywords: "refresh reload settings current values",
+      run: () => void config.refetch(),
+    },
+    {
+      id: "settings.flags",
+      label: "Switch a feature on or off instead",
+      keywords: "flags features rollout toggle experiment",
+      run: () => navigate("/admin/flags"),
+    },
   ]);
 
   if (config.isLoading) return <Skeleton active paragraph={{ rows: 12 }} />;
@@ -160,6 +173,7 @@ export default function SettingsPage() {
               aria-label="Search settings"
             />
             <Segmented
+              data-testid="settings-categories"
               aria-label="Category"
               value={category || "all"}
               onChange={(next) => set({ category: next === "all" ? null : String(next) })}
@@ -188,7 +202,7 @@ export default function SettingsPage() {
         />
       )}
 
-      <Space direction="vertical" size={16} className="nu-block nu-settings">
+      <Space direction="vertical" size={16} className="nu-block nu-settings" data-testid="settings-groups">
         {data.groups.map((group) => (
           <Card
             size="small"

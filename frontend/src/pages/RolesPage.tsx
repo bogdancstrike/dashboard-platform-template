@@ -23,6 +23,8 @@ import { rolesApi, type RoleMatrix, type RoleRow } from "@/api/roles";
 import { NewRoleModal } from "@/components/roles/NewRoleModal";
 import { EdgeTag } from "@/components/EdgeTag";
 import { PageHeader } from "@/components/PageHeader";
+import { useNavigate } from "react-router-dom";
+
 import { usePageCommands } from "@/commands/CommandContext";
 
 const { Text } = Typography;
@@ -53,6 +55,7 @@ const cellKey = (cell: Cell) => `${cell.role}:${cell.permission}`;
 const SELF_LOCKOUT_GUARD = new Set(["roles.manage", "admin.access"]);
 
 export default function RolesPage() {
+  const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const { message } = AntApp.useApp();
   const queryClient = useQueryClient();
@@ -142,6 +145,24 @@ export default function RolesPage() {
       label: "Discard staged permission changes",
       keywords: "reset revert",
       run: () => setStaged({}),
+    },
+    {
+      id: "roles.new",
+      label: "Make a role",
+      keywords: "role new create custom copy narrow",
+      run: () => setCreating(true),
+    },
+    {
+      id: "roles.reload",
+      label: "Reload the permission matrix",
+      keywords: "refresh reload matrix permissions catalogue",
+      run: () => void matrix.refetch(),
+    },
+    {
+      id: "roles.groups",
+      label: "See the groups instead",
+      keywords: "groups membership teams grants",
+      run: () => navigate("/admin/groups"),
     },
   ]);
 

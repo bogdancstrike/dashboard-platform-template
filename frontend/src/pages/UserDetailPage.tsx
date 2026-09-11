@@ -99,6 +99,18 @@ export default function UserDetailPage() {
       keywords: "audit history activity",
       run: () => navigate(`/admin/audit?actor_label=${encodeURIComponent(person.data?.full_name ?? "")}`),
     },
+    {
+      id: "user.back",
+      label: "Back to the people",
+      keywords: "users list directory accounts all",
+      run: () => navigate("/admin/users"),
+    },
+    {
+      id: "user.roles",
+      label: "See what this person's role may do",
+      keywords: "role permissions matrix grants may",
+      run: () => navigate("/admin/roles"),
+    },
   ]);
 
   if (person.isLoading) return <Skeleton active paragraph={{ rows: 10 }} />;

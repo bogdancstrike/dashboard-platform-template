@@ -161,7 +161,9 @@ export default function ProjectDeliveryPage() {
       run: () => navigate(`/tasks?f.project_id=${id}`),
     },
     {
-      id: "project.at-risk",
+      // Not `project.at-risk`: the portfolio uses that one to *filter* to the
+      // projects at risk, and the palette keys its items by id.
+      id: "project.flag-at-risk",
       label: "Flag this project as at risk",
       keywords: "health amber red",
       run: () => page.write({ health: "AT_RISK" }),
