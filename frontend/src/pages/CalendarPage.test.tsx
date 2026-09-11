@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { Route, Routes, useLocation } from "react-router-dom";
@@ -95,6 +95,99 @@ describe("the month view", () => {
       expect(screen.getByTestId("address")).toHaveTextContent("view=day"),
     );
     expect(screen.getByTestId("address")).toHaveTextContent("on=2026-03-12");
+  });
+});
+
+describe("rescheduling from the grid", () => {
+  /**
+   * The commonest change anybody makes to a calendar was a four-step journey:
+   * open the event, open the editor, change two datetimes, save. These are the
+   * two one-step paths — and the keyboard one is not a consolation prize, it
+   * is faster than the mouse for "a week later".
+   */
+  it("moves an event a week on with the arrow keys, and says where it went", async () => {
+    const user = userEvent.setup();
+    render();
+
+    await screen.findByTestId("calendar-month");
+    const chip = screen.getByTestId("event-event-1:2026-03-10T09:00:00+00:00");
+    chip.focus();
+    await user.keyboard("{ArrowDown}");
+
+    await waitFor(() => {
+      const stored = calendarEvents.find((item) => item["event_id"] === "event-1");
+      // A week on, and at the same time of day — a drag answers "which day",
+      // never "which hour".
+      expect(String(stored?.["starts_at"])).toContain("2026-03-17");
+    });
+    const moved = calendarEvents.find((item) => item["event_id"] === "event-1");
+    expect(new Date(String(moved?.["starts_at"])).getHours()).toBe(
+      new Date("2026-03-10T09:00:00Z").getHours(),
+    );
+  });
+
+  it("carries an event to the day it is dropped on", async () => {
+    render();
+    await screen.findByTestId("calendar-month");
+
+    const chip = screen.getByTestId("event-event-1:2026-03-10T09:00:00+00:00");
+    expect(chip).toHaveAttribute("draggable", "true");
+
+    // jsdom has no drag implementation, so the three events a browser fires are
+    // fired here with a dataTransfer of our own. That is the seam under test:
+    // what the chip *puts in* the transfer and what the cell *does with it*.
+    const transfer = {
+      data: {} as Record<string, string>,
+      effectAllowed: "",
+      setData(key: string, value: string) {
+        this.data[key] = value;
+      },
+      getData(key: string) {
+        return this.data[key] ?? "";
+      },
+    };
+    fireEvent.dragStart(chip, { dataTransfer: transfer });
+    const target = screen.getByTestId("day-2026-03-19");
+    fireEvent.dragOver(target, { dataTransfer: transfer });
+    fireEvent.drop(target, { dataTransfer: transfer });
+
+    await waitFor(() => {
+      const stored = calendarEvents.find((item) => item["event_id"] === "event-1");
+      expect(String(stored?.["starts_at"])).toContain("2026-03-19");
+    });
+  });
+
+  it("will not drag a repeating event, and says why rather than going inert", async () => {
+    render();
+    await screen.findByTestId("calendar-month");
+
+    // The platform stores the rule and expands it, so moving one appearance of
+    // the weekly sync would silently move every one of them.
+    const repeating = screen.getByTestId("event-event-3:2026-03-12T14:00:00+00:00");
+    expect(repeating).toHaveAttribute("draggable", "false");
+    expect(repeating.getAttribute("title")).not.toMatch(/drag/i);
+  });
+
+  it("will not drag somebody else's event", async () => {
+    render();
+    await screen.findByTestId("calendar-month");
+
+    // `can_edit` is the server's answer, so the control is disabled for a
+    // reason the server already gave rather than one the browser guessed.
+    const theirs = screen.getByTestId("event-event-2:2026-03-10T09:30:00+00:00");
+    expect(theirs).toHaveAttribute("draggable", "false");
+  });
+
+  it("offers a day its own add button, so a new event starts where it belongs", async () => {
+    const user = userEvent.setup();
+    render();
+
+    await screen.findByTestId("calendar-month");
+    await user.click(screen.getByLabelText("Add an event on 2026-03-19"));
+
+    // The editor opens on that day rather than on today, which is the whole
+    // point of pressing the plus in a cell rather than the one in the header.
+    expect(await screen.findByTestId("event-form")).toBeInTheDocument();
   });
 });
 

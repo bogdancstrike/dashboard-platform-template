@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Route, Routes } from "react-router-dom";
@@ -245,5 +245,101 @@ describe("the file manager", () => {
     // §76: shown and refused, so a reader can see the feature exists.
     expect(await screen.findByTestId("new-folder")).toBeDisabled();
     expect(screen.queryByTestId("dropzone")).not.toBeInTheDocument();
+  });
+});
+
+describe("acting on several files at once (§43, §75)", () => {
+  /**
+   * Every list in the product lets somebody tick rows and do one thing to
+   * them; this one had per-row buttons only, so deleting twelve files was
+   * twelve confirmations and moving them was not possible at all — despite the
+   * server having accepted `folder_id` on an update the whole time.
+   */
+  async function tick(names: string[]): Promise<void> {
+    const user = userEvent.setup();
+    for (const name of names) {
+      const row = screen.getByText(name).closest("tr");
+      await user.click(within(row as HTMLElement).getByRole("checkbox"));
+    }
+  }
+
+  it("shows the bar only once something is ticked", async () => {
+    render();
+    await screen.findByText("Statement of work 2026-03.pdf");
+
+    // A bar that is always there is a bar nobody reads when it matters.
+    expect(screen.queryByTestId("file-bulk")).not.toBeInTheDocument();
+    await tick(["Statement of work 2026-03.pdf"]);
+    expect(await screen.findByTestId("file-bulk")).toHaveTextContent("1 file selected");
+  });
+
+  it("moves the ticked files to a folder, and says what happened", async () => {
+    const user = userEvent.setup();
+    render();
+    await screen.findByText("Statement of work 2026-03.pdf");
+
+    await tick(["Statement of work 2026-03.pdf", "Floorplan.png"]);
+    await user.click(screen.getByTestId("bulk-move"));
+    await user.click(await screen.findByRole("combobox", { name: "Move to folder" }));
+    await user.click(await screen.findByTitle("/contracts/signed"));
+
+    await waitFor(() => {
+      expect(storedFiles.find((file) => file["id"] === "file-1")?.["folder_id"]).toBe("folder-2");
+      expect(storedFiles.find((file) => file["id"] === "file-2")?.["folder_id"]).toBe("folder-2");
+    });
+    // And the selection is spent, rather than staying ticked over rows that
+    // are no longer in this folder.
+    await waitFor(() => expect(screen.queryByTestId("file-bulk")).not.toBeInTheDocument());
+  });
+
+  it("carries the whole selection when one of its rows is dragged to a folder", async () => {
+    render();
+    await screen.findByText("Statement of work 2026-03.pdf");
+    await tick(["Statement of work 2026-03.pdf", "Floorplan.png"]);
+
+    // jsdom fires no drag events of its own, so the transfer is ours — which
+    // is the seam under test: what the row *puts in* it and what the folder
+    // label *does with it*.
+    const transfer = {
+      data: {} as Record<string, string>,
+      effectAllowed: "",
+      setData(key: string, value: string) {
+        this.data[key] = value;
+      },
+      getData(key: string) {
+        return this.data[key] ?? "";
+      },
+    };
+    const row = screen.getByText("Floorplan.png").closest("tr") as HTMLElement;
+    fireEvent.dragStart(row, { dataTransfer: transfer });
+    // Both ids, because the dragged row was part of a selection — "move these
+    // two" is one gesture rather than two.
+    expect(transfer.getData("text/plain").split(",")).toHaveLength(2);
+
+    const folder = screen.getByTestId("folder-folder-2");
+    fireEvent.dragOver(folder, { dataTransfer: transfer });
+    fireEvent.drop(folder, { dataTransfer: transfer });
+
+    await waitFor(() =>
+      expect(storedFiles.find((file) => file["id"] === "file-2")?.["folder_id"]).toBe("folder-2"),
+    );
+  });
+
+  it("deletes the ticked files behind one confirmation, not twelve", async () => {
+    const user = userEvent.setup();
+    render();
+    await screen.findByText("Statement of work 2026-03.pdf");
+
+    await tick(["migration-notes.md", "Floorplan.png"]);
+    await user.click(screen.getByTestId("bulk-delete"));
+    // One dialog, naming the count — and it says what goes with them.
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("Delete 2 files?");
+    await user.click(within(dialog).getByRole("button", { name: /Delete 2/ }));
+
+    await waitFor(() => {
+      expect(storedFiles.find((file) => file["id"] === "file-2")).toBeUndefined();
+      expect(storedFiles.find((file) => file["id"] === "file-3")).toBeUndefined();
+    });
   });
 });

@@ -44,6 +44,7 @@ import {
   calendarApi,
   type CalendarEvent,
   type CalendarOccurrence,
+  type CalendarWindow,
   type EventResponse,
 } from "@/api/calendar";
 import { ApiError } from "@/api/client";
@@ -68,6 +69,7 @@ import {
   isToday,
   isoDay,
   monthGrid,
+  movedTo,
   rangeFor,
   shift,
   titleFor,
@@ -151,6 +153,66 @@ export default function CalendarPage() {
     },
     onError: (error) =>
       message.error(error instanceof ApiError ? error.message : "That answer was refused."),
+  });
+
+  /**
+   * Rescheduling, applied at once and put back if refused (§73).
+   *
+   * A drag that waits for a round trip before the chip moves reads as a drag
+   * that did not take, and somebody drags it again. So the cached window is
+   * rewritten immediately and restored if the server says no — the same rule
+   * the notification list and the kanban board follow.
+   *
+   * The occurrence's `event_id` is what is written to, never its `id`: an
+   * occurrence id is `<event>:<start>` and only the former is a primary key.
+   */
+  const reschedule = useMutation({
+    mutationFn: ({ item, day }: { item: CalendarOccurrence; day: Date }) => {
+      const when = movedTo(item, day);
+      // A plain Error: this never reached the server, so there is no status
+      // and no correlation id to carry, and inventing either would put a
+      // fabricated reference in front of somebody.
+      if (!when) throw new Error("That event has no time to move.");
+      return calendarApi.update(item.event_id, when);
+    },
+    onMutate: async ({ item, day }) => {
+      await queryClient.cancelQueries({ queryKey: ["calendar"] });
+      const previous = queryClient.getQueriesData<CalendarWindow>({ queryKey: ["calendar"] });
+      const when = movedTo(item, day);
+      if (when) {
+        queryClient.setQueriesData<CalendarWindow>({ queryKey: ["calendar"] }, (current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.map((candidate) =>
+                  candidate.id === item.id
+                    ? { ...candidate, ...when, day: isoDay(day) }
+                    : candidate,
+                ),
+              }
+            : current,
+        );
+      }
+      return { previous };
+    },
+    onError: (error, _variables, context) => {
+      for (const [key, value] of context?.previous ?? []) queryClient.setQueryData(key, value);
+      message.error(
+        error instanceof ApiError ? error.message : "That event could not be moved.",
+      );
+    },
+    onSuccess: (updated, { day }) => {
+      message.success(
+        `${updated.title} moved to ${day.toLocaleDateString(undefined, {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        })}`,
+      );
+    },
+    // Whether it worked or not: the optimistic window is a guess about one
+    // event and the server's answer is the truth about all of them.
+    onSettled: refresh,
   });
 
   usePageCommands("calendar", [
@@ -324,6 +386,22 @@ export default function CalendarPage() {
               items={items}
               onOpen={setOpened}
               onOpenDay={openDay}
+              // Both absent for a reader who may not manage events, so the
+              // chips are not draggable and the cells offer no plus — rather
+              // than gestures that end in a refusal (§76).
+              onMove={
+                data?.can_manage
+                  ? (item, day) => reschedule.mutate({ item, day })
+                  : undefined
+              }
+              onAddOn={
+                data?.can_manage
+                  ? (day) => {
+                      setCreatingOn(day);
+                      setComposing(true);
+                    }
+                  : undefined
+              }
             />
           )}
 

@@ -395,6 +395,12 @@ export const TOURS: Record<string, TourStop[]> = {
         "An event overlapping something already in your day is pointed out while the form is open, not after. It is a warning rather than a refusal: double-booking on purpose is a real thing people do.",
     },
     {
+      target: "calendar-month",
+      title: "Drag an event to move it",
+      description:
+        "Or focus one and use the arrow keys — left and right for a day, up and down for a week, which is faster than the mouse for “next Tuesday”. The time of day and the length come with it. A repeating event will not move: the platform stores the rule and expands it, so shifting one appearance would shift them all.",
+    },
+    {
       target: "calendar-pane",
       title: "An event opens beside the calendar",
       description:
@@ -425,6 +431,12 @@ export const TOURS: Record<string, TourStop[]> = {
       title: "Previewed rather than downloaded",
       description:
         "Images, PDFs and text open in place. A file you must download to identify is a file you download three times, and every one of those copies then lives on somebody's laptop.",
+    },
+    {
+      target: "file-list",
+      title: "Tick rows to act on several",
+      description:
+        "Move, download or delete a selection in one gesture — one confirmation for a dozen files rather than a dozen. Dragging a ticked row onto a folder in the rail moves the whole selection, because “these nine belong in Contracts” is one decision.",
     },
     {
       target: "file-total",

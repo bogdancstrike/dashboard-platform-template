@@ -7,11 +7,13 @@ import {
   fromIsoDay,
   isoDay,
   monthGrid,
+  movedTo,
   rangeFor,
   shift,
   startOfWeek,
   titleFor,
   weekGrid,
+  whyNotMovable,
 } from "@/lib/calendarGrid";
 
 /**
@@ -143,5 +145,65 @@ describe("days in the address", () => {
     for (const value of ["", null, undefined, "today", "2026-3-1", "2026-03-10T09:00:00Z"]) {
       expect(fromIsoDay(value)).toBeNull();
     }
+  });
+});
+
+describe("moving an event to another day", () => {
+  it("keeps the time of day and the length", () => {
+    const moved = movedTo(
+      { starts_at: "2026-03-10T09:00:00Z", ends_at: "2026-03-10T10:30:00Z" },
+      new Date(2026, 2, 17),
+    );
+
+    const start = new Date(moved!.starts_at);
+    const end = new Date(moved!.ends_at);
+    expect(start.getDate()).toBe(17);
+    // Read in local hours, because that is what the fields were set from: a
+    // drag answers "which day", never "which hour".
+    expect(start.getHours()).toBe(new Date("2026-03-10T09:00:00Z").getHours());
+    expect(start.getMinutes()).toBe(new Date("2026-03-10T09:00:00Z").getMinutes());
+    expect(end.valueOf() - start.valueOf()).toBe(90 * 60 * 1000);
+  });
+
+  it("sets the clock rather than adding days, so a clock change cannot shift it", () => {
+    // Across the spring change in most northern zones. Adding 24h × 7 lands an
+    // hour out; setting the fields does not — "my 09:00 became 08:00 in March"
+    // is the bug people remember.
+    const moved = movedTo(
+      { starts_at: "2026-03-25T09:00:00Z", ends_at: "2026-03-25T09:30:00Z" },
+      new Date(2026, 3, 1),
+    );
+
+    const before = new Date("2026-03-25T09:00:00Z");
+    const after = new Date(moved!.starts_at);
+    expect(after.getHours()).toBe(before.getHours());
+    expect(after.getMinutes()).toBe(before.getMinutes());
+  });
+
+  it("refuses an event with no time rather than inventing one", () => {
+    expect(movedTo({ starts_at: null, ends_at: null }, new Date(2026, 2, 17))).toBeNull();
+  });
+});
+
+describe("whether an event may be moved", () => {
+  const movable = { can_edit: true, recurrence: null, status: "CONFIRMED" };
+
+  it("lets an ordinary event you own be moved", () => {
+    expect(whyNotMovable(movable)).toBeNull();
+  });
+
+  it("gives the reason rather than a boolean", () => {
+    // The sentence is the point: a chip that simply fails to lift is one
+    // somebody drags four times before giving up (§76).
+    expect(whyNotMovable({ ...movable, can_edit: false })).toMatch(/organiser/i);
+    expect(whyNotMovable({ ...movable, status: "CANCELLED" })).toMatch(/cancelled/i);
+  });
+
+  it("refuses a recurring series, because there is no per-occurrence override", () => {
+    // The platform stores the rule and expands it, so moving one appearance of
+    // a weekly stand-up would silently move every one of them.
+    const reason = whyNotMovable({ ...movable, recurrence: { freq: "WEEKLY" } });
+    expect(reason).toMatch(/repeats/i);
+    expect(reason).toMatch(/series/i);
   });
 });

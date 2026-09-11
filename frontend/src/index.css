@@ -461,6 +461,15 @@ a:hover > .nu-tag-chip { border-color: var(--nu-accent); }
   border-radius: var(--nu-radius-control);
   background: color-mix(in srgb, var(--nu-accent) 8%, transparent);
 }
+/* A folder in the rail, which is also where files are dropped. The label
+   rather than the tree node: AntD's own draggable moves *nodes*, and a file
+   manager needs the opposite — the folders stay put and the files land. */
+.nu-folder-node { display: inline-flex; align-items: center; gap: 6px; border-radius: 4px; padding: 0 3px; }
+.nu-folder-node.is-over {
+  background: var(--nu-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--nu-accent);
+}
+
 .nu-bulk-body { display: flex; flex-direction: column; gap: 12px; }
 .nu-bulk-form { margin-bottom: 0; }
 .nu-bulk-form .ant-form-item { margin-bottom: 8px; }
@@ -1831,6 +1840,9 @@ mark.nu-mark {
 .nu-weekhours-day--today,
 .nu-weekhours-cell--today,
 .nu-month-cell-date:hover,
+.nu-month-cell-add:hover,
+.nu-month-cell--over,
+.nu-folder-node.is-over,
 .nu-event-chip:hover,
 .nu-waitcard:hover,
 .nu-waitcard-icon,
@@ -2500,7 +2512,27 @@ p a:not(.ant-btn),
 .nu-month-cell--outside { background: var(--nu-bg); }
 .nu-month-cell--outside .nu-month-cell-date { color: var(--nu-text-tertiary); }
 .nu-month-cell--today { box-shadow: inset 0 0 0 2px var(--nu-accent); }
-.nu-month-cell-head { display: flex; justify-content: flex-end; }
+/* The add button first, the date last: the date is the anchor a reader's eye
+   returns to, so it keeps the corner it has always had. */
+.nu-month-cell-head { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
+.nu-month-cell-add {
+  appearance: none; background: none; border: 0; padding: 0 3px;
+  font: inherit; font-size: 10px; line-height: 1; color: var(--nu-text-tertiary);
+  cursor: pointer; border-radius: 4px; order: -1;
+  /* Quiet until wanted: thirty plus signs down a month would compete with the
+     events, which are the reason the page is open. Opacity rather than
+     `display`, so the cell does not reflow under the pointer. */
+  opacity: 0; transition: opacity 120ms ease-out;
+}
+.nu-month-cell:hover .nu-month-cell-add,
+.nu-month-cell:focus-within .nu-month-cell-add { opacity: 1; }
+.nu-month-cell-add:hover { background: var(--nu-accent-soft); color: var(--nu-accent-ink); }
+/* The day under a dragged event. Inset rather than a border, so the grid does
+   not shift by a pixel as the pointer crosses a cell. */
+.nu-month-cell--over {
+  background: var(--nu-accent-soft);
+  box-shadow: inset 0 0 0 2px var(--nu-accent);
+}
 .nu-month-cell-date {
   appearance: none; background: none; border: 0; padding: 0 2px;
   font: inherit; font-size: 12px; font-weight: 600; color: var(--nu-text);
@@ -2540,6 +2572,11 @@ p a:not(.ant-btn),
 /* Dashed, so an unanswered invitation is a *shape* and not a colour. */
 .nu-event-chip--unanswered { border-style: dashed; }
 .nu-event-chip--mine { font-weight: 550; }
+/* A chip that can be rescheduled says so with the cursor, and only while the
+   pointer is on it — a grab cursor on everything would promise it of the
+   recurring ones too. */
+.nu-event-chip--movable { cursor: grab; }
+.nu-event-chip--movable:active { cursor: grabbing; }
 
 /* A week, as an hour band. Seven columns of chips left six hundred pixels of
    nothing below a fortnight's meetings; an hour band fills that with the thing

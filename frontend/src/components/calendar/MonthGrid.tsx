@@ -17,13 +17,26 @@
  * clash carries a warning icon, and an unanswered invitation is outlined —
  * each of which survives being printed, screenshotted or read by somebody who
  * cannot separate the two greens (§64).
+ *
+ * **An event can be dragged to another day, and the arrow keys do the same
+ * thing.** Rescheduling was a four-step journey — open the event, open the
+ * editor, change two datetimes, save — for the commonest change anybody makes
+ * to a calendar. The keyboard path is not a consolation prize: a focused chip
+ * takes ±1 day on Left/Right and ±7 on Up/Down, which is *faster* than the
+ * mouse for "next Tuesday" and is the only path that works without one.
+ *
+ * A chip that cannot move says why on hover rather than simply failing to
+ * lift — and the one that matters is a recurring series, because the platform
+ * stores the rule and expands it, so moving one appearance would move them all
+ * (§76).
  */
 
 import { Tooltip } from "antd";
-import { ExclamationCircleFilled } from "@ant-design/icons";
+import { ExclamationCircleFilled, PlusOutlined } from "@ant-design/icons";
+import { useState } from "react";
 
 import type { CalendarOccurrence } from "@/api/calendar";
-import { isSameMonth, isToday, isoDay } from "@/lib/calendarGrid";
+import { addDays, isSameMonth, isToday, isoDay, whyNotMovable } from "@/lib/calendarGrid";
 
 /** How many events one month cell shows before it starts counting. */
 export const CELL_LIMIT = 3;
@@ -56,14 +69,22 @@ export function MonthGrid({
   items,
   onOpen,
   onOpenDay,
+  onMove,
+  onAddOn,
 }: {
   days: Date[];
   anchor: Date;
   items: CalendarOccurrence[];
   onOpen: (occurrence: CalendarOccurrence) => void;
   onOpenDay: (day: Date) => void;
+  /** Reschedule to another day. Absent when the reader may not manage events. */
+  onMove?: (occurrence: CalendarOccurrence, day: Date) => void;
+  /** Start a new event on a day. Absent for the same reason. */
+  onAddOn?: (day: Date) => void;
 }) {
   const buckets = byDay(items);
+  /** The day currently under a dragged chip, so the cell can say so. */
+  const [over, setOver] = useState<string | null>(null);
 
   return (
     <div className="nu-month" data-testid="calendar-month">
@@ -90,9 +111,36 @@ export function MonthGrid({
                 "nu-month-cell",
                 outside ? "nu-month-cell--outside" : "",
                 isToday(day) ? "nu-month-cell--today" : "",
+                over === key ? "nu-month-cell--over" : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
+              // `preventDefault` on drag-over is what makes a drop land at all;
+              // without it the browser treats every element as hostile ground.
+              onDragOver={
+                onMove
+                  ? (event) => {
+                      event.preventDefault();
+                      setOver(key);
+                    }
+                  : undefined
+              }
+              onDragLeave={onMove ? () => setOver((current) => (current === key ? null : current)) : undefined}
+              onDrop={
+                onMove
+                  ? (event) => {
+                      event.preventDefault();
+                      setOver(null);
+                      const moved = items.find(
+                        (candidate) => candidate.id === event.dataTransfer.getData("text/plain"),
+                      );
+                      // Dropping an event back on its own day is not a change,
+                      // and sending the write anyway would flash a toast for a
+                      // gesture that did nothing.
+                      if (moved && moved.day !== key) onMove(moved, day);
+                    }
+                  : undefined
+              }
               // The label carries the count, so a reader on a screen reader
               // hears "10 March, 3 events" rather than counting list items.
               aria-label={`${day.toLocaleDateString(undefined, {
@@ -111,11 +159,29 @@ export function MonthGrid({
                 >
                   {day.getDate()}
                 </button>
+                {onAddOn && (
+                  // Quiet until the cell is hovered or focused, so a month of
+                  // thirty plus signs does not compete with the events.
+                  <button
+                    type="button"
+                    className="nu-month-cell-add"
+                    onClick={() => onAddOn(day)}
+                    aria-label={`Add an event on ${key}`}
+                    data-testid={`add-${key}`}
+                  >
+                    <PlusOutlined />
+                  </button>
+                )}
               </header>
 
               <div className="nu-month-cell-body">
                 {shown.map((item) => (
-                  <EventChip key={item.id} item={item} onOpen={onOpen} />
+                  <EventChip
+                    key={item.id}
+                    item={item}
+                    onOpen={onOpen}
+                    onMove={onMove ? (by) => onMove(item, addDays(day, by)) : undefined}
+                  />
                 ))}
                 {hidden > 0 && (
                   // A button, never a label: telling somebody three things are
@@ -143,12 +209,17 @@ export function MonthGrid({
 export function EventChip({
   item,
   onOpen,
+  onMove,
 }: {
   item: CalendarOccurrence;
   onOpen: (occurrence: CalendarOccurrence) => void;
+  /** Reschedule by a number of days. Absent where rescheduling is not offered. */
+  onMove?: (byDays: number) => void;
 }) {
   const cancelled = item.status === "CANCELLED";
   const unanswered = item.involves_me && item.my_response === "NEEDS_ACTION";
+  const refusal = onMove ? whyNotMovable(item) : "Rescheduling is not yours to do";
+  const movable = Boolean(onMove) && refusal === null;
 
   return (
     <button
@@ -158,13 +229,38 @@ export function EventChip({
         cancelled ? "nu-event-chip--cancelled" : "",
         unanswered ? "nu-event-chip--unanswered" : "",
         item.involves_me ? "nu-event-chip--mine" : "",
+        movable ? "nu-event-chip--movable" : "",
       ]
         .filter(Boolean)
         .join(" ")}
       style={{ borderInlineStartColor: item.color }}
       onClick={() => onOpen(item)}
+      draggable={movable}
+      onDragStart={
+        movable
+          ? (event) => {
+              // The occurrence id, which the cell looks back up — rather than
+              // a serialised event, because the two copies would disagree the
+              // moment anything else refetched.
+              event.dataTransfer.setData("text/plain", item.id);
+              event.dataTransfer.effectAllowed = "move";
+            }
+          : undefined
+      }
+      onKeyDown={
+        movable && onMove
+          ? (event) => {
+              const by = KEY_MOVES[event.key];
+              if (by === undefined || event.metaKey || event.ctrlKey) return;
+              // Claimed before the page can scroll: arrows in a grid otherwise
+              // move the viewport and the event at the same time.
+              event.preventDefault();
+              onMove(by);
+            }
+          : undefined
+      }
       data-testid={`event-${item.id}`}
-      title={item.title}
+      title={movable ? `${item.title} — drag or use the arrow keys to move it` : item.title}
     >
       {!item.all_day && <span className="nu-event-chip-time">{clock(item.starts_at)}</span>}
       <span className="nu-event-chip-title">{item.title}</span>
@@ -178,6 +274,20 @@ export function EventChip({
     </button>
   );
 }
+
+/**
+ * What each arrow key moves a focused chip by, in days.
+ *
+ * A week vertically and a day horizontally, because that is the shape of the
+ * grid the chip is sitting in: Down lands in the cell directly below, which is
+ * the same day next week.
+ */
+const KEY_MOVES: Record<string, number | undefined> = {
+  ArrowLeft: -1,
+  ArrowRight: 1,
+  ArrowUp: -7,
+  ArrowDown: 7,
+};
 
 /** `09:30`, in the reader's own locale. */
 export function clock(value: string | null): string {

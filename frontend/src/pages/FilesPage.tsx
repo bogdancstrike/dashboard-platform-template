@@ -49,6 +49,7 @@ import {
   DownloadOutlined,
   EditOutlined,
   FolderAddOutlined,
+  FolderOpenOutlined,
   InboxOutlined,
   MoreOutlined,
   UploadOutlined,
@@ -74,7 +75,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
 
-const { Text } = Typography;
+const { Text, Paragraph } = Typography;
 
 /** Where the reader is in the tree. `unfiled` is a real place, not an absence. */
 const UNFILED = "unfiled";
@@ -129,6 +130,16 @@ export default function FilesPage() {
   const [renaming, setRenaming] = useState<StoredFile | null>(null);
   /** The one-question modal for a new folder (§33). */
   const [namingFolder, setNamingFolder] = useState(false);
+  /**
+   * The files ticked, and where a bulk move is going.
+   *
+   * Held rather than put in the address, unlike the open folder and the
+   * previewed file: a selection is a gesture in progress, and a link that
+   * arrived with twelve files pre-ticked would be a link that invites somebody
+   * to press Delete on a selection they did not make.
+   */
+  const [ticked, setTicked] = useState<string[]>([]);
+  const [movingTo, setMovingTo] = useState(false);
   const term = useDebouncedValue(search, 280);
 
   const tree = useQuery({
@@ -241,6 +252,49 @@ export default function FilesPage() {
     onError: failed,
   });
 
+  /**
+   * Several files at once (§43, §75).
+   *
+   * One request per file rather than a bulk endpoint, because there is not one
+   * for files and inventing a second write path for a dozen rows would be a
+   * second set of permission checks to keep in step. Sequential rather than
+   * parallel: a folder move of forty files through `Promise.all` is forty
+   * simultaneous writes to the same parent, and the failure mode is a partial
+   * move nobody can read.
+   *
+   * What it reports is what happened — "9 moved, 3 refused" — rather than a
+   * success toast over a partial result. A bulk action that hides its failures
+   * is one somebody trusts exactly once.
+   */
+  const bulk = useMutation({
+    mutationFn: async (input: { ids: string[]; act: (id: string) => Promise<unknown> }) => {
+      let done = 0;
+      const refused: string[] = [];
+      for (const id of input.ids) {
+        try {
+          await input.act(id);
+          done += 1;
+        } catch (error) {
+          refused.push(error instanceof ApiError ? error.message : String(error));
+        }
+      }
+      return { done, refused };
+    },
+    onSuccess: ({ done, refused }) => {
+      setTicked([]);
+      setMovingTo(false);
+      if (refused.length === 0) {
+        message.success(`${done} ${done === 1 ? "file" : "files"} done`);
+      } else {
+        // The first reason, not a count of them: twelve identical refusals are
+        // one fact, and the reason is what somebody needs.
+        message.warning(`${done} done, ${refused.length} refused — ${refused[0]}`);
+      }
+      refresh();
+    },
+    onError: failed,
+  });
+
   const addFolder = useMutation({
     mutationFn: (name: string) =>
       filesApi.createFolder({ name, parent_id: open === UNFILED ? null : open }),
@@ -260,6 +314,8 @@ export default function FilesPage() {
     onError: failed,
   });
 
+  const canManage = tree.data?.can_manage ?? false;
+
   /** The flat list, nested by its materialised paths. */
   const nodes = useMemo(() => {
     const folders = tree.data?.folders ?? [];
@@ -270,33 +326,71 @@ export default function FilesPage() {
       children.set(key, [...(children.get(key) ?? []), folder]);
     }
 
+    /**
+     * A folder's label, which is also where files are dropped.
+     *
+     * On the title rather than on the tree: AntD's own `draggable` moves
+     * *nodes*, and what a file manager needs is the opposite — the folders
+     * stay put and the files land on them. Wrapping the label keeps the tree's
+     * own selection and expansion behaviour untouched.
+     */
+    const label = (id: string, name: string, count: number) => (
+      <span
+        className="nu-folder-node"
+        onDragOver={
+          canManage
+            ? (event) => {
+                event.preventDefault();
+                event.currentTarget.classList.add("is-over");
+              }
+            : undefined
+        }
+        onDragLeave={
+          canManage ? (event) => event.currentTarget.classList.remove("is-over") : undefined
+        }
+        onDrop={
+          canManage
+            ? (event) => {
+                event.preventDefault();
+                event.currentTarget.classList.remove("is-over");
+                const ids = event.dataTransfer.getData("text/plain").split(",").filter(Boolean);
+                // Dropping on the folder the files are already in is not a
+                // change, and writing anyway would flash a toast for nothing.
+                if (ids.length === 0 || id === open) return;
+                bulk.mutate({
+                  ids,
+                  act: (file) =>
+                    filesApi.update(file, { folder_id: id === UNFILED ? null : id }),
+                });
+              }
+            : undefined
+        }
+        data-testid={`folder-${id}`}
+      >
+        <span>{name}</span>
+        <Text type="secondary">{count}</Text>
+      </span>
+    );
+
     const build = (parent: string): { key: string; title: React.ReactNode; children?: unknown[] }[] =>
       (children.get(parent) ?? []).map((folder) => ({
         key: folder.id,
-        title: (
-          <Space size={6}>
-            <span>{folder.name}</span>
-            <Text type="secondary">{folder.file_count}</Text>
-          </Space>
-        ),
+        title: label(folder.id, folder.name, folder.file_count),
         children: build(folder.id),
       }));
 
     return [
       {
         key: UNFILED,
-        title: (
-          <Space size={6}>
-            <span>Unfiled</span>
-            <Text type="secondary">{tree.data?.unfiled.file_count ?? 0}</Text>
-          </Space>
-        ),
+        title: label(UNFILED, "Unfiled", tree.data?.unfiled.file_count ?? 0),
       },
       ...build(""),
     ];
-  }, [tree.data]);
+    // `bulk` and `open` are read by the drop handler, and `canManage` decides
+    // whether there is one — so the tree is rebuilt when any of them changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tree.data, canManage, open, bulk]);
 
-  const canManage = tree.data?.can_manage ?? false;
 
   /** What the whole store holds — summed here rather than asked for twice. */
   const stored = useMemo(() => {
@@ -355,6 +449,22 @@ export default function FilesPage() {
           .querySelector<HTMLInputElement>('[data-testid="dropzone"] input[type="file"]')
           ?.click(),
     },
+    ...(ticked.length > 0
+      ? [
+          {
+            id: "files.move",
+            label: `Move the ${ticked.length} selected to a folder`,
+            keywords: "move folder file organise reorganise put",
+            run: () => setMovingTo(true),
+          },
+          {
+            id: "files.clear",
+            label: "Clear the selection",
+            keywords: "clear deselect untick none selection",
+            run: () => setTicked([]),
+          },
+        ]
+      : []),
     {
       id: "files.first",
       label: "Back to the first folder",
@@ -568,6 +678,79 @@ export default function FilesPage() {
             </div>
           )}
 
+          {/* Above the rows it acts on, and only once something is ticked —
+              the same rule the explorer's bulk bar follows. A bar that is
+              always there is a bar nobody reads when it matters. */}
+          {ticked.length > 0 && (
+            <div className="nu-bulkbar" data-testid="file-bulk">
+              <Text strong>
+                {ticked.length} {ticked.length === 1 ? "file" : "files"} selected
+              </Text>
+              <Space size={8}>
+                <Button
+                  icon={<FolderOpenOutlined />}
+                  disabled={!canManage}
+                  onClick={() => setMovingTo(true)}
+                  data-testid="bulk-move"
+                >
+                  Move to…
+                </Button>
+                <Button
+                  icon={<DownloadOutlined />}
+                  loading={bulk.isPending}
+                  onClick={() =>
+                    bulk.mutate({
+                      ids: ticked,
+                      // The same signed-URL path a single download takes, once
+                      // per file: the browser fetches the bytes from storage,
+                      // which is what makes a forty-file download possible.
+                      act: async (id) => {
+                        const answer = await filesApi.downloadUrl(id);
+                        const link = document.createElement("a");
+                        link.href = answer.download.url;
+                        link.rel = "noopener";
+                        document.body.append(link);
+                        link.click();
+                        link.remove();
+                      },
+                    })
+                  }
+                  data-testid="bulk-download"
+                >
+                  Download
+                </Button>
+                <Tooltip title={canManage ? "" : "Your role does not include files.manage"}>
+                  <Button
+                    danger
+                    icon={<DeleteOutlined />}
+                    disabled={!canManage}
+                    loading={bulk.isPending}
+                    onClick={() =>
+                      modal.confirm({
+                        title: `Delete ${ticked.length} ${ticked.length === 1 ? "file" : "files"}?`,
+                        content:
+                          "The records and the bytes both go. The audit trail keeps what they were.",
+                        okText: `Delete ${ticked.length}`,
+                        okButtonProps: { danger: true },
+                        onOk: () =>
+                          bulk.mutateAsync({
+                            ids: ticked,
+                            act: (id) => filesApi.remove(id),
+                          }),
+                      })
+                    }
+                    data-testid="bulk-delete"
+                  >
+                    Delete
+                  </Button>
+                </Tooltip>
+                <Button type="text" onClick={() => setTicked([])}>
+                  Clear
+                </Button>
+              </Space>
+            </div>
+          )}
+
           {/* The whole list is the drop target, and says so only while
               something is being dragged over it. A permanent band of
               instructions is chrome that is read once and then occupies a
@@ -577,10 +760,26 @@ export default function FilesPage() {
               size="small"
               rowKey="id"
               sticky
-              // A row opens the preview, the way a row opens a record
-              // everywhere else — the buttons at its end stop the click, so
-              // "download" does not also open a pane over the download.
+              rowSelection={{
+                selectedRowKeys: ticked,
+                onChange: (keys) => setTicked(keys.map(String)),
+                // Kept across paging and across a search: somebody who ticks
+                // four files, searches for a fifth and ticks it means five.
+                preserveSelectedRowKeys: true,
+              }}
+              // Dragged by the row, dropped on a folder in the rail. The
+              // selection comes with it when the dragged row is part of one,
+              // so "move these nine" is one gesture rather than nine.
               onRow={(row) => ({
+                draggable: canManage,
+                onDragStart: (event: React.DragEvent) => {
+                  const carried = ticked.includes(row.id) ? ticked : [row.id];
+                  event.dataTransfer.setData("text/plain", carried.join(","));
+                  event.dataTransfer.effectAllowed = "move";
+                },
+                // A row opens the preview, the way a row opens a record
+                // everywhere else — the buttons at its end stop the click, so
+                // "download" does not also open a pane over the download.
                 onClick: () => setPreviewing(row.id),
                 style: { cursor: "pointer" },
               })}
@@ -713,6 +912,41 @@ export default function FilesPage() {
           setNamingFolder(false);
         }}
       />
+
+      <Modal
+        open={movingTo}
+        title={`Move ${ticked.length} ${ticked.length === 1 ? "file" : "files"}`}
+        footer={null}
+        onCancel={() => setMovingTo(false)}
+        destroyOnHidden
+      >
+        <Paragraph type="secondary">
+          Pick the folder they go to. Dragging them onto a folder in the rail does the same
+          thing.
+        </Paragraph>
+        <Select
+          autoFocus
+          showSearch
+          optionFilterProp="label"
+          style={{ width: "100%" }}
+          placeholder="Which folder"
+          aria-label="Move to folder"
+          options={[
+            { value: UNFILED, label: "Unfiled" },
+            ...(tree.data?.folders ?? []).map((folder) => ({
+              value: folder.id,
+              label: folder.path || folder.name,
+            })),
+          ]}
+          onChange={(value: string) =>
+            bulk.mutate({
+              ids: ticked,
+              act: (id) =>
+                filesApi.update(id, { folder_id: value === UNFILED ? null : value }),
+            })
+          }
+        />
+      </Modal>
 
       <RenameModal
         file={renaming}

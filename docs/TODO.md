@@ -3200,6 +3200,50 @@ Ordered as asked: mail, then the admin pages, then the showcase.
     matched and `/preferences` passed. Verified by reintroducing the bug and
     watching it fail
 
+### `/calendar` and `/files` gained the gesture each was missing
+
+- [x] **An event moves by dragging it, or with the arrow keys** (§19). Changing
+      *when* something happens is the commonest edit anybody makes to a
+      calendar and it was a four-step journey: open the event, open the editor,
+      change two datetimes, save
+  - The keyboard path is not a consolation prize. A focused chip takes ±1 day
+    on Left/Right and ±7 on Up/Down — the shape of the grid it is sitting in —
+    which is *faster* than the mouse for "a week later" and is the only path
+    that works without one
+  - **A repeating event will not move, and says so.** The platform stores the
+    rule and expands it; there is no per-occurrence override, so shifting one
+    appearance of a weekly stand-up would silently shift every one of them.
+    `whyNotMovable` returns the sentence rather than a boolean, for the same
+    reason `charts/shapes.ts` does — a chip that simply fails to lift is one
+    somebody drags four times before giving up (§76)
+  - **The clock is set, not added to.** Moving an event a week across a
+    daylight-saving change by adding 7 × 24h lands it an hour out, and "my
+    09:00 became 08:00 in March" is the bug people remember. Asserted without a
+    browser, because that is arithmetic rather than interaction
+  - Applied at once and put back if refused (§73): a drag that waits for a
+    round trip before the chip moves reads as a drag that did not take
+  - And each day cell gained its own quiet **+**, so a new event starts on the
+    day somebody pressed rather than on today
+- [x] **Files can be ticked and acted on together** (§43, §75). Every other
+      list in the product offers this; here it was per-row buttons only, so
+      deleting twelve files was twelve confirmations — and *moving* one was not
+      possible at all, despite the server having accepted `folder_id` on an
+      update the whole time
+  - Move, download or delete a selection; **dragging a ticked row onto a folder
+    in the rail carries the whole selection**, because "these nine belong in
+    Contracts" is one decision rather than nine
+  - One request per file rather than a bulk endpoint — there is not one for
+    files, and inventing a second write path for a dozen rows would be a second
+    set of permission checks to keep in step. Sequential, so a partial failure
+    is readable, and it reports **what actually happened** — "9 moved, 3
+    refused" with the reason — rather than a success toast over a partial result
+  - The drop target is the folder's *label*, not the tree node: AntD's own
+    `draggable` moves nodes, and a file manager needs the opposite — the
+    folders stay put and the files land on them
+- [x] Both gestures are in their page's tour, and the three new tinted surfaces
+      re-point the quiet ink — `a11y.test.ts` caught that the moment they were
+      written, which is what that rule is for
+
 ### Known red
 
 Twenty-six at the start of this session; two now.

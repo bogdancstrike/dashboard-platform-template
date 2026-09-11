@@ -212,3 +212,57 @@ export function agendaHeading(when: Date, now: Date = new Date()): string {
     ...(when.getFullYear() === now.getFullYear() ? {} : { year: "numeric" }),
   });
 }
+
+/**
+ * Why an occurrence cannot be dragged to another day, or `null` when it can.
+ *
+ * Returns the *sentence* rather than a boolean, for the same reason
+ * `missingFor` in `charts/shapes.ts` does: "this repeats weekly — edit the
+ * series to move it" is actionable and a chip that simply refuses to lift is
+ * a chip somebody drags four times before giving up (§76).
+ *
+ * The recurrence rule is the one worth spelling out. The platform stores a
+ * series and expands it; there is no per-occurrence override, so moving one
+ * appearance of a weekly stand-up would silently move all of them. A drag that
+ * quietly did that is worse than one that does not happen.
+ */
+export function whyNotMovable(item: {
+  can_edit: boolean;
+  recurrence: unknown;
+  status: string;
+}): string | null {
+  if (!item.can_edit) return "Only the organiser can move this";
+  if (item.recurrence) return "This repeats — open it to move the whole series";
+  if (item.status === "CANCELLED") return "This event is cancelled";
+  return null;
+}
+
+/**
+ * The same event on a different day: time of day kept, duration kept.
+ *
+ * Dragging across a month grid answers "which day", never "which hour" — the
+ * cell has no hours in it — so an implementation that snapped to midnight
+ * would turn every drag into a second edit to put the time back.
+ *
+ * Pure and exported because the arithmetic is the part worth asserting: an
+ * event moved across a daylight-saving boundary must keep reading 09:00, which
+ * is a property of setting the fields rather than of adding milliseconds.
+ */
+export function movedTo(
+  item: { starts_at: string | null; ends_at: string | null },
+  day: Date,
+): { starts_at: string; ends_at: string } | null {
+  const start = new Date(item.starts_at ?? "");
+  const end = new Date(item.ends_at ?? "");
+  if (Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf())) return null;
+
+  const duration = end.valueOf() - start.valueOf();
+  const moved = new Date(day);
+  // Set rather than add: adding 24h across a clock change lands an hour out,
+  // and "my 09:00 became 08:00 in March" is the bug people remember.
+  moved.setHours(start.getHours(), start.getMinutes(), start.getSeconds(), 0);
+  return {
+    starts_at: moved.toISOString(),
+    ends_at: new Date(moved.valueOf() + duration).toISOString(),
+  };
+}
