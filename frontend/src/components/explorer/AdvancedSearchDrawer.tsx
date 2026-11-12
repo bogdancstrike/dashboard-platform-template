@@ -15,13 +15,13 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Button, Collapse, Drawer, Space, Statistic, Tooltip, Typography } from "antd";
+import { Alert, Button, Collapse, Drawer, Select, Space, Statistic, Tooltip, Typography } from "antd";
 import {
   QuestionCircleOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 
-import { explorerApi, type ExplorerField, type ExplorerRequest } from "@/api/explorer";
+import { explorerApi, type ExplorerField, type ExplorerRequest, type ExplorerResource } from "@/api/explorer";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useSticky } from "@/hooks/useSticky";
 
@@ -47,6 +47,10 @@ export interface AdvancedSearchDrawerProps {
   recordCount?: number;
   /** Open the saved-search panel ("Load a saved search"). */
   onOpenSaved?: () => void;
+  /** Every dataset this reader may explore, for "Find [dataset] where …". */
+  resources?: ExplorerResource[];
+  /** Switch the page's dataset; the draft starts again, empty. */
+  onChooseResource?: (key: string) => void;
 }
 
 export function AdvancedSearchDrawer(props: AdvancedSearchDrawerProps) {
@@ -75,12 +79,12 @@ export function AdvancedSearchDrawer(props: AdvancedSearchDrawerProps) {
       // contract: what was not searched for was not asked.
       destroyOnHidden
     >
-      {props.open && <AdvancedSearchBody {...props} />}
+      {props.open && <AdvancedSearchBody key={props.request.resource_type} {...props} />}
     </Drawer>
   );
 }
 
-function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, recordCount, onOpenSaved }: AdvancedSearchDrawerProps) {
+function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, recordCount, onOpenSaved, resources, onChooseResource }: AdvancedSearchDrawerProps) {
   const [draft, setDraft] = useState<QueryNode | null>(request.condition_tree ?? null);
 
   // Same endpoint, same shape, first page only: the preview is the search.
@@ -112,6 +116,30 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, record
 
   return (
     <div className="nu-advanced-search nx-fd-advbody">
+      {resources && resources.length > 0 && onChooseResource && (
+        <div className="nx-fd-dfind">
+          <span>Find</span>
+          <Select
+            className="nx-fd-dfind-select"
+            aria-label="Dataset"
+            data-testid="dataset-select"
+            value={request.resource_type}
+            popupMatchSelectWidth={false}
+            onChange={onChooseResource}
+            options={resources.map((item) => ({
+              value: item.key,
+              label: (
+                <span className="nx-fd-typeopt">
+                  <span>{item.label}</span>
+                  <span className="nx-fd-muted">{item.record_count.toLocaleString()}</span>
+                </span>
+              ),
+            }))}
+            labelRender={() => resources.find((item) => item.key === request.resource_type)?.label ?? request.resource_type}
+          />
+          <span>where</span>
+        </div>
+      )}
       <div className="nx-fd-dcount">
         <Statistic
           className="nu-advanced-count"

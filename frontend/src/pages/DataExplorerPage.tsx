@@ -3,14 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Alert,
   App as AntApp,
-  Badge,
   Button,
   Checkbox,
   Popover,
   Segmented,
   Select,
   Skeleton,
-  Space,
   Tooltip,
   Typography,
 } from "antd";
@@ -429,43 +427,33 @@ export default function DataExplorerPage() {
       )}
 
       <>
-          <section className={`nx-fd-bar nx-glass nx-glass--strong${mode === "start" ? " is-start" : ""}`} aria-label="Search">
-            {mode === "start" && resource && (
-              <span className="nx-fd-indexed">
-                <span className="nx-fd-dot" aria-hidden="true" />
-                {allRecords.toLocaleString()} records in {resources.length} datasets you may read
-              </span>
-            )}
-            {mode === "start" && (
-              <h2 className="nx-fd-start-title">
-                Find anything in <em className="nx-em">{resource?.label.toLowerCase() ?? "your data"}</em>
-              </h2>
-            )}
+          <section className="nx-fd-bar nx-glass nx-glass--strong nx-fd-slim" aria-label="Search">
             <div className="nx-fd-bar-row">
-              <Select
-                className="nx-fd-type"
-                aria-label="Dataset"
-                data-testid="dataset-select"
-                value={resource?.key}
+              {/* Rules sits where the dataset used to: the drawer it opens
+                  starts with "Find [dataset] where …", so the dataset and the
+                  conditions on it are chosen in one place, and the label keeps
+                  both visible on the page. */}
+              <Button
+                className={`nx-fd-rulesbtn${tree ? " is-on" : ""}`}
+                icon={<NxIcon name="filter" size={15} />}
+                data-testid="open-rules"
                 loading={catalogue.isLoading}
-                onChange={chooseResource}
-                popupMatchSelectWidth={false}
-                labelRender={() => (
-                  <span className="nx-fd-typelabel">
-                    {mode !== "start" && <span className="nx-fd-typeicon"><NxIcon name="database" size={14} /></span>}
-                    <span>{resource?.label ?? "Dataset"}</span>
-                    {mode === "start" && resource && <span className="nx-fd-muted">{resource.record_count.toLocaleString()}</span>}
-                  </span>
-                )}
-                options={resources.map((item) => ({
-                  value: item.key,
-                  label: <Space><span>{item.label}</span><Text type="secondary">{item.record_count.toLocaleString()}</Text></Space>,
-                }))}
-                optionRender={(option) => {
-                  const item = resources.find((candidate) => candidate.key === option.value);
-                  return <div><div>{item?.label}</div><Text type="secondary">{item?.description}</Text></div>;
-                }}
-              />
+                onClick={() => setAdvancedOpen(true)}
+                aria-label={`Rules: ${resource?.label ?? "dataset"}, ${stats.rules} ${stats.rules === 1 ? "rule" : "rules"}`}
+              >
+                <span className="nx-fd-rulesds">{resource?.label ?? "Dataset"}</span>
+                {stats.rules > 0 && <span className="nx-fd-rulesn">· {stats.rules} {stats.rules === 1 ? "rule" : "rules"}</span>}
+              </Button>
+              {tree && (
+                <button
+                  type="button"
+                  className="nx-fd-iconbtn is-plain"
+                  aria-label="Remove the rules"
+                  onClick={() => set({ tree: null, page: null })}
+                >
+                  <NxIcon name="close" size={14} />
+                </button>
+              )}
               <div className="nx-fd-q">
                 <ExplorerSearch
                   dataset={resource?.key ?? "records"}
@@ -474,38 +462,12 @@ export default function DataExplorerPage() {
                   onChange={(next: string) => set({ q: next, page: null })}
                 />
               </div>
-              {mode === "start" && (
-                <Button type="primary" className="nx-fd-go" icon={<NxIcon name="search" size={15} />} onClick={() => void results.refetch()}>
-                  Search
-                </Button>
-              )}
-              {advancedSearch && (
-                <span className="nx-fd-rules">
-                  <Badge count={stats.rules} size="small" color="var(--nu-accent)">
-                    <Button
-                      className={`nx-fd-rulesbtn${tree ? " is-on" : ""}`}
-                      icon={<BuildOutlined />}
-                      data-testid="open-rules"
-                      onClick={() => setAdvancedOpen(true)}
-                    >
-                      Rules
-                    </Button>
-                  </Badge>
-                  {tree && (
-                    <button
-                      type="button"
-                      className="nx-fd-iconbtn is-plain"
-                      aria-label="Remove the rules"
-                      onClick={() => set({ tree: null, page: null })}
-                    >
-                      <NxIcon name="close" size={14} />
-                    </button>
-                  )}
-                </span>
-              )}
+              <Button type="primary" className="nx-fd-go" icon={<NxIcon name="search" size={15} />} onClick={() => void results.refetch()}>
+                Search
+              </Button>
             </div>
             {mode === "start" && suggestions.length > 0 && (
-              <div className="nx-fd-try">
+              <div className="nx-fd-try nx-fd-try--slim">
                 <span className="nx-fd-eyebrow">Try</span>
                 {suggestions.map((item) => (
                   <button
@@ -565,8 +527,6 @@ export default function DataExplorerPage() {
               dataset={resource.key}
               label={resource.label}
               onAsk={(term) => set({ q: term, page: null })}
-              onOpenSaved={openSaved}
-              onManage={() => set({ panel: "saved" })}
             />
           )}
 
@@ -697,6 +657,8 @@ export default function DataExplorerPage() {
           request={request}
           datasetLabel={resource.label}
           recordCount={resource.record_count}
+          resources={resources}
+          onChooseResource={chooseResource}
           onOpenSaved={() => {
             setAdvancedOpen(false);
             set({ panel: "saved", mode: null });
@@ -788,32 +750,21 @@ function trySuggestions(resource?: ExplorerResource) {
  * opens the saved-search drawer.
  */
 const RECENT_SHOWN = 4;
-const SAVED_SHOWN = 3;
 
-function StartPanels({ dataset, label, onAsk, onOpenSaved, onManage }: {
+function StartPanels({ dataset, label, onAsk }: {
   dataset: string;
   label: string;
   onAsk: (term: string) => void;
-  onOpenSaved: (search: SavedSearch) => void;
-  onManage: () => void;
 }) {
   const recent = useRecentSearches(dataset);
   const [allRecent, setAllRecent] = useState(false);
-  const saved = useQuery({
-    queryKey: ["explorer", "saved", dataset],
-    queryFn: ({ signal }) => explorerApi.saved(dataset, signal),
-    staleTime: 30_000,
-  });
-  const items = [...(saved.data?.items ?? [])]
-    .sort((a, b) => Number(b.is_favorite) - Number(a.is_favorite) || b.use_count - a.use_count);
   const terms = allRecent ? recent.terms : recent.terms.slice(0, RECENT_SHOWN);
   const moreRecent = recent.terms.length - RECENT_SHOWN;
-  const moreSaved = items.length - SAVED_SHOWN;
 
-  if (recent.terms.length === 0 && items.length === 0) return null;
+  if (recent.terms.length === 0) return null;
 
   return (
-    <div className={`nx-fd-quick${allRecent ? " is-open" : ""}`} aria-label={`Recent and saved searches in ${label.toLowerCase()}`}>
+    <div className={`nx-fd-quick${allRecent ? " is-open" : ""}`} aria-label={`Recent searches in ${label.toLowerCase()}`}>
       {recent.terms.length > 0 && (
         <div className="nx-fd-quickgroup" role="group" aria-labelledby="nx-fd-recent">
           <h2 id="nx-fd-recent" className="nx-fd-eyebrow">Recent searches</h2>
@@ -834,26 +785,6 @@ function StartPanels({ dataset, label, onAsk, onOpenSaved, onManage }: {
             </button>
           )}
           <button type="button" className="nx-fd-link nx-fd-tiny" onClick={recent.clear}>Clear</button>
-        </div>
-      )}
-      {items.length > 0 && (
-        <div className="nx-fd-quickgroup" role="group" aria-labelledby="nx-fd-savedh">
-          <h2 id="nx-fd-savedh" className="nx-fd-eyebrow">Saved searches</h2>
-          {items.slice(0, SAVED_SHOWN).map((item) => (
-            <button
-              type="button"
-              key={item.id}
-              className="nx-fd-qchip nx-fd-qchip--saved"
-              aria-label={`Run saved search: ${item.name}`}
-              onClick={() => onOpenSaved(item)}
-            >
-              {item.is_favorite ? <span className="nx-fd-star"><NxIcon name="star" size={12} /></span> : <FdIcon name="bookmark" size={12} />}
-              {item.name}
-            </button>
-          ))}
-          <button type="button" className="nx-fd-qmore" onClick={onManage}>
-            {moreSaved > 0 ? `+${moreSaved} more` : "Manage"}
-          </button>
         </div>
       )}
     </div>

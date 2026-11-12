@@ -143,12 +143,12 @@ describe("Data Explorer", () => {
     await waitFor(() => expect(sent.at(-1)?.condition_tree).toBeTruthy());
   });
 
-  it("starts with recent and saved searches, and a chip asks a filter", async () => {
+  it("starts with recent searches as chips, and a chip asks a filter", async () => {
     const user = userEvent.setup();
     window.localStorage.setItem("nucleus.search.recent.task", JSON.stringify(["migration"]));
     renderWithProviders(<DataExplorerPage />, { route: "/explore?resource=task" });
 
-    expect(await screen.findByRole("heading", { name: /Find anything in/ })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId("open-rules")).toHaveTextContent("Tasks"));
     expect(await screen.findByText("Recent searches")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remove recent search: migration" })).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: /status: new/ }));

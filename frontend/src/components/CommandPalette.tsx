@@ -253,6 +253,12 @@ export function CommandPalette() {
           ))}
         </Command.Group>
       </Command.List>
+      <div className="nx-fd-cmdk-foot" aria-hidden="true">
+        <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+        <span><kbd>↵</kbd> Open</span>
+        <span><kbd>esc</kbd> Close</span>
+        <span className="nx-fd-push">Commands for this page come first</span>
+      </div>
     </Command.Dialog>
   );
 }

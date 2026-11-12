@@ -323,11 +323,12 @@ test.describe("Data Explorer", () => {
   });
 
   test("another dataset brings its own fields", async ({ page }) => {
+    // The dataset is chosen at the top of the Rules drawer: "Find [Devices] where".
+    await openAdvanced(page);
     await page.getByTestId("dataset-select").click();
     await chooseOption(page, /^Devices/);
 
     await expect(page.getByRole("columnheader", { name: "Serial" })).toBeVisible();
-    await openAdvanced(page);
     await page.getByRole("button", { name: "+ Add filter" }).click();
     await page.locator(RULE.field).first().click();
     // The list is virtualised, so a field far down it is found by searching.

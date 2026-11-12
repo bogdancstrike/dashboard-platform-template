@@ -590,3 +590,65 @@ button.nx-fd-qchip { padding: 0 12px 0 10px; }
 .nx-app--phone .nx-fd-problem-title { font-size: 30px; }
 .nx-app--phone .nx-fd-problem-actions { flex-direction: column; width: 100%; }
 .nx-app--phone .nx-fd-problem-actions > *, .nx-app--phone .nx-fd-problem-actions .ant-btn { width: 100%; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Command palette (⌘K) — a frosted sheet over a blurred page
+   ═══════════════════════════════════════════════════════════════════════ */
+[cmdk-overlay] { background: rgba(20, 18, 30, 0.28) !important; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.nu-cmdk {
+  top: 10vh !important; left: 0 !important; right: 0 !important; margin: 0 auto; transform: none !important;
+  width: min(640px, calc(100vw - 24px)) !important; max-height: min(720px, 80vh) !important;
+  background: var(--nu-glass-strong) !important; border: 1px solid var(--nu-glass-border) !important; border-radius: 30px !important;
+  -webkit-backdrop-filter: blur(32px) saturate(180%); backdrop-filter: blur(32px) saturate(180%);
+  box-shadow: 0 30px 80px rgba(20, 18, 40, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+  animation: nxRise 0.35s var(--nx-ease) both;
+}
+:root[data-theme="dark"] .nu-cmdk { background: linear-gradient(140deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03)), rgba(20, 14, 26, 0.86) !important; }
+.nu-cmdk .nu-cmdk-input { height: 70px; padding: 0 22px; gap: 14px; border-bottom: 1px solid rgba(var(--nu-ink-rgb), 0.07); font-size: 18px; }
+.nu-cmdk .nu-cmdk-input > .anticon { color: var(--nu-accent); font-size: 18px; }
+.nu-cmdk .nu-cmdk-input input { font-size: 19px; background: transparent; }
+.nu-cmdk .nu-cmdk-input kbd, .nx-fd-cmdk-foot kbd {
+  font: 600 11px var(--nu-font); padding: 3px 7px; border-radius: 7px; background: var(--nu-raised);
+  border: 1px solid rgba(var(--nu-ink-rgb), 0.12); color: var(--nu-text-secondary); box-shadow: 0 1px 0 rgba(var(--nu-ink-rgb), 0.08);
+}
+.nu-cmdk [cmdk-list] { padding: 6px 10px 10px; }
+.nu-cmdk [cmdk-group-heading] { padding: 14px 12px 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--nu-text-tertiary); }
+.nu-cmdk [cmdk-item] { min-height: 50px; padding: 6px 12px 6px 8px; border-radius: 16px; gap: 12px; font-size: 14.5px; font-weight: 600; border: 1px solid transparent; }
+.nu-cmdk [cmdk-item][data-selected="true"] { background: rgba(var(--nu-glow-rgb), 0.12) !important; border-color: rgba(var(--nu-glow-rgb), 0.35); }
+.nu-cmdk .nu-cmdk-icon {
+  width: 36px; height: 36px; flex: none; border-radius: 12px; align-items: center; background: rgba(var(--nu-ink-rgb), 0.06); color: var(--nu-text-secondary); font-size: 15px;
+}
+.nu-cmdk [cmdk-item][data-selected="true"] .nu-cmdk-icon { background: var(--nu-accent); color: var(--nu-on-accent); }
+.nu-cmdk .nu-cmdk-hint { font-weight: 500; font-size: 12px; }
+.nx-fd-cmdk-foot {
+  display: flex; align-items: center; gap: 16px; padding: 12px 20px; border-top: 1px solid rgba(var(--nu-ink-rgb), 0.07);
+  font-size: 12px; color: var(--nu-text-tertiary); flex: none;
+}
+.nx-fd-cmdk-foot span { display: inline-flex; align-items: center; gap: 5px; }
+@media (max-width: 767px) {
+  .nu-cmdk { top: 12px !important; max-height: calc(100vh - 24px) !important; border-radius: 26px !important; }
+  .nx-fd-cmdk-foot { display: none; }
+  .nu-cmdk .nu-cmdk-input { height: 60px; }
+}
+
+/* ── explorer: one slim toolbar (Rules · search · Search) ───────────── */
+.nx-fd-bar.nx-fd-slim { padding: 8px; gap: 6px; border-radius: 26px; }
+.nx-fd-slim .nx-fd-bar-row { gap: 8px; }
+.nx-fd-slim .nx-fd-rulesbtn.ant-btn { height: 44px; border-radius: 22px; padding-inline: 16px; flex: none; max-width: 46%; }
+.nx-fd-slim .nx-fd-rulesbtn .nx-fd-rulesds { font-weight: 700; }
+.nx-fd-slim .nx-fd-rulesbtn .nx-fd-rulesn { font-weight: 500; color: inherit; opacity: 0.8; margin-left: 4px; }
+.nx-fd-slim .nx-fd-go.ant-btn { height: 44px; border-radius: 22px; padding-inline: 18px; font-size: 14px; flex: none; }
+.nx-fd-try--slim { gap: 6px; padding: 0 6px 2px; flex-wrap: nowrap; overflow: hidden; }
+.nx-fd-try--slim .nx-fd-eyebrow { font-size: 10px; }
+.nx-fd-try--slim .nx-fd-trychip { height: 26px; padding: 0 10px; border-radius: 13px; font-size: 12px; color: var(--nu-text-tertiary); background: rgba(var(--nu-ink-rgb), 0.045); }
+.nx-app--phone .nx-fd-slim .nx-fd-bar-row { flex-wrap: wrap; }
+.nx-app--phone .nx-fd-slim .nx-fd-q { order: -1; flex: 1 1 100%; }
+.nx-app--phone .nx-fd-slim .nx-fd-rulesbtn.ant-btn { flex: 1 1 auto; max-width: none; }
+.nx-app--phone .nx-fd-try--slim { overflow-x: auto; scrollbar-width: none; }
+
+/* "Find [dataset] where" — the first line of the Rules drawer */
+.nx-fd-dfind { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; color: var(--nu-text-secondary); padding: 2px 0 6px; }
+.nx-fd-dfind > span:first-child { color: var(--nu-text); font-weight: 700; }
+.nx-fd-dfind-select.ant-select { min-width: 150px; }
+.nx-fd-dfind-select .ant-select-selector { height: 38px !important; border-radius: 19px !important; font-weight: 700; }
+.nx-fd-dfind-select .ant-select-selection-item { line-height: 36px !important; }
