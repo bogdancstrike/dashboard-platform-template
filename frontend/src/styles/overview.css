@@ -449,31 +449,30 @@
 .nu-chartcard.ant-card .ant-card-head { padding-top: 8px; }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   Reports workbench
+   Reports: the table, then the chosen report answered
    ═══════════════════════════════════════════════════════════════════════ */
-.nx-ov-reports { gap: 16px; }
-.nx-ov-reports .nu-split-list.ant-card > .ant-card-body { padding: 10px; }
-.nx-ov-reports .nu-split-list .ant-input-search { margin-bottom: 8px; }
-.nx-ov-reports .nu-split-list .ant-input-search .ant-input-affix-wrapper,
-.nx-ov-reports .nu-split-list .ant-input-search > .ant-input-group > .ant-input { height: 44px; background: rgba(var(--nu-ink-rgb), 0.06) !important; border-color: transparent !important; }
-.nx-ov-reports .nu-split-list .ant-input-search .ant-input-group-addon .ant-btn { height: 44px; background: rgba(var(--nu-ink-rgb), 0.06); border-color: transparent; }
-.nx-ov-reports .nu-queue { display: flex; flex-direction: column; gap: 4px; }
-.nx-ov-reports .nu-queue-row { padding: 12px 14px; border-radius: 18px; transition: background 0.2s ease, box-shadow 0.2s ease; }
-.nx-ov-reports .nu-queue-row:hover { background: rgba(var(--nu-ink-rgb), 0.04); }
-.nx-ov-reports .nu-queue-row.is-open { background: var(--nu-raised); box-shadow: var(--nu-lift); }
-.nx-ov-reports .nu-queue-title .ant-typography { font-size: 14px; }
-.nx-ov-reports .nu-queue-meta .ant-typography { font-size: 12px; }
-.nx-ov-reports .nu-queue-scope { color: var(--nu-accent-ink); }
-.nx-ov-reports .nu-split-detail.ant-card > .ant-card-head { padding: 16px 20px 4px; }
-.nx-ov-reports .nu-split-detail.ant-card > .ant-card-head .ant-card-head-title { font-size: 18px; letter-spacing: -0.015em; }
-.nx-ov-reports .nu-split-detail.ant-card > .ant-card-body { padding: 8px 20px 20px; }
-.nx-ov-reports .nu-split-detail .ant-segmented { border-radius: 20px; background: rgba(var(--nu-ink-rgb), 0.06); padding: 3px; }
-.nx-ov-reports .nu-split-detail .ant-segmented .ant-segmented-item { border-radius: 17px; }
-.nx-ov-reports .nu-split-detail .ant-segmented .ant-segmented-item-label { font-weight: 500; }
-.nx-ov-reports .nu-split-detail .ant-segmented .ant-segmented-item-selected,
-.nx-ov-reports .nu-split-detail .ant-segmented .ant-segmented-thumb { background: var(--nu-raised); color: var(--nu-text); box-shadow: var(--nu-lift); border-radius: 17px; }
-.nx-ov-reports .nu-split-detail .ant-segmented .ant-segmented-item-selected .ant-segmented-item-label { font-weight: 700; }
-.nx-ov-reports .nu-chartcard.ant-card { background: rgba(var(--nu-ink-rgb), 0.03); box-shadow: none; border-radius: 22px; }
+.nx-ov-reports { display: flex; flex-direction: column; gap: 16px; }
+.nx-ov-reportlist.ant-card > .ant-card-body { padding: 10px 10px 6px; }
+.nx-ov-filterbar--inset { margin: 0 0 10px; padding: 0; background: transparent; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.nx-ov-reportlist .nx-ov-kinds { margin: 0 4px 6px; }
+.nx-ov-reportlist .ant-table-wrapper .ant-table-thead > tr > th { padding: 10px 14px; }
+.nx-ov-reportlist .ant-table-wrapper .ant-table-tbody > tr > td { padding: 12px 14px; cursor: pointer; }
+.nx-ov-reportlist .ant-table-tbody > tr.is-open > td { background: var(--nu-raised) !important; }
+.nx-ov-reportlist .ant-table-tbody > tr.is-open > td:first-child { box-shadow: inset 3px 0 0 var(--nu-accent); }
+.nx-ov-reportlist .nu-queue-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nx-ov-reportlist .nu-queue-title .ant-typography { font-size: 14px; }
+.nx-ov-reportlist .nu-queue-scope { color: var(--nu-accent-ink); }
+.nx-ov-sub.ant-typography { font-size: 12px; text-transform: none; }
+.nx-ov-reportlist .nx-ov-pill.ant-tag { background: rgba(var(--nu-ink-rgb), 0.07); text-transform: capitalize; }
+.nx-ov-reportdetail.ant-card > .ant-card-head { padding: 16px 20px 4px; }
+.nx-ov-reportdetail.ant-card > .ant-card-head .ant-card-head-title { font-size: 18px; letter-spacing: -0.015em; }
+.nx-ov-reportdetail.ant-card > .ant-card-body { padding: 8px 20px 20px; }
+.nx-ov-reportdetail .nu-chartcard--fill { height: 380px; }
+.nx-ov-reportdetail .ant-segmented { border-radius: 20px; background: rgba(var(--nu-ink-rgb), 0.06); padding: 3px; }
+.nx-ov-reportdetail .ant-segmented .ant-segmented-item { border-radius: 17px; }
+.nx-ov-reportdetail .ant-segmented .ant-segmented-item-selected,
+.nx-ov-reportdetail .ant-segmented .ant-segmented-thumb { background: var(--nu-raised); color: var(--nu-text); box-shadow: var(--nu-lift); border-radius: 17px; }
+.nx-ov-reportdetail .nu-chartcard.ant-card { background: rgba(var(--nu-ink-rgb), 0.03); box-shadow: none; border-radius: 22px; }
 
 /* ═══════════════════════════════════════════════════════════════════════
    Report documents (builder)
@@ -619,7 +618,6 @@
 .nu-board-choice.ant-radio-wrapper:hover { background: rgba(var(--nu-ink-rgb), 0.07); }
 .nu-board-choice.ant-radio-wrapper-checked { background: var(--nu-tint); }
 
-@media (max-width: 1100px) { .nx-ov-reports.nu-split { grid-template-columns: minmax(0, 1fr); } }
 .nx-app--phone .nx-ov-reports .nu-report-meta { flex-wrap: wrap; gap: 8px; }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -722,3 +720,18 @@
 .nu-bell-actions .ant-btn { height: 30px; padding-inline: 14px; border-radius: 15px; font-size: 12.5px; }
 .nu-bell-actions .ant-btn-default { background: rgba(var(--nu-ink-rgb), 0.07); border-color: transparent; }
 .nu-announce .nu-announce-actions .ant-btn { height: 32px; padding-inline: 14px; font-size: 12.5px; }
+.nx-ov-reportlist tr.nu-queue-row { display: table-row; padding: 0; background: transparent; box-shadow: none; border-radius: 0; }
+.nx-ov-reportlist tr.nu-queue-row.is-open { background: transparent; box-shadow: none; }
+.nx-ov-reportlist .ant-table-tbody > tr > td { vertical-align: middle; }
+.nx-ov-reportdetail .ant-segmented .ant-segmented-item-selected .ant-segmented-item-label,
+.nx-ov-reportdetail .ant-segmented .ant-segmented-thumb { color: var(--nu-text) !important; }
+
+/* Where the selected segment is a raised white thumb (not ink), its label is ink. */
+.nx-ov-dashbar .ant-segmented .ant-segmented-item-selected,
+.nx-ov-dashbar .ant-segmented .ant-segmented-item-selected .ant-segmented-item-label,
+.nx-ov-querybar .ant-segmented .ant-segmented-item-selected,
+.nx-ov-querybar .ant-segmented .ant-segmented-item-selected .ant-segmented-item-label,
+.nu-chartcard .ant-segmented .ant-segmented-item-selected,
+.nu-chartcard .ant-segmented .ant-segmented-item-selected .ant-segmented-item-label,
+.nx-ov-reportdetail .ant-segmented .ant-segmented-item-selected,
+.nx-ov-reportdetail .ant-segmented .ant-segmented-item-selected .ant-segmented-item-label { color: var(--nu-text) !important; }

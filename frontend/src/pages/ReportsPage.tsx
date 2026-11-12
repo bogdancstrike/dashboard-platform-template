@@ -29,6 +29,7 @@ import {
   Segmented,
   Skeleton,
   Space,
+  Table,
   Tag,
   Tooltip,
   Typography,
@@ -57,6 +58,7 @@ import { AddToDashboard, type DashboardSubject } from "@/components/dashboards/A
 import { FailureAlert } from "@/components/FailureAlert";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
+import { NxIcon } from "@/components/NxIcon";
 import { usePageCommands } from "@/commands/CommandContext";
 import { relativeTime } from "@/lib/time";
 
@@ -92,16 +94,26 @@ export default function ReportsPage() {
   const openId = params.get("report") ?? items[0]?.id ?? "";
   const open = items.find((item) => item.id === openId);
 
+  const [which, setWhich] = useState<"all" | "scheduled" | "mine" | "shared">("all");
   const filtered = useMemo(() => {
     const needle = term.trim().toLowerCase();
-    if (!needle) return items;
-    return items.filter((item) =>
+    const narrowed = items.filter((item) =>
+      which === "scheduled"
+        ? Boolean(item.schedule)
+        : which === "mine"
+          ? item.can_edit
+          : which === "shared"
+            ? !item.can_edit
+            : true,
+    );
+    if (!needle) return narrowed;
+    return narrowed.filter((item) =>
       [item.name, item.description ?? "", item.owner.name, item.resource_type]
         .join(" ")
         .toLowerCase()
         .includes(needle),
     );
-  }, [items, term]);
+  }, [items, term, which]);
 
   const run = useQuery({
     queryKey: ["report-run", openId],
@@ -196,7 +208,11 @@ export default function ReportsPage() {
     <>
       <PageHeader
         title="Reports"
-        subtitle="Saved questions, answered by the same engine the analytics workspace uses."
+        subtitle={[
+          `${items.length.toLocaleString()} saved`,
+          `${items.filter((item) => item.schedule).length} scheduled`,
+          `${items.filter((item) => item.last_run_at && new Date(item.last_run_at).toDateString() === new Date().toDateString()).length} run today`,
+        ].join(" · ")}
         tag={<Tag color="blue">{items.length.toLocaleString()} saved</Tag>}
         actions={
           <Tooltip title={canCreate ? "" : "Your role does not include reports.manage"}>
@@ -217,16 +233,45 @@ export default function ReportsPage() {
           filling the window. Sized to its content, the answer left a third of
           the screen blank under it and the list was capped at two thirds of
           the viewport whether or not there was room. */}
-      <div className="nu-split nu-fill nx-ov-reports" data-testid="reports">
-        <Card size="small" className="nu-pane nu-split-list">
-          <Input.Search
-            allowClear
-            placeholder="Filter reports"
-            aria-label="Filter reports"
-            value={term}
-            onChange={(event) => setTerm(event.target.value)}
-            className="nu-block"
-          />
+      <div className="nx-ov-reports" data-testid="reports">
+        {/* The reports as the canvas lays them out — one table, a row each,
+            with what the server knows about them in columns. The chosen row
+            is answered underneath, so the page still opens on an answer
+            rather than on a list of names. */}
+        <Card size="small" className="nx-ov-reportlist">
+          <div className="nx-ov-filterbar nx-ov-filterbar--inset" role="search">
+            <Input
+              allowClear
+              variant="filled"
+              prefix={<NxIcon name="search" size={16} />}
+              placeholder="Search reports"
+              aria-label="Filter reports"
+              value={term}
+              onChange={(event) => setTerm(event.target.value)}
+            />
+          </div>
+          <div className="nu-kindstrip nx-ov-kinds" aria-label="Which reports">
+            {(
+              [
+                ["all", "All", items.length],
+                ["scheduled", "Scheduled", items.filter((item) => item.schedule).length],
+                ["mine", "Mine", items.filter((item) => item.can_edit).length],
+                ["shared", "Shared with me", items.filter((item) => !item.can_edit).length],
+              ] as const
+            ).map(([key, label, count]) => (
+              <button
+                key={key}
+                type="button"
+                className={`nu-kindchip${which === key ? " is-active" : ""}${count === 0 ? " is-empty" : ""}`}
+                aria-pressed={which === key}
+                disabled={count === 0 && key !== "all"}
+                onClick={() => setWhich(key)}
+              >
+                <span className="nu-kindchip-label">{label}</span>
+                <span className="nu-kindchip-count">{count}</span>
+              </button>
+            ))}
+          </div>
 
           {filtered.length === 0 ? (
             items.length === 0 ? (
@@ -242,26 +287,37 @@ export default function ReportsPage() {
                 }
               />
             ) : (
-              <EmptyState title={`Nothing matches “${term}”`} />
+              <EmptyState title={term ? `Nothing matches “${term}”` : "Nothing in this view"} />
             )
           ) : (
-            <ul className="nu-queue">
-              {filtered.map((report) => (
-                <li key={report.id}>
-                  <button
-                    type="button"
-                    className={`nu-queue-row${report.id === openId ? " is-open" : ""}`}
-                    onClick={() => choose(report.id)}
-                    aria-current={report.id === openId}
-                  >
+            <Table<SavedReport>
+              rowKey="id"
+              dataSource={filtered}
+              size="middle"
+              pagination={filtered.length > 6 ? { pageSize: 6, size: "small", showSizeChanger: false } : false}
+              rowClassName={(report) => `nu-queue-row${report.id === openId ? " is-open" : ""}`}
+              onRow={(report) => ({
+                onClick: () => choose(report.id),
+                onKeyDown: (event) => {
+                  if (event.key === "Enter") choose(report.id);
+                },
+                tabIndex: 0,
+                "aria-current": report.id === openId,
+              })}
+              scroll={{ x: 640 }}
+              columns={[
+                {
+                  key: "report",
+                  title: "Report",
+                  render: (_, report) => (
                     <span className="nu-queue-main">
                       <span className="nu-queue-title">
                         <Text strong ellipsis>
                           {report.name}
                         </Text>
-                        {/* Only the exceptions carry a mark. Private is the
-                            default and was tagged on every single row — a
-                            label every row shares is a label nobody reads. */}
+                        {/* Only the exceptions carry a mark: private is the
+                            default, and a label every row shares is a label
+                            nobody reads. */}
                         {report.scope !== "PRIVATE" && (
                           <Tooltip title={SCOPES[report.scope]?.label}>
                             <span className="nu-queue-scope" aria-label={SCOPES[report.scope]?.label}>
@@ -270,26 +326,59 @@ export default function ReportsPage() {
                           </Tooltip>
                         )}
                       </span>
-                      <span className="nu-queue-meta">
-                        <Text type="secondary">{report.resource_type}</Text>
-                        <Text type="secondary">·</Text>
-                        <Text type="secondary">
-                          {report.last_run_at
-                            ? `run ${relativeTime(report.last_run_at)}`
-                            : "never run"}
-                        </Text>
-                      </span>
+                      <Text type="secondary" className="nx-ov-sub">
+                        {[report.can_edit ? "You" : report.owner.name, report.resource_type.replace(/_/g, " ")].join(" · ")}
+                      </Text>
                     </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+                  ),
+                },
+                {
+                  key: "schedule",
+                  title: "Schedule",
+                  width: 170,
+                  render: (_, report) =>
+                    report.schedule ? (
+                      <Text>{report.schedule}</Text>
+                    ) : (
+                      <Text type="secondary">Not scheduled</Text>
+                    ),
+                },
+                {
+                  key: "chart",
+                  title: "Chart",
+                  width: 110,
+                  render: (_, report) => (
+                    <Tag bordered={false} className="nx-ov-pill">
+                      {report.visualization.replace(/[-_]/g, " ")}
+                    </Tag>
+                  ),
+                },
+                {
+                  key: "runs",
+                  title: "Runs",
+                  width: 80,
+                  align: "right",
+                  render: (_, report) => report.run_count.toLocaleString(),
+                },
+                {
+                  key: "last",
+                  title: "Last run",
+                  width: 130,
+                  render: (_, report) =>
+                    report.last_run_at ? (
+                      relativeTime(report.last_run_at)
+                    ) : (
+                      <Text type="secondary">Never</Text>
+                    ),
+                },
+              ]}
+            />
           )}
         </Card>
 
         <Card
           size="small"
-          className="nu-pane nu-split-detail"
+          className="nu-pane nu-split-detail nx-ov-reportdetail"
           title={open?.name ?? "Pick a report"}
           extra={
             open && (
