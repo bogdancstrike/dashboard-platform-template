@@ -189,18 +189,22 @@ export default function MapsPage() {
         }
       />
 
-      <Card size="small" data-testid="map-controls">
+      <Card size="small" className="nx-ov-querybar" data-testid="map-controls">
         <Space size={12} wrap>
           <Select
             aria-label="Dataset"
-            style={{ minWidth: 180 }}
+            prefix="Dataset"
+            popupMatchSelectWidth={false}
+            className="nx-ov-labelselect"
             value={dataset}
             onChange={(next) => set({ dataset: next, metric: null })}
             options={datasets.map((item) => ({ value: item.key, label: item.label }))}
           />
           <Select
             aria-label="Measure"
-            style={{ minWidth: 180 }}
+            prefix="Measure"
+            popupMatchSelectWidth={false}
+            className="nx-ov-labelselect"
             value={metric}
             onChange={(next) => set({ metric: next })}
             options={(chosen?.metrics ?? []).map((item) => ({
@@ -210,7 +214,9 @@ export default function MapsPage() {
           />
           <Select
             aria-label="Period"
-            style={{ minWidth: 180 }}
+            prefix="Period"
+            popupMatchSelectWidth={false}
+            className="nx-ov-labelselect"
             value={period}
             onChange={(next) => set({ period: next })}
             options={[

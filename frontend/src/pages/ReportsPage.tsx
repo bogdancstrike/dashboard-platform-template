@@ -217,7 +217,7 @@ export default function ReportsPage() {
           filling the window. Sized to its content, the answer left a third of
           the screen blank under it and the list was capped at two thirds of
           the viewport whether or not there was room. */}
-      <div className="nu-split nu-fill" data-testid="reports">
+      <div className="nu-split nu-fill nx-ov-reports" data-testid="reports">
         <Card size="small" className="nu-pane nu-split-list">
           <Input.Search
             allowClear

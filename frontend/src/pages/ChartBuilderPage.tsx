@@ -202,7 +202,15 @@ export default function ChartBuilderPage() {
   return (
     <>
       <PageHeader
-        title={editingId ? `Edit ${stored?.name ?? "chart"}` : "Build a chart"}
+        title={
+          editingId ? (
+            `Edit ${stored?.name ?? "chart"}`
+          ) : (
+            <span>
+              Chart <em>builder</em>
+            </span>
+          )
+        }
         subtitle="Pick a picture and it will tell you what it needs. Every kind is drawn from your own data, in both themes."
         onBack={() => navigate("/reports")}
         actions={
@@ -252,7 +260,10 @@ export default function ChartBuilderPage() {
         />
       )}
 
-      {/* The question: one bar, so the gallery below gets the full width. */}
+      {/* A side panel holding the question and the pictures, and the answer
+          beside it at full height — the canvas's builder layout. */}
+      <div className="nx-ov-builder">
+      <aside className="nx-ov-builder-side nx-glass">
       <div data-testid="chart-question">
         <QuestionBar
           catalogue={catalogue.data}
@@ -266,7 +277,8 @@ export default function ChartBuilderPage() {
 
       {/* Every kind, drawn from the reader's own numbers, and the ones this
           question cannot feed refused with the reason (§76). */}
-      <Card size="small" title="The picture" data-testid="chart-gallery">
+      <section className="nx-ov-builder-gallery" data-testid="chart-gallery">
+        <h2 className="nx-ov-builder-h">Chart type</h2>
         {!draftIsRunnable(draft) ? (
           <EmptyState compact title="Pick a measure and the pictures will draw themselves" />
         ) : (
@@ -283,15 +295,17 @@ export default function ChartBuilderPage() {
             ))}
           </div>
         )}
-      </Card>
+      </section>
+      </aside>
 
+      <div className="nx-ov-builder-main">
       {/* The chosen picture at full size, with the chrome every chart in the
           product has: read it as a table, take the numbers away. */}
       <div className="nu-block" data-testid="chart-preview">
         <ChartCard
           id="chart-builder"
           panel={blocked ? undefined : panel}
-          height={300}
+          height={360}
           loading={preview.isFetching && !preview.data}
           error={preview.error ?? undefined}
           onRetry={() => void preview.refetch()}
@@ -328,6 +342,8 @@ export default function ChartBuilderPage() {
           ))}
         </Row>
       </Card>
+      </div>
+      </div>
 
 
       <SaveAnalysisDialog
@@ -386,7 +402,7 @@ function Thumbnail({
           {missing ? (
             <span className="nu-gallery-missing">{missing}</span>
           ) : (
-            <ChartPreview panel={panel} height={104} compact />
+            <ChartPreview panel={panel} height={54} compact />
           )}
         </span>
         <span className="nu-gallery-label">{shape.label}</span>
