@@ -34,7 +34,7 @@ import { Modal, Tooltip, Typography } from "antd";
 import { type KeyboardEvent } from "react";
 
 import { URL_OVERLAY } from "@/app/history";
-import { useUrlOverlay } from "@/pages/admin/useUrlOverlay";
+import { useUrlOverlay } from "@/app/useUrlOverlay";
 
 import type { HealthIncident, HealthPoint, ServiceHistory } from "@/api/meta";
 import { EmptyState } from "@/components/EmptyState";

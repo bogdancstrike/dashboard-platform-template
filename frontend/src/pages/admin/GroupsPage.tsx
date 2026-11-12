@@ -57,7 +57,7 @@ import { ApiError } from "@/api/client";
 import { groupsApi, type Group, type GroupDetail, type GroupKind } from "@/api/groups";
 import { PageHeader } from "@/components/PageHeader";
 import { URL_OVERLAY } from "@/app/history";
-import { useUrlOverlay } from "@/pages/admin/useUrlOverlay";
+import { useUrlOverlay } from "@/app/useUrlOverlay";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { MemberPicker } from "@/components/PeoplePicker";
 import { usePageCommands } from "@/commands/CommandContext";
