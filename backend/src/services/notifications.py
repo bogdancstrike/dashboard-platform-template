@@ -101,10 +101,20 @@ def counts(session, user_id: UUID) -> dict[str, Any]:
 
     return {
         "unread": int(unread),
+        # The approvals inbox badge rides on the same poll (Time & decisions).
+        "pending_approvals": _pending_approvals(session),
         "by_category": _grouped(Notification.category),
         "by_severity": _grouped(Notification.severity),
         "recent": int(recent),
     }
+
+
+def _pending_approvals(session) -> int:
+    from src.core.auth import maybe_me
+    from src.services import approvals
+
+    principal = maybe_me()
+    return approvals.pending_count(session, principal) if principal is not None else 0
 
 
 def _clauses(user_id: UUID, args) -> list:

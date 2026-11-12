@@ -23,6 +23,10 @@
     python -m src.seed --sync-flags      # turn on every flag that hides something shipped
     python -m src.seed --sync-activity   # give each organization a feed it can filter
     python -m src.seed --sync-preferences # fill in preference keys an account predates
+    python -m src.seed --sync-approvals  # change rules and a queue of approval requests
+    python -m src.seed --sync-time       # six weeks of time entries and timesheets
+    python -m src.seed --sync-sla        # business calendars and SLA policies, applied to tickets
+    python -m src.seed --sync-forms      # intake forms and their submissions
     python -m src.seed --sync-collab      # chat channels, a wiki and meeting notes, if missing
     python -m src.seed --sync-assistant   # add the seeded assistant conversations that are missing
     python -m src.seed --sync-knowledge  # add the seeded document collections that are missing
@@ -147,6 +151,11 @@ def _parser() -> argparse.ArgumentParser:
         "--sync-collab", action="store_true",
         help="add the demo chat channels, wiki spaces and meeting notes that are missing, and exit",
     )
+    for flag, what in (("approvals", "change rules and a queue of approval requests"),
+                       ("time", "six weeks of time entries and timesheets"),
+                       ("sla", "business calendars and SLA policies, applied to every ticket"),
+                       ("forms", "intake forms and their submissions")):
+        parser.add_argument(f"--sync-{flag}", action="store_true", help=f"add {what} if missing, and exit")
     parser.add_argument("--dry-run", action="store_true", help="build in memory, write nothing")
     parser.add_argument("--quiet", action="store_true", help="only print the summary line")
     return parser
@@ -206,6 +215,21 @@ def main(argv: list[str] | None = None) -> int:
         with session_scope() as session:
             result = planning.populate(session)
         print(", ".join(f"{count} {name.replace('_', ' ')}" for name, count in result.items()))
+        return 0
+
+    if args.sync_approvals or args.sync_time or args.sync_sla or args.sync_forms:
+        # Time & decisions for a database seeded before it existed. Additive and
+        # idempotent: each part is skipped when its rows are already there.
+        from src.seed import decisions
+
+        with session_scope() as session:
+            for flag, step in (("sync_sla", decisions.populate_sla),
+                               ("sync_approvals", decisions.populate_approvals),
+                               ("sync_time", decisions.populate_time),
+                               ("sync_forms", decisions.populate_forms)):
+                if getattr(args, flag):
+                    result = step(session)
+                    print(f"{flag[5:]}: " + ", ".join(f"{count} {name}" for name, count in result.items()))
         return 0
 
     if args.sync_files:

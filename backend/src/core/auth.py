@@ -115,6 +115,16 @@ PERMISSION_GROUPS: dict[str, list[tuple[str, str]]] = {
         # model and spends embedding tokens on every page; asking one is ai.use.
         ("knowledge.manage", "Create document collections and add files to them"),
     ],
+    # Time & decisions. Tracking one's own time is not writing a record, so
+    # every role holds it; *approving* somebody else's week, deciding a held
+    # edit, writing SLA policy and publishing an intake form are not.
+    "Time & decisions": [
+        ("time.track", "Track and submit own time"),
+        ("time.approve", "Approve timesheets and see everybody's time"),
+        ("approvals.decide", "Decide change and publishing requests"),
+        ("sla.manage", "Edit SLA policies and business calendars"),
+        ("forms.manage", "Build and publish intake forms"),
+    ],
 }
 
 ALL_PERMISSIONS: tuple[str, ...] = tuple(
@@ -155,6 +165,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
             "files.view", "files.manage", "calendar.view", "calendar.manage",
             "reports.view", "reports.manage", "dashboards.manage", "searches.share",
             "ai.use", "knowledge.manage",
+            "time.track", "time.approve", "approvals.decide", "forms.manage",
         ],
     },
     "OPERATOR": {
@@ -171,6 +182,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
             "files.view", "files.manage", "calendar.view", "calendar.manage",
             "reports.view", "dashboards.manage",
             "ai.use", "knowledge.manage",
+            "time.track",
         ],
     },
     "ANALYST": {
@@ -185,6 +197,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
             "tasks.view", "files.view", "calendar.view",
             "reports.view", "reports.manage", "dashboards.manage", "searches.share",
             "ai.use", "knowledge.manage",
+            "time.track",
         ],
     },
     "VIEWER": {
@@ -197,6 +210,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
             "records.view", "users.view", "tasks.view", "files.view",
             "calendar.view", "reports.view", "health.view", "mail.access",
             "ai.use",
+            "time.track",
         ],
     },
 }

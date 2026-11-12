@@ -40,5 +40,9 @@ from src.models.platform import (  # noqa: F401
     ImportRun, Integration, Notification, ScheduledTask, ServiceHealth,
     SystemLog, SystemSetting,
 )
+from src.models.approvals import ApprovalRequest, ChangeRule  # noqa: F401
+from src.models.timekeeping import TimeEntry, Timesheet  # noqa: F401
+from src.models.sla import BusinessCalendar, SlaPolicy, TicketSla  # noqa: F401
+from src.models.forms import FormSubmission, IntakeForm  # noqa: F401
 
 __all__ = ["Base"]

@@ -101,6 +101,11 @@ def _skip_without_database(request, has_database):
 #: `file_objects` wrong, which turned every database test's teardown into an
 #: error.
 TEST_OWNED_MODELS: tuple[str, ...] = (
+    # Time & decisions. A timesheet points at its approval request, a ticket's
+    # SLA state at its policy and a policy at its calendar, a submission at its
+    # form — children first, and all before the records they mention.
+    "TimeEntry", "Timesheet", "ApprovalRequest", "ChangeRule",
+    "TicketSla", "SlaPolicy", "BusinessCalendar", "FormSubmission", "IntakeForm",
     # The assistant (§41–46): messages before their conversation. Every one
     # points only at `users`, which nothing here deletes.
     "AssistantMessage", "AssistantConversation", "AssistantBrief", "AiUsage",

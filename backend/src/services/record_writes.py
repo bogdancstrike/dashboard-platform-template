@@ -73,6 +73,7 @@ def create(session, resource_type: Any, payload: dict[str, Any], *, principal) -
 
     values = _coerced(session, resource, _object(payload), creating=True)
     row = _insert(session, resource, values)
+    _after_write(session, resource, row, set(values))
 
     audit.record(
         session,
@@ -157,6 +158,13 @@ def update(
     _refuse_a_lost_race(resource, row, body.get(CONCURRENCY_KEY))
 
     values = _coerced(session, resource, body, creating=False)
+    # A rule may say this edit needs a second pair of eyes: it is then held as
+    # a change request and applied only when approved (Time & decisions).
+    from src.services.approval_kinds import intercept
+
+    held = intercept(session, resource, row, values, body, principal=principal)
+    if held is not None:
+        return {**detail(session, resource.key, row.id, principal=principal), "pending_approval": held}
     apply_values(session, resource, row, values, principal=principal)
     return detail(session, resource.key, row.id, principal=principal)
 
@@ -187,6 +195,7 @@ def apply_values(
         return changed
 
     session.flush()
+    _after_write(session, resource, row, changed)
     audit.record(
         session,
         # A move between lanes is a status change, and reads as one in the
@@ -202,6 +211,14 @@ def apply_values(
     )
     session.flush()
     return changed
+
+
+def _after_write(session, resource: Resource, row: Any, changed: set[str]) -> None:
+    """What other features derive from a record: a ticket's SLA clock."""
+    if resource.key == "ticket":
+        from src.services import sla
+
+        sla.on_ticket_write(session, row, changed)
 
 
 def delete(session, resource_type: Any, record_id: Any, *, principal) -> dict[str, Any]:

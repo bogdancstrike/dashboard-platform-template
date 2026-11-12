@@ -29,6 +29,7 @@ from sqlalchemy import select
 from src.config import Config
 from src.core.clock import now
 from src.seed import blobs, business, content, identity, operations, personal, schema
+from src.seed import decisions as decisions_seed
 from src.seed import exports as export_files
 from src.seed import imports as import_runs
 from src.seed import assistant as assistant_seed
@@ -590,6 +591,7 @@ def run(
     knowledge_seed.seed_safely(session)  # Ask your documents (§44)
     planning_seed.populate(session)  # sprints, epics, dependencies, templates (§18)
     collab_seed.seed(session)  # chat, the wiki and meeting notes (§47–49)
+    decisions_seed.populate(session)  # SLA policies, approvals, time, intake forms
     written = time.perf_counter()
 
     log.info(

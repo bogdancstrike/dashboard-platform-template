@@ -73,6 +73,14 @@ PUBLIC: dict[str, str] = {
         "is the whole reason presigned URLs exist. Only the local store issues "
         "these, and `files.blob` refuses when object storage is configured"
     ),
+    "/platform/public/forms/<string:slug>": (
+        "a published intake form is answered by people who have no account — "
+        "an INTERNAL one still refuses them, inside the handler"
+    ),
+    "/platform/public/forms/<string:slug>/submit": (
+        "the same form's answer; rate-limited per address and guarded by a "
+        "signed challenge and a honeypot rather than a token"
+    ),
 }
 
 

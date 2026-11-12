@@ -1509,6 +1509,508 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "approvals_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/approvals",
+      "description": "The approvals inbox, my requests, or decision history.",
+      "exec_method": {
+        "module_name": "src.api.approvals",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "approvals_access",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/approvals/access",
+      "description": "Ask for a permission from a page that needed it.",
+      "exec_method": {
+        "module_name": "src.api.approvals",
+        "method_name": "access"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "approvals_bulk",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/approvals/bulk",
+      "description": "Approve or reject several requests with one comment.",
+      "exec_method": {
+        "module_name": "src.api.approvals",
+        "method_name": "bulk"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "approvals_report_publish",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/approvals/report-publish",
+      "description": "Ask for a report to be published organisation-wide.",
+      "exec_method": {
+        "module_name": "src.api.approvals",
+        "method_name": "publish_report"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "approvals_rules",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/approvals/rules",
+      "description": "Rules that hold record edits back for approval.",
+      "exec_method": {
+        "module_name": "src.api.approvals",
+        "method_name": "rules"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "approvals_rule",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/approvals/rules/<uuid:rule_id>",
+      "description": "Edit or remove one change rule.",
+      "exec_method": {
+        "module_name": "src.api.approvals",
+        "method_name": "rule"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "approvals_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/approvals/<uuid:approval_id>",
+      "description": "One request, its history and its details.",
+      "exec_method": {
+        "module_name": "src.api.approvals",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "approvals_decision",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/approvals/<uuid:approval_id>/decision",
+      "description": "Approve or reject one request.",
+      "exec_method": {
+        "module_name": "src.api.approvals",
+        "method_name": "decision"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "approvals_withdraw",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/approvals/<uuid:approval_id>/withdraw",
+      "description": "Withdraw a request of mine.",
+      "exec_method": {
+        "module_name": "src.api.approvals",
+        "method_name": "withdraw"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "time_cell",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT"
+      ],
+      "api_url": "/api/time/cell",
+      "description": "Set one cell of my week grid.",
+      "exec_method": {
+        "module_name": "src.api.time",
+        "method_name": "cell"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "time_entries",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/time/entries",
+      "description": "Time entries; POST a manual one.",
+      "exec_method": {
+        "module_name": "src.api.time",
+        "method_name": "entries"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "time_entry",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/time/entries/<uuid:entry_id>",
+      "description": "Edit or remove one of my time entries.",
+      "exec_method": {
+        "module_name": "src.api.time",
+        "method_name": "entry"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "time_export",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/time/export",
+      "description": "Time entries as CSV or XLSX.",
+      "exec_method": {
+        "module_name": "src.api.time",
+        "method_name": "export"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "time_on_subject",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/time/on",
+      "description": "Time logged on one task or ticket.",
+      "exec_method": {
+        "module_name": "src.api.time",
+        "method_name": "on_subject"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "time_report",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/time/report",
+      "description": "Time by person, project, customer, item or day.",
+      "exec_method": {
+        "module_name": "src.api.time",
+        "method_name": "report"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "time_subjects",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/time/subjects",
+      "description": "Work items time can be booked against.",
+      "exec_method": {
+        "module_name": "src.api.time",
+        "method_name": "subjects"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "time_submit",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/time/submit",
+      "description": "Submit my week for approval.",
+      "exec_method": {
+        "module_name": "src.api.time",
+        "method_name": "submit"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "time_team",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/time/team",
+      "description": "Everybody's week, for approvers.",
+      "exec_method": {
+        "module_name": "src.api.time",
+        "method_name": "team"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "time_timer",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/time/timer",
+      "description": "The running timer; POST starts one.",
+      "exec_method": {
+        "module_name": "src.api.time",
+        "method_name": "timer"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "time_timer_stop",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/time/timer/stop",
+      "description": "Stop the running timer.",
+      "exec_method": {
+        "module_name": "src.api.time",
+        "method_name": "stop"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "time_week",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/time/week",
+      "description": "One person's week as a grid.",
+      "exec_method": {
+        "module_name": "src.api.time",
+        "method_name": "week"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "sla_apply",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/sla/apply",
+      "description": "Recompute every ticket's SLA clock and fire due escalations.",
+      "exec_method": {
+        "module_name": "src.api.sla",
+        "method_name": "apply"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "sla_calendars",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/sla/calendars",
+      "description": "Create a business-hours calendar.",
+      "exec_method": {
+        "module_name": "src.api.sla",
+        "method_name": "calendars"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "sla_calendar",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/sla/calendars/<uuid:calendar_id>",
+      "description": "Edit or remove a business-hours calendar.",
+      "exec_method": {
+        "module_name": "src.api.sla",
+        "method_name": "calendar"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "sla_catalogue",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/sla/catalogue",
+      "description": "What an SLA policy can be made of.",
+      "exec_method": {
+        "module_name": "src.api.sla",
+        "method_name": "catalogue"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "sla_policies",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/sla/policies",
+      "description": "SLA policies in evaluation order; POST a new one.",
+      "exec_method": {
+        "module_name": "src.api.sla",
+        "method_name": "policies"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "sla_policy_order",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT"
+      ],
+      "api_url": "/api/sla/policies/order",
+      "description": "Set the evaluation order of SLA policies.",
+      "exec_method": {
+        "module_name": "src.api.sla",
+        "method_name": "order"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "sla_policy",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/sla/policies/<uuid:policy_id>",
+      "description": "One SLA policy.",
+      "exec_method": {
+        "module_name": "src.api.sla",
+        "method_name": "policy"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "sla_ticket",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/sla/tickets/<uuid:ticket_id>",
+      "description": "A ticket's policy and business-hours clock.",
+      "exec_method": {
+        "module_name": "src.api.sla",
+        "method_name": "ticket"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "forms_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/forms",
+      "description": "Intake forms; POST a new one.",
+      "exec_method": {
+        "module_name": "src.api.forms",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "forms_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/forms/<uuid:form_id>",
+      "description": "One intake form.",
+      "exec_method": {
+        "module_name": "src.api.forms",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "forms_submissions",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/forms/<uuid:form_id>/submissions",
+      "description": "A form's submissions and the records they became.",
+      "exec_method": {
+        "module_name": "src.api.forms",
+        "method_name": "submissions"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "forms_retry",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/forms/<uuid:form_id>/submissions/<uuid:submission_id>/retry",
+      "description": "Convert a failed submission again.",
+      "exec_method": {
+        "module_name": "src.api.forms",
+        "method_name": "retry"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "public_form",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/public/forms/<string:slug>",
+      "description": "A published intake form, for its public page.",
+      "exec_method": {
+        "module_name": "src.api.forms",
+        "method_name": "public_form"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "public_form_submit",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/public/forms/<string:slug>/submit",
+      "description": "Answer a published intake form.",
+      "exec_method": {
+        "module_name": "src.api.forms",
+        "method_name": "public_submit"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "assistant_brief",
       "model_name": "Empty",
       "request_method": [
