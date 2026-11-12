@@ -128,6 +128,21 @@ class Config:
     ENABLE_TRACING = _flag("ENABLE_TRACING", False)
     OTLP_ENDPOINT = os.getenv("QSINT_OTLP_ENDPOINT", "")
 
+    # ── AI (§41–46) — the LiteLLM gateway, OpenAI-compatible ─────────────
+    # The backend never holds a provider key: it calls the gateway with the
+    # gateway's own key. `LLM_MODE=fake` (or no key at all) swaps in a scripted,
+    # deterministic client so tests and key-less laptops never reach a model.
+    LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:4001/v1")
+    LLM_API_KEY = os.getenv("LLM_API_KEY", "")
+    LLM_MODEL = os.getenv("LLM_MODEL", "nucleus-chat")
+    LLM_EMBEDDING_MODEL = os.getenv("LLM_EMBEDDING_MODEL", "nucleus-embed")
+    LLM_REASONING_EFFORT = os.getenv("LLM_REASONING_EFFORT", "low")
+    LLM_MODE = os.getenv("LLM_MODE", "auto")  # auto | real | fake
+    LLM_TIMEOUT_SECONDS = _int("LLM_TIMEOUT_SECONDS", 90)
+    LLM_MAX_OUTPUT_TOKENS = _int("LLM_MAX_OUTPUT_TOKENS", 4000)
+    #: Requests per user per minute across every AI endpoint.
+    LLM_RATE_PER_MINUTE = _int("LLM_RATE_PER_MINUTE", 20)
+
     # ── QF framework expects these to exist even with the ETL disabled ───
     KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "")
     WORKER_NAME = SERVICE_NAME
