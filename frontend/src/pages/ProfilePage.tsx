@@ -53,7 +53,6 @@ import {
   MailOutlined,
   SafetyOutlined,
   SettingOutlined,
-  TeamOutlined,
 } from "@ant-design/icons";
 
 import type { Profile, ProfileStat } from "@/api/profile";
@@ -71,6 +70,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { formatNumber } from "@/lib/formats";
 import { EditProfileDrawer } from "@/components/profile/EditProfileDrawer";
+import { Highlights, ProfileAccessTab, ProfileActivityTab, WhoCard } from "@/components/profile/ProfileTabs";
 
 const { Text, Paragraph } = Typography;
 
@@ -203,10 +203,12 @@ export default function ProfilePage() {
     },
   ]);
 
+  const activityKind = params.get("kind") ?? "";
   const activity = useQuery({
-    queryKey: ["profile-activity", profile?.user.id],
+    queryKey: ["profile-activity", profile?.user.id, activityKind],
     queryFn: ({ signal }) =>
-      activityApi.feed({ actor_id: profile!.user.id, page_size: 50 }, signal),
+      activityApi.feed({ actor_id: profile!.user.id, page_size: 100, ...(activityKind ? { kind: activityKind } : {}) }, signal),
+    placeholderData: (previous) => previous,
     // Only when the tab is open *and* the reader may see the trail: a request
     // that comes back 403 to fill a tab nobody opened is a 403 in the log for
     // no reason.
@@ -363,7 +365,9 @@ export default function ProfilePage() {
           // In the URL, so a tab is linkable and survives a reload (§69).
           if (key === "overview") next.delete("tab");
           else next.set("tab", key);
-          setParams(next, { replace: true });
+          next.delete("kind");
+          // Pushed, so back returns to the tab you were on.
+          setParams(next);
         }}
         items={[
           {
@@ -375,17 +379,25 @@ export default function ProfilePage() {
             key: "activity",
             label: "Activity",
             children: (
-              <ActivityTab
+              <ProfileActivityTab
                 profile={profile}
-                items={activity.data?.items ?? []}
+                feed={activity.data}
                 loading={activity.isLoading}
+                kind={activityKind}
+                onKind={(next) => {
+                  const search = new URLSearchParams(params);
+                  if (next) search.set("kind", next);
+                  else search.delete("kind");
+                  setParams(search, { replace: true });
+                }}
+                heatmap={<ProfileHeatmap profile={profile} />}
               />
             ),
           },
           {
             key: "access",
             label: "Access",
-            children: <AccessTab profile={profile} />,
+            children: <ProfileAccessTab profile={profile} />,
           },
         ]}
       />
@@ -412,9 +424,7 @@ function Overview({
   auth: ReturnType<typeof useAuth>;
 }) {
   const throughput = useMemo(() => throughputPanel(profile), [profile]);
-  const heatmap = useMemo(() => heatmapPanel(profile), [profile]);
   const touches = useMemo(() => touchesPanel(profile), [profile]);
-  const quiet = profile.heatmap.every((cell) => cell.value === 0);
 
   return (
     <div className="nu-profile-overview">
@@ -422,6 +432,11 @@ function Overview({
         {profile.stats.map((stat) => (
           <StatLink key={stat.key} stat={stat} />
         ))}
+      </div>
+
+      <div className="nx-fd-pgrid">
+        <WhoCard profile={profile} />
+        <Highlights profile={profile} />
       </div>
 
       <div className="nu-profile-charts">
@@ -434,7 +449,19 @@ function Overview({
         />
       </div>
 
-      <ChartCard
+
+
+      {mine && <MyDigests auth={auth} profile={profile} />}
+    </div>
+  );
+}
+
+/** "When they work" — the hours, on the Activity tab. */
+function ProfileHeatmap({ profile }: { profile: Profile }) {
+  const heatmap = useMemo(() => heatmapPanel(profile), [profile]);
+  const quiet = profile.heatmap.every((cell) => cell.value === 0);
+  return (
+    <ChartCard
         id="profile-heatmap"
         // A grid of 168 zeroes *is* a grid, and a reader cannot tell it from a
         // broken chart — so a wholly quiet person gets the sentence instead.
@@ -445,9 +472,6 @@ function Overview({
           hint: "The grid appears once there is something to put in it.",
         }}
       />
-
-      {mine && <MyDigests auth={auth} profile={profile} />}
-    </div>
   );
 }
 
@@ -510,126 +534,4 @@ function MyDigests({
   );
 }
 
-function ActivityTab({
-  profile,
-  items,
-  loading,
-}: {
-  profile: Profile;
-  items: Array<{ id: string; summary?: string | null; occurred_at?: string | null; action: string }>;
-  loading: boolean;
-}) {
-  if (!profile.visibility.activity) {
-    return (
-      <EmptyState
-        title="Their activity is not shown"
-        hint="A list of everything one person did is the audit log, so it needs the audit.view permission."
-      />
-    );
-  }
-  if (loading) return <Skeleton active paragraph={{ rows: 6 }} />;
-  if (items.length === 0) {
-    return <EmptyState title="Nothing recorded yet" hint="Their actions will appear here." />;
-  }
 
-  return (
-    <Card size="small" className="nu-block" data-testid="profile-activity">
-      <ul className="nu-profile-trail">
-        {items.map((entry) => (
-          <li key={entry.id}>
-            <Text>{entry.summary || entry.action}</Text>
-            <Text type="secondary" className="nu-profile-when">
-              {relativeTime(entry.occurred_at ?? null)}
-            </Text>
-          </li>
-        ))}
-      </ul>
-    </Card>
-  );
-}
-
-/**
- * Why this person can do what they can.
- *
- * The role's permissions and each group's, the effective set, and the part that
- * came from a group rather than the role — which is the half that surprises
- * people, and the reason a page showing only the role cannot answer "why can
- * they cancel a job?".
- */
-function AccessTab({ profile }: { profile: Profile }) {
-  if (!profile.access) {
-    return (
-      <EmptyState
-        title="Their access is not shown"
-        hint="The permission breakdown needs the users.view permission."
-      />
-    );
-  }
-
-  const { access, groups } = profile;
-  return (
-    <div className="nu-profile-access" data-testid="profile-access">
-      <Card
-        size="small"
-        title={`${profile.role.name || "No role"} — ${formatNumber(access.effective.length)} permissions in effect`}
-      >
-        {profile.role.description && (
-          <Paragraph type="secondary">{profile.role.description}</Paragraph>
-        )}
-        <Space size={[6, 6]} wrap>
-          {access.effective.map((permission) => (
-            <Tooltip
-              key={permission}
-              title={
-                access.from_groups_only.includes(permission)
-                  ? "Granted by a group rather than by the role"
-                  : "Granted by the role"
-              }
-            >
-              <Tag
-                color={access.from_groups_only.includes(permission) ? "processing" : undefined}
-              >
-                {permission}
-              </Tag>
-            </Tooltip>
-          ))}
-        </Space>
-      </Card>
-
-      <Card size="small" title="Groups" extra={<TeamOutlined />}>
-        {groups.length === 0 ? (
-          <EmptyState compact title="Not in any group — everything above comes from the role" />
-        ) : (
-          <ul className="nu-profile-groups">
-            {groups.map((group) => (
-              <li key={group.id}>
-                <Text strong>{group.name}</Text> <Text type="secondary">({group.kind})</Text>
-                <div>
-                  <Space size={[4, 4]} wrap>
-                    {group.permissions.length === 0 ? (
-                      <Text type="secondary">Grants no permissions of its own</Text>
-                    ) : (
-                      group.permissions.map((permission) => (
-                        <Tag key={permission}>{permission}</Tag>
-                      ))
-                    )}
-                  </Space>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      {access.from_groups_only.length > 0 && (
-        <Alert
-          type="info"
-          showIcon
-          data-testid="profile-from-groups"
-          message={`${formatNumber(access.from_groups_only.length)} of these come from a group, not the role`}
-          description={access.from_groups_only.join(", ")}
-        />
-      )}
-    </div>
-  );
-}

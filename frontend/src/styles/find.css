@@ -698,3 +698,51 @@ button.nx-fd-qchip { padding: 0 12px 0 10px; }
 .nx-app--phone .nx-fd-slim .nx-fd-rulesbtn.ant-btn { flex: 1 1 auto; max-width: none; }
 .nx-app--phone .nx-fd-try--slim { overflow-x: auto; scrollbar-width: none; }
 
+
+/* ── profile tabs: the nav has no rectangle behind its rounded pill ──── */
+.nx-fd-profile .nu-profile-tabs > .ant-tabs-nav, .nx-fd-settabs > .ant-tabs-nav,
+.nx-fd-profile .nu-profile-tabs > .ant-tabs-nav .ant-tabs-nav-wrap,
+.nx-fd-profile .nu-profile-tabs > .ant-tabs-nav .ant-tabs-nav-operations {
+  background: transparent !important; box-shadow: none !important; border: 0 !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+.nx-fd-profile .nu-profile-tabs > .ant-tabs-nav .ant-tabs-nav-wrap::before,
+.nx-fd-profile .nu-profile-tabs > .ant-tabs-nav .ant-tabs-nav-wrap::after { display: none !important; }
+
+/* ── profile tab content ─────────────────────────────────────────────── */
+.nx-fd-pgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.nx-fd-pcard .ant-card-body { padding: 4px 18px 16px; }
+.nx-fd-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; margin: 0; }
+.nx-fd-facts dt { font-size: 12.5px; color: var(--nu-text-tertiary); }
+.nx-fd-facts dd { margin: 2px 0 0; font-size: 14px; font-weight: 600; color: var(--nu-text); }
+.nx-fd-pgroups { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.nx-fd-chipline { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.nx-fd-plist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.nx-fd-plist > li { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-top: 1px solid rgba(var(--nu-ink-rgb), 0.06); }
+.nx-fd-plist > li:first-child { border-top: 0; }
+.nx-fd-plist .nx-fd-grow { display: flex; flex-direction: column; gap: 2px; }
+.nx-fd-ptext { font-size: 14px; color: var(--nu-text); }
+.nx-fd-pdot { width: 8px; height: 8px; margin-top: 7px; border-radius: 4px; background: var(--nu-accent); flex: none; }
+.nx-fd-ptime { width: 64px; flex: none; font-size: 12.5px; color: var(--nu-text-tertiary); font-variant-numeric: tabular-nums; padding-top: 2px; }
+.nx-fd-plist .nx-fd-pill { flex: none; margin-top: 1px; }
+.nx-fd-pactivity, .nx-fd-paccess { display: flex; flex-direction: column; gap: 12px; }
+.nx-fd-pdays { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 6px; height: 72px; align-items: end; margin: 6px 0 14px; }
+.nx-fd-pday { height: 100%; display: flex; align-items: flex-end; }
+.nx-fd-pbar { width: 100%; border-radius: 6px 6px 3px 3px; background: var(--nu-accent); opacity: 0.85; transform-origin: bottom; animation: nxGrow 0.6s var(--nx-ease) both; }
+.nx-fd-pbar[data-empty="true"] { background: rgba(var(--nu-ink-rgb), 0.1); }
+.nx-fd-pdaygroup + .nx-fd-pdaygroup { margin-top: 14px; }
+.nx-fd-pdaygroup h3 { margin: 6px 0 2px; }
+.nx-fd-areas { margin: 0 0 12px; display: flex; flex-direction: column; }
+.nx-fd-areas > div { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 12px; padding: 8px 0; border-top: 1px solid rgba(var(--nu-ink-rgb), 0.06); align-items: baseline; }
+.nx-fd-areas > div:first-child { border-top: 0; }
+.nx-fd-areas dt { font-size: 13.5px; font-weight: 600; color: var(--nu-text); }
+.nx-fd-areas dd { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.nx-app--phone .nx-fd-pgrid { grid-template-columns: minmax(0, 1fr); }
+.nx-app--phone .nx-fd-areas > div { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.nx-app--phone .nx-fd-pdays { gap: 3px; }
+.nx-app--phone .nx-fd-ptime { width: 52px; }
+/* AntD clips the tab strip (overflow: hidden on the wrap), which cut the
+   pill's glass shadow into a square — the rectangle behind the rounded nav. */
+.nx-fd-profile .nu-profile-tabs > .ant-tabs-nav .ant-tabs-nav-wrap { overflow: visible !important; }
+.nx-fd-profile .nu-profile-tabs > .ant-tabs-nav .ant-tabs-nav-list { overflow: visible; box-shadow: 0 6px 18px rgba(40, 35, 60, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important; }
+:root[data-theme="dark"] .nx-fd-profile .nu-profile-tabs > .ant-tabs-nav .ant-tabs-nav-list { box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.14) !important; }

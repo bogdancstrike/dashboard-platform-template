@@ -225,17 +225,17 @@ describe("the access tab", () => {
 
     await user.click(screen.getByRole("tab", { name: "Access" }));
     const access = await screen.findByTestId("profile-access");
-    // Twice as a tag on purpose: once in the effective set and once under the
-    // group that grants it, which is the pairing that answers the question.
-    // (The summary notice at the bottom names it a third time, so this counts
-    // tags rather than occurrences.)
-    const tags = within(access)
-      .getAllByText("records.export")
-      .filter((node) => node.className.includes("ant-tag"));
-    expect(tags).toHaveLength(2);
-    // And marked, so the effective list itself says which came from a group —
-    // a page showing only the role cannot answer "why can they do that?".
-    expect(tags.some((tag) => tag.className.includes("ant-tag-processing"))).toBe(true);
+    // Grouped by area: "Records" lists "export", marked as granted by a group
+    // — a page showing only the role cannot answer "why can they do that?" —
+    // and the group that grants it lists the full permission.
+    const marked = within(access)
+      .getAllByText("export")
+      .filter((node) => node.className.includes("nx-fd-pill--acc"));
+    expect(marked).toHaveLength(1);
+    expect(within(access).getByText("Records")).toBeInTheDocument();
+    expect(
+      within(access).getAllByText("records.export").some((node) => node.className.includes("nx-fd-pill")),
+    ).toBe(true);
     expect(screen.getByTestId("profile-from-groups")).toHaveTextContent("records.export");
     expect(within(access).getByText("Platform owners")).toBeInTheDocument();
   });
@@ -329,5 +329,20 @@ describe("when it cannot be loaded", () => {
     // Keycloak, the second is somebody else's decision about them.
     expect(sent[0]).not.toHaveProperty("email");
     expect(sent[0]).not.toHaveProperty("role");
+  });
+
+  it("gives each tab its own content, and the tab is in the address", async () => {
+    const user = userEvent.setup();
+    render();
+    await screen.findByTestId("profile-identity");
+    expect(screen.getByTestId("profile-who")).toBeInTheDocument();
+    expect(screen.queryByTestId("profile-access")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "Access" }));
+    expect(await screen.findByTestId("profile-access")).toBeInTheDocument();
+    expect(screen.getByTestId("address")).toHaveTextContent("tab=access");
+    await user.click(screen.getByRole("tab", { name: "Activity" }));
+    expect(await screen.findByTestId("profile-activity")).toBeInTheDocument();
+    expect(screen.getByTestId("address")).toHaveTextContent("tab=activity");
   });
 });
