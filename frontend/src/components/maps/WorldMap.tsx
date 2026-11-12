@@ -80,6 +80,7 @@ export function WorldMap({
   height = 460,
   onSelectCountry,
   onSelectCity,
+  focus,
 }: {
   points: MapPoint[];
   countries: MapBucket[];
@@ -88,6 +89,12 @@ export function WorldMap({
   height?: number;
   onSelectCountry?: (country: MapPoint["country"]) => void;
   onSelectCity?: (city: string) => void;
+  /**
+   * Somewhere to fly to — a place chosen in the list beside the map. A new
+   * object each time it is chosen, so choosing the same place twice after
+   * panning away still flies back.
+   */
+  focus?: { longitude: number; latitude: number; zoom?: number } | null;
 }) {
   const { mode } = useAppearance();
   const dark = mode === "dark";
@@ -110,6 +117,9 @@ export function WorldMap({
     zoom: 2.4,
     center: [8, 38],
   });
+  useEffect(() => {
+    if (focus) setView({ zoom: focus.zoom ?? 7, center: [focus.longitude, focus.latitude] });
+  }, [focus]);
   /** Bumped when the projection has changed, to re-cluster against it. */
   const [projection, setProjection] = useState(0);
   /**

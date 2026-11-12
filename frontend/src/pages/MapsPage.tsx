@@ -25,13 +25,15 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Card, Col, Row, Select, Skeleton, Space, Table, Tag, Typography } from "antd";
+import { Alert, Button, Card, Col, Row, Select, Skeleton, Space, Table, Tag, Typography } from "antd";
+import { useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { mapsApi, type MapBucket, type MapPoint } from "@/api/maps";
 import { analysisApi } from "@/api/analysis";
 import { PageHeader } from "@/components/PageHeader";
+import { NxIcon } from "@/components/NxIcon";
 import { withOrigin } from "@/entities/drilldown";
 import { WorldMap } from "@/components/maps/WorldMap";
 import { usePageCommands } from "@/commands/CommandContext";
@@ -103,6 +105,10 @@ export default function MapsPage() {
     enabled: Boolean(chosen),
     placeholderData: (previous) => previous,
   });
+
+  /** Where the side list last flew the map, and which place that was. */
+  const [focus, setFocus] = useState<{ longitude: number; latitude: number; zoom?: number } | null>(null);
+  const [focusKey, setFocusKey] = useState("");
 
   const here = () => `${location.pathname}${location.search}`;
   const drill = DRILL[dataset];
@@ -245,6 +251,7 @@ export default function MapsPage() {
         </Space>
       </Card>
 
+      <div className="nx-ov-mapwrap">
       <Card size="small" className="nu-block" data-testid="world-map">
         {places.isLoading && !answer ? (
           <Skeleton active paragraph={{ rows: 10 }} />
@@ -269,6 +276,7 @@ export default function MapsPage() {
                 unit={answer.metric.label}
                 onSelectCity={openCity}
                 onSelectCountry={openCountry}
+                focus={focus}
               />
             </div>
             <figcaption>
@@ -278,6 +286,52 @@ export default function MapsPage() {
           </figure>
         )}
       </Card>
+
+      {/* The places, as the canvas's side list: the biggest first, each a
+          press that flies the map there, and an arrow to the records. */}
+      <Card size="small" title="Places" className="nu-block nx-ov-panel nx-ov-places" data-testid="map-places">
+        {!answer ? (
+          <Skeleton active paragraph={{ rows: 6 }} title={false} />
+        ) : (
+          <ul className="nx-ov-placelist">
+            {[...answer.points]
+              .sort((a, b) => b.value - a.value)
+              .slice(0, 12)
+              .map((point) => (
+                <li key={`${point.city}-${point.country}`}>
+                  <button
+                    type="button"
+                    className={`nx-ov-place${focusKey === point.city ? " is-on" : ""}`}
+                    onClick={() => {
+                      setFocusKey(point.city);
+                      setFocus({ longitude: point.longitude, latitude: point.latitude, zoom: 7 });
+                    }}
+                    aria-label={`Show ${point.city} on the map`}
+                  >
+                    <span className="nx-ov-place-dot" aria-hidden />
+                    <span className="nx-ov-place-text">
+                      <b>{point.city}</b>
+                      <small>
+                        {point.region_name} · {formatNumber(point.rows)} {point.rows === 1 ? "record" : "records"}
+                      </small>
+                    </span>
+                    <span className="nx-ov-place-value">{reads(point.value)}</span>
+                  </button>
+                  {drill && (
+                    <Button
+                      type="text"
+                      size="small"
+                      aria-label={`Open the records in ${point.city}`}
+                      icon={<NxIcon name="chevronRight" size={14} />}
+                      onClick={() => openCity(point.city)}
+                    />
+                  )}
+                </li>
+              ))}
+          </ul>
+        )}
+      </Card>
+      </div>
 
       {unplaced > 0 && (
         <Alert
