@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { restoreTaskStatus } from "./api";
 import { signIn, storageStateFor } from "./auth";
@@ -70,15 +70,39 @@ async function settledBoard(page: Page, status: string): Promise<number> {
   return laneCount(page, status);
 }
 
-/** Move the first card of a lane, by the keyboard path a pointer-free reader uses. */
+/**
+ * Drag a card onto a lane the way a person does: press, travel in steps so the
+ * board sees the pointer cross the lanes, let go. There is no menu to move a
+ * card any more — the drag is the way.
+ */
+async function dragCard(page: Page, card: Locator, to: string): Promise<void> {
+  const from = await card.boundingBox();
+  const lane = page.getByTestId(`lane-${to}`);
+  await lane.scrollIntoViewIfNeeded();
+  const target = await lane.boundingBox();
+  if (!from || !target) throw new Error("card or lane not on screen");
+  const start = { x: from.x + from.width / 2, y: from.y + 16 };
+  const end = { x: target.x + target.width / 2, y: target.y + 80 };
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  for (let step = 1; step <= 16; step += 1) {
+    await page.mouse.move(
+      start.x + ((end.x - start.x) * step) / 16,
+      start.y + ((end.y - start.y) * step) / 16,
+    );
+  }
+  await expect(lane).toHaveClass(/is-drop-target/);
+  await page.mouse.up();
+}
+
+/** Move the first card of a lane by dragging it. */
 async function moveFirstCard(page: Page, from: string, to: string): Promise<string> {
   const card = page.getByTestId(`lane-${from}`).locator(".nu-task-card").first();
   const reference = ((await card.locator(".nu-task-ref").textContent()) ?? "").trim();
   // Recorded *before* the move, so the `afterEach` can put it back whatever
   // happens between here and the end of the test.
   moved.push({ reference, from });
-  await card.getByRole("button", { name: /^Move / }).click();
-  await page.getByRole("menuitem", { name: to.replace(/_/g, " ") }).click();
+  await dragCard(page, card, to);
   return reference;
 }
 
@@ -111,8 +135,7 @@ test.describe("the task board writes to the record", () => {
     // Put it back, so the next run measures the dataset this one started from.
     const card = page.getByTestId("lane-IN_REVIEW").locator(".nu-task-card")
       .filter({ hasText: reference });
-    await card.getByRole("button", { name: /^Move / }).click();
-    await page.getByRole("menuitem", { name: "IN PROGRESS" }).click();
+    await dragCard(page, card, "IN_PROGRESS");
     await expect(page.getByTestId("lane-IN_PROGRESS").getByText(reference)).toBeVisible();
   });
 
@@ -144,8 +167,7 @@ test.describe("the task board writes to the record", () => {
     await page.goBack();
     const back = page.getByTestId("lane-ASSIGNED").locator(".nu-task-card")
       .filter({ hasText: reference });
-    await back.getByRole("button", { name: /^Move / }).click();
-    await page.getByRole("menuitem", { name: "NEW" }).click();
+    await dragCard(page, back, "NEW");
     await expect.poll(() => laneCount(page, "NEW"), { timeout: 15_000 }).toBeGreaterThan(0);
   });
 });

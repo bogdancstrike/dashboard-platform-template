@@ -327,6 +327,20 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "task_board_place",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/tasks/<uuid:task_id>/place",
+      "description": "Put a task in a lane between two neighbours, so the board's order survives a reload.",
+      "exec_method": {
+        "module_name": "src.api.task_board",
+        "method_name": "place"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "maps_catalog",
       "model_name": "Empty",
       "request_method": [

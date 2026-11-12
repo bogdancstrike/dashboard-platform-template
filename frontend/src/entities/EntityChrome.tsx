@@ -18,7 +18,6 @@ import {
   Input,
   Select,
   Space,
-  Tag,
   Tooltip,
 } from "antd";
 import { ClearOutlined, SearchOutlined } from "@ant-design/icons";
@@ -54,22 +53,25 @@ export function EntityHeader({
   const { resource, rows, request, filterCount, clearFilters } = view;
 
   return (
-    <PageHeader
-      title={title ?? resource?.label ?? ""}
-      subtitle={subtitle ?? resource?.description ?? ""}
-      tag={
-        rows.data && resource ? (
+    <>
+      <PageHeader
+        title={title ?? resource?.label ?? ""}
+        subtitle={subtitle ?? resource?.description ?? ""}
+        actions={actions}
+      />
+      {/* The glass design's toolbar row: what the list holds on the left, the
+          ways to keep, re-ask and take it away on the right. */}
+      <div className="nx-rec-toolbar">
+        {rows.data && resource ? (
           <>
-            <Tag color="blue" data-testid="entity-total">
+            <span className="nx-rec-count" data-testid="entity-total">
               {rows.data.total.toLocaleString()} of {resource.record_count.toLocaleString()}
-            </Tag>
+            </span>
             <QualityChip resourceKey={resource.key} />
           </>
-        ) : undefined
-      }
-      actions={
-        <>
-          {actions}
+        ) : null}
+        <span className="nx-rec-spacer" />
+        <div className="nx-rec-tools">
           {/* A list is an answer that goes quietly out of date, so it says how
               old it is and lets the reader decide how often it is re-asked
               (§53). Off by default, remembered per dataset. */}
@@ -92,6 +94,7 @@ export function EntityHeader({
           )}
           <Button
             icon={<SearchOutlined />}
+            aria-label="Ask a wider question"
             onClick={() => navigate(`/explore?resource=${resource?.key ?? ""}`)}
           >
             Ask a wider question
@@ -115,9 +118,9 @@ export function EntityHeader({
               navigate("/exports");
             }}
           />
-        </>
-      }
-    />
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -148,13 +151,14 @@ function QualityChip({ resourceKey }: { resourceKey: string }) {
         summary.failing === 1 ? "" : "s"
       }. Open the data-quality page to see what and why.`}
     >
-      <Link to={`/admin/quality?resource_type=${resourceKey}`}>
-        <Tag
-          color={summary.worst === "CRITICAL" ? "error" : summary.worst === "WARNING" ? "warning" : "processing"}
-          data-testid="entity-quality"
-        >
-          {summary.failing} data {summary.failing === 1 ? "issue" : "issues"}
-        </Tag>
+      <Link
+        to={`/admin/quality?resource_type=${resourceKey}`}
+        className={`nx-rec-quality nx-rec-quality--${
+          summary.worst === "CRITICAL" ? "bad" : summary.worst === "WARNING" ? "warn" : "acc"
+        }`}
+        data-testid="entity-quality"
+      >
+        {summary.failing} data {summary.failing === 1 ? "issue" : "issues"}
       </Link>
     </Tooltip>
   );

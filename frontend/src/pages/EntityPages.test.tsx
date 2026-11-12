@@ -32,7 +32,9 @@ describe("the generic entity detail page", () => {
     // Twice on purpose: once as the subtitle beside the name, once as the
     // Reference field in the details table.
     expect(screen.getAllByText("TSK-001").length).toBeGreaterThan(0);
-    expect(screen.getByTestId("record-status")).toHaveTextContent("IN_PROGRESS");
+    // Read as words, with the vocabulary value kept on the element.
+    expect(screen.getByTestId("record-status")).toHaveTextContent("In progress");
+    expect(screen.getByTestId("record-status")).toHaveAttribute("data-status", "IN_PROGRESS");
   });
 
   it("renders every declared field, drawn by its kind", async () => {

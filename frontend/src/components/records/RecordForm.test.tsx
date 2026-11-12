@@ -145,11 +145,27 @@ describe("the edit form", () => {
   });
 });
 
+/** The board's own write: where a card sits, by its neighbours (§18). */
+function capturePlace(bodies: Record<string, unknown>[]) {
+  server.use(
+    http.post("/platform/api/tasks/:id/place", async ({ request, params }) => {
+      const body = (await request.json()) as Record<string, unknown>;
+      bodies.push(body);
+      return HttpResponse.json({
+        id: params["id"],
+        status: body["status"],
+        board_position: 1536,
+        updated_at: new Date().toISOString(),
+      });
+    }),
+  );
+}
+
 describe("moving a card between lanes", () => {
   it("writes the task's status and reconciles the lanes against the server", async () => {
     const user = userEvent.setup();
     const bodies: Record<string, unknown>[] = [];
-    capturePut(bodies);
+    capturePlace(bodies);
 
     let laneQueries = 0;
     server.use(
@@ -166,22 +182,68 @@ describe("moving a card between lanes", () => {
     const before = laneQueries;
 
     // The keyboard path, which is the same call the drop makes (§54).
-    await user.click(
-      within(board).getByRole("button", { name: /Move Review customer migration/ }),
-    );
-    await user.click(await screen.findByRole("menuitem", { name: "DONE" }));
+    await carryByKeyboard(user, board, /Review customer migration/, "done");
 
     await waitFor(() => expect(bodies).toHaveLength(1));
+    // The lane and the neighbours it landed between — not a number the
+    // browser made up from the dozen cards it happened to have loaded.
     expect(bodies[0]).toMatchObject({ status: "DONE" });
+    expect(bodies[0]).toHaveProperty("after_id");
+    expect(bodies[0]).toHaveProperty("before_id");
     // The lane totals are aggregates only the database can compute, so every
     // lane is asked again rather than adjusted in the browser.
     await waitFor(() => expect(laneQueries).toBeGreaterThan(before));
   });
 
+  it("reorders within a lane, between the two cards it was dropped between", async () => {
+    const user = userEvent.setup();
+    const bodies: Record<string, unknown>[] = [];
+    capturePlace(bodies);
+    // A lane with two cards in it: the fixture's own card and a second one
+    // under it, so there is an order to change.
+    server.use(
+      http.post("/platform/api/explorer/query", async ({ request }) => {
+        const body = (await request.json()) as Parameters<typeof entityResult>[0];
+        const result = entityResult(body);
+        const [only] = result.items;
+        if (body.filters?.["status"] && only) {
+          const twin = { ...only, id: `${String(only["id"])}-twin`, title: "The card below" };
+          return HttpResponse.json({ ...result, items: [only, twin], total: 2 });
+        }
+        return HttpResponse.json(result);
+      }),
+    );
+
+    renderBoard();
+    const board = await screen.findByTestId("task-board");
+    await within(board).findByRole("article", { name: /The card below/ });
+    // A lane with two cards in it, whichever the fixture puts them in.
+    const list = Array.from(board.querySelectorAll("[data-drop-list]")).find(
+      (element) => element.querySelectorAll("[data-drag-id]").length >= 2,
+    );
+    expect(list).toBeDefined();
+    const [first, second] = Array.from(list!.querySelectorAll<HTMLElement>("[data-drag-id]"));
+    const lane = list!.getAttribute("data-drop-list");
+
+    second!.focus();
+    await user.keyboard(" ");
+    await user.keyboard("{ArrowUp}");
+    expect(screen.getByTestId("drag-announcer")).toHaveTextContent(/Over .*position 1/);
+    await user.keyboard(" ");
+
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    // One step up: the top of the lane, directly above the card that led it.
+    expect(bodies[0]).toMatchObject({
+      status: lane,
+      after_id: null,
+      before_id: first!.getAttribute("data-drag-id"),
+    });
+  });
+
   it("explains a refused move instead of quietly snapping the card back", async () => {
     const user = userEvent.setup();
     server.use(
-      http.put("/platform/api/records/:type/:id", () =>
+      http.post("/platform/api/tasks/:id/place", () =>
         HttpResponse.json(
           { error: "conflict", message: "Somebody else moved it.", details: {} },
           { status: 409 },
@@ -191,10 +253,7 @@ describe("moving a card between lanes", () => {
 
     renderBoard();
     const board = await screen.findByTestId("task-board");
-    await user.click(
-      within(board).getByRole("button", { name: /Move Review customer migration/ }),
-    );
-    await user.click(await screen.findByRole("menuitem", { name: "DONE" }));
+    await carryByKeyboard(user, board, /Review customer migration/, "done");
 
     expect(await screen.findByText(/moved on somebody else's screen/)).toBeInTheDocument();
   });
@@ -220,3 +279,26 @@ describe("moving a card between lanes", () => {
     expect(screen.getByRole("button", { name: /New task/ })).toBeDisabled();
   });
 });
+
+/**
+ * Pick a card up with Space, walk it right with the arrows until the live
+ * region says it is over `lane`, and drop it with Space — the way somebody
+ * without a pointer moves a card now that there is no menu for it.
+ */
+async function carryByKeyboard(
+  user: ReturnType<typeof userEvent.setup>,
+  board: HTMLElement,
+  card: RegExp,
+  lane: string,
+) {
+  const tile = within(board).getByRole("article", { name: card });
+  tile.focus();
+  await user.keyboard(" ");
+  const announcer = screen.getByTestId("drag-announcer");
+  expect(announcer).toHaveTextContent(/Picked up/);
+  for (let step = 0; step < 10 && !new RegExp(`Over ${lane},`).test(announcer.textContent ?? ""); step += 1) {
+    await user.keyboard("{ArrowRight}");
+  }
+  expect(announcer).toHaveTextContent(new RegExp(`Over ${lane},`));
+  await user.keyboard(" ");
+}

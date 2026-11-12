@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, Integer, Numeric, String, Text
+from sqlalchemy import Boolean, DateTime, Double, Integer, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -190,7 +190,10 @@ class Task(Base, TimestampMixin, SoftDeleteMixin, MetadataMixin):
     estimate_hours: Mapped[float | None] = mapped_column(Numeric(8, 2))
     logged_hours: Mapped[float] = mapped_column(Numeric(8, 2), default=0)
     progress: Mapped[int] = mapped_column(Integer, default=0)
-    board_position: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    #: A sparse, fractional rank within the task's lane (its status): a drop
+    #: takes the midpoint of its neighbours, so a move writes one row. See
+    #: `services/task_board.py`.
+    board_position: Mapped[float] = mapped_column(Double, default=0, index=True)
     blocked_reason: Mapped[str | None] = mapped_column(String(240))
     tags: Mapped[list[str] | None] = mapped_column(ARRAY(String(48)))
     checklist: Mapped[list[Any] | None] = mapped_column(JSONB)

@@ -201,9 +201,9 @@ def _tasks(world: World) -> None:
             estimate_hours=estimate,
             logged_hours=round(estimate * rng.decimal(0.0, 1.4), 2),
             progress=100 if status == "DONE" else (0 if status == "NEW" else rng.integer(5, 95)),
-            # Board position within the column, so drag-and-drop order survives
-            # a reload rather than resorting on every open.
-            board_position=counter % 50,
+            # A sparse rank within the column, so drag-and-drop order survives
+            # a reload and a drop between two cards writes only the one moved.
+            board_position=float(counter * 1024),
             blocked_reason=rng.pick(catalog.BLOCKED_REASONS) if status == "BLOCKED" else None,
             checklist=[
                 {"label": item, "done": rng.chance(0.5)}

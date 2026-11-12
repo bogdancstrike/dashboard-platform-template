@@ -60,6 +60,7 @@ import { NewBoardModal } from "@/components/kanban/NewBoardModal";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { PeoplePicker } from "@/components/PeoplePicker";
+import { useBoardDrag } from "@/components/kanban/useBoardDrag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
@@ -71,14 +72,6 @@ export default function KanbanPage() {
   const [openCard, setOpenCard] = useState<string | null>(null);
   /** The one-question modal for a new lane (§33). */
   const [namingLane, setNamingLane] = useState(false);
-  /**
-   * The card in the air, held for the whole board rather than per lane.
-   *
-   * A drag crosses columns, and the lane it *came from* has to know it is the
-   * source — so this cannot live inside a `LaneColumn`. `dataTransfer` would
-   * be the natural home and is deliberately unreadable in flight.
-   */
-  const [carried, setCarried] = useState<{ id: string; laneId: string } | null>(null);
   const [term, setTerm] = useState(params.get("q") ?? "");
 
   const boardId = params.get("board") ?? "";
@@ -150,6 +143,27 @@ export default function KanbanPage() {
       failed(error);
     },
     onSettled: invalidate,
+  });
+
+  /**
+   * The board's drag, for every lane at once — a drag crosses columns, and
+   * the lane a card came from has to know it is the source. Position is a
+   * real instruction here, so the card lands where the gap was opened.
+   */
+  const laneList = detail?.lanes ?? [];
+  const drag = useBoardDrag({
+    enabled: canEdit,
+    lanes: laneList.map((lane) => lane.id),
+    items: (laneId) => laneList.find((lane) => lane.id === laneId)?.cards.map((card) => card.id) ?? [],
+    onDrop: (id, _from, to) => move.mutate({ id, laneId: to.lane, position: to.index }),
+    describe: (id) => {
+      for (const lane of laneList) {
+        const card = lane.cards.find((item) => item.id === id);
+        if (card) return `${card.reference} ${card.title}`;
+      }
+      return "the card";
+    },
+    laneName: (laneId) => laneList.find((lane) => lane.id === laneId)?.name ?? "the lane",
   });
 
   const addLane = useMutation({
@@ -423,14 +437,14 @@ export default function KanbanPage() {
                 />
               )}
 
-              <div className="nu-board" data-testid="kanban-board">
+              {drag.overlay}
+              <div className="nu-board nx-rec-kboard" data-testid="kanban-board" data-drag-scroll>
                 {(detail?.lanes ?? []).map((lane) => (
                   <LaneColumn
                     key={lane.id}
                     lane={lane}
                     canEdit={canEdit}
-                    carried={carried}
-                    onCarry={setCarried}
+                    board={drag}
                     onOpenCard={setOpenCard}
                     onMove={(cardId, position) =>
                       move.mutate({ id: cardId, laneId: lane.id, position })

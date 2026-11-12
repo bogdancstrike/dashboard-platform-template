@@ -40,29 +40,14 @@ import {
   Typography,
 } from "antd";
 import { MoreOutlined, PlusOutlined } from "@ant-design/icons";
-import { Fragment, useState } from "react";
+import { useState } from "react";
 
 import type { KanbanLane } from "@/api/kanban";
+import { DropGap, type useBoardDrag } from "@/components/kanban/useBoardDrag";
 
 import { KanbanCardTile } from "./KanbanCardTile";
 
 const { Text } = Typography;
-
-/**
- * The gap a card will drop into.
- *
- * A card-sized space rather than a line between two cards. On a board where
- * position is a real instruction, the honest picture of "it goes here" is the
- * room it will take up — and a two-pixel line is a target nobody can see
- * against a column of bordered tiles.
- */
-function DropSlot() {
-  return (
-    <li className="nu-lane-col-slot" aria-hidden data-testid="drop-slot">
-      <span>lands here</span>
-    </li>
-  );
-}
 
 export interface LaneColumnProps {
   lane: KanbanLane;
@@ -70,10 +55,8 @@ export interface LaneColumnProps {
   /** The other lanes, for the keyboard move menu and for re-homing cards. */
   others: KanbanLane[];
   onOpenCard: (id: string) => void;
-  /** The card currently in the air, so the lane can show where it will land. */
-  carried: { id: string; laneId: string } | null;
-  /** Announce the card being dragged — see `carried`. */
-  onCarry: (card: { id: string; laneId: string } | null) => void;
+  /** The board's drag engine — one for the whole board, because a drag crosses lanes. */
+  board: ReturnType<typeof useBoardDrag>;
   /** Reorder within this lane, at `position`. */
   onMove: (cardId: string, position: number) => void;
   /** Move a card to another lane — the keyboard equivalent of the drag. */
@@ -87,7 +70,7 @@ export interface LaneColumnProps {
 export function LaneColumn({
   lane,
   canEdit,
-  carried,
+  board,
   others,
   onOpenCard,
   onMove,
@@ -95,18 +78,7 @@ export function LaneColumn({
   onAddCard,
   onChange,
   onRemove,
-  onCarry,
 }: LaneColumnProps) {
-  const [over, setOver] = useState(false);
-  /**
-   * The index the slot is open at, or `null` while nothing is over this lane.
-   *
-   * Held here rather than derived from the pointer on every frame: the tiles
-   * report which of them is being crossed, and the lane itself reports the
-   * space below the last one. Two sources, one answer, so the slot cannot
-   * appear twice.
-   */
-  const [slot, setSlot] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
   const [dialog, setDialog] = useState<"rename" | "limit" | "remove" | null>(null);
@@ -139,46 +111,23 @@ export function LaneColumn({
     setDialog(which);
   };
 
+  const drop = board.laneProps(lane.id);
+  const carried = board.drag;
+  const isSource = carried?.over.lane === lane.id && carried.from === lane.id;
+
   return (
     <section
-      className={`nu-lane-col${over ? " is-over" : ""}${lane.over_limit ? " is-over-limit" : ""}`}
+      className={`nu-lane-col nx-rec-klane ${drop.className}${lane.over_limit ? " is-over-limit" : ""}`}
+      data-drop-lane={drop["data-drop-lane"]}
       aria-label={lane.name}
       data-testid={`lane-${lane.id}`}
-      onDragOver={(event) => {
-        if (!canEdit || !carried) return;
-        // Preventing the default is what marks this a valid drop target;
-        // without it the browser refuses every drop silently.
-        event.preventDefault();
-        // And this is what makes the *cursor* agree: until a drop effect is
-        // named the browser draws a "no entry" pointer, which is the loudest
-        // "this will not work" a drag can say.
-        event.dataTransfer.dropEffect = "move";
-        setOver(true);
-        // The column itself only ever means "at the end". A tile crossed on
-        // the way down will have said otherwise, and it wins because it is the
-        // more specific answer — hence `setSlot` only when nothing has.
-        setSlot((current) => current ?? lane.cards.length);
-      }}
-      onDragLeave={(event) => {
-        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-        setOver(false);
-        setSlot(null);
-      }}
-      onDrop={(event) => {
-        event.preventDefault();
-        const target = slot ?? lane.cards.length;
-        setOver(false);
-        setSlot(null);
-        onCarry(null);
-        const cardId = event.dataTransfer.getData("application/x-nucleus-card");
-        // The position the slot was open at, which is the position the reader
-        // was looking at when they let go. Appending regardless — which is what
-        // this did — is a board that ignores half of every drag.
-        if (cardId) onMove(cardId, target);
-      }}
     >
       <header className="nu-lane-col-head">
         <span className="nu-lane-col-name">
+          <i
+            aria-hidden
+            className={`nx-rec-klane-dot${lane.is_done ? " is-done" : lane.over_limit ? " is-over" : ""}`}
+          />
           <Text strong>{lane.name}</Text>
           {lane.is_done && (
             <Tooltip title="Arriving here marks a card finished">
@@ -265,11 +214,13 @@ export function LaneColumn({
         </p>
       )}
 
-      <ol className="nu-lane-col-cards">
-        {lane.cards.map((card, index) => (
-          <Fragment key={card.id}>
-            {slot === index && carried && <DropSlot />}
-            <li>
+      <ol className="nu-lane-col-cards" data-drop-list={lane.id}>
+        {board.renderLane(
+          lane.id,
+          lane.cards,
+          (card) => card.id,
+          (card, index) => (
+            <li key={card.id}>
               <KanbanCardTile
                 card={card}
                 canEdit={canEdit}
@@ -277,18 +228,17 @@ export function LaneColumn({
                 currentLane={lane}
                 index={index}
                 laneSize={lane.cards.length}
-                carried={carried?.id === card.id}
+                drag={board.cardProps(card.id, lane.id)}
                 onOpen={() => onOpenCard(card.id)}
-                onDropBefore={(cardId, position) => onMove(cardId, position)}
-                onHoverAt={(position) => setSlot(position)}
-                onCarry={(dragged) => onCarry(dragged ? { id: card.id, laneId: lane.id } : null)}
                 onMoveWithin={(position) => onMove(card.id, position)}
                 onMoveToLane={(laneId) => onMoveToLane(card.id, laneId)}
               />
             </li>
-          </Fragment>
-        ))}
-        {carried && slot !== null && slot >= lane.cards.length && <DropSlot />}
+          ),
+          (height) => (
+            <DropGap key="gap" height={height} label={isSource ? "Back where it was" : "Drop here"} />
+          ),
+        )}
       </ol>
 
       {canEdit &&

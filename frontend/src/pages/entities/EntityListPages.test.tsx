@@ -107,7 +107,9 @@ describe("projects — the portfolio table", () => {
     // its own; side by side they are the reason the page exists.
     const row = await rowFor("Billing replatform");
     expect(within(row).getByText("62%")).toBeInTheDocument();
-    expect(within(row).getByText("95%")).toBeInTheDocument();
+    // 95% appears twice on purpose when the schedule used and the budget used
+    // happen to agree; it is the pairing with 62% that matters.
+    expect(within(row).getAllByText("95%").length).toBeGreaterThan(0);
   });
 
   it("names the finding rather than leaving three numbers to be compared", async () => {
@@ -214,7 +216,11 @@ describe("what every entity page keeps in common", () => {
     render(page, route);
 
     // Create, named after the entity rather than "New record".
-    expect(await screen.findByRole("button", { name: new RegExp(label) })).toBeEnabled();
+    // By its test id: a board also offers "New task" at the foot of its first
+    // lane, and both are the same control.
+    const create = await screen.findByTestId("record-create");
+    expect(create).toBeEnabled();
+    expect(create).toHaveTextContent(label);
 
     // And per record, edit and delete — from the same declaration, so a
     // dataset cannot be editable on one page and read-only on another.

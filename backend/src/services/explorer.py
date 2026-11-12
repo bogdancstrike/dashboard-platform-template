@@ -234,6 +234,10 @@ def _resources() -> dict[str, Resource]:
                 Field("logged_hours", Task.logged_hours, kind="number", label="Logged (hours)"),
                 Field("assignee_id", Task.assignee_id, kind="uuid", label="Assignee ID"),
                 Field("project_id", Task.project_id, kind="uuid", label="Project ID"),
+                # The board's hand-made order (§18) — sortable so a lane can be
+                # read in it; written only through `/api/tasks/<id>/place`.
+                Field("board_position", Task.board_position, kind="number",
+                      label="Board position", filterable=False),
                 # The card's to-do list (§18). Declared so it travels with the
                 # record and can be written by the same endpoint everything
                 # else is; ticking an item is an edit to the task, not a
