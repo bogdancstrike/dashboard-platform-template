@@ -101,6 +101,12 @@ PERMISSION_GROUPS: dict[str, list[tuple[str, str]]] = {
         ("dashboards.manage", "Customise dashboards"),
         ("searches.share", "Share saved searches and views"),
     ],
+    # The AI features (§41–46). Using the assistant reads only what its user
+    # could already read — every tool it calls is checked against the caller's
+    # own permissions — so the grant is about cost and policy, not about data.
+    "AI": [
+        ("ai.use", "Use the AI assistant"),
+    ],
 }
 
 ALL_PERMISSIONS: tuple[str, ...] = tuple(
@@ -139,6 +145,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
             "tasks.view", "tasks.manage", "mail.access",
             "files.view", "files.manage", "calendar.view", "calendar.manage",
             "reports.view", "reports.manage", "dashboards.manage", "searches.share",
+            "ai.use",
         ],
     },
     "OPERATOR": {
@@ -153,6 +160,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
             "tasks.view", "tasks.manage", "mail.access",
             "files.view", "files.manage", "calendar.view", "calendar.manage",
             "reports.view", "dashboards.manage",
+            "ai.use",
         ],
     },
     "ANALYST": {
@@ -165,6 +173,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
             "users.view", "audit.view", "health.view", "jobs.view",
             "tasks.view", "files.view", "calendar.view",
             "reports.view", "reports.manage", "dashboards.manage", "searches.share",
+            "ai.use",
         ],
     },
     "VIEWER": {
@@ -175,6 +184,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
         "permissions": [
             "records.view", "users.view", "tasks.view", "files.view",
             "calendar.view", "reports.view", "health.view", "mail.access",
+            "ai.use",
         ],
     },
 }
