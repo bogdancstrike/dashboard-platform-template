@@ -426,7 +426,11 @@
 .nx-ov-querybar .ant-segmented .ant-segmented-item-selected,
 .nx-ov-querybar .ant-segmented .ant-segmented-thumb { background: var(--nu-raised); color: var(--nu-text); box-shadow: var(--nu-lift); border-radius: 19px; }
 .nx-ov-querybar .ant-segmented .ant-segmented-item-selected .ant-segmented-item-label { font-weight: 700; }
-.nx-app--phone .nx-ov-querybar .ant-space { flex-wrap: nowrap !important; overflow-x: auto; max-width: 100%; scrollbar-width: none; }
+.nx-app--phone .nx-ov-querybar .ant-space { width: 100%; }
+.nx-app--phone .nx-ov-querybar .ant-space-item { max-width: 100%; }
+.nx-app--phone .nx-ov-querybar .ant-space-item:has(.nx-ov-labelselect) { flex: 1 1 100%; }
+.nx-app--phone .nx-ov-labelselect.ant-select { width: 100%; }
+.nx-app--phone .nx-ov-querybar .ant-segmented { max-width: 100%; overflow-x: auto; }
 
 /* Chart cards: in-card segmented as small pills with a raised thumb. */
 .nu-chartcard .ant-segmented { border-radius: 16px; background: rgba(var(--nu-ink-rgb), 0.06); }
@@ -605,3 +609,6 @@
 .nu-board-choice.ant-radio-wrapper { padding: 10px 14px; border-radius: 18px; background: rgba(var(--nu-ink-rgb), 0.04); margin: 0 0 6px; width: 100%; box-sizing: border-box; }
 .nu-board-choice.ant-radio-wrapper:hover { background: rgba(var(--nu-ink-rgb), 0.07); }
 .nu-board-choice.ant-radio-wrapper-checked { background: var(--nu-tint); }
+
+@media (max-width: 1100px) { .nx-ov-reports.nu-split { grid-template-columns: minmax(0, 1fr); } }
+.nx-app--phone .nx-ov-reports .nu-report-meta { flex-wrap: wrap; gap: 8px; }
