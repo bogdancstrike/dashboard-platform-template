@@ -161,6 +161,11 @@ export function StatCard({
               </Tooltip>
             )}
           </div>
+          {moved && previous !== undefined && (
+            <div className="nu-statcard-previous">
+              Previous period: {formatValue(previous, unit)}
+            </div>
+          )}
           {hint && (
             <div className="nu-statcard-hint">
               <Typography.Text type="secondary">{hint}</Typography.Text>

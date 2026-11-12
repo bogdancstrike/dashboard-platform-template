@@ -370,3 +370,67 @@
 .nx-ov-notices .nu-notice-open .ant-typography { font-size: 14px; }
 .nx-ov-notices .nu-notice-chip { border: 0; background: rgba(var(--nu-ink-rgb), 0.07); }
 .nx-app--phone .nu-digest { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Organisation dashboard
+   ═══════════════════════════════════════════════════════════════════════ */
+.nx-ov-dashbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: -4px 0 16px; }
+.nx-ov-dashbar .ant-segmented {
+  height: 44px; padding: 0; border-radius: 22px;
+  background: var(--nu-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--nu-glass-border); box-shadow: var(--nu-glass-shadow);
+  max-width: 100%; overflow-x: auto;
+}
+.nx-ov-dashbar .ant-segmented .ant-segmented-item { border-radius: 22px; }
+.nx-ov-dashbar .ant-segmented .ant-segmented-item-label { min-height: 42px; line-height: 42px; padding-inline: 13px; font-weight: 500; font-size: 13px; }
+.nx-ov-dashbar .ant-segmented .ant-segmented-item-selected,
+.nx-ov-dashbar .ant-segmented .ant-segmented-thumb { background: var(--nu-raised); color: var(--nu-text); box-shadow: var(--nu-lift); border-radius: 22px; }
+.nx-ov-dashbar .ant-segmented .ant-segmented-item-selected .ant-segmented-item-label { font-weight: 700; }
+
+.nu-alert-strip.ant-card { border-radius: 28px; }
+.nu-alert-strip.ant-card .ant-card-body { padding: 14px 18px; }
+.nu-alert-strip .ant-space { row-gap: 8px !important; }
+.nu-alert-strip .nu-alert-tag.ant-tag {
+  height: 30px; line-height: 28px; padding: 0 11px; border-radius: 15px; font-size: 13px; font-weight: 600; cursor: pointer;
+  border: 1px solid color-mix(in srgb, currentColor 28%, transparent);
+}
+
+/* KPI tiles (StatCard): glass, sentence-case label, big number, tinted chip. */
+.nu-statcard.ant-card { border-radius: 26px; min-height: 0; }
+.nu-statcard.ant-card:hover { transform: translateY(-2px); border-color: var(--nu-glass-border) !important; box-shadow: 0 18px 40px rgba(40, 35, 60, 0.14); }
+.nu-statcard .ant-card-body { padding: 16px 18px !important; }
+.nu-statcard-icon { width: 40px; height: 40px; border-radius: 13px; font-size: 17px; }
+.nu-statcard-label { text-transform: none; letter-spacing: 0; font-size: 13.5px; font-weight: 600; color: var(--nu-text); margin-bottom: 2px; }
+.nu-statcard-number { font-size: 32px; line-height: 1.05; letter-spacing: -0.035em; }
+.nu-statcard-delta { font-size: 11.5px; font-weight: 700; padding: 2px 8px; }
+.nu-statcard-previous { font-size: 12px; color: var(--nu-text-secondary); margin-top: 6px; }
+.nu-statcard-hint { margin-top: 2px; font-size: 12px; }
+.nx-app--phone .nu-statcard-number { font-size: 26px; }
+.nx-app--phone .nu-statcard .ant-card-body { padding: 14px !important; }
+.nx-app--phone .nu-statcard-icon { width: 32px; height: 32px; border-radius: 11px; }
+.nu-statcard-hint .ant-typography { font-size: 12px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Analytics query bar
+   ═══════════════════════════════════════════════════════════════════════ */
+.nx-ov-querybar.ant-card { border-radius: 26px; }
+.nx-ov-querybar.ant-card .ant-card-body { padding: 8px; }
+.nx-ov-labelselect.ant-select { height: 44px; }
+.nx-ov-labelselect.ant-select .ant-select-selector { border-radius: 22px !important; padding-inline: 16px !important; background: var(--nu-raised) !important; }
+.nx-ov-labelselect .ant-select-prefix { color: var(--nu-text-secondary); font-weight: 500; margin-inline-end: 6px; }
+.nx-ov-labelselect .ant-select-selection-item { font-weight: 700; }
+.nx-ov-querybar .ant-segmented { border-radius: 22px; padding: 3px; background: rgba(var(--nu-ink-rgb), 0.06); }
+.nx-ov-querybar .ant-segmented .ant-segmented-item { border-radius: 19px; }
+.nx-ov-querybar .ant-segmented .ant-segmented-item-label { min-height: 38px; line-height: 38px; font-weight: 500; }
+.nx-ov-querybar .ant-segmented .ant-segmented-item-selected,
+.nx-ov-querybar .ant-segmented .ant-segmented-thumb { background: var(--nu-raised); color: var(--nu-text); box-shadow: var(--nu-lift); border-radius: 19px; }
+.nx-ov-querybar .ant-segmented .ant-segmented-item-selected .ant-segmented-item-label { font-weight: 700; }
+.nx-app--phone .nx-ov-querybar .ant-space { flex-wrap: nowrap !important; overflow-x: auto; max-width: 100%; scrollbar-width: none; }
+
+/* Chart cards: in-card segmented as small pills with a raised thumb. */
+.nu-chartcard .ant-segmented { border-radius: 16px; background: rgba(var(--nu-ink-rgb), 0.06); }
+.nu-chartcard .ant-segmented .ant-segmented-item { border-radius: 14px; }
+.nu-chartcard .ant-segmented .ant-segmented-item-selected,
+.nu-chartcard .ant-segmented .ant-segmented-thumb { background: var(--nu-raised); color: var(--nu-text); box-shadow: var(--nu-lift); border-radius: 14px; }
+.nu-chartcard.ant-card .ant-card-head { padding-top: 8px; }

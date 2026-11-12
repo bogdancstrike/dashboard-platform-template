@@ -203,18 +203,22 @@ export default function AnalyticsPage() {
         }
       />
 
-      <Card size="small" className="nu-filter-bar" data-testid="analysis-context">
+      <Card size="small" className="nu-filter-bar nx-ov-querybar" data-testid="analysis-context">
         <Space wrap size={8} align="center">
           <Select
             aria-label="Dataset"
-            style={{ minWidth: 170 }}
+            prefix="Dataset"
+            popupMatchSelectWidth={false}
+            className="nx-ov-labelselect"
             value={resourceKey}
             onChange={(next) => set({ resource: next, group: null, measure: null })}
             options={datasets.map((item) => ({ value: item.key, label: item.label }))}
           />
           <Select
             aria-label="Period"
-            style={{ minWidth: 160 }}
+            prefix="Period"
+            popupMatchSelectWidth={false}
+            className="nx-ov-labelselect"
             value={period}
             onChange={(next) => set({ period: next })}
             options={[
@@ -227,7 +231,9 @@ export default function AnalyticsPage() {
           />
           <Select
             aria-label="Group by"
-            style={{ minWidth: 170 }}
+            prefix="Group by"
+            popupMatchSelectWidth={false}
+            className="nx-ov-labelselect"
             value={groupBy || undefined}
             placeholder="Group by"
             onChange={(next) => set({ group: next })}
@@ -238,7 +244,9 @@ export default function AnalyticsPage() {
           />
           <Select
             aria-label="Measure"
-            style={{ minWidth: 190 }}
+            prefix="Measure"
+            popupMatchSelectWidth={false}
+            className="nx-ov-labelselect"
             value={measureName || dataset?.measures[0]?.name}
             placeholder="Measure"
             disabled={(dataset?.measures.length ?? 0) === 0}

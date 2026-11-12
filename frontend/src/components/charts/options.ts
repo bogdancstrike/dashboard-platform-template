@@ -24,7 +24,7 @@
 
 import type { ChartPanel, ChartPoint } from "@/api/dashboard";
 import { format } from "echarts";
-import { categoryColor, SEMANTIC, SERIES } from "@/theme/tokens";
+import { categoryColor, knownStatusColor, SEMANTIC, SERIES } from "@/theme/tokens";
 import type { buildChartTheme } from "@/theme/echarts";
 
 type Theme = ReturnType<typeof buildChartTheme>;
@@ -195,8 +195,8 @@ function timeSeries(panel: ChartPanel, theme: Theme): Record<string, unknown> {
         data: panel.series.map((point) => point.value),
         smooth: false,
         symbol: isTime ? "none" : "circle",
-        lineStyle: { width: 2 },
-        itemStyle: { color: SERIES[0] },
+        itemStyle: { color: theme.accent },
+        lineStyle: { width: 2.5, color: theme.accent },
         ...(panel.kind === "area"
           ? {
               areaStyle: {
@@ -207,8 +207,8 @@ function timeSeries(panel: ChartPanel, theme: Theme): Record<string, unknown> {
                   x2: 0,
                   y2: 1,
                   colorStops: [
-                    { offset: 0, color: `${SERIES[0]}47` },
-                    { offset: 1, color: `${SERIES[0]}05` },
+                    { offset: 0, color: `${theme.accent}47` },
+                    { offset: 1, color: `${theme.accent}05` },
                   ],
                 },
               },
@@ -217,6 +217,21 @@ function timeSeries(panel: ChartPanel, theme: Theme): Record<string, unknown> {
       },
     ],
   };
+}
+
+/**
+ * One bar's colour, as the canvas draws a single series: the first (largest)
+ * bar in the accent and the rest in a lighter step of it — one hue, so the
+ * eye compares lengths rather than reading a rainbow as categories. A value
+ * that names a known status keeps that status's colour, because "Done" in
+ * red would be a lie told in paint.
+ */
+export function barColor(name: string | null | undefined, index: number, theme: Theme): string {
+  const known = knownStatusColor(name);
+  if (known) return known;
+  // Rank-graded: full accent, then lighter steps down to about 45%.
+  const alpha = index === 0 ? 1 : Math.max(0.45, 0.8 - (index - 1) * 0.07);
+  return `${theme.accent}${Math.round(alpha * 255).toString(16).padStart(2, "0")}`;
 }
 
 function bars(panel: ChartPanel, theme: Theme, horizontal: boolean): Record<string, unknown> {
@@ -257,12 +272,20 @@ function bars(panel: ChartPanel, theme: Theme, horizontal: boolean): Record<stri
     series: [
       {
         type: "bar",
-        barMaxWidth: 22,
+        barMaxWidth: horizontal ? 18 : 56,
+        // The value on the bar, as the canvas draws it, while there is room.
+        label: {
+          show: categories.length <= 12,
+          position: horizontal ? "right" : "top",
+          color: theme.valueAxis.axisLabel.color,
+          fontSize: 11,
+          formatter: (params: { value: number }) => compactNumber(params.value),
+        },
         data: panel.series.map((point, index) => ({
           value: point.value,
           itemStyle: {
-            color: categoryColor(point.name, index),
-            borderRadius: horizontal ? [0, 3, 3, 0] : [3, 3, 0, 0],
+            color: barColor(point.name, index, theme),
+            borderRadius: horizontal ? [0, 6, 6, 0] : [6, 6, 0, 0],
           },
         })),
       },
