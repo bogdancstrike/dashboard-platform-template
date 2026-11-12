@@ -15,7 +15,7 @@ import {
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { DeleteOutlined, LockOutlined, PlusOutlined, UndoOutlined } from "@ant-design/icons";
+import { DeleteOutlined, LockOutlined, PlusOutlined, SearchOutlined, UndoOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
 
 import { ApiError } from "@/api/client";
@@ -229,22 +229,20 @@ export default function RolesPage() {
       width: 150,
       align: "center" as const,
       title: (
-        <Space direction="vertical" size={2} style={{ lineHeight: 1.3 }}>
-          <Space size={4}>
-            <EdgeTag color={role.color} style={{ marginInlineEnd: 0 }}>
-              {role.name}
-            </EdgeTag>
+        <div className="nx-ad-rolehead">
+          <EdgeTag color={role.color} style={{ marginInlineEnd: 0 }}>
+            {role.name}
+          </EdgeTag>
+          <span className="nx-ad-rolehead-meta">
+            {role.user_count} {role.user_count === 1 ? "person" : "people"}
             {role.is_yours && (
               <Tooltip title="The role you hold. Changes here affect you.">
                 <Tag color="gold">yours</Tag>
               </Tooltip>
             )}
             {!role.is_system && <Tag bordered={false}>added here</Tag>}
-          </Space>
-          <Text type="secondary">
-            {role.user_count} {role.user_count === 1 ? "person" : "people"}
-          </Text>
-        </Space>
+          </span>
+        </div>
       ),
       render: (_value: unknown, row: MatrixRow) => {
         if (row.kind === "group") {
@@ -408,16 +406,17 @@ export default function RolesPage() {
         />
       )}
 
-      <Card size="small" className="nu-filter-bar">
-        <Input.Search
+      <div className="nx-ad-bar" role="search">
+        <Input
+          className="nx-ad-grow"
           allowClear
-          placeholder="Filter permissions"
+          prefix={<SearchOutlined />}
+          placeholder="Filter permissions by name or code"
           aria-label="Filter permissions"
-          style={{ width: 320 }}
           value={term}
           onChange={(event) => setTerm(event.target.value)}
         />
-      </Card>
+      </div>
 
       <Card size="small" className="nu-block">
         <Table<MatrixRow>
@@ -435,6 +434,7 @@ export default function RolesPage() {
       <NewRoleModal
         open={creating}
         roles={data!.items}
+        groups={data!.permissions.groups}
         onClose={() => setCreating(false)}
         onCreated={() => {
           setCreating(false);

@@ -237,3 +237,61 @@
 .nx-ad .nu-kindchip:is([data-testid$="-WARNING"], [data-testid$="-RETRYING"], [data-testid$="-CANCELLED"])::before { background: var(--nu-warn-fill); }
 .nx-ad .nu-kindchip:is([data-testid$="-INFO"], [data-testid$="-RUNNING"], [data-testid$="-QUEUED"])::before { background: var(--nu-accent); }
 .nx-ad .nu-kindchip:is([data-testid$="-SUCCEEDED"])::before { background: var(--nu-ok-fill); }
+
+/* ═════════════ roles & permissions: the matrix ═════════════ */
+.nx-ad-rolehead { display: flex; flex-direction: column; align-items: center; gap: 4px; text-transform: none; letter-spacing: 0; }
+.nx-ad-rolehead .nu-status-tag { text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; }
+.nx-ad-rolehead-meta { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--nu-text-tertiary); white-space: nowrap; }
+.nx-ad-rolehead-meta .ant-tag { margin: 0; line-height: 18px; font-size: 10.5px; padding-inline: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+.nx-ad--roles .ant-table-wrapper .ant-table-tbody > tr > td { height: 52px; padding-block: 6px !important; }
+.nx-ad--roles .ant-table-wrapper .ant-table-tbody .ant-table-cell-fix-left { background: transparent !important; }
+.nx-ad--roles .ant-table-wrapper .ant-table-thead .ant-table-cell-fix-left { background: transparent !important; }
+.nx-ad--roles .ant-table-wrapper .ant-table-tbody > tr:hover .ant-table-cell-fix-left { background: var(--nu-raised) !important; }
+/* Grants: soft rounded squares — tinted with an accent tick when granted. */
+.nx-ad--roles .ant-table .ant-checkbox .ant-checkbox-inner {
+  width: 26px; height: 26px; border-radius: 9px; border: 0;
+  background: rgba(var(--nu-ink-rgb), 0.06);
+}
+.nx-ad--roles .ant-table .ant-checkbox-checked .ant-checkbox-inner { background: var(--nu-tint); }
+.nx-ad--roles .ant-table .ant-checkbox-checked .ant-checkbox-inner::after {
+  border-color: var(--nu-accent-ink); inset-inline-start: 34%; width: 7px; height: 12px; border-width: 2.5px;
+}
+.nx-ad--roles .ant-table .ant-checkbox-disabled .ant-checkbox-inner { opacity: 0.6; }
+.nx-ad--roles .ant-table .ant-checkbox-wrapper:hover .ant-checkbox-inner { box-shadow: inset 0 0 0 1.5px rgba(var(--nu-glow-rgb), 0.5); }
+.nx-ad--roles .ant-table .ant-checkbox::after { display: none; }
+.nx-ad--roles .nu-cell-changed .ant-checkbox-inner { box-shadow: 0 0 0 2px var(--nu-warn-fill) !important; }
+.nx-ad--roles .nu-permission-code { font: 11.5px var(--nu-font-mono); }
+.nx-ad--roles .nu-matrix-group > td { font-weight: 700; background: rgba(var(--nu-ink-rgb), 0.035) !important; }
+
+/* ═════════════ modals on these pages (new role, …) ═════════════ */
+.nx-ad-modal-title { display: flex; flex-direction: column; gap: 4px; }
+.nx-ad-modal-title em, .nx-ad-modal .ant-modal-title em { font-style: normal; color: var(--nu-accent); }
+.nx-ad-modal-title small { font-size: 13px; font-weight: 500; letter-spacing: 0; color: var(--nu-text-tertiary); }
+.nx-ad-modal .ant-modal-body { max-height: min(62vh, 640px); overflow-y: auto; margin-inline: -26px; padding-inline: 26px; }
+.nx-ad-modal-note { display: block; margin-top: 14px; font-size: 12.5px; }
+.nx-ad-icon--sm { width: 32px; height: 32px; border-radius: 11px; font-size: 15px; }
+.nx-ad-linkbtn { border: 0; background: none; padding: 4px 6px; cursor: pointer; font: 700 13px var(--nu-font); color: var(--nu-accent-ink); border-radius: 10px; }
+.nx-ad-linkbtn:hover { background: rgba(var(--nu-glow-rgb), 0.1); }
+.nx-ad-linkbtn:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 1px; }
+.nx-ad-perms { display: flex; flex-direction: column; gap: 14px; }
+.nx-ad-perms-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.nx-ad-perms-head b { font-size: 13px; font-weight: 600; color: var(--nu-text-secondary); }
+.nx-ad-perms-head span { font-size: 12.5px; color: var(--nu-text-tertiary); }
+.nx-ad-permgroup { border-radius: 22px; padding: 14px; background: rgba(var(--nu-ink-rgb), 0.035); box-shadow: inset 0 0 0 1px rgba(var(--nu-ink-rgb), 0.06); }
+.nx-ad-permgroup-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.nx-ad-permgroup-head b { font-size: 14.5px; font-weight: 700; }
+.nx-ad-permgroup-count { color: var(--nu-text-tertiary); font-size: 14px; margin-inline-start: -6px; }
+.nx-ad-permgroup-head .nx-ad-linkbtn { margin-inline-start: auto; }
+.nx-ad-permgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.nx-app--phone .nx-ad-permgrid, .ant-modal-wrap .nx-ad-permgrid:only-child { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 640px) { .nx-ad-permgrid { grid-template-columns: minmax(0, 1fr); } }
+.nx-ad-perm {
+  display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 12px; border-radius: 16px; cursor: pointer;
+  background: rgba(var(--nu-ink-rgb), 0.045); transition: background 0.2s ease;
+}
+.nx-ad-perm.is-on { background: rgba(var(--nu-glow-rgb), 0.1); }
+.nx-ad-perm:hover { background: rgba(var(--nu-glow-rgb), 0.14); }
+.nx-ad-perm > span { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.nx-ad-perm b { font-size: 13.5px; font-weight: 600; }
+.nx-ad-perm code { font: 11px var(--nu-font-mono); color: var(--nu-text-tertiary); background: none; padding: 0; overflow: hidden; text-overflow: ellipsis; }
+.nx-ad-perm .ant-checkbox .ant-checkbox-inner { width: 20px; height: 20px; border-radius: 6px; }

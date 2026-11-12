@@ -21,7 +21,7 @@ import { ApiError } from "@/api/client";
 import { usersApi, type UserQuery, type UserRow } from "@/api/users";
 import { EmptyState, NoResults } from "@/components/EmptyState";
 import { EdgeTag } from "@/components/EdgeTag";
-import { StatusTag, humanStatus } from "@/components/StatusTag";
+import { StatusTag } from "@/components/StatusTag";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -29,6 +29,12 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 import { PersonAvatar } from "@/components/PersonAvatar";
 
 const { Text } = Typography;
+
+/** `SUSPENDED` → "Suspended", for the quick-filter chips. */
+function chipLabel(status: string): string {
+  const words = status.replace(/_/g, " ").toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
 
 /**
  * The people directory (§12).
@@ -321,7 +327,7 @@ export default function UsersPage() {
               onClick={() => set({ status: status === facet.value ? null : facet.value, page: null })}
             >
               <i className={`nx-ad-dot--${statusDot[facet.value] ?? "acc"}`} />
-              {humanStatus(facet.value)}
+              {chipLabel(facet.value)}
               <b>{facet.count.toLocaleString()}</b>
             </button>
           ))}

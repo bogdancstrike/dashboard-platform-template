@@ -181,6 +181,37 @@ describe("roles an installation adds", () => {
     );
   });
 
+  it("lets the starting permissions be chosen by area before the role exists", async () => {
+    const user = userEvent.setup();
+    let sent: string[] | undefined;
+    server.use(
+      http.post("/platform/admin/roles", async ({ request }) => {
+        const body = (await request.json()) as { code: string; name: string; permissions: string[] };
+        sent = body.permissions;
+        return HttpResponse.json({ ...roleMatrix.items[0], ...body, id: "r-new", is_system: false });
+      }),
+    );
+    renderPage();
+
+    await user.click(await screen.findByTestId("new-role"));
+    const form = await screen.findByTestId("role-form");
+    await user.type(within(form).getByLabelText("Role name"), "Auditor");
+
+    const area = within(form).getByRole("region", { name: "Permissions" });
+    expect(within(area).getByText(/0 of \d+ granted/)).toBeInTheDocument();
+    // "Select all" on the first area ticks every permission in it…
+    await user.click(within(area).getAllByRole("button", { name: "Select all" })[0]!);
+    expect(within(area).getByRole("checkbox", { name: /View records/ })).toBeChecked();
+    // …and one can be taken back out.
+    await user.click(within(area).getByRole("checkbox", { name: /View records/ }));
+    expect(within(area).getByRole("checkbox", { name: /View records/ })).not.toBeChecked();
+
+    await user.click(screen.getByTestId("create-role"));
+    await waitFor(() => expect(sent).toBeDefined());
+    expect(sent).not.toContain("records.view");
+    expect(sent!.length).toBeGreaterThan(0);
+  });
+
   it("stops deriving the code once somebody edits it themselves", async () => {
     const user = userEvent.setup();
     renderPage();

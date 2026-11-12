@@ -19,15 +19,18 @@
  * **The starting permissions are copied from an existing role.** "Like a
  * viewer, plus the audit log" is how people actually describe a new role, and
  * an empty one is a role whose holders can see nothing and who therefore
- * report the platform as broken.
+ * report the platform as broken. When the page hands over the permission
+ * catalogue, the copied set is shown grouped by area and can be adjusted
+ * before the role exists — "like a viewer, plus the audit log" in one step.
  */
 
 import { useMutation } from "@tanstack/react-query";
-import { App as AntApp, Form, Input, Modal, Select, Typography } from "antd";
+import { App as AntApp, Checkbox, Col, Form, Input, Modal, Row, Select, Typography } from "antd";
 import { useState } from "react";
 
 import { ApiError } from "@/api/client";
-import { rolesApi, type RoleRow } from "@/api/roles";
+import { rolesApi, type PermissionGroup, type RoleRow } from "@/api/roles";
+import { NxIcon, type NxIconName } from "@/components/NxIcon";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 
 const { Text } = Typography;
@@ -55,15 +58,33 @@ export function codeFor(name: string): string {
     .slice(0, 48);
 }
 
+/** An icon for a permission area, by the words in its name. */
+function groupIcon(name: string): NxIconName {
+  const n = name.toLowerCase();
+  if (n.includes("record")) return "briefcase";
+  if (n.includes("work") || n.includes("task")) return "check";
+  if (n.includes("report") || n.includes("analy") || n.includes("dashboard")) return "bars";
+  if (n.includes("admin") || n.includes("user") || n.includes("role")) return "shield";
+  if (n.includes("system") || n.includes("platform")) return "gear";
+  if (n.includes("data")) return "database";
+  return "grid";
+}
+
 export function NewRoleModal({
   open,
   roles,
+  groups,
   onClose,
   onCreated,
 }: {
   open: boolean;
   /** The roles in force, to copy a starting set of permissions from. */
   roles: RoleRow[];
+  /**
+   * The permission catalogue, by area. When given, the copied set is shown
+   * and can be adjusted before the role is created.
+   */
+  groups?: PermissionGroup[];
   onClose: () => void;
   onCreated: (role: RoleRow) => void;
 }) {
@@ -72,6 +93,7 @@ export function NewRoleModal({
     close: () => {
       form.resetFields();
       setTouchedCode(false);
+      setPicked(null);
       onClose();
     },
     what: "role",
@@ -79,6 +101,19 @@ export function NewRoleModal({
   const { message } = AntApp.useApp();
   const [touchedCode, setTouchedCode] = useState(false);
   const name = (Form.useWatch("name", form) as string | undefined) ?? "";
+  const like = Form.useWatch("like", form);
+  // What the role will grant. `null` until somebody ticks a box: until then
+  // it follows whichever role it starts from.
+  const [picked, setPicked] = useState<Set<string> | null>(null);
+  const copied = roles.find((role) => role.code === like);
+  const granted = picked ?? new Set(copied?.permissions ?? []);
+  const everyPermission = (groups ?? []).flatMap((group) => group.permissions);
+  const toggle = (codes: string[], on: boolean) => {
+    const next = new Set(granted);
+    codes.forEach((code) => (on ? next.add(code) : next.delete(code)));
+    setPicked(next);
+    touch();
+  };
 
   const create = useMutation({
     mutationFn: (values: FormValues) =>
@@ -86,14 +121,16 @@ export function NewRoleModal({
         code: values.code || codeFor(values.name),
         name: values.name,
         description: values.description,
-        permissions:
-          roles.find((role) => role.code === values.like)?.permissions ?? [],
+        permissions: groups
+          ? [...granted]
+          : (roles.find((role) => role.code === values.like)?.permissions ?? []),
       }),
     onSuccess: (role) => {
       settled();
       message.success(`${role.name} exists — tune what it grants in the matrix`);
       form.resetFields();
       setTouchedCode(false);
+      setPicked(null);
       onCreated(role);
     },
     onError: (error) =>
@@ -105,8 +142,19 @@ export function NewRoleModal({
   return (
     <Modal
       open={open}
-      title="New role"
-      okText="Create the role"
+      width={720}
+      className="nx-ad-modal"
+      title={
+        <div className="nx-ad-modal-title">
+          <span>
+            New <em>role</em>
+          </span>
+          <small>
+            Roles &amp; permissions · {roles.length} {roles.length === 1 ? "role" : "roles"} today
+          </small>
+        </div>
+      }
+      okText="Create role"
       confirmLoading={create.isPending}
       onCancel={requestClose}
       onOk={() => void form.submit()}
@@ -120,24 +168,42 @@ export function NewRoleModal({
         onFinish={(values) => create.mutate(values)}
         data-testid="role-form"
       >
-        <Form.Item
-          name="name"
-          label="What is this role for?"
-          rules={[{ required: true, message: "A role needs a name" }]}
-        >
-          <Input
-            autoFocus
-            maxLength={96}
-            placeholder="External auditor"
-            aria-label="Role name"
-            onChange={(event) => {
-              // The code follows the name until somebody edits it themselves,
-              // and then it stops — a field that keeps overwriting what was
-              // typed is a field people fight.
-              if (!touchedCode) form.setFieldValue("code", codeFor(event.target.value));
-            }}
-          />
-        </Form.Item>
+        <Row gutter={14}>
+          <Col xs={24} md={12}>
+            <Form.Item
+              name="name"
+              label="What is this role for?"
+              rules={[{ required: true, message: "A role needs a name" }]}
+            >
+              <Input
+                autoFocus
+                maxLength={96}
+                placeholder="External auditor"
+                aria-label="Role name"
+                onChange={(event) => {
+                  // The code follows the name until somebody edits it themselves,
+                  // and then it stops — a field that keeps overwriting what was
+                  // typed is a field people fight.
+                  if (!touchedCode) form.setFieldValue("code", codeFor(event.target.value));
+                }}
+              />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item name="like" label="Start from">
+              <Select
+                allowClear
+                aria-label="Start from"
+                placeholder="Nothing — an empty role"
+                onChange={() => setPicked(null)}
+                options={roles.map((role) => ({
+                  value: role.code,
+                  label: `${role.name} (copy ${role.permissions.length} permissions)`,
+                }))}
+              />
+            </Form.Item>
+          </Col>
+        </Row>
 
         <Form.Item
           name="code"
@@ -167,23 +233,66 @@ export function NewRoleModal({
           />
         </Form.Item>
 
-        <Form.Item
-          name="like"
-          label="Start from"
-          extra="Its permissions are copied, and you tune them in the matrix. An empty role is one whose holders can see nothing and who report the platform as broken."
-        >
-          <Select
-            allowClear
-            aria-label="Start from"
-            placeholder="Nothing — an empty role"
-            options={roles.map((role) => ({
-              value: role.code,
-              label: `${role.name} (${role.permissions.length} permissions)`,
-            }))}
-          />
-        </Form.Item>
+        {groups && groups.length > 0 ? (
+          <section className="nx-ad-perms" aria-label="Permissions">
+            <header className="nx-ad-perms-head">
+              <b>Permissions</b>
+              <span>
+                {granted.size} of {everyPermission.length} granted
+                {copied && !picked ? ` · copied from ${copied.name}` : ""}
+              </span>
+            </header>
+            {groups.map((group) => {
+              const codes = group.permissions.map((permission) => permission.code);
+              const held = codes.filter((code) => granted.has(code)).length;
+              const all = held === codes.length;
+              return (
+                <div key={group.name} className="nx-ad-permgroup">
+                  <div className="nx-ad-permgroup-head">
+                    <span className="nx-ad-icon nx-ad-icon--sm" aria-hidden="true">
+                      <NxIcon name={groupIcon(group.name)} size={15} />
+                    </span>
+                    <b>{group.name}</b>
+                    <span className="nx-ad-permgroup-count">
+                      · {held} of {codes.length}
+                    </span>
+                    <button
+                      type="button"
+                      className="nx-ad-linkbtn"
+                      onClick={() => toggle(codes, !all)}
+                    >
+                      {all ? "Clear all" : "Select all"}
+                    </button>
+                  </div>
+                  <div className="nx-ad-permgrid">
+                    {group.permissions.map((permission) => (
+                      <label
+                        key={permission.code}
+                        className={`nx-ad-perm${granted.has(permission.code) ? " is-on" : ""}`}
+                      >
+                        <Checkbox
+                          checked={granted.has(permission.code)}
+                          onChange={(event) => toggle([permission.code], event.target.checked)}
+                        />
+                        <span>
+                          <b>{permission.label}</b>
+                          <code>{permission.code}</code>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+        ) : (
+          <Text type="secondary">
+            Its permissions are copied from the role it starts from, and you tune them in the
+            matrix.
+          </Text>
+        )}
 
-        <Text type="secondary">
+        <Text type="secondary" className="nx-ad-modal-note">
           It is never a built-in role, whichever code you choose: those five are the
           seed&apos;s, and only their permissions can be changed.
         </Text>
