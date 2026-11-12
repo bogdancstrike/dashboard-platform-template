@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { StatusTag } from "@/components/StatusTag";
+import { humanStatus, StatusTag, statusTone } from "@/components/StatusTag";
 import { jsxElements, shippedFiles, shippedSources } from "@/test/sources";
 
 /**
@@ -21,20 +21,25 @@ import { jsxElements, shippedFiles, shippedSources } from "@/test/sources";
  */
 
 describe("the component", () => {
-  it("keeps the surface's ink and puts the colour on the leading edge", () => {
+  it("keeps a readable ink on a tint of its meaning, with a dot", () => {
     render(<StatusTag status="AT_RISK" />);
-    const tag = screen.getByText("AT_RISK");
-    // Not a filled tag: the border carries the meaning and the text keeps the
-    // contrast the theme already guarantees.
-    expect(tag).toHaveClass("nu-status-tag");
-    expect(tag.style.borderInlineStartColor).toBeTruthy();
+    const tag = screen.getByText("At risk");
+    // Not a filled tag: a tint and the tone's own ink, which the theme holds
+    // at 4.5:1 in both modes.
+    expect(tag).toHaveClass("nu-status-tag", "nx-pill", "nx-pill--warn");
+    expect(tag.querySelector(".nx-pill-dot")).not.toBeNull();
   });
 
-  it("shows the vocabulary verbatim, because that is what a reader quotes", () => {
+  it("reads in sentence case and keeps the vocabulary on the element", () => {
     render(<StatusTag status="IN_REVIEW" />);
-    // A prettified label would be the one place the tag and the filter URL
-    // disagreed about what the value is.
-    expect(screen.getByText("IN_REVIEW")).toBeInTheDocument();
+    // The label is for reading; the value the filter URL carries is still
+    // there for whoever needs to quote it.
+    expect(screen.getByText("In review")).toHaveAttribute("data-status", "IN_REVIEW");
+  });
+
+  it("leaves acronyms alone", () => {
+    render(<StatusTag status="SLA" />);
+    expect(screen.getByText("SLA")).toBeInTheDocument();
   });
 
   it("renders nothing rather than an empty tag when there is no status", () => {
@@ -42,9 +47,24 @@ describe("the component", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("marks an unknown status as unassigned rather than borrowing a colour", () => {
+  it("marks an unknown status as neutral rather than borrowing a colour", () => {
     render(<StatusTag status="SOMETHING_NEW" />);
-    expect(screen.getByText("SOMETHING_NEW").style.borderInlineStartColor).toContain("--nu-border-strong");
+    expect(screen.getByText("Something new")).toHaveClass("nx-pill--neutral");
+  });
+
+  it("takes a label and a tone for derived values", () => {
+    render(<StatusTag status="behind" tone="bad" label="Behind · time" />);
+    expect(screen.getByText("Behind · time")).toHaveClass("nx-pill--bad");
+  });
+
+  it("gives the tones the design asks for", () => {
+    expect(statusTone("ON_TRACK")).toBe("ok");
+    expect(statusTone("OFF_TRACK")).toBe("bad");
+    expect(statusTone("EXECUTION")).toBe("acc");
+    expect(statusTone("DISCOVERY")).toBe("neutral");
+    expect(statusTone("FAILED")).toBe("bad");
+    expect(statusTone(undefined)).toBe("neutral");
+    expect(humanStatus("WAITING_CUSTOMER")).toBe("Waiting customer");
   });
 });
 

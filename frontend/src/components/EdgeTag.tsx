@@ -39,14 +39,17 @@ export function EdgeTag({
     <Tag
       {...attributes}
       bordered={bordered}
-      className="nu-status-tag"
+      className="nu-status-tag nx-pill nx-pill--edge"
       style={{
-        // The neutral border when there is no colour, so a thing nobody has
-        // assigned a colour to looks unassigned rather than borrowing one.
+        // Kept on the element for the readers that look for it; the glass pill
+        // draws the colour as the dot instead of an edge. The neutral token
+        // when there is no colour, so a thing nobody has assigned a colour to
+        // looks unassigned rather than borrowing one.
         borderInlineStartColor: color || "var(--nu-border-strong)",
         ...style,
       }}
     >
+      <i aria-hidden className="nx-pill-dot" style={{ background: color || "var(--nu-text-tertiary)" }} />
       {children}
     </Tag>
   );
