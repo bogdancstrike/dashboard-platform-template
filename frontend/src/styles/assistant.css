@@ -48,7 +48,8 @@
 .nx-ai-tablewrap { overflow-x: auto; margin: 4px 0 10px; }
 .nx-ai-table { border-collapse: collapse; font-size: 13px; min-width: 60%; }
 .nx-ai-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--nu-text-tertiary); font-weight: 600; padding: 6px 10px; border-bottom: 1px solid var(--nu-glass-border); }
-.nx-ai-table td { padding: 6px 10px; border-bottom: 1px solid rgba(var(--nu-ink-rgb), .06); }
+.nx-ai-table th, .nx-ai-table td a { white-space: nowrap; }
+.nx-ai-table td { min-width: 4.5em; padding: 6px 10px; border-bottom: 1px solid rgba(var(--nu-ink-rgb), .06); }
 .nx-ai-link { color: var(--nu-accent); font-weight: 600; }
 .nx-ai-muted { color: var(--nu-text-tertiary); font-size: 12.5px; margin: 4px 0; }
 .nx-ai-actions { display: flex; align-items: center; gap: 4px; margin-top: 4px; }

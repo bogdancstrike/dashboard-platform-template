@@ -105,8 +105,9 @@ def search_records(session, args: dict[str, Any], *, principal):
     resource = explorer.resource_for(args.get("dataset"), principal=principal)
     tree = _tree(session, resource, args.get("condition_tree"), principal)
     limit = max(1, min(int(args.get("limit") or 10), MAX_ROWS))
-    columns = list(dict.fromkeys([c for c in (resource.title_field, resource.subtitle_field, resource.status_field)
-                                  if c and c in resource.fields.by_name] + list(resource.default_columns)))[:8]
+    columns = list(dict.fromkeys([c for c in ("reference", "code", "serial", resource.title_field,
+                                              resource.subtitle_field, resource.status_field)
+                                  if c and c in resource.fields.by_name] + list(resource.default_columns)))[:9]
     payload: dict[str, Any] = {"resource_type": resource.key, "condition_tree": tree, "page_size": limit,
                                "columns": columns, "query_text": str(args.get("text") or "")}
     sort = str(args.get("sort") or "")
@@ -116,7 +117,8 @@ def search_records(session, args: dict[str, Any], *, principal):
     result = explorer.run(session, payload, principal=principal)
     rows, cites = [], []
     for item in result["items"]:
-        label = str(item.get(resource.title_field) or item.get(resource.subtitle_field) or item["id"])
+        ref = next((item.get(n) for n in ("reference", "code", "serial") if item.get(n)), None)
+        label = str(ref or item.get(resource.title_field) or item.get(resource.subtitle_field) or item["id"])
         rows.append({k: v for k, v in item.items() if v not in (None, "", [])})
         cites.append(_cite(resource, item["id"], label))
     return {"dataset": resource.key, "total": result["total"], "shown": len(rows),
