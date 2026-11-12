@@ -79,4 +79,25 @@ describe("the system health page", () => {
     await waitFor(() => expect(asked).toContain("7d"));
     server.events.removeListener("request:start", listen);
   });
+
+  it("opens a dependency's whole window in a dialog, from the card", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<SystemPage />);
+
+    const card = await screen.findByTestId("health-postgres");
+    // The card is a control: named, and reachable from the keyboard.
+    expect(card).toHaveAttribute("role", "button");
+    card.focus();
+    await user.keyboard("{Enter}");
+
+    const detail = await screen.findByTestId("health-detail-postgres");
+    expect(within(detail).getByText("In view")).toBeInTheDocument();
+    expect(within(detail).getByText("Lifetime")).toBeInTheDocument();
+    expect(within(detail).getByText(/Periods of trouble/)).toBeInTheDocument();
+    // Every period, with how long it lasted.
+    expect(within(detail).getAllByText("degraded").length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(screen.queryByTestId("health-detail-postgres")).not.toBeInTheDocument());
+  });
 });

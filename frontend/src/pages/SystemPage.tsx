@@ -27,7 +27,7 @@ import { healthApi, metaApi, type HealthSnapshot } from "@/api/meta";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { ServiceHistoryCard } from "@/components/health/ServiceHistoryCard";
-import { absoluteTime } from "@/lib/time";
+import { shortRange } from "@/components/health/when";
 import { statusColor } from "@/theme/tokens";
 import { EmptyState } from "@/components/EmptyState";
 
@@ -283,7 +283,7 @@ export default function SystemPage() {
             extra={
               history.data ? (
                 <Text type="secondary">
-                  {absoluteTime(history.data.from)} — {absoluteTime(history.data.to)} ·{" "}
+                  {shortRange(history.data.from, history.data.to)} ·{" "}
                   {history.data.counts.incidents === 0
                     ? "nothing went wrong"
                     : `${history.data.counts.incidents} ${
