@@ -759,3 +759,10 @@
 /* Segmented controls inside a dialog never push the dialog wider than the phone. */
 .ant-modal .ant-segmented { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 .ant-modal .ant-segmented::-webkit-scrollbar { display: none; }
+
+/* Maps: the country question before leaving the map. */
+.nx-ov-countryask .ant-modal-confirm-title { font-size: 20px !important; letter-spacing: -0.02em; }
+.nx-ov-countryask-body ul { list-style: none; margin: 12px 0 0; padding: 6px; border-radius: 18px; background: rgba(var(--nu-ink-rgb), 0.04); }
+.nx-ov-countryask-body li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 10px; font-size: 13.5px; }
+.nx-ov-countryask-body li + li { border-top: 1px solid rgba(var(--nu-ink-rgb), 0.06); }
+.nx-ov-countryask-body b { font-variant-numeric: tabular-nums; }

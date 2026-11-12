@@ -25,7 +25,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Button, Card, Col, Row, Select, Skeleton, Space, Table, Tag, Typography } from "antd";
+import { Alert, App as AntApp, Button, Card, Col, Row, Select, Skeleton, Space, Table, Tag, Typography } from "antd";
 import { useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
@@ -41,6 +41,16 @@ import { formatNumber } from "@/lib/formats";
 import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
+
+/** What a dataset's records are called in the country question. */
+const DRILL_NOUN: Record<string, string> = {
+  customer: "customers",
+  order: "customers",
+  device: "devices",
+  project: "projects",
+  ticket: "tickets",
+  task: "tasks",
+};
 
 /**
  * Where clicking a place leads, per dataset.
@@ -126,6 +136,49 @@ export default function MapsPage() {
         withOrigin(`${drill.path}?f.${drill.country}=${encodeURIComponent(point.country)}`, here()),
       );
     }
+  };
+
+  const { modal } = AntApp.useApp();
+  /**
+   * A country clicked on the map asks before leaving it (§74): a click on a
+   * picture is easy to make by accident while panning, and the answer to "what
+   * is in Germany" is partly here already — so the question shows that much,
+   * and leaving is the second press, not the first.
+   */
+  const askCountry = (mapName: string) => {
+    if (!drill?.country || !answer) return;
+    const point = answer.points.find((item) => item.map_name === mapName);
+    if (!point) return;
+    const bucket = answer.countries.find((item) => item.name === point.country);
+    const rows = bucket?.rows ?? 0;
+    const cities = answer.points
+      .filter((item) => item.country === point.country)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+    const noun = (DRILL_NOUN[dataset] ?? "records");
+    modal.confirm({
+      title: `Open the ${formatNumber(rows)} ${noun} in ${point.country}?`,
+      icon: null,
+      className: "nx-ov-countryask",
+      content: (
+        <div className="nx-ov-countryask-body" data-testid="country-confirm">
+          <Text type="secondary">It leaves the map for the list of records there.</Text>
+          <ul>
+            {cities.map((city) => (
+              <li key={city.city}>
+                <span>{city.city}</span>
+                <b>{reads(city.value)}</b>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ),
+      okText: "Open list",
+      cancelText: "Stay on the map",
+      autoFocusButton: "cancel",
+      maskClosable: true,
+      onOk: () => openCountry(mapName),
+    });
   };
 
   usePageCommands("maps", [
@@ -275,7 +328,7 @@ export default function MapsPage() {
                 countries={answer.countries}
                 unit={answer.metric.label}
                 onSelectCity={openCity}
-                onSelectCountry={openCountry}
+                onSelectCountry={askCountry}
                 focus={focus}
               />
             </div>

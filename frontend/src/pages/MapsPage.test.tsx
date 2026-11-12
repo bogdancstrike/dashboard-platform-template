@@ -1,9 +1,19 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Route, Routes, useLocation } from "react-router-dom";
 
 import MapsPage from "@/pages/MapsPage";
+
+// The canvas cannot be clicked under jsdom, so the map is a button that says
+// "Germany was clicked" — which is all the page ever hears from it.
+vi.mock("@/components/maps/WorldMap", () => ({
+  WorldMap: ({ onSelectCountry }: { onSelectCountry?: (name: string) => void }) => (
+    <button type="button" onClick={() => onSelectCountry?.("Germany")}>
+      Click Germany on the map
+    </button>
+  ),
+}));
 import { CommandProvider } from "@/commands/CommandContext";
 import { renderWithProviders } from "@/test/render";
 
@@ -121,6 +131,25 @@ describe("the map page", () => {
 
     // Filtered by what the *records* call the country, not by what the map
     // does — the two differ, and the list only knows the former.
+    await waitFor(() =>
+      expect(screen.getByTestId("address")).toHaveTextContent("/customers?f.country=Germany"),
+    );
+  });
+
+  it("asks before a country on the map leaves the map, and stays when told to", async () => {
+    const user = userEvent.setup();
+    render();
+
+    await user.click(await screen.findByRole("button", { name: "Click Germany on the map" }));
+    const ask = await screen.findByTestId("country-confirm");
+    expect(ask).toBeInTheDocument();
+    expect(screen.getAllByText(/in Germany\?$/).length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("button", { name: "Stay on the map" }));
+    expect(screen.getByTestId("address")).toHaveTextContent(/^\/maps/);
+
+    await user.click(screen.getByRole("button", { name: "Click Germany on the map" }));
+    await user.click(await screen.findByRole("button", { name: "Open list" }));
     await waitFor(() =>
       expect(screen.getByTestId("address")).toHaveTextContent("/customers?f.country=Germany"),
     );
