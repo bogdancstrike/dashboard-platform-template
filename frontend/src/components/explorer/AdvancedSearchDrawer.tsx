@@ -13,20 +13,20 @@
  * search — so the number on the button is the number of rows that arrive.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Button, Collapse, Drawer, Select, Space, Statistic, Tooltip, Typography } from "antd";
+import { Alert, Button, Collapse, Drawer, Popover, Select, Space, Tooltip, Typography } from "antd";
 import {
   QuestionCircleOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 
 import { explorerApi, type ExplorerField, type ExplorerRequest, type ExplorerResource } from "@/api/explorer";
+import { URL_OVERLAY } from "@/app/history";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useSticky } from "@/hooks/useSticky";
 
 import { ConditionBuilder } from "./ConditionBuilder";
-import { treeStats } from "./conditionTree";
 import { countRules, emptyTree, type QueryNode } from "./queryTree";
 
 const { Text, Paragraph } = Typography;
@@ -61,8 +61,8 @@ export function AdvancedSearchDrawer(props: AdvancedSearchDrawerProps) {
       // at 920 pixels a group three deep put its value field in a column two
       // words wide — so the editor's own shape was arguing with the thing
       // being edited.
-      width="min(620px, 100vw)"
-      rootClassName="nx-fd-advdrawer"
+      width="min(720px, 100vw)"
+      rootClassName={`nx-fd-advdrawer ${URL_OVERLAY}`}
       title={
         <div className="nx-fd-dhead">
           <span className="nx-fd-dtitle">Rules</span>
@@ -84,7 +84,7 @@ export function AdvancedSearchDrawer(props: AdvancedSearchDrawerProps) {
   );
 }
 
-function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, recordCount, onOpenSaved, resources, onChooseResource }: AdvancedSearchDrawerProps) {
+function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, recordCount, datasetLabel, onOpenSaved, resources, onChooseResource }: AdvancedSearchDrawerProps) {
   const [draft, setDraft] = useState<QueryNode | null>(request.condition_tree ?? null);
 
   // Same endpoint, same shape, first page only: the preview is the search.
@@ -110,15 +110,32 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, record
   const [helpOpen, setHelpOpen] = useSticky<boolean>("explore.advanced.help", false);
 
   const rules = countRules(draft);
-  const stats = treeStats(draft);
   const settling = preview.isFetching || previewRequest !== debounced;
   const applied = JSON.stringify(request.condition_tree ?? null) === JSON.stringify(draft ?? null);
 
+  const apply = () => {
+    onSearch(rules ? draft : null);
+    onClose();
+  };
+
+  // ⌘/Ctrl + Enter applies from anywhere in the drawer, as the old builder's
+  // Search button could be reached without the mouse.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        apply();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   return (
     <div className="nu-advanced-search nx-fd-advbody">
-      {resources && resources.length > 0 && onChooseResource && (
-        <div className="nx-fd-dfind">
-          <span>Find</span>
+      <div className="nx-fd-dfind">
+        <span>Find</span>
+        {resources && resources.length > 0 && onChooseResource ? (
           <Select
             className="nx-fd-dfind-select"
             aria-label="Dataset"
@@ -137,78 +154,17 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, record
             }))}
             labelRender={() => resources.find((item) => item.key === request.resource_type)?.label ?? request.resource_type}
           />
-          <span>where</span>
-        </div>
-      )}
-      <div className="nx-fd-dcount">
-        <Statistic
-          className="nu-advanced-count"
-          data-testid="preview-count"
-          title={settling ? "Previewing…" : rules === 1 ? "1 rule matches" : `${rules} rules match`}
-          value={preview.data?.total ?? 0}
-          suffix={`of ${(recordCount ?? 0).toLocaleString()}`}
-          valueStyle={{ fontSize: 22 }}
-        />
-        {stats.incomplete > 0 && (
-          <span className="nx-fd-muted nx-fd-small">{stats.incomplete} unfinished, skipped</span>
+        ) : (
+          <b>{datasetLabel ?? request.resource_type}</b>
         )}
-        {onOpenSaved && (
-          <button type="button" className="nx-fd-link nx-fd-push" onClick={onOpenSaved}>
-            Load a saved search
-          </button>
-        )}
-      </div>
-      {/* What a rule and a group *are*, before anybody is asked to build one.
-          The editor is two nouns and three connectives, and none of them is
-          named anywhere on screen — so the panel that used to sit here said
-          "build groups with AND, OR and NOT" to a reader who had not been told
-          what a group was. Collapsible, and it stays as this reader left it
-          (§72): it is a tutorial, and a tutorial that will not go away is an
-          alert. */}
-
-      <ConditionBuilder fields={fields} value={draft} onChange={setDraft} />
-
-      <Collapse
-        ghost
-        size="small"
-        className="nx-fd-dcode"
-        items={[
-          {
-            key: "sql",
-            forceRender: true,
-            label: (
-              <span className="nx-fd-row">
-                <span>Show SQL</span>
-                <Tooltip title="Rendered by the server from the same tree it compiles into SQL — so what is written here is what will run">
-                  <QuestionCircleOutlined className="nu-advanced-hint" />
-                </Tooltip>
-              </span>
-            ),
-            children: (
-              <pre data-testid="query-inspector">
-                {preview.data?.condition_text?.trim() || "All records"}
-              </pre>
-            ),
-          },
-        ]}
-      />
-
-      <Collapse
-        ghost
-        size="small"
-        className="nu-advanced-help"
-        activeKey={helpOpen ? ["how"] : []}
-        onChange={(keys) => setHelpOpen(keys.length > 0)}
-        items={[
-          {
-            key: "how",
-            label: (
-              <Space size={6}>
-                <QuestionCircleOutlined />
-                <Text strong>How this works</Text>
-              </Space>
-            ),
-            children: (
+        <span>where</span>
+        <Popover
+          trigger="click"
+          placement="bottomRight"
+          open={helpOpen}
+          onOpenChange={setHelpOpen}
+          overlayClassName="nx-fd-helppop"
+          content={
               <div className="nu-advanced-lesson" data-testid="advanced-help">
                 <div>
                   <Text strong>A rule</Text>
@@ -245,10 +201,60 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, record
                   </Paragraph>
                 </div>
               </div>
+          }
+        >
+          <button type="button" className="nx-fd-cb-icon nx-fd-push" aria-label="How this works">
+            <QuestionCircleOutlined />
+          </button>
+        </Popover>
+      </div>
+      <div className="nx-fd-dline">
+        <p data-testid="preview-count" aria-live="polite">
+          <b>{(preview.data?.total ?? 0).toLocaleString()}</b> of {(recordCount ?? 0).toLocaleString()}{" "}
+          {(datasetLabel ?? "records").toLowerCase()} match
+          {settling && <span className="nx-fd-muted"> · Previewing…</span>}
+        </p>
+        {onOpenSaved && (
+          <button type="button" className="nx-fd-link nx-fd-push" onClick={onOpenSaved}>
+            Load a saved search
+          </button>
+        )}
+      </div>
+      {/* What a rule and a group *are*, before anybody is asked to build one.
+          The editor is two nouns and three connectives, and none of them is
+          named anywhere on screen — so the panel that used to sit here said
+          "build groups with AND, OR and NOT" to a reader who had not been told
+          what a group was. Collapsible, and it stays as this reader left it
+          (§72): it is a tutorial, and a tutorial that will not go away is an
+          alert. */}
+
+      <ConditionBuilder fields={fields} value={draft} onChange={setDraft} />
+
+      <Collapse
+        ghost
+        size="small"
+        className="nx-fd-dcode"
+        items={[
+          {
+            key: "sql",
+            forceRender: true,
+            label: (
+              <span className="nx-fd-row">
+                <span>Query preview</span>
+                <Tooltip title="Rendered by the server from the same tree it compiles into SQL — so what is written here is what will run">
+                  <QuestionCircleOutlined className="nu-advanced-hint" />
+                </Tooltip>
+              </span>
+            ),
+            children: (
+              <pre data-testid="query-inspector">
+                {preview.data?.condition_text?.trim() || "All records"}
+              </pre>
             ),
           },
         ]}
       />
+
 
       {preview.isError && (
         <Alert
@@ -280,10 +286,7 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, record
             type="primary"
             icon={<SearchOutlined />}
             data-testid="run-advanced-search"
-            onClick={() => {
-              onSearch(rules ? draft : null);
-              onClose();
-            }}
+            onClick={apply}
           >
             {applied ? "Apply" : `Apply · ${(preview.data?.total ?? 0).toLocaleString()} matches`}
           </Button>

@@ -22,7 +22,7 @@ import {
   ReloadOutlined,
   SaveOutlined,
 } from "@ant-design/icons";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import { usePageCommands } from "@/commands/CommandContext";
 import { exportsApi, type ExportRequest } from "@/api/exports";
@@ -73,7 +73,7 @@ export default function DataExplorerPage() {
   const { message } = AntApp.useApp();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const location = useLocation();
   /** Two features of this page live behind flags (§27). */
   const advancedSearch = useFeature(FEATURES.advancedSearch);
   const bulkAllowed = useFeature(FEATURES.bulkOperations);
@@ -188,7 +188,7 @@ export default function DataExplorerPage() {
    * closing the panel it came from — would otherwise have the second write
    * back the state the first had just replaced, silently discarding it.
    */
-  const set = (changes: Record<string, string | number | null>, replace = true) => {
+  const set = (changes: Record<string, string | number | null>, replace = true, overlay = false) => {
     setParams((current) => {
       const next = new URLSearchParams(current);
       Object.entries(changes).forEach(([key, value]) => {
@@ -196,8 +196,23 @@ export default function DataExplorerPage() {
         else next.set(key, String(value));
       });
       return next;
-    }, { replace });
+    }, { replace, ...(overlay ? { state: { overlay: true } } : {}) });
   };
+
+  /**
+   * Drawers live in the address, pushed, so back walks out of them one at a
+   * time — Saved → Rules → the page — on a browser and on a phone's gesture.
+   * Closing with × is the same step back when this entry was pushed by an
+   * open; arriving on a deep link, it just drops the parameter.
+   */
+  const openPanel = (changes: Record<string, string | null>) => set(changes, false, true);
+  const pushed = Boolean((location.state as { overlay?: boolean } | null)?.overlay);
+  const closePanel = (changes: Record<string, string | null>) => {
+    if (pushed) navigate(-1);
+    else set(changes);
+  };
+  const advancedOpen = params.get("panel") === "rules" && advancedSearch;
+  const setAdvancedOpen = (open: boolean) => (open ? openPanel({ panel: "rules" }) : closePanel({ panel: null }));
 
   const chooseResource = (key: string) => {
     const next = new URLSearchParams();
@@ -275,14 +290,13 @@ export default function DataExplorerPage() {
    * `?mode=advanced` is a link straight into the rules: it opens the drawer
    * over the results, and closing the drawer drops it from the address.
    */
+  // The old deep link, `?mode=advanced`, now means "with the rules open".
   const askedForRules = params.get("mode") === "advanced" && advancedSearch;
   useEffect(() => {
-    if (askedForRules) setAdvancedOpen(true);
+    if (askedForRules) set({ mode: null, panel: "rules" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [askedForRules]);
-  const closeRules = () => {
-    setAdvancedOpen(false);
-    if (params.get("mode")) set({ mode: null });
-  };
+  const closeRules = () => closePanel({ panel: null });
 
   /**
    * What this page can do, for the palette (§31).
@@ -333,7 +347,7 @@ export default function DataExplorerPage() {
       label: "Open the saved searches",
       icon: <FolderOpenOutlined />,
       keywords: "saved views panel mine shared",
-      run: () => set({ panel: "saved" }),
+      run: () => openPanel({ panel: "saved" }),
     },
     ...VIEW_OPTIONS.filter((option) => option.value !== view).map((option) => ({
       id: `explore.view.${option.value}`,
@@ -399,7 +413,7 @@ export default function DataExplorerPage() {
       }
       actions={
         <>
-          <Button icon={<NxIcon name="heart" size={15} />} onClick={() => set({ panel: "saved" })}>
+          <Button icon={<NxIcon name="heart" size={15} />} onClick={() => openPanel({ panel: "saved" })}>
             Saved searches
           </Button>
           {mode === "results" || !advancedSearch ? (
@@ -437,13 +451,15 @@ export default function DataExplorerPage() {
                 className={`nx-fd-rulesbtn${tree ? " is-on" : ""}`}
                 icon={<NxIcon name="filter" size={15} />}
                 data-testid="open-rules"
-                loading={catalogue.isLoading}
                 onClick={() => setAdvancedOpen(true)}
-                aria-label={`Rules: ${resource?.label ?? "dataset"}, ${stats.rules} ${stats.rules === 1 ? "rule" : "rules"}`}
+                aria-label={`Rules, ${stats.rules} ${stats.rules === 1 ? "rule" : "rules"}, on ${resource?.label ?? "this dataset"}`}
               >
-                <span className="nx-fd-rulesds">{resource?.label ?? "Dataset"}</span>
-                {stats.rules > 0 && <span className="nx-fd-rulesn">· {stats.rules} {stats.rules === 1 ? "rule" : "rules"}</span>}
+                Rules
+                {stats.rules > 0 && <span className="nx-fd-rulesn">· {stats.rules}</span>}
               </Button>
+              <span className="nx-fd-rulesds" data-testid="rules-dataset">
+                {catalogue.isLoading ? "…" : `in ${resource?.label ?? "—"}`}
+              </span>
               {tree && (
                 <button
                   type="button"
@@ -638,7 +654,7 @@ export default function DataExplorerPage() {
                   : {})}
                 onPage={(nextPage, nextSize) => set({ page: nextPage, page_size: nextSize })}
                 onSort={(field, direction) => set({ sort: field, order: direction, page: null })}
-                onPreview={(record) => set({ record: record.id, resource: results.data?.resource_type ?? requestedResource }, false)}
+                onPreview={(record) => openPanel({ record: record.id, resource: results.data?.resource_type ?? requestedResource })}
                 // Ticking is offered only in the table. A card grid with tick
                 // boxes on it is a table wearing a costume, and the scanning views
                 // exist for reading rather than for acting (§6).
@@ -659,14 +675,10 @@ export default function DataExplorerPage() {
           recordCount={resource.record_count}
           resources={resources}
           onChooseResource={chooseResource}
-          onOpenSaved={() => {
-            setAdvancedOpen(false);
-            set({ panel: "saved", mode: null });
-          }}
+          onOpenSaved={() => openPanel({ panel: "saved", from: "rules" })}
           onClose={closeRules}
-          onSearch={(next) => set({ tree: next ? JSON.stringify(next) : null, page: null, mode: null })}
+          onSearch={(next) => set({ tree: next ? JSON.stringify(next) : null, page: null, panel: null })}
           onSave={(next) => {
-            setAdvancedOpen(false);
             setDraftToSave(next);
             setSaveOpen(true);
           }}
@@ -679,13 +691,16 @@ export default function DataExplorerPage() {
         resourceType={requestedResource}
         recordId={previewId}
         term={queryText}
-        onClose={() => set({ record: null })}
+        onClose={() => closePanel({ record: null })}
       />
 
       <SavedSearchDrawer
         open={savedOpen}
         resourceType={resource?.key ?? ""}
-        onClose={() => set({ panel: null })}
+        onClose={() => closePanel({ panel: null, from: null })}
+        {...(params.get("from") === "rules"
+          ? { onBack: () => closePanel({ panel: "rules", from: null }), backLabel: "Rules" }
+          : {})}
         onOpen={openSaved}
         onEdit={(search) => {
           setEditing(search);

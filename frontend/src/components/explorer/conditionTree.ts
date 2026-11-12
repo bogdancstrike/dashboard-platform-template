@@ -313,3 +313,42 @@ export function operatorWords(operator: string, kind?: string): string {
       return operator.replaceAll("_", " ");
   }
 }
+
+/** Whether `id` is `node` itself or anywhere inside it. */
+export function containsId(node: QueryNode, id: string): boolean {
+  if (node.id === id) return true;
+  return children(node).some((child) => containsId(child, id));
+}
+
+export function findById(tree: QueryNode, id: string): QueryNode | null {
+  if (tree.id === id) return tree;
+  for (const child of children(tree)) {
+    const found = findById(child, id);
+    if (found) return found;
+  }
+  return null;
+}
+
+/**
+ * Move the node `id` into the group `targetGroupId` at `index` — the drag and
+ * drop of the builder, within a group or across groups. A group cannot be
+ * dropped into itself or its own descendants, and the root cannot move; both
+ * are a no-op returning the tree unchanged.
+ */
+export function moveNode(tree: QueryNode, id: string, targetGroupId: string, index: number): QueryNode {
+  if (tree.id === id) return tree;
+  const node = findById(tree, id);
+  const target = findById(tree, targetGroupId);
+  if (!node || !target || !isGroup(target) || containsId(node, targetGroupId)) return tree;
+  // Where it sat before, so an index in the same group accounts for the gap
+  // its removal leaves.
+  const siblings = children(target);
+  const from = siblings.findIndex((child) => child.id === id);
+  const at = from >= 0 && from < index ? index - 1 : index;
+  const without = removeNode(tree, id);
+  return mapNode(without, targetGroupId, (group) => {
+    const list = children(group);
+    list.splice(Math.max(0, Math.min(at, list.length)), 0, node);
+    return { ...group, children1: asMap(list) };
+  });
+}

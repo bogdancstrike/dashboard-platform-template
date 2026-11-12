@@ -25,6 +25,7 @@ import {
   Typography,
 } from "antd";
 import {
+  ArrowLeftOutlined,
   CopyOutlined,
   DashboardOutlined,
   DeleteOutlined,
@@ -37,6 +38,7 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 
+import { URL_OVERLAY } from "@/app/history";
 import { explorerApi, type SavedSearch } from "@/api/explorer";
 import { AddToDashboard, type DashboardSubject } from "@/components/dashboards/AddToDashboard";
 import { COPY_MEANS, confirmCopy } from "@/lib/confirm";
@@ -60,6 +62,9 @@ export interface SavedSearchDrawerProps {
   onOpen: (search: SavedSearch) => void;
   /** Opens the editor for a search the caller owns. */
   onEdit: (search: SavedSearch) => void;
+  /** Back to the drawer this one was opened from ("← Rules"). */
+  onBack?: () => void;
+  backLabel?: string;
 }
 
 export function SavedSearchDrawer({
@@ -68,6 +73,8 @@ export function SavedSearchDrawer({
   onClose,
   onOpen,
   onEdit,
+  onBack,
+  backLabel,
 }: SavedSearchDrawerProps) {
   const { message, modal } = App.useApp();
   const queryClient = useQueryClient();
@@ -120,7 +127,24 @@ export function SavedSearchDrawer({
   );
 
   return (
-    <Drawer open={open} width={560} title="Saved searches" onClose={onClose}>
+    <Drawer
+      open={open}
+      width={560}
+      rootClassName={URL_OVERLAY}
+      title={
+        onBack ? (
+          <span className="nx-fd-backtitle">
+            <Button type="text" icon={<ArrowLeftOutlined />} onClick={onBack} data-testid="saved-back">
+              {backLabel ?? "Back"}
+            </Button>
+            <span>Saved searches</span>
+          </span>
+        ) : (
+          "Saved searches"
+        )
+      }
+      onClose={onClose}
+    >
       <Input.Search
         allowClear
         aria-label="Filter saved searches"

@@ -5,6 +5,7 @@
  * never used as detail data, so hiding a column cannot hide the article body.
  * Requests are scoped by resource and ID and cancelled when selection changes.
  */
+import { URL_OVERLAY } from "@/app/history";
 import { useQuery } from "@tanstack/react-query";
 import { App, Button, Drawer, Skeleton, Space, Tabs, Tag, Tooltip, Typography } from "antd";
 import { ApartmentOutlined, CopyOutlined, ExportOutlined, LinkOutlined } from "@ant-design/icons";
@@ -46,7 +47,7 @@ export function RecordPreview({ resourceType, recordId, term = "", onClose }: Re
 
   return (
     <Drawer
-      rootClassName="nu-record-drawer"
+      rootClassName={`nu-record-drawer ${URL_OVERLAY}`}
       open={Boolean(recordId)}
       width="min(680px, 96vw)"
       onClose={onClose}

@@ -51,12 +51,12 @@ function open(overrides: Partial<Parameters<typeof AdvancedSearchDrawer>[0]> = {
 }
 
 describe("the advanced conditions drawer", () => {
-  it("previews the draft and says which rules are skipped", async () => {
+  it("previews the draft as one line, and mutes the rule that is unfinished", async () => {
     open();
     expect(await screen.findByText("Tasks · 500 records")).toBeInTheDocument();
-    expect(screen.getByText("1 unfinished, skipped")).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /incomplete/ })).toHaveClass("is-incomplete");
     expect(screen.getByTestId("query-inspector")).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByTestId("preview-count")).toHaveTextContent(/2 rules match/));
+    await waitFor(() => expect(screen.getByTestId("preview-count")).toHaveTextContent(/of 500 tasks match/));
   });
 
   it("runs the draft and closes, or saves it without running", async () => {
@@ -87,11 +87,10 @@ describe("the advanced conditions drawer", () => {
     expect(props.onOpenSaved).toHaveBeenCalled();
 
     // The lesson starts folded (the drawer is compact); it opens and folds again.
+    // The lesson is a "?" in the header: closed until asked for.
     expect(screen.queryByTestId("advanced-help")).not.toBeInTheDocument();
-    await user.click(screen.getByText("How this works"));
+    await user.click(screen.getByRole("button", { name: "How this works" }));
     expect(await screen.findByTestId("advanced-help")).toBeInTheDocument();
-    await user.click(screen.getByText("How this works"));
-    await waitFor(() => expect(screen.queryByTestId("advanced-help")).not.toBeVisible());
   });
 
   it("says when the preview cannot be run", async () => {

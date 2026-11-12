@@ -15,7 +15,7 @@
  * ("Add rule", "Or", "Not", "Duplicate this rule").
  */
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { DatePicker, Dropdown, Input, InputNumber, Select, Tooltip } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 
@@ -28,6 +28,9 @@ import {
   appendChild,
   children,
   conjunctionOf,
+  containsId,
+  findById,
+  moveNode,
   duplicateById,
   incompleteReason,
   isGroup,
@@ -94,11 +97,37 @@ export function ConditionBuilder({ fields, value, onChange, extraAdd }: Conditio
   const tree = useMemo(() => normalise(value), [value]);
   const filterable = useMemo(() => fields.filter((field) => field.filterable), [fields]);
   const byName = useMemo(() => new Map(fields.map((field) => [field.name, field] as const)), [fields]);
+  const [drag, setDrag] = useState<string | null>(null);
+  const [drop, setDrop] = useState<{ group: string; index: number } | null>(null);
 
-  const ctx: Ctx = { tree, fields: filterable, byName, change: onChange };
+  const ctx: Ctx = {
+    tree,
+    fields: filterable,
+    byName,
+    change: onChange,
+    drag,
+    drop,
+    startDrag: (id) => setDrag(id),
+    endDrag: () => {
+      setDrag(null);
+      setDrop(null);
+    },
+    over: (group, index) => {
+      // A group cannot be dropped into itself or anything inside it.
+      const dragged = drag ? findById(tree, drag) : null;
+      if (!dragged || containsId(dragged, group)) return false;
+      setDrop((current) => (current?.group === group && current.index === index ? current : { group, index }));
+      return true;
+    },
+    land: () => {
+      if (drag && drop) onChange(moveNode(tree, drag, drop.group, drop.index));
+      setDrag(null);
+      setDrop(null);
+    },
+  };
 
   return (
-    <div className="nx-fd-cb" aria-label="Advanced query builder">
+    <div className={`nx-fd-cb${drag ? " is-dragging" : ""}`} aria-label="Advanced query builder">
       <GroupBox node={tree} depth={0} ctx={ctx} extraAdd={extraAdd} />
     </div>
   );
@@ -109,6 +138,14 @@ interface Ctx {
   fields: ExplorerField[];
   byName: Map<string, ExplorerField>;
   change: (tree: QueryNode) => void;
+  /** The node being dragged, and where it would land. */
+  drag: string | null;
+  drop: { group: string; index: number } | null;
+  startDrag: (id: string) => void;
+  endDrag: () => void;
+  /** Propose a landing place; false when it is not allowed there. */
+  over: (group: string, index: number) => boolean;
+  land: () => void;
 }
 
 /**
@@ -116,8 +153,9 @@ interface Ctx {
  *
  * The connective is the small word at the start of every line after the
  * first, and pressing it flips the whole group between and / or — the one
- * decision a group carries. NOT, duplicate and remove live behind the
- * group's "⋯"; a nested group is just an indented block.
+ * decision a group carries. NOT, duplicate, move and remove live behind the
+ * "⋯"; a nested group is an indent with a thin accent rule. Every line has a
+ * grip on hover: drag it to reorder, or into another group (§4).
  */
 function GroupBox({ node, depth, parent, index = 0, ctx, extraAdd }: {
   node: QueryNode;
@@ -155,44 +193,100 @@ function GroupBox({ node, depth, parent, index = 0, ctx, extraAdd }: {
         ]),
   ];
 
+  const dropHere = (position: number) => ctx.drop?.group === id && ctx.drop.index === position;
+
   return (
     <section
       className={`nx-fd-cb-group${root ? " is-root" : ""}${not ? " is-not" : ""}`}
       aria-label={root ? "Root group" : "Group"}
       data-depth={depth}
     >
-      {items.map((child, position) => (
-        <div className="nx-fd-cb-line" key={child.id}>
-          <span className="nx-fd-cb-lead">
-            {position === 0 ? (
-              <span className="nx-fd-cb-where">{not ? "Where not" : "Where"}</span>
+      {items.map((child, position) => {
+        const childId = child.id as string;
+        return (
+          <div
+            className={`nx-fd-cb-line${dropHere(position) ? " is-drop-before" : ""}${
+              position === items.length - 1 && dropHere(items.length) ? " is-drop-after" : ""
+            }${ctx.drag === childId ? " is-dragged" : ""}`}
+            key={childId}
+            data-node={childId}
+            onDragOver={(event) => {
+              if (!ctx.drag) return;
+              // The innermost line under the pointer decides; its parents
+              // must not overrule it on the way up.
+              event.stopPropagation();
+              const box = event.currentTarget.getBoundingClientRect();
+              const after = event.clientY > box.top + box.height / 2;
+              if (ctx.over(id, after ? position + 1 : position)) event.preventDefault();
+            }}
+            onDrop={(event) => {
+              if (!ctx.drag) return;
+              event.preventDefault();
+              event.stopPropagation();
+              ctx.land();
+            }}
+          >
+            <button
+              type="button"
+              className="nx-fd-cb-grip"
+              draggable
+              aria-label={`Drag to move this ${isGroup(child) ? "group" : "rule"}`}
+              title="Drag to move — or use ⋯ › Move up / Move down"
+              onDragStart={(event) => {
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", childId);
+                const line = (event.currentTarget as HTMLElement).closest(".nx-fd-cb-line");
+                if (line) event.dataTransfer.setDragImage(line, 12, 18);
+                ctx.startDrag(childId);
+              }}
+              onDragEnd={ctx.endDrag}
+            >
+              <FdIcon name="drag" size={13} strokeWidth={3.2} />
+            </button>
+            <span className="nx-fd-cb-lead">
+              {position === 0 ? (
+                <span className="nx-fd-cb-where">{not ? "Where not" : "Where"}</span>
+              ) : (
+                <Tooltip title={`Match ${conj === "AND" ? "any" : "all"} of these instead`}>
+                  <button
+                    type="button"
+                    className={`nx-fd-cb-conj${conj === "OR" ? " is-or" : ""}`}
+                    data-testid="conj-toggle"
+                    aria-label={`${conj === "AND" ? "and" : "or"} — switch to ${conj === "AND" ? "or" : "and"}`}
+                    onClick={flip}
+                  >
+                    {conj === "AND" ? "and" : "or"}
+                  </button>
+                </Tooltip>
+              )}
+            </span>
+            {isGroup(child) ? (
+              <GroupBox node={child} depth={depth + 1} parent={node} index={position} ctx={ctx} />
             ) : (
-              <Tooltip title={`Match ${conj === "AND" ? "any" : "all"} of these instead`}>
-                <button
-                  type="button"
-                  className={`nx-fd-cb-conj${conj === "OR" ? " is-or" : ""}`}
-                  data-testid="conj-toggle"
-                  aria-label={`${conj === "AND" ? "and" : "or"} — switch to ${conj === "AND" ? "or" : "and"}`}
-                  onClick={flip}
-                >
-                  {conj === "AND" ? "and" : "or"}
-                </button>
-              </Tooltip>
+              <RuleRow node={child} parent={node} index={position} ctx={ctx} />
             )}
-          </span>
-          {isGroup(child) ? (
-            <GroupBox node={child} depth={depth + 1} parent={node} index={position} ctx={ctx} />
-          ) : (
-            <RuleRow node={child} parent={node} index={position} ctx={ctx} />
-          )}
-        </div>
-      ))}
+          </div>
+        );
+      })}
 
-      <div className="nx-fd-cb-add">
+      <div
+        className={`nx-fd-cb-add${items.length === 0 && dropHere(0) ? " is-drop-before" : ""}`}
+        onDragOver={(event) => {
+          if (!ctx.drag) return;
+          event.stopPropagation();
+          if (ctx.over(id, items.length)) event.preventDefault();
+        }}
+        onDrop={(event) => {
+          if (!ctx.drag) return;
+          event.preventDefault();
+          event.stopPropagation();
+          ctx.land();
+        }}
+      >
         <button type="button" className="nx-fd-cb-addrule" onClick={addRule}>
           + Add filter
         </button>
-        {depth < 2 && (
+        {depth < 3 && (
           <button type="button" className="nx-fd-cb-addgroup" onClick={addGroup}>
             + Add group
           </button>
@@ -208,15 +302,35 @@ function GroupBox({ node, depth, parent, index = 0, ctx, extraAdd }: {
   );
 }
 
-/** "Move up" / "Move down" menu items for a child of `parent`. */
+/** "Move up" / "Move down" / "Move out" menu items — the keyboard's drag and drop. */
 function moveItems(ctx: Ctx, parent: QueryNode | undefined, id: string, index: number) {
   if (!parent) return [];
   const count = children(parent).length;
   const parentId = parent.id as string;
+  const grand = parentId === ctx.tree.id ? null : findParent(ctx.tree, parentId);
   return [
     { key: "up", label: "Move up", disabled: index === 0, onClick: () => ctx.change(moveWithin(ctx.tree, parentId, id, index - 1)) },
     { key: "down", label: "Move down", disabled: index >= count - 1, onClick: () => ctx.change(moveWithin(ctx.tree, parentId, id, index + 1)) },
+    ...(grand
+      ? [{
+          key: "out",
+          label: "Move out of this group",
+          onClick: () => {
+            const at = children(grand).findIndex((child) => child.id === parentId);
+            ctx.change(moveNode(ctx.tree, id, grand.id as string, at + 1));
+          },
+        }]
+      : []),
   ];
+}
+
+function findParent(tree: QueryNode, id: string): QueryNode | null {
+  for (const child of children(tree)) {
+    if (child.id === id) return tree;
+    const found = findParent(child, id);
+    if (found) return found;
+  }
+  return null;
 }
 
 /** One filter on one line: [field] [operator] [value] [⋯] [×]. */
@@ -246,7 +360,7 @@ function RuleRow({ node, parent, index, ctx }: {
           showSearch
           optionFilterProp="title"
           aria-label={field ? `Field: ${field.label}, ${fieldKindLabel(field)}` : "Field: not chosen"}
-          placeholder="Field"
+          placeholder="Choose a field"
           value={fieldName || undefined}
           onChange={(next: string) => {
             const chosen = ctx.byName.get(next);
@@ -371,6 +485,8 @@ function ValueEditor({ field, operator, value, onChange }: {
       const [a, b] = value as [string | null, string | null];
       return (
         <DatePicker.RangePicker
+          showTime={{ format: "HH:mm" }}
+          format="YYYY-MM-DD HH:mm"
           variant="borderless"
           className="nx-fd-cb-ctl"
           aria-label={label}
@@ -438,6 +554,8 @@ function ValueEditor({ field, operator, value, onChange }: {
   if (type === "datetime") {
     return (
       <DatePicker
+        showTime={{ format: "HH:mm" }}
+        format="YYYY-MM-DD HH:mm"
         variant="borderless"
         className="nx-fd-cb-ctl nx-fd-cb-date"
         aria-label={label}

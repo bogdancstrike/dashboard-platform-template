@@ -131,12 +131,12 @@ describe("Data Explorer", () => {
     renderWithProviders(<DataExplorerPage />, { route: `/explore?resource=task&tree=${tree}&mode=advanced` });
 
     const drawer = await screen.findByRole("dialog");
-    expect(within(drawer).getByText("Rules")).toBeInTheDocument();
+    expect(within(drawer).getByText("Find")).toBeInTheDocument();
     expect(within(drawer).getByText("Where")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByTestId("query-inspector")).toHaveTextContent("Status = 'NEW'"));
     // A second, unfinished filter is muted and skipped, not an error.
     await user.click(within(drawer).getByRole("button", { name: "+ Add filter" }));
-    expect(await within(drawer).findByText("1 unfinished, skipped")).toBeInTheDocument();
+    expect(await within(drawer).findByRole("group", { name: /incomplete/ })).toHaveClass("is-incomplete");
 
     await user.click(screen.getByTestId("run-advanced-search"));
     expect(await screen.findByTestId("condition-chips")).toBeInTheDocument();
@@ -148,10 +148,23 @@ describe("Data Explorer", () => {
     window.localStorage.setItem("nucleus.search.recent.task", JSON.stringify(["migration"]));
     renderWithProviders(<DataExplorerPage />, { route: "/explore?resource=task" });
 
-    await waitFor(() => expect(screen.getByTestId("open-rules")).toHaveTextContent("Tasks"));
+    await waitFor(() => expect(screen.getByTestId("rules-dataset")).toHaveTextContent("Tasks"));
     expect(await screen.findByText("Recent searches")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remove recent search: migration" })).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: /status: new/ }));
     expect(await screen.findByTestId("condition-chips")).toHaveTextContent("Status");
+  });
+
+  it("walks back out of drawers one at a time: Saved → Rules → the page", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<DataExplorerPage />, { route: "/explore?resource=task" });
+
+    await user.click(await screen.findByTestId("open-rules"));
+    expect(await screen.findByRole("button", { name: "Load a saved search" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Load a saved search" }));
+    // Opened from Rules, the saved list offers the way back to them.
+    await user.click(await screen.findByTestId("saved-back"));
+    expect(await screen.findByRole("button", { name: "Load a saved search" })).toBeInTheDocument();
+    expect(screen.queryByTestId("saved-back")).not.toBeInTheDocument();
   });
 });

@@ -48,7 +48,8 @@ async function matchCount(page: Page): Promise<number> {
  */
 async function previewCount(page: Page): Promise<number> {
   await expect(page.getByText("Previewing…")).toBeHidden();
-  const text = await page.getByTestId("preview-count").locator(".ant-statistic-content").innerText();
+  // "1,234 of 2,500 tasks match" — the first number is the draft's count.
+  const text = (await page.getByTestId("preview-count").innerText()).split(" of ")[0] ?? "";
   return Number(text.replace(/[^\d]/g, ""));
 }
 
@@ -337,5 +338,30 @@ test.describe("Data Explorer", () => {
     // Declared by the device resource, and by no other.
     await chooseOption(page, "Battery percent");
     await expect(page.locator(".rule--field").first()).toContainText("Battery percent");
+  });
+
+  test("drags a rule out of a group, and back walks out of the drawers", async ({ page }) => {
+    await openAdvanced(page);
+    await addStatusRule(page, "Blocked");
+    await page.getByRole("button", { name: "+ Add group" }).first().click();
+    await page.locator(RULE.field).nth(1).click();
+    await chooseOption(page, "Status");
+    await page.locator(RULE.value).nth(1).click();
+    await chooseOption(page, "Cancelled");
+
+    // The rule inside the group is dragged above the first one, into the root.
+    const grips = page.getByRole("button", { name: "Drag to move this rule" });
+    const lines = page.locator(".nx-fd-cb-group.is-root > .nx-fd-cb-line");
+    await grips.nth(1).dragTo(lines.nth(0), { targetPosition: { x: 200, y: 4 } });
+    await expect(page.getByTestId("query-inspector")).toHaveText(/^Status = 'CANCELLED'/);
+
+    // Rules → Saved searches → back → Rules → back → the page.
+    await page.getByRole("button", { name: "Load a saved search" }).click();
+    await expect(page.getByTestId("saved-back")).toBeVisible();
+    await page.goBack();
+    await expect(page.getByRole("button", { name: "Load a saved search" })).toBeVisible();
+    await page.goBack();
+    await expect(page.getByRole("button", { name: "Load a saved search" })).toBeHidden();
+    expect(new URL(page.url()).searchParams.get("panel")).toBeNull();
   });
 });
