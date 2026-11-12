@@ -342,7 +342,7 @@ export default function NotificationsPage() {
         onFilter={(filter) => set({ ...filter, group_key: null, page: null })}
       />
 
-      <Card size="small" className="nu-filter-bar">
+      <Card size="small" className="nu-filter-bar nx-ov-feedfilters">
         <Space wrap size={8} align="center">
           <Segmented
             options={READ_STATES}
@@ -420,7 +420,7 @@ export default function NotificationsPage() {
         />
       )}
 
-      <Card size="small" className="nu-block">
+      <Card size="small" className="nu-block nx-ov-feed nx-ov-notices">
         {listing.isLoading ? (
           // A skeleton in the final layout, so the rows do not jump when they
           // arrive under the reader's cursor.
