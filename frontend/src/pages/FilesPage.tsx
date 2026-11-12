@@ -70,6 +70,7 @@ import {
 import { NameModal } from "@/components/NameModal";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusTag } from "@/components/StatusTag";
+import { CollapseAllToggle } from "@/components/CollapseAllToggle";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { relativeTime } from "@/lib/time";
@@ -394,6 +395,23 @@ export default function FilesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tree.data, canManage, open, bulk]);
 
+  /** Every folder that has children — what "expand all" opens. */
+  const parentKeys = useMemo(() => {
+    const out: string[] = [];
+    const walk = (list: Array<{ key?: unknown; children?: unknown[] }>) => {
+      for (const node of list) {
+        if (node.children && node.children.length > 0) {
+          out.push(String(node.key));
+          walk(node.children as Array<{ key?: unknown; children?: unknown[] }>);
+        }
+      }
+    };
+    walk(nodes as Array<{ key?: unknown; children?: unknown[] }>);
+    return out;
+  }, [nodes]);
+  /** `null` until the reader folds something: everything open, as before. */
+  const [expanded, setExpanded] = useState<string[] | null>(null);
+
 
   /** What the whole store holds — summed here rather than asked for twice. */
   const stored = useMemo(() => {
@@ -554,10 +572,25 @@ export default function FilesPage() {
           on a folder holding one file, and put the scrollbar on the whole page
           rather than on the column that is actually long. */}
       <div className="nu-split nu-split--rail nu-fill">
-        <Card size="small" className="nu-pane nu-split-list" title="Folders" data-testid="folder-tree">
+        <Card
+          size="small"
+          className="nu-pane nu-split-list"
+          title="Folders"
+          data-testid="folder-tree"
+          extra={
+            parentKeys.length > 0 ? (
+              <CollapseAllToggle
+                allCollapsed={(expanded ?? parentKeys).length === 0}
+                onToggle={(collapse) => setExpanded(collapse ? [] : parentKeys)}
+                label="folders"
+              />
+            ) : undefined
+          }
+        >
           <Tree
             blockNode
-            defaultExpandAll
+            expandedKeys={expanded ?? parentKeys}
+            onExpand={(keys) => setExpanded(keys.map(String))}
             selectedKeys={[open]}
             treeData={nodes as never}
             onSelect={(keys) => setFolderId(String(keys[0] ?? UNFILED))}

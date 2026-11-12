@@ -28,6 +28,9 @@ import {
   StopOutlined,
   TagOutlined,
 } from "@ant-design/icons";
+import { useState } from "react";
+
+import { CollapseAllToggle } from "@/components/CollapseAllToggle";
 import type { ReactNode } from "react";
 
 import type { MailFolder, MailList } from "@/api/mail";
@@ -63,9 +66,31 @@ export function FolderRail({
   onFolder: (next: MailFolder) => void;
   onLabel: (next: string | null) => void;
 }) {
+  // Two sections, each folding under its heading; one control folds both.
+  const [folded, setFolded] = useState<{ folders: boolean; labels: boolean }>({
+    folders: false,
+    labels: false,
+  });
+  const hasLabels = data.labels.length > 0;
+  const allFolded = folded.folders && (!hasLabels || folded.labels);
   return (
     <nav className="nu-mailrail" aria-label="Folders" data-testid="mail-folders">
-      {data.folders.map((entry) => {
+      <div className="nu-mailrail-headrow">
+        <button
+          type="button"
+          className="nu-mailrail-heading nu-mailrail-fold"
+          aria-expanded={!folded.folders}
+          onClick={() => setFolded((current) => ({ ...current, folders: !current.folders }))}
+        >
+          Folders
+        </button>
+        <CollapseAllToggle
+          allCollapsed={allFolded}
+          onToggle={(collapse) => setFolded({ folders: collapse, labels: collapse })}
+          label="mail sections"
+        />
+      </div>
+      {!folded.folders && data.folders.map((entry) => {
         const meta = FOLDER_META[entry.key];
         const active = entry.key === folder;
         return (
@@ -108,12 +133,17 @@ export function FolderRail({
         );
       })}
 
-      {data.labels.length > 0 && (
+      {hasLabels && (
         <>
-          <Text type="secondary" className="nu-mailrail-heading">
+          <button
+            type="button"
+            className="nu-mailrail-heading nu-mailrail-fold"
+            aria-expanded={!folded.labels}
+            onClick={() => setFolded((current) => ({ ...current, labels: !current.labels }))}
+          >
             Labels in {FOLDER_META[folder].label.toLowerCase()}
-          </Text>
-          {data.labels.map((entry) => {
+          </button>
+          {!folded.labels && data.labels.map((entry) => {
             const active = entry.key === label;
             return (
               <button
