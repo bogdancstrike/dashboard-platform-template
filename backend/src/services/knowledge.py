@@ -776,10 +776,9 @@ def history(session, ident: Any, args: dict[str, Any], *, principal) -> dict[str
     collection = _collection(session, ident, principal)
     statement = select(KnowledgeQuestion).where(KnowledgeQuestion.collection_id == collection.id,
                                                 KnowledgeQuestion.user_id == principal.user_id)
+    rows = session.scalars(statement.order_by(KnowledgeQuestion.created_at.desc()).limit(300)).all()
     thread = args.get("thread_id")
-    if thread:
-        statement = statement.where(KnowledgeQuestion.thread_id == parse_uuid(thread, field="thread_id"))
-    rows = session.scalars(statement.order_by(KnowledgeQuestion.created_at.desc()).limit(200)).all()
+    selected = str(parse_uuid(thread, field="thread_id")) if thread else None
     threads: dict[str, dict[str, Any]] = {}
     for row in rows:
         key = str(row.thread_id)
@@ -787,8 +786,11 @@ def history(session, ident: Any, args: dict[str, Any], *, principal) -> dict[str
                                          "updated_at": iso(row.created_at), "turns": 0})
         entry["turns"] += 1
         entry["title"] = row.question[:120]  # rows are newest first: ends on the first question
+    # The list of conversations is always all of them; the turns are the
+    # selected conversation's (or every turn, oldest first, when none is).
+    turns = [row for row in rows if selected is None or str(row.thread_id) == selected]
     return {
-        "items": [serialize_question(row) for row in reversed(rows)],
+        "items": [serialize_question(row) for row in reversed(turns)],
         "threads": list(threads.values()),
     }
 
@@ -820,19 +822,23 @@ def suggestions(session, ident: Any, *, principal) -> dict[str, Any]:
                                         KnowledgeDocument.status == "READY")
         .order_by(KnowledgeDocument.created_at)
     ).unique().all()
-    out: list[str] = []
+    # One topic from each document in turn, so a collection of three files
+    # does not suggest four questions about the first.
+    topics: list[list[str]] = []
     for row in rows:
-        for entry in (row.outline or [])[1:4]:
-            title = str(entry.get("title") or "").strip() if isinstance(entry, dict) else ""
-            if 3 <= len(title) <= 80 and not title[:1].isdigit():
-                out.append(f"What does {row.file.name.rsplit('.', 1)[0]} say about {title.lower()}?")
-        if len(out) >= 6:
-            break
+        titles = [str(entry.get("title") or "").strip() for entry in (row.outline or [])[1:]
+                  if isinstance(entry, dict)]
+        topics.append([t for t in titles if 3 <= len(t) <= 60 and not t[:1].isdigit()])
+    out: list[str] = []
+    for depth in range(4):
+        for titles in topics:
+            if depth < len(titles) and len(out) < 4:
+                out.append(f"What do the documents say about {titles[depth].lower()}?")
     if not out:
         out = ["Summarise the main points of these documents.",
                "What deadlines or dates are mentioned?",
                "Who is responsible for what?"]
-    return {"items": out[:6]}
+    return {"items": out[:4]}
 
 
 def overview(session, *, principal) -> dict[str, Any]:

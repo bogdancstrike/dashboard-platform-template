@@ -88,7 +88,14 @@ export function PdfPageHighlight({
         if (!context) throw new Error("no canvas");
         return pdfPage.render({ canvasContext: context, viewport }).promise;
       })
-      .then(() => !cancelled && setState("ready"))
+      .then(() => {
+        if (cancelled) return;
+        setState("ready");
+        requestAnimationFrame(() => {
+          const mark = target.parentElement?.querySelector(".nx-kn-mark");
+          if (mark && typeof mark.scrollIntoView === "function") mark.scrollIntoView({ block: "center" });
+        });
+      })
       .catch(() => !cancelled && setState("error"));
     return () => {
       cancelled = true;

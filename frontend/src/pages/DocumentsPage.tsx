@@ -14,6 +14,7 @@ import {
   type KnowledgeDocument,
 } from "@/api/knowledge";
 import { useAuth } from "@/auth/AuthProvider";
+import { usePageCommands } from "@/commands/CommandContext";
 import { useUrlOverlay } from "@/app/useUrlOverlay";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
@@ -150,7 +151,8 @@ export default function DocumentsPage() {
   const previewFileId = passage.value ? cited?.file_id : docPreview.value ? previewDoc?.file.id : null;
   const previewFile = useQuery({
     queryKey: ["knowledge-preview-file", previewFileId],
-    queryFn: () => filesApi.downloadUrl(previewFileId!).then((r) => r.file),
+    // The inline URL: looking is not downloading, and is not counted as one.
+    queryFn: ({ signal }) => filesApi.previewUrl(previewFileId!, signal).then((r) => r.file),
     enabled: Boolean(previewFileId),
     staleTime: 60_000,
   });
@@ -164,6 +166,25 @@ export default function DocumentsPage() {
   }
 
   const canCreate = list.data?.can_create ?? can("knowledge.manage");
+
+  usePageCommands("documents", [
+    ...(canCreate
+      ? [{ id: "documents-new", label: "New document collection", keywords: "knowledge upload files ai", run: () => setModal("create") }]
+      : []),
+    ...(collection
+      ? [
+          {
+            id: "documents-ask",
+            label: `Ask ${collection.name}`,
+            keywords: "question documents ai",
+            run: () => {
+              setTab("ask");
+              window.setTimeout(() => document.querySelector<HTMLTextAreaElement>("[data-testid=ask-input]")?.focus(), 50);
+            },
+          },
+        ]
+      : []),
+  ]);
   const stats = overview.data;
 
   return (

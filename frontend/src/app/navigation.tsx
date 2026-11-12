@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { NxIcon, type NxIconName } from "@/components/NxIcon";
 import { AstIcon } from "@/components/assistant/AstIcon";
+import { KnIcon } from "@/components/knowledge/KnIcon";
 
 /**
  * The navigation, grouped by what somebody came here to do rather than by the
@@ -76,6 +77,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "AI",
     items: [
       { key: "/assistant", label: "Assistant", icon: <AstIcon name="spark" size={18} />, permission: "ai.use" },
+      { key: "/ai/documents", label: "Ask your documents", icon: <KnIcon name="documents" size={18} />, permission: "ai.use" },
     ],
   },
   {

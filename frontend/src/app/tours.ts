@@ -408,6 +408,31 @@ export const TOURS: Record<string, TourStop[]> = {
     },
   ],
 
+  "/ai/documents": [
+    {
+      title: "Answers from your files, cited to the page",
+      description:
+        "Every answer is written only from the documents in the collection, and every claim carries a numbered citation. A question the documents do not answer gets that answer, not a guess.",
+    },
+    {
+      target: "collection-list",
+      title: "A collection is an audience",
+      description:
+        "Private, shared with chosen people, or open to everyone — the same sharing as a dashboard. Questions are answered only from collections you may see, decided in the database before anything reaches the model.",
+    },
+    {
+      target: "collection-tabs",
+      title: "Ask, or look after the files",
+      description:
+        "Documents are read in the background: converted with their page numbers kept, split into passages and indexed. Each file shows where its reading stands, and why if it failed.",
+    },
+    {
+      target: "ask-input",
+      title: "Follow-ups stay in the conversation",
+      description:
+        "Ask \"and the deadline?\" after a question and it is read as part of the same conversation. Press a citation to open the file at that page with the passage marked.",
+    },
+  ],
   "/files": [
     {
       title: "Folders, and what is actually in them",

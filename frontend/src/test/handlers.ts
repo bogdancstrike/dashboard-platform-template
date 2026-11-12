@@ -16,6 +16,7 @@ import type { ExplorerCatalogue, ExplorerField, FieldKind } from "@/api/explorer
 import { asText } from "@/lib/text";
 import { CORRELATION_HEADER } from "@/config";
 import { assistantHandlers } from "@/test/handlers/assistant";
+import { knowledgeHandlers } from "@/test/handlers/knowledge";
 
 export const appMeta = {
   name: "Nucleus",
@@ -3879,6 +3880,7 @@ function recentList(): Record<string, unknown> {
 
 export const handlers = [
   ...assistantHandlers,
+  ...knowledgeHandlers,
   http.get("/platform/admin/integrations/catalogue", ({ request }) => {
     const states = ["NOT_CONFIGURED", "DISCONNECTED", "CONNECTED", "ERROR"];
     return echo(request, {

@@ -93,13 +93,16 @@
 .nx-kn-main {
   border-radius: 28px;
   padding: 22px;
-  min-height: 560px;
+  height: calc(100vh - 200px);
+  min-height: 520px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   min-width: 0;
 }
 .is-phone .nx-kn-main {
+  height: auto;
+  min-height: 0;
   padding: 16px;
   border-radius: 22px;
 }
@@ -163,6 +166,9 @@
 
 /* ── documents ───────────────────────────────────────────────────────── */
 .nx-kn-docs {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -288,13 +294,12 @@
   flex-direction: column;
   gap: 18px;
   flex: 1;
-  min-height: 300px;
-  max-height: calc(100vh - 380px);
+  min-height: 0;
   overflow-y: auto;
   padding: 4px 2px;
 }
 .is-phone .nx-kn-thread {
-  max-height: none;
+  min-height: 320px;
 }
 .nx-kn-welcome {
   margin: auto;
@@ -567,4 +572,14 @@
   color: inherit;
   border-radius: 3px;
   padding: 0 1px;
+}
+
+/* The preview frame centres a picture; a cited page wants the full width and
+   room to scroll down to the passage. */
+.nu-preview-frame:has(.nx-kn-pdf) {
+  display: block;
+  max-height: 70vh;
+}
+.nx-kn-pdf {
+  width: 100%;
 }

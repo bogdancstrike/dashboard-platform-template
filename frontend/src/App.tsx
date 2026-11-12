@@ -26,6 +26,7 @@ const WorkflowsPage = lazy(() => import("@/pages/WorkflowsPage"));
 const CalendarPage = lazy(() => import("@/pages/CalendarPage"));
 const MailPage = lazy(() => import("@/pages/MailPage"));
 const HomePage = lazy(() => import("@/pages/HomePage"));
+const DocumentsPage = lazy(() => import("@/pages/DocumentsPage"));
 const AssistantPage = lazy(() => import("@/pages/AssistantPage"));
 const AdminHomePage = lazy(() => import("@/pages/admin/AdminHomePage"));
 const SystemSettingsPage = lazy(() => import("@/pages/admin/SettingsPage"));
@@ -196,6 +197,15 @@ export default function App() {
           element={
             <Suspense fallback={<Loading />}>
               <AssistantPage />
+            </Suspense>
+          }
+        />
+        {/* AI (§44): ask your documents, the collection and conversation in the query. */}
+        <Route
+          path="ai/documents"
+          element={
+            <Suspense fallback={<Loading />}>
+              <DocumentsPage />
             </Suspense>
           }
         />
