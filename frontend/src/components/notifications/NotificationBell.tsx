@@ -20,10 +20,15 @@ const { Text } = Typography;
  * gets refreshed less often than it should be. The dropdown only fetches when
  * it is opened — nobody is reading it while it is closed.
  */
+/** The kinds that ask the reader to do something, so the row offers it inline. */
+const DECISIONS = new Set(["MENTION", "ASSIGNMENT", "APPROVAL"]);
+
 export function NotificationBell() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  /** The panel's tab, filtered here over what the list returned. */
+  const [tab, setTab] = useState<"all" | "unread" | "mentions">("all");
   const { status } = useLive();
   // Polling is the fallback, not the mechanism: while the socket is up this is
   // `false` and the badge moves when the server says so.
@@ -37,7 +42,7 @@ export function NotificationBell() {
 
   const latest = useQuery({
     queryKey: ["notifications", "latest"],
-    queryFn: ({ signal }) => notificationsApi.list({ page_size: 6 }, signal),
+    queryFn: ({ signal }) => notificationsApi.list({ page_size: 20 }, signal),
     enabled: open,
   });
 
@@ -54,6 +59,12 @@ export function NotificationBell() {
   });
 
   const unread = counts.data?.unread ?? 0;
+  const mentions = counts.data?.by_category["MENTION"] ?? 0;
+  const shown = (latest.data?.items ?? [])
+    .filter((item) =>
+      tab === "unread" ? !item.is_read : tab === "mentions" ? item.category === "MENTION" : true,
+    )
+    .slice(0, 6);
 
   const openItem = (item: Notification) => {
     setOpen(false);
@@ -70,7 +81,7 @@ export function NotificationBell() {
         <Space size={4}>
           {unread > 0 && (
             <Button
-              type="link"
+              type="text"
               size="small"
               icon={<CheckOutlined />}
               loading={markAll.isPending}
@@ -82,14 +93,39 @@ export function NotificationBell() {
         </Space>
       </div>
 
+      <div className="nu-bell-tabs" role="tablist" aria-label="Which notifications">
+        {(
+          [
+            ["all", "All", latest.data?.total],
+            ["unread", "Unread", unread],
+            // Only offered when the platform has mentioned this reader at all:
+            // a tab that can only ever be empty is a tab that teaches nothing.
+            ...(mentions > 0 ? [["mentions", "Mentions", mentions] as const] : []),
+          ] as const
+        ).map(([key, label, count]) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={tab === key}
+            className={`nu-bell-tab${tab === key ? " is-on" : ""}`}
+            onClick={() => setTab(key)}
+            data-testid={`bell-tab-${key}`}
+          >
+            {label}
+            {count !== undefined && <span>{count}</span>}
+          </button>
+        ))}
+      </div>
+
       {latest.isLoading ? (
         <div className="nu-bell-list">
           <Skeleton active paragraph={{ rows: 4 }} title={false} />
         </div>
-      ) : latest.data && latest.data.items.length > 0 ? (
+      ) : shown.length > 0 ? (
         <ul className="nu-bell-list">
-          {latest.data.items.map((item) => (
-            <li key={item.id}>
+          {shown.map((item) => (
+            <li key={item.id} className="nu-bell-li">
               <button
                 type="button"
                 className={`nu-bell-item${item.is_read ? "" : " nu-bell-item--unread"}`}
@@ -113,11 +149,30 @@ export function NotificationBell() {
                 </span>
                 {!item.is_read && <span className="nu-bell-dot" aria-label="Unread" />}
               </button>
+              {/* The row's own verbs, inline: what it is about, and the quiet
+                  "seen it" that does not need a page. */}
+              {(item.link || !item.is_read) && (
+                <span className="nu-bell-actions">
+                  {item.link && DECISIONS.has(item.category.toUpperCase()) && (
+                    <Button size="small" type="primary" onClick={() => openItem(item)}>
+                      Open
+                    </Button>
+                  )}
+                  {!item.is_read && (
+                    <Button size="small" onClick={() => markOne.mutate(item.id)}>
+                      Mark read
+                    </Button>
+                  )}
+                </span>
+              )}
             </li>
           ))}
         </ul>
       ) : (
-        <EmptyState compact title="Nothing to catch up on" />
+        <EmptyState
+          compact
+          title={tab === "all" ? "Nothing to catch up on" : tab === "unread" ? "All read" : "No mentions"}
+        />
       )}
 
       <div className="nu-bell-foot">

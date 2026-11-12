@@ -431,7 +431,6 @@ function Notice({
             {needsAgreement && (
               <Button
                 type="primary"
-                size="small"
                 icon={<CheckCircleOutlined />}
                 loading={acknowledging}
                 onClick={onAcknowledge}

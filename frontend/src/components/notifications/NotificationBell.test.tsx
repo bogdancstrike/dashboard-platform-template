@@ -77,4 +77,17 @@ describe("the header notification bell", () => {
       await screen.findByRole("button", { name: "Open the notification centre" }),
     ).toBeInTheDocument();
   });
+
+  it("narrows the panel to what is unread, without asking the server again", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<NotificationBell />);
+    await user.click(await screen.findByRole("button", { name: /Notifications/ }));
+    await screen.findByText("Mara Manager assigned you TSK-00042");
+
+    await user.click(screen.getByTestId("bell-tab-unread"));
+    expect(screen.getByTestId("bell-tab-unread")).toHaveAttribute("aria-selected", "true");
+    // Every row left is unread, so each offers the inline "Mark read".
+    const rows = document.querySelectorAll(".nu-bell-li");
+    for (const row of rows) expect(row.querySelector(".nu-bell-dot")).not.toBeNull();
+  });
 });

@@ -558,7 +558,7 @@
 .nu-bell-head { padding: 0 10px 12px; border: 0; align-items: center; }
 .nu-bell-title { font-size: 24px; font-weight: 700; letter-spacing: -0.03em; color: var(--nu-text); }
 .nu-bell-title em { font-style: normal; color: var(--nu-accent); }
-.nu-bell-head .ant-btn-link { font-weight: 700; color: var(--nu-accent-ink); }
+.nu-bell-head .ant-btn { font-weight: 700; color: var(--nu-accent-ink); }
 .nu-bell-list { padding: 0; max-height: 440px; display: flex; flex-direction: column; gap: 4px; scrollbar-width: none; }
 .nu-bell-item { position: relative; align-items: flex-start; gap: 12px; padding: 12px 30px 12px 12px; border-radius: 22px; width: 100%; }
 .nu-bell-item:hover { background: var(--nu-raised); }
@@ -708,3 +708,17 @@
 
 /* Announcement editor as a centred modal: two-column rows where they fit. */
 .nx-ov-announce-editor .ant-modal-body { max-height: min(64vh, 640px); overflow-y: auto; scrollbar-width: thin; padding-right: 4px; }
+.nu-bell-tabs { display: flex; gap: 2px; padding: 4px; margin: 0 2px 10px; border-radius: 22px; background: rgba(var(--nu-ink-rgb), 0.06); }
+.nu-bell-tab {
+  flex: 1; height: 38px; border: 0; border-radius: 19px; background: transparent; cursor: pointer;
+  color: var(--nu-text-secondary); font: 600 13px var(--nu-font);
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.nu-bell-tab span { font-size: 11px; font-weight: 600; opacity: 0.75; }
+.nu-bell-tab:hover { color: var(--nu-text); }
+.nu-bell-tab.is-on { background: var(--nu-text); color: var(--nu-on-ink); }
+.nu-bell-li { position: relative; }
+.nu-bell-actions { display: flex; gap: 6px; padding: 0 12px 10px 62px; margin-top: -6px; }
+.nu-bell-actions .ant-btn { height: 30px; padding-inline: 14px; border-radius: 15px; font-size: 12.5px; }
+.nu-bell-actions .ant-btn-default { background: rgba(var(--nu-ink-rgb), 0.07); border-color: transparent; }
+.nu-announce .nu-announce-actions .ant-btn { height: 32px; padding-inline: 14px; font-size: 12.5px; }

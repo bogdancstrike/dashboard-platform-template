@@ -6,6 +6,7 @@
  * difference is visible precisely where a reader is comparing the two.
  */
 
+import { DARK_ACCENT } from "@/theme/antd";
 import { DENSITY, FONT, INK, NEUTRAL, PAPER, SERIES, type Density } from "./tokens";
 
 export function buildChartTheme(mode: "light" | "dark", density: Density) {
@@ -18,7 +19,7 @@ export function buildChartTheme(mode: "light" | "dark", density: Density) {
   // The design's single-series ramp: the accent, then lighter and deeper
   // steps of it. Lavender in the dark, blue in the light.
   const ramp = dark
-    ? ["#C4B5FD", "#7C6BD6", "#EAE3FF", "#9F8DF2", "#5A4AB0"]
+    ? [DARK_ACCENT, "#7C6BD6", "#EAE3FF", "#9F8DF2", "#5A4AB0"]
     : ["#2457D6", "#8FA9EE", "#163A96", "#C3D1F6", "#5B7FE0"];
 
   return {

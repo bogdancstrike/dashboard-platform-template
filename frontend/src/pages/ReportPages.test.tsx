@@ -222,8 +222,11 @@ describe("the report builder — a document, not a chart", () => {
     expect(renderedDocuments[0]).toHaveProperty("images");
   });
 
-  it("asks a chart block its own question, out of the analysis catalogue", async () => {
-    const user = userEvent.setup();
+  // Given room: it draws a real chart from the catalogue twice, which is
+  // seconds of ECharts under jsdom and past the default when the whole suite
+  // shares the machine.
+  it("asks a chart block its own question, out of the analysis catalogue", { timeout: 45_000 }, async () => {
+    const user = userEvent.setup({ delay: null });
     render("/reports/builder?doc=doc-1");
     await screen.findByTestId("document-paper");
 
