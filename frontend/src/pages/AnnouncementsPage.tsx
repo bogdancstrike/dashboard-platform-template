@@ -235,17 +235,17 @@ export default function AnnouncementsPage() {
           {/* The strip: one chip per category over the live set, and the
               filter. Counts are the server's — a chip counting the page it
               returned would say "of the twenty I sent" (§71). */}
-          <div className="nu-kindstrip nu-kindstrip--fill" data-testid="announcement-categories">
+          <div className="nu-kindstrip nx-ov-kinds" data-testid="announcement-categories">
             <button
               type="button"
               className={`nu-kindchip${category === "" ? " is-active" : ""}`}
               aria-pressed={category === ""}
               onClick={() => set({ category: null })}
             >
+              <span className="nu-kindchip-label">Everything</span>
               <span className="nu-kindchip-count">
                 {(feed.data?.categories ?? []).reduce((sum, entry) => sum + entry.count, 0)}
               </span>
-              <span className="nu-kindchip-label">Everything</span>
             </button>
             {(feed.data?.categories ?? []).map((entry) => (
               <button
@@ -259,8 +259,8 @@ export default function AnnouncementsPage() {
                 onClick={() => set({ category: entry.key })}
                 data-testid={`announcement-category-${entry.key}`}
               >
-                <span className="nu-kindchip-count">{entry.count}</span>
                 <span className="nu-kindchip-label">{entry.label}</span>
+                <span className="nu-kindchip-count">{entry.count}</span>
               </button>
             ))}
           </div>
@@ -363,7 +363,7 @@ function Notice({
       size="small"
       className={`nu-announce nu-announce--${notice.severity.toLowerCase()}${
         notice.read_at === null ? " is-unread" : ""
-      }`}
+      }${notice.is_pinned ? " nx-ov-pinned" : ""}`}
       data-testid="announcement"
     >
       {/* Two columns, because prose and facts want different widths. The text

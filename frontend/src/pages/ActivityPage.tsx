@@ -205,15 +205,15 @@ export default function ActivityPage() {
 
       {/* The strip: every kind, its count over the whole match, and the
           filter. A chip at zero is still offered — see the module docstring. */}
-      <div className="nu-kindstrip nu-kindstrip--fill" data-testid="activity-kinds">
+      <div className="nu-kindstrip nx-ov-kinds" data-testid="activity-kinds">
         <button
           type="button"
           className={`nu-kindchip${kind === "" ? " is-active" : ""}`}
           aria-pressed={kind === ""}
           onClick={() => set({ kind: null })}
         >
-          <span className="nu-kindchip-count">{matched.toLocaleString()}</span>
           <span className="nu-kindchip-label">Everything</span>
+          <span className="nu-kindchip-count">{matched.toLocaleString()}</span>
         </button>
         {kinds.map((entry) => (
           <button
@@ -229,13 +229,13 @@ export default function ActivityPage() {
             onClick={() => set({ kind: entry.key })}
             data-testid={`activity-kind-${entry.key}`}
           >
-            <span className="nu-kindchip-count">{entry.count.toLocaleString()}</span>
             <span className="nu-kindchip-label">{entry.label}</span>
+            <span className="nu-kindchip-count">{entry.count.toLocaleString()}</span>
           </button>
         ))}
       </div>
 
-      <Card size="small" className="nu-filter-bar nu-block">
+      <Card size="small" className="nu-filter-bar nu-block nx-ov-feedfilters">
         <Space size={8} wrap>
           <Select
             aria-label="Period"
@@ -278,7 +278,7 @@ export default function ActivityPage() {
         </Space>
       </Card>
 
-      <Card size="small" data-testid="activity-feed">
+      <Card size="small" className="nx-ov-feed" data-testid="activity-feed">
         {items.length === 0 ? (
           <EmptyState
             title="Nothing happened here"
