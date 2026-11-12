@@ -26,10 +26,45 @@ import { relativeTime } from "@/lib/time";
 
 import { KINDS } from "./kinds";
 
-const { Text, Paragraph } = Typography;
+const { Text } = Typography;
 
 /** More tags than this and the card is a tag cloud rather than a summary. */
 const SHOWN_KINDS = 5;
+
+/**
+ * A small picture of the layout, drawn from the kinds it holds: a chart is a
+ * row of bars, a number is a tinted block, a list is a blank slip. Not the
+ * real geometry — the listing does not carry it — but enough to tell a wall
+ * of numbers from a page of charts at a glance, which is what the gallery is
+ * for.
+ */
+function BoardThumb({ kinds }: { kinds: SavedDashboard["widget_kinds"] }) {
+  const tiles = kinds.slice(0, 6);
+  return (
+    <div className="nx-ov-thumb" aria-hidden="true">
+      {tiles.map((kind, index) => {
+        const family = KINDS[kind].family;
+        const wide = index % 3 === 0;
+        return (
+          <span
+            key={`${kind}-${index}`}
+            className={`nx-ov-thumb-tile nx-ov-thumb-tile--${family}${wide ? " is-wide" : ""}`}
+          >
+            {family === "chart" && (
+              <>
+                <i style={{ height: "38%" }} />
+                <i style={{ height: "62%" }} />
+                <i style={{ height: "48%" }} />
+                <i style={{ height: "86%" }} />
+              </>
+            )}
+          </span>
+        );
+      })}
+      {tiles.length === 0 && <span className="nx-ov-thumb-tile is-wide nx-ov-thumb-tile--empty" />}
+    </div>
+  );
+}
 
 export function DashboardCard({
   dashboard,
@@ -63,6 +98,7 @@ export function DashboardCard({
       onClick={onOpen}
       data-testid={`board-card-${dashboard.id}`}
     >
+      <BoardThumb kinds={dashboard.widget_kinds} />
       <div className="nu-board-head">
         <Space size={6} className="nu-board-title">
           <button
@@ -130,12 +166,10 @@ export function DashboardCard({
         </Space>
       </div>
 
-      <Paragraph type="secondary" className="nu-board-desc" ellipsis={{ rows: 2 }}>
-        {dashboard.description ||
-          `${dashboard.widget_count} ${dashboard.widget_count === 1 ? "widget" : "widgets"}`}
-      </Paragraph>
-
-      {/* What it holds. The whole reason this is a card. */}
+      {/* What it holds, as a picture of the layout and as words. The tags
+          stay, smaller: a reader recognises "alerts, revenue, a heatmap"
+          faster than "7 widgets", and the thumbnail alone says nothing to a
+          screen reader. */}
       <div className="nu-board-kinds">
         {kinds.map((kind) => (
           // `KINDS` covers the whole `WidgetKind` union, and TypeScript
@@ -154,17 +188,30 @@ export function DashboardCard({
       </div>
 
       <div className="nu-board-foot">
-        <Text type="secondary">{relativeTime(dashboard.updated_at)}</Text>
+        <Text
+          type="secondary"
+          className="nx-ov-board-meta"
+          ellipsis={{ tooltip: dashboard.description || undefined }}
+        >
+          {[
+            dashboard.can_edit ? "You" : dashboard.owner.name,
+            !dashboard.can_edit ? "shared with you" : "",
+            `${dashboard.widget_count} ${dashboard.widget_count === 1 ? "widget" : "widgets"}`,
+            relativeTime(dashboard.updated_at),
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </Text>
         <Space size={6}>
           {!dashboard.can_edit && (
             <Tooltip title={`Shared by ${dashboard.owner.name}`}>
-              <Tag bordered={false} icon={<TeamOutlined />}>
-                {dashboard.owner.name}
+              <Tag bordered={false} icon={<TeamOutlined />} className="nx-ov-pill nx-ov-pill--accent">
+                Shared
               </Tag>
             </Tooltip>
           )}
           {dashboard.can_edit && dashboard.scope !== "PRIVATE" && (
-            <Tag bordered={false} color="processing">
+            <Tag bordered={false} className="nx-ov-pill nx-ov-pill--accent">
               {dashboard.scope === "PUBLIC"
                 ? "Everyone"
                 : `${dashboard.members.length} shared`}

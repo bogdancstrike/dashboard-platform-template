@@ -74,12 +74,19 @@ const ARROWS: Record<string, [number, number]> = {
 export function WidgetCard({
   widget,
   editable,
+  movable = editable,
   columns,
   moves,
   children,
 }: {
   widget: DashboardWidget;
   editable: boolean;
+  /**
+   * Whether the card can be dragged and resized on the grid. Wider than
+   * `editable`: an owner can always pick a card up by its heading, while the
+   * per-card controls stay behind "Customize" so a reading grid stays calm.
+   */
+  movable?: boolean;
   /** The grid's width, so a preset can be a fraction of it. */
   columns: number;
   moves: WidgetMoves;
@@ -108,7 +115,7 @@ export function WidgetCard({
 
   return (
     <div
-      className="nu-widget"
+      className={movable ? "nu-widget is-movable" : "nu-widget"}
       data-testid={`widget-${widget.id}`}
       // The size the *record* declares, stated in the DOM. The grid puts the
       // card in place with a transform, so nothing else on the page says how
@@ -133,8 +140,8 @@ export function WidgetCard({
         className="nu-widget-card"
         title={
           <Space size={6}>
-            {editable ? (
-              <Tooltip title="Drag the heading to move this card">
+            {editable || movable ? (
+              <Tooltip title="Drag the heading to move this card; drag an edge or corner to resize it">
                 <HolderOutlined className="nu-widget-grip" aria-hidden />
               </Tooltip>
             ) : (

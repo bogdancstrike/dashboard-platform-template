@@ -91,6 +91,50 @@ describe("the dashboards page", () => {
     expect(within(widget).getByLabelText("Move or resize Open tickets")).toBeInTheDocument();
   });
 
+  /** A desktop-wide window, so the grid is the grid and not the phone stack. */
+  const wide = () => {
+    const original = window.matchMedia.bind(window);
+    window.matchMedia = (query: string) => ({
+      ...original(query),
+      matches: !/max-width/.test(query),
+      media: query,
+    });
+    return () => {
+      window.matchMedia = original;
+    };
+  };
+
+  it("lets the owner drag and resize without switching a mode on first", async () => {
+    const restore = wide();
+    render("/dashboards?dashboard=dash-1");
+
+    const widget = await screen.findByTestId("widget-widget-1");
+    // Movable straight away: the heading is the handle and the grid carries
+    // its resize handles, while the per-card menu still waits for Customize.
+    expect(widget).toHaveClass("is-movable");
+    expect(document.querySelector(".nx-ov-rgl.is-movable")).not.toBeNull();
+    expect(document.querySelectorAll(".react-resizable-handle").length).toBeGreaterThan(0);
+    expect(within(widget).queryByLabelText("Remove Open tickets")).not.toBeInTheDocument();
+    expect(screen.getByTestId("add-widget")).toBeInTheDocument();
+    restore();
+  });
+
+  it("stacks the cards in one column on a phone, with nothing to drag", async () => {
+    render("/dashboards?dashboard=dash-1");
+    await screen.findByTestId("widget-widget-1");
+    expect(screen.getByTestId("widget-stack")).toBeInTheDocument();
+    expect(document.querySelector(".react-resizable-handle")).toBeNull();
+  });
+
+  it("does not offer a colleague's grid for dragging", async () => {
+    const restore = wide();
+    render("/dashboards?dashboard=dash-2");
+    await screen.findByTestId("board-settings");
+    expect(document.querySelector(".nx-ov-rgl.is-movable")).toBeNull();
+    expect(screen.queryByTestId("add-widget")).not.toBeInTheDocument();
+    restore();
+  });
+
   it("saves the whole layout when one widget moves", async () => {
     const user = userEvent.setup();
     render("/dashboards?dashboard=dash-1");

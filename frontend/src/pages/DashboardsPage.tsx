@@ -58,7 +58,6 @@ import {
   ColumnHeightOutlined,
   CopyOutlined,
   PlusOutlined,
-  SettingOutlined,
   ShareAltOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
@@ -100,6 +99,7 @@ import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { useSticky } from "@/hooks/useSticky";
 import { COPY_MEANS, confirmCopy } from "@/lib/confirm";
 import { EmptyState } from "@/components/EmptyState";
+import { NxIcon } from "@/components/NxIcon";
 
 const { Text } = Typography;
 
@@ -118,6 +118,23 @@ export default function DashboardsPage() {
   });
 
   const items = listing.data?.items ?? [];
+
+  // The gallery's own narrowing: by name, by whose it is, in an order. Local,
+  // because the listing is every dashboard this reader can see already.
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<"recent" | "name" | "size">("recent");
+  const [owner, setOwner] = useState<"any" | "me" | "shared">("any");
+  const needle = query.trim().toLowerCase();
+  const shown = items
+    .filter((item) => !needle || item.name.toLowerCase().includes(needle))
+    .filter((item) => owner === "any" || (owner === "me" ? item.can_edit : !item.can_edit))
+    .sort((a, b) =>
+      sort === "name"
+        ? a.name.localeCompare(b.name)
+        : sort === "size"
+          ? b.widget_count - a.widget_count
+          : String(b.updated_at ?? "").localeCompare(String(a.updated_at ?? "")),
+    );
   // Only what the URL names. No dashboard is opened by default, because the
   // gallery *is* the landing state — and a page that silently opens one is a
   // page whose address does not describe what is on screen (§69).
@@ -429,7 +446,15 @@ export default function DashboardsPage() {
   return (
     <>
       <PageHeader
-        title={openId && board ? board.name : "My dashboards"}
+        title={
+          openId && board ? (
+            board.name
+          ) : (
+            <span>
+              My <em>dashboards</em>
+            </span>
+          )
+        }
         onBack={openId ? () => open("") : undefined}
         subtitle={
           openId && board
@@ -441,7 +466,9 @@ export default function DashboardsPage() {
               ]
                 .filter(Boolean)
                 .join(" · ")
-            : "Layouts you composed, and the ones colleagues shared with you. Every widget asks the platform the same question the page behind it would."
+            : `${items.length} ${items.length === 1 ? "dashboard" : "dashboards"} · ${
+                  items.filter((item) => !item.can_edit).length
+                } shared with you`
         }
         tag={board?.is_home ? <Tag color="blue">Home</Tag> : undefined}
         actions={
@@ -450,22 +477,17 @@ export default function DashboardsPage() {
               {board.can_edit && (
                 <Button
                   type={editing ? "primary" : "default"}
-                  icon={<SettingOutlined />}
+                  ghost={editing}
+                  icon={<NxIcon name="sliders" size={16} />}
                   onClick={() => setEditing(!editing)}
+                  aria-pressed={editing}
                   data-testid="toggle-edit"
                 >
-                  {editing ? "Done" : "Rearrange"}
+                  {editing ? "Done" : "Customize"}
                 </Button>
               )}
               {editing && board.can_edit && (
                 <>
-                  <Button
-                    icon={<PlusOutlined />}
-                    onClick={() => setWidgetForm("new")}
-                    data-testid="add-widget"
-                  >
-                    Add a widget
-                  </Button>
                   {/* Two arrangers, because they answer different questions.
                       "Tidy up" is the rule the grid already applies during a
                       drag — close the gaps, leave everything where it is —
@@ -535,6 +557,16 @@ export default function DashboardsPage() {
                   Settings
                 </Button>
               </Tooltip>
+              {board.can_edit && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setWidgetForm("new")}
+                  data-testid="add-widget"
+                >
+                  Add widget
+                </Button>
+              )}
             </>
           ) : (
             <Tooltip title={canCreate ? "" : "Your role does not include dashboards.manage"}>
@@ -564,8 +596,49 @@ export default function DashboardsPage() {
               )}</>} />
           </Card>
         ) : (
+          <>
+          <div className="nx-ov-filterbar" role="search">
+            <Input
+              allowClear
+              variant="filled"
+              prefix={<NxIcon name="search" size={16} />}
+              placeholder="Search"
+              aria-label="Search dashboards"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            <Select
+              aria-label="Sort"
+              value={sort}
+              onChange={setSort}
+              popupMatchSelectWidth={false}
+              className="nx-ov-chipselect is-ink"
+              options={[
+                { value: "recent", label: "Sort: recent" },
+                { value: "name", label: "Sort: name" },
+                { value: "size", label: "Sort: most widgets" },
+              ]}
+            />
+            <Select
+              aria-label="Owner"
+              value={owner}
+              onChange={setOwner}
+              popupMatchSelectWidth={false}
+              className="nx-ov-chipselect"
+              options={[
+                { value: "any", label: "Owner: anyone" },
+                { value: "me", label: "Owner: me" },
+                { value: "shared", label: "Owner: shared with me" },
+              ]}
+            />
+          </div>
+          {shown.length === 0 ? (
+            <Card size="small">
+              <EmptyState compact title="No dashboard matches that" />
+            </Card>
+          ) : (
           <div className="nu-boards" data-testid="dashboard-gallery">
-            {items.map((item) => (
+            {shown.map((item) => (
               <DashboardCard
                 key={item.id}
                 dashboard={item}
@@ -600,6 +673,8 @@ export default function DashboardsPage() {
               />
             ))}
           </div>
+          )}
+          </>
         )
       ) : dashboard.isLoading ? (
         <Skeleton active paragraph={{ rows: 10 }} />
@@ -638,13 +713,16 @@ export default function DashboardsPage() {
           <WidgetGrid
             widgets={widgets}
             columns={columns}
-            editable={editing && Boolean(board?.can_edit)}
+            // Always movable for whoever may change the layout: a grid that only
+            // moves after finding a mode switch is a grid people think is fixed.
+            editable={Boolean(board?.can_edit)}
             onCommit={(placements) => arrange.mutate(placements)}
           >
             {(widget) => (
               <WidgetCard
                 widget={widget}
                 editable={editing && Boolean(board?.can_edit)}
+                movable={Boolean(board?.can_edit)}
                 columns={columns}
                 moves={moves}
               >

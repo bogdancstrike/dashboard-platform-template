@@ -34,6 +34,7 @@
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Grid } from "antd";
 import RGL, { WidthProvider, type Layout } from "react-grid-layout";
 
 import type { DashboardWidget } from "@/api/dashboards";
@@ -181,12 +182,35 @@ export function WidgetGrid({
     );
   };
 
+  // A phone is one column and no gestures: a twelve-column grid in 360 pixels
+  // is twelve slivers, and a drag on a touch screen fights the page scroll.
+  // The cards stack in reading order at the height they were saved at.
+  const screens = Grid.useBreakpoint();
+  const phone = screens.md === false;
+
   const track = (resizing: boolean) => (_all: Layout[], _old: Layout, item: Layout) =>
     setGesture({ id: item.i, w: item.w, h: item.h, resizing });
 
+  if (phone) {
+    const ordered = [...widgets].sort((a, b) => a.y - b.y || a.x - b.x);
+    return (
+      <div className="nx-ov-stack" data-testid="widget-stack">
+        {ordered.map((widget) => (
+          <div
+            key={widget.id}
+            className="nx-ov-stack-item"
+            style={{ height: widget.height * ROW_HEIGHT + (widget.height - 1) * GUTTER[1] }}
+          >
+            {children(widget)}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <GridLayout
-      className={`nu-rgl${gesture ? " is-gesturing" : ""}`}
+      className={`nu-rgl nx-ov-rgl${editable ? " is-movable" : ""}${gesture ? " is-gesturing" : ""}`}
       layout={layout}
       cols={columns}
       rowHeight={ROW_HEIGHT}
