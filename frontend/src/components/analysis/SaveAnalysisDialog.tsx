@@ -120,7 +120,6 @@ export function SaveAnalysisDialog({
         </Text>
       )}
 
-      settled();
       <Form
         form={form}
         layout="vertical"

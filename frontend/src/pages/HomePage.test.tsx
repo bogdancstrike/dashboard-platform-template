@@ -165,8 +165,10 @@ describe("the page", () => {
     // Twice on purpose: the page title and the hero both greet by name.
     expect((await screen.findAllByText(/Ada/)).length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/Ada\./);
-    expect(screen.getByText(/Administrator/)).toBeInTheDocument();
-    expect(screen.getByText(/Nucleus/)).toBeInTheDocument();
+    // The hero line, rather than anywhere: the feed names its actors too.
+    const line = document.querySelector(".nu-hero-line");
+    expect(line).toHaveTextContent(/Administrator/);
+    expect(line).toHaveTextContent(/Nucleus/);
   });
 
   it("leaves out a card the reader has no permission for, rather than emptying it", async () => {

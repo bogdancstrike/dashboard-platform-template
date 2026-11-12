@@ -95,6 +95,7 @@ export function PageTour({ variant = "circle" }: { variant?: "circle" | "side" |
         open={open}
         onClose={() => setOpen(false)}
         steps={steps}
+        rootClassName="nx-ov-tour"
         // Every step says what it is for rather than counting down, so the
         // last one closes rather than promising more.
         indicatorsRender={(current, total) => (

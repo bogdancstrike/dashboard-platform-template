@@ -645,7 +645,9 @@ export default function HomePage() {
             <div className="nx-ov-rows">
               {(feed.data?.items ?? []).slice(0, 6).map((entry) => (
                 <div key={entry.id} className="nu-home-feed">
-                  <Text>{entry.summary}</Text>
+                  <Text>
+                    {entry.actor.name && <strong>{entry.actor.name}</strong>} {entry.summary}
+                  </Text>
                   <Text type="secondary" className="nu-home-feed-when">
                     {relativeTime(entry.occurred_at)}
                   </Text>

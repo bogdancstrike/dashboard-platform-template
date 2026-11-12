@@ -64,11 +64,13 @@ export function NotificationBell() {
   const panel = (
     <div className="nu-bell-panel" role="menu" aria-label="Recent notifications">
       <div className="nu-bell-head">
-        <Text strong>Notifications</Text>
+        <span className="nu-bell-title">
+          Notifications{unread > 0 && <em> {unread} new</em>}
+        </span>
         <Space size={4}>
           {unread > 0 && (
             <Button
-              type="text"
+              type="link"
               size="small"
               icon={<CheckOutlined />}
               loading={markAll.isPending}
@@ -109,6 +111,7 @@ export function NotificationBell() {
                     {relativeTime(item.created_at)}
                   </Text>
                 </span>
+                {!item.is_read && <span className="nu-bell-dot" aria-label="Unread" />}
               </button>
             </li>
           ))}
@@ -119,8 +122,7 @@ export function NotificationBell() {
 
       <div className="nu-bell-foot">
         <Button
-          type="text"
-          size="small"
+          block
           onClick={() => {
             setOpen(false);
             navigate("/notifications");

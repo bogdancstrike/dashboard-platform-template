@@ -130,10 +130,20 @@ export function CreateDashboardWizard({
     <Modal
       open={open}
       width={720}
-      title="New dashboard"
+      title={
+        <div className="nx-ov-modal-title">
+          <span>
+            Create <em>dashboard</em>
+          </span>
+          <small>
+            Step {step + 1} of 3 · {steps[step]?.description.toLowerCase()}
+          </small>
+        </div>
+      }
       onCancel={requestClose}
       footer={
         <Space>
+          <Button onClick={requestClose}>Cancel</Button>
           {step > 0 && (
             <Button onClick={() => setStep(step - 1)} data-testid="wizard-back">
               Back
@@ -151,7 +161,7 @@ export function CreateDashboardWizard({
         </Space>
       }
     >
-      <Steps current={step} items={steps} size="small" className="nu-block" />
+      <Steps current={step} items={steps} size="small" className="nu-block nx-ov-steps" />
 
       {create.error instanceof ApiError && (
         <Alert
