@@ -233,7 +233,7 @@ export function EventChip({
       ]
         .filter(Boolean)
         .join(" ")}
-      style={{ borderInlineStartColor: item.color }}
+      style={{ borderInlineStartColor: item.color, ["--chip" as string]: item.color }}
       onClick={() => onOpen(item)}
       draggable={movable}
       onDragStart={
