@@ -210,7 +210,10 @@ export function selectedKeyFor(pathname: string): string {
       best = item.key;
     }
   }
-  return best ?? "/dashboard";
+  // A page outside the menu (a profile, a setting, an error) selects nothing:
+  // highlighting the dashboard there read as "you are still on the page you
+  // came from".
+  return best ?? "";
 }
 
 /** Breadcrumb trail for a path, from the navigation itself. */

@@ -31,5 +31,8 @@ describe("find and analytics navigation", () => {
   it("selects valid routes that are shorter than /dashboard", () => {
     expect(selectedKeyFor("/admin")).toBe("/admin");
     expect(selectedKeyFor("/mail/thread-1")).toBe("/mail");
+    // Pages outside the menu select nothing rather than the dashboard.
+    expect(selectedKeyFor("/profile")).toBe("");
+    expect(selectedKeyFor("/settings/preferences")).toBe("");
   });
 });
