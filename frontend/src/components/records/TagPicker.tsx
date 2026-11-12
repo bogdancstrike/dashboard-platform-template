@@ -191,11 +191,11 @@ export function TagChip({ tag, listPath }: { tag: Tag; listPath: string }) {
     <Tooltip title={tag.description || `${tag.category.toLowerCase()} · ${tag.usage_count} records`}>
       <Link to={`${listPath}?f.tags__contains=${encodeURIComponent(tag.name)}`}>
         <AntTag
-          className="nu-tag-chip"
-          // On the leading edge rather than as a fill, for the reason
-          // `StatusTag` documents: AntD writes white on a custom colour without
-          // measuring, and white on this palette's amber is 2.87:1 (§55).
-          style={{ borderInlineStartColor: tag.color }}
+          className="nu-tag-chip nx-rec-tagchip"
+          // As a dot rather than as a fill, for the reason `StatusTag`
+          // documents: AntD writes white on a custom colour without measuring,
+          // and white on this palette's amber is 2.87:1 (§55).
+          style={{ borderInlineStartColor: tag.color, ["--tag-color" as string]: tag.color }}
         >
           {tag.name}
         </AntTag>

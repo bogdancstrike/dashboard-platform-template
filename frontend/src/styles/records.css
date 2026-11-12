@@ -395,3 +395,37 @@ body.nx-dragging, body.nx-dragging * { cursor: grabbing !important; user-select:
 [data-testid="ticket-filing"] .ant-descriptions-item-label::after { display: none; }
 [data-testid="ticket-filing"] .ant-descriptions-item-content { justify-content: flex-end; font-weight: 600; }
 .nx-rec-sla-reopen { margin-left: 8px; font-weight: 600; color: var(--nu-warn); }
+
+/* ═══ Task page: side panel fields, facts as label / value rows, the checklist ═══ */
+[data-testid="task-side"] .nu-field-label { display: block; font-size: 13px; margin-bottom: 6px; }
+[data-testid="task-side"] .ant-select { height: 44px; }
+[data-testid="task-side"] .ant-select-selector { border-radius: 22px !important; padding-inline: 16px !important; font-weight: 600; }
+.nx-rec-facts.ant-descriptions .ant-descriptions-item-container { justify-content: space-between; }
+.nx-rec-facts.ant-descriptions .ant-descriptions-row + .ant-descriptions-row .ant-descriptions-item { border-top: 1px solid rgba(var(--nu-ink-rgb), 0.07); padding-top: 10px; }
+.nx-rec-facts.ant-descriptions .ant-descriptions-item-label::after { display: none; }
+.nx-rec-facts.ant-descriptions .ant-descriptions-item-content { justify-content: flex-end; font-weight: 600; text-align: right; }
+[data-testid="task-checklist"] .nu-checklist { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-direction: column; }
+[data-testid="task-checklist"] .nu-checklist > li { display: flex; align-items: center; gap: 10px; min-height: 46px; border-bottom: 1px solid rgba(var(--nu-ink-rgb), 0.06); }
+[data-testid="task-checklist"] .nu-checklist-done { text-decoration: line-through; color: var(--nu-text-tertiary); }
+[data-testid="task-checklist"] .ant-progress-inner { height: 8px !important; }
+[data-testid="task-checklist"] .ant-progress-bg { height: 8px !important; }
+[data-testid="task-checklist"] .ant-space-compact .ant-input, [data-testid="task-checklist"] .ant-input-group .ant-input { height: 48px; border-radius: 24px 0 0 24px !important; }
+.nx-rec-facts--grid.ant-descriptions .ant-descriptions-row > td:first-child { padding-right: 22px; }
+.nx-rec-facts--grid.ant-descriptions .ant-descriptions-row + .ant-descriptions-row .ant-descriptions-item { padding-top: 10px; }
+.nx-rec-facts.ant-descriptions .ant-descriptions-item { padding-bottom: 10px; }
+.nx-rec-facts.ant-descriptions .ant-descriptions-item-label { color: var(--nu-text-secondary); font-weight: 500; }
+.nx-rec-facts.ant-descriptions .ant-typography-copy { margin-left: 6px; }
+
+/* Record tabs as the design's glass segmented bar. */
+.nx-rec-tabs.ant-tabs > .ant-tabs-nav { display: inline-flex; padding: 5px; margin-bottom: 14px; border-radius: 26px; background: var(--nu-glass); border: 1px solid var(--nu-glass-border); box-shadow: var(--nu-glass-shadow); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); }
+.nx-rec-tabs.ant-tabs > .ant-tabs-nav::before { display: none; }
+.nx-rec-tabs.ant-tabs .ant-tabs-ink-bar { display: none; }
+.nx-rec-tabs.ant-tabs .ant-tabs-tab { padding: 0 16px; height: 40px; border-radius: 20px; margin: 0 !important; font-size: 14px; }
+.nx-rec-tabs.ant-tabs .ant-tabs-tab-active { background: var(--nu-text); }
+.nx-rec-tabs.ant-tabs .ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--nu-on-ink) !important; }
+.nx-rec-tabs.ant-tabs > .ant-tabs-nav .ant-tabs-nav-wrap { max-width: calc(100vw - 60px); }
+.nx-rec-tabs.ant-tabs > .ant-tabs-nav { width: fit-content; max-width: 100%; }
+.nx-rec-facts .ant-typography code, .nx-rec-facts .nu-mono { font-size: 12px; }
+.nx-rec-tagchip.ant-tag { height: 28px; line-height: 28px; padding: 0 11px; border-radius: 14px; border: 0 !important; background: var(--nu-tint); color: var(--nu-accent-ink); font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+.nx-rec-tagchip.ant-tag::before { content: ""; width: 6px; height: 6px; border-radius: 3px; background: var(--tag-color, currentColor); }
+:root[data-theme="dark"] .nx-rec-tagchip.ant-tag { color: var(--nu-text); }

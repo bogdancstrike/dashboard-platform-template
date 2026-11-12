@@ -56,7 +56,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { TagPicker } from "@/components/records/TagPicker";
 import { PeoplePicker } from "@/components/PeoplePicker";
 import { useRecordPage } from "@/components/records/useRecordPage";
-import { StatusTag } from "@/components/StatusTag";
+import { humanStatus, StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { asText } from "@/lib/text";
@@ -99,7 +99,11 @@ export default function TaskDetailPage() {
   if (page.fallback) return page.fallback;
 
   const task = page.record!;
-  const checklist = (page.value("checklist") as ChecklistItem[] | null) ?? [];
+  // Older rows were seeded as `{label, done}`; the field's contract is
+  // `{text, done}`, so read either and write the contract back.
+  const checklist = ((page.value("checklist") as (ChecklistItem & { label?: string })[] | null) ?? []).map(
+    (item) => ({ text: item.text || item.label || "", done: Boolean(item.done) }),
+  );
   const done = checklist.filter((item) => item.done).length;
 
   const writeChecklist = (items: ChecklistItem[]) => page.write({ checklist: items });
@@ -264,7 +268,7 @@ export default function TaskDetailPage() {
                   onChange={(next) => page.write({ status: next })}
                   options={page.choices("status").map((choice) => ({
                     value: choice,
-                    label: choice.replace(/_/g, " "),
+                    label: humanStatus(choice),
                   }))}
                 />
               </Field>
@@ -276,7 +280,7 @@ export default function TaskDetailPage() {
                   value={asText(page.value("priority"))}
                   disabled={!task.can_edit}
                   onChange={(next) => page.write({ priority: next })}
-                  options={page.choices("priority").map((choice) => ({ value: choice, label: choice }))}
+                  options={page.choices("priority").map((choice) => ({ value: choice, label: humanStatus(choice) }))}
                 />
               </Field>
 
@@ -300,8 +304,8 @@ export default function TaskDetailPage() {
                 />
               </Field>
 
-              <Descriptions size="small" column={1} bordered>
-                <Descriptions.Item label="Kind">{asText(page.value("kind")) || "—"}</Descriptions.Item>
+              <Descriptions size="small" column={1} className="nx-rec-facts">
+                <Descriptions.Item label="Kind">{humanStatus(asText(page.value("kind"))) || "—"}</Descriptions.Item>
                 <Descriptions.Item label="Due">
                   {page.value("due_date") ? absoluteTime(asText(page.value("due_date"))) : "—"}
                 </Descriptions.Item>

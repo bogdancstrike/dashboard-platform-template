@@ -84,7 +84,7 @@ describe("the task work page", () => {
     render();
     const side = await screen.findByTestId("task-side");
     await user.click(within(side).getByRole("combobox", { name: "Status" }));
-    await user.click(await screen.findByTitle("DONE"));
+    await user.click(await screen.findByTitle("Done"));
 
     await waitFor(() => expect(bodies).toHaveLength(1));
     // With the version it read, so an edit against a task somebody else moved
@@ -199,7 +199,7 @@ describe("the task work page", () => {
     render();
     const side = await screen.findByTestId("task-side");
     await user.click(within(side).getByRole("combobox", { name: "Priority" }));
-    await user.click(await screen.findByTitle("CRITICAL"));
+    await user.click(await screen.findByTitle("Critical"));
 
     expect(await screen.findByText(/while you had it open/)).toBeInTheDocument();
   });

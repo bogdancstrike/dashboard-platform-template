@@ -206,7 +206,7 @@ def _tasks(world: World) -> None:
             board_position=float(counter * 1024),
             blocked_reason=rng.pick(catalog.BLOCKED_REASONS) if status == "BLOCKED" else None,
             checklist=[
-                {"label": item, "done": rng.chance(0.5)}
+                {"text": item, "done": rng.chance(0.5)}
                 for item in rng.sample(
                     ("Reproduce", "Write the fix", "Add a test", "Update the runbook",
                      "Notify support", "Deploy to staging", "Verify in production"),

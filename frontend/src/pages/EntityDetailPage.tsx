@@ -208,6 +208,7 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
       />
 
       <Tabs
+        className="nx-rec-tabs"
         activeKey={tab}
         onChange={(key) =>
           setParams(
@@ -294,7 +295,7 @@ function Overview({ fields, titleField }: { fields: RecordField[]; titleField: s
     <Row gutter={[12, 12]}>
       <Col xs={24} xl={16}>
         <Card size="small" title="Details">
-          <Descriptions size="small" column={{ xs: 1, md: 2 }} bordered>
+          <Descriptions size="small" column={{ xs: 1, sm: 1, md: 2, lg: 2, xl: 2, xxl: 2 }} className="nx-rec-facts nx-rec-facts--grid">
             {primary.map((field) => (
               <Descriptions.Item key={field.name} label={field.label}>
                 <FieldValue field={field} />
@@ -305,7 +306,7 @@ function Overview({ fields, titleField }: { fields: RecordField[]; titleField: s
       </Col>
       <Col xs={24} xl={8}>
         <Card size="small" title="References">
-          <Descriptions size="small" column={1} bordered>
+          <Descriptions size="small" column={1} className="nx-rec-facts">
             {[...identifiers, ...stamps].map((field) => (
               <Descriptions.Item key={field.name} label={field.label}>
                 <FieldValue field={field} />
