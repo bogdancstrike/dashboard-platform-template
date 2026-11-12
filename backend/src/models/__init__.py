@@ -18,6 +18,7 @@ from src.models.content import (  # noqa: F401
     FileObject, Folder, Tag, TagLink,
 )
 from src.models.kanban import Board, BoardCard, BoardLane  # noqa: F401
+from src.models.insights import Insight  # noqa: F401
 from src.models.knowledge import (  # noqa: F401
     KnowledgeChunk, KnowledgeCollection, KnowledgeDocument, KnowledgeQuestion,
 )

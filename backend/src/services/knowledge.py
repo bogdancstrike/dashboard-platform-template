@@ -35,8 +35,11 @@ from src.core import audit, sharing
 from src.core.clock import iso, now
 from src.core.errors import ConflictError, NotFoundError, ValidationError
 from src.core.pagination import parse_uuid
+from src.services import ai
 from src.services import knowledge_ingest as ingest
 
+#: The feature name in the shared AI usage ledger.
+FEATURE = "documents"
 #: Asking needs the AI grant; building collections needs this one as well.
 USE_PERMISSION = "ai.use"
 MANAGE_PERMISSION = "knowledge.manage"
@@ -605,6 +608,8 @@ def ask(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
         raise ValidationError(f"A question is at most {MAX_QUESTION} characters.")
     collection = _collection(session, payload.get("collection_id"), principal)
     thread_id = _thread(payload.get("thread_id"))
+    # The shared per-user limit on AI calls, before any work (§41–46).
+    ai.guard(session, principal, FEATURE)
 
     history = session.scalars(
         select(KnowledgeQuestion)
@@ -635,13 +640,14 @@ def ask(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
         try:
             result = client.chat(messages, user=str(principal.user_id), max_tokens=1500)
         except llm.LlmError as exc:
-            _ledger(session, principal, model, None, "error")
-            raise _unavailable(exc) from exc
+            ai.record_usage(session, principal, FEATURE, status="error")
+            session.commit()  # the attempt counts toward the limit even though this request fails
+            raise ai.unavailable(exc) from exc
         model, usage = result.model or model, result.usage.to_dict()
         answer, citations = cite(result.text, sources)
         if not citations:
             status = "NO_ANSWER"
-        _ledger(session, principal, model, result.usage, "ok")
+        ai.record_usage(session, principal, FEATURE, result.usage, model=model)
 
     row = KnowledgeQuestion(collection_id=collection.id, user_id=principal.user_id, thread_id=thread_id,
                             question=question, answer=answer, citations=citations, status=status,
@@ -654,15 +660,6 @@ def ask(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
     )
     session.flush()
     return serialize_question(row)
-
-
-def _unavailable(exc):
-    from src.core.errors import ServiceUnavailableError
-
-    return ServiceUnavailableError(
-        "The AI model could not answer just now. Try again in a moment.",
-        details={"code": exc.code},
-    )
 
 
 def _thread(value: Any) -> UUID:
@@ -736,21 +733,6 @@ def _extractive(sources: list[dict[str, Any]]) -> tuple[str, list[dict[str, Any]
         lines.append(f"- {first} [{source['n']}]")
     text = "From the documents (extractive answer, no AI model configured):\n\n" + "\n".join(lines)
     return cite(text, sources)
-
-
-def _ledger(session, principal, model: str, usage, status: str) -> None:
-    """One row in the shared AI usage ledger, when the assistant has shipped it."""
-    try:
-        from src.models.assistant import AiUsage
-    except ImportError:  # pragma: no cover - the ledger ships with the assistant
-        return
-    session.add(AiUsage(
-        user_id=principal.user_id, feature="documents", model=model or None, status=status,
-        prompt_tokens=getattr(usage, "prompt_tokens", 0) if usage else 0,
-        completion_tokens=getattr(usage, "completion_tokens", 0) if usage else 0,
-        total_tokens=getattr(usage, "total_tokens", 0) if usage else 0,
-        latency_ms=getattr(usage, "latency_ms", 0) if usage else 0,
-    ))
 
 
 def serialize_question(row) -> dict[str, Any]:

@@ -126,6 +126,8 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     # folder — so all three go before files, folders and jobs. Passages have
     # no timestamp and go with their document (ON DELETE CASCADE).
     "KnowledgeQuestion", "KnowledgeDocument", "KnowledgeCollection",
+    # Insights (§43) point at nobody but their owner.
+    "Insight",
     "EmailAttachment", "EmailMessage", "EmailThread",
     "Comment", "FileObject", "Folder",
     # Collaboration (§47–49): a page names a calendar event, so the wiki goes

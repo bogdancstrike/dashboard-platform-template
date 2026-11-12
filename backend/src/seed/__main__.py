@@ -30,6 +30,7 @@
     python -m src.seed --sync-collab      # chat channels, a wiki and meeting notes, if missing
     python -m src.seed --sync-assistant   # add the seeded assistant conversations that are missing
     python -m src.seed --sync-knowledge  # add the seeded document collections that are missing
+    python -m src.seed --sync-insights   # add the seeded insights (and the dashboard widget) that are missing
     python -m src.seed --sync-planning   # sprints, epics, a timeline and templates for the work queue
     python -m src.seed --dry-run          # build in memory, write nothing
 
@@ -134,6 +135,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-reports", action="store_true",
         help="rewrite saved reports the analysis compiler would reject, and exit",
+    )
+    parser.add_argument(
+        "--sync-insights", action="store_true",
+        help="add the seeded insights and their dashboard widget that are missing, and exit",
     )
     parser.add_argument(
         "--sync-knowledge", action="store_true",
@@ -431,6 +436,14 @@ def main(argv: list[str] | None = None) -> int:
             if result["filled"]
             else "every account's preferences are already complete"
         )
+        return 0
+
+    if args.sync_insights:
+        from src.seed import insights as insights_seed
+
+        with session_scope() as session:
+            result = insights_seed.seed(session)
+        print(f"{result['insights']} insights and {result['widgets']} dashboard widget added")
         return 0
 
     if args.sync_knowledge:

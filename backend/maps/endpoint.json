@@ -862,6 +862,79 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "insights_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/insights",
+      "description": "Saved insights with suggestions, or keep a draft.",
+      "exec_method": {
+        "module_name": "src.api.insights",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "insights_generate",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/insights/generate",
+      "description": "Compose an insight page for a question about the records.",
+      "exec_method": {
+        "module_name": "src.api.insights",
+        "method_name": "generate"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "insights_suggestion",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/insights/suggestions/<string:key>",
+      "description": "A suggested insight, bound for this reader.",
+      "exec_method": {
+        "module_name": "src.api.insights",
+        "method_name": "suggestion"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "insights_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/insights/<uuid:insight_id>",
+      "description": "One insight; rename, pin, share or remove it.",
+      "exec_method": {
+        "module_name": "src.api.insights",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "insights_refresh",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/insights/<uuid:insight_id>/refresh",
+      "description": "Re-run an insight's queries and keep the new numbers.",
+      "exec_method": {
+        "module_name": "src.api.insights",
+        "method_name": "refresh"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "knowledge_ask",
       "model_name": "Empty",
       "request_method": [

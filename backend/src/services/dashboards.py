@@ -79,6 +79,9 @@ WIDGET_KINDS = frozenset({
     # widget that points at one inherits all of that instead of copying it.
     "REPORT",
     "SEARCH",
+    # A saved insight (§43): the generated page, its numbers re-read for the
+    # viewer each time the dashboard is drawn.
+    "INSIGHT",
     # ── modules ──────────────────────────────────────────────────────────
     # A dashboard whose widgets are only charts is a reporting page. These put
     # the *product* on the grid: the work waiting in Tasks, the unread thread
@@ -145,12 +148,13 @@ MODULE_OPTIONS: dict[str, dict[str, str]] = {
 #: the modules take their subject from the module, and the two that reference a
 #: saved thing take their dataset from it — so the entity is required of these
 #: rather than of all of them.
-DATASET_KINDS = WIDGET_KINDS - {"ACTIVITY", "ALERTS", "REPORT", "SEARCH"} - MODULE_KINDS
+DATASET_KINDS = WIDGET_KINDS - {"ACTIVITY", "ALERTS", "REPORT", "SEARCH", "INSIGHT"} - MODULE_KINDS
 
 #: What each referencing kind must name, and where that thing lives.
 REFERENCE_KINDS: dict[str, tuple[str, str]] = {
     "REPORT": ("report_id", "report"),
     "SEARCH": ("search_id", "saved search"),
+    "INSIGHT": ("insight_id", "insight"),
 }
 
 #: The widest a dashboard may be. Twelve is the grid every layout in the
@@ -184,6 +188,7 @@ DEFAULT_SIZES: dict[str, tuple[int, int]] = {
     "ACTIVITY": (4, 2),
     "REPORT": (6, 2),
     "SEARCH": (4, 2),
+    "INSIGHT": (6, 4),
     # The modules. Wider than a chart where the content is rows of text, and
     # taller where it is a feed somebody scans rather than a number they read.
     "TASKS": (6, 3),
@@ -217,6 +222,7 @@ _TITLES: dict[str, str] = {
     "ACTIVITY": "Recent activity",
     "REPORT": "A saved report",
     "SEARCH": "A saved search",
+    "INSIGHT": "An insight",
     "TASKS": "Work in progress",
     "MAIL": "Mail",
     "FILES": "Recent files",

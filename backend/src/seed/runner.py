@@ -33,6 +33,7 @@ from src.seed import decisions as decisions_seed
 from src.seed import exports as export_files
 from src.seed import imports as import_runs
 from src.seed import assistant as assistant_seed
+from src.seed import insights as insights_seed
 from src.seed import knowledge as knowledge_seed
 from src.seed import planning as planning_seed
 from src.seed import collab as collab_seed
@@ -589,6 +590,7 @@ def run(
     sync_tags(session)
     assistant_seed.seed_safely(session)  # assistant conversations (§41)
     knowledge_seed.seed_safely(session)  # Ask your documents (§44)
+    insights_seed.seed_safely(session)  # Insights (§43)
     planning_seed.populate(session)  # sprints, epics, dependencies, templates (§18)
     collab_seed.seed(session)  # chat, the wiki and meeting notes (§47–49)
     decisions_seed.populate(session)  # SLA policies, approvals, time, intake forms
