@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { NxIcon, type NxIconName } from "@/components/NxIcon";
+import { PlanIcon } from "@/components/planning/planIcons";
 import { AstIcon } from "@/components/assistant/AstIcon";
 import { KnIcon } from "@/components/knowledge/KnIcon";
 
@@ -115,6 +116,8 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { key: "/tasks", label: "Tasks", icon: <NxIcon name="check" />, permission: "tasks.view", badge: "my_tasks" },
       { key: "/kanban", label: "Kanban boards", icon: <NxIcon name="kanban" />, permission: "tasks.view", flag: "kanban-board" },
+      { key: "/sprints", label: "Sprints", icon: <PlanIcon name="sprint" />, permission: "tasks.view" },
+      { key: "/timeline", label: "Timeline", icon: <PlanIcon name="timeline" />, permission: "tasks.view" },
             // `automations.manage` and not `tasks.manage`: a rule's condition quotes
       // the fields and values of records its reader may have no other way to
       // see, so reading the list is privileged — and an operator who triages

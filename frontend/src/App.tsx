@@ -22,6 +22,8 @@ const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
 const ActivityPage = lazy(() => import("@/pages/ActivityPage"));
 const AnnouncementsPage = lazy(() => import("@/pages/AnnouncementsPage"));
 const KanbanPage = lazy(() => import("@/pages/KanbanPage"));
+const TimelinePage = lazy(() => import("@/pages/work/TimelinePage"));
+const SprintsPage = lazy(() => import("@/pages/work/SprintsPage"));
 const WorkflowsPage = lazy(() => import("@/pages/WorkflowsPage"));
 const CalendarPage = lazy(() => import("@/pages/CalendarPage"));
 const MailPage = lazy(() => import("@/pages/MailPage"));
@@ -314,6 +316,22 @@ export default function App() {
           element={
             <Suspense fallback={<Loading />}>
               <KanbanPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="timeline"
+          element={
+            <Suspense fallback={<Loading />}>
+              <TimelinePage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="sprints"
+          element={
+            <Suspense fallback={<Loading />}>
+              <SprintsPage />
             </Suspense>
           }
         />
