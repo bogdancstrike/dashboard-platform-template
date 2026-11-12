@@ -232,7 +232,11 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
       Input: { borderRadius: 999, borderRadiusLG: 999, borderRadiusSM: 999, paddingInline: 14, activeShadow: "none" },
       InputNumber: { borderRadius: 999, borderRadiusLG: 999, borderRadiusSM: 999, activeShadow: "none" },
       Select: { borderRadius: 999, borderRadiusLG: 999, borderRadiusSM: 999, optionSelectedBg: dark ? "#352b52" : ACCENT[100], optionSelectedFontWeight: 600 },
-      DatePicker: { borderRadius: 999, borderRadiusLG: 999, borderRadiusSM: 999, activeShadow: "none" },
+      // The field is a pill; the calendar that opens from it is a panel with soft
+      // corners — AntD paints the popup with `borderRadiusLG` and its cells and
+      // footer buttons with `borderRadiusSM`, so only the field's own radius is
+      // the pill (set in the stylesheet on `.ant-picker`).
+      DatePicker: { borderRadius: 999, borderRadiusLG: 16, borderRadiusSM: 8, borderRadiusXS: 6, activeShadow: "none" },
       Segmented: {
         borderRadius: 999,
         borderRadiusLG: 999,

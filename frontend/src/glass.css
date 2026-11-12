@@ -590,3 +590,13 @@ html { zoom: var(--nu-zoom, 1); }
 .nx-side-search .nx-omni { gap: 6px; padding-right: 6px; }
 .nx-side-search .nx-omni span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nx-side-search .nx-omni kbd { flex-shrink: 0; }
+
+/* Date and time pickers: the field is a pill, the calendar is a panel. */
+.ant-picker-outlined:not(.ant-picker-dropdown) { border-radius: 999px; }
+.ant-picker-dropdown .ant-picker-panel-container,
+.ant-picker-dropdown .ant-picker-panel-layout,
+.ant-picker-dropdown .ant-picker-panel { border-radius: 16px !important; }
+.ant-picker-dropdown .ant-picker-panel-container { overflow: hidden; }
+.ant-picker-dropdown .ant-picker-ok .ant-btn,
+.ant-picker-dropdown .ant-picker-footer .ant-btn { border-radius: 8px; height: 28px; padding-inline: 12px; }
+.ant-picker-dropdown .ant-picker-cell .ant-picker-cell-inner { border-radius: 8px; }
