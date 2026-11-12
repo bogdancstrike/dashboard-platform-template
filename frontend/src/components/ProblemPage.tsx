@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Button, Result, Space, Tooltip, Typography } from "antd";
+import { Button, Tooltip, Typography } from "antd";
 import { CopyOutlined } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 
@@ -239,13 +239,13 @@ export function ProblemPage({
   // The marker is on a wrapper rather than on `Result`: AntD does not forward
   // unknown props to its root, so a `data-testid` handed to it disappears.
   const body = (
-    <div className="nu-problem-wrap" data-testid={`problem-${kind}`}>
-    <Result
-      className="nu-problem"
-      status={problem.status}
-      title={problem.title}
-      subTitle={
-        <div className="nu-problem-text">
+    <div className="nu-problem-wrap nx-fd-problem-wrap" data-testid={`problem-${kind}`}>
+      <section className="nu-problem nx-fd-problem nx-glass nx-glass--strong" aria-labelledby="nx-fd-problem-title">
+        <ProblemMark code={ERROR_SLUGS[kind]} />
+        <h1 id="nx-fd-problem-title" className="nx-fd-problem-title">
+          {emphasiseLast(problem.title)}
+        </h1>
+        <div className="nu-problem-text nx-fd-problem-text">
           <p>{problem.happened}</p>
           <p>{problem.next}</p>
           {missing.length > 0 && (
@@ -257,11 +257,8 @@ export function ProblemPage({
             </p>
           )}
           {detail && <div className="nu-problem-detail">{detail}</div>}
-          {correlationId && <Reference correlationId={correlationId} />}
         </div>
-      }
-      extra={
-        <Space wrap>
+        <div className="nx-fd-problem-actions">
           {problem.retryable && onRetry && (
             <Button type="primary" onClick={onRetry} data-testid="problem-retry">
               Try again
@@ -285,11 +282,41 @@ export function ProblemPage({
               </Button>
             </Tooltip>
           )}
-        </Space>
-      }
-    />
+        </div>
+        {correlationId ? (
+          <Reference correlationId={correlationId} />
+        ) : (
+          <span className="nx-fd-problem-where">
+            {typeof window !== "undefined" ? window.location.pathname : ""} · {ERROR_SLUGS[kind]}
+          </span>
+        )}
+      </section>
     </div>
   );
 
   return standalone ? <div className="nu-boot nu-boot--problem">{body}</div> : body;
+}
+
+/** The title with its last word in the accent, the design's emphasis. */
+function emphasiseLast(title: string): ReactNode {
+  const at = title.lastIndexOf(" ");
+  if (at < 0) return title;
+  return (
+    <>
+      {title.slice(0, at + 1)}
+      <em className="nx-em">{title.slice(at + 1)}</em>
+    </>
+  );
+}
+
+/** The Nucleus orbit with the problem's code at its centre. */
+function ProblemMark({ code }: { code: string }) {
+  const short = code.length > 4 ? (code === "maintenance" ? "503" : "!") : code;
+  return (
+    <svg className="nx-fd-problem-mark" viewBox="-70 -70 140 140" aria-hidden="true">
+      <ellipse rx="62" ry="26" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.45" transform="rotate(-28)" />
+      <ellipse rx="62" ry="26" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.45" transform="rotate(62)" />
+      <text x="0" y="13" textAnchor="middle" className="nx-fd-problem-code">{short}</text>
+    </svg>
+  );
 }

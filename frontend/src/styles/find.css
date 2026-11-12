@@ -566,3 +566,27 @@ button.nx-fd-qchip { padding: 0 12px 0 10px; }
 .nx-app--phone .nx-fd-explore--results .nu-page-actions .ant-btn-default > span:not(.ant-btn-icon) { display: none; }
 .nx-fd-advbody .ant-collapse-ghost > .ant-collapse-item > .ant-collapse-header { background: transparent; }
 .nx-fd-advbody .nu-advanced-help { background: transparent !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Problem pages — one glass card, the orbit and the code
+   ═══════════════════════════════════════════════════════════════════════ */
+.nx-fd-problem-wrap { display: flex; justify-content: center; align-items: center; min-height: 70vh; padding: 24px 0; }
+.nx-fd-problem {
+  width: 100%; max-width: 720px; box-sizing: border-box; border-radius: 32px; padding: 48px 48px 36px;
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px;
+  animation: nxRise 0.6s var(--nx-ease) both;
+}
+.nx-fd-problem-mark { width: 132px; height: 132px; color: var(--nu-accent); margin-bottom: -6px; }
+.nx-fd-problem-code { font: 700 38px var(--nu-font); letter-spacing: -0.04em; fill: var(--nu-accent); }
+.nx-fd-problem-title { margin: 0; font-size: 40px; line-height: 1.1; font-weight: 700; letter-spacing: -0.03em; color: var(--nu-text); }
+.nx-fd-problem-text.nu-problem-text { text-align: center; max-width: 30em; color: var(--nu-text-secondary); font-size: 15px; line-height: 1.6; }
+.nx-fd-problem-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 6px; }
+.nx-fd-problem-actions .ant-btn { height: 48px; padding-inline: 22px; border-radius: 24px; font-size: 15px; }
+.nx-fd-problem-actions .ant-btn-default { background: rgba(var(--nu-ink-rgb), 0.06) !important; border-color: transparent !important; }
+.nx-fd-problem-where { font: 12px var(--nu-font-mono); color: var(--nu-text-tertiary); }
+.nx-fd-problem .nu-problem-ref { justify-content: center; }
+.nx-app--phone .nx-fd-problem-wrap { min-height: 60vh; padding: 8px 0; }
+.nx-app--phone .nx-fd-problem { padding: 32px 20px 26px; border-radius: 28px; }
+.nx-app--phone .nx-fd-problem-title { font-size: 30px; }
+.nx-app--phone .nx-fd-problem-actions { flex-direction: column; width: 100%; }
+.nx-app--phone .nx-fd-problem-actions > *, .nx-app--phone .nx-fd-problem-actions .ant-btn { width: 100%; }
