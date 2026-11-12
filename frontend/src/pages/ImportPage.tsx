@@ -350,6 +350,7 @@ export default function ImportPage() {
       <Steps
         className="nu-imp-steps"
         size="small"
+        responsive={false}
         current={stepIndex(current)}
         items={STEPS.map((entry) => ({ title: entry.title }))}
       />

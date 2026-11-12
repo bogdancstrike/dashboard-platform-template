@@ -318,3 +318,55 @@
 .nx-app--phone .nx-ad .ant-space, .nx-app--tablet .nx-ad .ant-space { max-width: 100%; }
 .nx-app--phone .nx-ad .nu-page-actions .ant-input-search, .nx-app--phone .nx-ad .nu-page-actions .ant-input-affix-wrapper { width: 100% !important; }
 .nx-ad .ant-table-container { max-width: 100%; overflow-x: auto; }
+
+/* ═════════════ import: the wizard's steps as a glass strip of pills ═════════════ */
+.nx-ad--import .nu-imp-steps.ant-steps {
+  max-width: none; padding: 8px; border-radius: 26px; gap: 6px; overflow-x: auto; scrollbar-width: none;
+  background: var(--nu-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--nu-glass-border);
+  box-shadow: var(--nu-glass-shadow);
+}
+.nx-ad--import .nu-imp-steps .ant-steps-item { flex: 1 0 auto; padding: 0 !important; margin: 0 !important; overflow: visible; }
+.nx-ad--import .nu-imp-steps .ant-steps-item-container { height: 44px; padding: 0 14px; border-radius: 22px; display: flex; align-items: center; gap: 10px; }
+.nx-ad--import .nu-imp-steps .ant-steps-item-process .ant-steps-item-container { background: var(--nu-raised); box-shadow: var(--nu-lift); }
+.nx-ad--import .nu-imp-steps .ant-steps-item-icon { margin: 0 !important; width: 26px; height: 26px; line-height: 26px; border-radius: 13px; border: 0; background: rgba(var(--nu-ink-rgb), 0.08); font-size: 12px; font-weight: 700; }
+.nx-ad--import .nu-imp-steps .ant-steps-item-wait .ant-steps-icon { color: var(--nu-text-tertiary); }
+.nx-ad--import .nu-imp-steps .ant-steps-item-process .ant-steps-item-icon { background: var(--nu-accent); }
+.nx-ad--import .nu-imp-steps .ant-steps-item-finish .ant-steps-item-icon { background: var(--nu-tint); }
+.nx-ad--import .nu-imp-steps .ant-steps-item-finish .ant-steps-icon { color: var(--nu-accent-ink); }
+.nx-ad--import .nu-imp-steps .ant-steps-item-title { padding: 0; font-size: 13.5px; font-weight: 600; line-height: 26px; }
+.nx-ad--import .nu-imp-steps .ant-steps-item-title::after { display: none; }
+.nx-ad--import .nu-imp-steps .ant-steps-item-wait .ant-steps-item-title { color: var(--nu-text-tertiary) !important; }
+.nx-ad--import .nu-imp-steps .ant-steps-item-content { min-height: 0 !important; }
+.nx-ad--import > * + * { margin-top: 0; }
+.nx-ad--import .nu-imp-columns > * { border-radius: 18px; }
+
+/* ═════════════ a person (userDetail): control card, pill tabs ═════════════ */
+.nx-ad-userbar { padding: 16px 18px; align-items: flex-end; gap: 12px; border-radius: 28px; }
+.nx-ad-field { display: flex; flex-direction: column; gap: 6px; flex: 1 1 220px; min-width: 0; }
+.nx-ad-field > span { font-size: 12.5px; font-weight: 600; color: var(--nu-text-secondary); }
+.nx-ad-userbar .nx-ad-field .ant-select-selector { background: var(--nu-field) !important; border-color: rgba(var(--nu-ink-rgb), 0.12) !important; }
+.nx-ad-mfa { height: 44px; padding: 0 16px; border-radius: 22px; display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; background: rgba(var(--nu-ink-rgb), 0.06); color: var(--nu-text-secondary); }
+.nx-ad-mfa.is-on { background: var(--nu-ok-bg); color: var(--nu-ok); }
+.nx-ad-userbar .ant-btn { background: var(--nu-raised) !important; box-shadow: var(--nu-lift); }
+.nx-ad-userbar-note { font-size: 13px; color: var(--nu-text-tertiary); }
+.nx-ad-userbar-hint { flex-basis: 100%; }
+
+.nx-ad-tabs > .ant-tabs-nav::before { display: none; }
+.nx-ad-tabs > .ant-tabs-nav { margin-bottom: 14px; }
+.nx-ad-tabs > .ant-tabs-nav .ant-tabs-nav-wrap { flex: 0 1 auto; }
+.nx-ad-tabs > .ant-tabs-nav .ant-tabs-nav-list {
+  padding: 4px; border-radius: 24px; gap: 2px;
+  background: var(--nu-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--nu-glass-border);
+  box-shadow: var(--nu-glass-shadow);
+}
+.nx-ad-tabs .ant-tabs-tab { margin: 0 !important; padding: 0 16px !important; height: 40px; border-radius: 20px; font-weight: 600; transition: background 0.2s ease; }
+.nx-ad-tabs .ant-tabs-tab:hover { background: rgba(var(--nu-ink-rgb), 0.05); }
+.nx-ad-tabs .ant-tabs-tab.ant-tabs-tab-active { background: var(--nu-text); }
+.nx-ad-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--nu-on-ink) !important; }
+.nx-ad-tabs .ant-tabs-ink-bar { display: none; }
