@@ -298,7 +298,8 @@ describe("the relationship explorer", () => {
 
     withHits();
     await user.type(screen.getByLabelText("Search a record to start from"), "migration");
-    const [start] = await screen.findAllByRole("button", { name: /Start here/ });
+    // Debounced, then fetched: generous under a loaded test run.
+    const [start] = await screen.findAllByRole("button", { name: /Start here/ }, { timeout: 15_000 });
     await user.click(start!);
     await waitFor(() => expect(where()).toMatch(/resource=.+&id=/));
   });

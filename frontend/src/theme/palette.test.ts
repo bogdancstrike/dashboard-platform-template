@@ -44,8 +44,14 @@ describe("the three consumers all read the tokens", () => {
     // A chart themed by one system beside a table themed by another is a pair
     // that drifts exactly where a reader is comparing them.
     expect(light.color).toEqual([...SERIES]);
-    expect(dark.color).toEqual([...SERIES]);
-    expect(light.tooltip?.backgroundColor).toBe(PAPER);
+    // Dark leads with the canvas's lavender accent — the same one AntD's
+    // primary takes — and keeps the rest of the series.
+    const [lead, ...rest] = (dark.color ?? []) as string[];
+    expect(lead?.toLowerCase()).toBe(DARK_ACCENT.toLowerCase());
+    expect(rest).toEqual(SERIES.slice(1));
+    // The tooltip is the paper ground, frosted: white at near-full opacity.
+    expect(PAPER.toLowerCase()).toBe("#ffffff");
+    expect(String(light.tooltip?.backgroundColor)).toMatch(/^(#ffffff|rgba\(255, 255, 255, 0?\.9\d*\))$/);
   });
 
   it("carries the four meanings into every consumer", () => {
