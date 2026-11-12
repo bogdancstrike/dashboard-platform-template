@@ -46,7 +46,7 @@ def register(app, sock) -> None:
 
     from src.config import Config
     from src.core.auth import verify_token, _principal_from_claims
-    from src.services import live
+    from src.services import live, presence
 
     route = f"{Config.API_PREFIX.rstrip('/')}/live"
 
@@ -68,6 +68,7 @@ def register(app, sock) -> None:
             return
 
         live.subscribe(principal.user_id, ws)
+        presence.connected(principal.user_id)
         log.debug(f"live: {principal.username} connected ({live.connection_count()} open)")
 
         try:
@@ -79,21 +80,23 @@ def register(app, sock) -> None:
             }))
 
             # The read loop is what keeps the connection open and detects a
-            # browser that went away without closing cleanly. Anything the
-            # client sends that is not a pong is ignored: this channel is for
-            # delivery, and a socket that accepts commands is an API without
-            # any of the API's checks.
+            # browser that went away without closing cleanly. The client may
+            # send only the heartbeat reply and its own presence status
+            # (`presence.client_frame`); anything else is ignored: this channel
+            # is for delivery, and a socket that accepts commands is an API
+            # without any of the API's checks.
             while True:
                 message = ws.receive(timeout=HEARTBEAT_SECONDS)
                 if message is None:
                     ws.send(json.dumps({"type": "ping", "at": iso(now())}))
                     continue
-                if message == "pong":
-                    continue
+                if isinstance(message, str):
+                    presence.client_frame(principal.user_id, message)
         except Exception as exc:
             log.debug(f"live: connection closed for {principal.username}: {exc}")
         finally:
             live.unsubscribe(principal.user_id, ws)
+            presence.disconnected(principal.user_id)
 
     log.info(f"live: websocket mounted at {route}", "cyan")
 

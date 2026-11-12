@@ -10,6 +10,9 @@ from src.models.assistant import AiUsage, AssistantBrief, AssistantConversation,
 from src.models.business import (  # noqa: F401
     CalendarEvent, Customer, Device, Order, Project, Task, Ticket,
 )
+from src.models.collab import (  # noqa: F401
+    ChatChannel, ChatMember, DocLink, DocPage, DocRevision, DocSpace, ThreadRead,
+)
 from src.models.content import (  # noqa: F401
     Comment, EmailAttachment, EmailMessage, EmailTemplate, EmailThread,
     FileObject, Folder, Tag, TagLink,

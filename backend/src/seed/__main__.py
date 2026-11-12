@@ -23,6 +23,7 @@
     python -m src.seed --sync-flags      # turn on every flag that hides something shipped
     python -m src.seed --sync-activity   # give each organization a feed it can filter
     python -m src.seed --sync-preferences # fill in preference keys an account predates
+    python -m src.seed --sync-collab      # chat channels, a wiki and meeting notes, if missing
     python -m src.seed --sync-assistant   # add the seeded assistant conversations that are missing
     python -m src.seed --sync-knowledge  # add the seeded document collections that are missing
     python -m src.seed --sync-planning   # sprints, epics, a timeline and templates for the work queue
@@ -141,6 +142,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-planning", action="store_true",
         help="add sprints with history, epics, dependencies, templates and recurring tasks, and exit",
+    )
+    parser.add_argument(
+        "--sync-collab", action="store_true",
+        help="add the demo chat channels, wiki spaces and meeting notes that are missing, and exit",
     )
     parser.add_argument("--dry-run", action="store_true", help="build in memory, write nothing")
     parser.add_argument("--quiet", action="store_true", help="only print the summary line")
@@ -420,6 +425,17 @@ def main(argv: list[str] | None = None) -> int:
         with session_scope() as session:
             result = assistant_seed.seed(session)
         print(f"{result['conversations']} assistant conversations and {result['messages']} messages added")
+        return 0
+
+    if args.sync_collab:
+        # Additive and by name: a channel, space or page somebody already has
+        # (or has since edited) is left alone, so this is safe to run again.
+        from src.seed import collab
+
+        runner.bootstrap_schema(engine)
+        with session_scope() as session:
+            result = collab.seed(session)
+        print(", ".join(f"{count} {name}" for name, count in result.items()) + " added")
         return 0
 
     if args.sync_health:

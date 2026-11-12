@@ -189,6 +189,9 @@ class Comment(Base, TimestampMixin, SoftDeleteMixin):
     mentions: Mapped[list[str] | None] = mapped_column(ARRAY(String(64)))
     #: {emoji: [user_id, ...]}
     reactions: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    #: Files shared with the message: [{id, name, size_bytes, mime_type}],
+    #: copied at write time so a renamed file still reads as what was sent.
+    attachments: Mapped[list[Any] | None] = mapped_column(JSONB)
     edited_at: Mapped[Any | None] = mapped_column(DateTime(timezone=True))
     is_internal: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     is_pinned: Mapped[bool] = mapped_column(Boolean, default=False)

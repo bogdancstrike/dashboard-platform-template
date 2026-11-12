@@ -24,7 +24,7 @@ import json
 import threading
 from collections import defaultdict
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from src.config import Config
 
@@ -39,6 +39,9 @@ CHANNEL = "nucleus:live"
 _subscribers: dict[str, set[Any]] = defaultdict(set)
 _lock = threading.Lock()
 _relay_started = False
+#: Who published a relayed message, so a worker skips the copy of its own
+#: publish that comes back through Redis — it already delivered that locally.
+ORIGIN = uuid4().hex
 
 
 def subscribe(user_id: UUID | str, socket: Any) -> None:
@@ -99,11 +102,54 @@ def publish_to_user(user_id: UUID | str, payload: dict[str, Any]) -> int:
     client = cache.client()
     if client is not None:
         try:
-            client.publish(CHANNEL, json.dumps({"user_id": str(user_id), "payload": payload},
+            client.publish(CHANNEL, json.dumps({"user_id": str(user_id), "payload": payload, "origin": ORIGIN},
                                                default=str))
         except Exception as exc:
             log.debug(f"live: fan-out unavailable, delivering locally only: {exc}")
     return delivered
+
+
+#: The recipient a broadcast carries through the relay: every socket, on every
+#: worker. Used for hints that name no private content — somebody came online,
+#: a record's thread changed — so delivering them widely discloses nothing.
+EVERYONE = "*"
+
+
+def connected_user_ids() -> list[str]:
+    """The people with a socket open on *this* worker."""
+    with _lock:
+        return list(_subscribers)
+
+
+def _deliver_to_everyone(payload: dict[str, Any]) -> int:
+    return sum(_deliver_locally(user_id, payload) for user_id in connected_user_ids())
+
+
+def publish_to_all(payload: dict[str, Any]) -> int:
+    """Deliver a hint to everybody connected, here and on every other worker."""
+    from framework.commons.logger import logger as log
+
+    delivered = _deliver_to_everyone(payload)
+
+    from src.core import cache
+
+    client = cache.client()
+    if client is not None:
+        try:
+            client.publish(CHANNEL, json.dumps({"user_id": EVERYONE, "payload": payload, "origin": ORIGIN},
+                                               default=str))
+        except Exception as exc:
+            log.debug(f"live: fan-out unavailable, delivering locally only: {exc}")
+    return delivered
+
+
+def relay(body: dict[str, Any]) -> int:
+    """Deliver one message another worker published."""
+    if body.get("origin") == ORIGIN:
+        return 0
+    if body["user_id"] == EVERYONE:
+        return _deliver_to_everyone(body["payload"])
+    return _deliver_locally(body["user_id"], body["payload"])
 
 
 def start_relay() -> bool:
@@ -131,8 +177,7 @@ def start_relay() -> bool:
             pubsub.subscribe(CHANNEL)
             for message in pubsub.listen():
                 try:
-                    body = json.loads(message["data"])
-                    _deliver_locally(body["user_id"], body["payload"])
+                    relay(json.loads(message["data"]))
                 except Exception as exc:  # pragma: no cover - a malformed message
                     log.warning(f"live: could not relay a message: {exc}")
         except Exception as exc:  # pragma: no cover - connection lost

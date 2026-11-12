@@ -1856,6 +1856,409 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "chat_channels",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/chat/channels",
+      "description": "The conversations this person is in, and starting a channel.",
+      "exec_method": {
+        "module_name": "src.api.chat",
+        "method_name": "channels"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "chat_channel",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/chat/channels/<uuid:channel_id>",
+      "description": "One conversation: read, rename or archive it.",
+      "exec_method": {
+        "module_name": "src.api.chat",
+        "method_name": "channel"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "chat_channel_join",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/chat/channels/<uuid:channel_id>/join",
+      "description": "Join a public channel.",
+      "exec_method": {
+        "module_name": "src.api.chat",
+        "method_name": "join"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "chat_channel_leave",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/chat/channels/<uuid:channel_id>/leave",
+      "description": "Leave a channel.",
+      "exec_method": {
+        "module_name": "src.api.chat",
+        "method_name": "leave"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "chat_channel_members",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/chat/channels/<uuid:channel_id>/members",
+      "description": "Add people to a channel.",
+      "exec_method": {
+        "module_name": "src.api.chat",
+        "method_name": "members"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "chat_channel_member",
+      "model_name": "Empty",
+      "request_method": [
+        "DELETE"
+      ],
+      "api_url": "/api/chat/channels/<uuid:channel_id>/members/<uuid:user_id>",
+      "description": "Remove somebody from a channel.",
+      "exec_method": {
+        "module_name": "src.api.chat",
+        "method_name": "member"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "chat_direct",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/chat/direct",
+      "description": "The direct conversation with one person, begun if new.",
+      "exec_method": {
+        "module_name": "src.api.chat",
+        "method_name": "direct"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "chat_presence",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/chat/presence",
+      "description": "Who is online or away; or set one's own status.",
+      "exec_method": {
+        "module_name": "src.api.chat",
+        "method_name": "presence"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "chat_search",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/chat/search",
+      "description": "Messages matching a phrase, in conversations this person may read.",
+      "exec_method": {
+        "module_name": "src.api.chat",
+        "method_name": "search"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "comments_read",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/comments/read",
+      "description": "Mark a conversation read up to now.",
+      "exec_method": {
+        "module_name": "src.api.comments",
+        "method_name": "read"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "comments_typing",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/comments/typing",
+      "description": "Tell a conversation somebody is typing.",
+      "exec_method": {
+        "module_name": "src.api.comments",
+        "method_name": "typing"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "comments_reactions",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/comments/<uuid:comment_id>/reactions",
+      "description": "Add or take back an emoji reaction.",
+      "exec_method": {
+        "module_name": "src.api.comments",
+        "method_name": "reactions"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "docs_backlinks",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/docs/backlinks",
+      "description": "The wiki pages that link to one record.",
+      "exec_method": {
+        "module_name": "src.api.docs",
+        "method_name": "backlinks"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "docs_meetings",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/docs/meetings",
+      "description": "Meeting notes for a calendar event; or open them.",
+      "exec_method": {
+        "module_name": "src.api.docs",
+        "method_name": "meetings"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "docs_pages",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/docs/pages",
+      "description": "Recently changed pages, and creating one.",
+      "exec_method": {
+        "module_name": "src.api.docs",
+        "method_name": "pages"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "docs_page",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/docs/pages/<uuid:page_id>",
+      "description": "One wiki page: read, save or remove it.",
+      "exec_method": {
+        "module_name": "src.api.docs",
+        "method_name": "page"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "docs_page_actions",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/docs/pages/<uuid:page_id>/actions",
+      "description": "Turn an action item into a task.",
+      "exec_method": {
+        "module_name": "src.api.docs",
+        "method_name": "actions"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "docs_page_links",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/docs/pages/<uuid:page_id>/links",
+      "description": "Link a page to a record.",
+      "exec_method": {
+        "module_name": "src.api.docs",
+        "method_name": "links"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "docs_page_link",
+      "model_name": "Empty",
+      "request_method": [
+        "DELETE"
+      ],
+      "api_url": "/api/docs/pages/<uuid:page_id>/links/<uuid:link_id>",
+      "description": "Remove a page's link to a record.",
+      "exec_method": {
+        "module_name": "src.api.docs",
+        "method_name": "link"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "docs_page_move",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/docs/pages/<uuid:page_id>/move",
+      "description": "Move a page in the tree.",
+      "exec_method": {
+        "module_name": "src.api.docs",
+        "method_name": "move"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "docs_page_revisions",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/docs/pages/<uuid:page_id>/revisions",
+      "description": "A page's history.",
+      "exec_method": {
+        "module_name": "src.api.docs",
+        "method_name": "revisions"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "docs_page_revision",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/docs/pages/<uuid:page_id>/revisions/<uuid:revision_id>",
+      "description": "One past version of a page.",
+      "exec_method": {
+        "module_name": "src.api.docs",
+        "method_name": "revision"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "docs_page_restore",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/docs/pages/<uuid:page_id>/revisions/<uuid:revision_id>/restore",
+      "description": "Make a past version the current one.",
+      "exec_method": {
+        "module_name": "src.api.docs",
+        "method_name": "restore"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "docs_page_summary",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/docs/pages/<uuid:page_id>/summary",
+      "description": "An AI summary of the page.",
+      "exec_method": {
+        "module_name": "src.api.docs",
+        "method_name": "summary"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "docs_search",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/docs/search",
+      "description": "Pages matching a phrase.",
+      "exec_method": {
+        "module_name": "src.api.docs",
+        "method_name": "search"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "docs_spaces",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/docs/spaces",
+      "description": "The wiki's spaces, and adding one.",
+      "exec_method": {
+        "module_name": "src.api.docs",
+        "method_name": "spaces"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "docs_space",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/docs/spaces/<uuid:space_id>",
+      "description": "A space's page tree; rename or remove it.",
+      "exec_method": {
+        "module_name": "src.api.docs",
+        "method_name": "space"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "docs_templates",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/docs/templates",
+      "description": "The page templates.",
+      "exec_method": {
+        "module_name": "src.api.docs",
+        "method_name": "templates"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "admin_roles_collection",
       "model_name": "Empty",
       "request_method": [

@@ -123,6 +123,9 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     "KnowledgeQuestion", "KnowledgeDocument", "KnowledgeCollection",
     "EmailAttachment", "EmailMessage", "EmailThread",
     "Comment", "FileObject", "Folder",
+    # Collaboration (§47–49): a page names a calendar event, so the wiki goes
+    # before `CalendarEvent`; children first within it, as always.
+    "DocLink", "DocRevision", "DocPage", "DocSpace", "ThreadRead", "ChatMember", "ChatChannel",
     # Tasks, because an automation's TASK action creates real ones and the
     # records API creates them too — 296 had accumulated in the development
     # database from `test_raising_a_task_puts_it_in_the_normal_queue` alone,

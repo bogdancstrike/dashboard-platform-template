@@ -100,6 +100,11 @@ PERMISSION_GROUPS: dict[str, list[tuple[str, str]]] = {
         ("reports.manage", "Build and save reports"),
         ("dashboards.manage", "Customise dashboards"),
         ("searches.share", "Share saved searches and views"),
+        # Collaboration (§47–49). Chat is for everybody signed in; reading the
+        # wiki is too, and writing in it is a separate grant.
+        ("chat.use", "Use team chat"),
+        ("docs.view", "Read the wiki and meeting notes"),
+        ("docs.edit", "Write wiki pages and meeting notes"),
     ],
     # The AI features (§41–46). Using the assistant reads only what its user
     # could already read — every tool it calls is checked against the caller's
@@ -140,6 +145,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
         "rank": 80,
         "color": "#7c3aed",
         "permissions": [
+            "chat.use", "docs.view", "docs.edit",
             "records.view", "records.create", "records.update", "records.export",
             "records.comment", "records.import", "records.bulk", "tags.manage",
             "users.view", "users.manage", "announcements.manage",
@@ -157,6 +163,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
         "rank": 60,
         "color": "#0891b2",
         "permissions": [
+            "chat.use", "docs.view", "docs.edit",
             "records.view", "records.create", "records.update", "records.export",
             "records.comment",
             "users.view", "jobs.view", "health.view",
@@ -172,6 +179,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
         "rank": 50,
         "color": "#16a34a",
         "permissions": [
+            "chat.use", "docs.view", "docs.edit",
             "records.view", "records.export",
             "users.view", "audit.view", "health.view", "jobs.view",
             "tasks.view", "files.view", "calendar.view",
@@ -185,6 +193,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
         "rank": 20,
         "color": "#64748b",
         "permissions": [
+            "chat.use", "docs.view",
             "records.view", "users.view", "tasks.view", "files.view",
             "calendar.view", "reports.view", "health.view", "mail.access",
             "ai.use",
