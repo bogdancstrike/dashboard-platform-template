@@ -6,6 +6,9 @@ import { filesApi, readableSize, type StoredFile } from "@/api/files";
 import { EmptyState } from "@/components/EmptyState";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { URL_OVERLAY } from "@/app/history";
+import type { PassageBox } from "@/api/knowledge";
+import { PdfPageHighlight } from "@/components/knowledge/PdfPageHighlight";
+import { MarkedText } from "@/components/knowledge/passage";
 
 const { Text, Paragraph } = Typography;
 
@@ -56,11 +59,18 @@ export function FilePreview({
   open,
   onClose,
   onDownload,
+  focus,
 }: {
   file: StoredFile | null;
   open: boolean;
   onClose: () => void;
   onDownload: (file: StoredFile) => void;
+  /**
+   * A passage to open at and mark — a citation from "Ask your documents"
+   * (§44). A PDF is drawn page by page with the passage's boxes over it; a
+   * text file has the passage highlighted. Without it nothing changes.
+   */
+  focus?: { page?: number | null; quote?: string; boxes?: PassageBox[] } | null;
 }) {
   const { message } = AntApp.useApp();
   const kind = file ? previewKind(file) : "none";
@@ -157,7 +167,14 @@ export function FilePreview({
                 data-testid="file-preview-image"
               />
             )}
-            {kind === "pdf" && link.data && (
+            {kind === "pdf" && link.data && focus && (
+              <PdfPageHighlight
+                url={link.data.download.url}
+                page={focus.page ?? 1}
+                boxes={focus.boxes ?? []}
+              />
+            )}
+            {kind === "pdf" && link.data && !focus && (
               <iframe
                 className="nu-preview-pdf"
                 src={link.data.download.url}
@@ -175,7 +192,7 @@ export function FilePreview({
                 )}
                 {body.data && (
                   <pre className="nu-preview-text" data-testid="file-preview-text">
-                    {body.data.text}
+                    {focus?.quote ? <MarkedText text={body.data.text} quote={focus.quote} /> : body.data.text}
                   </pre>
                 )}
                 {body.data?.truncated && (
