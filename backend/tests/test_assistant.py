@@ -591,3 +591,30 @@ def test_a_confirmed_action_is_audited(client, monkeypatch):
                               .order_by(AuditLog.occurred_at.desc())).first()
         assert row.resource_id == "tasks.new" and "Create a task" in row.message
     assert client.post(f"{BASE}/page-help/actions", json={}, headers=h).status_code == 400
+
+
+# ── Seed ──────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.database
+def test_the_seed_is_idempotent_and_cites_real_records():
+    from src.core.db import session_scope
+    from src.models.assistant import AssistantConversation
+    from src.seed import assistant as seed
+
+    admin = _principal()
+    with session_scope() as session:
+        seed.seed(session)
+        row = session.scalars(select(AssistantConversation).where(
+            AssistantConversation.user_id == admin.user_id,
+            AssistantConversation.title == "Release note for the November update")).one()
+        session.delete(row)
+    with session_scope() as session:
+        assert seed.seed(session) == {"conversations": 1, "messages": 2}
+        assert seed.seed(session) == {"conversations": 0, "messages": 0}
+        data = session.scalars(select(AssistantConversation).where(
+            AssistantConversation.user_id == admin.user_id, AssistantConversation.mode == "data")).first()
+        cited = [c for m in data.messages for c in (m.citations or [])]
+        assert cited and all(c["path"].startswith(("/tickets/", "/tasks/")) for c in cited)
+    with session_scope() as session:
+        seed.seed_safely(session)

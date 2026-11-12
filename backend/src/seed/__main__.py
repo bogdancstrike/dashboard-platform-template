@@ -23,6 +23,7 @@
     python -m src.seed --sync-flags      # turn on every flag that hides something shipped
     python -m src.seed --sync-activity   # give each organization a feed it can filter
     python -m src.seed --sync-preferences # fill in preference keys an account predates
+    python -m src.seed --sync-assistant   # add the seeded assistant conversations that are missing
     python -m src.seed --sync-knowledge  # add the seeded document collections that are missing
     python -m src.seed --dry-run          # build in memory, write nothing
 
@@ -131,6 +132,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-knowledge", action="store_true",
         help="add the seeded document collections (Ask your documents) that are missing, and exit",
+    )
+    parser.add_argument(
+        "--sync-assistant", action="store_true",
+        help="add the seeded AI assistant conversations that are missing, and exit",
     )
     parser.add_argument("--dry-run", action="store_true", help="build in memory, write nothing")
     parser.add_argument("--quiet", action="store_true", help="only print the summary line")
@@ -390,6 +395,15 @@ def main(argv: list[str] | None = None) -> int:
         with session_scope() as session:
             result = knowledge_seed.seed(session)
         print(f"{result['collections']} collections and {result['documents']} documents added")
+        return 0
+
+    if args.sync_assistant:
+        # Additive: a persona's conversation with the same title is left alone.
+        from src.seed import assistant as assistant_seed
+
+        with session_scope() as session:
+            result = assistant_seed.seed(session)
+        print(f"{result['conversations']} assistant conversations and {result['messages']} messages added")
         return 0
 
     if args.sync_health:
