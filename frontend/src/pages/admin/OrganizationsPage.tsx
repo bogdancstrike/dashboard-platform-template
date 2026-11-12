@@ -246,7 +246,7 @@ export default function OrganizationsPage() {
   const organizations = listing.data?.items ?? [];
 
   return (
-    <div className="nu-fill">
+    <div className="nu-fill nx-ad nx-ad--orgs">
       <PageHeader
         title="Organizations"
         subtitle="The tenants, their departments and the teams inside them."

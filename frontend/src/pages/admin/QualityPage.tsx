@@ -120,9 +120,9 @@ export default function QualityPage() {
   const passing = findings.filter((finding) => finding.count === 0);
 
   return (
-    <>
+    <div className="nx-ad nx-ad--quality">
       <PageHeader
-        title="Data quality"
+        title={<>Data <em>quality</em></>}
         subtitle="What is wrong with the records, and where to go and fix it. Every count opens the rows behind it."
         tag={
           overview ? (
@@ -231,7 +231,7 @@ export default function QualityPage() {
           )}
         </>
       )}
-    </>
+    </div>
   );
 }
 

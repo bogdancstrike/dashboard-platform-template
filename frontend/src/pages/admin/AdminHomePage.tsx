@@ -21,20 +21,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { Skeleton, Space, Tag, Typography } from "antd";
-import {
-  ApiOutlined,
-  AuditOutlined,
-  ClusterOutlined,
-  ControlOutlined,
-  ExperimentOutlined,
-  FileTextOutlined,
-  HeartOutlined,
-  SafetyOutlined,
-  SettingOutlined,
-  TeamOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
+import { Button, Skeleton } from "antd";
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { usePageCommands } from "@/commands/CommandContext";
@@ -42,9 +29,8 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { settingsApi } from "@/api/settings";
 import { usersApi } from "@/api/users";
 import { useAuth } from "@/auth/AuthProvider";
+import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
-
-const { Text, Title } = Typography;
 
 interface Destination {
   to: string;
@@ -75,7 +61,7 @@ export function destinations(counts: {
       to: "/admin/users",
       title: "People",
       what: "Who has an account, what they hold, and their sign-in history.",
-      icon: <UserOutlined />,
+      icon: <NxIcon name="user" />,
       permission: "users.view",
       badge: counts.people ? `${counts.people} people` : undefined,
     },
@@ -83,21 +69,21 @@ export function destinations(counts: {
       to: "/admin/roles",
       title: "Roles & permissions",
       what: "Every permission the code checks for, and which roles grant it.",
-      icon: <SafetyOutlined />,
+      icon: <NxIcon name="shield" />,
       permission: "roles.manage",
     },
     {
       to: "/admin/groups",
       title: "Groups",
       what: "Sets of people, for sharing and for targeting a rollout.",
-      icon: <TeamOutlined />,
+      icon: <NxIcon name="team" />,
       permission: "users.manage",
     },
     {
       to: "/admin/organizations",
       title: "Organizations",
       what: "The tenants, their departments and their teams.",
-      icon: <ClusterOutlined />,
+      icon: <NxIcon name="org" />,
       // Matches the route's own gate: reading the structure is directory
       // information, and a card whose permission drifted from its
       // destination's would be a card that opens onto a refusal.
@@ -107,7 +93,7 @@ export function destinations(counts: {
       to: "/admin/settings",
       title: "System settings",
       what: "Runtime configuration — retention, limits, security.",
-      icon: <SettingOutlined />,
+      icon: <NxIcon name="gear" />,
       permission: "settings.manage",
       badge: counts.settingsChanged ? `${counts.settingsChanged} changed` : undefined,
     },
@@ -115,7 +101,7 @@ export function destinations(counts: {
       to: "/admin/flags",
       title: "Feature flags",
       what: "What is switched on, for whom, and whether you have it.",
-      icon: <ExperimentOutlined />,
+      icon: <NxIcon name="flask" />,
       permission: "flags.manage",
       badge: counts.flagsOn ? `${counts.flagsOn} on` : undefined,
     },
@@ -123,35 +109,35 @@ export function destinations(counts: {
       to: "/admin/audit",
       title: "Audit log",
       what: "Who did what, to which record, and what changed.",
-      icon: <AuditOutlined />,
+      icon: <NxIcon name="audit" />,
       permission: "audit.view",
     },
     {
       to: "/admin/logs",
       title: "System logs",
       what: "Application log lines, by level and by service.",
-      icon: <FileTextOutlined />,
+      icon: <NxIcon name="logs" />,
       permission: "logs.view",
     },
     {
       to: "/admin/jobs",
       title: "Background jobs",
       what: "What is queued, what failed, and what can be retried.",
-      icon: <ControlOutlined />,
+      icon: <NxIcon name="sliders" />,
       permission: "jobs.view",
     },
     {
       to: "/admin/api",
       title: "API clients",
       what: "Credentials, their scopes, and the calls they have made.",
-      icon: <ApiOutlined />,
+      icon: <NxIcon name="code" />,
       permission: "api.manage",
     },
     {
       to: "/admin/health",
       title: "System health",
       what: "Whether each dependency is answering, and how quickly.",
-      icon: <HeartOutlined />,
+      icon: <NxIcon name="heart" />,
       permission: "health.view",
     },
   ];
@@ -212,39 +198,41 @@ export default function AdminHomePage() {
   }).filter((card) => can(card.permission));
 
   return (
-    <>
+    <div className="nx-ad nx-ad--home">
       <PageHeader
         title="Administration"
-        subtitle="Who may do what, how the platform is configured, and what it has been doing."
-        tag={<Tag>{cards.length} areas</Tag>}
+        subtitle="Health, people and access at a glance — only the areas you may open are listed."
+        actions={
+          can("audit.view") ? (
+            <Button icon={<NxIcon name="audit" size={16} />} onClick={() => navigate("/admin/audit")}>
+              Audit log
+            </Button>
+          ) : undefined
+        }
       />
 
-      <div className="nu-adminmap" data-testid="admin-map">
-        {cards.map((card) => (
-          <Link key={card.to} to={card.to} className="nu-adminmap-card" data-testid={`admin-${card.to}`}>
-            <Space size={10} align="start">
-              <span className="nu-adminmap-icon" aria-hidden="true">
-                {card.icon}
+      <nav className="nx-ad-map" aria-label="Administration areas" data-testid="admin-map">
+        {cards.map((card, index) => (
+          <Link
+            key={card.to}
+            to={card.to}
+            className="nx-ad-mapcard"
+            style={{ animationDelay: `${index * 40}ms` }}
+            data-testid={`admin-${card.to}`}
+          >
+            <span className="nx-ad-icon" aria-hidden="true">
+              {card.icon}
+            </span>
+            <span className="nx-ad-mapcard-text">
+              <span className="nx-ad-mapcard-head">
+                <b>{card.title}</b>
+                {card.badge && <span className="nx-ad-badge">{card.badge}</span>}
               </span>
-              <div>
-                <Space size={6}>
-                  <Title level={5} className="nu-adminmap-title">
-                    {card.title}
-                  </Title>
-                  {card.badge && (
-                    <Tag bordered={false} color="blue">
-                      {card.badge}
-                    </Tag>
-                  )}
-                </Space>
-                <Text type="secondary" className="nu-adminmap-what">
-                  {card.what}
-                </Text>
-              </div>
-            </Space>
+              <span className="nx-ad-mapcard-what">{card.what}</span>
+            </span>
           </Link>
         ))}
-      </div>
-    </>
+      </nav>
+    </div>
   );
 }

@@ -55,6 +55,7 @@ import {
   PauseCircleOutlined,
   PlayCircleOutlined,
   ReloadOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -275,8 +276,8 @@ export default function LogsPage() {
 
   if (catalogue.isError) {
     return (
-      <>
-        <PageHeader title="System logs" />
+      <div className="nx-ad nx-ad--logs">
+        <PageHeader title={<>System <em>logs</em></>} />
         <Alert
           type="error"
           showIcon
@@ -286,7 +287,7 @@ export default function LogsPage() {
               : "The log could not be read."
           }
         />
-      </>
+      </div>
     );
   }
 
@@ -360,9 +361,9 @@ export default function LogsPage() {
   ];
 
   return (
-    <div className="nu-fill">
+    <div className="nu-fill nx-ad nx-ad--logs">
       <PageHeader
-        title="System logs"
+        title={<>System <em>logs</em></>}
         subtitle="What the platform has been doing. Every request it serves is here, under the correlation id its response carried."
         tag={
           retention === null ? (
@@ -375,27 +376,6 @@ export default function LogsPage() {
         }
         actions={
           <Space size={8}>
-            <Input.Search
-              allowClear
-              placeholder="Message, source, or a correlation id"
-              aria-label="Search the log"
-              style={{ width: 280 }}
-              value={box}
-              onChange={(event) => setBox(event.target.value)}
-            />
-            <Select
-              aria-label="Service"
-              value={service || "all"}
-              style={{ width: 150 }}
-              onChange={(next) => set({ service: next === "all" ? null : next })}
-              options={[
-                { value: "all", label: "Every service" },
-                ...(facets["service"] ?? []).map((item) => ({
-                  value: item.value,
-                  label: `${item.value} (${item.count})`,
-                })),
-              ]}
-            />
             <Tooltip
               title={
                 live
@@ -443,6 +423,33 @@ export default function LogsPage() {
           </Space>
         }
       />
+
+      <div className="nx-ad-bar" role="search">
+        <Input
+          className="nx-ad-grow"
+          allowClear
+          prefix={<SearchOutlined />}
+          placeholder="Filter by message, source, or a correlation id"
+          aria-label="Search the log"
+          value={box}
+          onChange={(event) => setBox(event.target.value)}
+        />
+        <Select
+          aria-label="Service"
+          value={service || "all"}
+          className={service ? "nx-ad-set" : undefined}
+          popupMatchSelectWidth={false}
+          style={{ minWidth: 160 }}
+          onChange={(next) => set({ service: next === "all" ? null : next })}
+          options={[
+            { value: "all", label: "Service: any" },
+            ...(facets["service"] ?? []).map((item) => ({
+              value: item.value,
+              label: `${item.value} (${item.count})`,
+            })),
+          ]}
+        />
+      </div>
 
       {/* A severity floor, not a set of toggles — see the module docstring. */}
       <div className="nu-kindstrip nu-kindstrip--fill" data-testid="log-levels">
@@ -493,7 +500,7 @@ export default function LogsPage() {
         />
       )}
 
-      <div className="nu-pane nu-pane--table nu-log">
+      <div className="nu-pane nu-pane--table nu-log nx-ad-panel">
         <Table<LogLine>
           size="small"
           rowKey="id"

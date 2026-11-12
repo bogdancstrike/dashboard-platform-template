@@ -128,8 +128,8 @@ export default function SettingsPage() {
 
   if (config.isError) {
     return (
-      <>
-        <PageHeader title="System settings" />
+      <div className="nx-ad nx-ad--settings">
+        <PageHeader title={<>System <em>settings</em></>} />
         <Alert
           type="error"
           showIcon
@@ -139,16 +139,16 @@ export default function SettingsPage() {
               : "The settings could not be loaded."
           }
         />
-      </>
+      </div>
     );
   }
 
   const data = config.data!;
 
   return (
-    <>
+    <div className="nx-ad nx-ad--settings">
       <PageHeader
-        title="System settings"
+        title={<>System <em>settings</em></>}
         subtitle="Runtime configuration. A change applies to the next request — nothing here needs a deploy."
         tag={
           data.changed > 0 ? (
@@ -224,7 +224,7 @@ export default function SettingsPage() {
           </Card>
         ))}
       </Space>
-    </>
+    </div>
   );
 }
 

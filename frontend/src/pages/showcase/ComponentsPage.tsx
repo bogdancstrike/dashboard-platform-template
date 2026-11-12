@@ -508,7 +508,7 @@ export default function ComponentsPage() {
   ];
 
   return (
-    <div className="nu-show">
+    <div className="nu-show nx-ad nx-ad--components">
       <PageHeader
         title="Components"
         subtitle="The shared toolkit, rendered live. Feature components live with their features."

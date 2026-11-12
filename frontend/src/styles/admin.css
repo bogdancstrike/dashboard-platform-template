@@ -186,3 +186,54 @@
   height: 22px; padding: 0 8px; border-radius: 11px; background: var(--nu-tint); color: var(--nu-accent-ink);
   font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; white-space: nowrap;
 }
+.nx-ad-muted { font-size: 13px; color: var(--nu-text-secondary); }
+
+/* A plain block that should read as a panel (a `.nu-pane` that is a div). */
+.nx-ad .nx-ad-panel:not(.ant-card) {
+  border-radius: 28px; padding: 8px; min-width: 0;
+  background: var(--nu-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--nu-glass-border);
+  box-shadow: var(--nu-glass-shadow);
+  animation: nxRise 0.6s var(--nx-ease) 0.12s both;
+}
+
+/* ═════════════ organizations: tenant list + structure ═════════════ */
+.nx-ad .nu-orgsplit { grid-template-columns: 290px minmax(0, 1fr); gap: 14px; }
+.nx-app--tablet .nx-ad .nu-orgsplit, .nx-app--phone .nx-ad .nu-orgsplit { grid-template-columns: minmax(0, 1fr); }
+.nx-ad .nu-orglist ul { display: flex; flex-direction: column; gap: 2px; }
+.nx-ad .nu-orglist button { padding: 10px 14px; border-radius: 18px; gap: 4px; transition: background 0.2s ease, box-shadow 0.2s ease; }
+.nx-ad .nu-orglist button:hover { background: rgba(var(--nu-ink-rgb), 0.05); }
+.nx-ad .nu-orglist button.is-active { background: var(--nu-raised); box-shadow: var(--nu-lift); }
+.nx-ad .nu-orglist-meta { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--nu-text-tertiary); }
+.nx-ad .nu-orglist-meta .ant-tag { margin: 0; background: var(--nu-tint); color: var(--nu-accent-ink); line-height: 20px; font-size: 11px; }
+.nx-ad .nu-orgstats { gap: 12px 32px; }
+.nx-ad .nu-orgstats .ant-statistic-content { font-size: 26px; font-weight: 700; }
+.nx-ad .nu-orgnode { padding: 8px 12px; border-radius: 16px; min-height: 52px; flex-wrap: wrap; }
+.nx-ad .nu-orgnode:hover { background: var(--nu-raised); box-shadow: var(--nu-lift); }
+.nx-ad .nu-orgtree ul { border-inline-start-color: rgba(var(--nu-ink-rgb), 0.1); }
+.nx-ad .nu-orgnode-people, .nx-ad .nu-orgnode-manager { font-size: 12.5px; }
+
+/* ═════════════ facet strips (logs levels, job statuses): dot · label · count ═════════════ */
+.nx-ad .nu-kindstrip { flex-wrap: nowrap; gap: 6px; margin: 0; overflow-x: auto; scrollbar-width: none; padding: 2px; }
+.nx-ad .nu-kindstrip::-webkit-scrollbar { display: none; }
+.nx-ad .nu-kindstrip--fill > .nu-kindchip { flex: 0 0 auto; min-width: 0; }
+.nx-ad .nu-kindchip {
+  flex-direction: row; align-items: center; gap: 8px; min-width: 0;
+  height: 38px; padding: 0 14px; border: 0; border-radius: 19px;
+  background: rgba(var(--nu-ink-rgb), 0.06); white-space: nowrap;
+  font: 600 13px var(--nu-font); color: var(--nu-text);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.nx-ad .nu-kindchip::before { content: ""; width: 8px; height: 8px; border-radius: 4px; background: var(--nu-text-tertiary); flex-shrink: 0; }
+.nx-ad .nu-kindchip:hover:not(:disabled) { background: rgba(var(--nu-ink-rgb), 0.1); border-color: transparent; }
+.nx-ad .nu-kindchip.is-active { background: var(--nu-raised); box-shadow: var(--nu-lift); }
+.nx-ad .nu-kindchip-label { order: -1; font-size: 13px; font-weight: 600; color: var(--nu-text); }
+.nx-ad .nu-kindchip-label::first-letter { text-transform: uppercase; }
+.nx-ad .nu-kindchip-more { font-weight: 500; color: var(--nu-text-tertiary); }
+.nx-ad .nu-kindchip-count { font-size: 13px; font-weight: 700; opacity: 0.7; line-height: 1; }
+.nx-ad .nu-kindchip:is([data-testid$="-ERROR"], [data-testid$="-CRITICAL"], [data-testid$="-FAILED"])::before { background: var(--nu-bad-fill); }
+.nx-ad .nu-kindchip:is([data-testid$="-WARNING"], [data-testid$="-RETRYING"], [data-testid$="-CANCELLED"])::before { background: var(--nu-warn-fill); }
+.nx-ad .nu-kindchip:is([data-testid$="-INFO"], [data-testid$="-RUNNING"], [data-testid$="-QUEUED"])::before { background: var(--nu-accent); }
+.nx-ad .nu-kindchip:is([data-testid$="-SUCCEEDED"])::before { background: var(--nu-ok-fill); }

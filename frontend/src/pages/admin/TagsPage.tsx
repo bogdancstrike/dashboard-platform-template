@@ -255,7 +255,7 @@ export default function TagsPage() {
   ];
 
   return (
-    <>
+    <div className="nx-ad nx-ad--tags">
       <PageHeader
         title="Tags"
         subtitle="The one classification a reader invents. Everything else is a declared vocabulary."
@@ -349,7 +349,7 @@ export default function TagsPage() {
           refresh();
         }}
       />
-    </>
+    </div>
   );
 }
 

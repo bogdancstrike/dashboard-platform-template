@@ -49,7 +49,7 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { PlusOutlined, RedoOutlined, StopOutlined } from "@ant-design/icons";
+import { PlusOutlined, RedoOutlined, SearchOutlined, StopOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -253,8 +253,8 @@ export default function JobsPage() {
 
   if (catalogue.isError) {
     return (
-      <>
-        <PageHeader title="Background jobs" />
+      <div className="nx-ad nx-ad--jobs">
+        <PageHeader title={<>Background <em>jobs</em></>} />
         <Alert
           type="error"
           showIcon
@@ -264,7 +264,7 @@ export default function JobsPage() {
               : "The queue could not be read."
           }
         />
-      </>
+      </div>
     );
   }
 
@@ -409,9 +409,9 @@ export default function JobsPage() {
   ];
 
   return (
-    <div className="nu-fill">
+    <div className="nu-fill nx-ad nx-ad--jobs">
       <PageHeader
-        title="Background jobs"
+        title={<>Background <em>jobs</em></>}
         subtitle="What the platform has run, what failed, and what can be tried again."
         tag={
           running > 0 ? (
@@ -422,27 +422,6 @@ export default function JobsPage() {
         }
         actions={
           <Space size={8}>
-            <Input.Search
-              allowClear
-              placeholder="Name, reference, or an error"
-              aria-label="Search the queue"
-              style={{ width: 250 }}
-              value={box}
-              onChange={(event) => setBox(event.target.value)}
-            />
-            <Select
-              aria-label="Queue"
-              value={queue || "all"}
-              style={{ width: 150 }}
-              onChange={(next) => set({ queue: next === "all" ? null : next })}
-              options={[
-                { value: "all", label: "Every queue" },
-                ...(facets["queue"] ?? []).map((item) => ({
-                  value: item.value,
-                  label: `${item.value} (${item.count})`,
-                })),
-              ]}
-            />
             <AutoRefresh
               page="jobs"
               defaultSeconds={30}
@@ -453,6 +432,33 @@ export default function JobsPage() {
           </Space>
         }
       />
+
+      <div className="nx-ad-bar" role="search">
+        <Input
+          className="nx-ad-grow"
+          allowClear
+          prefix={<SearchOutlined />}
+          placeholder="Search jobs by name, reference, or an error"
+          aria-label="Search the queue"
+          value={box}
+          onChange={(event) => setBox(event.target.value)}
+        />
+        <Select
+          aria-label="Queue"
+          value={queue || "all"}
+          className={queue ? "nx-ad-set" : undefined}
+          popupMatchSelectWidth={false}
+          style={{ minWidth: 150 }}
+          onChange={(next) => set({ queue: next === "all" ? null : next })}
+          options={[
+            { value: "all", label: "Queue: any" },
+            ...(facets["queue"] ?? []).map((item) => ({
+              value: item.value,
+              label: `${item.value} (${item.count})`,
+            })),
+          ]}
+        />
+      </div>
 
       {/* Counts the whole queue, not the page: clicking a status narrows the
           table and leaves these alone (§71). */}
@@ -497,7 +503,7 @@ export default function JobsPage() {
         />
       )}
 
-      <div className="nu-pane nu-pane--table nu-job">
+      <div className="nu-pane nu-pane--table nu-job nx-ad-panel">
         <Table<Job>
           size="small"
           rowKey="id"

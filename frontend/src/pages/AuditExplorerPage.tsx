@@ -275,9 +275,9 @@ export default function AuditExplorerPage() {
   };
 
   return (
-    <>
+    <div className="nx-ad nx-ad--audit">
       <PageHeader
-        title="Audit log"
+        title={<>Audit <em>log</em></>}
         subtitle="Every recorded action: who did it, when, to what, and exactly what changed."
         tag={
           ledger.data ? (
@@ -535,6 +535,6 @@ export default function AuditExplorerPage() {
           </Space>
         )}
       </Drawer>
-    </>
+    </div>
   );
 }

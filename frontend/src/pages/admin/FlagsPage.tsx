@@ -201,8 +201,8 @@ export default function FlagsPage() {
 
   if (flags.isError) {
     return (
-      <>
-        <PageHeader title="Feature flags" />
+      <div className="nx-ad nx-ad--flags">
+        <PageHeader title={<>Feature <em>flags</em></>} />
         <Alert
           type="error"
           showIcon
@@ -212,7 +212,7 @@ export default function FlagsPage() {
               : "The flags could not be loaded."
           }
         />
-      </>
+      </div>
     );
   }
 
@@ -362,9 +362,9 @@ export default function FlagsPage() {
   ];
 
   return (
-    <>
+    <div className="nx-ad nx-ad--flags">
       <PageHeader
-        title="Feature flags"
+        title={<>Feature <em>flags</em></>}
         subtitle="What is switched on, for whom, and whether you have it. A change applies to the next request."
         tag={
           <Space size={6}>
@@ -469,6 +469,6 @@ export default function FlagsPage() {
           </Form.Item>
         </Form>
       </Modal>
-    </>
+    </div>
   );
 }

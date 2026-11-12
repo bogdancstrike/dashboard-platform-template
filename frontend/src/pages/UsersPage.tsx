@@ -13,7 +13,7 @@ import {
 } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
-import { ClearOutlined, SafetyCertificateOutlined, UserOutlined } from "@ant-design/icons";
+import { ClearOutlined, SafetyCertificateOutlined, SearchOutlined, UserOutlined } from "@ant-design/icons";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -21,7 +21,7 @@ import { ApiError } from "@/api/client";
 import { usersApi, type UserQuery, type UserRow } from "@/api/users";
 import { EmptyState, NoResults } from "@/components/EmptyState";
 import { EdgeTag } from "@/components/EdgeTag";
-import { StatusTag } from "@/components/StatusTag";
+import { StatusTag, humanStatus } from "@/components/StatusTag";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -125,34 +125,39 @@ export default function UsersPage() {
             initials={row.initials}
             icon={!row.avatar_url ? <UserOutlined /> : undefined}
           />
-          <Space direction="vertical" size={0} style={{ lineHeight: 1.3 }}>
-            <Text>{name}</Text>
-            <Text type="secondary">{row.email}</Text>
-          </Space>
+          <span className="nx-ad-main">
+            <span>{name}</span>
+            <span>{row.email}</span>
+          </span>
         </Space>
       ),
     },
     {
       title: "Role",
       dataIndex: "role_code",
-      width: 200,
+      width: 170,
       sorter: true,
-      render: (_code: string | null, row) => (
-        <Space size={4} wrap>
-          {row.role_name ? (
-            <EdgeTag color={row.role_color}>{row.role_name}</EdgeTag>
-          ) : (
-            <Text type="secondary">No role</Text>
-          )}
-          {/* Groups add permissions on top of the role, so an administrator
-              looking at "why can they do that?" needs them here too. */}
-          {row.group_names.map((group) => (
-            <Tooltip key={group} title="Adds permissions on top of the role">
-              <Tag>{group}</Tag>
-            </Tooltip>
-          ))}
-        </Space>
-      ),
+      render: (_code: string | null, row) =>
+        row.role_name ? (
+          <EdgeTag color={row.role_color}>{row.role_name}</EdgeTag>
+        ) : (
+          <Text type="secondary">No role</Text>
+        ),
+    },
+    {
+      // Groups add permissions on top of the role, so an administrator
+      // looking at "why can they do that?" needs them beside it.
+      title: "Groups",
+      key: "groups",
+      width: 220,
+      render: (_: unknown, row) =>
+        row.group_names.length ? (
+          <Tooltip title="Adds permissions on top of the role">
+            <span className="nx-ad-muted">{row.group_names.join(", ")}</span>
+          </Tooltip>
+        ) : (
+          <Text type="secondary">—</Text>
+        ),
     },
     {
       title: "Status",
@@ -215,11 +220,29 @@ export default function UsersPage() {
     label: `${facet.value} · ${facet.count}`,
   }));
 
+  const statusFacets = people.data?.facets["status"] ?? [];
+  const everyone = statusFacets.reduce((sum, facet) => sum + facet.count, 0);
+  const invited = statusFacets.find((facet) => facet.value === "INVITED")?.count ?? 0;
+  const statusDot: Record<string, string> = {
+    ACTIVE: "ok",
+    INVITED: "acc",
+    SUSPENDED: "warn",
+    DEACTIVATED: "bad",
+    DISABLED: "bad",
+    LOCKED: "bad",
+  };
+
   return (
-    <>
+    <div className="nx-ad nx-ad--users">
       <PageHeader
         title="Users"
-        subtitle="Who can sign in, what their role lets them do, and when they last did."
+        subtitle={
+          people.data
+            ? `${people.data.total.toLocaleString()} ${people.data.total === 1 ? "person" : "people"}${
+                invited ? ` · ${invited.toLocaleString()} invitation${invited === 1 ? "" : "s"} pending` : ""
+              } — who can sign in, what their role lets them do, and when they last did.`
+            : "Who can sign in, what their role lets them do, and when they last did."
+        }
         tag={
           people.data ? (
             <Tag color="blue" data-testid="user-total">
@@ -244,36 +267,66 @@ export default function UsersPage() {
         }
       />
 
-      <Card size="small" className="nu-filter-bar" data-testid="user-filters">
-        <Space wrap size={8} align="center">
-          <Input.Search
-            allowClear
-            placeholder="Search name, email or username"
-            aria-label="Search people"
-            style={{ width: 300 }}
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-          <Select
-            allowClear
-            placeholder="Role"
-            aria-label="Role"
-            style={{ minWidth: 180 }}
-            value={roleCode || undefined}
-            options={roleOptions}
-            onChange={(value?: string) => set({ role_code: value ?? null, page: null })}
-          />
-          <Select
-            allowClear
-            placeholder="Status"
-            aria-label="Status"
-            style={{ minWidth: 180 }}
-            value={status || undefined}
-            options={statusOptions}
-            onChange={(value?: string) => set({ status: value ?? null, page: null })}
-          />
-        </Space>
-      </Card>
+      <div className="nx-ad-bar" role="search" data-testid="user-filters">
+        <Input
+          className="nx-ad-grow"
+          allowClear
+          prefix={<SearchOutlined />}
+          placeholder="Search people by name, email or username"
+          aria-label="Search people"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <Select
+          allowClear
+          placeholder="Role: any"
+          aria-label="Role"
+          className={roleCode ? "nx-ad-set" : undefined}
+          popupMatchSelectWidth={false}
+          style={{ minWidth: 150 }}
+          value={roleCode || undefined}
+          options={roleOptions}
+          onChange={(value?: string) => set({ role_code: value ?? null, page: null })}
+        />
+        <Select
+          allowClear
+          placeholder="Status: any"
+          aria-label="Status"
+          className={status ? "nx-ad-set" : undefined}
+          popupMatchSelectWidth={false}
+          style={{ minWidth: 150 }}
+          value={status || undefined}
+          options={statusOptions}
+          onChange={(value?: string) => set({ status: value ?? null, page: null })}
+        />
+      </div>
+
+      {statusFacets.length > 0 && (
+        <div className="nx-ad-segs" role="group" aria-label="Quick filters">
+          <button
+            type="button"
+            className="nx-ad-seg"
+            aria-pressed={!status}
+            onClick={() => set({ status: null, page: null })}
+          >
+            <i />
+            All<b>{everyone.toLocaleString()}</b>
+          </button>
+          {statusFacets.map((facet) => (
+            <button
+              key={facet.value}
+              type="button"
+              className="nx-ad-seg"
+              aria-pressed={status === facet.value}
+              onClick={() => set({ status: status === facet.value ? null : facet.value, page: null })}
+            >
+              <i className={`nx-ad-dot--${statusDot[facet.value] ?? "acc"}`} />
+              {humanStatus(facet.value)}
+              <b>{facet.count.toLocaleString()}</b>
+            </button>
+          ))}
+        </div>
+      )}
 
       {people.isError && (
         <Alert
@@ -336,10 +389,10 @@ export default function UsersPage() {
             total: people.data?.total ?? 0,
             showSizeChanger: true,
             pageSizeOptions: [25, 50, 100, 200],
-            showTotal: (total, range) => `${range[0]}–${range[1]} of ${total.toLocaleString()}`,
+            showTotal: (total, range) => `Showing ${range[0]}–${range[1]} of ${total.toLocaleString()}`,
           }}
         />
       </Card>
-    </>
+    </div>
   );
 }

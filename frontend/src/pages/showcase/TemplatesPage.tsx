@@ -354,9 +354,9 @@ export default function TemplatesPage() {
   ]);
 
   return (
-    <div className="nu-tmpl">
+    <div className="nu-tmpl nx-ad nx-ad--templates">
       <PageHeader
-        title="Page gallery"
+        title={<>Page <em>gallery</em></>}
         subtitle={summary()}
         tag={<Tag bordered={false}>{shapes.length} shapes</Tag>}
       />

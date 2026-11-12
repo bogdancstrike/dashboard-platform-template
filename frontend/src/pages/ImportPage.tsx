@@ -329,7 +329,7 @@ export default function ImportPage() {
   if (catalogue.isLoading) return <Skeleton active paragraph={{ rows: 10 }} />;
 
   return (
-    <div className="nu-imp">
+    <div className="nu-imp nx-ad nx-ad--import">
       <PageHeader
         title="Import"
         subtitle={summary(catalogue.data)}

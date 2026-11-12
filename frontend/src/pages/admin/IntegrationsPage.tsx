@@ -228,7 +228,7 @@ export default function IntegrationsPage() {
 
   if (catalogue.isError) {
     return (
-      <>
+      <div className="nx-ad nx-ad--integrations">
         <PageHeader title="Integrations" />
         <Alert
           type="error"
@@ -239,7 +239,7 @@ export default function IntegrationsPage() {
               : "The integrations could not be read."
           }
         />
-      </>
+      </div>
     );
   }
 
@@ -337,7 +337,7 @@ export default function IntegrationsPage() {
   ];
 
   return (
-    <div className="nu-fill">
+    <div className="nu-fill nx-ad nx-ad--integrations">
       <PageHeader
         title="Integrations"
         subtitle="What this platform talks to, what each one needs, and whether it is working."

@@ -52,7 +52,8 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { DeleteOutlined, PlusOutlined, RetweetOutlined, StopOutlined } from "@ant-design/icons";
+import { DeleteOutlined, PlusOutlined, RetweetOutlined, SearchOutlined, StopOutlined } from "@ant-design/icons";
+import { StatusTag } from "@/components/StatusTag";
 import type { ColumnsType } from "antd/es/table";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -290,12 +291,7 @@ export default function ApiClientsPage() {
         <div className="nu-api-what">
           <Space size={6}>
             <Text strong>{name}</Text>
-            <Tag
-              bordered={false}
-              color={row.status === "ACTIVE" ? "success" : row.status === "SUSPENDED" ? "warning" : undefined}
-            >
-              {row.status.toLowerCase()}
-            </Tag>
+            <StatusTag status={row.status} />
           </Space>
           <Text type="secondary" className="nu-api-id">
             {row.client_id}
@@ -360,34 +356,36 @@ export default function ApiClientsPage() {
   ];
 
   return (
-    <div className="nu-fill">
+    <div className="nu-fill nx-ad nx-ad--api">
       <PageHeader
-        title="API clients"
+        title={<>API <em>clients</em></>}
         subtitle="Machines that call this platform, the keys they call with, and what those keys may do."
         tag={<Tag>{catalogue.data!.total} clients</Tag>}
         actions={
-          <Space size={8}>
-            <Input.Search
-              allowClear
-              placeholder="Name or client id"
-              aria-label="Search clients"
-              style={{ width: 230 }}
-              value={box}
-              onChange={(event) => setBox(event.target.value)}
-            />
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setCreating(true)}
-              data-testid="new-client"
-            >
-              Register a client
-            </Button>
-          </Space>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setCreating(true)}
+            data-testid="new-client"
+          >
+            Register a client
+          </Button>
         }
       />
 
-      <div className="nu-pane nu-pane--table">
+      <div className="nx-ad-bar" role="search">
+        <Input
+          className="nx-ad-grow"
+          allowClear
+          prefix={<SearchOutlined />}
+          placeholder="Search clients by name or client id"
+          aria-label="Search clients"
+          value={box}
+          onChange={(event) => setBox(event.target.value)}
+        />
+      </div>
+
+      <div className="nu-pane nu-pane--table nx-ad-panel">
         <Table<ApiClientRow>
           size="small"
           rowKey="id"

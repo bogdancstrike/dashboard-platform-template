@@ -48,7 +48,7 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { DeleteOutlined, PlusOutlined, TeamOutlined } from "@ant-design/icons";
+import { DeleteOutlined, PlusOutlined, SearchOutlined, TeamOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
@@ -286,48 +286,52 @@ export default function GroupsPage() {
   ];
 
   return (
-    <div className="nu-fill">
+    <div className="nu-fill nx-ad nx-ad--groups">
       <PageHeader
         title="Groups"
-        subtitle="Sets of people. Being in one adds its permissions to whatever a person's role already allows."
+        subtitle={`${catalogue.data!.total} groups — sets of people. Being in one adds its permissions to whatever a person's role already allows.`}
         tag={<Tag>{catalogue.data!.total} groups</Tag>}
         actions={
-          <Space size={8}>
-            <Input.Search
-              allowClear
-              placeholder="Name or description"
-              aria-label="Search groups"
-              style={{ width: 230 }}
-              value={box}
-              onChange={(event) => setBox(event.target.value)}
-            />
-            <Select
-              aria-label="Kind"
-              value={kind || "all"}
-              style={{ width: 165 }}
-              onChange={(next) => set({ kind: next === "all" ? null : next })}
-              options={[
-                { value: "all", label: `Every kind (${catalogue.data!.total})` },
-                ...kinds.map((item) => ({
-                  value: item.key,
-                  label: `${item.key.toLowerCase()} (${item.count})`,
-                  disabled: item.count === 0,
-                })),
-              ]}
-            />
-            {canMembers && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setCreating(true)}
-                data-testid="new-group"
-              >
-                New group
-              </Button>
-            )}
-          </Space>
+          canMembers ? (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setCreating(true)}
+              data-testid="new-group"
+            >
+              New group
+            </Button>
+          ) : undefined
         }
       />
+
+      <div className="nx-ad-bar" role="search">
+        <Input
+          className="nx-ad-grow"
+          allowClear
+          prefix={<SearchOutlined />}
+          placeholder="Search groups by name or description"
+          aria-label="Search groups"
+          value={box}
+          onChange={(event) => setBox(event.target.value)}
+        />
+        <Select
+          aria-label="Kind"
+          value={kind || "all"}
+          className={kind ? "nx-ad-set" : undefined}
+          popupMatchSelectWidth={false}
+          style={{ minWidth: 170 }}
+          onChange={(next) => set({ kind: next === "all" ? null : next })}
+          options={[
+            { value: "all", label: `Kind: any (${catalogue.data!.total})` },
+            ...kinds.map((item) => ({
+              value: item.key,
+              label: `${item.key.toLowerCase()} (${item.count})`,
+              disabled: item.count === 0,
+            })),
+          ]}
+        />
+      </div>
 
       {/* Said once at the top: a reader without either privilege is looking at
           a directory, and the reason will not change while they look (§76). */}
@@ -342,7 +346,7 @@ export default function GroupsPage() {
         />
       )}
 
-      <div className="nu-pane nu-pane--table">
+      <div className="nu-pane nu-pane--table nx-ad-panel">
         <Table<Group>
           size="small"
           rowKey="id"

@@ -203,9 +203,9 @@ export default function SystemPage() {
   ]);
 
   return (
-    <>
+    <div className="nx-ad nx-ad--health">
       <PageHeader
-        title="System health"
+        title={<>System <em>health</em></>}
         subtitle="Every monitored dependency: what it is doing now, and what it has been doing."
         tag={
           health.data ? (
@@ -307,6 +307,6 @@ export default function SystemPage() {
           </Card>
         </Col>
       </Row>
-    </>
+    </div>
   );
 }

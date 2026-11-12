@@ -172,8 +172,8 @@ export default function RolesPage() {
     const error = matrix.error;
     const forbidden = error instanceof ApiError && error.isForbidden;
     return (
-      <>
-        <PageHeader title="Roles & permissions" />
+      <div className="nx-ad nx-ad--roles">
+        <PageHeader title={<>Roles & <em>permissions</em></>} />
         <Alert
           type={forbidden ? "warning" : "error"}
           showIcon
@@ -200,7 +200,7 @@ export default function RolesPage() {
             </Button>
           }
         />
-      </>
+      </div>
     );
   }
 
@@ -291,9 +291,9 @@ export default function RolesPage() {
   ];
 
   return (
-    <>
+    <div className="nx-ad nx-ad--roles">
       <PageHeader
-        title="Roles & permissions"
+        title={<>Roles & <em>permissions</em></>}
         subtitle="Every permission the code checks for, and which roles grant it. A change applies to the holder's next request — no re-login."
         tag={
           <Space size={6}>
@@ -441,7 +441,7 @@ export default function RolesPage() {
           void queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
         }}
       />
-    </>
+    </div>
   );
 }
 

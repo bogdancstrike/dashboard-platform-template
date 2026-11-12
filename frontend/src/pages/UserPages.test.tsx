@@ -48,7 +48,7 @@ describe("the people directory", () => {
     expect(await screen.findByText("Ada Administrator")).toBeInTheDocument();
     expect(screen.getByText("uma@nucleus.example")).toBeInTheDocument();
     expect(screen.getAllByText("Viewer").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("ACTIVE").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Active").length).toBeGreaterThan(0);
     expect(screen.getByTestId("user-total")).toHaveTextContent("2 people");
   });
 

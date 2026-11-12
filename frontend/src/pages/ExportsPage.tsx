@@ -479,7 +479,7 @@ export default function ExportsPage() {
   ];
 
   return (
-    <div className="nu-exp">
+    <div className="nu-exp nx-ad nx-ad--exports">
       <PageHeader
         title="Exports"
         subtitle={summary(catalogue.data)}

@@ -119,7 +119,7 @@ export default function UserDetailPage() {
     const error = person.error;
     const missing = error instanceof ApiError && error.isNotFound;
     return (
-      <>
+      <div className="nx-ad nx-ad--user">
         <PageHeader
           title={missing ? "Person not found" : "Could not open this profile"}
           onBack={() => navigate("/admin/users")}
@@ -135,7 +135,7 @@ export default function UserDetailPage() {
                 : "The request failed."
           }
         />
-      </>
+      </div>
     );
   }
 
@@ -154,7 +154,7 @@ export default function UserDetailPage() {
   };
 
   return (
-    <>
+    <div className="nx-ad nx-ad--user">
       <PageHeader
         title={
           <Space size={10}>
@@ -283,7 +283,7 @@ export default function UserDetailPage() {
           },
         ]}
       />
-    </>
+    </div>
   );
 }
 
