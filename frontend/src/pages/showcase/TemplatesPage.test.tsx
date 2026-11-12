@@ -166,3 +166,24 @@ describe("the page", () => {
     expect(rows[1]).toHaveAttribute("aria-current", "true");
   });
 });
+describe("the starter templates", () => {
+  it("offers more starters than shapes, each with a live thumbnail and what it is for", () => {
+    render();
+    const starters = screen.getByTestId("starters");
+    expect(within(starters).getAllByRole("article").length).toBeGreaterThanOrEqual(14);
+    const list = screen.getByTestId("starter-list-page");
+    expect(within(list).getByText(/most common page in the product/)).toBeInTheDocument();
+    // The thumbnail is the real page, kept out of the tab order.
+    expect(list.querySelector(".nx-tpl-thumb")).toHaveAttribute("inert");
+  });
+
+  it("opens one full size, and shows its code to copy", async () => {
+    const user = userEvent.setup();
+    render();
+    await user.click(within(screen.getByTestId("starter-wizard")).getByRole("button", { name: "View code" }));
+    const detail = await screen.findByTestId("starter-detail-wizard");
+    await user.click(within(detail).getByText("Code"));
+    expect(detail).toHaveTextContent("export default function WizardTemplate");
+    expect(within(detail).getByRole("button", { name: /Copy/ })).toBeInTheDocument();
+  });
+});

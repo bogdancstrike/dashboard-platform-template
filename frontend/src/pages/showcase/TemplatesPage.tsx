@@ -31,13 +31,20 @@
  * telling them every decision is the same size.
  */
 
-import { Alert, Card, Space, Tag, Typography } from "antd";
+import { Alert, Button, Card, Modal, Segmented, Space, Tag, Typography } from "antd";
 import { AppstoreOutlined, ArrowRightOutlined, BuildOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { usePageCommands } from "@/commands/CommandContext";
 
 import { PageHeader } from "@/components/PageHeader";
+
+import { CodeBlock } from "./docs/CodeBlock";
+import { Stage } from "./docs/DemoFrame";
+import { TEMPLATES, TEMPLATE_SOURCE } from "./docs/sources";
+import { STARTERS, type StarterTemplate } from "./docs/templateRegistry";
+import { URL_OVERLAY } from "@/app/history";
+import { useUrlOverlay } from "@/pages/admin/useUrlOverlay";
 import { StatusTag } from "@/components/StatusTag";
 import {
   CREATE_FLOWS,
@@ -312,6 +319,96 @@ function CreateCard({ shape }: { shape: CreateShapeSpec }) {
   );
 }
 
+/** A starter template's live thumbnail: the real page, drawn small and inert. */
+function Thumb({ id }: { id: string }) {
+  const Page = TEMPLATES[id]?.default;
+  return (
+    // `inert` by attribute: React 18 has no prop for it, and a thumbnail must
+    // not put a whole page of controls into the tab order.
+    <div className="nx-tpl-thumb" aria-hidden="true" ref={(node) => node?.setAttribute("inert", "")}>
+      <div className="nx-tpl-thumb-page">{Page ? <Page /> : null}</div>
+    </div>
+  );
+}
+
+/** One starter: thumbnail, when to use it, and its code a click away. */
+function StarterCard({ starter, onOpen }: { starter: StarterTemplate; onOpen: () => void }) {
+  return (
+    <article className="nx-tpl-card" data-testid={`starter-${starter.id}`}>
+      <button type="button" className="nx-tpl-preview" onClick={onOpen} aria-label={`Open the ${starter.name} template`}>
+        <Thumb id={starter.id} />
+      </button>
+      <div className="nx-tpl-body">
+        <b>{starter.name}</b>
+        <span>{starter.when}</span>
+        <span className="nx-tpl-pieces">
+          {starter.pieces.map((piece) => (
+            <Tag key={piece} bordered={false}>
+              {piece}
+            </Tag>
+          ))}
+        </span>
+        <span className="nx-tpl-actions">
+          <Button onClick={onOpen}>View code</Button>
+          {starter.example && <Link to={starter.example}>See it live →</Link>}
+        </span>
+      </div>
+    </article>
+  );
+}
+
+/** The template, full size, with its source and a copy. */
+function StarterModal({ starter, onClose }: { starter: StarterTemplate | null; onClose: () => void }) {
+  const [view, setView] = useState<"preview" | "code">("preview");
+  const Page = starter ? TEMPLATES[starter.id]?.default : undefined;
+  return (
+    <Modal
+      open={starter !== null}
+      onCancel={() => {
+        setView("preview");
+        onClose();
+      }}
+      footer={null}
+      width={1180}
+      rootClassName={URL_OVERLAY}
+      centered
+      destroyOnClose
+      className="nx-tpl-modal"
+      title={
+        starter ? (
+          <span className="nx-ad-modal-title">
+            <span>
+              {starter.name} <em>template</em>
+            </span>
+            <small>{starter.when}</small>
+          </span>
+        ) : null
+      }
+    >
+      {starter && (
+        <div className="nx-doc-col" data-testid={`starter-detail-${starter.id}`}>
+          <Segmented
+            aria-label="Preview or code"
+            value={view}
+            onChange={(value) => setView(value as "preview" | "code")}
+            options={[
+              { value: "preview", label: "Preview" },
+              { value: "code", label: "Code" },
+            ]}
+          />
+          {view === "preview" ? (
+            <Stage mode="app" className="nx-tpl-stage">
+              {Page ? <Page /> : null}
+            </Stage>
+          ) : (
+            <CodeBlock code={TEMPLATE_SOURCE[starter.id] ?? ""} file={`${starter.id}.tsx`} maxHeight={560} />
+          )}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 export default function TemplatesPage() {
   const navigate = useNavigate();
   const shapes = useMemo(
@@ -353,14 +450,33 @@ export default function TemplatesPage() {
     },
   ]);
 
+  // In the address (`?template=wizard`), pushed: back closes it, a link opens it.
+  const template = useUrlOverlay("template");
+  const opened = STARTERS.find((starter) => starter.id === template.value) ?? null;
+
   return (
     <div className="nu-tmpl nx-ad nx-ad--templates">
       <PageHeader
-        title={<>Page <em>gallery</em></>}
+        title={<>Page <em>templates</em></>}
         subtitle={summary()}
         tag={<Tag bordered={false}>{shapes.length} shapes</Tag>}
       />
 
+      <section className="nx-tpl-section" aria-labelledby="starters-title" data-testid="starters">
+        <h2 id="starters-title" className="nx-doc-grouptitle">Start a page from a template</h2>
+        <p className="nx-doc-muted">
+          {STARTERS.length} starter pages, each a real page built from the shared components. Open one to see it full
+          size and copy its TSX.
+        </p>
+        <div className="nx-tpl-grid">
+          {STARTERS.map((starter) => (
+            <StarterCard key={starter.id} starter={starter} onOpen={() => template.open(starter.id)} />
+          ))}
+        </div>
+        <StarterModal starter={opened} onClose={template.close} />
+      </section>
+
+      <h2 className="nx-doc-grouptitle">Every page shape in the product</h2>
       <Alert
         type="info"
         showIcon

@@ -19,12 +19,12 @@ import { renderWithProviders } from "@/test/render";
  * through the page: that the gap is rendered rather than swallowed, and that
  * each demonstration shows the states that are actually decisions.
  */
-function render() {
+function render(query = "") {
   return renderWithProviders(
     <Routes>
       <Route path="/showcase/components" element={<ComponentsPage />} />
     </Routes>,
-    { route: "/showcase/components" },
+    { route: `/showcase/components${query ? `?q=${encodeURIComponent(query)}` : ""}` },
   );
 }
 
@@ -117,46 +117,34 @@ describe("the page", () => {
   });
 
   it("shows the states that are decisions, not one happy path", () => {
-    render();
+    render("polarity");
     const stat = screen.getByTestId("demo-StatCard");
     // The whole point of `polarity`: the same arrow is good news for revenue
-    // and bad news for open tickets.
+    // and bad news for response time.
     expect(within(stat).getByText(/a rise reads as bad news/)).toBeInTheDocument();
     expect(within(stat).getByText(/the same arrow reads as good/)).toBeInTheDocument();
 
+  });
+
+  it("shows both empties", () => {
+    render("emptystate");
     const empty = screen.getByTestId("demo-EmptyState");
     expect(within(empty).getByText("No tickets yet")).toBeInTheDocument();
     expect(within(empty).getByText("Nothing matches")).toBeInTheDocument();
   });
 
   it("shows feature components, and says the shelf is a selection", () => {
-    render();
-    // The second shelf: components that belong to one page each, shown because
-    // their shape is worth borrowing.
+    render("nucleus patterns");
     expect(screen.getByTestId("feature-shelf")).toBeInTheDocument();
-    expect(screen.getByTestId("demo-WidgetCard")).toBeInTheDocument();
-    expect(screen.getByTestId("demo-KanbanCardTile")).toBeInTheDocument();
-    expect(screen.getByTestId("demo-AuditDiff")).toBeInTheDocument();
-
-    // And the promise it makes is the honest one: the shared toolkit above is
-    // complete, this shelf is chosen. Claiming coverage of a hundred feature
-    // components would be a promise the page could not keep.
-    expect(screen.getByTestId("feature-note")).toHaveTextContent(
-      /selection, not an inventory/,
-    );
+    expect(screen.getByTestId("demo-widget-card")).toBeInTheDocument();
+    expect(screen.getByTestId("demo-kanban-card")).toBeInTheDocument();
+    expect(screen.getByTestId("demo-audit-diff")).toBeInTheDocument();
+    expect(screen.getByTestId("feature-note")).toHaveTextContent(/selection, not an inventory/);
   });
 
-  /**
-   * The table, on its own, in the states a happy path never shows (§3, §34).
-   *
-   * Every list in the platform is one table over a server-side query, and the
-   * part worth demonstrating separately is not the columns — it is the six
-   * states, and in particular that the two empties are *different*: one wants
-   * the action that makes the first row, the other wants the filters cleared.
-   */
   it("demonstrates the table's states, and tells the two empties apart", async () => {
     const user = userEvent.setup();
-    render();
+    render("six states");
 
     const stage = await screen.findByTestId("table-stage");
     expect(within(stage).getByText("Printer on fire")).toBeInTheDocument();
@@ -178,5 +166,55 @@ describe("the page", () => {
     // A refusal names the permission and offers no retry.
     expect(refused).toHaveTextContent("records.view");
     expect(within(refused).queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+  });
+});
+
+describe("the documentation", () => {
+  it("indexes every entry by group, and the search narrows both the index and the sections", async () => {
+    const user = userEvent.setup();
+    render("foundations");
+    const index = screen.getByRole("complementary", { name: "Components" });
+    const foundations = within(index).getByRole("button", { name: /Foundations/ });
+    expect(foundations).toHaveAttribute("aria-expanded", "true");
+    expect(within(index).getByRole("link", { name: "NxIcon" })).toBeInTheDocument();
+
+    // A group folds, and "collapse all" folds every one.
+    await user.click(foundations);
+    expect(within(index).queryByRole("link", { name: "NxIcon" })).toBeInTheDocument();
+    await user.clear(screen.getByLabelText("Search components"));
+    await user.click(within(index).getByRole("button", { name: "Collapse all groups" }));
+    expect(within(index).queryByRole("link", { name: "PageHeader" })).not.toBeInTheDocument();
+    await user.click(within(index).getByRole("button", { name: "Expand all groups" }));
+    expect(within(index).getByRole("link", { name: "PageHeader" })).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Search components"), "statustag");
+    expect(within(index).getByRole("link", { name: "StatusTag" })).toBeInTheDocument();
+    expect(within(index).queryByRole("link", { name: "PageHeader" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("demo-PageHeader")).not.toBeInTheDocument();
+    expect(screen.getByTestId("demo-StatusTag")).toBeInTheDocument();
+  });
+
+  it("shows each demo's own source as code, with a copy that says it worked", async () => {
+    const user = userEvent.setup();
+    const writes: string[] = [];
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: (text: string) => { writes.push(text); return Promise.resolve(); } },
+    });
+    render("all five tones");
+    const demo = screen.getByTestId("demo-file-status-tag.tones");
+    await user.click(within(demo).getByText("Code"));
+    // The code *is* the demo file: it imports the real component.
+    expect(demo).toHaveTextContent('import { StatusTag, type StatusTone } from "@/components/StatusTag";');
+    await user.click(within(demo).getByRole("button", { name: /Copy/ }));
+    expect(writes[0]).toContain("export default function StatusTagTones");
+    expect(await within(demo).findByText("Copied")).toBeInTheDocument();
+  });
+
+  it("documents the props of the components it covers", () => {
+    render("pageheader");
+    const header = screen.getByTestId("demo-PageHeader");
+    expect(within(header).getByText("API")).toBeInTheDocument();
+    expect(within(header).getByText("onBack")).toBeInTheDocument();
   });
 });
