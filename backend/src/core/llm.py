@@ -26,6 +26,22 @@ Usage::
 
 Messages and tools are the plain OpenAI Chat Completions dictionaries, so a
 feature can build them without importing anything from here.
+
+Limits (real money — every feature inherits them by calling through here):
+
+* ``LLM_MAX_SECONDS`` — hard cap on a call's *total* duration, streaming
+  included (3 s when ``ENVIRONMENT`` is ``test`` or ``load``, else 30 s).
+  Exceeded → ``LlmError("LLM_TIMEOUT")``.
+* ``LLM_MAX_CONCURRENCY`` — model calls in flight per worker; no slot within
+  the time cap → ``LlmError("LLM_BUSY")``.
+* Per-user rate limit — ``LLM_RATE_PER_MINUTE``, enforced by
+  ``src.services.ai.guard`` (counts the ``ai_usage`` ledger).
+* ``LLM_MODE=fake`` forces the fake for the whole process; with
+  ``LLM_ALLOW_FAKE_HEADER=true`` a request carrying ``X-Nucleus-LLM: fake``
+  gets the fake for that request only (load tests).
+
+Callers turn an ``LlmError`` into a clean 503 envelope with
+``src.services.ai.unavailable`` — never a 500, never a hang.
 """
 
 from __future__ import annotations
@@ -36,6 +52,7 @@ import math
 import re
 import threading
 import time
+from contextlib import contextmanager
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import asdict, dataclass, field
 from typing import Any, Protocol
@@ -176,6 +193,65 @@ def _parse_args(raw: str) -> dict[str, Any]:
     return value if isinstance(value, dict) else {"value": value}
 
 
+# ── Limits ────────────────────────────────────────────────────────────────
+
+FAKE_HEADER = "X-Nucleus-LLM"
+
+
+class _Expired(Exception):
+    """Raised inside a call by the gevent timer when the time cap passes."""
+
+
+def max_seconds() -> float:
+    return max(0.05, float(Config.LLM_MAX_SECONDS or 30))
+
+
+_slots: threading.BoundedSemaphore | None = None
+_slots_size = 0
+_slots_lock = threading.Lock()
+
+
+def _semaphore() -> threading.BoundedSemaphore:
+    global _slots, _slots_size
+    size = max(1, int(Config.LLM_MAX_CONCURRENCY or 1))
+    with _slots_lock:
+        if _slots is None or _slots_size != size:
+            _slots, _slots_size = threading.BoundedSemaphore(size), size
+        return _slots
+
+
+@contextmanager
+def slot(timeout: float | None = None):
+    """One of the LLM_MAX_CONCURRENCY slots, or LLM_BUSY within the time cap."""
+    sem = _semaphore()
+    if not sem.acquire(timeout=max_seconds() if timeout is None else timeout):
+        raise LlmError("LLM_BUSY", "too many model calls in flight", retryable=True)
+    try:
+        yield
+    finally:
+        sem.release()
+
+
+def _bounded(seconds: float, fn, *args, **kwargs):
+    """Run fn with a hard wall-clock cap when the process is gevent-patched
+    (gunicorn's workers are); otherwise the socket timeouts are the cap."""
+    if seconds <= 0:
+        raise LlmError("LLM_TIMEOUT", "the model took too long", retryable=True)
+    try:
+        from gevent import Timeout, monkey
+
+        patched = monkey.is_module_patched("socket")
+    except ImportError:  # pragma: no cover - gevent is a requirement
+        patched = False
+    if not patched:
+        return fn(*args, **kwargs)
+    try:  # pragma: no cover - exercised under gunicorn/gevent only
+        with Timeout(seconds, _Expired):
+            return fn(*args, **kwargs)
+    except _Expired as exc:  # pragma: no cover
+        raise LlmError("LLM_TIMEOUT", "the model took too long", retryable=True) from exc
+
+
 # ── Interface ─────────────────────────────────────────────────────────────
 
 
@@ -258,11 +334,16 @@ class GatewayClient:
             body["stream_options"] = {"include_usage": True}
         return body
 
-    def _post(self, path: str, body: dict, *, stream: bool = False) -> requests.Response:
+    def _cap(self) -> float:
+        return min(float(self.timeout), max_seconds())
+
+    def _post(self, path: str, body: dict, *, stream: bool = False, deadline: float | None = None) -> requests.Response:
+        cap = self._cap() if deadline is None else deadline - time.monotonic()
         try:
-            resp = self.session.post(
+            resp = _bounded(
+                cap, self.session.post,
                 f"{self.base_url}{path}", headers=self._headers(), json=body,
-                timeout=(10, self.timeout), stream=stream,
+                timeout=(min(5.0, max(cap, 0.05)), max(cap, 0.05)), stream=stream,
             )
         except requests.Timeout as exc:
             raise LlmError("LLM_TIMEOUT", "the model took too long", retryable=True) from exc
@@ -275,14 +356,19 @@ class GatewayClient:
     # -- API
     def chat(self, messages, tools=None, *, json_mode=False, max_tokens=None, user=None) -> ChatResult:
         t0 = time.monotonic()
-        resp = self._post(
-            "/chat/completions",
-            self._body(messages, tools, json_mode=json_mode, max_tokens=max_tokens, user=user),
-        )
+        with slot():
+            resp = self._post(
+                "/chat/completions",
+                self._body(messages, tools, json_mode=json_mode, max_tokens=max_tokens, user=user),
+                deadline=t0 + self._cap(),
+            )
+            try:
+                data = _bounded(t0 + self._cap() - time.monotonic(), resp.json)
+            except ValueError:
+                data = None
         try:
-            data = resp.json()
             choice = data["choices"][0]
-        except (ValueError, KeyError, IndexError) as exc:
+        except (TypeError, KeyError, IndexError) as exc:
             raise LlmError("LLM_BAD_OUTPUT", "unreadable gateway response") from exc
         msg = choice.get("message") or {}
         calls = [
@@ -303,19 +389,33 @@ class GatewayClient:
         )
 
     def stream(self, messages, tools=None, *, max_tokens=None, user=None) -> Iterator[StreamEvent]:
+        with slot():
+            yield from self._stream(messages, tools, max_tokens=max_tokens, user=user)
+
+    def _stream(self, messages, tools=None, *, max_tokens=None, user=None) -> Iterator[StreamEvent]:
         t0 = time.monotonic()
+        deadline = t0 + self._cap()
         resp = self._post(
             "/chat/completions",
             self._body(messages, tools, max_tokens=max_tokens, user=user, stream=True),
-            stream=True,
+            stream=True, deadline=deadline,
         )
+        lines = resp.iter_lines(decode_unicode=True)
+        _end = object()
+
+        def _next():
+            # The whole stream shares one deadline, not each read its own.
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise LlmError("LLM_TIMEOUT", "the model took too long", retryable=True)
+            return _bounded(remaining, next, lines, _end)
         text: list[str] = []
         partial: dict[int, dict[str, str]] = {}
         usage_raw: dict | None = None
         finish = "stop"
         model = self.model
         try:
-            for line in resp.iter_lines(decode_unicode=True):
+            while (line := _next()) is not _end:
                 if not line or not line.startswith("data:"):
                     continue
                 payload = line[5:].strip()
@@ -341,6 +441,8 @@ class GatewayClient:
                         slot["arguments"] += fn.get("arguments") or ""
                     if choice.get("finish_reason"):
                         finish = choice["finish_reason"]
+        except requests.Timeout as exc:
+            raise LlmError("LLM_TIMEOUT", "the model took too long", retryable=True) from exc
         except requests.RequestException as exc:
             raise LlmError("LLM_UNAVAILABLE", "the stream broke", retryable=True) from exc
         finally:
@@ -361,7 +463,8 @@ class GatewayClient:
     def embed(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
-        resp = self._post("/embeddings", {"model": self.embedding_model, "input": texts})
+        with slot():
+            resp = self._post("/embeddings", {"model": self.embedding_model, "input": texts})
         try:
             rows = sorted(resp.json()["data"], key=lambda d: d.get("index", 0))
             return [r["embedding"] for r in rows]
@@ -506,8 +609,26 @@ def mode() -> str:
     return "real" if Config.LLM_API_KEY else "fake"
 
 
+_header_fake: FakeClient | None = None
+
+
+def _fake_requested() -> bool:
+    """`X-Nucleus-LLM: fake` on this request, when LLM_ALLOW_FAKE_HEADER allows it."""
+    if not Config.LLM_ALLOW_FAKE_HEADER:
+        return False
+    try:
+        from flask import has_request_context, request
+    except ImportError:  # pragma: no cover
+        return False
+    return has_request_context() and request.headers.get(FAKE_HEADER, "").strip().lower() == "fake"
+
+
 def get_client() -> LlmClient:
-    global _client
+    global _client, _header_fake
+    if _fake_requested():
+        if _header_fake is None:
+            _header_fake = FakeClient()
+        return _header_fake
     if _client is None:
         with _client_lock:
             if _client is None:

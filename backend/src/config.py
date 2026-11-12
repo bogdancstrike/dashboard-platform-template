@@ -142,6 +142,18 @@ class Config:
     LLM_MAX_OUTPUT_TOKENS = _int("LLM_MAX_OUTPUT_TOKENS", 4000)
     #: Requests per user per minute across every AI endpoint.
     LLM_RATE_PER_MINUTE = _int("LLM_RATE_PER_MINUTE", 20)
+    #: Hard cap on one model call's *total* duration, streaming included. Real
+    #: money: tests and load runs must never wait on a model, so those profiles
+    #: default to 3 seconds; normal use to 30.
+    LLM_MAX_SECONDS = float(
+        os.getenv("LLM_MAX_SECONDS", "")
+        or (3 if os.getenv("ENVIRONMENT", "local") in ("test", "load") else 30)
+    )
+    #: Model calls in flight at once, per worker process. A call that cannot get
+    #: a slot within LLM_MAX_SECONDS fails cleanly as busy.
+    LLM_MAX_CONCURRENCY = _int("LLM_MAX_CONCURRENCY", 4)
+    #: Honour `X-Nucleus-LLM: fake` on a request (load tests). Off by default.
+    LLM_ALLOW_FAKE_HEADER = _flag("LLM_ALLOW_FAKE_HEADER", False)
 
     # ── QF framework expects these to exist even with the ETL disabled ───
     KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "")

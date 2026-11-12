@@ -223,3 +223,101 @@ def test_selection(monkeypatch):
     monkeypatch.setattr(llm.Config, "LLM_MODE", "fake")
     assert llm.mode() == "fake"
     llm.set_client(None)
+
+
+# ── Limits: time cap, concurrency, per-request fake ────────────────────────
+
+
+def test_max_seconds_defaults_to_three_in_test_profile():
+    # conftest sets ENVIRONMENT=test before src.config is imported.
+    assert llm.Config.LLM_MAX_SECONDS == 3
+    assert llm.max_seconds() == 3
+
+
+def test_requests_are_capped_by_max_seconds(monkeypatch):
+    monkeypatch.setattr(llm.Config, "LLM_MAX_SECONDS", 1.5)
+    client, session = _client(_Resp(body={"choices": [{"message": {"content": "ok"}}]}))
+    client.timeout = 90
+    assert client.chat([]).text == "ok"
+    # The read timeout handed to requests never exceeds the cap.
+    assert session.sent and client._cap() == 1.5
+
+
+def test_stream_total_duration_is_capped(monkeypatch):
+    monkeypatch.setattr(llm.Config, "LLM_MAX_SECONDS", 2)
+    clock = {"t": 100.0}
+
+    def tick():
+        clock["t"] += 0.9  # each read "takes" 0.9s
+        return clock["t"]
+
+    monkeypatch.setattr(llm.time, "monotonic", tick)
+    lines = [_sse({"choices": [{"delta": {"content": "x"}}]})] * 50
+    client, _ = _client(_Resp(lines=lines))
+    with pytest.raises(llm.LlmError) as e:
+        list(client.stream([]))
+    assert e.value.code == "LLM_TIMEOUT" and e.value.retryable
+
+
+def test_stream_read_timeout_is_a_timeout():
+    client, _ = _client(_Resp(lines=[requests.Timeout()]))
+    with pytest.raises(llm.LlmError) as e:
+        list(client.stream([]))
+    assert e.value.code == "LLM_TIMEOUT"
+
+
+def test_expired_deadline_refuses_before_sending():
+    with pytest.raises(llm.LlmError) as e:
+        llm._bounded(0, lambda: None)
+    assert e.value.code == "LLM_TIMEOUT"
+    assert llm._bounded(1, lambda x: x * 2, 4) == 8
+
+
+def test_concurrency_limit_fails_fast_as_busy(monkeypatch):
+    monkeypatch.setattr(llm.Config, "LLM_MAX_CONCURRENCY", 1)
+    monkeypatch.setattr(llm.Config, "LLM_MAX_SECONDS", 0.1)
+    client, _ = _client(_Resp(body={"choices": [{"message": {"content": "ok"}}]}),
+                        _Resp(body={"choices": [{"message": {"content": "ok"}}]}))
+    with llm.slot():
+        t0 = llm.time.monotonic()
+        with pytest.raises(llm.LlmError) as e:
+            client.chat([])
+        assert e.value.code == "LLM_BUSY" and e.value.retryable
+        assert llm.time.monotonic() - t0 < 1
+        with pytest.raises(llm.LlmError):
+            list(client.stream([]))
+    # The slot is released afterwards.
+    assert client.chat([]).text == "ok"
+    monkeypatch.setattr(llm.Config, "LLM_MAX_CONCURRENCY", 4)
+    llm._semaphore()
+
+
+def test_unreadable_json_body_is_bad_output():
+    client, _ = _client(_Resp(body=ValueError("not json")))
+    with pytest.raises(llm.LlmError) as e:
+        client.chat([])
+    assert e.value.code == "LLM_BAD_OUTPUT"
+
+
+def test_fake_header_only_when_allowed(app, monkeypatch):
+    real = llm.GatewayClient("http://gw/v1", "k", "m")
+    llm.set_client(real)
+    try:
+        with app.test_request_context(headers={llm.FAKE_HEADER: "fake"}):
+            monkeypatch.setattr(llm.Config, "LLM_ALLOW_FAKE_HEADER", False)
+            assert llm.get_client() is real
+            monkeypatch.setattr(llm.Config, "LLM_ALLOW_FAKE_HEADER", True)
+            assert isinstance(llm.get_client(), llm.FakeClient)
+        with app.test_request_context():
+            assert llm.get_client() is real
+        assert llm.get_client() is real  # outside a request
+    finally:
+        llm.set_client(None)
+
+
+def test_timeouts_become_a_clean_envelope():
+    from src.services import ai
+
+    err = ai.unavailable(llm.LlmError("LLM_TIMEOUT", "slow"))
+    assert err.status_code == 503 and err.message == "The assistant took too long — try again."
+    assert ai.unavailable(llm.LlmError("LLM_BUSY", "x")).status_code == 503
