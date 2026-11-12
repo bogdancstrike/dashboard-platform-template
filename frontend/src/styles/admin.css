@@ -226,7 +226,7 @@
   font: 600 13px var(--nu-font); color: var(--nu-text);
   transition: background 0.2s ease, box-shadow 0.2s ease;
 }
-.nx-ad .nu-kindchip::before { content: ""; width: 8px; height: 8px; border-radius: 4px; background: var(--nu-text-tertiary); flex-shrink: 0; }
+.nx-ad .nu-kindchip::before { order: -2; content: ""; width: 8px; height: 8px; border-radius: 4px; background: var(--nu-text-tertiary); flex-shrink: 0; }
 .nx-ad .nu-kindchip:hover:not(:disabled) { background: rgba(var(--nu-ink-rgb), 0.1); border-color: transparent; }
 .nx-ad .nu-kindchip.is-active { background: var(--nu-raised); box-shadow: var(--nu-lift); }
 .nx-ad .nu-kindchip-label { order: -1; font-size: 13px; font-weight: 600; color: var(--nu-text); }
@@ -295,3 +295,26 @@
 .nx-ad-perm b { font-size: 13.5px; font-weight: 600; }
 .nx-ad-perm code { font: 11px var(--nu-font-mono); color: var(--nu-text-tertiary); background: none; padding: 0; overflow: hidden; text-overflow: ellipsis; }
 .nx-ad-perm .ant-checkbox .ant-checkbox-inner { width: 20px; height: 20px; border-radius: 6px; }
+
+/* ═════════════ feature flags: the rollout reads as a progress bar ═════════════ */
+.nx-ad--flags .ant-slider .ant-slider-rail { height: 7px; border-radius: 4px; background: rgba(var(--nu-ink-rgb), 0.08); }
+.nx-ad--flags .ant-slider .ant-slider-track { height: 7px; border-radius: 4px; background: var(--nu-accent); }
+.nx-ad--flags .ant-slider .ant-slider-handle { inset-block-start: 4px; }
+.nx-ad--flags .ant-slider .ant-slider-handle::after { box-shadow: 0 0 0 2px var(--nu-accent); }
+.nx-ad--flags .ant-switch { min-width: 44px; height: 26px; }
+.nx-ad--flags .ant-switch .ant-switch-handle { width: 20px; height: 20px; top: 3px; inset-inline-start: 3px; }
+.nx-ad--flags .ant-switch.ant-switch-checked .ant-switch-handle { inset-inline-start: calc(100% - 23px); }
+.nx-ad--flags .ant-switch .ant-switch-handle::before { border-radius: 10px; }
+
+/* ═════════════ narrow screens: nothing pushes the page sideways ═════════════ */
+.nx-ad .ant-table-content { overflow-x: auto; }
+.nx-ad .ant-table-wrapper, .nx-ad .ant-spin-nested-loading, .nx-ad .ant-spin-container { min-width: 0; max-width: 100%; }
+.nx-ad .ant-segmented { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.nx-app--phone .nx-ad .ant-space-horizontal, .nx-app--tablet .nx-ad .ant-space-horizontal { flex-wrap: wrap; }
+.nx-app--phone .nx-ad .ant-space-horizontal > .ant-space-item { min-width: 0; max-width: 100%; }
+.nx-app--phone .nx-ad .nu-page-actions { width: 100%; }
+.nx-app--phone .nx-ad-bar > .ant-select { flex: 1 1 140px; }
+.nx-app--phone .nx-ad .ant-card .ant-card-body { padding: 14px; }
+.nx-app--phone .nx-ad .ant-space, .nx-app--tablet .nx-ad .ant-space { max-width: 100%; }
+.nx-app--phone .nx-ad .nu-page-actions .ant-input-search, .nx-app--phone .nx-ad .nu-page-actions .ant-input-affix-wrapper { width: 100% !important; }
+.nx-ad .ant-table-container { max-width: 100%; overflow-x: auto; }
