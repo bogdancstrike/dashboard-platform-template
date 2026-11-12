@@ -434,8 +434,13 @@ function Overview({
         ))}
       </div>
 
-      <div className="nx-fd-pgrid">
-        <WhoCard profile={profile} />
+      {/* Two columns that end together: who they are (and, on your own
+          page, your settings at a glance) beside what they did lately. */}
+      <div className="nx-fd-pgrid nx-fd-pgrid--fill">
+        <div className="nx-fd-pcol">
+          <WhoCard profile={profile} />
+          {mine && <MyDigests auth={auth} profile={profile} />}
+        </div>
         <Highlights profile={profile} />
       </div>
 
@@ -451,7 +456,6 @@ function Overview({
 
 
 
-      {mine && <MyDigests auth={auth} profile={profile} />}
     </div>
   );
 }

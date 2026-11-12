@@ -2,6 +2,7 @@
 import { expect, test } from "@playwright/test";
 
 import { CHART_KEYS } from "../src/api/dashboard";
+import { HIDDEN_ON_DASHBOARD } from "../src/pages/dashboardLayout";
 import { apiAs, endpoint } from "./api";
 import { signIn } from "./auth";
 
@@ -12,21 +13,27 @@ test("the expanded dashboard renders, exports every scatter dimension, and keeps
   // Counted off the declaration rather than typed: the number was 16 and the
   // seventeenth panel shipped without it, so the failure read as a broken
   // dashboard rather than as a stale test.
-  await expect(page.locator(".nu-chartcard")).toHaveCount(CHART_KEYS.length);
+  // Two declared panels are not shown on the front page (the order funnel
+  // and budget-against-progress scatter), at the user's request.
+  // A panel with nothing in the period is named in the quiet line instead.
+  await expect(page.locator(".nu-chartcard")).not.toHaveCount(0);
+  const drawn = await page.locator(".nu-chartcard").count();
+  const quiet = await page.locator('[data-testid="dashboard-quiet"] [data-chart-id]').count();
+  expect(drawn + quiet).toBe(CHART_KEYS.length - HIDDEN_ON_DASHBOARD.size);
   const radar = page.locator('[data-chart-id="support_profile"]');
   await expect(radar.locator("canvas")).toBeAttached();
   const treemap = page.locator('[data-chart-id="portfolio_budget"]');
   await expect(treemap.locator("canvas")).toBeAttached();
   await treemap.screenshot({ path: "test-results/dashboard-treemap.png" });
   await radar.screenshot({ path: "test-results/dashboard-radar.png" });
-  const scatter = page.locator('[data-chart-id="budget_vs_progress"]');
-  await scatter.getByTitle("Table", { exact: true }).click();
-  await expect(scatter.getByRole("columnheader", { name: "Budget spent (%)", exact: true })).toBeVisible();
+  const bars = page.locator('[data-chart-id="tickets_by_category"]');
+  await bars.getByTitle("Table", { exact: true }).click();
+  await expect(bars.getByRole("columnheader").first()).toBeVisible();
   const downloadPromise = page.waitForEvent("download");
-  await scatter.getByRole("button", { name: "Download this panel as CSV" }).click();
-  expect((await downloadPromise).suggestedFilename()).toBe("budget_vs_progress.csv");
+  await bars.getByRole("button", { name: "Download this panel as CSV" }).click();
+  expect((await downloadPromise).suggestedFilename()).toBe("tickets_by_category.csv");
   await page.reload();
-  await expect(scatter.getByRole("columnheader", { name: "Work done (%)" })).toBeAttached();
+  await expect(bars.getByRole("columnheader").first()).toBeAttached();
   await expect(page).toHaveURL(/period=current_year/);
   await page.screenshot({ path: "test-results/dashboard-expanded.png", fullPage: true });
   expect(errors).toEqual([]);

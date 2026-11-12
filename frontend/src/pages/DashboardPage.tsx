@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, Col, Grid, Row, Segmented, Select, Skeleton, Space, Tag, Timeline, Typography } from "antd";
+import { Card, Grid, Segmented, Select, Skeleton, Space, Tag, Timeline, Typography } from "antd";
 import {
   AlertOutlined,
   ApiOutlined,
@@ -37,6 +37,7 @@ import { withOrigin } from "@/entities/drilldown";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { StatCard } from "@/components/StatCard";
+import { HIDDEN_ON_DASHBOARD, balancedColumns, packSpans } from "@/pages/dashboardLayout";
 
 const { Text } = Typography;
 
@@ -141,9 +142,29 @@ export default function DashboardPage() {
       // `flatMap` rather than `filter`: a type predicate that narrows one
       // property of a tuple element needs the whole element's type restated,
       // and restating it is how the two drift.
-      entry.panel ? [{ key: entry.key, panel: entry.panel }] : [],
+      entry.panel && !HIDDEN_ON_DASHBOARD.has(entry.key) ? [{ key: entry.key, panel: entry.panel }] : [],
     );
   }, [data]);
+
+  const [kpiRef, kpiWidth] = useWidth();
+  // At most four across on a laptop, more only when the screen is very wide.
+  const kpiColumns = kpiWidth
+    ? balancedColumns(kpiWidth, data?.kpis.length ?? 8, 260, kpiWidth >= 2000 ? 6 : 4)
+    : 4;
+  const [chartRef, chartWidth] = useWidth();
+  const chartColumns = chartWidth >= 2000 ? 3 : chartWidth >= 820 ? 2 : 1;
+
+  // Charts with data, packed so every row is full: wide kinds (heatmap,
+  // treemap) take a row, the rest one column, and the last of a run widens to
+  // close its row. Recent activity is the run's final cell.
+  const withData = panels.filter(({ panel }) => !isEmptyPanel(panel));
+  const quiet = panels.filter(({ panel }) => isEmptyPanel(panel));
+  const spans = packSpans(
+    [...withData.map(({ panel }) => (SHAPES[panel.kind]?.span ?? 8) >= 24), false],
+    chartColumns,
+  );
+  const filled = withData.map((entry, index) => ({ ...entry, span: spans[index] ?? 1 }));
+  const activitySpan = spans[spans.length - 1] ?? 1;
 
   const periodOptions = data?.period.options.filter((option) => option.key !== "custom") ?? [];
   const choosePeriod = (next: string) => {
@@ -290,49 +311,59 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {/* ── KPI row (§2) ────────────────────────────────────────────────── */}
-      <Row gutter={[12, 12]} data-testid="dashboard-kpis" style={{ marginBottom: 16 }}>
+      {/* ── KPI row (§2) ──────────────────────────────────────────────────
+          As many equal columns as the width allows *and* the count divides
+          into, so the last row is never a lone tile beside a hole. */}
+      <div
+        ref={kpiRef}
+        className="nx-ov-kpigrid"
+        data-testid="dashboard-kpis"
+        style={{ gridTemplateColumns: `repeat(${kpiColumns}, minmax(0, 1fr))` }}
+      >
         {isLoading
           ? Array.from({ length: 8 }).map((_, index) => (
-              <Col key={index} xs={12} sm={12} md={8} lg={6} xxl={4}>
-                <Card className="nu-statcard">
-                  <Skeleton active paragraph={{ rows: 1 }} />
-                </Card>
-              </Col>
+              <Card className="nu-statcard" key={index}>
+                <Skeleton active paragraph={{ rows: 1 }} />
+              </Card>
             ))
           : data?.kpis.map((kpi) => (
-              <Col key={kpi.key} xs={12} sm={12} md={8} lg={6} xxl={4}>
-                <StatCard
-                  label={kpi.label}
-                  value={kpi.value}
-                  unit={kpi.unit}
-                  icon={ICONS[kpi.icon] ?? <FundOutlined />}
-                  accent={kpi.accent}
-                  hint={kpi.hint}
-                  trend={kpi.trend}
-                  polarity={kpi.polarity}
-                  changePercent={kpi.change_percent}
-                  previous={kpi.previous}
-                  onClick={() => navigate(withOrigin(kpi.link, here()))}
-                />
-              </Col>
+              <StatCard
+                key={kpi.key}
+                label={kpi.label}
+                value={kpi.value}
+                unit={kpi.unit}
+                icon={ICONS[kpi.icon] ?? <FundOutlined />}
+                accent={kpi.accent}
+                hint={kpi.hint}
+                trend={kpi.trend}
+                polarity={kpi.polarity}
+                changePercent={kpi.change_percent}
+                previous={kpi.previous}
+                onClick={() => navigate(withOrigin(kpi.link, here()))}
+              />
             ))}
-      </Row>
+      </div>
 
       {/* ── charts (§2, §44) ─────────────────────────────────────────────
           Sized by what each chart needs rather than by a uniform grid: a
           twenty-four-column heatmap in a third of the width is unreadable, and
-          a gauge in two thirds is mostly whitespace. */}
-      <Row gutter={[12, 12]} data-testid="dashboard-charts">
-        {isLoading && [16, 8, 8, 16].map((span, index) => (
-          <Col key={`loading-${index}`} xs={24} lg={span}>
-            <Card style={{ minHeight: 330 }}><Skeleton active paragraph={{ rows: 6 }} /></Card>
-          </Col>
+          a gauge in two thirds is mostly whitespace. A grid packed densely,
+          so a short chart fills the hole a long one leaves; a chart with
+          nothing in it shrinks to a small card at the end instead of holding
+          a tall blank quadrant open. */}
+      <div
+        ref={chartRef}
+        className="nx-ov-chartgrid"
+        data-testid="dashboard-charts"
+        style={{ gridTemplateColumns: `repeat(${chartColumns}, minmax(0, 1fr))` }}
+      >
+        {isLoading && [0, 1, 2, 3].map((index) => (
+          <Card key={`loading-${index}`} style={{ minHeight: 330 }}><Skeleton active paragraph={{ rows: 6 }} /></Card>
         ))}
-        {panels.map(({ key, panel }) => {
+        {filled.map(({ key, panel, span }) => {
           const shape = SHAPES[panel.kind] ?? { span: 8, height: 240 };
           return (
-            <Col key={key} xs={24} md={shape.span > 8 ? 24 : 12} lg={shape.span}>
+            <div key={key} className="nx-ov-cell" style={{ gridColumn: `span ${span}` }}>
               <ChartCard
                 id={key}
                 panel={panel}
@@ -344,19 +375,15 @@ export default function DashboardPage() {
                         navigate(
                           // Carrying where it came from, so the list offers one
                           // press back to this picture (§44).
-                          withOrigin(
-                            `${DRILL_DOWN[key]}${encodeURIComponent(name)}`,
-                            here(),
-                          ),
+                          withOrigin(`${DRILL_DOWN[key]}${encodeURIComponent(name)}`, here()),
                         )
                     : undefined
                 }
               />
-            </Col>
+            </div>
           );
         })}
-
-        <Col xs={24} lg={8}>
+        <div className="nx-ov-cell nx-ov-activitycell" style={{ gridColumn: `span ${activitySpan}` }}>
           <Card size="small" title="Recent activity" className="nu-activity-card" data-testid="dashboard-activity">
             {isLoading ? (
               <Skeleton active paragraph={{ rows: 6 }} />
@@ -376,8 +403,38 @@ export default function DashboardPage() {
               />
             )}
           </Card>
-        </Col>
-      </Row>
+        </div>
+      </div>
+
+      {/* Panels with nothing in this period: one quiet line naming them, not
+          a field of tall blank cards. Pick a longer period to bring them back. */}
+      {quiet.length > 0 && !isLoading && (
+        <section className="nx-ov-quiet nx-glass" aria-label="Nothing in this period" data-testid="dashboard-quiet">
+          <span className="nx-fd-eyebrow">Nothing in this period</span>
+          {quiet.map(({ key, panel }) => (
+            <span key={key} className="nx-fd-pill" data-chart-id={key}>{panel.title}</span>
+          ))}
+        </section>
+      )}
     </>
   );
+}
+
+/** A panel with nothing to draw — moved into a compact strip at the end. */
+function isEmptyPanel(panel: ChartPanel): boolean {
+  return panel.series.length === 0 || panel.series.every((point) => !point.value && point.x === undefined);
+}
+
+/** Watch an element's width. */
+function useWidth() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => setWidth(entry?.contentRect.width ?? 0));
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, width] as const;
 }

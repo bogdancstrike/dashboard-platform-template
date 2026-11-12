@@ -746,3 +746,12 @@ button.nx-fd-qchip { padding: 0 12px 0 10px; }
 .nx-fd-profile .nu-profile-tabs > .ant-tabs-nav .ant-tabs-nav-wrap { overflow: visible !important; }
 .nx-fd-profile .nu-profile-tabs > .ant-tabs-nav .ant-tabs-nav-list { overflow: visible; box-shadow: 0 6px 18px rgba(40, 35, 60, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important; }
 :root[data-theme="dark"] .nx-fd-profile .nu-profile-tabs > .ant-tabs-nav .ant-tabs-nav-list { box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.14) !important; }
+.nx-fd-pgrid--fill { align-items: stretch; }
+.nx-fd-pgrid--fill > * { min-width: 0; }
+.nx-fd-pgrid--fill > .ant-card { height: 100%; }
+.nx-fd-pcol { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.nx-fd-pcol > :last-child { flex: 1 1 auto; }
+.nx-fd-pcol .nu-profile-digests { grid-template-columns: 1fr 1fr; flex: 1 1 auto; }
+.nx-fd-pcol .nu-profile-digests > .ant-card { height: 100%; }
+.nx-fd-pgrid--fill .nx-fd-plist { max-height: 420px; overflow: auto; }
+.nx-app--phone .nx-fd-pcol .nu-profile-digests { grid-template-columns: 1fr; }
