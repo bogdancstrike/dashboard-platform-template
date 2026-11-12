@@ -22,17 +22,24 @@
  * somebody dismisses without reading; this one is asked for.
  */
 
-import { Button, Tooltip, Tour, type TourProps } from "antd";
+import { Button, Popover, Tooltip, Tour, type TourProps } from "antd";
 import { QuestionCircleOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import { NxIcon } from "@/components/NxIcon";
 import { useLocation } from "react-router-dom";
+
+import { useAuth } from "@/auth/AuthProvider";
+import { PageAsk } from "@/components/assistant/PageAsk";
 
 import { tourFor } from "./tours";
 
 export function PageTour({ variant = "circle" }: { variant?: "circle" | "side" | "rail" } = {}) {
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  // The help panel (§46): the tour, and a question about this page. Without
+  // the assistant the button opens the tour directly, as it always did.
+  const [panel, setPanel] = useState(false);
+  const canAsk = useAuth().can("ai.use");
   const stops = tourFor(location.pathname);
 
   /**
@@ -58,38 +65,64 @@ export function PageTour({ variant = "circle" }: { variant?: "circle" | "side" |
 
   return (
     <>
-      <Tooltip
-        title={
-          stops
-            ? "A quick tour of this page"
-            : `There is no tour for ${location.pathname} yet`
+      <Popover
+        open={canAsk && panel}
+        onOpenChange={(next) => setPanel(canAsk && next)}
+        trigger="click"
+        placement="bottomRight"
+        overlayClassName="nx-ai-helppanel"
+        content={
+          <div className="nx-ai-helppanel-body" data-testid="help-panel">
+            <Button
+              block
+              disabled={!stops || steps.length === 0}
+              onClick={() => {
+                setPanel(false);
+                setOpen(true);
+              }}
+              data-testid="help-take-tour"
+            >
+              {stops && steps.length > 0 ? `Take the tour · ${steps.length} stops` : "No tour for this page yet"}
+            </Button>
+            <PageAsk stops={stops} onDone={() => setPanel(false)} />
+          </div>
         }
       >
-        {/* Disabled rather than hidden: a button that disappears on some pages
-            leaves somebody wondering whether help exists at all (§76). */}
-        {variant === "circle" ? (
-          <Button
-            shape="circle"
-            aria-label="Help"
-            data-testid="page-tour"
-            disabled={!stops || steps.length === 0}
-            icon={<QuestionCircleOutlined />}
-            onClick={() => setOpen(true)}
-          />
-        ) : (
-          <button
-            type="button"
-            className={`nx-help nx-help--${variant}`}
-            aria-label="Help"
-            data-testid="page-tour"
-            disabled={!stops || steps.length === 0}
-            onClick={() => setOpen(true)}
-          >
-            <NxIcon name="help" />
-            <span className="nx-fold-label">Help &amp; page tour</span>
-          </button>
-        )}
-      </Tooltip>
+        <Tooltip
+          title={
+            stops
+              ? "A quick tour of this page"
+              : canAsk
+                ? "Ask about this page"
+                : `There is no tour for ${location.pathname} yet`
+          }
+        >
+          {/* Disabled rather than hidden: a button that disappears on some pages
+              leaves somebody wondering whether help exists at all (§76). */}
+          {variant === "circle" ? (
+            <Button
+              shape="circle"
+              aria-label="Help"
+              data-testid="page-tour"
+              disabled={!canAsk && (!stops || steps.length === 0)}
+              icon={<QuestionCircleOutlined />}
+              onClick={canAsk ? undefined : () => setOpen(true)}
+            />
+          ) : (
+            <button
+              type="button"
+              className={`nx-help nx-help--${variant}`}
+              aria-label="Help"
+              data-testid="page-tour"
+              disabled={!canAsk && (!stops || steps.length === 0)}
+              onClick={canAsk ? undefined : () => setOpen(true)}
+            >
+              <NxIcon name="help" />
+              <span className="nx-fold-label">Help &amp; page tour</span>
+            </button>
+          )}
+        </Tooltip>
+      </Popover>
 
       <Tour
         open={open}

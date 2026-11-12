@@ -85,6 +85,7 @@ import { relativeTime } from "@/lib/time";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
+import { DailyBrief } from "@/components/assistant/DailyBrief";
 import { NxIcon } from "@/components/NxIcon";
 
 const { Paragraph, Text, Title } = Typography;
@@ -537,6 +538,9 @@ export default function HomePage() {
           </div>
         )}
       </section>
+
+      {/* The AI brief (§45): the same waiting work, ranked and explained. */}
+      <DailyBrief />
 
       {/* A wide column and a rail. What is *yours* — today, your work, what
           happened — reads left to right and gets the width; what is the

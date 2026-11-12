@@ -27,6 +27,8 @@ import { URL_OVERLAY } from "@/app/history";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useSticky } from "@/hooks/useSticky";
 
+import { DescribeFilters } from "@/components/assistant/DescribeFilters";
+
 import { ConditionBuilder } from "./ConditionBuilder";
 import { countRules, emptyTree, type QueryNode } from "./queryTree";
 
@@ -218,6 +220,9 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, record
           what a group was. Collapsible, and it stays as this reader left it
           (§72): it is a tutorial, and a tutorial that will not go away is an
           alert. */}
+
+      {/* AI (§42): a description becomes this draft, for review before Apply. */}
+      <DescribeFilters resourceType={request.resource_type} currentTree={draft} onLoad={setDraft} />
 
       <ConditionBuilder fields={fields} value={draft} onChange={setDraft} />
 

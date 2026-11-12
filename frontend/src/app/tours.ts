@@ -1183,6 +1183,31 @@ export const TOURS: Record<string, TourStop[]> = {
         "Every layout, with a wireframe on the product's own twelve-column grid, what it is built from, and — the half most galleries omit — when it is the wrong answer.",
     },
   ],
+  "/assistant": [
+    {
+      title: "An assistant that knows where it is",
+      description:
+        "Ask anything in General mode. Switch a conversation to Data and it reads your records to answer — through the same permissions you have, so it can never show you a row you could not open yourself.",
+    },
+    {
+      target: "assistant-rail",
+      title: "Every conversation is kept",
+      description:
+        "Past conversations stay here, newest first, private to you. Search finds a word said anywhere in one, not just its title; rename or delete from the menu beside each.",
+    },
+    {
+      target: "assistant-mode",
+      title: "General or Data, per conversation",
+      description:
+        "Data mode lets the assistant search, count and open records, and every answer lists the records it used as links. General mode never touches your data, which makes it the right place for drafting and explaining.",
+    },
+    {
+      target: "assistant-input",
+      title: "Ask, stop, ask again",
+      description:
+        "Answers stream in as they are written. Stop keeps what was written so far; the arrow under the last answer asks the same question again. ⌘J opens this assistant beside any page.",
+    },
+  ],
 };
 
 /**

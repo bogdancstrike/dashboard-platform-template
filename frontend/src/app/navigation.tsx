@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { NxIcon, type NxIconName } from "@/components/NxIcon";
+import { AstIcon } from "@/components/assistant/AstIcon";
 
 /**
  * The navigation, grouped by what somebody came here to do rather than by the
@@ -65,6 +66,16 @@ export const NAV_GROUPS: NavGroup[] = [
       { key: "/activity", label: "Activity", icon: <NxIcon name="activity" /> },
       { key: "/notifications", label: "Notifications", icon: <NxIcon name="bell" />, badge: "unread" },
       { key: "/announcements", label: "Announcements", icon: <NxIcon name="megaphone" /> },
+    ],
+  },
+  {
+    // The AI features (§41–46). Shared by both AI workstreams: Insights and
+    // Ask your documents join the assistant here.
+    key: "ai",
+    icon: "star",
+    label: "AI",
+    items: [
+      { key: "/assistant", label: "Assistant", icon: <AstIcon name="spark" size={18} />, permission: "ai.use" },
     ],
   },
   {

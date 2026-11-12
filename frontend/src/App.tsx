@@ -3,6 +3,7 @@ import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes, useParams } from "react-router-dom";
 
 import { AppShell } from "@/app/AppShell";
+import { AssistantLauncher } from "@/components/assistant/AssistantLauncher";
 import { signInAgain } from "@/auth/keycloak";
 import { ProblemPage, type ProblemKind } from "@/components/ProblemPage";
 import { useAuth } from "@/auth/AuthProvider";
@@ -25,6 +26,7 @@ const WorkflowsPage = lazy(() => import("@/pages/WorkflowsPage"));
 const CalendarPage = lazy(() => import("@/pages/CalendarPage"));
 const MailPage = lazy(() => import("@/pages/MailPage"));
 const HomePage = lazy(() => import("@/pages/HomePage"));
+const AssistantPage = lazy(() => import("@/pages/AssistantPage"));
 const AdminHomePage = lazy(() => import("@/pages/admin/AdminHomePage"));
 const SystemSettingsPage = lazy(() => import("@/pages/admin/SettingsPage"));
 const FlagsPage = lazy(() => import("@/pages/admin/FlagsPage"));
@@ -163,6 +165,9 @@ function Home() {
 
 export default function App() {
   return (
+    <>
+    {/* The assistant's launcher (⌘J) floats over every page (§41). */}
+    <AssistantLauncher />
     <Routes>
       <Route element={<AppShell />}>
         {/* The reader's own home page (§40), not a constant. Somebody who
@@ -174,6 +179,23 @@ export default function App() {
           element={
             <Suspense fallback={<Loading />}>
               <HomePage />
+            </Suspense>
+          }
+        />
+        {/* AI (§41): the assistant, with the conversation open in the path. */}
+        <Route
+          path="assistant"
+          element={
+            <Suspense fallback={<Loading />}>
+              <AssistantPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="assistant/:conversationId"
+          element={
+            <Suspense fallback={<Loading />}>
+              <AssistantPage />
             </Suspense>
           }
         />
@@ -628,5 +650,6 @@ export default function App() {
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
+    </>
   );
 }

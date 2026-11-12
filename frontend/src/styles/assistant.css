@@ -1,0 +1,129 @@
+/* The AI assistant (§41–46): chat, rail, launcher, brief, described filters,
+   page help. Every colour is a theme token, so light and dark follow. */
+
+/* ── Page ─────────────────────────────────────────────────────────────── */
+.nx-ai-page { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+.nx-ai-layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: stretch; min-height: calc(100vh - 230px); }
+.nx-app--tablet .nx-ai-layout { grid-template-columns: 250px minmax(0, 1fr); }
+.nx-app--phone .nx-ai-layout, .nx-ai-layout:has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
+.nx-ai-rail, .nx-ai-main { border-radius: 24px; padding: 14px; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.nx-ai-main { padding: 0; overflow: hidden; }
+.nx-app--phone .nx-ai-layout { min-height: calc(100vh - 250px); }
+
+/* ── Rail ─────────────────────────────────────────────────────────────── */
+.nx-ai-rail-head { display: flex; flex-direction: column; gap: 10px; padding-bottom: 10px; }
+.nx-ai-rail-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; margin: 0 -6px; padding: 0 6px; max-height: calc(100vh - 340px); }
+.nx-app--phone .nx-ai-rail-list { max-height: none; }
+.nx-ai-rail-item { display: flex; align-items: center; gap: 4px; border-radius: 14px; padding: 2px 4px 2px 0; transition: background .15s; }
+.nx-ai-rail-item:hover { background: rgba(var(--nu-ink-rgb), .05); }
+.nx-ai-rail-item.is-active { background: var(--nu-tint); }
+.nx-ai-rail-open { flex: 1; min-width: 0; text-align: left; background: none; border: 0; cursor: pointer; padding: 8px 10px; color: var(--nu-text); font: inherit; display: flex; flex-direction: column; gap: 3px; }
+.nx-ai-rail-title { font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-ai-rail-meta { font-size: 11.5px; color: var(--nu-text-tertiary); display: flex; align-items: center; gap: 6px; }
+.nx-ai-rail-empty { padding: 12px 8px; }
+.nx-ai-rail-foot { border-top: 1px solid var(--nu-glass-border); margin-top: 8px; padding-top: 10px; font-size: 11.5px; color: var(--nu-text-tertiary); }
+.nx-ai-modetag { font-size: 10.5px; font-weight: 600; letter-spacing: .02em; padding: 1px 7px; border-radius: 999px; background: rgba(var(--nu-ink-rgb), .07); color: var(--nu-text-secondary); }
+.nx-ai-modetag--data { background: var(--nu-tint); color: var(--nu-accent-ink, var(--nu-accent)); }
+
+/* ── Chat ─────────────────────────────────────────────────────────────── */
+.nx-ai-chat { display: flex; flex-direction: column; height: 100%; min-height: 0; flex: 1; }
+.nx-ai-chat-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 18px; border-bottom: 1px solid var(--nu-glass-border); }
+.nx-ai-chat--compact .nx-ai-chat-bar { padding: 0 0 12px; }
+.nx-ai-chat-hint { font-size: 12px; color: var(--nu-text-tertiary); }
+.nx-ai-seg { display: inline-flex; align-items: center; gap: 6px; }
+.nx-ai-thread { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-height: 240px; max-height: calc(100vh - 360px); }
+.nx-ai-chat--compact .nx-ai-thread { padding: 14px 0; max-height: none; }
+.nx-app--phone .nx-ai-thread { max-height: none; }
+.nx-ai-msg { display: flex; gap: 10px; align-items: flex-start; max-width: 100%; }
+.nx-ai-msg--user { justify-content: flex-end; }
+.nx-ai-msg--user .nx-ai-bubble { background: var(--nu-accent); color: var(--nu-on-accent); border-radius: 18px 18px 6px 18px; padding: 9px 14px; max-width: min(78%, 640px); white-space: pre-wrap; overflow-wrap: anywhere; }
+.nx-ai-msg--assistant .nx-ai-bubble { flex: 1; min-width: 0; color: var(--nu-text); line-height: 1.55; overflow-wrap: anywhere; }
+.nx-ai-avatar { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--nu-tint); color: var(--nu-accent); margin-top: 2px; }
+.nx-ai-bubble p { margin: 0 0 8px; }
+.nx-ai-bubble h3, .nx-ai-bubble h4, .nx-ai-bubble h5, .nx-ai-bubble h6 { margin: 10px 0 6px; font-weight: 700; letter-spacing: -0.01em; }
+.nx-ai-bubble ul, .nx-ai-bubble ol { margin: 0 0 8px; padding-left: 20px; }
+.nx-ai-bubble code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; background: rgba(var(--nu-ink-rgb), .07); padding: 1px 5px; border-radius: 6px; }
+.nx-ai-code { background: rgba(var(--nu-ink-rgb), .06); border-radius: 12px; padding: 10px 12px; overflow-x: auto; margin: 0 0 8px; }
+.nx-ai-code code { background: none; padding: 0; }
+.nx-ai-tablewrap { overflow-x: auto; margin: 4px 0 10px; }
+.nx-ai-table { border-collapse: collapse; font-size: 13px; min-width: 60%; }
+.nx-ai-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--nu-text-tertiary); font-weight: 600; padding: 6px 10px; border-bottom: 1px solid var(--nu-glass-border); }
+.nx-ai-table td { padding: 6px 10px; border-bottom: 1px solid rgba(var(--nu-ink-rgb), .06); }
+.nx-ai-link { color: var(--nu-accent); font-weight: 600; }
+.nx-ai-muted { color: var(--nu-text-tertiary); font-size: 12.5px; margin: 4px 0; }
+.nx-ai-actions { display: flex; align-items: center; gap: 4px; margin-top: 4px; }
+.nx-ai-iconbtn { border: 0; background: none; color: var(--nu-text-tertiary); width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center; cursor: pointer; }
+.nx-ai-iconbtn:hover { background: rgba(var(--nu-ink-rgb), .07); color: var(--nu-text); }
+.nx-ai-usage { font-size: 11px; color: var(--nu-text-tertiary); margin-left: 6px; }
+.nx-ai-cites { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+.nx-ai-cites-label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--nu-text-tertiary); font-weight: 600; }
+.nx-ai-cite { font-size: 12px; padding: 2px 10px; border-radius: 999px; background: var(--nu-tint); color: var(--nu-accent); font-weight: 600; }
+.nx-ai-steps { font-size: 12.5px; color: var(--nu-text-secondary); margin-bottom: 6px; }
+.nx-ai-steps summary { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.nx-ai-step { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--nu-text-secondary); margin: 3px 0; }
+.nx-ai-typing { display: inline-flex; gap: 4px; padding: 6px 0; }
+.nx-ai-typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--nu-text-tertiary); animation: nxAiDot 1s infinite ease-in-out; }
+.nx-ai-typing i:nth-child(2) { animation-delay: .15s; }
+.nx-ai-typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes nxAiDot { 0%, 80%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
+.nx-ai-failure { margin-top: 4px; }
+
+.nx-ai-empty { margin: auto; text-align: center; max-width: 520px; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px 8px; }
+.nx-ai-empty b { font-size: 20px; font-weight: 700; letter-spacing: -0.025em; }
+.nx-ai-empty p { color: var(--nu-text-secondary); margin: 0 0 8px; }
+.nx-ai-empty-mark { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; background: var(--nu-tint); color: var(--nu-accent); }
+.nx-ai-suggest { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.nx-ai-chip { border: 1px solid var(--nu-glass-border); background: var(--nu-glass); color: var(--nu-text); border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 13px; cursor: pointer; text-align: left; }
+.nx-ai-chip:hover { border-color: var(--nu-accent); color: var(--nu-accent); }
+
+.nx-ai-composer { display: flex; align-items: flex-end; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--nu-glass-border); }
+.nx-ai-chat--compact .nx-ai-composer { padding: 12px 0 0; }
+.nx-ai-composer textarea.ant-input { border-radius: 20px; padding: 9px 16px; resize: none; }
+
+/* ── Launcher and side panel ─────────────────────────────────────────── */
+.nx-ai-fab { position: fixed; right: 24px; bottom: 24px; z-index: 900; width: 52px; height: 52px; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center; color: var(--nu-on-accent); background: var(--nu-accent); box-shadow: 0 10px 30px rgba(var(--nu-glow-rgb, 36, 87, 214), .35); transition: transform .15s; }
+.nx-ai-fab:hover { transform: translateY(-2px); }
+.nx-app--phone ~ .nx-ai-fab, body:has(.nx-app--phone) .nx-ai-fab { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); right: 16px; width: 46px; height: 46px; }
+.nx-ai-panel .ant-drawer-body { display: flex; flex-direction: column; padding: 16px 18px; }
+.nx-ai-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.nx-ai-panel-title { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--nu-text); }
+.nx-ai-panel-tools { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ── Daily brief ─────────────────────────────────────────────────────── */
+.nx-ai-brief { margin-bottom: 16px; }
+.nx-ai-brief-title { display: inline-flex; align-items: center; gap: 8px; color: var(--nu-accent); }
+.nx-ai-brief-headline { font-size: 15px; font-weight: 600; margin: 0 0 10px; color: var(--nu-text); letter-spacing: -0.01em; }
+.nx-ai-brief-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.nx-ai-brief-item { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border-radius: 16px; background: rgba(var(--nu-ink-rgb), .035); }
+.nx-ai-urgency { flex: none; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 3px 9px; border-radius: 999px; min-width: 64px; text-align: center; }
+.nx-ai-urgency--high { background: var(--nu-bad-bg); color: var(--nu-bad); }
+.nx-ai-urgency--medium { background: var(--nu-warn-bg); color: var(--nu-warn); }
+.nx-ai-urgency--low { background: rgba(var(--nu-ink-rgb), .07); color: var(--nu-text-secondary); }
+.nx-ai-brief-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nx-ai-brief-link { font-weight: 600; color: var(--nu-text); }
+.nx-ai-brief-link:hover { color: var(--nu-accent); }
+.nx-ai-brief-reason { font-size: 13px; color: var(--nu-text-secondary); }
+.nx-ai-brief-examples { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; }
+.nx-ai-brief-examples a { color: var(--nu-accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.nx-ai-brief-source { font-size: 11.5px; color: var(--nu-text-tertiary); margin: 10px 0 0; }
+.nx-ai-brief-error { margin-bottom: 8px; }
+
+/* ── Described filters and Ask ───────────────────────────────────────── */
+.nx-ai-describe, .nx-ai-pagehelp { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 18px; background: var(--nu-tint); margin-bottom: 12px; }
+.nx-ai-describe-label { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; color: var(--nu-accent); }
+.nx-ai-describe-row { display: flex; gap: 8px; }
+.nx-ai-describe-row .ant-input-affix-wrapper, .nx-ai-describe-row > .ant-input { flex: 1; min-width: 0; }
+.nx-app--phone .nx-ai-describe-row { flex-direction: column; }
+.nx-ai-suggestion p { margin: 0 0 4px; font-size: 13px; color: var(--nu-text); }
+.nx-ai-askbtn { color: var(--nu-accent); }
+.nx-ai-ask { display: flex; flex-direction: column; gap: 8px; width: min(360px, 82vw); }
+.nx-ai-ask p { margin: 0; }
+
+/* ── Page help ───────────────────────────────────────────────────────── */
+.nx-ai-helppanel-body { display: flex; flex-direction: column; gap: 10px; width: min(380px, 86vw); }
+.nx-ai-helppanel-body .nx-ai-pagehelp { margin: 0; }
+.nx-ai-pagehelp-answer { font-size: 13px; color: var(--nu-text); background: var(--nu-glass-strong, var(--nu-glass)); border-radius: 14px; padding: 10px 12px; }
+.nx-ai-pagehelp-answer p:last-child { margin-bottom: 4px; }
+.nx-ai-pagehelp-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.nx-ai-highlight { outline: 3px solid var(--nu-accent) !important; outline-offset: 3px; border-radius: 12px; animation: nxAiPulse 1s ease-in-out 3; }
+@keyframes nxAiPulse { 50% { outline-color: transparent; } }

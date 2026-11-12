@@ -43,6 +43,7 @@ import { useRecentSearches } from "@/hooks/useRecentSearches";
 import { RecordPreview } from "@/components/explorer/RecordPreview";
 import { useBulk } from "@/components/records/useBulk";
 import { ExplorerSearch } from "@/components/explorer/ExplorerSearch";
+import { AskData } from "@/components/assistant/DescribeFilters";
 import { ExplorerResults, type ExplorerRecord } from "@/components/explorer/ExplorerResults";
 import type { QueryNode } from "@/components/explorer/queryTree";
 import { SavedSearchDrawer } from "@/components/explorer/SavedSearchDrawer";
@@ -478,6 +479,12 @@ export default function DataExplorerPage() {
                   onChange={(next: string) => set({ q: next, page: null })}
                 />
               </div>
+              {/* AI (§23): "Ask" — a question becomes rules, reviewed in the Rules drawer. */}
+              <AskData
+                onReview={(key) =>
+                  key === resource?.key ? openPanel({ panel: "rules" }) : setParams(new URLSearchParams({ resource: key, panel: "rules" }))
+                }
+              />
               <Button type="primary" className="nx-fd-go" icon={<NxIcon name="search" size={15} />} onClick={() => void results.refetch()}>
                 Search
               </Button>
