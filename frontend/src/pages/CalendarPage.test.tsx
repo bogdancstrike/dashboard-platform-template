@@ -7,6 +7,8 @@ import CalendarPage from "@/pages/CalendarPage";
 import { CommandProvider } from "@/commands/CommandContext";
 import { calendarEvents, resetCalendar } from "@/test/handlers";
 import { renderWithProviders } from "@/test/render";
+import { server } from "@/test/server";
+import { http, HttpResponse } from "msw";
 
 /**
  * The calendar page (§19).
@@ -328,7 +330,8 @@ describe("an event opened", () => {
     const user = userEvent.setup();
     render();
     await screen.findByTestId("calendar-month");
-    await user.click(screen.getByText(title));
+    // In the grid: the side column lists invitations under the same titles.
+    await user.click(within(screen.getByTestId("calendar-month")).getByText(title));
     return { user, drawer: await screen.findByRole("dialog") };
   }
 
@@ -394,5 +397,46 @@ describe("an event opened", () => {
     expect(
       screen.getAllByText(/Every occurrence of this repeat is cancelled/),
     ).not.toHaveLength(0);
+  });
+});
+
+describe("the side column", () => {
+  it("lists the invitations waiting on an answer, and answers them in place", async () => {
+    const user = userEvent.setup();
+    const answers: unknown[] = [];
+    server.use(
+      http.post("/platform/api/calendar/events/:id/respond", async ({ request }) => {
+        answers.push(await request.json());
+        return HttpResponse.json({});
+      }),
+    );
+    render();
+    const invites = await screen.findByTestId("calendar-invitations");
+    await user.click(within(invites).getAllByRole("button", { name: "Accept" })[0]!);
+    await waitFor(() => expect(answers).toEqual([{ response: "ACCEPTED" }]));
+  });
+
+  it("narrows the grid to one kind, and lets go on a second press", async () => {
+    const user = userEvent.setup();
+    render();
+    const kinds = await screen.findByTestId("calendar-kinds");
+    const label = within(kinds).getAllByRole("button")[0]!.querySelector("span")?.textContent ?? "";
+    const name = new RegExp(`^${label}`);
+    const kind = async () =>
+      within(await screen.findByTestId("calendar-kinds")).findByRole("button", { name });
+    await user.click(await kind());
+    await waitFor(async () => expect(await kind()).toHaveAttribute("aria-pressed", "true"));
+    await user.click(await kind());
+    await waitFor(async () => expect(await kind()).toHaveAttribute("aria-pressed", "false"));
+  });
+
+  it("folds every section with one control", async () => {
+    const user = userEvent.setup();
+    render();
+    await screen.findByTestId("mini-month");
+    await user.click(screen.getByLabelText("Collapse all calendar sections"));
+    expect(screen.queryByTestId("mini-month")).toBeNull();
+    await user.click(screen.getByLabelText("Expand all calendar sections"));
+    expect(screen.getByTestId("mini-month")).toBeInTheDocument();
   });
 });

@@ -39,6 +39,7 @@ import {
 import { LeftOutlined, PlusOutlined, RightOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { CalendarAside, colourByCategory } from "@/components/calendar/CalendarAside";
 
 import {
   calendarApi,
@@ -325,7 +326,7 @@ export default function CalendarPage() {
         }
       />
 
-      <div className="nu-fill">
+      <div className="nu-fill nx-cal-layout">
         <Card
           size="small"
           className="nu-pane"
@@ -410,11 +411,23 @@ export default function CalendarPage() {
             />
           )}
 
-          {view === "week" && (
-            <WeekHours days={weekGrid(anchor)} items={items} onOpen={setOpened} />
+          {(view === "week" || view === "day") && (
+            <WeekHours
+              days={view === "week" ? weekGrid(anchor) : [anchor]}
+              items={items}
+              onOpen={setOpened}
+              onAddAt={
+                data?.can_manage
+                  ? (when) => {
+                      setCreatingOn(when);
+                      setComposing(true);
+                    }
+                  : undefined
+              }
+            />
           )}
 
-          {(view === "day" || view === "agenda") && (
+          {view === "agenda" && (
             <Agenda
               items={items}
               onOpen={setOpened}
@@ -422,6 +435,18 @@ export default function CalendarPage() {
             />
           )}
         </Card>
+        <CalendarAside
+          anchor={anchor}
+          items={items}
+          categories={data?.categories ?? []}
+          counts={counts?.by_category ?? {}}
+          category={category}
+          colours={colourByCategory(items)}
+          onPick={(day) => set({ on: isoDay(day) })}
+          onCategory={(next) => set({ category: next })}
+          onOpen={setOpened}
+          onAnswer={(id, response) => answer.mutate({ id, response })}
+        />
       </div>
 
       <EventDrawer
@@ -477,11 +502,15 @@ function WeekHours({
   days,
   items,
   onOpen,
+  onAddAt,
 }: {
   days: Date[];
   items: CalendarOccurrence[];
   onOpen: (occurrence: CalendarOccurrence) => void;
+  /** Press an empty part of an hour to start an event there. */
+  onAddAt?: (when: Date) => void;
 }) {
+  const now = new Date();
   const buckets = byDay(items);
   const span = hourSpan(items);
   const hours = Array.from(
@@ -491,7 +520,11 @@ function WeekHours({
   const allDay = items.filter((item) => item.all_day);
 
   return (
-    <div className="nu-weekhours" data-testid="calendar-week">
+    <div
+      className="nu-weekhours"
+      data-testid="calendar-week"
+      style={{ ["--days" as string]: days.length }}
+    >
       <div className="nu-weekhours-head">
         <div className="nu-weekhours-corner" aria-hidden="true" />
         {days.map((day) => (
@@ -541,9 +574,31 @@ function WeekHours({
                     weekday: "long",
                   })} ${hourLabel(hour)}, ${own.length} ${own.length === 1 ? "event" : "events"}`}
                 >
+                  {isToday(day) && now.getHours() === hour && (
+                    // Where "now" is, as a line across today's column.
+                    <span
+                      className="nx-cal-now"
+                      aria-hidden
+                      style={{ top: `${(now.getMinutes() / 60) * 100}%` }}
+                    />
+                  )}
                   {own.map((item) => (
                     <EventChip key={item.id} item={item} onOpen={onOpen} />
                   ))}
+                  {onAddAt && (
+                    <button
+                      type="button"
+                      className="nx-cal-slot"
+                      aria-label={`New event ${day.toLocaleDateString(undefined, {
+                        weekday: "long",
+                      })} at ${hourLabel(hour)}`}
+                      onClick={() => {
+                        const when = new Date(day);
+                        when.setHours(hour, 0, 0, 0);
+                        onAddAt(when);
+                      }}
+                    />
+                  )}
                 </div>
               );
             })}

@@ -543,3 +543,66 @@ body.nx-dragging, body.nx-dragging * { cursor: grabbing !important; user-select:
 .nu-bulkbar .ant-btn:disabled { opacity: 0.5; }
 .nu-bulkbar { justify-content: space-between; }
 .nx-rec-bulkmodal .ant-select { height: 44px; width: 100%; } .nx-rec-bulkmodal .ant-select-selector { border-radius: 22px !important; padding-inline: 16px !important; font-weight: 600; }
+
+/* ═══ Calendar: the side column, hours with a now-line, a slot to create ═══ */
+.nx-cal-layout { display: grid !important; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; align-items: start; }
+.nx-app--tablet .nx-cal-layout, .nx-app--phone .nx-cal-layout { grid-template-columns: minmax(0, 1fr); }
+.nx-cal-aside { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.nx-app--tablet .nx-cal-aside { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; }
+.nx-app--tablet .nx-cal-aside-top { grid-column: 1 / -1; }
+.nx-cal-aside-top { display: flex; justify-content: flex-end; margin-bottom: -6px; }
+.nx-cal-side { padding: 14px 16px 16px !important; gap: 10px !important; }
+.nx-cal-side-head { display: flex; align-items: center; gap: 8px; width: 100%; padding: 0; border: 0; background: transparent; color: var(--nu-text); cursor: pointer; text-align: left; }
+.nx-cal-side-head h2 { flex: 1; margin: 0; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.nx-cal-side-head .anticon { font-size: 11px; color: var(--nu-text-tertiary); transition: transform 0.25s var(--nx-ease); }
+.nx-cal-side-head .anticon.is-open { transform: rotate(90deg); }
+.nx-cal-badge { height: 20px; min-width: 20px; padding: 0 6px; border-radius: 10px; background: var(--nu-accent); color: var(--nu-on-accent); font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.nx-cal-mini { display: flex; flex-direction: column; gap: 4px; }
+.nx-cal-mini-nav { display: flex; justify-content: flex-end; gap: 2px; margin-top: -34px; }
+.nx-cal-mini-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; text-align: center; }
+.nx-cal-mini-wd { font-size: 10.5px; font-weight: 700; color: var(--nu-text-tertiary); padding: 4px 0; }
+.nx-cal-mini-day { position: relative; aspect-ratio: 1; border: 0; border-radius: 999px; background: transparent; color: var(--nu-text); font: 600 12px var(--nu-font); cursor: pointer; font-variant-numeric: tabular-nums; }
+.nx-cal-mini-day:hover { background: rgba(var(--nu-ink-rgb), 0.06); }
+.nx-cal-mini-day.is-outside { color: var(--nu-text-tertiary); opacity: 0.6; }
+.nx-cal-mini-day.is-busy::after { content: ""; position: absolute; left: 50%; bottom: 3px; width: 4px; height: 4px; margin-left: -2px; border-radius: 2px; background: var(--nu-accent); opacity: 0.7; }
+.nx-cal-mini-day.is-today { box-shadow: inset 0 0 0 1.5px var(--nu-accent); color: var(--nu-accent-ink); }
+.nx-cal-mini-day.is-on { background: var(--nu-accent); color: var(--nu-on-accent); }
+.nx-cal-mini-day.is-on::after { background: var(--nu-on-accent); }
+.nx-cal-invites { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.nx-cal-invites li { padding: 12px; border-radius: 20px; background: rgba(var(--nu-ink-rgb), 0.045); display: flex; flex-direction: column; gap: 3px; }
+.nx-cal-invite-title { padding: 0; border: 0; background: transparent; color: var(--nu-text); font: 700 14px var(--nu-font); text-align: left; cursor: pointer; }
+.nx-cal-invite-meta { font-size: 12px; color: var(--nu-text-tertiary); }
+.nx-cal-invite-actions { margin-top: 8px; }
+.nx-cal-invite-actions .ant-btn { height: 34px; border-radius: 17px; padding-inline: 14px; }
+.nx-cal-invite-actions .ant-btn-default { background: rgba(var(--nu-ink-rgb), 0.07) !important; border: 0; }
+.nx-cal-kinds { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.nx-cal-kinds button { width: 100%; height: 38px; padding: 0 8px; border: 0; border-radius: 12px; background: transparent; color: var(--nu-text-tertiary); font: 600 13.5px var(--nu-font); display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.nx-cal-kinds button.is-on { color: var(--nu-text); }
+.nx-cal-kinds button:hover, .nx-cal-kinds button[aria-pressed="true"] { background: rgba(var(--nu-ink-rgb), 0.05); }
+.nx-cal-kinds i { width: 16px; height: 16px; border-radius: 5px; flex-shrink: 0; opacity: 0.35; }
+.nx-cal-kinds button.is-on i { opacity: 1; }
+.nx-cal-kinds span { flex: 1; text-align: left; }
+.nx-cal-kinds b { font-size: 12px; color: var(--nu-text-tertiary); font-variant-numeric: tabular-nums; }
+
+.nu-weekhours { border: 0 !important; border-radius: 0 !important; }
+.nu-weekhours-head, .nu-weekhours-allday, .nu-weekhours-row { grid-template-columns: 64px repeat(var(--days, 7), minmax(0, 1fr)) !important; }
+.nu-weekhours-head { background: transparent !important; border-bottom: 1px solid rgba(var(--nu-ink-rgb), 0.08) !important; }
+.nu-weekhours-day { border: 0 !important; padding: 8px !important; font-size: 13px !important; }
+.nu-weekhours-day--today { background: transparent !important; color: var(--nu-accent-ink); }
+.nu-weekhours-day--today .ant-typography:last-child { background: var(--nu-accent); color: var(--nu-on-accent) !important; border-radius: 12px; padding: 1px 8px; }
+.nu-weekhours-allday { background: rgba(var(--nu-ink-rgb), 0.03) !important; border-bottom: 1px solid rgba(var(--nu-ink-rgb), 0.08) !important; }
+.nu-weekhours-body { grid-auto-rows: minmax(52px, auto) !important; }
+.nu-weekhours-row { border-bottom: 1px solid rgba(var(--nu-ink-rgb), 0.06) !important; }
+.nu-weekhours-axis { font-size: 11.5px !important; padding-top: 2px !important; }
+.nu-weekhours-cell { position: relative; border-inline-start: 1px solid rgba(var(--nu-ink-rgb), 0.06) !important; gap: 3px !important; }
+.nu-weekhours-cell--today { background: rgba(var(--nu-glow-rgb), 0.05) !important; }
+.nx-cal-now { position: absolute; left: 0; right: 0; height: 2px; background: var(--nu-bad-fill); z-index: 2; pointer-events: none; }
+.nx-cal-now::before { content: ""; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 5px; background: var(--nu-bad-fill); }
+.nx-cal-slot { flex: 1 1 auto; min-height: 12px; border: 0; border-radius: 10px; background: transparent; cursor: copy; }
+.nx-cal-slot:hover { background: rgba(var(--nu-glow-rgb), 0.1); box-shadow: inset 0 0 0 1.5px rgba(var(--nu-glow-rgb), 0.45); }
+.nu-weekhours .nu-event-chip { white-space: nowrap; }
+.nx-cal-mini-nav { margin-right: 22px; }
+.nu-weekhours-body { display: block !important; }
+.nu-weekhours-row { min-height: 52px; }
+.nu-weekhours-cell { min-height: 52px; height: auto !important; overflow: visible !important; }
+.nu-weekhours-cell > .nu-event-chip { flex: 0 0 auto !important; }
