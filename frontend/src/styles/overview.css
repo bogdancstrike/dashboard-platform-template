@@ -705,3 +705,6 @@
 .nx-ov-feed .nu-feed-meta, .nx-ov-feed .nu-feed-meta .ant-typography { font-size: 12px; }
 .nx-ov-feed .nu-feed-meta .ant-tag { font-size: 10.5px; line-height: 19px; }
 .nx-ov-feed .nu-feed-avatar.ant-avatar { background: var(--nu-tint); color: var(--nu-accent-ink); font-weight: 700; }
+
+/* Announcement editor as a centred modal: two-column rows where they fit. */
+.nx-ov-announce-editor .ant-modal-body { max-height: min(64vh, 640px); overflow-y: auto; scrollbar-width: thin; padding-right: 4px; }

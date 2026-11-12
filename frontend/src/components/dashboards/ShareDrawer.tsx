@@ -24,7 +24,7 @@
  * gets pasted opens exactly what the sharer is looking at (§69).
  */
 
-import { App as AntApp, Alert, Avatar, Button, Drawer, Input, List, Segmented, Space, Tag, Typography } from "antd";
+import { App as AntApp, Alert, Avatar, Button, Input, List, Modal, Segmented, Space, Tag, Typography } from "antd";
 import { CopyOutlined, GlobalOutlined, LockOutlined, TeamOutlined } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 
@@ -102,25 +102,34 @@ export function ShareDrawer({
   };
 
   return (
-    <Drawer
+    <Modal
       open={open}
-      onClose={onClose}
-      width={430}
-      title={`Share — ${dashboard.name}`}
-      data-testid="share-drawer"
-      extra={
-        <Button
-          type="primary"
-          loading={saving}
-          disabled={!changed}
-          onClick={() => onSave({ scope, member_ids: scope === "SHARED" ? members : [] })}
-          data-testid="save-share"
-        >
-          Save
-        </Button>
+      onCancel={onClose}
+      width={560}
+      title={
+        <div className="nx-ov-modal-title">
+          <span>
+            Share <em>dashboard</em>
+          </span>
+          <small>{dashboard.name}</small>
+        </div>
+      }
+      footer={
+        <Space>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button
+            type="primary"
+            loading={saving}
+            disabled={!changed}
+            onClick={() => onSave({ scope, member_ids: scope === "SHARED" ? members : [] })}
+            data-testid="save-share"
+          >
+            Save
+          </Button>
+        </Space>
       }
     >
-      <Space direction="vertical" size={16} style={{ width: "100%" }}>
+      <Space direction="vertical" size={16} style={{ width: "100%" }} data-testid="share-drawer">
         <div>
           <Text strong>Who can see it</Text>
           <Segmented
@@ -218,6 +227,6 @@ export function ShareDrawer({
           </Text>
         </div>
       </Space>
-    </Drawer>
+    </Modal>
   );
 }

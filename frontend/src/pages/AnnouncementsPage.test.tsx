@@ -141,7 +141,7 @@ describe("the noticeboard", () => {
     const drawer = await screen.findByRole("dialog");
     await user.type(within(drawer).getByLabelText("Title"), "Half a thought");
 
-    await user.click(drawer.querySelector(".ant-drawer-close")!);
+    await user.click(drawer.querySelector(".ant-modal-close")!);
 
     // Asked, not thrown away — and "Keep editing" leaves the words where they
     // were. (AntD renders the title twice: once as the heading and once for
@@ -151,7 +151,7 @@ describe("the noticeboard", () => {
     expect(within(drawer).getByLabelText("Title")).toHaveValue("Half a thought");
 
     // And discarding really closes it.
-    await user.click(drawer.querySelector(".ant-drawer-close")!);
+    await user.click(drawer.querySelector(".ant-modal-close")!);
     await user.click(await screen.findByRole("button", { name: "Discard" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
@@ -162,7 +162,7 @@ describe("the noticeboard", () => {
 
     await user.click(await screen.findByTestId("new-announcement"));
     const drawer = await screen.findByRole("dialog");
-    await user.click(drawer.querySelector(".ant-drawer-close")!);
+    await user.click(drawer.querySelector(".ant-modal-close")!);
 
     // A guard that fires on a dialog nobody typed into is the guard that
     // teaches people to dismiss guards.

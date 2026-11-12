@@ -26,8 +26,8 @@ import {
   App as AntApp,
   Button,
   DatePicker,
-  Drawer,
   Form,
+  Modal,
   Input,
   Segmented,
   Select,
@@ -173,14 +173,26 @@ export function AnnouncementEditor({
     });
 
   return (
-    <Drawer
+    <Modal
       open={open}
-      width={560}
-      title={notice ? `Edit “${notice.title}”` : "Write an announcement"}
+      width={680}
+      title={
+        notice ? (
+          `Edit “${notice.title}”`
+        ) : (
+          <div className="nx-ov-modal-title">
+            <span>
+              New <em>announcement</em>
+            </span>
+            <small>Shown to everyone it is addressed to, from the date you choose</small>
+          </div>
+        )
+      }
       afterOpenChange={(opened) => opened && seed()}
-      onClose={requestClose}
-      destroyOnClose={false}
-      extra={
+      onCancel={requestClose}
+      destroyOnHidden={false}
+      className="nx-ov-announce-editor"
+      footer={
         <Space>
           <Button onClick={requestClose}>Cancel</Button>
           <Button
@@ -326,6 +338,6 @@ export function AnnouncementEditor({
           }
         />
       </Form>
-    </Drawer>
+    </Modal>
   );
 }
