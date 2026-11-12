@@ -22,6 +22,7 @@ import { useAppearance } from "@/theme/AppearanceProvider";
 import { DENSITY_LABEL, type Density } from "@/theme/tokens";
 import { useFeatures, type FeatureKey } from "@/settings/features";
 import { PageTour } from "@/app/PageTour";
+import { OverlayHistory, useScrollMemory } from "@/app/history";
 import { NAV_GROUPS, NAV_ITEMS, selectedKeyFor, trailFor, type NavGroup } from "./navigation";
 
 type Device = "pc" | "tablet" | "phone";
@@ -130,6 +131,8 @@ export function AppShell() {
   }, [location.pathname]);
 
   const selected = selectedKeyFor(location.pathname);
+  const scrollerRef = useRef<HTMLElement>(null);
+  useScrollMemory(scrollerRef);
 
   const badgePoll = usePollInterval(60_000);
   const counts = useQuery({
@@ -510,7 +513,7 @@ export function AppShell() {
 
         <AnnouncementBanner />
 
-        <main className="nx-scroll nu-content" id="nu-main">
+        <main className="nx-scroll nu-content" id="nu-main" ref={scrollerRef}>
           {content}
         </main>
       </div>
@@ -589,6 +592,7 @@ export function AppShell() {
       )}
 
       <CommandPalette />
+      <OverlayHistory />
     </div>
   );
 }

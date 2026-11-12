@@ -563,3 +563,4 @@ html { zoom: var(--nu-zoom, 1); }
 .ant-segmented .ant-segmented-item-selected,
 .ant-segmented .ant-segmented-item-selected:hover,
 .ant-segmented .ant-segmented-item-selected .ant-segmented-item-label { color: var(--nu-on-ink) !important; }
+.ant-modal-title em, .ant-drawer-title em { font-style: normal; color: var(--nu-accent); }

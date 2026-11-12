@@ -4,6 +4,7 @@ import { ArrowLeftOutlined } from "@ant-design/icons";
 import { Link, useLocation } from "react-router-dom";
 
 import { readOrigin } from "@/entities/drilldown";
+import { useSmartBack } from "@/app/history";
 
 /**
  * One header for every page: title, one line of context, actions on the right.
@@ -36,6 +37,10 @@ export function PageHeader({
   // Read from the address rather than passed in: the page a drill lands on
   // does not know it was a drill, and should not have to.
   const origin = readOrigin(useLocation().search);
+  // Back returns to the previous screen as it was left — filters, tab, scroll
+  // — and only falls back to the page's own parent when there is no previous
+  // screen in this app (a pasted link, a new tab).
+  const back = useSmartBack();
 
   return (
     <div className="nu-page-header">
@@ -43,7 +48,17 @@ export function PageHeader({
         {origin && (
           // Above the title, because it is where the reader *was* rather than
           // an action on what they are looking at now.
-          <Link className="nu-page-origin" to={origin.to} data-testid="drill-back">
+          <Link
+            className="nu-page-origin"
+            to={origin.to}
+            data-testid="drill-back"
+            onClick={(event) => {
+              if (window.history.state && (window.history.state as { idx?: number }).idx) {
+                event.preventDefault();
+                back(origin.to);
+              }
+            }}
+          >
             <ArrowLeftOutlined /> Back to {origin.label}
           </Link>
         )}
@@ -55,7 +70,7 @@ export function PageHeader({
               aria-label="Back"
               className="nu-page-back"
               icon={<ArrowLeftOutlined />}
-              onClick={onBack}
+              onClick={() => back(onBack)}
             />
           )}
           {title}
