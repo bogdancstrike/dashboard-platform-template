@@ -329,3 +329,69 @@ body.nx-dragging, body.nx-dragging * { cursor: grabbing !important; user-select:
 .nx-rec-triage--warn .nx-rec-triage-go { background: var(--nu-warn-bg); }
 .nx-rec-triage--acc .nx-rec-triage-n, .nx-rec-triage--acc .nx-rec-triage-go { color: var(--nu-accent-ink); }
 .nx-rec-triage--acc .nx-rec-triage-go { background: var(--nu-tint); }
+
+/* ═══ Record pages: the delivery standing, the work, the review ═══════════ */
+[data-testid="delivery-standing"].ant-card .ant-card-body { padding: 20px 22px; }
+.nx-rec-gauge { display: flex; flex-direction: column; gap: 6px; }
+.nx-rec-gauge-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+.nx-rec-gauge-head .nu-field-label { font-size: 13px; margin: 0; }
+.nx-rec-gauge-n { font-size: 40px; font-weight: 700; letter-spacing: -0.03em; line-height: 0.95; font-variant-numeric: tabular-nums; }
+.nx-rec-gauge-n small { font-size: 16px; font-weight: 600; color: var(--nu-text-tertiary); margin-left: 1px; }
+.nx-rec-gauge .ant-progress { margin: 0; }
+.nx-rec-gauge .ant-progress-inner { height: 8px !important; background: rgba(var(--nu-ink-rgb), 0.08); }
+.nx-rec-gauge .ant-progress-bg { height: 8px !important; }
+.nx-rec-gauge-cap { font-size: 12.5px; }
+.nx-rec-verdict.ant-typography { display: block; margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(var(--nu-ink-rgb), 0.08); font-size: 20px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.3; }
+.nx-app--phone .nx-rec-verdict.ant-typography { font-size: 16px; }
+[data-testid="project-work"] .nu-rollup { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+[data-testid="project-work"] .nu-rollup-cell { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 20px; border: 1px solid rgba(var(--nu-ink-rgb), 0.1); background: rgba(var(--nu-glass-rgb), 0.5); color: var(--nu-text); text-decoration: none; transition: transform 0.2s var(--nx-ease), box-shadow 0.2s ease; }
+[data-testid="project-work"] .nu-rollup-cell:hover { transform: translateY(-2px); box-shadow: var(--nu-lift); }
+[data-testid="project-work"] .nu-rollup-value { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+[data-testid="project-work"] .nu-rollup-label { font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--nu-text); }
+[data-testid="project-review"] .nu-field-label { display: block; font-size: 13px; margin-bottom: 6px; }
+[data-testid="project-review"] .ant-select { height: 44px; }
+[data-testid="project-review"] .ant-select-selector { border-radius: 22px !important; padding-inline: 16px !important; font-weight: 600; }
+
+/* ═══ Ticket: the SLA banner, the four moments as tiles ═══════════════════ */
+.nx-rec-sla {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; padding: 20px 24px; margin-bottom: 14px; border-radius: 28px;
+  background: var(--nu-glass); border: 1px solid var(--nu-glass-border); box-shadow: var(--nu-glass-shadow);
+  -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%); animation: nxRise 0.6s var(--nx-ease) both;
+  --sla-ink: var(--nu-accent-ink); --sla-bg: var(--nu-tint); --sla-fill: var(--nu-accent);
+}
+.nx-rec-sla--danger { --sla-ink: var(--nu-bad); --sla-bg: var(--nu-bad-bg); --sla-fill: var(--nu-bad-fill); }
+.nx-rec-sla--warning { --sla-ink: var(--nu-warn); --sla-bg: var(--nu-warn-bg); --sla-fill: var(--nu-warn-fill); }
+.nx-rec-sla--success { --sla-ink: var(--nu-ok); --sla-bg: var(--nu-ok-bg); --sla-fill: var(--nu-ok-fill); }
+.nx-rec-sla-icon { width: 52px; height: 52px; border-radius: 26px; background: var(--sla-bg); color: var(--sla-ink); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.nx-rec-sla-text { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.nx-rec-sla-kicker { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sla-ink); }
+.nx-rec-sla-headline { font-size: 30px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; color: var(--sla-ink); }
+.nx-rec-sla-detail { font-size: 13.5px; color: var(--nu-text-secondary); }
+.nx-rec-sla-window { flex: 1 1 320px; display: flex; flex-direction: column; gap: 8px; }
+.nx-rec-sla-ends { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--nu-text-secondary); }
+.nx-rec-sla-bar { height: 10px; border-radius: 5px; background: rgba(var(--nu-ink-rgb), 0.08); overflow: hidden; display: block; }
+.nx-rec-sla-bar i { display: block; height: 100%; border-radius: 5px; background: var(--sla-fill); transform-origin: left; animation: nxBar 1s var(--nx-ease) 0.2s both; }
+.nx-rec-sla-used { font-size: 12px; color: var(--nu-text-tertiary); }
+.nx-app--phone .nx-rec-sla { padding: 16px; gap: 12px; }
+.nx-app--phone .nx-rec-sla-headline { font-size: 24px; }
+
+[data-testid="ticket-response"] .nu-moments { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.nx-app--phone [data-testid="ticket-response"] .nu-moments { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+[data-testid="ticket-response"] .nu-moment { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 20px; border: 1px solid rgba(var(--nu-ink-rgb), 0.1); background: rgba(var(--nu-glass-rgb), 0.5); }
+[data-testid="ticket-response"] .nu-moment + .nu-moment { border-top: 1px solid rgba(var(--nu-ink-rgb), 0.1); }
+[data-testid="ticket-response"] .nu-moment::before { position: static; display: none; }
+[data-testid="ticket-response"] .nu-moment::after { display: none !important; }
+[data-testid="ticket-response"] .nu-moment-label { display: flex; align-items: center; gap: 7px; font-size: 12.5px; }
+[data-testid="ticket-response"] .nu-moment-label::before { content: ""; width: 9px; height: 9px; border-radius: 5px; background: rgba(var(--nu-ink-rgb), 0.25); }
+[data-testid="ticket-response"] .nu-moment.is-reached .nu-moment-label::before { background: var(--nu-ok-fill); }
+[data-testid="ticket-response"] .nu-moment-when { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+[data-testid="ticket-response"] .nu-moment-when .ant-typography { font-size: inherit; }
+[data-testid="ticket-response"] .nu-moment-note { font-size: 12px; }
+[data-testid="ticket-triage"] .nu-field-label, [data-testid="task-panel"] .nu-field-label { display: block; font-size: 13px; margin-bottom: 6px; }
+[data-testid="ticket-triage"] .ant-select { height: 44px; }
+[data-testid="ticket-triage"] .ant-select-selector { border-radius: 22px !important; padding-inline: 16px !important; font-weight: 600; }
+[data-testid="ticket-filing"] .ant-descriptions-item-container { justify-content: space-between; }
+[data-testid="ticket-filing"] .ant-descriptions-row + .ant-descriptions-row .ant-descriptions-item { border-top: 1px solid rgba(var(--nu-ink-rgb), 0.07); padding-top: 10px; }
+[data-testid="ticket-filing"] .ant-descriptions-item-label::after { display: none; }
+[data-testid="ticket-filing"] .ant-descriptions-item-content { justify-content: flex-end; font-weight: 600; }
+.nx-rec-sla-reopen { margin-left: 8px; font-weight: 600; color: var(--nu-warn); }

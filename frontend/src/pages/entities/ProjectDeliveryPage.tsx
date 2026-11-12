@@ -57,7 +57,7 @@ import { CommentThread } from "@/components/comments/CommentThread";
 import { PageHeader } from "@/components/PageHeader";
 import { PeoplePicker } from "@/components/PeoplePicker";
 import { useRecordPage } from "@/components/records/useRecordPage";
-import { StatusTag } from "@/components/StatusTag";
+import { humanStatus, StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { projectStanding } from "@/entities/delivery";
 import { absoluteTime, relativeTime } from "@/lib/time";
@@ -291,7 +291,8 @@ export default function ProjectDeliveryPage() {
         <Text
           strong
           data-testid="delivery-summary"
-          style={{ color: STANDING_INK[standing.standing], display: "block", marginTop: 12 }}
+          className="nx-rec-verdict"
+          style={{ color: STANDING_INK[standing.standing] }}
         >
           {standing.summary}
         </Text>
@@ -327,7 +328,7 @@ export default function ProjectDeliveryPage() {
                     >
                       {formatNumber(lane.count)}
                     </span>
-                    <span className="nu-rollup-label">{lane.status.replace(/_/g, " ")}</span>
+                    <span className="nu-rollup-label">{humanStatus(lane.status)}</span>
                   </Link>
                 ))}
               </div>
@@ -425,7 +426,7 @@ export default function ProjectDeliveryPage() {
                   onChange={(next) => page.write({ health: next })}
                   options={page.choices("health").map((choice) => ({
                     value: choice,
-                    label: choice.replace(/_/g, " "),
+                    label: humanStatus(choice),
                   }))}
                 />
               </Field>
@@ -439,7 +440,7 @@ export default function ProjectDeliveryPage() {
                   onChange={(next) => page.write({ phase: next })}
                   options={page.choices("phase").map((choice) => ({
                     value: choice,
-                    label: choice,
+                    label: humanStatus(choice),
                   }))}
                 />
               </Field>
@@ -453,7 +454,7 @@ export default function ProjectDeliveryPage() {
                   onChange={(next) => page.write({ status: next })}
                   options={page.choices("status").map((choice) => ({
                     value: choice,
-                    label: choice.replace(/_/g, " "),
+                    label: humanStatus(choice),
                   }))}
                 />
               </Field>
@@ -552,10 +553,18 @@ function Gauge({
   colour?: string;
 }) {
   return (
-    <div>
-      <Text strong className="nu-field-label">
-        {label}
-      </Text>
+    <div className="nx-rec-gauge">
+      <div className="nx-rec-gauge-head">
+        <Text strong className="nu-field-label">
+          {label}
+        </Text>
+        {percent !== null && (
+          <span className="nx-rec-gauge-n">
+            {Math.round(percent)}
+            <small>%</small>
+          </span>
+        )}
+      </div>
       {percent === null ? (
         <Text type="secondary">Not enough information</Text>
       ) : (
@@ -566,10 +575,10 @@ function Gauge({
           className="nu-gauge"
           percent={Math.min(Math.round(percent), 100)}
           strokeColor={colour}
-          format={() => `${Math.round(percent)}%`}
+          showInfo={false}
         />
       )}
-      <Text type="secondary" style={{ display: "block" }}>
+      <Text type="secondary" className="nx-rec-gauge-cap">
         {caption}
       </Text>
     </div>

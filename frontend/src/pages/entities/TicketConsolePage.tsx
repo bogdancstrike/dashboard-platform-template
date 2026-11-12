@@ -30,7 +30,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import {
-  Alert,
   Button,
   Card,
   Col,
@@ -44,7 +43,7 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import { ClockCircleOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { Link, useParams } from "react-router-dom";
 import { useSmartBack } from "@/app/history";
 
@@ -56,10 +55,10 @@ import { PageHeader } from "@/components/PageHeader";
 import { TagPicker } from "@/components/records/TagPicker";
 import { PeoplePicker } from "@/components/PeoplePicker";
 import { useRecordPage } from "@/components/records/useRecordPage";
-import { StatusTag } from "@/components/StatusTag";
+import { humanStatus, StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { duration, slaStanding } from "@/entities/sla";
-import { absoluteTime, relativeTime } from "@/lib/time";
+import { absoluteTime, parseInstant, relativeTime } from "@/lib/time";
 import { asText } from "@/lib/text";
 import { EmptyState } from "@/components/EmptyState";
 
@@ -215,21 +214,15 @@ export default function TicketConsolePage() {
 
       {/* The clock, first, because it decides whether this is the next thing
           anybody does. */}
-      <Alert
-        data-testid="sla-standing"
-        type={ALERT_TYPE[sla.tone]}
-        showIcon
-        message={sla.headline}
-        description={
-          <Space size={16} wrap>
-            <span>{sla.detail}</span>
-            {Number(page.value("reopen_count") ?? 0) > 0 && (
-              <Text type="secondary">
-                Reopened {formatCount(Number(page.value("reopen_count")))}
-              </Text>
-            )}
-          </Space>
-        }
+      <SlaBanner
+        tone={sla.tone}
+        headline={sla.headline}
+        detail={sla.detail}
+        severity={asText(page.value("severity"))}
+        raised={ticket.created_at}
+        due={asText(page.value("due_at")) || null}
+        resolved={asText(page.value("resolved_at")) || null}
+        reopened={Number(page.value("reopen_count") ?? 0)}
       />
 
       <Row gutter={[12, 12]} className="nu-block">
@@ -317,7 +310,7 @@ export default function TicketConsolePage() {
                   onChange={(next) => page.write({ status: next })}
                   options={page.choices("status").map((choice) => ({
                     value: choice,
-                    label: choice.replace(/_/g, " "),
+                    label: humanStatus(choice),
                   }))}
                 />
               </Field>
@@ -331,7 +324,7 @@ export default function TicketConsolePage() {
                   onChange={(next) => page.write({ severity: next })}
                   options={page.choices("severity").map((choice) => ({
                     value: choice,
-                    label: choice,
+                    label: humanStatus(choice),
                   }))}
                 />
               </Field>
@@ -345,7 +338,7 @@ export default function TicketConsolePage() {
                   onChange={(next) => page.write({ priority: next })}
                   options={page.choices("priority").map((choice) => ({
                     value: choice,
-                    label: choice,
+                    label: humanStatus(choice),
                   }))}
                 />
               </Field>
@@ -513,6 +506,76 @@ function Moment({
         <Text type={tone ?? "secondary"}>{note}</Text>
       </span>
     </li>
+  );
+}
+
+/**
+ * The clock, first, because it decides whether this is the next thing anybody
+ * does: what the deadline is doing, in words, and how much of the window
+ * between "raised" and "promised by" has gone.
+ */
+function SlaBanner({
+  tone,
+  headline,
+  detail,
+  severity,
+  raised,
+  due,
+  resolved,
+  reopened,
+}: {
+  tone: keyof typeof ALERT_TYPE;
+  headline: string;
+  detail: string;
+  severity: string;
+  raised: string | null;
+  due: string | null;
+  resolved: string | null;
+  reopened: number;
+}) {
+  const start = parseInstant(raised)?.getTime() ?? null;
+  const end = parseInstant(due)?.getTime() ?? null;
+  const stop = parseInstant(resolved)?.getTime() ?? Date.now();
+  const used =
+    start !== null && end !== null && end > start
+      ? Math.max(0, Math.min(1, (stop - start) / (end - start)))
+      : null;
+  return (
+    <section
+      className={`nx-rec-sla nx-rec-sla--${tone}`}
+      data-testid="sla-standing"
+      aria-label="Service level"
+    >
+      <span className="nx-rec-sla-icon" aria-hidden>
+        <ClockCircleOutlined />
+      </span>
+      <div className="nx-rec-sla-text">
+        <span className="nx-rec-sla-kicker">
+          SLA{severity ? ` · ${humanStatus(severity)} severity` : ""}
+        </span>
+        <span className="nx-rec-sla-headline">{headline}</span>
+        <span className="nx-rec-sla-detail">
+          {detail}
+          {reopened > 0 && <span className="nx-rec-sla-reopen">Reopened {formatCount(reopened)}</span>}
+        </span>
+      </div>
+      {used !== null && (
+        <div className="nx-rec-sla-window">
+          <span className="nx-rec-sla-ends">
+            <span>Raised {relativeTime(raised)}</span>
+            <span>Promised {relativeTime(due)}</span>
+          </span>
+          <span
+            className="nx-rec-sla-bar"
+            role="img"
+            aria-label={`${Math.round(used * 100)}% of the window used`}
+          >
+            <i style={{ width: `${used * 100}%` }} />
+          </span>
+          <span className="nx-rec-sla-used">{Math.round(used * 100)}% of the window used</span>
+        </div>
+      )}
+    </section>
   );
 }
 

@@ -103,9 +103,14 @@ export function statusTone(status: string | null | undefined): StatusTone {
  * those are acronyms (`SLA`, `VIP`), not words — and so does anything that is
  * not all capitals, which is a name rather than a vocabulary value.
  */
+/** Short values that are words, not acronyms. */
+const SHORT_WORDS = new Set(["NEW", "LOW", "OFF", "ON", "OK", "BUG", "WEB", "APP"]);
+
 export function humanStatus(status: string): string {
   // Only the vocabulary is shouted; "Munich — Warehouse" is already a name.
-  if (status.length <= 3 || status !== status.toUpperCase()) return status;
+  if ((status.length <= 3 && !SHORT_WORDS.has(status)) || status !== status.toUpperCase()) {
+    return status;
+  }
   const words = status.replace(/_/g, " ").toLowerCase();
   return words.charAt(0).toUpperCase() + words.slice(1);
 }

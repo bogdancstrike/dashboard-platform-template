@@ -101,7 +101,7 @@ describe("the project delivery review", () => {
 
     // Every lane leads to the board already filtered, rather than being a
     // second board embedded here.
-    expect(within(work).getByRole("link", { name: /143.*DONE/s })).toHaveAttribute(
+    expect(within(work).getByRole("link", { name: /143.*Done/s })).toHaveAttribute(
       "href",
       "/tasks?f.project_id=project-1&f.status=DONE",
     );
@@ -115,7 +115,7 @@ describe("the project delivery review", () => {
     render();
     const review = await screen.findByTestId("project-review");
     await user.click(within(review).getByRole("combobox", { name: "Health" }));
-    await user.click(await screen.findByTitle("OFF TRACK"));
+    await user.click(await screen.findByTitle("Off track"));
 
     await waitFor(() => expect(bodies).toHaveLength(1));
     expect(bodies[0]).toMatchObject({

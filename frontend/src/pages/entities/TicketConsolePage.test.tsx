@@ -124,7 +124,7 @@ describe("the ticket support console", () => {
     render();
     const triage = await screen.findByTestId("ticket-triage");
     await user.click(within(triage).getByRole("combobox", { name: "Severity" }));
-    await user.click(await screen.findByTitle("MAJOR"));
+    await user.click(await screen.findByTitle("Major"));
 
     await waitFor(() => expect(bodies).toHaveLength(1));
     expect(bodies[0]).toMatchObject({

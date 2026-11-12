@@ -9,10 +9,11 @@
  */
 
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { Select, Space, Typography } from "antd";
 
 import { directoryApi, type Person } from "@/api/directory";
+import { profileApi } from "@/api/profile";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { PersonAvatar } from "@/components/PersonAvatar";
 
@@ -55,13 +56,44 @@ export function PeoplePicker({
 
   // The selection has to keep rendering as names once the search term moves on,
   // so anyone already chosen stays in the option list.
+  // A stored id the search has not brought back is still a person with a
+  // name: read it once, so the control never shows a bare UUID.
+  const listed = new Set([...known, ...(results.data?.items ?? [])].map((person) => person.id));
+  const missing = value.filter((id) => id && !listed.has(id));
+  const looked = useQueries({
+    queries: missing.map((id) => ({
+      queryKey: ["person-card", id],
+      queryFn: ({ signal }: { signal: AbortSignal }) => profileApi.person(id, signal),
+      staleTime: 300_000,
+      retry: false,
+    })),
+  });
+  const found: Person[] = looked.flatMap((query) => {
+    const user = query.data?.user;
+    return user
+      ? [
+          {
+            id: user.id,
+            name: user.full_name,
+            email: user.email ?? "",
+            username: user.username,
+            job_title: user.job_title,
+            avatar_url: user.avatar_url,
+            initials: user.initials,
+            is_me: false,
+          },
+        ]
+      : [];
+  });
+
   const people = useMemo(() => {
     const byId = new Map<string, Person>();
-    for (const person of [...known, ...(results.data?.items ?? [])]) byId.set(person.id, person);
+    for (const person of [...known, ...found, ...(results.data?.items ?? [])]) byId.set(person.id, person);
     return [...byId.values()].filter(
       (person) => value.includes(person.id) || !exclude.includes(person.id),
     );
-  }, [known, results.data, value, exclude]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [known, results.data, value, exclude, found.map((person) => person.id).join()]);
 
   return (
     <Select
