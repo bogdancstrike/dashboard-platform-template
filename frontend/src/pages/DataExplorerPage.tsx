@@ -414,11 +414,7 @@ export default function DataExplorerPage() {
             >
               Save search
             </Button>
-          ) : (
-            <Button type="primary" icon={<NxIcon name="filter" size={15} />} onClick={() => setAdvancedOpen(true)}>
-              Build rules
-            </Button>
-          )}
+          ) : null}
         </>
       }
     />
