@@ -300,29 +300,38 @@
 .nx-ov-feed .nu-queue-pager { margin-top: 14px; display: flex; justify-content: center; }
 .nx-ov-feed .nu-feed-avatar.ant-avatar { width: 38px !important; height: 38px !important; line-height: 38px !important; }
 
-/* Announcements: the pinned notice is the accent hero, as on the canvas. */
-.nu-announce.ant-card { border-radius: 28px; }
-.nu-announce.ant-card > .ant-card-body { padding: 20px 22px; }
-.nu-announce-title.ant-typography { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+/* Announcements: compact cards; the pinned one an accent band, still short. */
+.nu-announce-board { gap: 8px; }
+.nu-announce.ant-card { border-radius: 22px; animation-duration: 0.4s; }
+.nu-announce.ant-card > .ant-card-body { padding: 12px 18px; }
+.nx-ov-notice { display: flex; flex-direction: column; gap: 4px; }
+.nx-ov-notice-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.nx-ov-notice-head .ant-tag { margin: 0; font-size: 10.5px; line-height: 20px; text-transform: lowercase; flex-shrink: 0; }
+.nu-announce .nu-announce-title.ant-typography { margin: 0 !important; flex: 1; min-width: 0; font-size: 14.5px; font-weight: 700; letter-spacing: -0.005em; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nu-announce .nu-announce-when.ant-typography { flex-shrink: 0; font-size: 12px; }
+.nu-announce .nu-announce-body.ant-typography { margin: 0 !important; font-size: 13px; line-height: 1.5; color: var(--nu-text-secondary); max-width: none; white-space: normal; }
+.nu-announce .nu-announce-body .ant-typography-expand, .nu-announce .nu-announce-body .ant-typography-collapse { font-weight: 600; }
+.nx-ov-notice-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; margin-top: 2px; }
+.nx-ov-notice-facts { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 0; font-size: 12px; color: var(--nu-text-tertiary); min-width: 0; }
+.nx-ov-notice-facts > span + span::before { content: "·"; margin: 0 7px; }
+.nu-announce .nu-announce-actions { gap: 10px; font-size: 12.5px; }
+.nu-announce .nu-announce-actions a { font-weight: 600; }
 .nu-announce.nx-ov-pinned.ant-card {
   background: linear-gradient(135deg, var(--nu-accent) 0%, color-mix(in srgb, var(--nu-accent) 78%, #7aa2ff) 100%);
-  border-color: transparent !important;
-  box-shadow: 0 24px 50px rgba(var(--nu-glow-rgb), 0.32);
-  color: var(--nu-on-accent);
+  border-color: transparent !important; box-shadow: 0 16px 36px rgba(var(--nu-glow-rgb), 0.28);
 }
-.nu-announce.nx-ov-pinned.ant-card > .ant-card-body { padding: 28px 30px; }
-.nu-announce.nx-ov-pinned .nu-announce-title.ant-typography {
-  color: var(--nu-on-accent); font-size: 30px; line-height: 1.12; letter-spacing: -0.03em;
-}
-.nu-announce.nx-ov-pinned .nu-announce-pin { color: var(--nu-on-accent); font-size: 18px; }
-.nu-announce.nx-ov-pinned .nu-announce-body.ant-typography { color: color-mix(in srgb, var(--nu-on-accent) 88%, transparent); font-size: 14.5px; }
-.nu-announce.nx-ov-pinned a { color: var(--nu-on-accent); text-decoration: underline; font-weight: 600; }
-.nu-announce.nx-ov-pinned .nu-announce-facts { border-color: rgba(255, 255, 255, 0.22) !important; color: var(--nu-on-accent); }
-.nu-announce.nx-ov-pinned .nu-announce-facts .ant-typography,
-.nu-announce.nx-ov-pinned .nu-announce-facts * { color: var(--nu-on-accent); }
-.nu-announce.nx-ov-pinned .nu-announce-facts .ant-tag { background: color-mix(in srgb, var(--nu-on-accent) 16%, transparent); }
+.nu-announce.nx-ov-pinned.ant-card > .ant-card-body { padding: 16px 20px; }
+.nu-announce.nx-ov-pinned,
+.nu-announce.nx-ov-pinned .ant-typography,
+.nu-announce.nx-ov-pinned .nx-ov-notice-facts,
+.nu-announce.nx-ov-pinned a,
+.nu-announce.nx-ov-pinned .nu-announce-pin { color: var(--nu-on-accent) !important; }
+.nu-announce.nx-ov-pinned .nu-announce-title.ant-typography { font-size: 18px; white-space: normal; }
+.nu-announce.nx-ov-pinned .nu-announce-body.ant-typography { opacity: 0.9; }
+.nu-announce.nx-ov-pinned .ant-tag { background: color-mix(in srgb, var(--nu-on-accent) 18%, transparent); color: var(--nu-on-accent); }
 .nu-announce.nx-ov-pinned .ant-btn-primary { background: var(--nu-on-accent); color: var(--nu-accent); }
-.nx-app--phone .nu-announce.nx-ov-pinned .nu-announce-title.ant-typography { font-size: 24px; }
+.nx-app--phone .nx-ov-notice-head { flex-wrap: wrap; }
+.nx-app--phone .nu-announce .nu-announce-title.ant-typography { white-space: normal; flex-basis: 100%; order: 3; }
 
 /* Segmented controls inside overview filter bars: pill chips, ink thumb. */
 .nx-ov-feedfilters .ant-segmented { border-radius: 22px; padding: 3px; background: rgba(var(--nu-ink-rgb), 0.06); }
@@ -633,3 +642,66 @@
 .nx-ov-kindtile-label { line-height: 1.2; }
 @media (max-width: 640px) { .nx-ov-kindgrid-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .nu-widget-modal-preview { border-radius: 24px; background: rgba(var(--nu-ink-rgb), 0.035); padding: 14px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Activity: feed + context column
+   ═══════════════════════════════════════════════════════════════════════ */
+.nx-ov-activity { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(280px, 1fr); gap: 16px; align-items: start; }
+.nx-ov-activity-main { min-width: 0; }
+.nx-ov-activity-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; position: sticky; top: 0; }
+.nx-ov-panel.ant-card .ant-card-head { min-height: 0; padding: 16px 18px 6px; }
+.nx-ov-panel.ant-card .ant-card-head-title { font-size: 14px; }
+.nx-ov-panel.ant-card .ant-card-body { padding: 4px 18px 16px; }
+.nx-app--tablet .nx-ov-activity, .nx-app--phone .nx-ov-activity { grid-template-columns: minmax(0, 1fr); }
+.nx-app--tablet .nx-ov-activity-side { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.nx-app--phone .nx-ov-activity-side { position: static; }
+.nx-app--phone .nx-ov-activity-side > .nx-ov-panel:nth-child(n + 3) { display: none; }
+@media (max-width: 1199px) { .nx-ov-activity { grid-template-columns: minmax(0, 1fr); } .nx-ov-activity-side { position: static; } }
+
+/* Denser rows: sentence on the left, kind and time on the right. */
+.nx-ov-feed .nu-feed-row { padding: 9px 12px; align-items: center; gap: 10px; }
+.nx-ov-feed .nu-feed-avatar.ant-avatar { width: 30px !important; height: 30px !important; line-height: 30px !important; font-size: 11px; }
+.nx-ov-feed .nu-feed-body { display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap; }
+.nx-ov-feed .nu-feed-line { flex: 1 1 260px; min-width: 0; font-size: 13.5px; line-height: 1.4; }
+.nx-ov-feed .nu-feed-meta { flex: 0 0 auto; margin: 0; gap: 10px; justify-content: flex-end; }
+.nx-ov-feed .nu-feed-meta > .ant-typography { white-space: nowrap; min-width: 56px; text-align: right; }
+.nx-ov-feed .nu-feed-day + .nu-feed-day { margin-top: 14px; }
+.nx-ov-feed .nu-feed { padding: 6px; }
+.nx-ov-feed .nu-feed li + li > .nu-feed-row { border-top: 1px solid rgba(var(--nu-ink-rgb), 0.05); border-radius: 0; }
+.nx-ov-feed .nu-feed-row--link:hover { border-radius: 16px; }
+
+/* Per-day bars. */
+.nx-ov-daybars { height: 72px; display: flex; align-items: flex-end; gap: 3px; padding-top: 6px; }
+.nx-ov-daybar { flex: 1; height: 100%; display: flex; align-items: flex-end; }
+.nx-ov-daybar i { display: block; width: 100%; border-radius: 4px 4px 2px 2px; background: color-mix(in srgb, var(--nu-accent) 70%, transparent); transition: background 0.2s ease; }
+.nx-ov-daybar:hover i { background: var(--nu-accent); }
+.nx-ov-daybars-axis { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--nu-text-tertiary); }
+
+/* Kind meters. */
+.nx-ov-meters { display: flex; flex-direction: column; gap: 4px; }
+.nx-ov-meter {
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; align-items: center;
+  padding: 7px 10px; border: 0; border-radius: 14px; background: transparent; cursor: pointer;
+  color: var(--nu-text); font: 500 13px var(--nu-font); text-align: left;
+}
+.nx-ov-meter:hover { background: rgba(var(--nu-ink-rgb), 0.05); }
+.nx-ov-meter.is-on { background: var(--nu-tint); }
+.nx-ov-meter-count { font-weight: 700; font-variant-numeric: tabular-nums; }
+.nx-ov-meter-track { grid-column: 1 / -1; height: 5px; border-radius: 3px; background: rgba(var(--nu-ink-rgb), 0.07); overflow: hidden; }
+.nx-ov-meter-track i { display: block; height: 100%; border-radius: 3px; background: var(--nu-accent); animation: nxBar 0.8s var(--nx-ease) both; transform-origin: left; }
+
+.nx-ov-person, .nx-ov-touched {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 4px 6px;
+  border: 0; border-radius: 14px; background: transparent; color: var(--nu-text); font: 500 13px var(--nu-font); cursor: pointer; text-align: left;
+}
+.nx-ov-person:hover:not(:disabled), .nx-ov-touched:hover { background: rgba(var(--nu-ink-rgb), 0.05); color: var(--nu-text); }
+.nx-ov-person.is-on { background: var(--nu-tint); }
+.nx-ov-person:disabled { cursor: default; }
+.nx-ov-person .nu-feed-avatar.ant-avatar { background: var(--nu-tint); color: var(--nu-accent-ink); font-weight: 700; font-size: 11px; flex-shrink: 0; }
+.nx-ov-person-name, .nx-ov-touched-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-ov-touched-type { font-size: 11px; color: var(--nu-text-tertiary); text-transform: capitalize; }
+.nx-ov-count { min-width: 26px; height: 22px; padding: 0 7px; border-radius: 11px; background: rgba(var(--nu-ink-rgb), 0.07); font-size: 11.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
+.nx-ov-sample-note.ant-typography { font-size: 11.5px; padding: 0 8px; }
+.nx-ov-feed .nu-feed-meta, .nx-ov-feed .nu-feed-meta .ant-typography { font-size: 12px; }
+.nx-ov-feed .nu-feed-meta .ant-tag { font-size: 10.5px; line-height: 19px; }
+.nx-ov-feed .nu-feed-avatar.ant-avatar { background: var(--nu-tint); color: var(--nu-accent-ink); font-weight: 700; }

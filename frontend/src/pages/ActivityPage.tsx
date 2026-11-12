@@ -124,6 +124,23 @@ export default function ActivityPage() {
     staleTime: 300_000,
   });
 
+  /**
+   * The context beside the feed: the newest two hundred entries for the same
+   * question, whatever kind is chosen. A sample rather than a census — the
+   * panels say so when the period holds more — and it is the same endpoint,
+   * so a number here cannot disagree with a row in the feed.
+   */
+  const context = useQuery({
+    queryKey: ["activity-context", resourceType, actorId, period],
+    queryFn: ({ signal }) =>
+      activityApi.feed(
+        { resource_type: resourceType, actor_id: actorId, period, page_size: 200 },
+        signal,
+      ),
+    staleTime: 30_000,
+  });
+  const summary = useMemo(() => summarise(context.data?.items ?? []), [context.data]);
+
   // Memoised, because the grouping below depends on it: a fresh `[]` on every
   // render would re-bucket the feed on every keystroke elsewhere on the page.
   const items = useMemo(() => feed.data?.items ?? [], [feed.data]);
@@ -235,6 +252,8 @@ export default function ActivityPage() {
         ))}
       </div>
 
+      <div className="nx-ov-activity">
+      <div className="nx-ov-activity-main">
       <Card size="small" className="nu-filter-bar nu-block nx-ov-feedfilters">
         <Space size={8} wrap>
           <Select
@@ -320,8 +339,142 @@ export default function ActivityPage() {
           </>
         )}
       </Card>
+      </div>
+
+      <aside className="nx-ov-activity-side" aria-label="What the period looks like" data-testid="activity-context">
+        <Card size="small" title="Per day" className="nx-ov-panel">
+          {context.isLoading ? (
+            <Skeleton active paragraph={{ rows: 2 }} title={false} />
+          ) : summary.days.length === 0 ? (
+            <Text type="secondary">Nothing in this period</Text>
+          ) : (
+            <div className="nx-ov-daybars" role="img" aria-label={`Entries per day: ${summary.days.map((day) => `${day.label} ${day.count}`).join(", ")}`}>
+              {summary.days.map((day) => (
+                <Tooltip key={day.key} title={`${day.label}: ${day.count}`}>
+                  <span className="nx-ov-daybar">
+                    <i style={{ height: `${Math.max(6, (day.count / summary.busiest) * 100)}%` }} />
+                  </span>
+                </Tooltip>
+              ))}
+            </div>
+          )}
+          {summary.days.length > 0 && (
+            <div className="nx-ov-daybars-axis">
+              <span>{summary.days[0]?.label}</span>
+              <span>{summary.days.at(-1)?.label}</span>
+            </div>
+          )}
+        </Card>
+
+        <Card size="small" title="By kind" className="nx-ov-panel">
+          <div className="nx-ov-meters">
+            {kinds
+              .filter((entry) => entry.count > 0)
+              .map((entry) => (
+                <button
+                  key={entry.key}
+                  type="button"
+                  className={`nx-ov-meter${kind === entry.key ? " is-on" : ""}`}
+                  aria-pressed={kind === entry.key}
+                  onClick={() => set({ kind: kind === entry.key ? null : entry.key })}
+                >
+                  <span className="nx-ov-meter-label">{entry.label}</span>
+                  <span className="nx-ov-meter-count">{entry.count.toLocaleString()}</span>
+                  <span className="nx-ov-meter-track">
+                    <i style={{ width: `${(entry.count / Math.max(1, matched)) * 100}%` }} />
+                  </span>
+                </button>
+              ))}
+          </div>
+        </Card>
+
+        <Card size="small" title="Most active" className="nx-ov-panel">
+          {summary.people.length === 0 ? (
+            <Text type="secondary">Nobody yet</Text>
+          ) : (
+            <div className="nx-ov-rows nx-ov-rows--plain">
+              {summary.people.map((person) => (
+                <button
+                  key={person.id ?? "platform"}
+                  type="button"
+                  className={`nx-ov-person${actorId && actorId === person.id ? " is-on" : ""}`}
+                  disabled={!person.id}
+                  onClick={() => set({ actor_id: actorId === person.id ? null : person.id })}
+                >
+                  <Avatar size={28} className="nu-feed-avatar">{person.initials ?? "·"}</Avatar>
+                  <span className="nx-ov-person-name">{person.name ?? "The platform"}</span>
+                  <span className="nx-ov-count">{person.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <Card size="small" title="Most touched" className="nx-ov-panel">
+          {summary.records.length === 0 ? (
+            <Text type="secondary">No records changed</Text>
+          ) : (
+            <div className="nx-ov-rows nx-ov-rows--plain">
+              {summary.records.map((record) => (
+                <Link key={record.path} to={record.path} className="nx-ov-touched">
+                  <span className="nx-ov-touched-label">{record.label}</span>
+                  <span className="nx-ov-touched-type">{record.type}</span>
+                  <span className="nx-ov-count">{record.count}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </Card>
+        {(context.data?.matched ?? 0) > (context.data?.items.length ?? 0) && (
+          <Text type="secondary" className="nx-ov-sample-note">
+            From the newest {context.data?.items.length} of {context.data?.matched.toLocaleString()} entries.
+          </Text>
+        )}
+      </aside>
+      </div>
     </>
   );
+}
+
+/** What the side panels draw, from a sample of the feed. Pure, for its test. */
+export function summarise(items: ActivityEntry[]) {
+  const byDay = new Map<string, { key: string; label: string; count: number }>();
+  const byPerson = new Map<string, { id: string | null; name: string | null; initials: string | null; count: number }>();
+  const byRecord = new Map<string, { path: string; label: string; type: string; count: number }>();
+  for (const item of items) {
+    const when = new Date(item.occurred_at);
+    const key = `${when.getFullYear()}-${String(when.getMonth() + 1).padStart(2, "0")}-${String(when.getDate()).padStart(2, "0")}`;
+    const day = byDay.get(key) ?? {
+      key,
+      label: when.toLocaleDateString(undefined, { day: "numeric", month: "short" }),
+      count: 0,
+    };
+    day.count += 1;
+    byDay.set(key, day);
+
+    const who = item.actor.id ?? "platform";
+    const person = byPerson.get(who) ?? { ...item.actor, count: 0 };
+    person.count += 1;
+    byPerson.set(who, person);
+
+    if (item.resource_path) {
+      const record = byRecord.get(item.resource_path) ?? {
+        path: item.resource_path,
+        label: item.resource_label ?? item.resource_path,
+        type: (item.resource_type ?? "").replace(/_/g, " "),
+        count: 0,
+      };
+      record.count += 1;
+      byRecord.set(item.resource_path, record);
+    }
+  }
+  const days = [...byDay.values()].sort((a, b) => a.key.localeCompare(b.key)).slice(-21);
+  return {
+    days,
+    busiest: Math.max(1, ...days.map((day) => day.count)),
+    people: [...byPerson.values()].sort((a, b) => b.count - a.count).slice(0, 5),
+    records: [...byRecord.values()].sort((a, b) => b.count - a.count).slice(0, 5),
+  };
 }
 
 /**

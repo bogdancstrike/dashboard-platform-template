@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { Route, Routes, useLocation } from "react-router-dom";
 
-import ActivityPage from "@/pages/ActivityPage";
+import ActivityPage, { summarise } from "@/pages/ActivityPage";
 import { CommandProvider } from "@/commands/CommandContext";
 import { renderWithProviders } from "@/test/render";
 
@@ -107,5 +107,36 @@ describe("the activity feed", () => {
     // Reached by a link rather than a click, since the chip is refused — and
     // the page still has to say what it means (§34).
     expect(await screen.findByText("Nothing happened here")).toBeInTheDocument();
+  });
+});
+
+describe("summarise", () => {
+  const entry = (id: string, at: string, actor: string | null, path: string | null) => ({
+    id,
+    occurred_at: at,
+    kind: "RECORDS",
+    kind_label: "Records",
+    action: "UPDATE",
+    actor: { id: actor, name: actor ? `Person ${actor}` : null, initials: actor ? "P" : null },
+    resource_type: path ? "task" : null,
+    resource_id: path,
+    resource_label: path ? `Task ${path}` : null,
+    resource_path: path ? `/tasks/${path}` : null,
+    summary: "changed it",
+    changed: [],
+  });
+
+  it("counts per day, per person and per record, busiest first", () => {
+    const out = summarise([
+      entry("1", "2026-11-10T09:00:00", "a", "t1"),
+      entry("2", "2026-11-10T10:00:00", "a", "t1"),
+      entry("3", "2026-11-11T09:00:00", "b", "t2"),
+      entry("4", "2026-11-11T11:00:00", null, null),
+    ]);
+    expect(out.days.map((day) => day.count)).toEqual([2, 2]);
+    expect(out.busiest).toBe(2);
+    expect(out.people[0]).toMatchObject({ id: "a", count: 2 });
+    expect(out.records[0]).toMatchObject({ path: "/tasks/t1", count: 2 });
+    expect(out.records).toHaveLength(2);
   });
 });

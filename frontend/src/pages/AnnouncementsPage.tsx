@@ -366,13 +366,14 @@ function Notice({
       }${notice.is_pinned ? " nx-ov-pinned" : ""}`}
       data-testid="announcement"
     >
-      {/* Two columns, because prose and facts want different widths. The text
-          is capped at a readable measure — a hundred-character line is hard to
-          read whatever the window is doing — and the width that measure does
-          not use goes to the notice's own facts rather than being left blank.
-          Before this, half of every card was empty. */}
-      <div className="nu-announce-grid">
-        <div className="nu-announce-main">
+      {/* Compact: one heading line with the notice's kind and age, two lines
+          of what it says (expandable), and one line of facts. A noticeboard
+          where each notice is a screen tall is one nobody reads to the end. */}
+      <div className="nx-ov-notice">
+        <div className="nx-ov-notice-head">
+          <Tag color={SEVERITY_COLOUR[notice.severity]} bordered={false}>
+            {notice.severity}
+          </Tag>
           <Title level={4} className="nu-announce-title">
             {notice.is_pinned && (
               <Tooltip title="Pinned to the top of the board">
@@ -381,15 +382,56 @@ function Notice({
             )}
             {notice.title}
           </Title>
-          <Paragraph className="nu-announce-body">{notice.body}</Paragraph>
+          <Tooltip title={absoluteTime(notice.publish_at ?? notice.created_at)}>
+            <Text type="secondary" className="nu-announce-when">
+              {relativeTime(notice.publish_at ?? notice.created_at)}
+            </Text>
+          </Tooltip>
+        </div>
+        <Paragraph
+          className="nu-announce-body"
+          ellipsis={{ rows: notice.is_pinned ? 3 : 2, expandable: "collapsible", symbol: (open) => (open ? "Less" : "More") }}
+        >
+          {notice.body}
+        </Paragraph>
 
-          <div className="nu-announce-actions">
+        <div className="nx-ov-notice-foot">
+          <span className="nx-ov-notice-facts">
+            <span>{notice.category_label}</span>
+            {notice.is_expired && <span>Expired</span>}
+            {notice.expires_at && (
+              <Tooltip title={absoluteTime(notice.expires_at)}>
+                <span>
+                  {notice.is_expired ? "Ran out" : "Until"} {relativeTime(notice.expires_at)}
+                </span>
+              </Tooltip>
+            )}
+            <span>
+              {notice.audience_roles.length === 0 ? (
+                "Everybody"
+              ) : (
+                <Tooltip title={notice.audience_roles.join(", ")}>
+                  <span>{notice.audience_roles.length} roles</span>
+                </Tooltip>
+              )}
+            </span>
+            {notice.author.name && (
+              <span className="nu-announce-author">
+                <Avatar size={18} className="nu-announce-avatar">
+                  {notice.author.initials}
+                </Avatar>
+                {notice.author.name}
+              </span>
+            )}
+          </span>
+          <span className="nu-announce-actions">
             {notice.link && <Link to={notice.link}>Open what this is about</Link>}
             {/* Agreeing is a decision, so it is a button — and it says what it
                 commits the reader to rather than "OK". */}
             {needsAgreement && (
               <Button
                 type="primary"
+                size="small"
                 icon={<CheckCircleOutlined />}
                 loading={acknowledging}
                 onClick={onAcknowledge}
@@ -405,64 +447,10 @@ function Notice({
                 </Tag>
               </Tooltip>
             )}
-          </div>
+          </span>
         </div>
-
-        <aside className="nu-announce-facts">
-          <Space size={4} wrap>
-            <Tag color={SEVERITY_COLOUR[notice.severity]} bordered={false}>
-              {notice.severity}
-            </Tag>
-            <Tag bordered={false}>{notice.category_label}</Tag>
-            {notice.is_expired && <Tag bordered={false}>Expired</Tag>}
-          </Space>
-
-          <Fact label="Published">
-            <Tooltip title={absoluteTime(notice.publish_at ?? notice.created_at)}>
-              <span>{relativeTime(notice.publish_at ?? notice.created_at)}</span>
-            </Tooltip>
-          </Fact>
-          {notice.expires_at && (
-            <Fact label={notice.is_expired ? "Ran out" : "Until"}>
-              <Tooltip title={absoluteTime(notice.expires_at)}>
-                <span>{relativeTime(notice.expires_at)}</span>
-              </Tooltip>
-            </Fact>
-          )}
-          <Fact label="Audience">
-            {notice.audience_roles.length === 0 ? (
-              "Everybody"
-            ) : (
-              <Tooltip title={notice.audience_roles.join(", ")}>
-                <span>{notice.audience_roles.length} roles</span>
-              </Tooltip>
-            )}
-          </Fact>
-          {notice.author.name && (
-            <Fact label="Written by">
-              <span className="nu-announce-author">
-                <Avatar size={18} className="nu-announce-avatar">
-                  {notice.author.initials}
-                </Avatar>
-                {notice.author.name}
-              </span>
-            </Fact>
-          )}
-        </aside>
       </div>
     </Card>
-  );
-}
-
-/** One fact in a notice's rail: the label, then the value. */
-function Fact({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="nu-announce-fact">
-      <Text type="secondary" className="nu-announce-fact-label">
-        {label}
-      </Text>
-      <Text className="nu-announce-fact-value">{children}</Text>
-    </div>
   );
 }
 
