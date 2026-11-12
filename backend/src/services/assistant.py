@@ -20,6 +20,7 @@ saved with status ``stopped``, so the history shows what they saw.
 from __future__ import annotations
 
 import json
+import time
 from collections.abc import Iterator
 from typing import Any
 
@@ -42,6 +43,10 @@ MAX_MESSAGE = 8000
 HISTORY_TURNS = 24
 #: Tool rounds before the model is told to answer with what it has.
 MAX_ROUNDS = 5
+
+#: Appended when a turn reaches LLM_TURN_MAX_SECONDS before the model is done.
+TIME_LIMIT_NOTE = ("_I stopped here: this answer reached its time limit. "
+                   "Ask a follow-up to continue from what I found._")
 
 
 # ── Serialising ───────────────────────────────────────────────────────────
@@ -314,11 +319,23 @@ def stream_turn(turn: dict[str, Any], *, principal) -> Iterator[str]:
     model = client.model
     status, error = "complete", None
     started = now()
+    # The turn's budget across every round (LLM_TURN_MAX_SECONDS). A round is
+    # only started if a whole model call still fits — the per-call cap for a
+    # real model, nothing for the free fake — so the turn never outruns it.
+    deadline = time.monotonic() + float(Config.LLM_TURN_MAX_SECONDS)
+    call_needs = 0.0 if getattr(client, "is_fake", False) else min(
+        llm.max_seconds(), float(Config.LLM_TURN_MAX_SECONDS))
 
     yield _sse("start", {"conversation_id": str(turn["conversation_id"]), "title": turn["title"],
                          "mode": mode, "user_message": turn["user_message"]})
     try:
         for round_no in range(MAX_ROUNDS + 1):
+            remaining = deadline - time.monotonic()
+            if round_no and (remaining <= 0 or remaining < call_needs):
+                text_parts.append(TIME_LIMIT_NOTE)
+                yield _sse("delta", {"text": TIME_LIMIT_NOTE})
+                steps.append({"name": "time_limit", "arguments": {}, "summary": "Stopped at the time limit"})
+                break
             last_round = round_no == MAX_ROUNDS
             result = None
             for event in client.stream(messages, None if last_round else tools, user=str(principal.user_id)):

@@ -106,10 +106,46 @@ def member_ids(session, resource_type: str, resource_id: Any) -> list[UUID]:
     ).all())
 
 
+#: `session.info` key of the audiences `prefetch_members` loaded for a list.
+_PREFETCHED = "nucleus.sharing.members"
+
+
+def prefetch_members(session, resource_type: str, resource_ids) -> None:
+    """Load the audience of a whole page of rows in one query.
+
+    A list endpoint serialises each row with `members()`, which was one query
+    per row: 18 for the seeded saved-searches drawer, one per report and per
+    dashboard (docs/testing/performance.md). Calling this first makes each of
+    those `members()` calls a dictionary lookup for the rest of the session.
+    """
+    from src.models.identity import User
+    from src.models.personal import ResourceShare
+
+    keys = [str(value) for value in dict.fromkeys(resource_ids)]
+    if not keys:
+        return
+    found: dict[str, list[dict[str, str]]] = {key: [] for key in keys}
+    rows = session.execute(
+        select(ResourceShare.resource_id, User.id, User.full_name, User.email)
+        .join(User, ResourceShare.user_id == User.id)
+        .where(ResourceShare.resource_type == resource_type, ResourceShare.resource_id.in_(keys))
+        .order_by(User.full_name)
+    ).all()
+    for resource_id, user_id, name, email in rows:
+        found[resource_id].append({"id": str(user_id), "name": name, "email": email})
+    cache = session.info.setdefault(_PREFETCHED, {})
+    for key, audience in found.items():
+        cache[(resource_type, key)] = audience
+
+
 def members(session, resource_type: str, resource_id: Any) -> list[dict[str, str]]:
     """The audience, as people rather than ids — what a form renders."""
     from src.models.identity import User
     from src.models.personal import ResourceShare
+
+    prefetched = session.info.get(_PREFETCHED, {}).get((resource_type, str(resource_id)))
+    if prefetched is not None:
+        return [dict(member) for member in prefetched]
 
     rows = session.execute(
         select(User.id, User.full_name, User.email)
@@ -157,6 +193,7 @@ def replace_members(
             details={"member_ids": sorted(map(str, missing))},
         )
 
+    session.info.get(_PREFETCHED, {}).pop((resource_type, str(resource_id)), None)
     session.execute(delete(ResourceShare).where(
         ResourceShare.resource_type == resource_type,
         ResourceShare.resource_id == str(resource_id),

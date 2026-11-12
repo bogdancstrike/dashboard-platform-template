@@ -149,6 +149,14 @@ class Config:
         os.getenv("LLM_MAX_SECONDS", "")
         or (3 if os.getenv("ENVIRONMENT", "local") in ("test", "load") else 30)
     )
+    #: The whole of one assistant turn — every model call and tool round in
+    #: it (a Data-mode turn can make six). Past it the turn stops calling the
+    #: model and returns what it has, with a note. Equal to the per-call cap in
+    #: the test/load profiles, so a load test's turn is one call at most.
+    LLM_TURN_MAX_SECONDS = float(
+        os.getenv("LLM_TURN_MAX_SECONDS", "")
+        or (LLM_MAX_SECONDS if os.getenv("ENVIRONMENT", "local") in ("test", "load") else 45)
+    )
     #: Model calls in flight at once, per worker process. A call that cannot get
     #: a slot within LLM_MAX_SECONDS fails cleanly as busy.
     LLM_MAX_CONCURRENCY = _int("LLM_MAX_CONCURRENCY", 4)

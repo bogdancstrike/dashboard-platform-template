@@ -86,6 +86,7 @@ def create(session, resource_type: Any, payload: dict[str, Any], *, principal) -
         message=f"created {resource.label_for(row)}",
     )
     session.flush()
+    _automations(session, resource, row, set(values), created=True, principal=principal)
     return detail(session, resource.key, row.id, principal=principal)
 
 
@@ -154,7 +155,10 @@ def update(
     principal.require(UPDATE_PERMISSION)
 
     body = _object(payload)
-    row = _load(session, resource, record_id)
+    # With a version to check, the row is locked first: two saves of the same
+    # version used to both read the old `updated_at`, both pass, and the
+    # second silently overwrote the first (tests/chaos/test_api_edges.py).
+    row = _load(session, resource, record_id, lock=bool(body.get(CONCURRENCY_KEY)))
     _refuse_a_lost_race(resource, row, body.get(CONCURRENCY_KEY))
 
     values = _coerced(session, resource, body, creating=False)
@@ -210,6 +214,7 @@ def apply_values(
         message=_message_for(resource, row, changed, after),
     )
     session.flush()
+    _automations(session, resource, row, changed, created=False, principal=principal)
     return changed
 
 
@@ -219,6 +224,15 @@ def _after_write(session, resource: Resource, row: Any, changed: set[str]) -> No
         from src.services import sla
 
         sla.on_ticket_write(session, row, changed)
+
+
+def _automations(session, resource: Resource, row: Any, changed: set[str], *, created: bool,
+                 principal) -> None:
+    """Workflows whose trigger is this write (§49): created, updated, a field changed."""
+    from src.services import automation_graph
+
+    automation_graph.on_record_write(session, resource, row, changed, created=created,
+                                     principal=principal)
 
 
 def delete(session, resource_type: Any, record_id: Any, *, principal) -> dict[str, Any]:
@@ -637,9 +651,11 @@ def _refuse_a_lost_race(resource: Resource, row: Any, expected: Any) -> None:
         ) from exc
     if seen.tzinfo is None:
         seen = seen.replace(tzinfo=UTC)
-    # Timestamps round-trip through JSON at microsecond precision, so compare
-    # to the second: a difference smaller than that is the same version.
-    if abs((current - seen).total_seconds()) > 1:
+    # Timestamps round-trip through JSON at microsecond precision, so a
+    # millisecond is ample slack. It used to be a whole second, which let a
+    # second save of the same version through whenever it came within a
+    # second of the first — exactly when two people race.
+    if abs((current - seen).total_seconds()) > 0.001:
         raise ConflictError(
             f"Somebody else changed this {_singular(resource)} while you were editing it.",
             details={
@@ -651,10 +667,14 @@ def _refuse_a_lost_race(resource: Resource, row: Any, expected: Any) -> None:
         )
 
 
-def _load(session, resource: Resource, record_id: Any):
+def _load(session, resource: Resource, record_id: Any, *, lock: bool = False):
     from src.services.records import _lookup
 
-    row = session.scalars(_lookup(resource, parse_uuid(record_id, field="record_id"))).first()
+    statement = _lookup(resource, parse_uuid(record_id, field="record_id"))
+    if lock:
+        # `of=`: only the record's own row, never an eagerly joined one.
+        statement = statement.with_for_update(of=resource.model)
+    row = session.scalars(statement).first()
     if row is None:
         raise NotFoundError(
             f"That {_singular(resource)} does not exist.",

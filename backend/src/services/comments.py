@@ -275,6 +275,7 @@ def create(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
     principal.require(special.permission if special else WRITE_PERMISSION)
 
     resource, record_id = _target(session, payload, principal=principal)
+    _require_record(session, resource, record_id)
     if isinstance(resource, Commentable) and resource.before_write is not None:
         resource.before_write(session, record_id, principal)
     attachments = _attachments(session, payload, principal)
@@ -571,6 +572,25 @@ def _mentioned(session, body: str, explicit: Any = None) -> list[str]:
         ):
             found.append(str(user_id))
     return found
+
+
+def _require_record(session, resource, record_id) -> None:
+    """A comment needs a record to belong to.
+
+    Without this, a comment on any well-formed id — a deleted ticket, a typo,
+    `00000000-…` — was stored (201) and hung off nothing, visible to nobody
+    and counted by the activity feed (found by the edge-case pass,
+    docs/testing/security-edge-cases.md). The kinds in `COMMENTABLE` check
+    their own records in `authorise`.
+    """
+    if isinstance(resource, Commentable):
+        return
+    row = session.get(resource.model, record_id)
+    if row is None or getattr(row, "deleted_at", None) is not None:
+        raise NotFoundError(
+            f"That {resource.label.lower().rstrip('s')} does not exist.",
+            details={"resource_type": resource.key, "id": str(record_id)},
+        )
 
 
 def _label(session, resource, record_id) -> str:

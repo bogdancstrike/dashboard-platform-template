@@ -145,6 +145,7 @@ def listing(session, *, principal) -> dict[str, Any]:
         .order_by(ReportDocument.updated_at.desc(), ReportDocument.name.asc())
     ).unique().all()
 
+    sharing.prefetch_members(session, KIND, [row.id for row in rows])
     return {
         "items": [_serialize(session, row, principal, blocks=False) for row in rows],
         "total": len(rows),

@@ -49,6 +49,7 @@ def list_searches(session, args, *, principal) -> dict[str, Any]:
     # not see.
     starred = favorites.favorite_ids(session, principal, resource_type=KIND)
     rows = sorted(rows, key=lambda row: str(row.id) not in starred)
+    sharing.prefetch_members(session, KIND, [row.id for row in rows])
     return {
         "items": [_serialize(session, row, principal, starred=starred) for row in rows],
         "total": len(rows),

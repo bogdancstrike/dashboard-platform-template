@@ -38,13 +38,62 @@ from src.config import Config
 
 _client = None
 _unavailable = False
+#: When a tripped cache may try Redis again (monotonic seconds).
+_retry_at = 0.0
+#: Datasets written while Redis was unreachable, bumped on reconnect.
+_lost_bumps: set[str] = set()
+
+#: How long the cache stays off after Redis failed, before one request tries
+#: again. Long enough that a hung Redis costs one 2 s timeout per worker per
+#: half-minute rather than one per call; short enough that a restarted Redis is
+#: back in use within the half-minute (docs/testing/chaos.md).
+RETRY_SECONDS = 30.0
+
+
+def _trip() -> None:
+    """Redis just failed: stop using it, and schedule one retry."""
+    global _client, _unavailable, _retry_at
+    import time
+
+    _unavailable = True
+    _client = None
+    _retry_at = time.monotonic() + RETRY_SECONDS
+
+
+def _failed(exc: Exception) -> None:
+    """Trip the breaker if the failure was Redis being unreachable or hung.
+
+    Anything else (a wrong-type key, a bad payload) is a miss for this call
+    only — it says nothing about whether the next call will work.
+    """
+    try:
+        from redis.exceptions import ConnectionError as RedisConnectionError
+        from redis.exceptions import TimeoutError as RedisTimeoutError
+    except ImportError:  # pragma: no cover - redis is a requirement
+        return
+    if isinstance(exc, (RedisConnectionError, RedisTimeoutError, OSError)):
+        _trip()
 
 
 def client():
-    """The shared Redis client, or None when caching is off/unreachable."""
+    """The shared Redis client, or None when caching is off/unreachable.
+
+    A failure switches the cache off for `RETRY_SECONDS` — it used to switch it
+    off for the life of the process, so one Redis restart left every worker
+    recomputing every dashboard and re-verifying every token signature until
+    the API itself was restarted.
+    """
     global _client, _unavailable
-    if not Config.CACHE_ENABLED or _unavailable:
+    if not Config.CACHE_ENABLED:
         return None
+    recovering = False
+    if _unavailable:
+        import time
+
+        if time.monotonic() < _retry_at:
+            return None
+        _unavailable = False
+        recovering = True
     if _client is None:
         try:
             import redis
@@ -57,11 +106,16 @@ def client():
                 decode_responses=True,
             )
             _client.ping()
+            if recovering and _lost_bumps:
+                # Writes made while Redis was unreachable could not bump their
+                # datasets' generations, so an aggregate cached before the
+                # outage would now look fresh. Replay them.
+                for dataset in sorted(_lost_bumps):
+                    _client.incr(_generation_key(dataset))
+                _lost_bumps.clear()
         except Exception:
-            # One failed connection disables the cache for the process rather
-            # than paying a 2s timeout on every subsequent request.
-            _unavailable = True
-            _client = None
+            # Off for a while rather than paying a 2s timeout on every request.
+            _trip()
     return _client
 
 
@@ -79,7 +133,8 @@ def get_json(key: str) -> Any | None:
     try:
         raw = conn.get(key)
         return json.loads(raw) if raw else None
-    except Exception:
+    except Exception as exc:
+        _failed(exc)
         return None
 
 
@@ -90,8 +145,8 @@ def set_json(key: str, value: Any, ttl: int | None = None) -> None:
     try:
         # `set(..., ex=)` rather than `setex`, which redis-py deprecated.
         conn.set(key, json.dumps(value, default=str), ex=ttl or Config.CACHE_TTL_SECONDS)
-    except Exception:
-        pass
+    except Exception as exc:
+        _failed(exc)
 
 
 def cached(prefix: str, payload: Any, producer: Callable[[], Any], ttl: int | None = None) -> Any:
@@ -142,7 +197,8 @@ def generations(*datasets: str) -> dict[str, int]:
         return dict.fromkeys(names, 0)
     try:
         values = conn.mget([_generation_key(name) for name in names])
-    except Exception:
+    except Exception as exc:
+        _failed(exc)
         return dict.fromkeys(names, 0)
     return {
         name: int(value) if value not in (None, "") else 0
@@ -160,16 +216,20 @@ def bump(*datasets: str) -> None:
     """
     conn = client()
     if conn is None:
+        if Config.CACHE_ENABLED:
+            _lost_bumps.update(name for name in datasets if name)
         return
     try:
         pipe = conn.pipeline()
         for name in dict.fromkeys(datasets):
             pipe.incr(_generation_key(name))
         pipe.execute()
-    except Exception:
+    except Exception as exc:
         # A cache that cannot be invalidated must not break the write that
-        # tried. The TTL is what covers this case, which is why it is short.
-        pass
+        # tried. The lost bump is replayed when Redis is back, and the TTL
+        # bounds the rest.
+        _lost_bumps.update(name for name in datasets if name)
+        _failed(exc)
 
 
 def aggregate(
@@ -237,5 +297,6 @@ def incr(key: str, ttl: int = 60) -> int:
         pipe.incr(key)
         pipe.expire(key, ttl)
         return int(pipe.execute()[0])
-    except Exception:
+    except Exception as exc:
+        _failed(exc)
         return 0

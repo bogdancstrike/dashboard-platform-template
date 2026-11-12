@@ -266,6 +266,7 @@ def listing(session, *, principal) -> dict[str, Any]:
         .order_by(Dashboard.is_home.desc(), Dashboard.updated_at.desc(), Dashboard.name.asc())
     ).unique().all()
 
+    sharing.prefetch_members(session, KIND, [row.id for row in rows])
     return {
         "items": [_serialize(session, row, principal, widgets=False) for row in rows],
         "total": len(rows),

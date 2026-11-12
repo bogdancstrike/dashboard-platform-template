@@ -239,18 +239,32 @@ class _JwksCache:
     what makes a Keycloak key rotation self-healing instead of a restart.
     """
 
+    #: After a failed fetch, how long before another is attempted. Without it
+    #: an unreachable Keycloak made *every* request with a stale cache try a
+    #: fetch — each one a 5 s wait behind the lock when Keycloak hangs rather
+    #: than refuses (docs/testing/chaos.md).
+    RETRY_SECONDS = 15.0
+
     def __init__(self) -> None:
         self._keys: dict[str, dict] = {}
         self._fetched_at = 0.0
+        self._failed_at = 0.0
         self._lock = threading.Lock()
 
     def _stale(self) -> bool:
         return (time.time() - self._fetched_at) > Config.JWKS_CACHE_TTL
 
+    def _backing_off(self) -> bool:
+        return (time.time() - self._failed_at) < self.RETRY_SECONDS
+
     def get(self, kid: str) -> dict | None:
         if kid in self._keys and not self._stale():
             return self._keys[kid]
-        self.refresh()
+        if not self._backing_off():
+            self.refresh()
+        # A stale key is still the realm's key: Keycloak being unreachable
+        # must not sign everybody out, so the last keys fetched keep working
+        # until a fetch succeeds (a rotation is still picked up then).
         return self._keys.get(kid)
 
     def refresh(self) -> None:
@@ -263,7 +277,9 @@ class _JwksCache:
                 response.raise_for_status()
                 self._keys = {k["kid"]: k for k in response.json().get("keys", [])}
                 self._fetched_at = time.time()
+                self._failed_at = 0.0
             except Exception as exc:
+                self._failed_at = time.time()
                 log.warning(f"jwks fetch failed from {url}: {exc}")
 
     def ready(self) -> bool:
@@ -673,7 +689,14 @@ def _sync_user(session, *, subject: str, email: str, username: str, full_name: s
         user.full_name = full_name or user.full_name
         user.email = email.lower() or user.email
 
-    user.last_login_at = now()
+    # At most once a minute, like the session's `last_seen_at`. Writing it on
+    # every request made each authenticated call an UPDATE of the caller's
+    # own `users` row; under load every request of one person queued on that
+    # row's lock, and the 1000-user load test stalled behind it
+    # (docs/testing/performance.md).
+    moment = now()
+    if user.last_login_at is None or (moment - user.last_login_at).total_seconds() > SESSION_TOUCH_SECONDS:
+        user.last_login_at = moment
     return user
 
 
@@ -684,7 +707,11 @@ def _permissions_for(session, user, role_code: str) -> set[str]:
 
     from src.models.identity import Role
 
-    role = session.scalars(select(Role).where(Role.code == role_code)).first()
+    # The user's own role is already loaded (`_sync_user` selects it in); a
+    # second query is only needed when the token names a different role.
+    role = user.role if user.role is not None and user.role.code == role_code else None
+    if role is None:
+        role = session.scalars(select(Role).where(Role.code == role_code)).first()
     permissions = set(role.permissions or []) if role else set()
     if not permissions:
         # The roles table has not been seeded yet (fresh database, first call).

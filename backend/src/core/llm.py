@@ -400,7 +400,15 @@ class GatewayClient:
             self._body(messages, tools, max_tokens=max_tokens, user=user, stream=True),
             stream=True, deadline=deadline,
         )
-        lines = resp.iter_lines(decode_unicode=True)
+        # A small read size, so the per-line deadline below is consulted as
+        # lines arrive. The default buffers 512 bytes before yielding, so a
+        # stream trickling a short line every 300 ms ran 3 s past a 1 s cap
+        # outside gevent (tests/chaos/test_llm_chaos.py). Not `None`: on a
+        # response that is neither chunked nor sized that reads to EOF.
+        try:
+            lines = resp.iter_lines(chunk_size=64, decode_unicode=True)
+        except TypeError:  # a response double without the parameter
+            lines = resp.iter_lines(decode_unicode=True)
         _end = object()
 
         def _next():

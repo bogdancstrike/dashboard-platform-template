@@ -39,7 +39,20 @@ from typing import Any, BinaryIO, Protocol
 from urllib.parse import quote
 
 from src.config import Config
-from src.core.errors import NotFoundError, ValidationError
+from src.core.errors import NotFoundError, ServiceUnavailableError, ValidationError
+
+#: How long the API waits on object storage. botocore's defaults are a 60 s
+#: connect timeout and several retries, so with MinIO down a download link sat
+#: for minutes and then failed as a 500 (docs/testing/chaos.md).
+CONNECT_TIMEOUT_SECONDS = 3
+READ_TIMEOUT_SECONDS = 15
+
+
+def _unreachable(exc: Exception) -> ServiceUnavailableError:
+    return ServiceUnavailableError(
+        "File storage is not answering right now. Try again in a moment.",
+        details={"dependency": "storage", "reason": type(exc).__name__},
+    )
 
 #: How long a presigned URL is good for. Long enough to pick a file and upload
 #: it on a slow connection; short enough that a URL pasted into a chat is not a
@@ -189,7 +202,11 @@ class ObjectStorage:
                 region_name=region,
                 # Path-style addressing: `bucket.minio:9000` is not a hostname
                 # that resolves, and virtual-host style is the boto3 default.
-                config=BotoConfig(signature_version="s3v4", s3={"addressing_style": "path"}),
+                config=BotoConfig(
+                    signature_version="s3v4", s3={"addressing_style": "path"},
+                    connect_timeout=CONNECT_TIMEOUT_SECONDS, read_timeout=READ_TIMEOUT_SECONDS,
+                    retries={"max_attempts": 2, "mode": "standard"},
+                ),
             )
 
         # Two clients, for the same reason Keycloak needs two URLs: the API
@@ -207,14 +224,20 @@ class ObjectStorage:
     def ensure_bucket(self) -> None:
         """Create the bucket if it is not there. Idempotent, and safe to call
         on every boot — which is what makes a fresh volume just work."""
-        from botocore.exceptions import ClientError
+        from botocore.exceptions import BotoCoreError, ClientError
 
         try:
             self._client.head_bucket(Bucket=self._bucket)
+        except BotoCoreError:
+            # Unreachable right now. Not fatal: the files pages still list
+            # what the database knows, and the first operation that needs the
+            # bytes says storage is unavailable (a 503), instead of every page
+            # that merely names the store failing.
+            return
         except ClientError:
             try:
                 self._client.create_bucket(Bucket=self._bucket)
-            except ClientError:
+            except (ClientError, BotoCoreError):
                 # Another worker won the race, or the credentials cannot create
                 # buckets in this deployment. Either way the caller finds out
                 # on the first real operation, with a real error.
@@ -253,28 +276,39 @@ class ObjectStorage:
         return self._signed("get_object", params, "GET")
 
     def put(self, key: str, stream: BinaryIO | bytes, *, content_type: str) -> StoredObject:
+        from botocore.exceptions import BotoCoreError
+
         body = stream if isinstance(stream, bytes) else stream.read()
-        self._client.put_object(
-            Bucket=self._bucket, Key=key, Body=body, ContentType=content_type
-        )
+        try:
+            self._client.put_object(
+                Bucket=self._bucket, Key=key, Body=body, ContentType=content_type
+            )
+        except BotoCoreError as exc:
+            raise _unreachable(exc) from exc
         return StoredObject(key, len(body), content_type, hashlib.sha256(body).hexdigest())
 
     def get(self, key: str) -> bytes:
-        from botocore.exceptions import ClientError
+        from botocore.exceptions import BotoCoreError, ClientError
 
         try:
             response = self._client.get_object(Bucket=self._bucket, Key=key)
+            return bytes(response["Body"].read())
         except ClientError as exc:
             raise NotFoundError("That file is not in storage.", details={"key": key}) from exc
-        return bytes(response["Body"].read())
+        except BotoCoreError as exc:
+            raise _unreachable(exc) from exc
 
     def stat(self, key: str) -> StoredObject | None:
-        from botocore.exceptions import ClientError
+        from botocore.exceptions import BotoCoreError, ClientError
 
         try:
             head = self._client.head_object(Bucket=self._bucket, Key=key)
         except ClientError:
             return None
+        except BotoCoreError as exc:
+            # Unreachable is not "not there": answering None would tell the
+            # reader their file is gone, when storage is merely down.
+            raise _unreachable(exc) from exc
         return StoredObject(
             key,
             int(head.get("ContentLength") or 0),
@@ -283,7 +317,12 @@ class ObjectStorage:
         )
 
     def delete(self, key: str) -> None:
-        self._client.delete_object(Bucket=self._bucket, Key=key)
+        from botocore.exceptions import BotoCoreError
+
+        try:
+            self._client.delete_object(Bucket=self._bucket, Key=key)
+        except BotoCoreError as exc:
+            raise _unreachable(exc) from exc
 
     def health(self) -> dict[str, Any]:
         from botocore.exceptions import BotoCoreError, ClientError

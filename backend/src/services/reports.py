@@ -74,6 +74,7 @@ def listing(session, args, *, principal) -> dict[str, Any]:
         rows,
         key=lambda row: (str(row.id) not in starred, row.updated_at is None),
     )
+    sharing.prefetch_members(session, KIND, [row.id for row in rows])
     return {
         "items": [_serialize(session, row, principal, starred=starred) for row in rows],
         "total": len(rows),
