@@ -320,7 +320,6 @@ export default function MapsPage() {
                   {drill && (
                     <Button
                       type="text"
-                      size="small"
                       aria-label={`Open the records in ${point.city}`}
                       icon={<NxIcon name="chevronRight" size={14} />}
                       onClick={() => openCity(point.city)}
