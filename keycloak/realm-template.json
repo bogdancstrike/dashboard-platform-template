@@ -1,6 +1,7 @@
 {
   "realm": "template",
   "displayName": "Nucleus Template Platform",
+  "loginTheme": "nucleus",
   "enabled": true,
   "sslRequired": "none",
   "registrationAllowed": false,

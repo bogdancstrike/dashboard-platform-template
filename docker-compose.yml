@@ -148,6 +148,9 @@ services:
     command: ["start-dev", "--import-realm"]
     volumes:
       - ./keycloak/realm-template.json:/opt/keycloak/data/import/realm-template.json:ro
+      # The Nucleus sign-in theme (glass card, Inter, light/dark). Mounted into
+      # Keycloak's themes directory; start-dev serves it uncached, so edits show on reload.
+      - ./keycloak/themes/nucleus:/opt/keycloak/themes/nucleus:ro
       - keycloak-data:/opt/keycloak/data
     # The image carries no curl or wget, so the probe is a bare TCP request.
     # It asks for the *realm*, not the root: Keycloak answers on the port

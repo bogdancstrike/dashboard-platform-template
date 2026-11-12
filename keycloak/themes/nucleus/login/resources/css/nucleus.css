@@ -1,0 +1,447 @@
+/*
+ * Nucleus sign-in — the glass skin of the app (frontend/src/glass.css and
+ * theme/antd.ts) translated onto Keycloak's v2 login (PatternFly 5).
+ *
+ * The values are copied from the app's tokens, so the hand-off from this page
+ * to the first screen of the product is seamless: same ground, same frosted
+ * card, same Inter, same pill controls. Dark follows prefers-color-scheme
+ * (keycloak.v2 also adds .pf-v5-theme-dark to <html> for PatternFly itself).
+ */
+
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("../fonts/inter-latin-ext-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("../fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ── tokens (light) ─────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --nx-font: "Inter Variable", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --nx-text: #1b1e26;
+  --nx-muted: #5c6370;
+  --nx-faint: #9aa0ab;
+  --nx-ink-rgb: 27, 30, 38;
+  --nx-accent: #2457d6;
+  --nx-accent-ink: #1e4bb8;
+  --nx-accent-hover: #1e4bb8;
+  --nx-on-accent: #ffffff;
+  --nx-glow-rgb: 36, 87, 214;
+  --nx-field: rgba(255, 255, 255, 0.85);
+  --nx-glass: rgba(255, 255, 255, 0.55);
+  --nx-glass-border: rgba(255, 255, 255, 0.85);
+  --nx-glass-shadow: 0 14px 36px rgba(40, 35, 60, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --nx-bad: #b42318;
+  --nx-bad-bg: rgba(180, 35, 24, 0.1);
+  --nx-ok: #1f6b40;
+  --nx-ok-bg: rgba(46, 125, 79, 0.12);
+  --nx-warn: #8a5208;
+  --nx-warn-bg: rgba(196, 128, 20, 0.14);
+  --nx-info-bg: rgba(36, 87, 214, 0.08);
+  --nx-page-bg:
+    radial-gradient(ellipse 55% 45% at 88% 0%, #d9e4fa 0%, rgba(217, 228, 250, 0) 70%),
+    radial-gradient(ellipse 45% 50% at 6% 100%, #e7e5f6 0%, rgba(231, 229, 246, 0) 70%),
+    #f6f7f9;
+}
+
+/* ── tokens (dark: plum ground, cream ink, lavender accent) ─────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --nx-text: #f3e7d2;
+    --nx-muted: #b9afbe;
+    --nx-faint: #a398a8;
+    --nx-ink-rgb: 243, 231, 210;
+    --nx-accent: #c4b5fd;
+    --nx-accent-ink: #c4b5fd;
+    --nx-accent-hover: #d4c8fe;
+    --nx-on-accent: #1b1230;
+    --nx-glow-rgb: 196, 181, 253;
+    --nx-field: rgba(34, 26, 38, 0.8);
+    --nx-glass: linear-gradient(140deg, rgba(255, 255, 255, 0.138) 0%, rgba(255, 255, 255, 0.042) 100%), rgba(20, 14, 26, 0.475);
+    --nx-glass-border: rgba(255, 255, 255, 0.16);
+    --nx-glass-shadow: 0 18px 44px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    --nx-bad: #f5a5a0;
+    --nx-bad-bg: rgba(245, 165, 160, 0.14);
+    --nx-ok: #abd7bc;
+    --nx-ok-bg: rgba(171, 215, 188, 0.15);
+    --nx-warn: #f0c698;
+    --nx-warn-bg: rgba(240, 198, 152, 0.14);
+    --nx-info-bg: rgba(196, 181, 253, 0.14);
+    --nx-page-bg:
+      radial-gradient(ellipse 55% 45% at 88% 0%, rgba(196, 181, 253, 0.32) 0%, rgba(196, 181, 253, 0) 70%),
+      radial-gradient(ellipse 45% 50% at 6% 100%, rgba(36, 87, 214, 0.3) 0%, rgba(36, 87, 214, 0) 70%),
+      #120e14;
+  }
+}
+
+/* PatternFly reads its own variables; point the ones the login uses at ours. */
+:root,
+.pf-v5-theme-dark {
+  --pf-v5-global--FontFamily--text: var(--nx-font);
+  --pf-v5-global--FontFamily--heading: var(--nx-font);
+  --pf-v5-global--FontFamily--sans-serif: var(--nx-font);
+  --pf-v5-global--Color--100: var(--nx-text);
+  --pf-v5-global--Color--200: var(--nx-muted);
+  --pf-v5-global--link--Color: var(--nx-accent-ink);
+  --pf-v5-global--link--Color--hover: var(--nx-accent-ink);
+  --pf-v5-global--primary-color--100: var(--nx-accent);
+  --pf-v5-global--BackgroundColor--100: transparent;
+}
+
+/* ── ground ─────────────────────────────────────────────────────────── */
+html.login-pf,
+.login-pf body {
+  background: var(--nx-page-bg) !important;
+  background-attachment: fixed !important;
+  background-size: auto !important;
+  min-height: 100%;
+}
+body#keycloak-bg {
+  font-family: var(--nx-font);
+  color: var(--nx-text);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes nxRise { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+
+.pf-v5-c-login {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  background: transparent;
+}
+.pf-v5-c-login__container {
+  display: flex !important;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 22px;
+  width: 100%;
+  max-width: 440px;
+  padding: 0 !important;
+  margin: 0 auto;
+}
+
+/* ── brand ──────────────────────────────────────────────────────────── */
+.pf-v5-c-login__header {
+  padding: 0 !important;
+  margin: 0 !important;
+  animation: nxRise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.nx-kc-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--nx-accent);
+}
+.nx-kc-brand,
+.nx-kc-brand * { text-transform: none !important; letter-spacing: normal; }
+.pf-v5-c-login__header .pf-v5-c-brand { margin: 0 !important; max-width: none; }
+.nx-kc-logo { flex: none; display: block; color: var(--nx-accent); width: 40px; height: 40px; }
+.nx-kc-wordmark { display: flex; flex-direction: column; line-height: 1.15; text-align: start; }
+.nx-kc-name { font-size: 22px; font-weight: 700; letter-spacing: -0.025em; color: var(--nx-text); }
+.nx-kc-realm { font-size: 13px; font-weight: 500; color: var(--nx-muted); }
+/* keycloak.v2 hides the realm name inside a logo block; ours is plain text. */
+.nx-kc-realm .kc-logo-text { background: none; width: auto; height: auto; margin: 0; }
+.nx-kc-realm .kc-logo-text span,
+.nx-kc-realm div.kc-logo-text span { display: inline; }
+
+/* ── the card ───────────────────────────────────────────────────────── */
+.pf-v5-c-login__main {
+  background: var(--nx-glass) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--nx-glass-border);
+  box-shadow: var(--nx-glass-shadow);
+  border-radius: 28px;
+  padding: 34px 34px 28px;
+  margin: 0 !important;
+  width: 100%;
+  max-width: none !important;
+  box-sizing: border-box;
+  color: var(--nx-text);
+  animation: nxRise 0.55s 0.05s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.pf-v5-c-login__main-header {
+  padding: 0 0 22px !important;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+#kc-page-title,
+.pf-v5-c-login__main-header .pf-v5-c-title {
+  font-family: var(--nx-font);
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--nx-text);
+  margin: 0;
+}
+.pf-v5-c-login__main-body { padding: 0 !important; }
+.pf-v5-c-login__main-footer { padding: 0 !important; }
+.pf-v5-c-login__main-footer:not(:empty) { margin-top: 18px; }
+.pf-v5-c-login__main-footer-band {
+  margin: 22px 0 0 !important;
+  padding: 16px 0 0 !important;
+  background: none !important;
+  border-top: 1px solid rgba(var(--nx-ink-rgb), 0.08) !important;
+  color: var(--nx-muted);
+  text-align: center;
+  font-size: 13px;
+}
+
+/* ── form ───────────────────────────────────────────────────────────── */
+.pf-v5-c-form { gap: 16px; --pf-v5-c-form--GridGap: 16px; }
+.pf-v5-c-form__group { gap: 6px; }
+.pf-v5-c-form__group:empty { display: none; }
+.pf-v5-c-form__label,
+.pf-v5-c-form__label-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--nx-text);
+}
+.pf-v5-c-form__label-required { color: var(--nx-bad); }
+
+/* Pill fields: one rounded surface, the password eye inside it. */
+.pf-v5-c-form-control {
+  --pf-v5-c-form-control--BorderRadius: 999px;
+  --pf-v5-c-form-control--before--BorderColor: transparent;
+  --pf-v5-c-form-control--after--BorderColor: transparent;
+  --pf-v5-c-form-control--BackgroundColor: var(--nx-field);
+  --pf-v5-c-form-control--Color: var(--nx-text);
+  background: var(--nx-field) !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(var(--nx-ink-rgb), 0.1);
+  min-height: 46px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.pf-v5-c-form-control::before,
+.pf-v5-c-form-control::after { border: 0 !important; display: none; }
+.pf-v5-c-form-control > input,
+.pf-v5-c-form-control > select {
+  font-family: var(--nx-font);
+  font-size: 15px;
+  color: var(--nx-text);
+  padding: 11px 18px !important;
+  background: transparent !important;
+  border: 0;
+  outline: none;
+  border-radius: 999px;
+}
+.pf-v5-c-form-control > input::placeholder { color: var(--nx-faint); }
+.pf-v5-c-form-control:hover { border-color: rgba(var(--nx-ink-rgb), 0.2); }
+.pf-v5-c-form-control:focus-within {
+  border-color: var(--nx-accent);
+  box-shadow: 0 0 0 4px rgba(var(--nx-glow-rgb), 0.16);
+}
+.pf-v5-c-form-control.pf-m-error,
+.pf-v5-c-form-control.pf-m-error:focus-within {
+  border-color: var(--nx-bad);
+  box-shadow: 0 0 0 4px var(--nx-bad-bg);
+}
+.pf-v5-c-form-control.pf-m-readonly { background: rgba(var(--nx-ink-rgb), 0.05) !important; }
+.pf-v5-c-form-control__icon.pf-m-status { color: var(--nx-bad); }
+/* Autofill keeps the pill, not Chrome's yellow box. */
+.pf-v5-c-form-control > input:-webkit-autofill {
+  -webkit-text-fill-color: var(--nx-text);
+  -webkit-box-shadow: 0 0 0 40px transparent inset;
+  transition: background-color 9999s ease-out 0s;
+}
+
+/* The password field + eye: the group becomes the pill. */
+.pf-v5-c-input-group__item { border: 0 !important; }
+.pf-v5-c-input-group__item::before,
+.pf-v5-c-input-group__item::after { display: none !important; }
+.pf-v5-c-input-group {
+  position: relative;
+  align-items: center;
+  border-radius: 999px;
+}
+.pf-v5-c-input-group > .pf-v5-c-input-group__item:not(.pf-m-fill) {
+  position: absolute;
+  inset-inline-end: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+}
+.pf-v5-c-input-group .pf-v5-c-form-control > input { padding-inline-end: 52px !important; }
+.pf-v5-c-button.pf-m-control {
+  --pf-v5-c-button--after--BorderColor: transparent;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--nx-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pf-v5-c-button.pf-m-control::after { border: 0 !important; }
+.pf-v5-c-button.pf-m-control:hover { background: rgba(var(--nx-ink-rgb), 0.06); color: var(--nx-text); }
+
+.pf-v5-c-helper-text__item-text,
+.pf-v5-c-form__helper-text { font-size: 13px; color: var(--nx-muted); }
+.pf-v5-c-helper-text__item.pf-m-error .pf-v5-c-helper-text__item-text,
+.kc-feedback-text.pf-m-error { color: var(--nx-bad); }
+.pf-v5-c-form__helper-text a,
+#kc-registration a,
+.pf-v5-c-login a:not(.pf-v5-c-button) {
+  color: var(--nx-accent-ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+.pf-v5-c-form__helper-text a:hover,
+.pf-v5-c-login a:not(.pf-v5-c-button):hover { text-decoration: underline; }
+/* "Forgot password?" sits at the trailing edge, as in the app's forms. */
+#kc-form-login .pf-v5-c-input-group + .pf-v5-c-form__helper-text { text-align: end; margin-top: 2px; }
+
+.pf-v5-c-check { align-items: center; gap: 8px; }
+.pf-v5-c-check__input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--nx-accent);
+}
+.pf-v5-c-check__label { font-size: 14px; color: var(--nx-text); }
+
+/* ── buttons ────────────────────────────────────────────────────────── */
+.pf-v5-c-button {
+  font-family: var(--nx-font);
+  font-weight: 650;
+  border-radius: 999px;
+  --pf-v5-c-button--BorderRadius: 999px;
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.pf-v5-c-button::after { border-radius: 999px !important; }
+.pf-v5-c-button.pf-m-primary {
+  --pf-v5-c-button--m-primary--BackgroundColor: var(--nx-accent);
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--nx-accent-hover);
+  --pf-v5-c-button--m-primary--focus--BackgroundColor: var(--nx-accent-hover);
+  --pf-v5-c-button--m-primary--active--BackgroundColor: var(--nx-accent-hover);
+  --pf-v5-c-button--m-primary--Color: var(--nx-on-accent);
+  --pf-v5-c-button--m-primary--hover--Color: var(--nx-on-accent);
+  background: var(--nx-accent);
+  color: var(--nx-on-accent);
+  min-height: 46px;
+  font-size: 15px;
+  box-shadow: 0 8px 22px rgba(var(--nx-glow-rgb), 0.28);
+}
+.pf-v5-c-button.pf-m-primary:hover { background: var(--nx-accent-hover); transform: translateY(-1px); }
+.pf-v5-c-button.pf-m-primary:active { transform: none; }
+.pf-v5-c-button.pf-m-primary:focus-visible { outline: 3px solid rgba(var(--nx-glow-rgb), 0.35); outline-offset: 2px; }
+.pf-v5-c-button.pf-m-secondary {
+  --pf-v5-c-button--m-secondary--Color: var(--nx-text);
+  --pf-v5-c-button--m-secondary--hover--Color: var(--nx-text);
+  --pf-v5-c-button--m-secondary--after--BorderColor: transparent;
+  --pf-v5-c-button--m-secondary--hover--after--BorderColor: transparent;
+  --pf-v5-c-button--m-secondary--BackgroundColor: rgba(var(--nx-ink-rgb), 0.06);
+  --pf-v5-c-button--m-secondary--hover--BackgroundColor: rgba(var(--nx-ink-rgb), 0.1);
+  background: rgba(var(--nx-ink-rgb), 0.06);
+  color: var(--nx-text);
+  min-height: 44px;
+}
+.pf-v5-c-button.pf-m-secondary::after { border: 0 !important; }
+.pf-v5-c-button.pf-m-link { color: var(--nx-accent-ink); }
+.pf-v5-c-form__actions { margin-top: 6px; }
+#kc-form-buttons, .pf-v5-c-form__group:has(> .pf-v5-c-form__actions) { margin-top: 4px; }
+
+/* Social / identity providers as pill rows. */
+.pf-v5-c-login__main-footer-links { gap: 10px; padding: 0 !important; }
+.pf-v5-c-login__main-footer-links-item-link {
+  border-radius: 999px;
+  background: rgba(var(--nx-ink-rgb), 0.06);
+  color: var(--nx-text) !important;
+}
+#kc-social-providers h2,
+.kc-social-section h2 {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--nx-muted);
+}
+
+/* ── alerts: the app's soft semantic chips ──────────────────────────── */
+.pf-v5-c-alert {
+  --pf-v5-c-alert--BoxShadow: none;
+  --pf-v5-c-alert--BorderTopWidth: 0;
+  border: 0;
+  border-radius: 18px;
+  padding: 12px 16px;
+  background: var(--nx-info-bg);
+  color: var(--nx-text);
+  box-shadow: none;
+  font-size: 14px;
+}
+.pf-v5-c-alert::before { display: none; }
+.pf-v5-c-alert.pf-m-danger { background: var(--nx-bad-bg); }
+.pf-v5-c-alert.pf-m-danger .pf-v5-c-alert__title,
+.pf-v5-c-alert.pf-m-danger .pf-v5-c-alert__icon { color: var(--nx-bad); }
+.pf-v5-c-alert.pf-m-success { background: var(--nx-ok-bg); }
+.pf-v5-c-alert.pf-m-success .pf-v5-c-alert__title,
+.pf-v5-c-alert.pf-m-success .pf-v5-c-alert__icon { color: var(--nx-ok); }
+.pf-v5-c-alert.pf-m-warning { background: var(--nx-warn-bg); }
+.pf-v5-c-alert.pf-m-warning .pf-v5-c-alert__title,
+.pf-v5-c-alert.pf-m-warning .pf-v5-c-alert__icon { color: var(--nx-warn); }
+.pf-v5-c-alert__title { font-weight: 600; }
+
+/* Selector cards (choose an authenticator, OTP devices). */
+.pf-v5-c-data-list,
+.pf-v5-c-tile { background: transparent; }
+.pf-v5-c-data-list__item {
+  border-radius: 20px;
+  background: rgba(var(--nx-ink-rgb), 0.04);
+  margin-bottom: 8px;
+  border: 0;
+}
+.pf-v5-c-data-list__item:hover { background: rgba(var(--nx-ink-rgb), 0.08); }
+.pf-v5-c-tile { border-radius: 20px; }
+.pf-v5-c-tile.pf-m-selected { box-shadow: 0 0 0 2px var(--nx-accent); }
+
+/* The language picker in the card header is a small pill. */
+.pf-v5-c-login__main-header-utilities .pf-v5-c-form-control { min-height: 36px; }
+.pf-v5-c-login__main-header-utilities .pf-v5-c-form-control > select { font-size: 13px; padding: 7px 34px 7px 14px !important; }
+
+.kc-login-tooltip .kc-tooltip-text { border-radius: 10px; font-size: 12px; }
+
+/* ── footer line under the card ─────────────────────────────────────── */
+.nx-kc-foot {
+  text-align: center;
+  font-size: 12px;
+  color: var(--nx-muted);
+  animation: nxRise 0.55s 0.1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* ── phone ──────────────────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .pf-v5-c-login { align-items: flex-start; padding: 40px 16px 24px; }
+  .pf-v5-c-login__container { gap: 18px; }
+  .pf-v5-c-login__main { padding: 26px 20px 22px; border-radius: 24px; }
+  #kc-page-title,
+  .pf-v5-c-login__main-header .pf-v5-c-title { font-size: 26px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-v5-c-login__header,
+  .pf-v5-c-login__main,
+  .nx-kc-foot { animation: none; }
+}
