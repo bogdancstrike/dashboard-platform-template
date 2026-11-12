@@ -87,8 +87,8 @@ describe("the edit form", () => {
     await user.click(within(drawer).getByRole("combobox", { name: "Status" }));
 
     // NEW and DONE are in the declared vocabulary and absent from this record.
-    expect(await screen.findByTitle("NEW")).toBeInTheDocument();
-    expect(await screen.findByTitle("DONE")).toBeInTheDocument();
+    expect(await screen.findByTitle("New")).toBeInTheDocument();
+    expect(await screen.findByTitle("Done")).toBeInTheDocument();
   });
 
   it("says what the server refused, with its correlation id", async () => {

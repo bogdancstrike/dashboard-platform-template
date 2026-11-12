@@ -505,3 +505,41 @@ body.nx-dragging, body.nx-dragging * { cursor: grabbing !important; user-select:
 .nu-compare .nu-compare-differs + .nu-compare-differs > td { border-top: 4px solid transparent !important; background-clip: padding-box; }
 .nx-rec-differs { font-weight: 700; }
 .nu-compare .ant-table-thead a { font-size: 11px; letter-spacing: 0.08em; display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* ═══ Record form: a centred glass sheet, two columns ═════════════════════ */
+.nx-rec-formmodal .ant-modal-content { border-radius: 32px; padding: 26px 26px 18px; }
+.nx-rec-formtitle { display: flex; flex-direction: column; gap: 4px; }
+.nx-rec-formtitle > span { font-size: 26px; font-weight: 700; letter-spacing: -0.025em; }
+.nx-rec-formtitle small { font-size: 13px; font-weight: 500; color: var(--nu-text-tertiary); letter-spacing: 0; }
+.nx-rec-formmodal .ant-modal-body { max-height: calc(100vh - 260px); overflow-y: auto; margin: 0 -26px; padding: 0 26px; }
+.nx-rec-form.ant-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 14px; }
+.nx-rec-form.ant-form .ant-form-item { margin-bottom: 16px; min-width: 0; }
+.nx-rec-form.ant-form .ant-form-item.is-wide { grid-column: 1 / -1; }
+.nx-rec-form .ant-input, .nx-rec-form .ant-input-number, .nx-rec-form .ant-picker, .nx-rec-form .ant-select-selector { min-height: 44px; border-radius: 22px !important; }
+.nx-rec-form .ant-input-number { width: 100%; }
+.nx-rec-form .ant-input-number-input { height: 42px; padding-inline: 16px; }
+.nx-rec-form .ant-select-single .ant-select-selector { padding-inline: 16px !important; align-items: center; }
+.nx-rec-form input.ant-input, .nx-rec-form .ant-picker { padding-inline: 16px; }
+.nx-rec-form textarea.ant-input { border-radius: 20px !important; }
+@media (max-width: 767px) {
+  .nx-rec-form.ant-form { grid-template-columns: minmax(0, 1fr); }
+  .nx-rec-formmodal.ant-modal { max-width: calc(100vw - 16px); margin: 8px auto; }
+  .nx-rec-formmodal .ant-modal-content { padding: 20px 18px 14px; border-radius: 28px; }
+  .nx-rec-formtitle > span { font-size: 22px; }
+}
+
+/* ═══ Bulk bar: the selection as a dark ink strip ═════════════════════════ */
+.nu-bulkbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 52px; padding: 6px 6px 6px 18px !important; margin-bottom: 12px; border-radius: 26px !important; border: 0 !important;
+  background: var(--nu-text) !important; color: var(--nu-on-ink) !important; box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18); animation: nxRise 0.4s var(--nx-ease) both; }
+.nu-bulkbar .ant-typography { color: var(--nu-on-ink) !important; }
+.nu-bulkbar .ant-btn { height: 40px; border-radius: 20px !important; padding-inline: 14px; font-size: 13px; font-weight: 700; border: 0 !important; box-shadow: none !important; }
+.nu-bulkbar .ant-btn-link, .nu-bulkbar [data-testid="bulk-select-all"] { background: transparent !important; color: var(--nu-on-ink) !important; opacity: 0.85; text-decoration: underline; }
+.nu-bulkbar [data-testid="bulk-update"] { background: var(--nu-accent) !important; color: var(--nu-on-accent) !important; }
+.nu-bulkbar [data-testid="bulk-delete"], .nu-bulkbar .ant-btn-dangerous { background: #c8372b !important; color: #fff !important; }
+.nu-bulkbar [data-testid="bulk-compare"] .ant-btn, .nu-bulkbar [data-testid="bulk-compare"].ant-btn { background: rgba(255, 255, 255, 0.14) !important; color: var(--nu-on-ink) !important; }
+:root[data-theme="dark"] .nu-bulkbar [data-testid="bulk-compare"] .ant-btn { background: rgba(0, 0, 0, 0.12) !important; }
+.nu-bulkbar [data-testid="bulk-clear"] { background: rgba(255, 255, 255, 0.14) !important; color: var(--nu-on-ink) !important; }
+:root[data-theme="dark"] .nu-bulkbar [data-testid="bulk-clear"] { background: rgba(0, 0, 0, 0.12) !important; }
+.nu-bulkbar .ant-btn:disabled { opacity: 0.5; }
+.nu-bulkbar { justify-content: space-between; }
+.nx-rec-bulkmodal .ant-select { height: 44px; width: 100%; } .nx-rec-bulkmodal .ant-select-selector { border-radius: 22px !important; padding-inline: 16px !important; font-weight: 600; }

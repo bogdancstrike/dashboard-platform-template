@@ -4,6 +4,7 @@ import { Alert, Button, Form, Modal, Select, Space, Table, Tag, Typography } fro
 import type { ColumnsType } from "antd/es/table";
 
 import { ApiError } from "@/api/client";
+import { humanStatus } from "@/components/StatusTag";
 import type { BulkAction, BulkFailure, BulkRequest, BulkSelection } from "@/api/bulk";
 import { bulkApi } from "@/api/bulk";
 import type { ExplorerField, ExplorerResource } from "@/api/explorer";
@@ -116,7 +117,18 @@ export function BulkDialog({
     <Modal
       open={open}
       onCancel={onClose}
-      title={action === "delete" ? `Delete ${resource?.label ?? "records"}` : `Change ${resource?.label ?? "records"}`}
+      title={
+        <span className="nx-rec-formtitle">
+          <span>
+            {action === "delete"
+              ? `Delete ${resource?.label.toLowerCase() ?? "records"}`
+              : `Change ${resource?.label.toLowerCase() ?? "records"}`}
+          </span>
+          <small>{resource?.label ?? "Records"} · applies to the selected rows only</small>
+        </span>
+      }
+      className="nx-rec-formmodal nx-rec-bulkmodal"
+      centered
       destroyOnHidden
       width={620}
       footer={

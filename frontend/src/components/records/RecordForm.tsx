@@ -27,10 +27,10 @@ import {
   App as AntApp,
   Button,
   DatePicker,
-  Drawer,
   Form,
   Input,
   InputNumber,
+  Modal,
   Select,
   Skeleton,
   Space,
@@ -41,6 +41,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import { useMemo, useState } from "react";
 
 import { ApiError } from "@/api/client";
+import { humanStatus } from "@/components/StatusTag";
 import { explorerApi, type ExplorerField, type ExplorerResource } from "@/api/explorer";
 import { recordsApi, type RecordChanges, type RecordDetail, type RecordField } from "@/api/records";
 import { EmptyState } from "@/components/EmptyState";
@@ -54,6 +55,11 @@ import { refreshRecordViews } from "@/lib/refresh";
 const { Text } = Typography;
 
 /** The declaration one control is built from, whichever endpoint published it. */
+/** Paragraphs and documents take the form's full width; everything else half. */
+function wide(field: EditableField): boolean {
+  return field.prose || field.kind === "json" || field.kind === "array";
+}
+
 export interface EditableField {
   name: string;
   label: string;
@@ -206,19 +212,28 @@ export function RecordForm({
   const nothingWritable = !pending && fields.length === 0;
 
   return (
-    <Drawer
+    <Modal
       open={open}
-      onClose={close}
-      width={520}
-      destroyOnClose
+      onCancel={close}
+      width={680}
+      centered
+      destroyOnHidden
+      className="nx-rec-formmodal"
       title={
-        creating
-          ? `New ${singular(resource?.label)}`
-          : record
-            ? `Edit ${record.title}`
-            : `Edit ${singular(resource?.label)}`
+        <span className="nx-rec-formtitle">
+          <span>
+            {creating
+              ? `New ${singular(resource?.label)}`
+              : record
+                ? `Edit ${record.title}`
+                : `Edit ${singular(resource?.label)}`}
+          </span>
+          <small>
+            {resource?.label ?? "Record"} · fields marked <b>*</b> are required
+          </small>
+        </span>
       }
-      extra={
+      footer={
         <Space>
           <Button onClick={close}>Cancel</Button>
           <Button
@@ -232,7 +247,7 @@ export function RecordForm({
             onClick={() => void form.submit()}
             data-testid="record-form-save"
           >
-            {creating ? "Create" : "Save"}
+            {creating ? `Create ${singular(resource?.label)}` : "Save"}
           </Button>
         </Space>
       }
@@ -285,6 +300,7 @@ export function RecordForm({
 
           <Form
             form={form}
+            className="nx-rec-form"
             layout="vertical"
             initialValues={initial}
             onValuesChange={touch}
@@ -296,6 +312,7 @@ export function RecordForm({
                 key={field.name}
                 name={field.name}
                 label={field.label}
+                className={wide(field) ? "is-wide" : undefined}
                 rules={
                   field.required
                     ? [{ required: true, message: `${field.label} is required` }]
@@ -308,7 +325,7 @@ export function RecordForm({
           </Form>
         </>
       )}
-    </Drawer>
+    </Modal>
   );
 }
 
@@ -387,7 +404,7 @@ function FieldControl({
         // Typed as always present, but `allowClear` does hand back undefined —
         // and a cleared field has to reach the API as an explicit null.
         onChange={(next: string | undefined) => onChange?.(next ?? null)}
-        options={field.choices.map((choice) => ({ value: choice, label: choice.replace(/_/g, " ") }))}
+        options={field.choices.map((choice) => ({ value: choice, label: humanStatus(choice) }))}
       />
     );
   }
