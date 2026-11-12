@@ -50,7 +50,8 @@ beforeEach(() => {
   vi.stubGlobal(
     "fetch",
     vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-      const url = new URL(String(input), "http://localhost");
+      const raw = input instanceof Request ? input.url : input instanceof URL ? input.href : input;
+      const url = new URL(raw, "http://localhost");
       sent.push({ ...current, method: (init?.method ?? "GET").toUpperCase(), path: url.pathname });
       return Promise.resolve(
         new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } }),
