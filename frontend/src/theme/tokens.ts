@@ -100,7 +100,7 @@ export const ACCENT = {
 export const SEMANTIC = {
   success: "#3e9b66",
   warning: "#d99a2b",
-  danger: "#d9483b",
+  danger: "#cc4136",
   info: "#2b8bb3",
   neutral: NEUTRAL[500],
 } as const;
