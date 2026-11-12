@@ -240,11 +240,14 @@ export default function FavoritesPage() {
           <Link to={row.url} className="nu-fav-link" data-testid={`open-${row.id}`}>
             {value}
           </Link>
-          <Text type="secondary" className="nu-fav-kind">
-            {kindLabel(row.resource_type)}
-          </Text>
         </div>
       ),
+    },
+    {
+      title: "Type",
+      dataIndex: "resource_type",
+      width: 150,
+      render: (value: string) => <KindPill kind={value} />,
     },
     {
       title: "Kept",
@@ -318,11 +321,14 @@ export default function FavoritesPage() {
           <Link to={row.url} className="nu-fav-link">
             {value}
           </Link>
-          <Text type="secondary" className="nu-fav-kind">
-            {kindLabel(row.resource_type)}
-          </Text>
         </div>
       ),
+    },
+    {
+      title: "Type",
+      dataIndex: "resource_type",
+      width: 150,
+      render: (value: string) => <KindPill kind={value} />,
     },
     {
       title: "Visits",
@@ -373,10 +379,14 @@ export default function FavoritesPage() {
   if (bookmarks.isLoading) return <Skeleton active paragraph={{ rows: 8 }} />;
 
   return (
-    <div className="nu-fav">
+    <div className="nu-fav nx-fd-fav">
       <PageHeader
         title="Favorites"
-        subtitle="The things you keep, and the things you have looked at lately."
+        subtitle={
+          list
+            ? `${formatNumber(list.total)} kept — records, views and dashboards — and what you have looked at lately`
+            : "The things you keep, and the things you have looked at lately."
+        }
         actions={
           <Button icon={<ReloadOutlined />} onClick={() => void refresh()}>
             Refresh
@@ -393,6 +403,7 @@ export default function FavoritesPage() {
           list && list.kinds.length > 1 ? (
             <Segmented
               size="small"
+              className="nx-fd-kinds"
               value={kind}
               onChange={(value) => setKind(String(value))}
               options={[
@@ -494,5 +505,15 @@ export default function FavoritesPage() {
         )}
       </Card>
     </div>
+  );
+}
+
+/** A record type as a soft pill with a dot — the design's "Type" cell. */
+function KindPill({ kind }: { kind: string }) {
+  return (
+    <span className={`nx-fd-kindpill nx-fd-kindpill--${kind}`}>
+      <span className="nx-fd-kinddot" aria-hidden="true" />
+      {kindLabel(kind)}
+    </span>
   );
 }

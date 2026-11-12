@@ -15,7 +15,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Alert, Badge, Button, Card, Skeleton, Space, Tag, Tooltip, Typography } from "antd";
+import { Alert, Button, Skeleton, Tooltip, Typography } from "antd";
 import {
   ArrowRightOutlined,
   ClearOutlined,
@@ -32,7 +32,7 @@ import { SimpleSearch } from "@/components/explorer/SimpleSearch";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { EmptyState } from "@/components/EmptyState";
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 /** Matches MIN_TERM in services/search.py. */
 const MIN_TERM = 2;
@@ -121,40 +121,73 @@ export default function GlobalSearchPage() {
   };
 
   const tooShort = term.trim().length > 0 && term.trim().length < MIN_TERM;
+  const groups = results.data?.groups ?? [];
+  const only = params.get("type") ?? "";
+  const shown = only ? groups.filter((group) => group.resource_type === only) : groups;
+  const setType = (next: string) => {
+    const search = new URLSearchParams(params);
+    if (next) search.set("type", next);
+    else search.delete("type");
+    setParams(search, { replace: true });
+  };
 
   return (
-    <>
+    <div className="nx-fd-global">
       <PageHeader
-        title="Global search"
-        subtitle="One term across every dataset you can read, ranked by how well it matched."
+        title="Search"
+        subtitle={
+          results.data && term.trim()
+            ? `“${results.data.query}” · ${results.data.total} ${results.data.total === 1 ? "result" : "results"} across ${groups.length} record ${groups.length === 1 ? "type" : "types"}`
+            : "One term across every dataset you can read, ranked by how well it matched."
+        }
         tag={
           results.data && results.data.total > 0 ? (
-            <Tag color="blue" data-testid="global-total">
+            <span className="nx-fd-sr" data-testid="global-total">
               {results.data.total} {results.data.total === 1 ? "result" : "results"}
-            </Tag>
+            </span>
           ) : undefined
         }
       />
 
-      <Card size="small" className="nu-global-search-box">
-        {/* The same box as the explorer, with its own history. */}
-        <div onKeyDown={onKeyDown}>
-          <SimpleSearch
-            dataset="global"
-            label="everything"
-            value={term}
-            onChange={(next) => {
-              const search = new URLSearchParams(params);
-              if (next) search.set("q", next);
-              else search.delete("q");
-              setParams(search, { replace: true });
-            }}
-          />
+      <section className="nx-fd-bar nx-glass nx-glass--strong nx-fd-gbar" aria-label="Search">
+        <div className="nx-fd-bar-row">
+          {/* The same box as the explorer, with its own history. */}
+          <div className="nx-fd-q" onKeyDown={onKeyDown}>
+            <SimpleSearch
+              dataset="global"
+              label="everything"
+              value={term}
+              onChange={(next) => {
+                const search = new URLSearchParams(params);
+                if (next) search.set("q", next);
+                else search.delete("q");
+                setParams(search, { replace: true });
+              }}
+            />
+          </div>
+          {groups.length > 0 && (
+            <div className="nx-fd-typechips" role="group" aria-label="Record types">
+              <button type="button" className={!only ? "is-on" : ""} aria-pressed={!only} onClick={() => setType("")}>
+                All <span>{results.data?.total ?? 0}</span>
+              </button>
+              {groups.map((group) => (
+                <button
+                  key={group.resource_type}
+                  type="button"
+                  className={only === group.resource_type ? "is-on" : ""}
+                  aria-pressed={only === group.resource_type}
+                  onClick={() => setType(only === group.resource_type ? "" : group.resource_type)}
+                >
+                  {group.label} <span>{group.items.length}{group.has_more ? "+" : ""}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-        <Text type="secondary">
+        <Text type="secondary" className="nx-fd-hint">
           Use ↑ and ↓ to move through the results and Enter to open one.
         </Text>
-      </Card>
+      </section>
 
       {results.isError && (
         <Alert
@@ -169,7 +202,7 @@ export default function GlobalSearchPage() {
         <Alert type="info" showIcon message={`Type at least ${MIN_TERM} characters to search.`} />
       )}
 
-      <div ref={listRef} className="nu-global-results">
+      <div ref={listRef} className="nu-global-results nx-fd-ggrid">
         {results.isLoading && <Skeleton active paragraph={{ rows: 6 }} />}
 
         {!term.trim() && !results.isLoading && (
@@ -180,23 +213,16 @@ export default function GlobalSearchPage() {
           <EmptyState title={`Nothing matches “${results.data.query}”`} />
         )}
 
-        {results.data?.groups.map((group) => {
+        {results.data && shown.map((group) => {
           const offset = flattened.indexOf(group.items[0] as GlobalHit);
           return (
-            <Card
-              key={group.resource_type}
-              className="nu-global-group"
-              size="small"
-              title={
-                <Space>
-                  <Title level={5}>{group.label}</Title>
-                  <Badge count={group.items.length} color="blue" />
-                </Space>
-              }
-              extra={
+            <section key={group.resource_type} className="nu-global-group nx-fd-gcard nx-glass" aria-label={group.label}>
+              <div className="nx-fd-row">
+                <h2 className="nx-fd-h2">{group.label}</h2>
                 <Tooltip title={`Explore ${group.label.toLowerCase()} matching this term`}>
                   <Button
-                    type="text"
+                    type="link"
+                    className="nx-fd-push nx-fd-alllink"
                     icon={<SearchOutlined />}
                     onClick={() =>
                       navigate(
@@ -207,39 +233,38 @@ export default function GlobalSearchPage() {
                     {group.has_more ? "See all in Data Explorer" : "Open in Data Explorer"}
                   </Button>
                 </Tooltip>
-              }
-            >
+              </div>
               {group.items.map((hit, index) => (
                 <button
                   key={hit.id}
                   type="button"
                   data-hit
                   data-testid="global-hit"
-                  className={`nu-global-hit${offset + index === cursor ? " is-active" : ""}`}
+                  className={`nu-global-hit nx-fd-ghit${offset + index === cursor ? " is-active" : ""}`}
                   onClick={() => open(hit)}
                   onMouseEnter={() => setCursor(offset + index)}
                 >
-                  <div className="nu-global-hit-head">
-                    <Text strong>
+                  <span className="nx-fd-ghit-main">
+                    <span className="nx-fd-ghit-label">
                       <HighlightedText text={hit.label} term={results.data.query} />
-                    </Text>
-                    <Text type="secondary">{hit.summary}</Text>
-                  </div>
-                  {hit.snippet && (
-                    <div className="nu-global-hit-snippet">
-                      <Tag>{hit.matched_label}</Tag>
-                      <Text type="secondary">
-                        <HighlightedText text={hit.snippet} term={results.data.query} />
-                      </Text>
-                    </div>
-                  )}
+                    </span>
+                    <span className="nx-fd-muted nx-fd-small">{hit.summary}</span>
+                    {hit.snippet && (
+                      <span className="nx-fd-ghit-snippet">
+                        <span className="nx-fd-pill">{hit.matched_label}</span>
+                        <span className="nx-fd-muted nx-fd-small">
+                          <HighlightedText text={hit.snippet} term={results.data.query} />
+                        </span>
+                      </span>
+                    )}
+                  </span>
                   <ArrowRightOutlined className="nu-global-hit-go" />
                 </button>
               ))}
-            </Card>
+            </section>
           );
         })}
       </div>
-    </>
+    </div>
   );
 }

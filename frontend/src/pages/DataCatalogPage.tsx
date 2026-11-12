@@ -18,13 +18,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
   Alert,
-  Card,
   Collapse,
   Input,
   Progress,
   Skeleton,
   Space,
-  Statistic,
   Table,
   Tag,
   Tooltip,
@@ -109,18 +107,13 @@ export default function DataCatalogPage() {
   ]);
 
   return (
-    <>
+    <div className="nx-fd-catalog">
       <PageHeader
-        title="Data catalogue"
-        subtitle="Every dataset you can read, its fields, what they accept and how completely they are filled in."
-        actions={
-          catalog.data && (
-            <Space size="large">
-              <Statistic title="Datasets" value={catalog.data.total} />
-              <Statistic title="Fields" value={catalog.data.field_count} />
-              <Statistic title="Records" value={catalog.data.record_count} />
-            </Space>
-          )
+        title={<>Data <em>catalog</em></>}
+        subtitle={
+          catalog.data
+            ? `${catalog.data.total} record types · ${catalog.data.field_count.toLocaleString()} fields · ${catalog.data.record_count.toLocaleString()} records — what each holds and who can read it`
+            : "Every dataset you can read, its fields, what they accept and how completely they are filled in."
         }
       />
 
@@ -133,16 +126,26 @@ export default function DataCatalogPage() {
         />
       )}
 
-      <Card size="small">
-        <Input
-          allowClear
-          prefix={<SearchOutlined />}
-          aria-label="Filter the catalogue"
-          placeholder="Filter by dataset or field name…"
-          value={term}
-          onChange={(event) => setTerm(event.target.value)}
-        />
-      </Card>
+      <section className="nx-fd-bar nx-glass nx-glass--strong" aria-label="Filter">
+        <div className="nx-fd-bar-row">
+          <Input
+            allowClear
+            className="nx-fd-filter"
+            prefix={<SearchOutlined />}
+            aria-label="Filter the catalogue"
+            placeholder="Search record types and fields"
+            value={term}
+            onChange={(event) => setTerm(event.target.value)}
+          />
+          {catalog.data && (
+            <div className="nx-fd-catstats" aria-label="Catalogue totals">
+              <span><b>{catalog.data.total}</b> datasets</span>
+              <span><b>{catalog.data.field_count.toLocaleString()}</b> fields</span>
+              <span><b>{catalog.data.record_count.toLocaleString()}</b> records</span>
+            </div>
+          )}
+        </div>
+      </section>
 
       {catalog.isLoading && <Skeleton active paragraph={{ rows: 8 }} />}
 
@@ -151,38 +154,65 @@ export default function DataCatalogPage() {
       )}
 
       {datasets.length > 0 && (
-        <Collapse
-          className="nu-catalog"
-          data-testid="catalog"
-          defaultActiveKey={datasets[0]?.key}
-          items={datasets.map((dataset) => ({
-            key: dataset.key,
-            label: <DatasetHeading dataset={dataset} />,
-            children: <DatasetBody dataset={dataset} highlight={needle} />,
-          }))}
-        />
+        <section className="nx-fd-catpanel nx-glass" aria-label="Record types">
+          <div className="nx-fd-cathead" aria-hidden="true">
+            <span>Record type</span>
+            <span>Visible with</span>
+            <span className="is-num">Fields</span>
+            <span>Filled in</span>
+            <span>Updated</span>
+          </div>
+          <Collapse
+            ghost
+            className="nu-catalog nx-fd-catlist"
+            data-testid="catalog"
+            defaultActiveKey={datasets[0]?.key}
+            expandIconPosition="end"
+            items={datasets.map((dataset) => ({
+              key: dataset.key,
+              label: <DatasetHeading dataset={dataset} />,
+              children: <DatasetBody dataset={dataset} highlight={needle} />,
+            }))}
+          />
+        </section>
       )}
-    </>
+    </div>
   );
 }
 
 function DatasetHeading({ dataset }: { dataset: CatalogDataset }) {
+  const filled = dataset.fields.length
+    ? Math.round(dataset.fields.reduce((sum, field) => sum + field.completeness, 0) / dataset.fields.length)
+    : 0;
   return (
-    <div className="nu-catalog-heading">
-      <Space>
-        <DatabaseOutlined />
-        <Text strong>{dataset.label}</Text>
-        <Text type="secondary">{dataset.description}</Text>
-      </Space>
-      <Space size={6}>
-        <Tag>{dataset.record_count.toLocaleString()} records</Tag>
-        <Tag>{dataset.fields.length} fields</Tag>
-        {dataset.updated_at && (
+    <div className="nu-catalog-heading nx-fd-catrow">
+      <span className="nx-fd-catname">
+        <span className="nx-fd-roundicon"><DatabaseOutlined /></span>
+        <span className="nx-fd-grow">
+          <Text strong>{dataset.label}</Text>
+          <span className="nx-fd-muted nx-fd-small nx-fd-catdesc">
+            {dataset.record_count.toLocaleString()} records · {dataset.description}
+          </span>
+        </span>
+      </span>
+      <span className="nx-fd-catperm">
+        <span className="nx-fd-pill">{dataset.permission}</span>
+      </span>
+      <span className="nx-fd-catnum">
+        <b>{dataset.fields.length}</b>
+        <span className="nx-fd-muted nx-fd-tiny"> fields</span>
+      </span>
+      <span className="nx-fd-catfill">
+        <span className="nx-fd-adv-track"><span style={{ width: `${filled}%` }} className={filled < SPARSE ? "is-sparse" : ""} /></span>
+        <span className="nx-fd-small">{filled}%</span>
+      </span>
+      <span className="nx-fd-muted nx-fd-small nx-fd-catupd">
+        {dataset.updated_at ? (
           <Tooltip title="When anything in this dataset last changed">
-            <Tag>updated {new Date(dataset.updated_at).toLocaleDateString()}</Tag>
+            <span>{new Date(dataset.updated_at).toLocaleDateString()}</span>
           </Tooltip>
-        )}
-      </Space>
+        ) : "—"}
+      </span>
     </div>
   );
 }
