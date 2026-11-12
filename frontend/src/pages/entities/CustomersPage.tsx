@@ -13,12 +13,11 @@
  * a different question from the one on screen.
  */
 
-import { Avatar, Card, Col, Pagination, Progress, Row, Skeleton, Space, Tag, Tooltip, Typography } from "antd";
+import { Avatar, Card, Pagination, Progress, Skeleton, Space, Tag, Tooltip, Typography } from "antd";
 import { MailOutlined, ShopOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
-import { ChartCard } from "@/components/ChartCard";
-import { StatusTag } from "@/components/StatusTag";
+import { humanStatus, StatusTag } from "@/components/StatusTag";
 import {
   NewRecordButton,
   RecordActions,
@@ -127,43 +126,8 @@ export default function CustomersPage() {
       <EntityFilters view={view} only={["segment", "lifecycle_stage", "industry", "country"]} />
       <EntityError view={view} />
 
-      <Row gutter={[12, 12]} className="nu-block">
-        <Col xs={24} lg={12}>
-          <ChartCard
-            id="customers-segment"
-            height={220}
-            panel={
-              breakdown("segment") && {
-                kind: "pie",
-                title: "Accounts by segment",
-                series: breakdown("segment")!.series,
-              }
-            }
-            loading={view.insights.isLoading}
-            error={view.insights.error ?? undefined}
-            onRetry={() => void view.insights.refetch()}
-            onSelect={(name) => view.setFilter("segment", name)}
-          />
-        </Col>
-        <Col xs={24} lg={12}>
-          <ChartCard
-            id="customers-lifecycle"
-            height={220}
-            panel={
-              breakdown("lifecycle_stage") && {
-                kind: "bar",
-                title: "Where accounts are in their lifecycle",
-                series: breakdown("lifecycle_stage")!.series,
-              }
-            }
-            loading={view.insights.isLoading}
-            error={view.insights.error ?? undefined}
-            onRetry={() => void view.insights.refetch()}
-            onSelect={(name) => view.setFilter("lifecycle_stage", name)}
-          />
-        </Col>
-      </Row>
-
+      <div className="nx-rec-book">
+      <div className="nx-rec-book-main">
       {view.rows.isLoading ? (
         <Skeleton active paragraph={{ rows: 10 }} />
       ) : rows.length === 0 ? (
@@ -220,6 +184,10 @@ export default function CustomersPage() {
                   <Text type="secondary">lifetime value</Text>
                 </div>
 
+                <span className="nx-rec-sat">
+                  <span>Satisfaction</span>
+                  <b style={{ color: moodColour(score) }}>{score.toFixed(1)}/10</b>
+                </span>
                 <Tooltip title={`Satisfaction ${score.toFixed(1)} out of 10`}>
                   <Progress
                     aria-label={`Satisfaction ${score.toFixed(1)} out of 10`}
@@ -231,7 +199,7 @@ export default function CustomersPage() {
                 </Tooltip>
 
                 <Space size={6} wrap className="nu-account-meta">
-                  <Tag bordered={false}>{customer.segment}</Tag>
+                  <Tag bordered={false}>{humanStatus(customer.segment ?? "")}</Tag>
                   <Text type="secondary">
                     <ShopOutlined /> {customer.industry}
                   </Text>
@@ -251,6 +219,15 @@ export default function CustomersPage() {
           })}
         </div>
       )}
+      </div>
+      <BookAside
+        segments={breakdown("segment")?.series ?? []}
+        stages={breakdown("lifecycle_stage")?.series ?? []}
+        active={{ segment: view.filters["segment"], stage: view.filters["lifecycle_stage"] }}
+        onSegment={(name) => view.setFilter("segment", name)}
+        onStage={(name) => view.setFilter("lifecycle_stage", name)}
+      />
+      </div>
 
       {(view.rows.data?.total ?? 0) > view.pageSize && (
         <div className="nu-notice-pager">
@@ -270,5 +247,77 @@ export default function CustomersPage() {
 
       {records.drawer}
     </>
+  );
+}
+
+/**
+ * The book of business beside the accounts (§7): how many accounts sit in each
+ * segment, and where they are in their lifecycle — each row a filter, so the
+ * reader goes from "most of the book is SMB" to those accounts in one press.
+ */
+function BookAside({
+  segments,
+  stages,
+  active,
+  onSegment,
+  onStage,
+}: {
+  segments: { name: string; value: number }[];
+  stages: { name: string; value: number }[];
+  active: { segment?: string | null; stage?: string | null };
+  onSegment: (name: string | null) => void;
+  onStage: (name: string | null) => void;
+}) {
+  const most = Math.max(1, ...segments.map((item) => item.value));
+  const widest = Math.max(1, ...stages.map((item) => item.value));
+  return (
+    <aside className="nx-rec-book-aside" aria-label="Book of business">
+      <section className="nx-rec-panel" data-testid="customers-segment" aria-label="Accounts by segment">
+        <h2>Accounts by segment</h2>
+        <span className="nx-rec-panel-sub">The number of accounts in each — select one to filter</span>
+        <ul className="nx-rec-bars">
+          {segments.map((item) => (
+            <li key={item.name}>
+              <button
+                type="button"
+                aria-pressed={active.segment === item.name}
+                onClick={() => onSegment(active.segment === item.name ? null : item.name)}
+              >
+                <span className="nx-rec-bars-row">
+                  <b>{humanStatus(item.name)}</b>
+                  <span>{item.value.toLocaleString()} accts</span>
+                </span>
+                <span className="nx-rec-bars-track">
+                  <i style={{ width: `${(item.value / most) * 100}%` }} />
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <section
+        className="nx-rec-panel"
+        data-testid="customers-lifecycle"
+        aria-label="Where accounts are in their lifecycle"
+      >
+        <h2>Where accounts are in their lifecycle</h2>
+        <span className="nx-rec-panel-sub">Select a stage to filter the grid</span>
+        <ul className="nx-rec-funnel">
+          {stages.map((item) => (
+            <li key={item.name}>
+              <button
+                type="button"
+                aria-pressed={active.stage === item.name}
+                style={{ width: `${Math.max(46, (item.value / widest) * 100)}%` }}
+                onClick={() => onStage(active.stage === item.name ? null : item.name)}
+              >
+                <span>{humanStatus(item.name)}</span>
+                <b>{item.value.toLocaleString()}</b>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </aside>
   );
 }

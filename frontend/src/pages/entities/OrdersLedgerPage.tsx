@@ -22,7 +22,7 @@ import { useNavigate } from "react-router-dom";
 import type { SeriesPoint } from "@/api/explorer";
 import { ChartCard } from "@/components/ChartCard";
 import { RecordPreview } from "@/components/explorer/RecordPreview";
-import { StatusTag } from "@/components/StatusTag";
+import { humanStatus, StatusTag } from "@/components/StatusTag";
 import {
   NewRecordButton,
   RecordActions,
@@ -150,7 +150,13 @@ export default function OrdersLedgerPage() {
         <StatusTag status={value} bordered={false} />
       ),
     },
-    { title: "Channel", dataIndex: "channel", width: 120, sorter: true },
+    {
+      title: "Channel",
+      dataIndex: "channel",
+      width: 120,
+      sorter: true,
+      render: (value: string | null) => (value ? humanStatus(value) : "—"),
+    },
     {
       title: "Items",
       dataIndex: "item_count",
@@ -262,7 +268,7 @@ export default function OrdersLedgerPage() {
           data-testid="order-ledger"
           rowKey="id"
           size="small"
-          className="nu-ledger"
+          className="nu-ledger nx-rec-table"
           columns={columns}
           dataSource={rows}
           rowSelection={bulk.rowSelection}

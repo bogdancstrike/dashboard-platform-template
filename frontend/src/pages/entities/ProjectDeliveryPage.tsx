@@ -332,7 +332,7 @@ export default function ProjectDeliveryPage() {
             )}
 
             <Table<TaskRow>
-              className="nu-block"
+              className="nu-block nx-rec-table"
               size="small"
               rowKey="id"
               pagination={false}

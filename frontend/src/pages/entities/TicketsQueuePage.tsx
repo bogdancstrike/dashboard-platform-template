@@ -26,7 +26,7 @@ import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { useNavigate } from "react-router-dom";
 
-import { StatusTag } from "@/components/StatusTag";
+import { humanStatus, StatusTag } from "@/components/StatusTag";
 import {
   NewRecordButton,
   RecordActions,
@@ -206,7 +206,13 @@ export default function TicketsQueuePage() {
         );
       },
     },
-    { title: "Category", dataIndex: "category", width: 132, sorter: true },
+    {
+      title: "Category",
+      dataIndex: "category",
+      width: 132,
+      sorter: true,
+      render: (value: string | null) => (value ? humanStatus(value) : "—"),
+    },
     {
       title: "Raised",
       dataIndex: "created_at",
@@ -285,6 +291,7 @@ export default function TicketsQueuePage() {
             row hides part of what the reader is deciding about (§43). */}
         {bulk.bar}
         <Table<TicketRow>
+          className="nx-rec-table"
           rowKey="id"
           size="small"
           columns={columns}

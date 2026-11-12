@@ -100,10 +100,12 @@ export function statusTone(status: string | null | undefined): StatusTone {
 
 /**
  * `AT_RISK` → "At risk". Three letters or fewer stay as they are, because
- * those are acronyms (`SLA`, `VIP`), not words.
+ * those are acronyms (`SLA`, `VIP`), not words — and so does anything that is
+ * not all capitals, which is a name rather than a vocabulary value.
  */
 export function humanStatus(status: string): string {
-  if (status.length <= 3) return status;
+  // Only the vocabulary is shouted; "Munich — Warehouse" is already a name.
+  if (status.length <= 3 || status !== status.toUpperCase()) return status;
   const words = status.replace(/_/g, " ").toLowerCase();
   return words.charAt(0).toUpperCase() + words.slice(1);
 }

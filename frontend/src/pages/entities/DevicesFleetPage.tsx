@@ -13,11 +13,11 @@
  * problem from one reporting that it is unwell.
  */
 
-import { Card, Col, Pagination, Row, Skeleton, Space, Tooltip, Typography } from "antd";
+import { Card, Pagination, Skeleton, Space, Tooltip, Typography } from "antd";
 import { ApiOutlined, ThunderboltOutlined, WifiOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
-import { ChartCard } from "@/components/ChartCard";
+import { BarPanel, StatePanel, TriageTile } from "@/components/records/BreakdownPanels";
 import { StatusTag } from "@/components/StatusTag";
 import {
   NewRecordButton,
@@ -118,6 +118,9 @@ export default function DevicesFleetPage() {
   const breakdown = (field: string) =>
     insights?.breakdowns.find((item) => item.field === field);
 
+  const stateCount = (status: string) =>
+    breakdown("status")?.series.find((item) => item.name === status)?.value ?? 0;
+
   const records = useRecordEditing(view.resource, {
     onCreated: (id) => navigate(`/devices/${id}`),
   });
@@ -155,59 +158,53 @@ export default function DevicesFleetPage() {
 
       <MetricStrip view={view} accents={["accent", "success", "warning", "danger"]} />
 
-      <Row gutter={[12, 12]} className="nu-block">
-        <Col xs={24} lg={8}>
-          <ChartCard
-            id="devices-status"
-            height={200}
-            panel={
-              breakdown("status") && {
-                kind: "pie",
-                title: "Fleet by state",
-                series: breakdown("status")!.series,
-              }
-            }
-            loading={view.insights.isLoading}
-            error={view.insights.error ?? undefined}
-            onRetry={() => void view.insights.refetch()}
-            onSelect={(name) => view.setFilter("status", name)}
-          />
-        </Col>
-        <Col xs={24} lg={8}>
-          <ChartCard
-            id="devices-kind"
-            height={200}
-            panel={
-              breakdown("kind") && {
-                kind: "bar",
-                title: "By kind",
-                series: breakdown("kind")!.series,
-              }
-            }
-            loading={view.insights.isLoading}
-            error={view.insights.error ?? undefined}
-            onRetry={() => void view.insights.refetch()}
-            onSelect={(name) => view.setFilter("kind", name)}
-          />
-        </Col>
-        <Col xs={24} lg={8}>
-          <ChartCard
-            id="devices-location"
-            height={200}
-            panel={
-              breakdown("location") && {
-                kind: "bar",
-                title: "By site",
-                series: breakdown("location")!.series,
-              }
-            }
-            loading={view.insights.isLoading}
-            error={view.insights.error ?? undefined}
-            onRetry={() => void view.insights.refetch()}
-            onSelect={(name) => view.setFilter("location", name)}
-          />
-        </Col>
-      </Row>
+      <section className="nx-rec-triage-row" aria-label="Fleet summary">
+        <TriageTile
+          count={stateCount("OFFLINE")}
+          title="Down"
+          detail="Offline right now"
+          tone="bad"
+          onShow={() => view.setFilter("status", "OFFLINE")}
+        />
+        <TriageTile
+          count={stateCount("DEGRADED")}
+          title="About to be"
+          detail="Degraded — still talking, not well"
+          tone="warn"
+          onShow={() => view.setFilter("status", "DEGRADED")}
+        />
+        <TriageTile
+          count={stateCount("MAINTENANCE")}
+          title="In maintenance"
+          detail="Taken out of service on purpose"
+          tone="acc"
+          onShow={() => view.setFilter("status", "MAINTENANCE")}
+        />
+      </section>
+
+      <div className="nx-rec-panels">
+        <StatePanel
+          title="Fleet by state"
+          testId="devices-status"
+          series={breakdown("status")?.series ?? []}
+          active={view.filters["status"]}
+          onSelect={(name) => view.setFilter("status", name)}
+        />
+        <BarPanel
+          title="By kind"
+          testId="devices-kind"
+          series={breakdown("kind")?.series ?? []}
+          active={view.filters["kind"]}
+          onSelect={(name) => view.setFilter("kind", name)}
+        />
+        <BarPanel
+          title="By site"
+          testId="devices-location"
+          series={breakdown("location")?.series ?? []}
+          active={view.filters["location"]}
+          onSelect={(name) => view.setFilter("location", name)}
+        />
+      </div>
 
       <EntityFilters view={view} only={["status", "kind", "manufacturer", "location"]} />
       <EntityError view={view} />

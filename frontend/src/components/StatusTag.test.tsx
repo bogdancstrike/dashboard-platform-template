@@ -65,6 +65,8 @@ describe("the component", () => {
     expect(statusTone("FAILED")).toBe("bad");
     expect(statusTone(undefined)).toBe("neutral");
     expect(humanStatus("WAITING_CUSTOMER")).toBe("Waiting customer");
+    // A name is not vocabulary, and is not lower-cased into one.
+    expect(humanStatus("Munich — Warehouse")).toBe("Munich — Warehouse");
   });
 });
 

@@ -251,7 +251,7 @@ export default function ComparePage() {
             <Table<ComparedField>
               rowKey="name"
               size="small"
-              className="nu-compare"
+              className="nu-compare nx-rec-table"
               columns={columns}
               dataSource={rows}
               pagination={false}

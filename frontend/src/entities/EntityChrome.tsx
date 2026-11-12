@@ -17,7 +17,6 @@ import {
   Card,
   Input,
   Select,
-  Space,
   Tooltip,
 } from "antd";
 import { ClearOutlined, SearchOutlined } from "@ant-design/icons";
@@ -187,24 +186,28 @@ export function EntityFilters({
   );
 
   return (
-    <Card size="small" className="nu-filter-bar">
-      <Space wrap size={8} align="center">
-        <Input.Search
-          allowClear
-          placeholder={`Search ${resource?.label.toLowerCase() ?? ""}`}
-          aria-label={`Search ${resource?.label.toLowerCase() ?? ""}`}
-          style={{ width: 260 }}
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
+    <div className="nu-filter-bar nx-rec-filters" role="search">
+      <Input
+        allowClear
+        prefix={<SearchOutlined aria-hidden />}
+        placeholder={`Search ${resource?.label.toLowerCase() ?? ""}`}
+        aria-label={`Search ${resource?.label.toLowerCase() ?? ""}`}
+        className="nx-rec-search"
+        variant="filled"
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+      />
+      <div className="nx-rec-facets">
         {fields.map((field) => (
           <Select
             key={field.name}
             allowClear
             showSearch
+            variant="filled"
             placeholder={field.label}
             aria-label={field.label}
-            style={{ minWidth: 170 }}
+            popupMatchSelectWidth={false}
+            className={`nx-rec-facet${filters[field.name] ? " is-set" : ""}`}
             value={filters[field.name] ?? undefined}
             options={(rows.data?.facets[field.name] ?? []).map((facet) => ({
               value: facet.value,
@@ -214,8 +217,8 @@ export function EntityFilters({
           />
         ))}
         {children}
-      </Space>
-    </Card>
+      </div>
+    </div>
   );
 }
 

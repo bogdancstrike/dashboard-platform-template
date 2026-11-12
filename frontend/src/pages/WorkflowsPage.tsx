@@ -429,6 +429,7 @@ export default function WorkflowsPage() {
             }
           >
             <Table<AutomationRule>
+              className="nx-rec-table"
               rowKey="id"
               size="small"
               sticky

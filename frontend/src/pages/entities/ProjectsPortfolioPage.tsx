@@ -23,12 +23,12 @@
  * project's *columns* and nothing about how a list works.
  */
 
-import { Card, Progress, Skeleton, Table, Tag, Tooltip, Typography } from "antd";
+import { Card, Progress, Skeleton, Table, Tooltip, Typography } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { SorterResult } from "antd/es/table/interface";
 import { useNavigate } from "react-router-dom";
 
-import { StatusTag } from "@/components/StatusTag";
+import { StatusTag, type StatusTone } from "@/components/StatusTag";
 import {
   NewRecordButton,
   RecordActions,
@@ -90,11 +90,11 @@ const SYMBOL: Record<string, string> = { EUR: "€", USD: "$", GBP: "£" };
  */
 /** `preset`, not `colour`: AntD preset names — see `EdgeTag` for why a field
  * called colour on a `Tag` is a fill with white text on it (§55). */
-const STANDING: Record<ProjectStanding["standing"], { label: string; preset?: string }> = {
-  behind: { label: "Behind", preset: "error" },
-  ahead: { label: "Ahead", preset: "success" },
-  even: { label: "On line" },
-  done: { label: "Delivered", preset: "blue" },
+const STANDING: Record<ProjectStanding["standing"], { label: string; tone: StatusTone }> = {
+  behind: { label: "Behind", tone: "bad" },
+  ahead: { label: "Ahead", tone: "ok" },
+  even: { label: "On line", tone: "neutral" },
+  done: { label: "Delivered", tone: "acc" },
 };
 
 const BEHIND_ON: Record<"schedule" | "money" | "both", string> = {
@@ -261,9 +261,13 @@ export default function ProjectsPortfolioPage() {
         const reason = behindOn(standing);
         return (
           <Tooltip title={standing.summary}>
-            <Tag color={shown.preset} bordered={false}>
-              {reason ? BEHIND_ON[reason] : shown.label}
-            </Tag>
+            <span>
+              <StatusTag
+                status={standing.standing}
+                tone={shown.tone}
+                label={reason ? BEHIND_ON[reason] : shown.label}
+              />
+            </span>
           </Tooltip>
         );
       },
@@ -345,6 +349,7 @@ export default function ProjectsPortfolioPage() {
             row hides part of what the reader is deciding about (§43). */}
         {bulk.bar}
         <Table<ProjectRow>
+          className="nx-rec-table"
           rowKey="id"
           size="small"
           columns={columns}

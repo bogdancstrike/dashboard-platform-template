@@ -197,3 +197,135 @@ body.nx-dragging, body.nx-dragging * { cursor: grabbing !important; user-select:
 .nx-rec-kcard .nu-card-who { width: 26px; height: 26px; border-radius: 13px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; background: var(--nu-tint); color: var(--nu-accent-ink); border: 2px solid var(--nu-raised); }
 .nx-rec-kcard .nu-card-progress .ant-progress-inner { height: 5px; }
 .nu-board.nx-rec-board.is-dragging, .nx-app--phone .nu-board.nx-rec-board.is-dragging { scroll-snap-type: none; }
+
+/* ═══ Filter bar: one glass strip — a wide search pill, then facet pills ═══ */
+.nu-filter-bar.nx-rec-filters {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px; margin: 0 0 14px; border-radius: 26px;
+  background: var(--nu-glass); border: 1px solid var(--nu-glass-border); box-shadow: var(--nu-glass-shadow);
+  -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+  animation: nxRise 0.6s var(--nx-ease) 0.1s both;
+}
+.nx-rec-filters .nx-rec-search.ant-input-affix-wrapper { flex: 1 1 240px; min-width: 0; height: 44px; border-radius: 22px; padding-inline: 14px; border: 0; background: rgba(var(--nu-ink-rgb), 0.06) !important; font-size: 14px; }
+.nx-rec-filters .nx-rec-search .ant-input-prefix { margin-inline-end: 8px; color: var(--nu-text-tertiary); }
+.nx-rec-filters .nx-rec-search input { background: transparent !important; }
+.nx-rec-facets { display: flex; gap: 6px; flex-wrap: wrap; max-width: 100%; }
+.nx-rec-facets .ant-select { height: 44px; min-width: 104px; }
+.nx-rec-facets .ant-select .ant-select-selector { border-radius: 22px !important; border: 0 !important; background: rgba(var(--nu-ink-rgb), 0.06) !important; padding-inline: 14px !important; box-shadow: none !important; }
+.nx-rec-facets .ant-select .ant-select-selection-placeholder { color: var(--nu-text); font-weight: 600; font-size: 13px; }
+.nx-rec-facets .ant-select .ant-select-selection-item { font-weight: 600; font-size: 13px; }
+.nx-rec-facets .ant-select.is-set .ant-select-selector { background: var(--nu-tint) !important; color: var(--nu-accent-ink); }
+:root[data-theme="dark"] .nx-rec-facets .ant-select.is-set .ant-select-selector { color: var(--nu-text); }
+.nx-rec-facets .ant-select .ant-select-arrow { color: var(--nu-text); }
+.nx-app--phone .nx-rec-facets { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; width: 100%; }
+.nx-app--phone .nx-rec-facets .ant-select { flex-shrink: 0; }
+
+/* ═══ Record tables: rows as soft pills, fixed edges that only show when scrolled ═══ */
+.nx-rec-table.ant-table-wrapper .ant-table-thead > tr > th { padding: 10px 12px; font-size: 11px; letter-spacing: 0.08em; }
+.nx-rec-table.ant-table-wrapper .ant-table-tbody > tr > td { padding: 14px 12px; font-size: 13.5px; background: transparent; }
+.nx-rec-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row:hover > td { background: var(--nu-raised) !important; }
+:root[data-theme="dark"] .nx-rec-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row:hover > td { background: rgba(255, 255, 255, 0.07) !important; }
+.nx-rec-table.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected > td { background: rgba(var(--nu-glow-rgb), 0.14) !important; }
+.nx-rec-table.ant-table-wrapper .ant-table:not(.ant-table-ping-left) .ant-table-cell-fix-left,
+.nx-rec-table.ant-table-wrapper .ant-table:not(.ant-table-ping-right) .ant-table-cell-fix-right { background: transparent !important; }
+.nx-rec-table.ant-table-wrapper .ant-table-ping-left .ant-table-tbody .ant-table-cell-fix-left,
+.nx-rec-table.ant-table-wrapper .ant-table-ping-right .ant-table-tbody .ant-table-cell-fix-right { background: var(--nu-glass-strong) !important; }
+.nx-rec-table.ant-table-wrapper .ant-table-thead .ant-table-cell-fix-left,
+.nx-rec-table.ant-table-wrapper .ant-table-thead .ant-table-cell-fix-right { background: transparent !important; }
+.nx-rec-table .ant-table-cell-fix-left-last::after, .nx-rec-table .ant-table-cell-fix-right-first::after { box-shadow: none !important; }
+.nx-rec-table .nu-mono { font: 12.5px var(--nu-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); color: var(--nu-text-secondary); }
+.nx-rec-table .ant-checkbox-inner { border-radius: 5px; }
+.nx-rec-table .nu-meter .ant-progress-inner { height: 6px !important; background: rgba(var(--nu-ink-rgb), 0.08); }
+.nx-rec-table .nu-meter .ant-progress-bg { height: 6px !important; background: var(--nu-accent) !important; }
+.nx-rec-table .nu-meter-value { width: 34px; text-align: right; color: var(--nu-text-secondary); }
+.nx-rec-table .ant-table-column-sorter { color: rgba(var(--nu-ink-rgb), 0.25); }
+.nx-rec-table .ant-table-column-sorters { gap: 4px; justify-content: flex-start; }
+.nx-rec-table .ant-table-column-title { flex: 0 1 auto; }
+.nx-rec-table .ant-pagination { padding: 4px 6px; }
+
+/* ═══ Customers: account cards beside the book of business ═══════════════ */
+.nx-rec-book { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 14px; align-items: start; }
+.nx-app--tablet .nx-rec-book, .nx-app--phone .nx-rec-book { grid-template-columns: minmax(0, 1fr); }
+.nx-app--tablet .nx-rec-book-aside, .nx-app--phone .nx-rec-book-aside { order: -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.nx-rec-book-main { min-width: 0; }
+.nx-rec-book .nu-account-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin: 0; }
+.nx-rec-book-aside { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 0; }
+.nx-rec-panel {
+  border-radius: 28px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px;
+  background: var(--nu-glass); border: 1px solid var(--nu-glass-border); box-shadow: var(--nu-glass-shadow);
+  -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%); animation: nxRise 0.6s var(--nx-ease) 0.25s both;
+}
+.nx-rec-panel h2 { margin: 0; font-size: 14px; font-weight: 700; }
+.nx-rec-panel-sub { font-size: 12px; color: var(--nu-text-tertiary); margin-bottom: 8px; }
+.nx-rec-bars, .nx-rec-funnel { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.nx-rec-bars button { width: 100%; min-height: 44px; padding: 4px 6px; border: 0; border-radius: 12px; background: transparent; color: var(--nu-text); font: inherit; display: flex; flex-direction: column; gap: 5px; cursor: pointer; text-align: left; }
+.nx-rec-bars button:hover, .nx-rec-bars button[aria-pressed="true"] { background: rgba(var(--nu-ink-rgb), 0.05); }
+.nx-rec-bars-row { width: 100%; display: flex; align-items: baseline; gap: 8px; font-size: 13px; }
+.nx-rec-bars-row b { flex: 1; }
+.nx-rec-bars-row span { color: var(--nu-text-tertiary); font-size: 12px; font-variant-numeric: tabular-nums; }
+.nx-rec-bars-track { width: 100%; height: 8px; border-radius: 4px; background: rgba(var(--nu-ink-rgb), 0.07); overflow: hidden; display: block; }
+.nx-rec-bars-track i { display: block; height: 100%; border-radius: 4px; background: var(--nu-accent); transform-origin: left; animation: nxBar 1s var(--nx-ease) 0.4s both; }
+.nx-rec-bars li:nth-child(n+3) .nx-rec-bars-track i { background: color-mix(in srgb, var(--nu-accent) 55%, transparent); }
+.nx-rec-funnel { align-items: center; }
+.nx-rec-funnel li { width: 100%; display: flex; justify-content: center; }
+.nx-rec-funnel button { min-width: 150px; height: 44px; padding: 0 14px; border: 0; border-radius: 16px; background: var(--nu-tint); color: var(--nu-accent-ink); font: 600 13px var(--nu-font); display: flex; align-items: center; gap: 8px; cursor: pointer; transition: transform 0.2s var(--nx-ease); }
+.nx-rec-funnel li:nth-child(n+2) button { background: rgba(var(--nu-ink-rgb), 0.06); color: var(--nu-text); }
+.nx-rec-funnel button[aria-pressed="true"] { background: var(--nu-accent); color: var(--nu-on-accent); }
+.nx-rec-funnel button:hover { transform: scale(1.02); }
+.nx-rec-funnel span { flex: 1; text-align: left; }
+:root[data-theme="dark"] .nx-rec-funnel li:first-child button { color: var(--nu-text); }
+
+.nx-rec-book .nu-account.ant-card { border-radius: 28px; }
+.nx-rec-book .nu-account .ant-card-body { padding: 16px; gap: 10px; }
+.nx-rec-book .nu-account-head { align-items: center; }
+.nx-rec-book .nu-account-head .ant-avatar { border-radius: 13px; font-size: 13px; font-weight: 700; background: var(--nu-tint) !important; flex-shrink: 0; }
+.nx-rec-book .nu-account-name .ant-typography:first-child { font-size: 15px; font-weight: 700; }
+.nx-rec-book .nu-account-name .ant-typography-secondary { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nx-rec-book .nu-account-head .nx-pill { height: 22px; padding: 0 8px; font-size: 11px; }
+.nx-rec-book .nu-account-head .nx-pill-dot { display: none; }
+.nx-rec-book .nu-account-amount { font-size: 26px; font-weight: 700; letter-spacing: -0.025em; line-height: 1; }
+.nx-rec-book .nu-account-value .ant-typography { font-size: 12px; }
+.nx-rec-book .nu-account .ant-progress-inner { height: 6px !important; }
+.nx-rec-book .nu-account .ant-progress-bg { height: 6px !important; }
+.nx-rec-book .nu-account-meta .ant-tag { height: 22px; line-height: 22px; padding: 0 8px; border-radius: 11px; font-size: 11px; font-weight: 700; background: rgba(var(--nu-ink-rgb), 0.07); }
+.nx-rec-book .nu-account-meta .ant-typography { font-size: 12px; color: var(--nu-text-secondary); }
+.nx-rec-sat { display: flex; justify-content: space-between; font-size: 12px; color: var(--nu-text-tertiary); margin-bottom: -6px; } .nx-rec-sat b { font-variant-numeric: tabular-nums; filter: brightness(0.8); }
+.nx-rec-book .nu-account-value .ant-typography { white-space: nowrap; }
+
+/* ═══ Breakdown panels and triage tiles (devices, and any list that wants them) ═══ */
+.nx-rec-panels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px; }
+.nx-app--tablet .nx-rec-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.nx-app--phone .nx-rec-panels { grid-template-columns: minmax(0, 1fr); }
+.nx-rec-panels .nx-rec-panel { gap: 12px; }
+.nx-rec-hbars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.nx-rec-hbars button { width: 100%; min-height: 26px; padding: 2px 4px; border: 0; border-radius: 8px; background: transparent; color: var(--nu-text); font: 12.5px var(--nu-font); display: grid; grid-template-columns: 96px minmax(0, 1fr) 48px; align-items: center; gap: 8px; cursor: pointer; text-align: left; }
+.nx-rec-hbars button:hover, .nx-rec-hbars button[aria-pressed="true"] { background: rgba(var(--nu-ink-rgb), 0.05); }
+.nx-rec-hbars-label { color: var(--nu-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nx-rec-hbars b { text-align: right; font-variant-numeric: tabular-nums; }
+.nx-rec-strip { height: 14px; border-radius: 7px; overflow: hidden; display: flex; gap: 2px; }
+.nx-rec-strip span { min-width: 3px; flex-basis: 0; transform-origin: left; animation: nxBar 1s var(--nx-ease) 0.2s both; }
+.nx-rec-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.nx-rec-legend button { width: 100%; height: 32px; padding: 0 6px; border: 0; border-radius: 10px; background: transparent; color: var(--nu-text); font: 13px var(--nu-font); display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.nx-rec-legend button:hover, .nx-rec-legend button[aria-pressed="true"] { background: rgba(var(--nu-ink-rgb), 0.05); }
+.nx-rec-legend i { width: 8px; height: 8px; border-radius: 4px; flex-shrink: 0; }
+.nx-rec-legend span { flex: 1; text-align: left; }
+.nx-rec-legend b { font-variant-numeric: tabular-nums; }
+.nx-rec-triage-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px; }
+.nx-app--phone .nx-rec-triage-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.nx-rec-triage {
+  text-align: left; border-radius: 28px; padding: 16px 18px; color: var(--nu-text); font-family: var(--nu-font); display: flex; align-items: center; gap: 14px; cursor: pointer;
+  background: var(--nu-glass); border: 1px solid var(--nu-glass-border); box-shadow: var(--nu-glass-shadow);
+  -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+  animation: nxRise 0.6s var(--nx-ease) both; transition: transform 0.2s var(--nx-ease);
+}
+.nx-rec-triage:hover { transform: translateY(-2px); }
+.nx-rec-triage-n { font-size: 38px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.nx-rec-triage-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.nx-rec-triage-text b { font-size: 15px; }
+.nx-rec-triage-text span { font-size: 12.5px; color: var(--nu-text-tertiary); line-height: 1.35; }
+.nx-rec-triage-go { height: 28px; padding: 0 10px; border-radius: 14px; font-size: 12px; font-weight: 700; display: flex; align-items: center; white-space: nowrap; }
+.nx-rec-triage--bad .nx-rec-triage-n, .nx-rec-triage--bad .nx-rec-triage-go { color: var(--nu-bad); }
+.nx-rec-triage--bad .nx-rec-triage-go { background: var(--nu-bad-bg); }
+.nx-rec-triage--warn .nx-rec-triage-n, .nx-rec-triage--warn .nx-rec-triage-go { color: var(--nu-warn); }
+.nx-rec-triage--warn .nx-rec-triage-go { background: var(--nu-warn-bg); }
+.nx-rec-triage--acc .nx-rec-triage-n, .nx-rec-triage--acc .nx-rec-triage-go { color: var(--nu-accent-ink); }
+.nx-rec-triage--acc .nx-rec-triage-go { background: var(--nu-tint); }

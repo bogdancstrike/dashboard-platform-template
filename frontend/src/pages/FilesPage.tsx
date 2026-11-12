@@ -757,6 +757,7 @@ export default function FilesPage() {
               tenth of the page forever. */}
           <DropArea enabled={canManage} onFiles={send} limit={tree.data?.max_upload_bytes ?? 0}>
             <Table<StoredFile>
+              className="nx-rec-table"
               size="small"
               rowKey="id"
               sticky
