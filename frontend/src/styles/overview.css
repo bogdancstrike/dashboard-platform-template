@@ -756,3 +756,6 @@
 .nx-ov-place-text b { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nx-ov-place-text small { font-size: 12px; color: var(--nu-text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nx-ov-place-value { font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+/* Segmented controls inside a dialog never push the dialog wider than the phone. */
+.ant-modal .ant-segmented { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.ant-modal .ant-segmented::-webkit-scrollbar { display: none; }
