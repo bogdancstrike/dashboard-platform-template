@@ -208,6 +208,22 @@ export const ENTRIES: DocEntry[] = [
     importLine: 'import { Dropdown } from "antd";',
   },
   {
+    id: "collapse-all",
+    name: "CollapseAllToggle",
+    group: "Navigation",
+    purpose: "One control that folds or unfolds every section of a side menu.",
+    when: ["At the end of the heading row of any side menu with collapsible sections. The menu owns which are open."],
+    demos: [{ id: "collapse-all.basic", title: "A menu's heading row" }],
+    importLine: 'import { CollapseAllToggle } from "@/components/CollapseAllToggle";',
+    component: "CollapseAllToggle",
+    api: [
+      { name: "allCollapsed", type: "boolean", description: "True when every section is folded; the button then offers to unfold." },
+      { name: "onToggle", type: "(collapse: boolean) => void", description: "Fold or unfold them all." },
+      { name: "label", type: "string", default: '"sections"', description: "What the sections are called, for the accessible name." },
+      { name: "className", type: "string", description: "Extra class." },
+    ],
+  },
+  {
     id: "pagination",
     name: "Pagination",
     group: "Navigation",
