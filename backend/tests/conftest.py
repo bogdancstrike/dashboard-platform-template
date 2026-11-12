@@ -116,6 +116,11 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     # first — and attachments before messages before threads.
     # `test_cleanup_order_respects_the_foreign_keys` caught both of these,
     # which is exactly what that test is for.
+    # Ask your documents (§44): a question and a document point at their
+    # collection, a document at its file and its job, a collection at its
+    # folder — so all three go before files, folders and jobs. Passages have
+    # no timestamp and go with their document (ON DELETE CASCADE).
+    "KnowledgeQuestion", "KnowledgeDocument", "KnowledgeCollection",
     "EmailAttachment", "EmailMessage", "EmailThread",
     "Comment", "FileObject", "Folder",
     # Tasks, because an automation's TASK action creates real ones and the

@@ -30,7 +30,11 @@ SEVERITY: Vocabulary = ("MINOR", "MODERATE", "MAJOR", "CRITICAL")
 TASK_STATUS: Vocabulary = (
     "NEW", "ASSIGNED", "IN_PROGRESS", "BLOCKED", "IN_REVIEW", "DONE", "CANCELLED",
 )
-TASK_KIND: Vocabulary = ("TASK", "BUG", "FEATURE", "CHORE", "INCIDENT", "REQUEST")
+#: EPIC and STORY are the planning kinds (§18): an epic groups work through
+#: `tasks.epic_id`, a story is sized in points.
+TASK_KIND: Vocabulary = (
+    "TASK", "BUG", "FEATURE", "CHORE", "INCIDENT", "REQUEST", "STORY", "EPIC",
+)
 
 # ── support ──────────────────────────────────────────────────────────────
 
@@ -179,6 +183,8 @@ LOG_LEVEL: Vocabulary = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 #: — a deployment adds queues — so it is faceted from the data instead.
 JOB_KIND: Vocabulary = (
     "EXPORT", "IMPORT", "REPORT", "EMAIL", "MAINTENANCE", "SYNC", "REINDEX",
+    # Reading a document into passages for "Ask your documents" (§44).
+    "INGEST",
 )
 
 #: A job's lifecycle. RETRYING is deliberately its own state rather than a

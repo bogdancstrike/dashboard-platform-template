@@ -15,6 +15,9 @@ from src.models.content import (  # noqa: F401
     FileObject, Folder, Tag, TagLink,
 )
 from src.models.kanban import Board, BoardCard, BoardLane  # noqa: F401
+from src.models.knowledge import (  # noqa: F401
+    KnowledgeChunk, KnowledgeCollection, KnowledgeDocument, KnowledgeQuestion,
+)
 from src.models.identity import (  # noqa: F401
     Department, Group, LoginEvent, Organization, Region, Role, SecurityEvent,
     Team, User, UserSession, user_groups,

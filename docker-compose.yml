@@ -63,13 +63,23 @@ x-backend-env: &backend-env
   LLM_MODEL: "${LLM_MODEL_ALIAS:-nucleus-chat}"
   LLM_EMBEDDING_MODEL: "nucleus-embed"
   LLM_REASONING_EFFORT: "${LLM_REASONING_EFFORT:-low}"
+  # Document conversion for "Ask your documents" (§44): the isolated Docling
+  # service below. Unreachable means uploads wait in FAILED with a reprocess
+  # button, never that the API fails to start.
+  DOCLING_URL: "http://docling:8080"
   SEED_RANDOM_SEED: "${SEED_RANDOM_SEED:-20260101}"
 
 services:
 
-  # ── PostgreSQL 18 ────────────────────────────────────────────────────────
+  # ── PostgreSQL 18, with pgvector ─────────────────────────────────────────
+  # The pgvector build of the official image (Debian): the same major version
+  # and the same /var/lib/postgresql layout, plus the `vector` extension the
+  # document search (§44) stores its embeddings in. A volume first created by
+  # postgres:18-alpine starts as-is (the entrypoint re-owns it); its text
+  # indexes were built under musl's collation and want one `REINDEX DATABASE`
+  # under glibc's.
   postgres:
-    image: postgres:18-alpine
+    image: pgvector/pgvector:pg18
     container_name: nucleus-postgres
     networks: [nucleusnet]
     ports:
@@ -113,6 +123,35 @@ services:
       interval: 10s
       timeout: 5s
       retries: 30
+    restart: unless-stopped
+
+  # ── Docling — document conversion, CPU only, offline (§44) ─────────────
+  # Adapted from Horizon's deploy/docling. It is sent bytes and answers with
+  # sections that keep their pages and boxes; it holds no credentials, and its
+  # models were downloaded at build time. The first build is large (~5 GB).
+  docling:
+    build: {context: ./deploy/docling}
+    image: nucleus-docling:dev
+    container_name: nucleus-docling
+    networks: [nucleusnet]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=1g"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      DOCLING_CONCURRENCY: "${DOCLING_CONCURRENCY:-2}"
+      DOCLING_DOCUMENT_TIMEOUT_S: "${DOCLING_DOCUMENT_TIMEOUT_S:-300}"
+    ports:
+      # Loopback only, so a backend run from the host (python main.py) can use it.
+      - "127.0.0.1:${DOCLING_PORT:-8091}:8080"
+    deploy:
+      resources: {limits: {cpus: "${DOCLING_CPUS:-2}", memory: 4g}}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 30s
     restart: unless-stopped
 
   # ── Redis 8 — a cache, never a dependency ────────────────────────────────

@@ -558,6 +558,164 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "knowledge_ask",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/knowledge/ask",
+      "description": "Answer a question from a collection's documents, with numbered citations.",
+      "exec_method": {
+        "module_name": "src.api.knowledge",
+        "method_name": "ask"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "knowledge_collections",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/knowledge/collections",
+      "description": "The document collections this reader may see, or a new one.",
+      "exec_method": {
+        "module_name": "src.api.knowledge",
+        "method_name": "collections"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "knowledge_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/knowledge/collections/<uuid:collection_id>",
+      "description": "One collection with its documents; rename, re-share or remove it.",
+      "exec_method": {
+        "module_name": "src.api.knowledge",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "knowledge_documents",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/knowledge/collections/<uuid:collection_id>/documents",
+      "description": "Put files in the collection and start reading them in the background.",
+      "exec_method": {
+        "module_name": "src.api.knowledge",
+        "method_name": "documents"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "knowledge_document",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "DELETE"
+      ],
+      "api_url": "/api/knowledge/collections/<uuid:collection_id>/documents/<uuid:document_id>",
+      "description": "Where one document's reading stands, or take it out.",
+      "exec_method": {
+        "module_name": "src.api.knowledge",
+        "method_name": "document"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "knowledge_reprocess",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/knowledge/collections/<uuid:collection_id>/documents/<uuid:document_id>/reprocess",
+      "description": "Read a document again.",
+      "exec_method": {
+        "module_name": "src.api.knowledge",
+        "method_name": "reprocess"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "knowledge_history",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/knowledge/collections/<uuid:collection_id>/history",
+      "description": "This reader's questions of the collection, by conversation.",
+      "exec_method": {
+        "module_name": "src.api.knowledge",
+        "method_name": "history"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "knowledge_passage",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/knowledge/collections/<uuid:collection_id>/passages/<uuid:chunk_id>",
+      "description": "One cited passage, with its page and the boxes to mark.",
+      "exec_method": {
+        "module_name": "src.api.knowledge",
+        "method_name": "passage"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "knowledge_suggestions",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/knowledge/collections/<uuid:collection_id>/suggestions",
+      "description": "Questions worth asking this collection.",
+      "exec_method": {
+        "module_name": "src.api.knowledge",
+        "method_name": "suggestions"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "knowledge_thread",
+      "model_name": "Empty",
+      "request_method": [
+        "DELETE"
+      ],
+      "api_url": "/api/knowledge/collections/<uuid:collection_id>/threads/<uuid:thread_id>",
+      "description": "Forget one conversation.",
+      "exec_method": {
+        "module_name": "src.api.knowledge",
+        "method_name": "thread"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "knowledge_overview",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/knowledge/overview",
+      "description": "Headline numbers across every visible collection.",
+      "exec_method": {
+        "module_name": "src.api.knowledge",
+        "method_name": "overview"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "reports_collection",
       "model_name": "Empty",
       "request_method": [

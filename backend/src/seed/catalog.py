@@ -435,7 +435,9 @@ LOGGERS: tuple[str, ...] = (
     "src.services.import", "src.services.notifications", "gunicorn.access",
 )
 
-JOB_KINDS = weighted(vocabulary.JOB_KIND, (0.28, 0.16, 0.14, 0.12, 0.12, 0.1, 0.08))
+# INGEST jobs belong to a document being read (§44); the seed makes those
+# with the documents rather than at random.
+JOB_KINDS = weighted(vocabulary.JOB_KIND, (0.28, 0.16, 0.14, 0.12, 0.12, 0.1, 0.08, 0.0))
 #: Weighted in the vocabulary's order (QUEUED, RUNNING, RETRYING, SUCCEEDED,
 #: FAILED, CANCELLED), not in the order a dashboard would list them — the
 #: positional pairing is what makes a new state fail loudly instead of

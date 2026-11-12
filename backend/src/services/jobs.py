@@ -122,6 +122,9 @@ def _statement() -> Select:
 #: the defect this constant exists to prevent.
 NOT_OURS_TO_RETRY: dict[str, str] = {
     "EXPORT": "Exports are re-requested rather than retried, on /exports.",
+    # The document row holds the reading's state; reprocessing it from its
+    # collection re-queues both, where a retry here would move only the job.
+    "INGEST": "Documents are reprocessed from their collection, on /ai/documents.",
 }
 
 

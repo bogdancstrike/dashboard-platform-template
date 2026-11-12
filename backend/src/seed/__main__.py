@@ -23,6 +23,7 @@
     python -m src.seed --sync-flags      # turn on every flag that hides something shipped
     python -m src.seed --sync-activity   # give each organization a feed it can filter
     python -m src.seed --sync-preferences # fill in preference keys an account predates
+    python -m src.seed --sync-knowledge  # add the seeded document collections that are missing
     python -m src.seed --dry-run          # build in memory, write nothing
 
 It refuses to seed a database that already has data unless `--reset` or
@@ -126,6 +127,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-reports", action="store_true",
         help="rewrite saved reports the analysis compiler would reject, and exit",
+    )
+    parser.add_argument(
+        "--sync-knowledge", action="store_true",
+        help="add the seeded document collections (Ask your documents) that are missing, and exit",
     )
     parser.add_argument("--dry-run", action="store_true", help="build in memory, write nothing")
     parser.add_argument("--quiet", action="store_true", help="only print the summary line")
@@ -376,6 +381,15 @@ def main(argv: list[str] | None = None) -> int:
             if result["filled"]
             else "every account's preferences are already complete"
         )
+        return 0
+
+    if args.sync_knowledge:
+        # Additive: a collection already there (seeded or anybody's) is left alone.
+        from src.seed import knowledge as knowledge_seed
+
+        with session_scope() as session:
+            result = knowledge_seed.seed(session)
+        print(f"{result['collections']} collections and {result['documents']} documents added")
         return 0
 
     if args.sync_health:

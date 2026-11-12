@@ -155,6 +155,11 @@ class Config:
     #: Honour `X-Nucleus-LLM: fake` on a request (load tests). Off by default.
     LLM_ALLOW_FAKE_HEADER = _flag("LLM_ALLOW_FAKE_HEADER", False)
 
+    # ── Document conversion (§44) — the isolated Docling service ─────────
+    # Bytes in, sections with pages out; no route to the database or storage.
+    DOCLING_URL = os.getenv("DOCLING_URL", "http://localhost:8091")
+    DOCLING_TIMEOUT_SECONDS = _int("DOCLING_TIMEOUT_SECONDS", 330)
+
     # ── QF framework expects these to exist even with the ETL disabled ───
     KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "")
     WORKER_NAME = SERVICE_NAME

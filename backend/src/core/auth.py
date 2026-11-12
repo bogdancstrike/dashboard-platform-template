@@ -106,6 +106,9 @@ PERMISSION_GROUPS: dict[str, list[tuple[str, str]]] = {
     # own permissions — so the grant is about cost and policy, not about data.
     "AI": [
         ("ai.use", "Use the AI assistant"),
+        # Building a document collection (§44) puts files in front of the
+        # model and spends embedding tokens on every page; asking one is ai.use.
+        ("knowledge.manage", "Create document collections and add files to them"),
     ],
 }
 
@@ -145,7 +148,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
             "tasks.view", "tasks.manage", "mail.access",
             "files.view", "files.manage", "calendar.view", "calendar.manage",
             "reports.view", "reports.manage", "dashboards.manage", "searches.share",
-            "ai.use",
+            "ai.use", "knowledge.manage",
         ],
     },
     "OPERATOR": {
@@ -160,7 +163,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
             "tasks.view", "tasks.manage", "mail.access",
             "files.view", "files.manage", "calendar.view", "calendar.manage",
             "reports.view", "dashboards.manage",
-            "ai.use",
+            "ai.use", "knowledge.manage",
         ],
     },
     "ANALYST": {
@@ -173,7 +176,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
             "users.view", "audit.view", "health.view", "jobs.view",
             "tasks.view", "files.view", "calendar.view",
             "reports.view", "reports.manage", "dashboards.manage", "searches.share",
-            "ai.use",
+            "ai.use", "knowledge.manage",
         ],
     },
     "VIEWER": {
