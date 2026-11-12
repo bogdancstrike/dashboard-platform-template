@@ -57,6 +57,8 @@ import { useSearchParams } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { jobsApi, type Job, type JobDetail, type JobStatus } from "@/api/jobs";
 import { PageHeader } from "@/components/PageHeader";
+import { URL_OVERLAY } from "@/app/history";
+import { useUrlOverlay } from "@/pages/admin/useUrlOverlay";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
@@ -143,7 +145,9 @@ export default function JobsPage() {
   const status = params.get("status") ?? "";
   const queue = params.get("queue") ?? "";
   const page = Number(params.get("page") ?? 1);
-  const [opened, setOpened] = useState<string | null>(null);
+  const overlay = useUrlOverlay("job");
+  const opened = overlay.value;
+  const setOpened = (id: string | null) => (id ? overlay.open(id) : overlay.close());
 
   const set = (changes: Record<string, string | null>) =>
     setParams(
@@ -537,6 +541,7 @@ export default function JobsPage() {
 
       <Drawer
         open={opened !== null}
+        rootClassName={URL_OVERLAY}
         onClose={() => setOpened(null)}
         width={620}
         title="One job"

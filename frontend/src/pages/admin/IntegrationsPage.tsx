@@ -57,6 +57,8 @@ import {
   type IntegrationState,
 } from "@/api/integrations";
 import { PageHeader } from "@/components/PageHeader";
+import { URL_OVERLAY } from "@/app/history";
+import { useUrlOverlay } from "@/pages/admin/useUrlOverlay";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { asText } from "@/lib/text";
@@ -114,7 +116,8 @@ export default function IntegrationsPage() {
   const [box, setBox] = useState(params.get("q") ?? "");
   const term = useDebouncedValue(box, 250);
   const category = params.get("category") ?? "";
-  const opened = params.get("integration");
+  const overlay = useUrlOverlay("integration");
+  const opened = overlay.value;
 
   const navigate = useNavigate();
   const set = (changes: Record<string, string | null>) =>
@@ -416,7 +419,7 @@ export default function IntegrationsPage() {
           dataSource={rows}
           loading={listing.isLoading}
           onRow={(row) => ({
-            onClick: () => set({ integration: row.id }),
+            onClick: () => overlay.open(row.id),
             style: { cursor: "pointer" },
           })}
           rowClassName={(row) =>
@@ -433,7 +436,8 @@ export default function IntegrationsPage() {
 
       <Drawer
         open={opened !== null}
-        onClose={() => set({ integration: null })}
+        rootClassName={URL_OVERLAY}
+        onClose={overlay.close}
         width={620}
         title={detail.data?.name ?? "Integration"}
         destroyOnClose

@@ -25,6 +25,8 @@ import {
 } from "@ant-design/icons";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
+import { useSmartBack } from "@/app/history";
+
 import { ApiError } from "@/api/client";
 import { rolesApi } from "@/api/roles";
 import {
@@ -56,6 +58,7 @@ const { Text } = Typography;
 export default function UserDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const back = useSmartBack();
   const queryClient = useQueryClient();
   const { message } = AntApp.useApp();
   const [params, setParams] = useSearchParams();
@@ -122,7 +125,7 @@ export default function UserDetailPage() {
       <div className="nx-ad nx-ad--user">
         <PageHeader
           title={missing ? "Person not found" : "Could not open this profile"}
-          onBack={() => navigate("/admin/users")}
+          onBack={() => back("/admin/users")}
         />
         <Alert
           type={missing ? "warning" : "error"}
@@ -166,7 +169,7 @@ export default function UserDetailPage() {
             {user.full_name}
           </Space>
         }
-        onBack={() => navigate("/admin/users")}
+        onBack={() => back("/admin/users")}
         subtitle={
           <Space size={10} wrap>
             <Text type="secondary">{user.email}</Text>
@@ -278,7 +281,7 @@ export default function UserDetailPage() {
               else next.set("tab", key);
               return next;
             },
-            { replace: true },
+            // Pushed: a tab is a place, so back returns to the previous one.
           )
         }
         items={[

@@ -65,6 +65,8 @@ import { ApiError } from "@/api/client";
 import { logsApi, type LogLevel, type LogLine } from "@/api/logs";
 import { useAuth } from "@/auth/AuthProvider";
 import { PageHeader } from "@/components/PageHeader";
+import { URL_OVERLAY } from "@/app/history";
+import { useUrlOverlay } from "@/pages/admin/useUrlOverlay";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
@@ -124,7 +126,9 @@ export default function LogsPage() {
   const environment = params.get("environment") ?? "";
   const page = Number(params.get("page") ?? 1);
 
-  const [opened, setOpened] = useState<string | null>(null);
+  const overlay = useUrlOverlay("line");
+  const opened = overlay.value;
+  const setOpened = (id: string | null) => (id ? overlay.open(id) : overlay.close());
   const [live, setLive] = useState(false);
   // The tail's own rows, newest first, kept outside react-query: they are an
   // append-only stream rather than the answer to a question, and putting them
@@ -539,6 +543,7 @@ export default function LogsPage() {
 
       <Drawer
         open={opened !== null}
+        rootClassName={URL_OVERLAY}
         onClose={() => setOpened(null)}
         width={620}
         title="One log line"

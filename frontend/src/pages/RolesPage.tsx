@@ -21,6 +21,7 @@ import { useMemo, useState } from "react";
 import { ApiError } from "@/api/client";
 import { rolesApi, type RoleMatrix, type RoleRow } from "@/api/roles";
 import { NewRoleModal } from "@/components/roles/NewRoleModal";
+import { CollapseAllToggle } from "@/components/CollapseAllToggle";
 import { EdgeTag } from "@/components/EdgeTag";
 import { PageHeader } from "@/components/PageHeader";
 import { useNavigate } from "react-router-dom";
@@ -60,6 +61,8 @@ export default function RolesPage() {
   const { message } = AntApp.useApp();
   const queryClient = useQueryClient();
   const [term, setTerm] = useState("");
+  /** Permission groups folded to their heading row. */
+  const [folded, setFolded] = useState<Set<string>>(new Set());
   /** Staged toggles, keyed `ROLE:permission`, valued by the intended state. */
   const [staged, setStaged] = useState<Record<string, boolean>>({});
 
@@ -204,7 +207,25 @@ export default function RolesPage() {
     );
   }
 
-  const rows = buildRows(data!, term);
+  const allRows = buildRows(data!, term);
+  const groupNames = allRows.filter((row) => row.kind === "group").map((row) => row.label);
+  // A folded group keeps its heading — with its held/total counts per role —
+  // and hides its permissions.
+  let currentGroup = "";
+  const rows = allRows.filter((row) => {
+    if (row.kind === "group") {
+      currentGroup = row.label;
+      return true;
+    }
+    return !folded.has(currentGroup);
+  });
+  const toggleGroup = (name: string) =>
+    setFolded((current) => {
+      const next = new Set(current);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
 
   const columns: ColumnsType<MatrixRow> = [
     {
@@ -214,7 +235,15 @@ export default function RolesPage() {
       width: 280,
       render: (label: string, row) =>
         row.kind === "group" ? (
-          <Text strong>{label}</Text>
+          <button
+            type="button"
+            className="nx-ad-grouptoggle"
+            aria-expanded={!folded.has(label)}
+            onClick={() => toggleGroup(label)}
+          >
+            <span aria-hidden="true">{folded.has(label) ? "▸" : "▾"}</span>
+            <Text strong>{label}</Text>
+          </button>
         ) : (
           <Space direction="vertical" size={0} style={{ lineHeight: 1.3 }}>
             <Text>{label}</Text>
@@ -415,6 +444,11 @@ export default function RolesPage() {
           aria-label="Filter permissions"
           value={term}
           onChange={(event) => setTerm(event.target.value)}
+        />
+        <CollapseAllToggle
+          label="permission groups"
+          allCollapsed={groupNames.length > 0 && groupNames.every((name) => folded.has(name))}
+          onToggle={(collapse) => setFolded(collapse ? new Set(groupNames) : new Set())}
         />
       </div>
 

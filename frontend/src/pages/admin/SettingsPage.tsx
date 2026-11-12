@@ -63,7 +63,7 @@ export default function SettingsPage() {
 
   const category = params.get("category") ?? "";
 
-  const set = (changes: Record<string, string | null>) =>
+  const set = (changes: Record<string, string | null>, replace = true) =>
     setParams(
       (current) => {
         const next = new URLSearchParams(current);
@@ -73,7 +73,7 @@ export default function SettingsPage() {
         }
         return next;
       },
-      { replace: true },
+      { replace },
     );
 
   const config = useQuery({
@@ -176,7 +176,8 @@ export default function SettingsPage() {
               data-testid="settings-categories"
               aria-label="Category"
               value={category || "all"}
-              onChange={(next) => set({ category: next === "all" ? null : String(next) })}
+              // A section is a place: pushed, so back returns to the previous one.
+              onChange={(next) => set({ category: next === "all" ? null : String(next) }, false)}
               options={[
                 { value: "all", label: `All (${data.total})` },
                 ...data.categories.map((item) => ({

@@ -56,6 +56,8 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { groupsApi, type Group, type GroupDetail, type GroupKind } from "@/api/groups";
 import { PageHeader } from "@/components/PageHeader";
+import { URL_OVERLAY } from "@/app/history";
+import { useUrlOverlay } from "@/pages/admin/useUrlOverlay";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { MemberPicker } from "@/components/PeoplePicker";
 import { usePageCommands } from "@/commands/CommandContext";
@@ -109,7 +111,8 @@ export default function GroupsPage() {
   const [box, setBox] = useState(params.get("q") ?? "");
   const term = useDebouncedValue(box, 250);
   const kind = params.get("kind") ?? "";
-  const opened = params.get("group");
+  const overlay = useUrlOverlay("group");
+  const opened = overlay.value;
   const [creating, setCreating] = useState(false);
   const [form] = Form.useForm();
   const { touch, settled, requestClose } = useDiscardGuard({
@@ -175,7 +178,7 @@ export default function GroupsPage() {
       await refresh();
       // Straight into the group, because the next thing anybody wants is to
       // put people in it.
-      set({ group: group.id });
+      overlay.open(group.id);
     },
     onError: failed,
   });
@@ -188,7 +191,7 @@ export default function GroupsPage() {
           ? `${result.name} removed — ${result.members_affected} people lost ${result.permissions_withdrawn.join(", ")}.`
           : `${result.name} removed.`,
       );
-      set({ group: null });
+      overlay.close();
       await refresh();
     },
     onError: failed,
@@ -355,7 +358,7 @@ export default function GroupsPage() {
           dataSource={rows}
           loading={listing.isLoading}
           onRow={(row) => ({
-            onClick: () => set({ group: row.id }),
+            onClick: () => overlay.open(row.id),
             style: { cursor: "pointer" },
           })}
           locale={{
@@ -369,7 +372,8 @@ export default function GroupsPage() {
 
       <Drawer
         open={opened !== null}
-        onClose={() => set({ group: null })}
+        rootClassName={URL_OVERLAY}
+        onClose={overlay.close}
         width={640}
         title={detail.data?.name ?? "Group"}
         destroyOnClose

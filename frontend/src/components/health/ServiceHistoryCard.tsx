@@ -31,7 +31,10 @@
  */
 
 import { Modal, Tooltip, Typography } from "antd";
-import { useState, type KeyboardEvent } from "react";
+import { type KeyboardEvent } from "react";
+
+import { URL_OVERLAY } from "@/app/history";
+import { useUrlOverlay } from "@/pages/admin/useUrlOverlay";
 
 import type { HealthIncident, HealthPoint, ServiceHistory } from "@/api/meta";
 import { EmptyState } from "@/components/EmptyState";
@@ -115,7 +118,11 @@ function IncidentRow({ incident }: { incident: HealthIncident }) {
 }
 
 export function ServiceHistoryCard({ service }: { service: ServiceHistory }) {
-  const [open, setOpen] = useState(false);
+  // In the address (`?service=postgres`), pushed: back closes the dialog, and
+  // a link to it opens it.
+  const overlay = useUrlOverlay("service");
+  const open = overlay.value === service.key;
+  const setOpen = (next: boolean) => (next ? overlay.open(service.key) : overlay.close());
   const points = service.series;
   const latest = points[points.length - 1];
 
@@ -194,6 +201,7 @@ export function ServiceHistoryCard({ service }: { service: ServiceHistory }) {
         onCancel={() => setOpen(false)}
         footer={null}
         width={1040}
+        rootClassName={URL_OVERLAY}
         centered
         destroyOnClose
         className="nx-hl-modal"

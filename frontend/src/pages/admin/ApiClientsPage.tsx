@@ -68,6 +68,8 @@ import {
   type Minted,
 } from "@/api/apiClients";
 import { PageHeader } from "@/components/PageHeader";
+import { URL_OVERLAY } from "@/app/history";
+import { useUrlOverlay } from "@/pages/admin/useUrlOverlay";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
@@ -130,7 +132,8 @@ export default function ApiClientsPage() {
 
   const [box, setBox] = useState(params.get("q") ?? "");
   const term = useDebouncedValue(box, 250);
-  const opened = params.get("client");
+  const overlay = useUrlOverlay("client");
+  const opened = overlay.value;
   const [creating, setCreating] = useState(false);
   // The one piece of state that must not be lost: a minted secret exists
   // nowhere else.
@@ -195,7 +198,7 @@ export default function ApiClientsPage() {
       // And open the client *before* awaiting the refetch. After the await the
       // navigation was being lost, so the page stayed on the list — which
       // meant somebody who had just minted a key landed nowhere useful.
-      set({ client: made.id });
+      overlay.open(made.id);
       await refresh();
     },
     onError: failed,
@@ -228,7 +231,7 @@ export default function ApiClientsPage() {
           ? `${result.name} retired, and ${result.credentials_revoked} live ${result.credentials_revoked === 1 ? "key" : "keys"} revoked.`
           : `${result.name} retired.`,
       );
-      set({ client: null });
+      overlay.close();
       await refresh();
     },
     onError: failed,
@@ -394,7 +397,7 @@ export default function ApiClientsPage() {
           dataSource={rows}
           loading={listing.isLoading}
           onRow={(row) => ({
-            onClick: () => set({ client: row.id }),
+            onClick: () => overlay.open(row.id),
             style: { cursor: "pointer" },
           })}
           locale={{
@@ -408,7 +411,8 @@ export default function ApiClientsPage() {
 
       <Drawer
         open={opened !== null}
-        onClose={() => set({ client: null })}
+        rootClassName={URL_OVERLAY}
+        onClose={overlay.close}
         width={700}
         title={detail.data?.name ?? "Client"}
         destroyOnClose
