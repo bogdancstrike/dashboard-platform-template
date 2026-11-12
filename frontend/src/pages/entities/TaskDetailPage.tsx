@@ -47,7 +47,8 @@ import {
 } from "antd";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useSmartBack } from "@/app/history";
 
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
 import { CommentThread } from "@/components/comments/CommentThread";
@@ -70,7 +71,7 @@ interface ChecklistItem {
 
 export default function TaskDetailPage() {
   const { id = "" } = useParams();
-  const navigate = useNavigate();
+  const back = useSmartBack();
   const [newItem, setNewItem] = useState("");
   const page = useRecordPage("task", id, { listPath: "/tasks", noun: "task" });
 
@@ -107,7 +108,7 @@ export default function TaskDetailPage() {
     <>
       <PageHeader
         title={task.title}
-        onBack={() => navigate("/tasks")}
+        onBack={() => back("/tasks")}
         subtitle={
           <Space size={8} wrap>
             <Text type="secondary" className="nu-mono">

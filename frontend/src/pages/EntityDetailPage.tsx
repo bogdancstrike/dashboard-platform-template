@@ -14,6 +14,7 @@ import {
 } from "antd";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useSmartBack } from "@/app/history";
 
 import { explorerApi } from "@/api/explorer";
 import { recordsApi, type RecordField } from "@/api/records";
@@ -62,6 +63,7 @@ const { Text } = Typography;
 export default function EntityDetailPage({ resourceKey }: { resourceKey: string }) {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const back = useSmartBack();
   const [params, setParams] = useSearchParams();
   const tab = params.get("tab") ?? "overview";
 
@@ -128,7 +130,7 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
                 ? "You may not open this record"
                 : "Could not open this record"
           }
-          onBack={() => navigate(-1)}
+          onBack={() => back(`/${resourceKey}s`)}
         />
         <FailureAlert
           error={record.error}
@@ -140,7 +142,7 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
           onRetry={() => void record.refetch()}
           action={
             retryHelps(kind) ? undefined : (
-              <Button onClick={() => navigate(-1)}>
+              <Button onClick={() => back(`/${resourceKey}s`)}>
                 Go back
               </Button>
             )
@@ -156,7 +158,7 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
     <>
       <PageHeader
         title={data.title}
-        onBack={() => navigate(data.path)}
+        onBack={() => back(data.path)}
         subtitle={
           <Space size={8} wrap>
             {data.subtitle && <Text type="secondary">{data.subtitle}</Text>}

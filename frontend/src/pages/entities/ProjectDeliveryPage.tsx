@@ -47,6 +47,7 @@ import {
 } from "antd";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useSmartBack } from "@/app/history";
 
 import { analysisApi } from "@/api/analysis";
 import { explorerApi } from "@/api/explorer";
@@ -97,6 +98,7 @@ interface TaskRow {
 export default function ProjectDeliveryPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const back = useSmartBack();
   const page = useRecordPage("project", id, { listPath: "/projects", noun: "project" });
 
   /**
@@ -196,7 +198,7 @@ export default function ProjectDeliveryPage() {
     <>
       <PageHeader
         title={project.title}
-        onBack={() => navigate("/projects")}
+        onBack={() => back("/projects")}
         subtitle={
           <Space size={8} wrap>
             <Text type="secondary" className="nu-mono">

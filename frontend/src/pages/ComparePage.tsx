@@ -25,9 +25,10 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Card, Segmented, Skeleton, Space, Table, Tag, Typography } from "antd";
+import { Alert, Button, Card, Segmented, Skeleton, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { useSmartBack } from "@/app/history";
 
 import type { ComparedField, Comparison } from "@/api/compare";
 import { compareApi } from "@/api/compare";
@@ -66,7 +67,7 @@ export function idsFrom(raw: string | null): string[] {
 }
 
 export default function ComparePage() {
-  const navigate = useNavigate();
+  const back = useSmartBack();
   const [params] = useSearchParams();
   const resourceType = params.get("type") ?? "";
   const ids = useMemo(() => idsFrom(params.get("ids")), [params]);
@@ -96,7 +97,7 @@ export default function ComparePage() {
       id: "compare.back",
       label: `Back to the ${resourceType} list`,
       keywords: "list records explorer return selection",
-      run: () => navigate(`/explore?resource=${resourceType}`),
+      run: () => back(`/explore?resource=${resourceType}`),
     },
     ...(ids.length > 0
       ? [
@@ -180,7 +181,9 @@ export default function ComparePage() {
         subtitle={summarise(comparison)}
         actions={
           comparison ? (
-            <Link to={comparison.path}>Back to the list</Link>
+            <Button onClick={() => back(comparison.path)} data-testid="compare-back">
+              Back to the list
+            </Button>
           ) : undefined
         }
       />

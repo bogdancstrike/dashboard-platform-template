@@ -45,7 +45,8 @@ import {
   Typography,
 } from "antd";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import { useSmartBack } from "@/app/history";
 
 import { explorerApi } from "@/api/explorer";
 import { recordsApi } from "@/api/records";
@@ -92,7 +93,7 @@ interface SiblingTicket {
 
 export default function TicketConsolePage() {
   const { id = "" } = useParams();
-  const navigate = useNavigate();
+  const back = useSmartBack();
   const page = useRecordPage("ticket", id, { listPath: "/tickets", noun: "ticket" });
 
   const customerId = asText(page.value("customer_id"));
@@ -162,7 +163,7 @@ export default function TicketConsolePage() {
     <>
       <PageHeader
         title={ticket.title}
-        onBack={() => navigate("/tickets")}
+        onBack={() => back("/tickets")}
         subtitle={
           <Space size={8} wrap>
             <Text type="secondary" className="nu-mono">

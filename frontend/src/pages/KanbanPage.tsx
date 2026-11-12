@@ -69,7 +69,6 @@ export default function KanbanPage() {
   const queryClient = useQueryClient();
   const { message, modal } = AntApp.useApp();
   const [creating, setCreating] = useState(false);
-  const [openCard, setOpenCard] = useState<string | null>(null);
   /** The one-question modal for a new lane (§33). */
   const [namingLane, setNamingLane] = useState(false);
   const [term, setTerm] = useState(params.get("q") ?? "");
@@ -79,6 +78,10 @@ export default function KanbanPage() {
   const kind = params.get("kind") ?? "";
   const assignee = params.get("assignee") ?? "";
   const search = useDebouncedValue(term, 300);
+  // The open card is in the address (replaced, not pushed), so a reload or a
+  // trip to a record and back lands on the same card.
+  const openCard = params.get("card");
+  const setOpenCard = (id: string | null) => set({ card: id });
 
   const set = (changes: Record<string, string | null>) =>
     setParams(

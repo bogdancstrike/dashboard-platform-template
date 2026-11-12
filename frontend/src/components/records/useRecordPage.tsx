@@ -26,6 +26,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App as AntApp, Button, Skeleton } from "antd";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSmartBack } from "@/app/history";
 
 import { ApiError } from "@/api/client";
 import { explorerApi } from "@/api/explorer";
@@ -59,6 +60,7 @@ export function useRecordPage(
   options: { listPath: string; noun: string },
 ): RecordPage {
   const navigate = useNavigate();
+  const back = useSmartBack();
   const queryClient = useQueryClient();
   const { message } = AntApp.useApp();
 
@@ -116,7 +118,7 @@ export function useRecordPage(
       <ReadFailure
         error={record.error}
         noun={options.noun}
-        onBack={() => navigate(options.listPath)}
+        onBack={() => back(options.listPath)}
         onRetry={() => void record.refetch()}
       />
     ) : null,
