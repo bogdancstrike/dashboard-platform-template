@@ -819,7 +819,12 @@ export default function FilesPage() {
                     </span>
                   ),
                 },
-                { title: "Kind", dataIndex: "kind", width: 120 },
+                {
+                  title: "Kind",
+                  dataIndex: "kind",
+                  width: 120,
+                  render: (kind: string | null) => (kind ? <StatusTag status={kind} tone="neutral" /> : "—"),
+                },
                 {
                   title: "Size",
                   dataIndex: "size_bytes",

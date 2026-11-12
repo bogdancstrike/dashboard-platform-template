@@ -25,7 +25,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Button, Card, Segmented, Skeleton, Space, Table, Tag, Typography } from "antd";
+import { Alert, Button, Card, Segmented, Skeleton, Space, Table, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Link, useSearchParams } from "react-router-dom";
 import { useSmartBack } from "@/app/history";
@@ -35,7 +35,7 @@ import { compareApi } from "@/api/compare";
 import { ApiError } from "@/api/client";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
-import { StatusTag } from "@/components/StatusTag";
+import { humanStatus, StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { asText } from "@/lib/text";
 import { formatNumber } from "@/lib/formats";
@@ -135,9 +135,9 @@ export default function ComparePage() {
                 (§64), and this is the only thing distinguishing the rows a
                 reader came here to find. */}
             {field.differs && (
-              <Tag color="warning" title="These records disagree about this field">
+              <span className="nx-pill nx-pill--warn nx-pill--sm" title="These records disagree about this field">
                 differs
-              </Tag>
+              </span>
             )}
           </Space>
         ),
@@ -155,7 +155,9 @@ export default function ComparePage() {
           return value === null || value === "" || value === undefined ? (
             <Text type="secondary">—</Text>
           ) : (
-            <span>{asText(value)}</span>
+            <span className={field.differs ? "nx-rec-differs" : undefined}>
+              {readable(value, field.kind)}
+            </span>
           );
         },
       })),
@@ -275,4 +277,20 @@ export default function ComparePage() {
       )}
     </>
   );
+}
+
+/**
+ * A compared value as a person reads it: a date rather than an ISO stamp, a
+ * number with its separators, a vocabulary value in words. The raw value is
+ * what the server compared; this is only how it is shown.
+ */
+function readable(value: unknown, kind: string): string {
+  const text = asText(value);
+  if (kind === "datetime" || kind === "date") {
+    const when = new Date(text);
+    return Number.isNaN(when.getTime()) ? text : when.toLocaleDateString();
+  }
+  if (kind === "number" && typeof value === "number") return value.toLocaleString();
+  if (kind === "enum") return humanStatus(text);
+  return text;
 }

@@ -57,16 +57,11 @@ import { AutomationDrawer } from "@/components/automations/AutomationDrawer";
 import { AutomationWizard } from "@/components/automations/AutomationWizard";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
+import { StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 
 const { Text } = Typography;
-
-const SEVERITY_COLOUR: Record<string, string | undefined> = {
-  CRITICAL: "error",
-  WARNING: "warning",
-  INFO: undefined,
-};
 
 /**
  * How a rule is doing, in words.
@@ -256,7 +251,7 @@ export default function WorkflowsPage() {
       ellipsis: true,
       render: (label: string, row) =>
         row.resource_exists ? (
-          label
+          <StatusTag status={label} tone="acc" label={label} />
         ) : (
           // The one fact that explains everything else about this row. Said
           // here rather than left to be inferred from an empty action list.
@@ -272,9 +267,10 @@ export default function WorkflowsPage() {
       dataIndex: "severity",
       width: 108,
       render: (severity: string) => (
-        <Tag color={SEVERITY_COLOUR[severity]} bordered={false} className="nu-mono-tag">
-          {severity.toLowerCase()}
-        </Tag>
+        <StatusTag
+          status={severity}
+          tone={severity === "CRITICAL" ? "bad" : severity === "WARNING" ? "warn" : "acc"}
+        />
       ),
     },
     {
