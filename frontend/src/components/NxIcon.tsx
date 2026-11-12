@@ -65,6 +65,8 @@ export const NX_ICONS = {
   star: "M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z",
   help: "M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6M12 17h.01",
   sidebar: "M4 4h16v16H4zM9 4v16",
+  collapseAll: "M7 4l5 5 5-5M7 20l5-5 5 5",
+  expandAll: "M7 9l5-5 5 5M7 15l5 5 5-5",
   switchUser: "M9 11a4 4 0 1 0 0-8a4 4 0 0 0 0 8zM2 21c.8-4 3.5-6 7-6M16 14l3 3-3 3M22 17h-6",
 } as const;
 

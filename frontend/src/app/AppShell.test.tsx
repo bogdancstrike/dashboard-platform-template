@@ -158,7 +158,7 @@ describe("authenticated application shell", () => {
 
     renderShell("/admin");
 
-    expect(await screen.findByText("Permission required")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Permission required" })).toBeInTheDocument();
     // The permission is *named*, which is the whole point (§76) — "you do not
     // have permission" tells somebody nothing they can go and ask for. It is
     // the shared problem surface now (§34), so the shape of the sentence is

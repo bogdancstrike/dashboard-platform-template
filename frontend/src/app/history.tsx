@@ -14,6 +14,9 @@ import { NavigationType, useLocation, useNavigate, useNavigationType } from "rea
  *   command palette or the phone's navigation sheet adds a history entry, so
  *   the back gesture on a phone — and the browser's button — dismisses it
  *   instead of leaving the page underneath.
+ * * **Overlays that replace one another** (a drawer that opens another
+ *   drawer) keep their state in the address and push it, so back walks back
+ *   through them; such overlays carry `URL_OVERLAY` and are left to the router.
  * * **Scroll comes back too.** Returning to a long list lands on the row you
  *   left, not at the top.
  */
@@ -51,9 +54,20 @@ const OVERLAY_SELECTOR = [
   ".ant-image-preview-wrap",
 ].join(", ");
 
+/**
+ * Overlays whose open state lives in the address (`?panel=rules`) already
+ * have a history entry of their own, pushed by the page; they opt out with
+ * `rootClassName={URL_OVERLAY}` so back is not counted twice.
+ */
+export const URL_OVERLAY = "nu-url-overlay";
+
 function openOverlays(): HTMLElement[] {
   return Array.from(document.querySelectorAll<HTMLElement>(OVERLAY_SELECTOR)).filter(
-    (el) => el.style.display !== "none" && el.getClientRects().length > 0,
+    (el) =>
+      el.style.display !== "none" &&
+      el.getClientRects().length > 0 &&
+      !el.closest(`.${URL_OVERLAY}`) &&
+      !el.classList.contains(URL_OVERLAY),
   );
 }
 

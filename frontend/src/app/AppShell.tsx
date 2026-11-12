@@ -14,6 +14,7 @@ import { CommandPalette } from "@/components/CommandPalette";
 import { useCommands } from "@/commands/CommandContext";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { NxIcon, NxLogo } from "@/components/NxIcon";
+import { CollapseAllToggle } from "@/components/CollapseAllToggle";
 import { STORAGE_KEYS } from "@/config";
 import { useLive, usePollInterval } from "@/live/LiveProvider";
 import { landingPath } from "@/pages/PreferencesPage";
@@ -133,6 +134,17 @@ export function AppShell() {
   const selected = selectedKeyFor(location.pathname);
   const scrollerRef = useRef<HTMLElement>(null);
   useScrollMemory(scrollerRef);
+
+  // Entrance animations belong to *arriving* on a page. After a moment the
+  // page is marked settled, so a filter, a tab or a refetch that re-mounts
+  // its panels changes the content in place instead of replaying the
+  // entrance — which read as the whole page reloading.
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    setSettled(false);
+    const timer = window.setTimeout(() => setSettled(true), 1400);
+    return () => window.clearTimeout(timer);
+  }, [location.pathname]);
 
   const badgePoll = usePollInterval(60_000);
   const counts = useQuery({
@@ -281,6 +293,17 @@ export function AppShell() {
     </span>
   );
 
+  const allGroupsClosed =
+    groups.length > 1 &&
+    groups.every((group) => group.key === currentGroup?.key || closedGroups.includes(group.key));
+  const setAllGroups = (collapse: boolean) => {
+    // Collapsing everything keeps the current page's group open: folding the
+    // menu should never hide where the reader is.
+    const next = collapse ? groups.map((group) => group.key).filter((key) => key !== currentGroup?.key) : [];
+    setClosedGroups(next);
+    writeClosedGroups(next);
+  };
+
   const showLabels = !folded;
   const navList = (
     <div className="nx-side-scroll" ref={navRef}>
@@ -376,18 +399,21 @@ export function AppShell() {
               <NxIcon name="chevronLeft" size={16} stroke={2.2} />
             </button>
           </div>
-          <Tooltip title={folded ? `Search or jump to… (${chord})` : undefined} placement="right">
-            <button
-              type="button"
-              className="nx-omni"
-              onClick={() => openPalette(true)}
-              aria-label={`Open the command palette (${chord})`}
-            >
-              <NxIcon name="search" size={16} stroke={2} />
-              <span>Search or jump to…</span>
-              <kbd>{chord}</kbd>
-            </button>
-          </Tooltip>
+          <div className="nx-side-search">
+            <Tooltip title={folded ? `Search or jump to… (${chord})` : undefined} placement="right">
+              <button
+                type="button"
+                className="nx-omni"
+                onClick={() => openPalette(true)}
+                aria-label={`Open the command palette (${chord})`}
+              >
+                <NxIcon name="search" size={16} stroke={2} />
+                <span>Search or jump to…</span>
+                <kbd>{chord}</kbd>
+              </button>
+            </Tooltip>
+            <CollapseAllToggle allCollapsed={allGroupsClosed} onToggle={setAllGroups} label="groups" />
+          </div>
           <div role="menu" aria-label="Pages" className="nx-side-menu">
             {navList}
           </div>
@@ -513,7 +539,7 @@ export function AppShell() {
 
         <AnnouncementBanner />
 
-        <main className="nx-scroll nu-content" id="nu-main" ref={scrollerRef}>
+        <main className={`nx-scroll nu-content${settled ? " nx-settled" : ""}`} id="nu-main" ref={scrollerRef}>
           {content}
         </main>
       </div>

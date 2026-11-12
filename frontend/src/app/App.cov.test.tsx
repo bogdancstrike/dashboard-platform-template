@@ -55,7 +55,7 @@ describe("the route table", () => {
 
   it("answers an unknown address with a page that says so", async () => {
     renderApp("/no/such/page");
-    expect(await screen.findByText("No page answers to that address")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "No page answers to that address" })).toBeInTheDocument();
   });
 
   it.each([
@@ -68,7 +68,7 @@ describe("the route table", () => {
     ["/errors/switched-off", "This feature is switched off"],
   ])("gives %s an address of its own", async (route, title) => {
     renderApp(route);
-    expect(await screen.findByText(title)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: title })).toBeInTheDocument();
   });
 
   it.each(["/find/catalog", "/find/relationships", "/find/global", "/admin/health", "/showcase/components"])(

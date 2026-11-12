@@ -564,3 +564,29 @@ html { zoom: var(--nu-zoom, 1); }
 .ant-segmented .ant-segmented-item-selected:hover,
 .ant-segmented .ant-segmented-item-selected .ant-segmented-item-label { color: var(--nu-on-ink) !important; }
 .ant-modal-title em, .ant-drawer-title em { font-style: normal; color: var(--nu-accent); }
+
+/* Once a page has arrived, nothing inside it plays an entrance again: content
+   that re-mounts (a filter, a tab, a refetch) changes in place. Spinners and
+   skeletons are AntD's own classes and keep their motion. */
+.nx-settled .ant-card,
+.nx-settled .nu-page-header,
+.nx-settled [class*="nx-"]:not(.nx-live i) { animation: none !important; }
+
+/* ── collapse / expand every section of a side menu ───────────────────── */
+.nx-collapse-all {
+  width: 26px; height: 26px; flex-shrink: 0; padding: 0;
+  border: 0; border-radius: 13px; cursor: pointer;
+  background: transparent; color: var(--nu-text-tertiary);
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.nx-collapse-all:hover { background: rgba(var(--nu-ink-rgb), 0.07); color: var(--nu-text); }
+/* In the main sidebar it sits at the end of the search row. */
+.nx-side-search { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.nx-side-search .nx-omni { flex: 1; min-width: 0; width: auto; }
+.nx-side-search .nx-collapse-all { width: 32px; height: 32px; border-radius: 16px; transition: opacity 0.2s ease, width 0.45s var(--nx-ease); }
+.nx-app--folded .nx-side-search { flex-direction: column; }
+.nx-app--folded .nx-side-search .nx-collapse-all { display: none; }
+.nx-side-search .nx-omni { gap: 6px; padding-right: 6px; }
+.nx-side-search .nx-omni span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-side-search .nx-omni kbd { flex-shrink: 0; }

@@ -214,7 +214,19 @@ export function selectedKeyFor(pathname: string): string {
 }
 
 /** Breadcrumb trail for a path, from the navigation itself. */
+/** Pages that live outside the navigation, and the trail each one reads as. */
+const OUTSIDE_NAV: { prefix: string; trail: { label: string; key: string }[] }[] = [
+  { prefix: "/profile/", trail: [{ label: "People", key: "/admin/users" }, { label: "Profile", key: "" }] },
+  { prefix: "/profile", trail: [{ label: "Account", key: "/profile" }, { label: "Profile", key: "/profile" }] },
+  { prefix: "/settings/preferences", trail: [{ label: "Account", key: "/profile" }, { label: "Preferences", key: "/settings/preferences" }] },
+  { prefix: "/settings/security", trail: [{ label: "Account", key: "/profile" }, { label: "Security", key: "/settings/security" }] },
+  { prefix: "/errors/", trail: [{ label: "Nucleus", key: "/home" }, { label: "Error", key: "" }] },
+  { prefix: "/compare", trail: [{ label: "Records", key: "/projects" }, { label: "Compare", key: "/compare" }] },
+];
+
 export function trailFor(pathname: string): { label: string; key: string }[] {
+  const outside = OUTSIDE_NAV.find((entry) => pathname === entry.prefix || pathname.startsWith(entry.prefix));
+  if (outside) return outside.trail.map((crumb) => ({ ...crumb, key: crumb.key || pathname }));
   const selected = selectedKeyFor(pathname);
   for (const group of NAV_GROUPS) {
     const item = group.items.find((candidate) => candidate.key === selected);
