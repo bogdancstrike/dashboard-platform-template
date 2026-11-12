@@ -101,6 +101,9 @@ def _skip_without_database(request, has_database):
 #: `file_objects` wrong, which turned every database test's teardown into an
 #: error.
 TEST_OWNED_MODELS: tuple[str, ...] = (
+    # The assistant (§41–46): messages before their conversation. Every one
+    # points only at `users`, which nothing here deletes.
+    "AssistantMessage", "AssistantConversation", "AssistantBrief", "AiUsage",
     # Children first, always — asserted by
     # `test_cleanup_order_respects_the_foreign_keys`, which caught this list
     # having the first two the wrong way round.

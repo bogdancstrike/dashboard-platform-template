@@ -30,6 +30,9 @@ ACTIONS = (
     "BULK_UPDATE", "BULK_DELETE", "IMPERSONATE", "SESSION_REVOKE",
     "CREDENTIAL_CREATE", "CREDENTIAL_REVOKE", "CREDENTIAL_ROTATE",
     "JOB_RETRY", "JOB_CANCEL", "COMMENT", "ASSIGN", "SHARE",
+    # A question put to the model, and an action it proposed that a person
+    # then confirmed (§41–46).
+    "AI_REQUEST", "AI_ACTION",
 )
 
 RESULTS = ("SUCCESS", "FAILURE", "DENIED", "PARTIAL")

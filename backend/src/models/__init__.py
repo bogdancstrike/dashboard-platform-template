@@ -6,6 +6,7 @@ that silently does not exist.
 """
 
 from src.models.base import Base  # noqa: F401
+from src.models.assistant import AiUsage, AssistantBrief, AssistantConversation, AssistantMessage  # noqa: F401
 from src.models.business import (  # noqa: F401
     CalendarEvent, Customer, Device, Order, Project, Task, Ticket,
 )

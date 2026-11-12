@@ -1047,6 +1047,122 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "assistant_brief",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/assistant/brief",
+      "description": "Today's AI daily brief, cached per person per day; POST writes it again.",
+      "exec_method": {
+        "module_name": "src.api.assistant",
+        "method_name": "brief"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "assistant_conversations",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/assistant/conversations",
+      "description": "The caller's assistant conversations (searchable), or a new one.",
+      "exec_method": {
+        "module_name": "src.api.assistant",
+        "method_name": "conversations"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "assistant_conversation",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PATCH",
+        "DELETE"
+      ],
+      "api_url": "/api/assistant/conversations/<uuid:conversation_id>",
+      "description": "One conversation with its messages: read, rename or switch mode, delete.",
+      "exec_method": {
+        "module_name": "src.api.assistant",
+        "method_name": "conversation"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "assistant_messages",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/assistant/conversations/<uuid:conversation_id>/messages",
+      "description": "Ask (or regenerate) and stream the answer as server-sent events.",
+      "exec_method": {
+        "module_name": "src.api.assistant",
+        "method_name": "messages"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "assistant_filters",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/assistant/filters",
+      "description": "A described question compiled into the explorer's condition tree, validated and counted.",
+      "exec_method": {
+        "module_name": "src.api.assistant",
+        "method_name": "filters"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "assistant_page_help",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/assistant/page-help",
+      "description": "A how-to question about the current page: an answer, a control to highlight, an action to propose.",
+      "exec_method": {
+        "module_name": "src.api.assistant",
+        "method_name": "page_question"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "assistant_page_action",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/assistant/page-help/actions",
+      "description": "Record that a proposed page action was confirmed and run (audit).",
+      "exec_method": {
+        "module_name": "src.api.assistant",
+        "method_name": "page_action"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "assistant_usage",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/assistant/usage",
+      "description": "The caller's AI usage over 30 days, by feature, and the model in use.",
+      "exec_method": {
+        "module_name": "src.api.assistant",
+        "method_name": "usage"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "activity_collection",
       "model_name": "Empty",
       "request_method": [
