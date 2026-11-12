@@ -1,28 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Badge,
-  Breadcrumb,
-  Button,
-  Dropdown,
-  Grid,
-  Layout,
-  Menu,
-  Space,
-  Tooltip,
-  Typography,
-} from "antd";
-import {
-  LogoutOutlined,
-  MenuOutlined,
-  MoonOutlined,
-  SafetyOutlined,
-  SettingOutlined,
-  SunOutlined,
-  UserOutlined,
-  UserSwitchOutlined,
-} from "@ant-design/icons";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { Button, Dropdown, Grid, Tooltip } from "antd";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-
 import { useQuery } from "@tanstack/react-query";
 
 import { notificationsApi } from "@/api/notifications";
@@ -32,35 +10,65 @@ import { ProblemPage } from "@/components/ProblemPage";
 import { AnnouncementBanner } from "@/components/announcements/AnnouncementBanner";
 import { useAuth } from "@/auth/AuthProvider";
 import { useImpersonation } from "@/auth/ImpersonationProvider";
-import { CommandPalette, CommandTrigger } from "@/components/CommandPalette";
+import { CommandPalette } from "@/components/CommandPalette";
+import { useCommands } from "@/commands/CommandContext";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { NxIcon, NxLogo } from "@/components/NxIcon";
 import { STORAGE_KEYS } from "@/config";
-import { usePollInterval } from "@/live/LiveProvider";
+import { useLive, usePollInterval } from "@/live/LiveProvider";
 import { landingPath } from "@/pages/PreferencesPage";
 import { usePreferences } from "@/settings/PreferencesProvider";
-import { LOGO } from "@/theme/tokens";
 import { useAppearance } from "@/theme/AppearanceProvider";
 import { useFeatures, type FeatureKey } from "@/settings/features";
 import { PageTour } from "@/app/PageTour";
-import { NAV_GROUPS, NAV_ITEMS, selectedKeyFor, trailFor } from "./navigation";
+import { NAV_GROUPS, NAV_ITEMS, selectedKeyFor, trailFor, type NavGroup } from "./navigation";
 
-const { Header, Sider, Content } = Layout;
+type Device = "pc" | "tablet" | "phone";
+
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+const CLOSED_GROUPS_KEY = "nu.nav.closed";
+
+function readClosedGroups(): string[] {
+  try {
+    const raw = window.localStorage.getItem(CLOSED_GROUPS_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeClosedGroups(value: string[]) {
+  try {
+    window.localStorage.setItem(CLOSED_GROUPS_KEY, JSON.stringify(value));
+  } catch {
+    /* storage disabled */
+  }
+}
+
+/** The bottom tab bar on a phone (design "Nucleus app shell", phone). */
+const TABS: { label: string; icon: "home" | "search" | "check" | "inbox"; to: string; owns: string[] }[] = [
+  { label: "Home", icon: "home", to: "/home", owns: ["/home", "/dashboard", "/dashboards", "/activity", "/announcements"] },
+  { label: "Search", icon: "search", to: "/explore", owns: ["/explore", "/find", "/favorites"] },
+  { label: "Work", icon: "check", to: "/tasks", owns: ["/tasks", "/kanban", "/workflows", "/calendar", "/files"] },
+  { label: "Inbox", icon: "inbox", to: "/mail", owns: ["/mail", "/notifications"] },
+];
 
 /**
- * The application shell (§1): sidebar, header, breadcrumbs, content.
+ * The application shell (§1), in the glass design.
  *
- * Three decisions worth knowing:
+ * Three layouts from one component, chosen by width rather than by device:
  *
- * * **The sidebar collapses itself on a narrow desktop.** 240px of a 1024px
- *   screen is a quarter of the width spent on a menu nobody is reading, and it
- *   is what squeezes a data table into a sideways scroll. Below `lg` it becomes
- *   a drawer instead of a rail.
- * * **The header is a three-track grid** — navigation, search, identity — so
- *   the search box takes the middle and the width. It is the one control people
- *   aim at rather than glance at.
- * * **Navigation is permission-aware.** Items the signed-in role cannot reach
- *   are absent, not disabled: a menu full of dead ends teaches people to
- *   distrust the menu.
+ * * **PC** — a floating glass sidebar beside a floating glass header. The
+ *   sidebar folds to an icon rail (the reader's choice, saved to their
+ *   account, §40) and the labels fade out as the width eases in.
+ * * **Tablet** — a rail of the groups, and the current group's pages as
+ *   chips under the header, so two taps reach anything.
+ * * **Phone** — a top bar, a bottom tab bar and a "More" sheet holding the
+ *   whole navigation.
+ *
+ * Navigation stays permission- and flag-aware: items the reader cannot reach
+ * are absent, not disabled (§1, §27).
  */
 export function AppShell() {
   const navigate = useNavigate();
@@ -68,78 +76,60 @@ export function AppShell() {
   const screens = Grid.useBreakpoint();
   const { mode, setAppearance, appearance } = useAppearance();
   const auth = useAuth();
-  /** Which features are on for this reader, for the menu and the routes (§27). */
   const features = useFeatures();
   const impersonation = useImpersonation();
   const { preferences, save: savePreference } = usePreferences();
+  const { setOpen: openPalette } = useCommands();
+  const live = useLive();
 
-  const isMobile = screens.lg === false;
+  // Before the first measurement every breakpoint is undefined; treat that as
+  // the desktop so the first paint is not a phone layout on a laptop.
+  const measured = screens.xl !== undefined || screens.md !== undefined;
+  const device: Device = !measured || screens.xl ? "pc" : screens.md ? "tablet" : "phone";
+  const isPc = device === "pc";
+  const isTablet = device === "tablet";
+  const isPhone = device === "phone";
 
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
+  const [folded, setFolded] = useState<boolean>(() => {
     try {
       return window.localStorage.getItem(STORAGE_KEYS.sidebarCollapsed) === "true";
     } catch {
       return false;
     }
   });
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [closedGroups, setClosedGroups] = useState<string[]>(readClosedGroups);
 
-  // The stored preference wins once, when the profile arrives (§40). Only
-  // once: a reader who expands the sidebar has overridden their own default
-  // for this session, and re-collapsing it on the next render would fight them.
-  //
-  // **Nothing else collapses it.** There used to be a responsive rule here —
-  // collapsed below the `xl` breakpoint — and the effect of it was that on
-  // every ordinary laptop the sidebar started as a rail of unlabelled icons,
-  // whatever the reader had chosen. A 1280px window has room for a 272px
-  // sidebar and a thousand pixels of page; the width at which it genuinely
-  // does not fit is the width at which it becomes a drawer, and that is
-  // `isMobile`. So the preference is the only thing that decides, which is
-  // what makes the switch on `/settings/preferences` mean anything.
+  // The stored preference wins once, when the profile arrives (§40).
   const preferenceApplied = useRef(false);
   useEffect(() => {
     if (preferenceApplied.current || !auth.profile) return;
     preferenceApplied.current = true;
-    if (!isMobile) setCollapsed(auth.profile.preferences.appearance.sidebar_collapsed);
-  }, [auth.profile, isMobile]);
+    setFolded(auth.profile.preferences.appearance.sidebar_collapsed);
+  }, [auth.profile]);
 
-  /**
-   * Collapsing the sidebar is a decision, and decisions are preferences (§40).
-   *
-   * Saved to the account rather than only to this browser, so it follows the
-   * reader to a second machine — the same promise theme, density and page size
-   * make. Only an *explicit* toggle writes: the responsive collapse above is a
-   * consequence of the window being narrow, and storing that would mean
-   * resizing a window silently changed a setting.
-   */
-  const chooseCollapsed = (next: boolean) => {
-    setCollapsed(next);
-    if (!isMobile && next !== preferences.appearance.sidebar_collapsed) {
+  /** Folding is a decision, and decisions are preferences (§40). */
+  const chooseFolded = (next: boolean) => {
+    setFolded(next);
+    if (next !== preferences.appearance.sidebar_collapsed) {
       savePreference({ appearance: { sidebar_collapsed: next } });
     }
   };
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(STORAGE_KEYS.sidebarCollapsed, String(collapsed));
+      window.localStorage.setItem(STORAGE_KEYS.sidebarCollapsed, String(folded));
     } catch {
       /* storage disabled */
     }
-  }, [collapsed]);
+  }, [folded]);
 
-  // Close the mobile drawer whenever the route changes — leaving it open over
-  // the page somebody just navigated to is the classic drawer bug.
   useEffect(() => {
-    setDrawerOpen(false);
+    setSheetOpen(false);
   }, [location.pathname]);
 
   const selected = selectedKeyFor(location.pathname);
-  const showLabels = isMobile || !collapsed;
 
-  // The counters navigation items ride on (§1). Only `unread` has an endpoint
-  // today; an item naming a counter nothing publishes renders without a badge
-  // rather than with a zero, because a permanent "0" beside a menu entry reads
-  // as a broken feature rather than as good news.
   const badgePoll = usePollInterval(60_000);
   const counts = useQuery({
     queryKey: ["notifications", "counts"],
@@ -148,286 +138,430 @@ export function AppShell() {
   });
   const counters: Record<string, number | undefined> = { unread: counts.data?.unread };
 
-  const menuItems = useMemo(
+  /** The navigation this reader can actually use. */
+  const groups: NavGroup[] = useMemo(
     () =>
       NAV_GROUPS.map((group) => ({
-        key: group.key,
-        // Collapsed, a group heading is truncated to "OV…" — a word that has
-        // lost the letters that made it a word, taking a row of the rail to
-        // say nothing. The label is dropped and the group becomes a rule, so
-        // the sections are still separated and nothing is half-said.
-        label: showLabels ? group.label : "",
-        type: "group" as const,
-        children: group.items
+        ...group,
+        items: group.items
           .filter((item) => auth.can(item.permission))
-          // A feature that is switched off is not in the menu (§27). The route
-          // is refused too, a few lines down — a menu that hides a page whose
-          // address still works is a menu somebody routes around.
-          .filter((item) => !item.flag || features(item.flag as FeatureKey))
-          .map((item) => {
-            const count = item.badge ? counters[item.badge] : undefined;
-            return {
-              key: item.key,
-              icon: item.icon,
-              label: count ? (
-                <span className="nu-nav-item">
-                  <span>{item.label}</span>
-                  <Badge count={count} size="small" overflowCount={99} />
-                </span>
-              ) : (
-                item.label
-              ),
-              disabled: item.disabled,
-            };
-          }),
-      })).filter((group) => group.children.length > 0),
+          .filter((item) => !item.flag || features(item.flag as FeatureKey)),
+      })).filter((group) => group.items.length > 0),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [auth.can, counts.data?.unread, showLabels, auth.profile?.features],
+    [auth.can, auth.profile?.features],
   );
 
+  const currentGroup = groups.find((group) => group.items.some((item) => item.key === selected));
   const trail = trailFor(location.pathname);
   const activeItem = NAV_ITEMS.find((item) => item.key === selected);
   const forbidden =
     !auth.loading && Boolean(activeItem?.permission) && !auth.can(activeItem?.permission);
-  /**
-   * A page whose feature is switched off.
-   *
-   * Said differently from a permission refusal, and the difference matters: a
-   * permission is about *you* and a flag is about the platform, so "your role
-   * does not include this" would be a lie about the reader. It names the flag,
-   * because the person most likely to arrive here by address is the
-   * administrator who just turned it off (§34, §76).
-   */
   const switchedOff =
     !auth.loading && Boolean(activeItem?.flag) && !features(activeItem?.flag as FeatureKey);
 
+  // Keep the current item in view when the sidebar first renders.
+  const navRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const list = navRef.current;
+    const el = list?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (el && list) list.scrollTop = Math.max(0, el.offsetTop - list.clientHeight / 2);
+    // Only on arrival: scrolling on every route change would fight the reader.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPc]);
+
+  const toggleGroup = (key: string) => {
+    const next = closedGroups.includes(key)
+      ? closedGroups.filter((k) => k !== key)
+      : [...closedGroups, key];
+    setClosedGroups(next);
+    writeClosedGroups(next);
+  };
+
+  const user = auth.profile?.user;
+  const userName = user?.full_name ?? (auth.loading ? "Signing in…" : "Unavailable");
+  const userRole = auth.profile?.role.name ?? "";
+  const home = landingPath(auth.profile?.preferences.defaults.landing_page);
+  const chord = `${isMac ? "⌘" : "Ctrl "}K`;
+
+  const userMenu = {
+    items: [
+      {
+        key: "who",
+        disabled: true,
+        label: auth.profile
+          ? `${auth.profile.role.name} · ${auth.profile.organization?.name ?? "No organization"}`
+          : auth.loading
+            ? "Loading profile…"
+            : "Profile unavailable",
+      },
+      { type: "divider" as const },
+      { key: "profile", icon: <NxIcon name="user" size={16} />, label: "Your profile", onClick: () => navigate("/profile") },
+      { key: "preferences", icon: <NxIcon name="sliders" size={16} />, label: "Preferences", onClick: () => navigate("/settings/preferences") },
+      { key: "security", icon: <NxIcon name="shield" size={16} />, label: "Security", onClick: () => navigate("/settings/security") },
+      {
+        key: "appearance",
+        icon: <NxIcon name={mode === "dark" ? "sun" : "moon"} size={16} />,
+        label: `Appearance: ${appearance}`,
+        onClick: () =>
+          setAppearance(appearance === "light" ? "dark" : appearance === "dark" ? "system" : "light"),
+      },
+      { type: "divider" as const },
+      { key: "signout", icon: <NxIcon name="logout" size={16} />, label: "Sign out", onClick: () => void auth.signOut() },
+    ],
+  };
+
+  const avatar = (size: number) => (
+    <PersonAvatar size={size} src={user?.avatar_url} initials={user?.initials} className="nx-avatar" />
+  );
+
+  const crumbs = (
+    <nav aria-label="Breadcrumb" className="nx-crumbs">
+      <ol>
+        {trail.map((crumb, index) => (
+          <li key={crumb.key}>
+            {index > 0 && <NxIcon name="chevronRight" size={12} stroke={2.4} className="nx-crumb-sep" />}
+            <Link
+              to={crumb.key}
+              aria-current={index === trail.length - 1 ? "page" : undefined}
+              className={index === trail.length - 1 ? "nx-crumb nx-crumb--last" : "nx-crumb"}
+            >
+              {crumb.label}
+            </Link>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
+
+  const themeButton = (
+    <Tooltip title={mode === "dark" ? "Switch to light" : "Switch to dark"}>
+      <button
+        type="button"
+        className="nx-iconbtn"
+        aria-label="Toggle theme"
+        onClick={() => setAppearance(mode === "dark" ? "light" : "dark")}
+      >
+        <NxIcon name={mode === "dark" ? "sun" : "moon"} />
+      </button>
+    </Tooltip>
+  );
+
+  const liveChip = (
+    <span className={`nx-live nx-live--${live.status}`} data-testid="live-status">
+      <i aria-hidden="true" />
+      {live.status === "live" ? "Live" : live.status === "connecting" ? "Connecting" : "Polling · 30 s"}
+    </span>
+  );
+
+  const showLabels = !folded;
+  const navList = (
+    <div className="nx-side-scroll" ref={navRef}>
+      {groups.map((group) => {
+        const closed = showLabels && closedGroups.includes(group.key);
+        return (
+          <div key={group.key} className="nx-group" role="group" aria-label={group.label}>
+            <button
+              type="button"
+              className="nx-grouphead"
+              aria-expanded={!closed}
+              onClick={() => toggleGroup(group.key)}
+              tabIndex={showLabels ? 0 : -1}
+            >
+              <span>{group.label}</span>
+              <span className="nx-grouphead-meta">
+                {closed && group.items.length}
+                <NxIcon name="chevronDown" size={12} stroke={2.4} className={closed ? "is-rot" : undefined} />
+              </span>
+            </button>
+            <div className={`nx-group-items${closed ? " is-closed" : ""}`}>
+              <div>
+                {group.items.map((item) => {
+                  const on = item.key === selected;
+                  const count = item.badge ? counters[item.badge] : undefined;
+                  const link = (
+                    <Link
+                      key={item.key}
+                      to={item.key}
+                      role="menuitem"
+                      aria-current={on ? "page" : undefined}
+                      aria-label={folded ? item.label : undefined}
+                      className={`nx-navitem${on ? " is-on" : ""}${item.badge === "failed_jobs" ? " is-bad" : ""}`}
+                      tabIndex={closed ? -1 : 0}
+                    >
+                      {item.icon}
+                      <span className="nx-fold-label">{item.label}</span>
+                      {count ? <b className="nx-navbadge">{count > 99 ? "99+" : count}</b> : null}
+                    </Link>
+                  );
+                  return folded ? (
+                    <Tooltip key={item.key} title={item.label} placement="right">
+                      {link}
+                    </Tooltip>
+                  ) : (
+                    link
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const content = forbidden ? (
+    <ProblemPage kind="forbidden" missing={activeItem?.permission ? [activeItem.permission] : []} />
+  ) : switchedOff ? (
+    <ProblemPage kind="switched_off" />
+  ) : (
+    <ErrorBoundary resetKey={location.pathname}>
+      <Outlet />
+    </ErrorBoundary>
+  );
+
   return (
-    <Layout className="nu-shell">
-      {isMobile && drawerOpen && (
-        <div className="nu-scrim" onClick={() => setDrawerOpen(false)} aria-hidden />
+    <div
+      className={`nx-app nx-app--${device}${folded && isPc ? " nx-app--folded" : ""}`}
+      style={{ "--nx-side-w": folded ? "76px" : "248px" } as CSSProperties}
+    >
+      <a className="nu-skip-link" href="#nu-main">
+        Skip to content
+      </a>
+
+      {isPc && (
+        <nav aria-label="Main" className="nx-side nx-glass">
+          <div className="nx-brandrow">
+            <Link to={home} className="nx-brand" aria-label="Nucleus home">
+              <NxLogo size={30} />
+              <span className="nx-fold-label">
+                <b>Nucleus</b>
+                <small>{auth.profile?.organization?.name ?? "Application template"}</small>
+              </span>
+            </Link>
+            <button
+              type="button"
+              className="nx-fold"
+              aria-label={folded ? "Expand sidebar" : "Collapse sidebar"}
+              aria-expanded={!folded}
+              onClick={() => chooseFolded(!folded)}
+            >
+              <NxIcon name="chevronLeft" size={16} stroke={2.2} />
+            </button>
+          </div>
+          <div role="menu" aria-label="Pages" className="nx-side-menu">
+            {navList}
+          </div>
+          <PageTour variant="side" />
+        </nav>
       )}
 
-      <Sider
-        className={`nu-sider${isMobile ? " nu-sider--mobile" : ""}${
-          isMobile && drawerOpen ? " nu-sider--open" : ""
-        }`}
-        theme="dark"
-        collapsible={!isMobile}
-        collapsed={!isMobile && collapsed}
-        onCollapse={chooseCollapsed}
-        // 272, not 248: the longest item in the navigation is "Relationship
-        // explorer" at this weight, and at 248 it wrapped to a second line in
-        // a list where nothing else did.
-        width={272}
-        // 56, not 72: the rail holds a 16px icon, and the extra sixteen
-        // pixels were pure margin on a control that is already a compromise.
-        collapsedWidth={isMobile ? 0 : 56}
-      >
-        <div className="nu-logo" onClick={() => navigate(landingPath(auth.profile?.preferences.defaults.landing_page))}>
-          <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden>
-            <g transform="translate(32 32)">
-              <ellipse rx="26" ry="11" fill="none" stroke={LOGO.ring} strokeWidth="4" transform="rotate(-28)" />
-              <ellipse rx="26" ry="11" fill="none" stroke={LOGO.ring} strokeWidth="4" opacity="0.5" transform="rotate(52)" />
-              <circle r="11" fill={LOGO.core} />
-              <circle cx="23" cy="-12.2" r="4" fill={LOGO.spark} />
-            </g>
-          </svg>
-          {showLabels && (
-            <span>
-              <strong>Nucleus</strong>
-              <small>Application template</small>
-            </span>
-          )}
-        </div>
-
-        <CommandTrigger collapsed={!isMobile && collapsed} />
-
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[selected]}
-          items={menuItems}
-          onClick={(event) => navigate(event.key)}
-        />
-      </Sider>
-
-      <Layout>
-        <Header className="nu-header">
-          <Space size={8}>
-            {isMobile && (
-              <Button
-                type="text"
-                icon={<MenuOutlined />}
-                aria-label="Open navigation"
-                onClick={() => setDrawerOpen(true)}
-              />
-            )}
-            {!isMobile && (
-              <Breadcrumb
-                className="nu-breadcrumb"
-                items={trail.map((crumb) => ({
-                  title: <Link to={crumb.key}>{crumb.label}</Link>,
-                }))}
-              />
-            )}
-          </Space>
-
-          <div className="nu-header-spacer" />
-
-          {/* `align="center"` centres the *items*; an inline-level child inside
-              one still rides that item's text baseline, which put the profile
-              trigger four and a half pixels above the buttons beside it. The
-              rest of the fix is in `.nu-header .ant-space-item`. */}
-          <Space size={isMobile ? 4 : 8} align="center">
-            <NotificationBell />
-            {!isMobile && (
-              <Tooltip title={mode === "dark" ? "Switch to light" : "Switch to dark"}>
-                <Button
-                  shape="circle"
-                  aria-label="Toggle theme"
-                  icon={mode === "dark" ? <SunOutlined /> : <MoonOutlined />}
-                  onClick={() => setAppearance(mode === "dark" ? "light" : "dark")}
-                />
+      {isTablet && (
+        <nav aria-label="Sections" className="nx-rail nx-glass">
+          <Link to={home} aria-label="Nucleus home" className="nx-rail-logo">
+            <NxLogo size={34} />
+          </Link>
+          {groups.map((group) => {
+            const on = group.key === currentGroup?.key;
+            return (
+              <Tooltip key={group.key} title={group.label} placement="right">
+                <Link
+                  to={group.items[0]?.key ?? "/"}
+                  aria-label={group.label}
+                  aria-current={on ? "true" : undefined}
+                  className={`nx-railitem${on ? " is-on" : ""}`}
+                >
+                  <NxIcon name={group.icon} size={20} />
+                </Link>
               </Tooltip>
-            )}
-            {/* It used to be a circle that answered no press, which is worse
-                than absent: a control that does nothing teaches somebody the
-                chrome of this product is decorative (§77). */}
-            <PageTour />
-            <Dropdown
-              menu={{
-                items: [
-                  {
-                    key: "who",
-                    disabled: true,
-                    label: auth.profile
-                      ? `${auth.profile.role.name} · ${auth.profile.organization?.name ?? "No organization"}`
-                      : auth.loading
-                        ? "Loading profile…"
-                        : "Profile unavailable",
-                  },
-                  { type: "divider" },
-                  {
-                    // First, because it is the page about *you* — the others
-                    // change something, this one explains what you are.
-                    key: "profile",
-                    icon: <UserOutlined />,
-                    label: "Your profile",
-                    onClick: () => navigate("/profile"),
-                  },
-                  {
-                    key: "preferences",
-                    icon: <SettingOutlined />,
-                    label: "Preferences",
-                    onClick: () => navigate("/settings/preferences"),
-                  },
-                  {
-                    // Here rather than in the navigation, for the reason
-                    // Preferences is: it is about *you* rather than about the
-                    // platform, and it needs no permission (§41).
-                    key: "security",
-                    icon: <SafetyOutlined />,
-                    label: "Security",
-                    onClick: () => navigate("/settings/security"),
-                  },
-                  ...(isMobile
-                    ? [
-                        {
-                          key: "theme",
-                          icon: mode === "dark" ? <SunOutlined /> : <MoonOutlined />,
-                          label: mode === "dark" ? "Light theme" : "Dark theme",
-                          onClick: () => setAppearance(mode === "dark" ? "light" : "dark"),
-                        },
-                      ]
-                    : []),
-                  {
-                    key: "appearance",
-                    icon: <MoonOutlined />,
-                    label: `Appearance: ${appearance}`,
-                    onClick: () =>
-                      setAppearance(
-                        appearance === "light" ? "dark" : appearance === "dark" ? "system" : "light",
-                      ),
-                  },
-                  { type: "divider" },
-                  {
-                    key: "signout",
-                    icon: <LogoutOutlined />,
-                    label: "Sign out",
-                    onClick: () => void auth.signOut(),
-                  },
-                ],
-              }}
+            );
+          })}
+          <span className="nx-rail-spacer" />
+          <PageTour variant="rail" />
+          <Dropdown menu={userMenu} trigger={["click"]} placement="topLeft">
+            <button className="nx-rail-me" type="button" aria-label="Open profile menu">
+              {avatar(44)}
+            </button>
+          </Dropdown>
+        </nav>
+      )}
+
+      <div className="nx-main">
+        {isPc && (
+          <header className="nx-top nx-glass">
+            {crumbs}
+            <button
+              type="button"
+              className="nx-omni"
+              onClick={() => openPalette(true)}
+              aria-label={`Open the command palette (${chord})`}
             >
-              <button className="nu-user" type="button" aria-label="Open profile menu">
-                <PersonAvatar
-                  size="small"
-                  src={auth.profile?.user.avatar_url}
-                  initials={auth.profile?.user.initials}
-                  icon={!auth.profile?.user.avatar_url ? <UserOutlined /> : undefined}
-                />
-                {!isMobile && (
-                  <Typography.Text strong>
-                    {auth.profile?.user.full_name ?? (auth.loading ? "Signing in…" : "Unavailable")}
-                  </Typography.Text>
-                )}
+              <NxIcon name="search" size={16} stroke={2} />
+              <span>Search or jump to…</span>
+              <kbd>{chord}</kbd>
+            </button>
+            {liveChip}
+            {themeButton}
+            <NotificationBell />
+            <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
+              <button className="nx-user" type="button" aria-label="Open profile menu">
+                {avatar(34)}
+                <span>
+                  <b>{userName}</b>
+                  <small>{userRole}</small>
+                </span>
               </button>
             </Dropdown>
-          </Space>
-        </Header>
+          </header>
+        )}
 
-        {/* Impossible to miss, and impossible to dismiss without leaving:
-            an administrator who forgets they are acting as somebody else is
-            the failure mode this feature actually has (§12, §76). */}
+        {isTablet && (
+          <>
+            <header className="nx-top nx-glass">
+              {crumbs}
+              <button
+                type="button"
+                className="nx-iconbtn nx-iconbtn--lg"
+                aria-label="Open the command palette"
+                onClick={() => openPalette(true)}
+              >
+                <NxIcon name="search" stroke={2} />
+              </button>
+              {themeButton}
+              <NotificationBell />
+            </header>
+            {currentGroup && (
+              <nav aria-label={currentGroup.label} className="nx-chips">
+                {currentGroup.items.map((item) => (
+                  <Link
+                    key={item.key}
+                    to={item.key}
+                    aria-current={item.key === selected ? "page" : undefined}
+                    className={`nx-chip${item.key === selected ? " is-on" : ""}`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            )}
+          </>
+        )}
+
+        {isPhone && (
+          <header className="nx-top nx-top--phone nx-glass">
+            <Link to={home} aria-label="Nucleus home" className="nx-phone-logo">
+              <NxLogo size={28} />
+            </Link>
+            <span className="nx-phone-title">
+              {activeItem?.label ?? trail[trail.length - 1]?.label ?? "Nucleus"}
+            </span>
+            <button
+              type="button"
+              className="nx-iconbtn nx-iconbtn--lg"
+              aria-label="Open the command palette"
+              onClick={() => openPalette(true)}
+            >
+              <NxIcon name="search" stroke={2} />
+            </button>
+            <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
+              <button className="nx-rail-me" type="button" aria-label="Open profile menu">
+                {avatar(44)}
+              </button>
+            </Dropdown>
+          </header>
+        )}
+
         {impersonation.target && (
           <div className="nu-impersonation" role="status">
-            <UserSwitchOutlined />
+            <NxIcon name="switchUser" />
             <span>
-              You are viewing the platform as{" "}
-              <strong>{impersonation.target.full_name}</strong>. Everything you do is
-              recorded under both names.
+              You are viewing the platform as <strong>{impersonation.target.full_name}</strong>.
+              Everything you do is recorded under both names.
             </span>
-            <Button onClick={impersonation.stop}>
-              Return to your own account
-            </Button>
+            <Button onClick={impersonation.stop}>Return to your own account</Button>
           </div>
         )}
 
-        {/* The platform's own voice (§17). Below the impersonation band,
-            because who you are acting as outranks what the platform has to
-            say. */}
         <AnnouncementBanner />
 
-        <Content className="nu-content">
-          <a className="nu-skip-link" href="#nu-main">
-            Skip to content
-          </a>
-          <div id="nu-main">
-            {forbidden ? (
-              <ProblemPage
-                kind="forbidden"
-                missing={activeItem?.permission ? [activeItem.permission] : []}
-              />
-            ) : switchedOff ? (
-              // Not "forbidden": a permission is a fact about the reader, and
-              // saying their role is the reason when an administrator turned
-              // the whole feature off is a lie about them (§27, §76).
-              <ProblemPage kind="switched_off" />
-            ) : (
-              // Every page renders inside the boundary, and the boundary
-              // inside the shell: a fault in one page must not take the
-              // navigation with it, or the reader's only way out is the
-              // browser's reload button (§34). Reset on the location, so
-              // walking away from a broken page is enough to leave it.
-              <ErrorBoundary resetKey={location.pathname}>
-                <Outlet />
-              </ErrorBoundary>
-            )}
+        <main className="nx-scroll nu-content" id="nu-main">
+          {content}
+        </main>
+      </div>
+
+      {isPhone && (
+        <nav aria-label="Main" className="nx-tabs nx-glass nx-glass--strong">
+          {TABS.map((tab) => {
+            const on = tab.owns.some((p) => location.pathname === p || location.pathname.startsWith(`${p}/`));
+            return (
+              <Link
+                key={tab.label}
+                to={tab.to}
+                aria-current={on ? "page" : undefined}
+                className={`nx-tab${on ? " is-on" : ""}`}
+              >
+                <NxIcon name={tab.icon} size={20} />
+                {tab.label}
+                {tab.label === "Inbox" && counters["unread"] ? (
+                  <b className="nx-tabbadge">{counters["unread"]}</b>
+                ) : null}
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            className={`nx-tab${sheetOpen ? " is-on" : ""}`}
+            aria-expanded={sheetOpen}
+            aria-label="More navigation"
+            onClick={() => setSheetOpen(true)}
+          >
+            <NxIcon name="more" size={20} />
+            More
+          </button>
+        </nav>
+      )}
+
+      {isPhone && sheetOpen && (
+        <div className="nx-sheet-scrim" onClick={() => setSheetOpen(false)}>
+          <div
+            className="nx-sheet nx-glass nx-glass--strong"
+            role="dialog"
+            aria-label="Navigation"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="nx-sheet-head">
+              <b>Everything</b>
+              <button
+                type="button"
+                className="nx-iconbtn"
+                aria-label="Close navigation"
+                onClick={() => setSheetOpen(false)}
+              >
+                <NxIcon name="close" />
+              </button>
+            </div>
+            {groups.map((group) => (
+              <section key={group.key} className="nx-sheet-group">
+                <h2>{group.label}</h2>
+                <div>
+                  {group.items.map((item) => (
+                    <Link
+                      key={item.key}
+                      to={item.key}
+                      className={`nx-sheet-item${item.key === selected ? " is-on" : ""}`}
+                      aria-current={item.key === selected ? "page" : undefined}
+                    >
+                      {item.icon}
+                      <span>{item.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
-        </Content>
-      </Layout>
+        </div>
+      )}
 
       <CommandPalette />
-    </Layout>
+    </div>
   );
 }

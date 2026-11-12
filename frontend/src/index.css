@@ -130,115 +130,6 @@ body {
   left: 0;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
-   Application shell (§1)
-   ═══════════════════════════════════════════════════════════════════════ */
-
-/* dvh, not vh: on a phone the browser's own chrome occupies the difference,
-   and the sidebar does not scroll — anything in that strip is unreachable. */
-.nu-shell { height: 100vh; height: 100dvh; overflow: hidden; }
-.nu-shell > .ant-layout { min-width: 0; height: 100vh; height: 100dvh; overflow: hidden; }
-
-.nu-sider {
-  height: 100vh; height: 100dvh;
-  position: sticky !important; top: 0; left: 0; overflow: hidden;
-  background: #0f172a !important;
-  border-right: 1px solid rgba(148, 163, 184, 0.12);
-}
-.nu-sider .ant-layout-sider-children { display: flex; flex-direction: column; min-height: 100%; }
-.nu-sider .ant-menu {
-  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
-  background: transparent; border-inline-end: none;
-  padding-bottom: 24px;
-}
-.nu-sider .ant-menu-item-group-title {
-  color: rgba(148, 163, 184, 0.55);
-  font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
-  padding-inline: 20px; margin-top: 10px;
-}
-.nu-sider--mobile {
-  position: fixed !important; z-index: 60; transform: translateX(-100%);
-  transition: transform 0.2s ease;
-}
-.nu-sider--open { transform: translateX(0); width: 272px !important; min-width: 272px !important; }
-.nu-scrim { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.55); z-index: 50; }
-
-.nu-logo {
-  display: flex; align-items: center; gap: 11px; min-height: 56px; padding: 0 18px;
-  cursor: pointer; user-select: none; flex: 0 0 auto;
-}
-.nu-logo span { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
-.nu-logo strong { color: #fff; font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
-.nu-logo small { color: rgba(255, 255, 255, 0.45); font-size: 11px; }
-
-/* Three tracks — navigation, search, identity — so search takes the middle and
-   the width. It is the control people aim at rather than glance at. */
-.nu-header {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center; gap: 12px; height: 56px;
-  padding-inline: 18px;
-  border-bottom: 1px solid var(--nu-border);
-  background: var(--nu-surface);
-}
-.nu-header-search { display: flex; justify-content: center; min-width: 0; }
-.nu-breadcrumb { font-size: 13px; }
-
-.nu-omni {
-  display: inline-flex; align-items: center; gap: 10px;
-  width: min(460px, 100%); height: 34px; padding: 0 10px 0 12px;
-  border: 1px solid var(--nu-border); border-radius: 8px;
-  background: var(--nu-bg); color: var(--nu-text-tertiary);
-  font: inherit; font-size: 13px; cursor: pointer; text-align: start;
-  transition: border-color 120ms ease, background 120ms ease;
-}
-.nu-omni:hover { border-color: var(--nu-accent); background: var(--nu-surface); }
-.nu-omni-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Explicit box: inherited line-height made the chip taller than the 34px
-   field it sits in, so it stood proud of the rounded end rather than inside
-   it. */
-.nu-omni-kbd {
-  flex: 0 0 auto;
-  display: inline-flex; align-items: center;
-  height: 20px; padding: 0 6px; border-radius: 4px; line-height: 1;
-  border: 1px solid var(--nu-border); background: var(--nu-surface);
-  font-family: var(--nu-font-mono); font-size: 11px; color: var(--nu-text-tertiary);
-}
-
-/* AntD's collapse trigger is a light bar by default, which reads as a seam
-   across the bottom of a dark rail. */
-.nu-sider .ant-layout-sider-trigger {
-  background: #0b1220;
-  color: rgba(255, 255, 255, 0.55);
-  border-top: 1px solid rgba(148, 163, 184, 0.12);
-}
-.nu-sider .ant-layout-sider-trigger:hover { color: #fff; background: #131f38; }
-/* The menu scrolls; the trigger is fixed over its last item, so the list needs
-   room to end above it. */
-.nu-sider .ant-menu { padding-bottom: 56px; }
-
-/* Every header item on the same centre line.
-   `Space` centres its *items*, but an inline-level child inside one still sits
-   on that item's text baseline — which put the profile trigger four and a half
-   pixels above the three circular buttons beside it. Making the items flex
-   containers takes the baseline out of the question entirely. */
-.nu-header .ant-space-item { display: flex; align-items: center; }
-
-.nu-user {
-  display: flex; align-items: center; gap: 8px;
-  min-width: 0; height: 32px; padding: 0 4px;
-  border: 0; background: transparent; color: inherit;
-  font: inherit; line-height: 1; cursor: pointer;
-}
-.nu-user .ant-typography {
-  max-width: 16ch; margin: 0; line-height: 1;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-
-.nu-content {
-  height: calc(100vh - 56px); height: calc(100dvh - 56px);
-  overflow: auto; padding: 20px; background: var(--nu-bg);
-}
-
 /* ── pages that fill their window ───────────────────────────────────────
    `.nu-content` is already a fixed-height scroll container, so a page can
    claim the height that is left instead of ending wherever its content
@@ -281,13 +172,6 @@ body {
   .nu-fill { display: block; }
   .nu-pane { height: auto; }
   .nu-pane > .ant-card-body { overflow: visible; }
-}
-
-@media (max-width: 991px) {
-  .nu-header { padding-inline: 10px; gap: 8px; }
-  .nu-content { padding: 14px; }
-  .nu-omni-label { display: none; }
-  .nu-omni { width: auto; }
 }
 
 /* ── page furniture ─────────────────────────────────────────────────── */

@@ -1,46 +1,5 @@
 import type { ReactNode } from "react";
-import {
-  ApartmentOutlined,
-  ApiOutlined,
-  AreaChartOutlined,
-  AppstoreOutlined,
-  AuditOutlined,
-  BarChartOutlined,
-  BlockOutlined,
-  BellOutlined,
-  BranchesOutlined,
-  BugOutlined,
-  CalendarOutlined,
-  CheckSquareOutlined,
-  ClusterOutlined,
-  ContainerOutlined,
-  ControlOutlined,
-  DashboardOutlined,
-  HomeOutlined,
-  DatabaseOutlined,
-  DeploymentUnitOutlined,
-  ExperimentOutlined,
-  FileTextOutlined,
-  FolderOpenOutlined,
-  FundProjectionScreenOutlined,
-  HeartOutlined,
-  ImportOutlined,
-  LayoutOutlined,
-  MailOutlined,
-  MonitorOutlined,
-  NodeIndexOutlined,
-  NotificationOutlined,
-  ProjectOutlined,
-  SafetyCertificateOutlined,
-  TagsOutlined,
-  SearchOutlined,
-  SettingOutlined,
-  ShopOutlined,
-  ShoppingCartOutlined,
-  GlobalOutlined,
-  TeamOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
+import { NxIcon, type NxIconName } from "@/components/NxIcon";
 
 /**
  * The navigation, grouped by what somebody came here to do rather than by the
@@ -86,42 +45,47 @@ export interface NavItem {
 export interface NavGroup {
   key: string;
   label: string;
+  /** The rail's icon for the whole group (tablet widths). */
+  icon: NxIconName;
   items: NavItem[];
 }
 
 export const NAV_GROUPS: NavGroup[] = [
   {
     key: "overview",
+    icon: "home",
     label: "Overview",
     items: [
       // First, and above the dashboard, because it is where arriving with no
       // preference lands: a navigation whose first item is not the default
       // landing page is a navigation that disagrees with the logo.
-      { key: "/home", label: "Home", icon: <HomeOutlined /> },
-      { key: "/dashboard", label: "Dashboard", icon: <DashboardOutlined /> },
-      { key: "/dashboards", label: "My dashboards", icon: <LayoutOutlined />, permission: "dashboards.manage", flag: "dashboard-builder" },
-      { key: "/activity", label: "Activity", icon: <BranchesOutlined /> },
-      { key: "/notifications", label: "Notifications", icon: <BellOutlined />, badge: "unread" },
-      { key: "/announcements", label: "Announcements", icon: <NotificationOutlined /> },
+      { key: "/home", label: "Home", icon: <NxIcon name="home" /> },
+      { key: "/dashboard", label: "Dashboard", icon: <NxIcon name="gauge" /> },
+      { key: "/dashboards", label: "My dashboards", icon: <NxIcon name="layout" />, permission: "dashboards.manage", flag: "dashboard-builder" },
+      { key: "/activity", label: "Activity", icon: <NxIcon name="activity" /> },
+      { key: "/notifications", label: "Notifications", icon: <NxIcon name="bell" />, badge: "unread" },
+      { key: "/announcements", label: "Announcements", icon: <NxIcon name="megaphone" /> },
     ],
   },
   {
     key: "analyse",
+    icon: "bars",
     label: "Analyse",
     items: [
-      { key: "/analytics", label: "Analytics", icon: <AreaChartOutlined />, permission: "records.view" },
-      { key: "/reports", label: "Reports", icon: <BarChartOutlined />, permission: "reports.view" },
-      { key: "/reports/builder", label: "Report builder", icon: <ProjectOutlined />, permission: "reports.manage" },
-      { key: "/charts/builder", label: "Chart builder", icon: <AreaChartOutlined />, permission: "reports.manage" },
-      { key: "/maps", label: "Maps", icon: <GlobalOutlined /> },
+      { key: "/analytics", label: "Analytics", icon: <NxIcon name="area" />, permission: "records.view" },
+      { key: "/reports", label: "Reports", icon: <NxIcon name="bars" />, permission: "reports.view" },
+      { key: "/reports/builder", label: "Report builder", icon: <NxIcon name="report" />, permission: "reports.manage" },
+      { key: "/charts/builder", label: "Chart builder", icon: <NxIcon name="pen" />, permission: "reports.manage" },
+      { key: "/maps", label: "Maps", icon: <NxIcon name="globe" /> },
     ],
   },
   {
     key: "work",
+    icon: "check",
     label: "Work",
     items: [
-      { key: "/tasks", label: "Tasks", icon: <CheckSquareOutlined />, permission: "tasks.view", badge: "my_tasks" },
-      { key: "/kanban", label: "Kanban boards", icon: <ProjectOutlined />, permission: "tasks.view", flag: "kanban-board" },
+      { key: "/tasks", label: "Tasks", icon: <NxIcon name="check" />, permission: "tasks.view", badge: "my_tasks" },
+      { key: "/kanban", label: "Kanban boards", icon: <NxIcon name="kanban" />, permission: "tasks.view", flag: "kanban-board" },
             // `automations.manage` and not `tasks.manage`: a rule's condition quotes
       // the fields and values of records its reader may have no other way to
       // see, so reading the list is privileged — and an operator who triages
@@ -129,66 +93,70 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         key: "/workflows",
         label: "Workflows",
-        icon: <NodeIndexOutlined />,
+        icon: <NxIcon name="flow" />,
         permission: "automations.manage",
       },
-      { key: "/calendar", label: "Calendar", icon: <CalendarOutlined />, permission: "calendar.view" },
-      { key: "/mail", label: "Mail", icon: <MailOutlined />, permission: "mail.access", badge: "unread_mail" },
-      { key: "/files", label: "Files", icon: <FolderOpenOutlined />, permission: "files.view" },
+      { key: "/calendar", label: "Calendar", icon: <NxIcon name="calendar" />, permission: "calendar.view" },
+      { key: "/mail", label: "Mail", icon: <NxIcon name="mail" />, permission: "mail.access", badge: "unread_mail" },
+      { key: "/files", label: "Files", icon: <NxIcon name="folder" />, permission: "files.view" },
     ],
   },
   {
     key: "records",
+    icon: "briefcase",
     label: "Records",
     items: [
-      { key: "/projects", label: "Projects", icon: <FundProjectionScreenOutlined />, permission: "records.view" },
-      { key: "/customers", label: "Customers", icon: <ShopOutlined />, permission: "records.view" },
-      { key: "/orders", label: "Orders", icon: <ShoppingCartOutlined />, permission: "records.view" },
-      { key: "/tickets", label: "Tickets", icon: <BugOutlined />, permission: "records.view", badge: "open_tickets" },
-      { key: "/devices", label: "Devices", icon: <DeploymentUnitOutlined />, permission: "records.view" },
+      { key: "/projects", label: "Projects", icon: <NxIcon name="briefcase" />, permission: "records.view" },
+      { key: "/customers", label: "Customers", icon: <NxIcon name="store" />, permission: "records.view" },
+      { key: "/orders", label: "Orders", icon: <NxIcon name="cart" />, permission: "records.view" },
+      { key: "/tickets", label: "Tickets", icon: <NxIcon name="ticket" />, permission: "records.view", badge: "open_tickets" },
+      { key: "/devices", label: "Devices", icon: <NxIcon name="device" />, permission: "records.view" },
     ],
   },
   {
     key: "find",
+    icon: "search",
     label: "Find",
     items: [
       // Saved searches are a *module of* the Data Explorer, not a page of their
       // own — you open one from the explorer and it loads there, the way
       // gif_responder's SavedSearchControls works. A separate destination would
       // mean two places that both claim to be where searches live.
-      { key: "/explore", label: "Data Explorer", icon: <SearchOutlined />, permission: "records.view" },
-      { key: "/find/global", label: "Global search", icon: <GlobalOutlined />, permission: "records.view" },
-      { key: "/find/relationships", label: "Relationships", icon: <BranchesOutlined />, permission: "records.view" },
-      { key: "/find/catalog", label: "Data catalog", icon: <DatabaseOutlined />, permission: "records.view" },
-      { key: "/favorites", label: "Favorites", icon: <HeartOutlined /> },
+      { key: "/explore", label: "Data Explorer", icon: <NxIcon name="search" />, permission: "records.view" },
+      { key: "/find/global", label: "Global search", icon: <NxIcon name="globe" />, permission: "records.view" },
+      { key: "/find/relationships", label: "Relationships", icon: <NxIcon name="graph" />, permission: "records.view" },
+      { key: "/find/catalog", label: "Data catalog", icon: <NxIcon name="database" />, permission: "records.view" },
+      { key: "/favorites", label: "Favorites", icon: <NxIcon name="heart" /> },
     ],
   },
   {
     key: "admin",
+    icon: "shield",
     label: "Administration",
     items: [
-      { key: "/admin", label: "Overview", icon: <ControlOutlined />, permission: "admin.access" },
-      { key: "/admin/users", label: "Users", icon: <UserOutlined />, permission: "users.view" },
-      { key: "/admin/groups", label: "Groups", icon: <TeamOutlined />, permission: "users.view" },
-      { key: "/admin/roles", label: "Roles & permissions", icon: <SafetyCertificateOutlined />, permission: "roles.manage" },
+      { key: "/admin", label: "Overview", icon: <NxIcon name="sliders" />, permission: "admin.access" },
+      { key: "/admin/users", label: "Users", icon: <NxIcon name="user" />, permission: "users.view" },
+      { key: "/admin/groups", label: "Groups", icon: <NxIcon name="team" />, permission: "users.view" },
+      { key: "/admin/roles", label: "Roles & permissions", icon: <NxIcon name="shield" />, permission: "roles.manage" },
       // `users.view` and not `orgs.manage`: reading where people sit is
       // directory information, and this permission is what gates the *route*
       // as well as the menu entry — declaring the write permission here would
       // make the page's own read-only state unreachable. The commercial
       // fields are withheld by the service instead.
-      { key: "/admin/organizations", label: "Organizations", icon: <ApartmentOutlined />, permission: "users.view" },
-      { key: "/admin/audit", label: "Audit log", icon: <AuditOutlined />, permission: "audit.view" },
-      { key: "/admin/logs", label: "System logs", icon: <FileTextOutlined />, permission: "logs.view" },
-      { key: "/admin/jobs", label: "Background jobs", icon: <ClusterOutlined />, permission: "jobs.view", badge: "failed_jobs" },
-      { key: "/admin/health", label: "System health", icon: <MonitorOutlined />, permission: "health.view" },
-      { key: "/admin/api", label: "API clients", icon: <ApiOutlined />, permission: "api.manage" },
-      { key: "/admin/integrations", label: "Integrations", icon: <BlockOutlined />, permission: "integrations.manage" },
-      { key: "/admin/flags", label: "Feature flags", icon: <ExperimentOutlined />, permission: "flags.manage" },
-      { key: "/admin/settings", label: "Settings", icon: <SettingOutlined />, permission: "settings.manage" },
+      { key: "/admin/organizations", label: "Organizations", icon: <NxIcon name="org" />, permission: "users.view" },
+      { key: "/admin/audit", label: "Audit log", icon: <NxIcon name="audit" />, permission: "audit.view" },
+      { key: "/admin/logs", label: "System logs", icon: <NxIcon name="logs" />, permission: "logs.view" },
+      { key: "/admin/jobs", label: "Background jobs", icon: <NxIcon name="grid" />, permission: "jobs.view", badge: "failed_jobs" },
+      { key: "/admin/health", label: "System health", icon: <NxIcon name="monitor" />, permission: "health.view" },
+      { key: "/admin/api", label: "API clients", icon: <NxIcon name="code" />, permission: "api.manage" },
+      { key: "/admin/integrations", label: "Integrations", icon: <NxIcon name="plug" />, permission: "integrations.manage" },
+      { key: "/admin/flags", label: "Feature flags", icon: <NxIcon name="flask" />, permission: "flags.manage" },
+      { key: "/admin/settings", label: "Settings", icon: <NxIcon name="gear" />, permission: "settings.manage" },
     ],
   },
   {
     key: "data",
+    icon: "database",
     label: "Data",
     items: [
       // Here rather than under Administration, and the permission is why: what
@@ -201,21 +169,22 @@ export const NAV_GROUPS: NavGroup[] = [
       // The address stays `/admin/quality` — the tracker's, and the API's. A
       // path prefix is not a permission boundary here: `/admin/users` is
       // readable by every persona too.
-      { key: "/admin/quality", label: "Data quality", icon: <FundProjectionScreenOutlined />, permission: "records.view" },
+      { key: "/admin/quality", label: "Data quality", icon: <NxIcon name="quality" />, permission: "records.view" },
       // `records.view` and not `tags.manage`: the page is worth opening to
       // find out what the tags *mean*, and it says which permission curating
       // them needs rather than hiding itself (§37, §76).
-      { key: "/admin/tags", label: "Tags", icon: <TagsOutlined />, permission: "records.view" },
-      { key: "/import", label: "Import", icon: <ImportOutlined />, permission: "records.import", flag: "csv-import" },
-      { key: "/exports", label: "Exports", icon: <ContainerOutlined />, permission: "records.export" },
+      { key: "/admin/tags", label: "Tags", icon: <NxIcon name="tag" />, permission: "records.view" },
+      { key: "/import", label: "Import", icon: <NxIcon name="import" />, permission: "records.import", flag: "csv-import" },
+      { key: "/exports", label: "Exports", icon: <NxIcon name="export" />, permission: "records.export" },
     ],
   },
   {
     key: "showcase",
+    icon: "grid",
     label: "Template",
     items: [
-      { key: "/showcase/components", label: "Components", icon: <AppstoreOutlined /> },
-      { key: "/showcase/templates", label: "Page gallery", icon: <DatabaseOutlined /> },
+      { key: "/showcase/components", label: "Components", icon: <NxIcon name="grid" /> },
+      { key: "/showcase/templates", label: "Page gallery", icon: <NxIcon name="layout" /> },
     ],
   },
 ];

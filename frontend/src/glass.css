@@ -1,0 +1,541 @@
+/*
+ * The glass design (Claude Design "Nucleus", the canvas every page is copied
+ * from): a soft two-glow ground, floating frosted panels, pill controls.
+ *
+ * Loaded after `index.css`, so it wins where the two disagree. Everything
+ * reads the custom properties `AppearanceProvider` writes, so light and dark
+ * are the same rules with different values.
+ *
+ * Type is the product's own Inter throughout — headings are Inter at a heavy
+ * weight with tight tracking, and the design's emphasised word keeps its
+ * accent colour.
+ */
+
+/* ── ground ─────────────────────────────────────────────────────────── */
+html,
+body {
+  background: var(--nu-page-bg, #f6f7f9);
+  background-attachment: fixed;
+}
+body { color: var(--nu-text); font-feature-settings: "cv11", "ss01"; }
+
+@keyframes nxBoot { from { opacity: 0; transform: scale(1.012); filter: blur(10px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes nxSlideL { from { opacity: 0; transform: translateX(-20px); filter: blur(8px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes nxRise { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes nxFade { from { opacity: 0; } }
+@keyframes nxSheetUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
+@keyframes nxLive { 0%, 100% { box-shadow: 0 0 0 0 rgba(46, 125, 79, 0.5); } 50% { box-shadow: 0 0 0 5px rgba(46, 125, 79, 0); } }
+@keyframes nxGrow { from { transform: scaleY(0); } }
+@keyframes nxBar { from { transform: scaleX(0); } }
+
+:root { --nx-ease: cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+/* One frosted surface, used by every panel. */
+.nx-glass {
+  background: var(--nu-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--nu-glass-border);
+  box-shadow: var(--nu-glass-shadow);
+}
+.nx-glass--strong { background: var(--nu-glass-strong); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Shell
+   ═══════════════════════════════════════════════════════════════════════ */
+.nx-app {
+  position: relative;
+  height: 100vh; height: 100dvh;
+  display: flex; gap: 18px; padding: 18px;
+  overflow: hidden;
+  color: var(--nu-text);
+}
+.nx-app--tablet { gap: 14px; padding: 14px; }
+.nx-app--phone { display: block; padding: 0; gap: 0; }
+
+.nx-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.nx-app--phone .nx-main { height: 100%; gap: 0; }
+
+.nx-scroll {
+  flex: 1; min-height: 0; overflow: auto;
+  padding: 6px 6px 24px;
+  scrollbar-width: none;
+}
+.nx-scroll::-webkit-scrollbar { display: none; }
+.nx-app--tablet .nx-scroll { padding: 4px 4px 20px; }
+.nx-app--phone .nx-scroll { padding: 14px 14px 110px; }
+
+/* ── sidebar ─────────────────────────────────────────────────────────── */
+.nx-side {
+  width: var(--nx-side-w, 248px); flex-shrink: 0;
+  border-radius: 30px;
+  padding: 16px 10px 12px;
+  display: flex; flex-direction: column; gap: 10px;
+  overflow: hidden;
+  animation: nxSlideL 0.7s var(--nx-ease) both;
+  transition: width 0.45s var(--nx-ease), padding 0.45s var(--nx-ease);
+}
+.nx-side-menu { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.nx-brandrow { display: flex; align-items: center; gap: 6px; padding: 0 0 6px 10px; transition: padding 0.45s var(--nx-ease), gap 0.45s var(--nx-ease); }
+.nx-brand { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; color: var(--nu-text); text-decoration: none; }
+.nx-brand:hover { color: var(--nu-text); }
+.nx-brand .nx-logo { flex-shrink: 0; transition: transform 0.6s var(--nx-ease); }
+.nx-brand:hover .nx-logo { transform: rotate(60deg); }
+.nx-brand .nx-fold-label { display: flex; flex-direction: column; line-height: 1.15; }
+.nx-brand b { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+.nx-brand small { font-size: 12px; color: var(--nu-text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nx-fold {
+  width: 32px; height: 32px; flex-shrink: 0;
+  border: 0; border-radius: 16px; cursor: pointer;
+  background: rgba(var(--nu-ink-rgb), 0.05); color: var(--nu-text-secondary);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.45s var(--nx-ease), background 0.2s ease;
+}
+.nx-fold:hover { background: rgba(var(--nu-ink-rgb), 0.1); color: var(--nu-text); }
+
+.nx-side-scroll {
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  display: flex; flex-direction: column; gap: 2px;
+  scrollbar-width: none;
+}
+.nx-side-scroll::-webkit-scrollbar { display: none; }
+.nx-group { display: flex; flex-direction: column; }
+.nx-grouphead {
+  height: 30px; margin-top: 6px; padding: 0 12px;
+  border: 0; background: transparent; cursor: pointer;
+  color: var(--nu-text-tertiary);
+  font: 700 10.5px var(--nu-font); letter-spacing: 0.14em; text-transform: uppercase;
+  display: flex; align-items: center; justify-content: space-between;
+  white-space: nowrap; overflow: hidden;
+  transition: opacity 0.2s ease, max-height 0.45s var(--nx-ease), margin 0.45s var(--nx-ease);
+  max-height: 30px;
+}
+.nx-grouphead:hover { color: var(--nu-text); }
+.nx-grouphead-meta { display: flex; align-items: center; gap: 6px; letter-spacing: 0; font-weight: 600; }
+.nx-grouphead .nx-icon { transition: transform 0.3s var(--nx-ease); }
+.nx-grouphead .nx-icon.is-rot { transform: rotate(-90deg); }
+/* Closing a group eases its height, with no measuring in JavaScript. */
+.nx-group-items { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 0.4s var(--nx-ease), opacity 0.3s ease; }
+.nx-group-items.is-closed { grid-template-rows: 0fr; opacity: 0; }
+.nx-group-items > div { min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
+
+.nx-navitem {
+  height: 38px; flex-shrink: 0;
+  padding: 0 12px; border-radius: 19px;
+  display: flex; align-items: center; gap: 11px;
+  color: var(--nu-text-secondary); text-decoration: none;
+  font-size: 14px; font-weight: 500; white-space: nowrap;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, padding 0.45s var(--nx-ease), gap 0.45s var(--nx-ease), width 0.45s var(--nx-ease);
+}
+.nx-navitem .nx-icon { flex-shrink: 0; }
+.nx-navitem:hover { background: rgba(var(--nu-ink-rgb), 0.05); color: var(--nu-text); }
+.nx-navitem.is-on { background: var(--nu-raised); color: var(--nu-text); font-weight: 700; box-shadow: var(--nu-lift); }
+.nx-navitem .nx-fold-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.nx-navbadge {
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
+  background: rgba(var(--nu-ink-rgb), 0.08); color: var(--nu-text);
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.2s ease;
+}
+.nx-navitem.is-on .nx-navbadge { background: var(--nu-accent); color: var(--nu-on-accent); }
+.nx-navitem.is-bad .nx-navbadge { background: #b42318; color: #fff; }
+
+.nx-help {
+  height: 40px; flex-shrink: 0; padding: 0 12px;
+  border: 0; border-radius: 20px; cursor: pointer;
+  background: rgba(var(--nu-ink-rgb), 0.05); color: var(--nu-text-secondary);
+  font: 600 13px var(--nu-font);
+  display: flex; align-items: center; gap: 10px; white-space: nowrap; overflow: hidden;
+  transition: padding 0.45s var(--nx-ease), gap 0.45s var(--nx-ease), width 0.45s var(--nx-ease), background 0.2s ease;
+}
+.nx-help:hover:not(:disabled) { background: rgba(var(--nu-ink-rgb), 0.09); color: var(--nu-text); }
+.nx-help:disabled { opacity: 0.55; cursor: default; }
+.nx-help .nx-icon { flex-shrink: 0; }
+.nx-help--rail { width: 48px; height: 44px; padding: 0; justify-content: center; border-radius: 18px; background: transparent; }
+.nx-help--rail .nx-fold-label { display: none; }
+
+/* Folding: the width eases to a rail while the words fade and slide away,
+   so the icons stay where the eye left them (after BoardGame's admin). */
+.nx-fold-label { transition: opacity 0.22s ease 0.12s, transform 0.3s var(--nx-ease) 0.08s, max-width 0.45s var(--nx-ease); max-width: 200px; }
+.nx-app--folded .nx-side { padding: 16px 12px 12px; }
+.nx-app--folded .nx-brandrow { flex-direction: column; padding: 0 0 8px; gap: 10px; }
+.nx-app--folded .nx-brand { flex: none; justify-content: center; gap: 0; }
+.nx-app--folded .nx-fold { transform: rotate(180deg); }
+.nx-app--folded .nx-fold-label { opacity: 0; transform: translateX(-8px); max-width: 0; pointer-events: none; transition: opacity 0.12s ease, transform 0.2s ease, max-width 0.45s var(--nx-ease); }
+.nx-app--folded .nx-grouphead { opacity: 0; max-height: 0; margin-top: 0; pointer-events: none; }
+.nx-app--folded .nx-group + .nx-group { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(var(--nu-ink-rgb), 0.07); }
+.nx-app--folded .nx-group-items.is-closed { grid-template-rows: 1fr; opacity: 1; }
+.nx-app--folded .nx-navitem { position: relative; width: 52px; padding: 0 17px; gap: 0; border-radius: 18px; height: 42px; }
+.nx-app--folded .nx-navitem.is-on { background: var(--nu-text); color: var(--nu-on-ink); box-shadow: none; }
+.nx-app--folded .nx-navbadge { position: absolute; opacity: 0; }
+.nx-app--folded .nx-navitem:has(.nx-navbadge)::after {
+  content: ""; position: absolute; top: 8px; right: 10px; width: 8px; height: 8px; border-radius: 4px;
+  background: var(--nu-accent); border: 2px solid var(--nu-ring);
+}
+.nx-app--folded .nx-help { width: 52px; padding: 0 17px; gap: 0; }
+
+/* ── tablet rail ─────────────────────────────────────────────────────── */
+.nx-rail {
+  width: 76px; flex-shrink: 0; border-radius: 28px;
+  padding: 14px 0; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  overflow-y: auto; scrollbar-width: none;
+  animation: nxSlideL 0.7s var(--nx-ease) both;
+}
+.nx-rail-logo { margin-bottom: 10px; display: flex; }
+.nx-railitem {
+  width: 56px; height: 48px; flex-shrink: 0; border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--nu-text-secondary);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.nx-railitem:hover { background: rgba(var(--nu-ink-rgb), 0.06); color: var(--nu-text); }
+.nx-railitem.is-on { background: var(--nu-text); color: var(--nu-on-ink); }
+.nx-rail-spacer { flex: 1; }
+.nx-rail-me { border: 0; padding: 0; background: transparent; cursor: pointer; border-radius: 22px; display: flex; flex-shrink: 0; }
+
+/* ── header ──────────────────────────────────────────────────────────── */
+.nx-top {
+  height: 56px; flex-shrink: 0;
+  padding: 0 8px 0 20px; border-radius: 28px;
+  display: flex; align-items: center; gap: 10px;
+  position: relative; z-index: 5;
+  animation: nxBoot 0.8s var(--nx-ease) both;
+}
+.nx-top--phone { margin: 12px 12px 0; padding: 0 6px 0 14px; gap: 8px; }
+.nx-crumbs { flex: 1; min-width: 0; }
+.nx-crumbs ol { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; min-width: 0; }
+.nx-crumbs li { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.nx-crumb { color: var(--nu-text-tertiary); font-weight: 500; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nx-crumb:hover { color: var(--nu-text); }
+.nx-crumb--last { color: var(--nu-text); font-weight: 700; }
+.nx-crumb-sep { color: var(--nu-text-tertiary); flex-shrink: 0; }
+.nx-omni {
+  width: 300px; height: 40px; padding: 0 8px 0 14px;
+  border: 0; border-radius: 20px; cursor: pointer;
+  background: rgba(var(--nu-ink-rgb), 0.06); color: var(--nu-text-tertiary);
+  font: 13px var(--nu-font); text-align: left;
+  display: flex; align-items: center; gap: 8px;
+  transition: background 0.2s ease;
+}
+.nx-omni:hover { background: rgba(var(--nu-ink-rgb), 0.09); }
+.nx-omni span { flex: 1; }
+.nx-omni kbd { font: 600 11px var(--nu-font); padding: 3px 7px; border-radius: 8px; border: 1px solid rgba(var(--nu-ink-rgb), 0.16); color: var(--nu-text-secondary); background: transparent; }
+.nx-live {
+  height: 40px; padding: 0 12px; border-radius: 20px;
+  background: var(--nu-ok-bg); color: var(--nu-ok);
+  font-size: 12px; font-weight: 700; white-space: nowrap;
+  display: flex; align-items: center; gap: 7px;
+}
+.nx-live i { width: 7px; height: 7px; border-radius: 4px; background: var(--nu-ok); animation: nxLive 1.8s infinite; }
+.nx-live--polling, .nx-live--connecting { background: rgba(var(--nu-ink-rgb), 0.06); color: var(--nu-text-secondary); }
+.nx-live--polling i, .nx-live--connecting i { background: var(--nu-text-tertiary); animation: none; }
+.nx-iconbtn {
+  width: 40px; height: 40px; flex-shrink: 0;
+  border: 0; border-radius: 20px; cursor: pointer;
+  background: rgba(var(--nu-ink-rgb), 0.06); color: var(--nu-text);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.nx-iconbtn:hover { background: rgba(var(--nu-ink-rgb), 0.1); }
+.nx-iconbtn:active { transform: scale(0.94); }
+.nx-iconbtn--lg { width: 44px; height: 44px; border-radius: 22px; }
+/* The bell is an AntD button; it wears the same soft circle. */
+.nx-top .ant-badge > .ant-btn-circle {
+  width: 40px; height: 40px; min-width: 40px;
+  border: 0; background: rgba(var(--nu-ink-rgb), 0.06); color: var(--nu-text); box-shadow: none;
+}
+.nx-top .ant-badge > .ant-btn-circle:hover { background: rgba(var(--nu-ink-rgb), 0.1) !important; color: var(--nu-text) !important; }
+.nx-top .ant-badge .ant-badge-count { background: var(--nu-accent); color: var(--nu-on-accent); box-shadow: none; top: 4px; inset-inline-end: 3px; }
+.nx-user {
+  height: 40px; padding: 0 10px 0 4px; border: 0; border-radius: 20px; cursor: pointer;
+  background: transparent; color: var(--nu-text); font: inherit; text-align: left;
+  display: flex; align-items: center; gap: 8px;
+}
+.nx-user:hover { background: rgba(var(--nu-ink-rgb), 0.05); }
+.nx-user > span { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.nx-user b { font-size: 13px; font-weight: 600; white-space: nowrap; max-width: 18ch; overflow: hidden; text-overflow: ellipsis; }
+.nx-user small { font-size: 11px; color: var(--nu-text-tertiary); white-space: nowrap; }
+.nx-avatar.ant-avatar { background: var(--nu-accent); color: var(--nu-on-accent); font-weight: 700; flex-shrink: 0; }
+.nx-phone-logo { display: flex; }
+.nx-phone-title { flex: 1; min-width: 0; font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.nx-chips { flex-shrink: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 0 2px; }
+.nx-chips::-webkit-scrollbar { display: none; }
+.nx-chip {
+  height: 40px; flex-shrink: 0; padding: 0 16px; border-radius: 20px;
+  background: rgba(var(--nu-glass-rgb), 0.55); color: var(--nu-text);
+  box-shadow: inset 0 0 0 1px rgba(var(--nu-ink-rgb), 0.08);
+  font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap;
+  display: flex; align-items: center;
+}
+.nx-chip:hover { color: var(--nu-text); background: rgba(var(--nu-glass-rgb), 0.85); }
+.nx-chip.is-on { background: var(--nu-text); color: var(--nu-on-ink); box-shadow: none; }
+
+/* ── phone tab bar and sheet ─────────────────────────────────────────── */
+.nx-tabs {
+  position: absolute; left: 14px; right: 14px; bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  height: 66px; padding: 6px; border-radius: 33px; z-index: 20;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px;
+  animation: nxRise 0.7s var(--nx-ease) 0.3s both;
+}
+.nx-tab {
+  position: relative; border: 0; border-radius: 27px; cursor: pointer;
+  background: transparent; color: var(--nu-text-secondary);
+  font: 600 11px var(--nu-font); text-decoration: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+}
+.nx-tab:hover { color: var(--nu-text); }
+.nx-tab.is-on { background: var(--nu-text); color: var(--nu-on-ink); }
+.nx-tabbadge {
+  position: absolute; top: 5px; left: 50%; margin-left: 6px;
+  min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
+  background: var(--nu-accent); color: var(--nu-on-accent); font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.nx-sheet-scrim {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(var(--nu-ink-rgb), 0.22);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  display: flex; align-items: flex-end; padding: 12px;
+  animation: nxFade 0.25s ease both;
+}
+.nx-sheet {
+  width: 100%; max-height: calc(100dvh - 80px); overflow-y: auto;
+  border-radius: 30px; padding: 14px;
+  display: flex; flex-direction: column; gap: 12px;
+  animation: nxSheetUp 0.45s var(--nx-ease) both;
+}
+.nx-sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
+.nx-sheet-head b { font-size: 17px; }
+.nx-sheet-group h2 { margin: 0 6px 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--nu-text-tertiary); }
+.nx-sheet-group > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+.nx-sheet-item {
+  min-height: 48px; padding: 0 12px; border-radius: 18px;
+  background: rgba(var(--nu-ink-rgb), 0.04); color: var(--nu-text);
+  font-size: 13px; font-weight: 600; text-decoration: none;
+  display: flex; align-items: center; gap: 10px;
+}
+.nx-sheet-item.is-on { background: var(--nu-text); color: var(--nu-on-ink); }
+
+/* ── bands under the header ──────────────────────────────────────────── */
+.nu-impersonation {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 10px 10px 10px 18px; border-radius: 24px;
+  background: var(--nu-warn-bg); color: var(--nu-warn); font-size: 13px;
+  border: 1px solid rgba(var(--nu-ink-rgb), 0.06);
+}
+.nu-impersonation > span { flex: 1; min-width: 200px; }
+.nx-app--phone .nu-impersonation { margin: 12px 12px 0; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Page furniture
+   ═══════════════════════════════════════════════════════════════════════ */
+.nu-content { height: auto; background: transparent; }
+.nu-page-header {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;
+  padding: 6px 6px 0; margin-bottom: 18px;
+  animation: nxBoot 0.9s var(--nx-ease) both;
+}
+.nu-page-header-titles { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.nu-page-title {
+  margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  font-family: var(--nu-font); font-weight: 700;
+  font-size: 34px; line-height: 1.08; letter-spacing: -0.03em; color: var(--nu-text);
+}
+.nu-page-title em, .nx-em { font-style: normal; color: var(--nu-accent); }
+.nu-page-subtitle { margin-top: 0; font-size: 14px; color: var(--nu-text-tertiary); max-width: 90ch; }
+.nu-page-actions.ant-space { gap: 8px !important; }
+.nu-page-actions .ant-btn { height: 44px; padding-inline: 18px; font-size: 14px; }
+.nu-page-actions .ant-btn-default { background: var(--nu-glass); border-color: var(--nu-glass-border); box-shadow: var(--nu-glass-shadow); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); }
+.nu-page-origin { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--nu-accent-ink); }
+.nx-app--tablet .nu-page-title { font-size: 30px; }
+.nx-app--phone .nu-page-title { font-size: 27px; }
+.nx-app--phone .nu-page-header { padding: 4px 4px 0; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Ant Design, in glass
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Cards are the panels. */
+.ant-card:not(.ant-card-type-inner) {
+  background: var(--nu-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--nu-glass-border) !important;
+  border-radius: 28px;
+  box-shadow: var(--nu-glass-shadow);
+  animation: nxRise 0.6s var(--nx-ease) both;
+}
+.ant-card-type-inner, .ant-card .ant-card {
+  background: rgba(var(--nu-ink-rgb), 0.035);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  border: 0 !important; border-radius: 20px; box-shadow: none; animation: none;
+}
+.ant-card-hoverable { transition: transform 0.25s var(--nx-ease), box-shadow 0.25s ease; }
+.ant-card-hoverable:hover { box-shadow: 0 18px 40px rgba(40, 35, 60, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.8); transform: translateY(-2px); }
+.ant-card-head { border-bottom: 0 !important; min-height: 52px; padding-top: 4px; }
+.ant-card-head-title { font-size: 15px; font-weight: 700; letter-spacing: -0.005em; }
+.ant-card-extra a, .ant-card-extra .ant-btn-link { font-weight: 600; }
+.ant-card-actions { background: transparent; border-top: 1px solid rgba(var(--nu-ink-rgb), 0.07); border-radius: 0 0 28px 28px; }
+
+/* Buttons: pills. Primary glows. */
+.ant-btn { font-weight: 600; box-shadow: none; }
+.ant-btn-primary:not(:disabled):not(.ant-btn-dangerous) { box-shadow: 0 10px 22px rgba(var(--nu-glow-rgb), 0.3); }
+.ant-btn-default:not(.ant-btn-dangerous):not(:disabled) { background: rgba(var(--nu-glass-rgb), 0.7); }
+.ant-btn-text:not(:disabled):hover { background: rgba(var(--nu-ink-rgb), 0.06); }
+.ant-btn-icon-only.ant-btn-circle, .ant-btn-icon-only { border-radius: 999px; }
+
+/* Fields: soft pills on a white well. */
+.ant-input-outlined, .ant-input-affix-wrapper-outlined, .ant-input-number-outlined,
+.ant-picker-outlined, .ant-select-outlined:not(.ant-select-customize-input) .ant-select-selector {
+  background: var(--nu-field) !important;
+  border-color: rgba(var(--nu-ink-rgb), 0.12) !important;
+}
+.ant-input-outlined:hover, .ant-input-affix-wrapper-outlined:hover, .ant-picker-outlined:hover,
+.ant-select-outlined:not(.ant-select-disabled):hover .ant-select-selector { border-color: rgba(var(--nu-ink-rgb), 0.24) !important; }
+.ant-input-outlined:focus, .ant-input-outlined:focus-within, .ant-input-affix-wrapper-outlined:focus-within,
+.ant-picker-outlined.ant-picker-focused, .ant-select-focused.ant-select-outlined .ant-select-selector {
+  border-color: var(--nu-accent) !important;
+  box-shadow: 0 0 0 4px rgba(var(--nu-glow-rgb), 0.14) !important;
+}
+textarea.ant-input { border-radius: 18px !important; padding: 10px 14px; }
+.ant-input-filled, .ant-select-filled .ant-select-selector { background: rgba(var(--nu-ink-rgb), 0.06) !important; }
+.ant-select-multiple .ant-select-selection-item { border-radius: 999px; background: var(--nu-tint); border: 0; font-weight: 600; }
+.ant-form-item-label > label { font-weight: 600; font-size: 13px; color: var(--nu-text-secondary); }
+.ant-form-vertical .ant-form-item-label { padding-bottom: 6px; }
+
+/* Dropdowns and popovers are glass too. */
+.ant-dropdown .ant-dropdown-menu, .ant-select-dropdown, .ant-picker-dropdown .ant-picker-panel-container,
+.ant-popover .ant-popover-inner, .ant-cascader-dropdown {
+  background: var(--nu-glass-strong) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--nu-glass-border);
+  box-shadow: 0 24px 60px rgba(40, 35, 60, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+:root[data-theme="dark"] .ant-dropdown .ant-dropdown-menu,
+:root[data-theme="dark"] .ant-select-dropdown,
+:root[data-theme="dark"] .ant-popover .ant-popover-inner,
+:root[data-theme="dark"] .ant-picker-dropdown .ant-picker-panel-container {
+  background: rgba(30, 24, 34, 0.94) !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.ant-dropdown .ant-dropdown-menu { padding: 6px; border-radius: 20px; }
+.ant-dropdown .ant-dropdown-menu-item { border-radius: 14px !important; padding: 8px 12px !important; min-height: 38px; }
+.ant-select-dropdown { padding: 6px; border-radius: 18px; }
+.ant-select-item { border-radius: 12px !important; min-height: 36px; align-items: center; }
+
+/* Modals and drawers: frosted sheets over a blurred page. */
+.ant-modal-mask, .ant-drawer-mask, .ant-image-preview-mask {
+  background: rgba(var(--nu-ink-rgb), 0.18) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  backdrop-filter: blur(8px) saturate(120%);
+}
+:root[data-theme="dark"] .ant-modal-mask, :root[data-theme="dark"] .ant-drawer-mask { background: rgba(0, 0, 0, 0.45) !important; }
+.ant-modal .ant-modal-content {
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(30px) saturate(180%);
+  border: 1px solid var(--nu-glass-border);
+  box-shadow: 0 30px 80px rgba(35, 26, 36, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  padding: 26px 26px 20px;
+}
+:root[data-theme="dark"] .ant-modal .ant-modal-content { box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.14); }
+.ant-modal .ant-modal-title { font-size: 24px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; }
+.ant-modal .ant-modal-header { margin-bottom: 18px; padding-inline-end: 48px; }
+.ant-modal .ant-modal-close {
+  top: 22px; inset-inline-end: 22px; width: 44px; height: 44px; border-radius: 22px;
+  background: rgba(var(--nu-ink-rgb), 0.07);
+}
+.ant-modal .ant-modal-close:hover { background: rgba(var(--nu-ink-rgb), 0.12); }
+.ant-modal .ant-modal-footer { margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(var(--nu-ink-rgb), 0.07); }
+.ant-modal .ant-modal-footer .ant-btn { height: 44px; padding-inline: 20px; }
+.ant-modal .ant-modal-footer .ant-btn-default { background: rgba(var(--nu-ink-rgb), 0.07); border-color: transparent; }
+.ant-modal-confirm .ant-modal-confirm-title { font-size: 20px; font-weight: 700; }
+.ant-drawer .ant-drawer-content-wrapper { box-shadow: none !important; }
+.ant-drawer-right > .ant-drawer-content-wrapper { top: 12px; bottom: 12px; right: 12px; }
+.ant-drawer-left > .ant-drawer-content-wrapper { top: 12px; bottom: 12px; left: 12px; }
+.ant-drawer .ant-drawer-content {
+  border-radius: 30px;
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(30px) saturate(180%);
+  border: 1px solid var(--nu-glass-border);
+  box-shadow: 0 30px 80px rgba(35, 26, 36, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+.ant-drawer-bottom > .ant-drawer-content-wrapper, .ant-drawer-top > .ant-drawer-content-wrapper { left: 12px; right: 12px; }
+.ant-drawer-bottom .ant-drawer-content { border-radius: 30px 30px 0 0; }
+.ant-drawer .ant-drawer-header { border-bottom: 0; padding: 22px 22px 8px; }
+.ant-drawer .ant-drawer-title { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.ant-drawer .ant-drawer-close { width: 40px; height: 40px; border-radius: 20px; background: rgba(var(--nu-ink-rgb), 0.07); margin-inline-end: 12px; }
+.ant-drawer .ant-drawer-footer { border-top: 1px solid rgba(var(--nu-ink-rgb), 0.07); padding: 14px 22px; }
+@media (max-width: 767px) {
+  .ant-drawer-right > .ant-drawer-content-wrapper, .ant-drawer-left > .ant-drawer-content-wrapper { top: 0; bottom: 0; right: 0; left: auto; }
+  .ant-drawer-right .ant-drawer-content, .ant-drawer-left .ant-drawer-content { border-radius: 0; }
+}
+
+/* Tables: rows are soft pills on the panel, the header is small caps. */
+.ant-table-wrapper .ant-table { background: transparent; }
+.ant-table-wrapper .ant-table-container { border: 0 !important; }
+.ant-table-wrapper .ant-table-thead > tr > th, .ant-table-wrapper .ant-table-thead > tr > td {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--nu-text-tertiary);
+  border-bottom: 0 !important; background: transparent !important;
+}
+.ant-table-wrapper .ant-table-thead > tr > th::before { display: none; }
+.ant-table-wrapper .ant-table-tbody > tr > td { border-bottom: 0 !important; transition: background 0.2s ease; }
+.ant-table-wrapper .ant-table-tbody > tr > td:first-child { border-start-start-radius: 18px; border-end-start-radius: 18px; }
+.ant-table-wrapper .ant-table-tbody > tr > td:last-child { border-start-end-radius: 18px; border-end-end-radius: 18px; }
+.ant-table-wrapper .ant-table-tbody > tr.ant-table-row:hover > td { background: var(--nu-raised) !important; }
+.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected > td { background: rgba(var(--nu-glow-rgb), 0.12) !important; }
+.ant-table-wrapper .ant-table-tbody .ant-table-cell-fix-left, .ant-table-wrapper .ant-table-tbody .ant-table-cell-fix-right { background: var(--nu-field) !important; }
+.ant-table-wrapper .ant-table-placeholder .ant-table-cell { background: transparent !important; }
+.ant-table-wrapper .ant-table-pagination { margin: 16px 8px 4px !important; }
+.ant-table-wrapper .ant-table-expanded-row > td { background: rgba(var(--nu-ink-rgb), 0.03) !important; }
+
+/* Tags: soft pills, no outline. */
+.ant-tag { border-radius: 999px; border-color: transparent; font-weight: 600; font-size: 12px; padding-inline: 9px; line-height: 22px; }
+
+/* Tabs. */
+.ant-tabs-top > .ant-tabs-nav::before, .ant-tabs-bottom > .ant-tabs-nav::before { border-bottom-color: rgba(var(--nu-ink-rgb), 0.08) !important; }
+.ant-tabs .ant-tabs-tab { font-weight: 600; }
+.ant-tabs .ant-tabs-ink-bar { height: 3px !important; border-radius: 3px; }
+
+/* Segmented: a soft track with an ink thumb. */
+.ant-segmented { padding: 3px; }
+.ant-segmented .ant-segmented-item-label { font-weight: 600; padding-inline: 14px; }
+.ant-segmented .ant-segmented-item-selected, .ant-segmented .ant-segmented-thumb { box-shadow: none; }
+
+/* Notices: soft, round. */
+.ant-alert { border-radius: 22px; border: 0; padding: 12px 18px; }
+.ant-alert-info { background: rgba(var(--nu-glow-rgb), 0.08); }
+.ant-alert-success { background: var(--nu-ok-bg); }
+.ant-alert-warning { background: var(--nu-warn-bg); }
+.ant-alert-error { background: var(--nu-bad-bg); }
+.ant-message-notice-content { -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); border: 1px solid var(--nu-glass-border); font-weight: 600; padding: 10px 18px !important; }
+.ant-notification-notice { -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); background: var(--nu-glass-strong) !important; border: 1px solid var(--nu-glass-border); }
+
+/* Statistics: big, heavy numbers in the product's own face. */
+.ant-statistic-title { font-size: 13px; font-weight: 600; color: var(--nu-text-tertiary); }
+.ant-statistic-content { font-weight: 700; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; }
+
+/* Lists, descriptions, collapse, odds and ends. */
+.ant-list-split .ant-list-item { border-block-end-color: rgba(var(--nu-ink-rgb), 0.07); }
+.ant-descriptions .ant-descriptions-item-label { color: var(--nu-text-tertiary); font-weight: 500; }
+.ant-descriptions-bordered .ant-descriptions-view { border-radius: 20px; border-color: rgba(var(--nu-ink-rgb), 0.08); }
+.ant-collapse { background: transparent; border: 0; }
+.ant-collapse > .ant-collapse-item { border-bottom: 0; margin-bottom: 6px; background: rgba(var(--nu-ink-rgb), 0.035); border-radius: 20px !important; }
+.ant-collapse .ant-collapse-content { background: transparent; border-top: 0; }
+.ant-empty-description { color: var(--nu-text-tertiary); }
+.ant-progress-bg { border-radius: 999px; }
+.ant-pagination .ant-pagination-item-active a { color: var(--nu-on-ink) !important; }
+.ant-pagination .ant-pagination-item-active { border: 0; }
+.ant-pagination .ant-pagination-item { border-radius: 999px; font-weight: 600; }
+.ant-steps .ant-steps-item-title { font-weight: 600; }
+.ant-tooltip .ant-tooltip-inner { font-size: 12px; font-weight: 500; padding: 6px 10px; }
+.ant-divider { border-color: rgba(var(--nu-ink-rgb), 0.08); }
+.ant-tour .ant-tour-inner { border-radius: 24px !important; }
+.ant-skeleton .ant-skeleton-content .ant-skeleton-title, .ant-skeleton .ant-skeleton-content .ant-skeleton-paragraph > li { border-radius: 999px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-side, .nx-fold-label, .nx-navitem, .nx-group-items { transition: none !important; }
+}

@@ -26,6 +26,10 @@ import {
 
 export type Appearance = "light" | "dark" | "system";
 
+/** The design's dark accent — lavender on plum — and the ink written on it. */
+export const DARK_ACCENT = "#c4b5fd";
+export const DARK_ON_ACCENT = "#1b1230";
+
 export function resolveAppearance(appearance: Appearance): "light" | "dark" {
   if (appearance !== "system") return appearance;
   // Server-side rendering has no window, and jsdom has no matchMedia; the DOM
@@ -45,25 +49,25 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
     token: {
       // Lighter in dark mode: #5b5bd6 on charcoal is legible but heavy, and
       // an accent that has to be hunted for stops being an accent.
-      colorPrimary: dark ? ACCENT[400] : ACCENT[500],
+      colorPrimary: dark ? DARK_ACCENT : ACCENT[500],
       // Links are the accent itself, not the tint AntD derives from it.
       // The derived value (#6666d4) measures 4.47:1 against the off-white a
       // drawer body paints — just under the 4.5:1 body-text threshold (§55),
       // which axe reports as a serious violation on the record preview. The
       // token itself is 5.05:1 there and 5.37:1 on white.
-      colorLink: dark ? ACCENT[300] : ACCENT[500],
-      colorLinkHover: dark ? ACCENT[200] : ACCENT[600],
-      colorLinkActive: dark ? ACCENT[400] : ACCENT[700],
+      colorLink: dark ? DARK_ACCENT : ACCENT[600],
+      colorLinkHover: dark ? "#ddd3fe" : ACCENT[700],
+      colorLinkActive: dark ? "#a996f7" : ACCENT[800],
       colorInfo: SEMANTIC.info,
       colorSuccess: SEMANTIC.success,
       colorWarning: SEMANTIC.warning,
       colorError: SEMANTIC.danger,
 
-      colorBgLayout: dark ? INK[900] : NEUTRAL[100],
+      colorBgLayout: "transparent",
       colorBgContainer: dark ? INK[800] : PAPER,
       colorBgElevated: dark ? INK[750] : PAPER,
-      colorBorder: dark ? INK[600] : NEUTRAL[200],
-      colorBorderSecondary: dark ? INK[650] : NEUTRAL[100],
+      colorBorder: dark ? "rgba(243, 231, 210, 0.16)" : "rgba(27, 30, 38, 0.14)",
+      colorBorderSecondary: dark ? "rgba(243, 231, 210, 0.09)" : "rgba(27, 30, 38, 0.07)",
       colorText: dark ? INK[100] : NEUTRAL[900],
       colorTextSecondary: dark ? INK[300] : NEUTRAL[600],
       colorTextTertiary: dark ? INK[400] : NEUTRAL[500],
@@ -111,14 +115,21 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
       // tool: less air, more rows.
       lineHeight: 1.5,
       wireframe: false,
+      fontWeightStrong: 600,
+      colorFillAlter: dark ? "rgba(243, 231, 210, 0.05)" : "rgba(27, 30, 38, 0.035)",
+      colorFillTertiary: dark ? "rgba(243, 231, 210, 0.07)" : "rgba(27, 30, 38, 0.05)",
+      colorFillSecondary: dark ? "rgba(243, 231, 210, 0.09)" : "rgba(27, 30, 38, 0.07)",
+      controlItemBgActive: dark ? "#352b52" : ACCENT[100],
+      controlItemBgHover: dark ? "rgba(243, 231, 210, 0.07)" : "rgba(27, 30, 38, 0.05)",
+      controlOutline: dark ? "rgba(196, 181, 253, 0.25)" : "rgba(36, 87, 214, 0.18)",
     },
     components: {
       Layout: {
-        headerBg: dark ? INK[850] : PAPER,
+        headerBg: "transparent",
         headerHeight: 56,
-        headerPadding: "0 16px",
-        siderBg: dark ? INK[850] : PAPER,
-        bodyBg: dark ? INK[900] : NEUTRAL[100],
+        headerPadding: "0 8px 0 20px",
+        siderBg: "transparent",
+        bodyBg: "transparent",
       },
       Menu: {
         itemHeight: scale.controlHeight + 4,
@@ -129,10 +140,23 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
       Table: {
         cellPaddingBlock: (scale.rowHeight - scale.fontSize * 1.5) / 2,
         cellPaddingInline: scale.padding,
-        headerBg: dark ? INK[750] : NEUTRAL[50],
+        headerBg: "transparent",
+        headerColor: dark ? INK[300] : NEUTRAL[500],
         headerSplitColor: "transparent",
-        rowHoverBg: dark ? INK[700] : ACCENT[50],
-        borderColor: dark ? INK[650] : NEUTRAL[200],
+        rowHoverBg: dark ? "rgba(255, 255, 255, 0.07)" : "rgba(255, 255, 255, 0.85)",
+        rowSelectedBg: dark ? "rgba(196, 181, 253, 0.16)" : "rgba(36, 87, 214, 0.12)",
+        rowSelectedHoverBg: dark ? "rgba(196, 181, 253, 0.22)" : "rgba(36, 87, 214, 0.16)",
+        borderColor: "transparent",
+        colorBgContainer: "transparent",
+        headerBorderRadius: 0,
+        // Derived from the container colour, which is transparent here — and a
+        // transparent colour darkened is black. Named so a sorted column reads
+        // as the faint tint the design gives it.
+        bodySortBg: dark ? "rgba(255, 255, 255, 0.03)" : "rgba(27, 30, 38, 0.025)",
+        headerSortActiveBg: "transparent",
+        headerSortHoverBg: "transparent",
+        fixedHeaderSortActiveBg: "transparent",
+        headerFilterHoverBg: "transparent",
       },
       Button: {
         // Two colours the dark algorithm derives to just under legible, which
@@ -142,7 +166,18 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
         // A solid primary is white on the derived indigo `#6c6cd3` — 4.45:1,
         // a hundredth under the bar. The accent one step darker carries the
         // same white at 5.37:1 and reads as the same button.
-        colorPrimary: dark ? ACCENT[500] : ACCENT[500],
+        colorPrimary: dark ? DARK_ACCENT : ACCENT[500],
+        primaryColor: dark ? DARK_ON_ACCENT : PAPER,
+        primaryShadow: dark ? "0 10px 22px rgba(196, 181, 253, 0.28)" : "0 10px 22px rgba(36, 87, 214, 0.3)",
+        defaultShadow: "none",
+        dangerShadow: "none",
+        fontWeight: 600,
+        borderRadius: 999,
+        borderRadiusLG: 999,
+        borderRadiusSM: 999,
+        paddingInline: 18,
+        defaultBg: dark ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.7)",
+        defaultBorderColor: dark ? "rgba(255, 255, 255, 0.16)" : "rgba(27, 30, 38, 0.1)",
         // The *fill* of a solid danger button, in both appearances.
         //
         // This was the dark ink (`#f87171`) to fix the outlined button's
@@ -165,7 +200,12 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
       // illegible, and axe only found it on the first page that shows a column
       // of them. Slate at 7.6:1 (§55, §64), asserted in `contrast.test.ts`.
       Avatar: { colorTextPlaceholder: AVATAR_GROUND },
-      Card: { paddingLG: scale.padding + 4 },
+      Card: {
+        paddingLG: scale.padding + 6,
+        colorBgContainer: "transparent",
+        headerFontSize: 15,
+        headerBg: "transparent",
+      },
       Descriptions: { itemPaddingBottom: scale.padding },
       Tabs: {
         horizontalMargin: "0 0 12px 0",
@@ -173,13 +213,48 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
         // algorithm's derivation, which lands on #6c6cd3 — 3.75:1 against a
         // charcoal panel, under the 4.5:1 body-text threshold at 13px (§55).
         // Named, it is 6.5:1 in dark and 5.4:1 in light.
-        itemSelectedColor: dark ? ACCENT[300] : ACCENT[500],
-        itemHoverColor: dark ? ACCENT[200] : ACCENT[600],
-        inkBarColor: dark ? ACCENT[300] : ACCENT[500],
+        itemSelectedColor: dark ? INK[100] : NEUTRAL[900],
+        itemColor: dark ? INK[200] : NEUTRAL[600],
+        itemHoverColor: dark ? INK[100] : NEUTRAL[900],
+        inkBarColor: dark ? DARK_ACCENT : ACCENT[500],
+        titleFontSize: 14,
       },
-      Tooltip: { colorBgSpotlight: dark ? INK[700] : NEUTRAL[800] },
-      Modal: { borderRadiusLG: RADIUS.modal },
-      Drawer: { paddingLG: 16 },
+      Tooltip: { colorBgSpotlight: dark ? INK[600] : NEUTRAL[900], borderRadius: 10 },
+      Modal: {
+        borderRadiusLG: RADIUS.modal,
+        contentBg: dark ? "rgba(30, 24, 34, 0.92)" : "rgba(255, 255, 255, 0.86)",
+        headerBg: "transparent",
+        footerBg: "transparent",
+        titleFontSize: 22,
+      },
+      Drawer: { paddingLG: 20, colorBgElevated: dark ? "rgba(30, 24, 34, 0.92)" : "rgba(255, 255, 255, 0.86)" },
+      Input: { borderRadius: 999, borderRadiusLG: 999, borderRadiusSM: 999, paddingInline: 14, activeShadow: "none" },
+      InputNumber: { borderRadius: 999, borderRadiusLG: 999, borderRadiusSM: 999, activeShadow: "none" },
+      Select: { borderRadius: 999, borderRadiusLG: 999, borderRadiusSM: 999, optionSelectedBg: dark ? "#352b52" : ACCENT[100], optionSelectedFontWeight: 600 },
+      DatePicker: { borderRadius: 999, borderRadiusLG: 999, borderRadiusSM: 999, activeShadow: "none" },
+      Segmented: {
+        borderRadius: 999,
+        borderRadiusLG: 999,
+        borderRadiusSM: 999,
+        trackBg: dark ? "rgba(243, 231, 210, 0.07)" : "rgba(27, 30, 38, 0.06)",
+        itemSelectedBg: dark ? INK[100] : NEUTRAL[900],
+        itemSelectedColor: dark ? "#211019" : PAPER,
+        itemColor: dark ? INK[200] : NEUTRAL[600],
+        trackPadding: 3,
+      },
+      Tag: { borderRadiusSM: 999, defaultBg: dark ? "rgba(243, 231, 210, 0.08)" : "rgba(27, 30, 38, 0.06)" },
+      Dropdown: { borderRadiusLG: 20, borderRadiusSM: 12, paddingBlock: 8, controlItemBgHover: dark ? "rgba(243, 231, 210, 0.07)" : "rgba(27, 30, 38, 0.05)" },
+      Popover: { borderRadiusLG: 22 },
+      Pagination: { borderRadius: 999, itemActiveBg: dark ? INK[100] : NEUTRAL[900] },
+      Badge: { colorError: dark ? "#e9776f" : ACCENT[500], textFontWeight: 700 },
+      Checkbox: { borderRadiusSM: 6 },
+      Progress: { remainingColor: dark ? "rgba(243, 231, 210, 0.1)" : "rgba(27, 30, 38, 0.08)" },
+      Alert: { borderRadiusLG: 20 },
+      Collapse: { borderRadiusLG: 22, headerBg: "transparent" },
+      Steps: { dotSize: 10 },
+      Statistic: { contentFontSize: 32 },
+      Message: { contentBg: dark ? "rgba(30, 24, 34, 0.94)" : "rgba(255, 255, 255, 0.94)", borderRadiusLG: 999 },
+      Notification: { borderRadiusLG: 22 },
     },
   };
 }
@@ -196,20 +271,52 @@ export function cssVariables(appearance: Appearance, density: Density): Record<s
   const dark = mode === "dark";
 
   return {
-    "--nu-accent": dark ? ACCENT[400] : ACCENT[500],
+    "--nu-accent": dark ? DARK_ACCENT : ACCENT[500],
+    "--nu-on-accent": dark ? DARK_ON_ACCENT : PAPER,
+    "--nu-glow-rgb": dark ? "196, 181, 253" : "36, 87, 214",
+    "--nu-ink-rgb": dark ? "243, 231, 210" : "27, 30, 38",
+    "--nu-glass-rgb": dark ? "34, 26, 38" : "255, 255, 255",
+    "--nu-raised": dark ? "rgba(255, 255, 255, 0.12)" : PAPER,
+    "--nu-on-ink": dark ? "#211019" : PAPER,
+    "--nu-tint": dark ? "#352b52" : ACCENT[100],
+    "--nu-ring": dark ? "#221a26" : PAPER,
+    "--nu-field": dark ? "rgba(34, 26, 38, 0.8)" : "rgba(255, 255, 255, 0.85)",
+    "--nu-ok": dark ? "#abd7bc" : "#1f6b40",
+    "--nu-ok-bg": dark ? "rgba(171, 215, 188, 0.15)" : "rgba(46, 125, 79, 0.12)",
+    "--nu-ok-fill": dark ? "#7cc59a" : "#3e9b66",
+    "--nu-warn": dark ? "#f0c698" : "#8a5208",
+    "--nu-warn-bg": dark ? "rgba(240, 198, 152, 0.14)" : "rgba(196, 128, 20, 0.14)",
+    "--nu-warn-fill": dark ? "#e3ae6a" : "#d99a2b",
+    "--nu-bad": dark ? "#f5a5a0" : "#b42318",
+    "--nu-bad-bg": dark ? "rgba(245, 165, 160, 0.14)" : "rgba(180, 35, 24, 0.1)",
+    "--nu-bad-fill": dark ? "#e9776f" : "#d9483b",
+    "--nu-glass": dark
+      ? "linear-gradient(140deg, rgba(255, 255, 255, 0.138) 0%, rgba(255, 255, 255, 0.042) 100%), rgba(20, 14, 26, 0.475)"
+      : "rgba(255, 255, 255, 0.55)",
+    "--nu-glass-strong": dark
+      ? "linear-gradient(140deg, rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0.05) 100%), rgba(20, 14, 26, 0.6)"
+      : "rgba(255, 255, 255, 0.78)",
+    "--nu-glass-border": dark ? "rgba(255, 255, 255, 0.16)" : "rgba(255, 255, 255, 0.85)",
+    "--nu-glass-shadow": dark
+      ? "0 18px 44px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.22)"
+      : "0 14px 36px rgba(40, 35, 60, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.8)",
+    "--nu-lift": dark ? "0 2px 12px rgba(0, 0, 0, 0.4)" : "0 2px 12px rgba(40, 35, 60, 0.10)",
+    "--nu-page-bg": dark
+      ? "radial-gradient(ellipse 55% 45% at 88% 0%, rgba(196, 181, 253, 0.32) 0%, rgba(196, 181, 253, 0) 70%), radial-gradient(ellipse 45% 50% at 6% 100%, rgba(36, 87, 214, 0.30) 0%, rgba(36, 87, 214, 0) 70%), #120e14"
+      : "radial-gradient(ellipse 55% 45% at 88% 0%, #d9e4fa 0%, rgba(217, 228, 250, 0) 70%), radial-gradient(ellipse 45% 50% at 6% 100%, #e7e5f6 0%, rgba(231, 229, 246, 0) 70%), #f6f7f9",
     // The readable half of the accent, for *text* — the same split `SEMANTIC`
     // and `SEMANTIC_INK` have, and for the same reason. The accent as a fill
     // is `#7c7cf5` in dark, which is 5.17:1 on a card and **4.21:1 on the
     // accent-soft tint** an unread row is painted with. A link inside a
     // highlighted row is precisely where accent text appears, so the one
     // ground it has to survive is the one it failed on (§55).
-    "--nu-accent-ink": dark ? ACCENT[300] : ACCENT[700],
-    "--nu-accent-soft": dark ? "rgba(124, 124, 245, 0.16)" : ACCENT[50],
+    "--nu-accent-ink": dark ? DARK_ACCENT : ACCENT[600],
+    "--nu-accent-soft": dark ? "rgba(196, 181, 253, 0.14)" : "rgba(36, 87, 214, 0.08)",
     "--nu-bg": dark ? INK[900] : NEUTRAL[100],
-    "--nu-surface": dark ? INK[800] : PAPER,
+    "--nu-surface": dark ? "rgba(30, 24, 34, 0.72)" : "rgba(255, 255, 255, 0.72)",
     "--nu-surface-raised": dark ? INK[750] : PAPER,
-    "--nu-border": dark ? INK[650] : NEUTRAL[200],
-    "--nu-border-subtle": dark ? INK[700] : NEUTRAL[100],
+    "--nu-border": dark ? "rgba(243, 231, 210, 0.14)" : "rgba(27, 30, 38, 0.1)",
+    "--nu-border-subtle": dark ? "rgba(243, 231, 210, 0.08)" : "rgba(27, 30, 38, 0.06)",
     "--nu-text": dark ? INK[100] : NEUTRAL[900],
     "--nu-text-secondary": dark ? INK[300] : NEUTRAL[600],
     "--nu-text-tertiary": dark ? INK[400] : NEUTRAL[500],
@@ -243,6 +350,6 @@ export function cssVariables(appearance: Appearance, density: Density): Record<s
     // A hand-built surface needs the strong border too — the D3 graphs and the
     // notification rows draw with it.
     "--nu-border-strong": dark ? INK[600] : NEUTRAL[300],
-    "--nu-hover": dark ? INK[700] : NEUTRAL[100],
+    "--nu-hover": dark ? "rgba(243, 231, 210, 0.07)" : "rgba(27, 30, 38, 0.05)",
   };
 }

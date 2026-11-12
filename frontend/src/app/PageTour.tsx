@@ -25,11 +25,12 @@
 import { Button, Tooltip, Tour, type TourProps } from "antd";
 import { QuestionCircleOutlined } from "@ant-design/icons";
 import { useState } from "react";
+import { NxIcon } from "@/components/NxIcon";
 import { useLocation } from "react-router-dom";
 
 import { tourFor } from "./tours";
 
-export function PageTour() {
+export function PageTour({ variant = "circle" }: { variant?: "circle" | "side" | "rail" } = {}) {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const stops = tourFor(location.pathname);
@@ -66,14 +67,28 @@ export function PageTour() {
       >
         {/* Disabled rather than hidden: a button that disappears on some pages
             leaves somebody wondering whether help exists at all (§76). */}
-        <Button
-          shape="circle"
-          aria-label="Help"
-          data-testid="page-tour"
-          disabled={!stops || steps.length === 0}
-          icon={<QuestionCircleOutlined />}
-          onClick={() => setOpen(true)}
-        />
+        {variant === "circle" ? (
+          <Button
+            shape="circle"
+            aria-label="Help"
+            data-testid="page-tour"
+            disabled={!stops || steps.length === 0}
+            icon={<QuestionCircleOutlined />}
+            onClick={() => setOpen(true)}
+          />
+        ) : (
+          <button
+            type="button"
+            className={`nx-help nx-help--${variant}`}
+            aria-label="Help"
+            data-testid="page-tour"
+            disabled={!stops || steps.length === 0}
+            onClick={() => setOpen(true)}
+          >
+            <NxIcon name="help" />
+            <span className="nx-fold-label">Help &amp; page tour</span>
+          </button>
+        )}
       </Tooltip>
 
       <Tour

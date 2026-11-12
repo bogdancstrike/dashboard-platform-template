@@ -18,20 +18,18 @@
  */
 
 export const NEUTRAL = {
-  50: "#f8fafc",
-  100: "#f1f5f9",
-  200: "#e2e8f0",
-  300: "#cbd5e1",
-  400: "#94a3b8",
-  // Darkened from #64748b, which cleared 4.5:1 on a card (4.76) and missed it
-  // on the *page* ground (4.34) — and tertiary text lands on both. See
-  // `theme/contrast.test.ts`, which is what caught it.
-  500: "#5f6e85",
-  600: "#475569",
-  700: "#334155",
-  800: "#1e293b",
-  900: "#0f172a",
-  950: "#020617",
+  50: "#f6f7f9",
+  100: "#eef0f3",
+  200: "#e4e6eb",
+  300: "#cdd1d8",
+  400: "#9aa0ab",
+  // The design's `muted` ink — 5.6:1 on the page ground and on glass.
+  500: "#5c6370",
+  600: "#3f4552",
+  700: "#2c313b",
+  800: "#262a33",
+  900: "#1b1e26",
+  950: "#0f1116",
 } as const;
 
 /**
@@ -47,24 +45,19 @@ export const NEUTRAL = {
  * play the same structural role in their respective modes.
  */
 export const INK = {
-  950: "#08090c",
-  900: "#0b0c10",
-  850: "#0e0f14",
-  800: "#15171c",
-  750: "#1b1e24",
-  700: "#232730",
-  650: "#262a33",
-  600: "#343a45",
-  500: "#4a515e",
-  // Raised from #6b7383, which axe caught on a `Descriptions` label: 3.76:1
-  // against the dark panel, under the 4.5:1 text threshold (§55, §64). AntD
-  // uses `colorTextTertiary` for label text, not only for hints, so the ramp
-  // has to hold at 4.5 all the way down. #7d8595 is 4.83:1 and still a step
-  // quieter than INK[300].
-  400: "#7d8595",
-  300: "#9aa2b1",
-  200: "#c3c8d2",
-  100: "#e8eaf0",
+  950: "#0a070c",
+  900: "#120e14",
+  850: "#17121a",
+  800: "#1e1822",
+  750: "#241d29",
+  700: "#2c2331",
+  650: "#322839",
+  600: "#3a2e3e",
+  500: "#5a4c5f",
+  400: "#a398a8",
+  300: "#b9afbe",
+  200: "#d6ccd9",
+  100: "#f3e7d2",
 } as const;
 
 /**
@@ -86,29 +79,29 @@ export const PAPER = "#ffffff";
  * "fixing" the mark when they retune the accent.
  */
 export const LOGO = {
-  ring: "#8b8bf0",
-  core: "#5b5bd6",
-  spark: "#22d3ee",
+  ring: "#2457d6",
+  core: "#2457d6",
+  spark: "#2457d6",
 } as const;
 
 export const ACCENT = {
-  50: "#eeeefc",
-  100: "#dcdcf9",
-  200: "#bcbcf3",
-  300: "#9a9aec",
-  400: "#7c7cf5",
-  500: "#5b5bd6",
-  600: "#4a4ac0",
-  700: "#4338ca",
-  800: "#332f96",
-  900: "#272470",
+  50: "#eef3fd",
+  100: "#dce5fa",
+  200: "#b9ccf4",
+  300: "#8eadec",
+  400: "#5a86e2",
+  500: "#2457d6",
+  600: "#1e4bb8",
+  700: "#1a3f9a",
+  800: "#15337c",
+  900: "#10275e",
 } as const;
 
 export const SEMANTIC = {
-  success: "#16a34a",
-  warning: "#ca8a04",
-  danger: "#dc2626",
-  info: "#0891b2",
+  success: "#3e9b66",
+  warning: "#d99a2b",
+  danger: "#d9483b",
+  info: "#2b8bb3",
   neutral: NEUTRAL[500],
 } as const;
 
@@ -134,7 +127,7 @@ export const SEMANTIC = {
  * appearances on purpose: an avatar is an identity marker and should not
  * change colour when somebody switches theme.
  */
-export const AVATAR_GROUND = "#475569";
+export const AVATAR_GROUND = "#2457d6";
 
 export const SEMANTIC_INK = {
   light: {
@@ -159,16 +152,16 @@ export const SEMANTIC_INK = {
     //
     // Small text at 10px — a tag under compact density — is held to 4.5:1,
     // and none of these is ever the *only* carrier of its meaning (§64).
-    success: "#166534",
-    warning: "#854d0e",
-    danger: "#b91c1c",
+    success: "#1f6b40",
+    warning: "#8a5208",
+    danger: "#b42318",
     info: "#155e75",
   },
   dark: {
-    success: "#4ade80",
-    warning: "#fbbf24",
-    danger: "#f87171",
-    info: "#22d3ee",
+    success: "#abd7bc",
+    warning: "#f0c698",
+    danger: "#f5a5a0",
+    info: "#9fd8e6",
   },
 } as const;
 
@@ -180,7 +173,7 @@ export const SEMANTIC_INK = {
  * still separates the first four series, which is as many as most charts have.
  */
 export const SERIES = [
-  "#5b5bd6",
+  "#2457d6",
   "#0891b2",
   "#16a34a",
   "#ca8a04",
@@ -303,7 +296,7 @@ export function categoryColor(value: string | null | undefined, index: number): 
   return knownStatusColor(value) ?? SERIES[index % SERIES.length] ?? SERIES[0];
 }
 
-export const RADIUS = { control: 4, card: 6, modal: 8, pill: 999 } as const;
+export const RADIUS = { control: 12, card: 28, modal: 30, pill: 999 } as const;
 
 /** 4px base unit. Anything not on this scale is a mistake, not a nuance. */
 export const SPACE = [0, 4, 8, 12, 16, 24, 32, 48] as const;
@@ -328,9 +321,9 @@ export const DENSITY: Record<
   Density,
   { rowHeight: number; controlHeight: number; fontSize: number; padding: number }
 > = {
-  compact: { rowHeight: 32, controlHeight: 28, fontSize: 13, padding: 8 },
-  middle: { rowHeight: 40, controlHeight: 32, fontSize: 14, padding: 12 },
-  comfortable: { rowHeight: 52, controlHeight: 40, fontSize: 14, padding: 16 },
+  compact: { rowHeight: 40, controlHeight: 32, fontSize: 13, padding: 10 },
+  middle: { rowHeight: 52, controlHeight: 40, fontSize: 14, padding: 14 },
+  comfortable: { rowHeight: 58, controlHeight: 44, fontSize: 14, padding: 16 },
 };
 
 export const LAYOUT = {
@@ -352,10 +345,10 @@ export const MOTION = {
 } as const;
 
 export const SHADOW = {
-  sm: "0 1px 2px rgba(15, 23, 42, 0.06)",
-  md: "0 2px 8px rgba(15, 23, 42, 0.08)",
-  lg: "0 8px 24px rgba(15, 23, 42, 0.12)",
-  xl: "0 16px 48px rgba(15, 23, 42, 0.18)",
+  sm: "0 2px 12px rgba(40, 35, 60, 0.08)",
+  md: "0 14px 36px rgba(40, 35, 60, 0.11)",
+  lg: "0 24px 60px rgba(40, 35, 60, 0.16)",
+  xl: "0 30px 80px rgba(35, 26, 36, 0.24)",
 } as const;
 
 /**
