@@ -64,6 +64,9 @@ import { useBoardDrag } from "@/components/kanban/useBoardDrag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
+/** The address keys that are places rather than adjustments (§history). */
+const PLACES = new Set(["board", "card"]);
+
 export default function KanbanPage() {
   const [params, setParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -93,7 +96,9 @@ export default function KanbanPage() {
         }
         return next;
       },
-      { replace: true },
+      // Where the reader *is* ("board", "card") is a place back returns to, so it
+      // is pushed; everything else is an adjustment and replaces.
+      { replace: !Object.entries(changes).some(([key, value]) => PLACES.has(key) && value) },
     );
 
   const boards = useQuery({

@@ -61,6 +61,9 @@ import { StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 
+/** The address keys that are places rather than adjustments (§history). */
+const PLACES = new Set(["rule"]);
+
 const { Text } = Typography;
 
 /**
@@ -108,7 +111,9 @@ export default function WorkflowsPage() {
         }
         return next;
       },
-      { replace: true },
+      // Where the reader *is* ("rule") is a place back returns to, so it
+      // is pushed; everything else is an adjustment and replaces.
+      { replace: !Object.entries(changes).some(([key, value]) => PLACES.has(key) && value) },
     );
 
   const catalogue = useQuery({

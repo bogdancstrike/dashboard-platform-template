@@ -5,6 +5,7 @@ import { DownloadOutlined, LinkOutlined } from "@ant-design/icons";
 import { filesApi, readableSize, type StoredFile } from "@/api/files";
 import { EmptyState } from "@/components/EmptyState";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { URL_OVERLAY } from "@/app/history";
 
 const { Text, Paragraph } = Typography;
 
@@ -88,6 +89,8 @@ export function FilePreview({
 
   return (
     <Drawer
+      // Its state is in the address (pushed), so the router owns back for it.
+      rootClassName={URL_OVERLAY}
       open={open}
       onClose={onClose}
       width={720}

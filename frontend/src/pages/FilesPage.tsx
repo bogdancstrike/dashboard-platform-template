@@ -106,7 +106,8 @@ export default function FilesPage() {
         replacement.set("folder", next);
         return replacement;
       },
-      { replace: true },
+      // A folder is a place: back returns to the one before.
+      { replace: false },
     );
   /**
    * Which file the pane is showing — in the *address*, not in state (§69).
@@ -123,7 +124,9 @@ export default function FilesPage() {
         else replacement.delete("file");
         return replacement;
       },
-      { replace: true },
+      // Opening the preview is a place back closes; closing it replaces, so
+      // the entry it opened is not left behind twice.
+      { replace: !next },
     );
   const [search, setSearch] = useState("");
   const [transfers, setTransfers] = useState<Transfer[]>([]);

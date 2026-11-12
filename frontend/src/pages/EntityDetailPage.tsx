@@ -218,7 +218,7 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
               else next.set("tab", key);
               return next;
             },
-            { replace: true },
+            { replace: false },
           )
         }
         items={[

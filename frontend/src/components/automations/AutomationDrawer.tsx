@@ -60,6 +60,7 @@ import { AuditTimeline } from "@/components/audit/AuditTimeline";
 import { ActionListEditor } from "@/components/automations/ActionListEditor";
 import { RunReport } from "@/components/automations/RunReport";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { URL_OVERLAY } from "@/app/history";
 
 const { Text, Title } = Typography;
 
@@ -156,6 +157,8 @@ export function AutomationDrawer({
 
   return (
     <Drawer
+      // Its state is in the address (pushed), so the router owns back for it.
+      rootClassName={URL_OVERLAY}
       open={ruleId !== null}
       width={760}
       onClose={onClose}

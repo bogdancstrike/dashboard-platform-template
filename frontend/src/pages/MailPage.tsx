@@ -80,6 +80,9 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { usePreferences } from "@/settings/PreferencesProvider";
 import { EmptyState } from "@/components/EmptyState";
 
+/** The address keys that are places rather than adjustments (§history). */
+const PLACES = new Set(["thread", "folder", "label"]);
+
 const { Text } = Typography;
 
 const FOLDERS: MailFolder[] = [
@@ -131,7 +134,9 @@ export default function MailPage() {
         }
         return next;
       },
-      { replace: true },
+      // Where the reader *is* ("thread", "folder", "label") is a place back returns to, so it
+      // is pushed; everything else is an adjustment and replaces.
+      { replace: !Object.entries(changes).some(([key, value]) => PLACES.has(key) && value) },
     );
 
   const profile = useQuery({

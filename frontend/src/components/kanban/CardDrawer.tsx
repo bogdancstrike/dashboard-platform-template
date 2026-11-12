@@ -48,6 +48,7 @@ import { CommentThread } from "@/components/comments/CommentThread";
 import { PeoplePicker } from "@/components/PeoplePicker";
 import { KIND_LABELS } from "@/components/kanban/KanbanCardTile";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { URL_OVERLAY } from "@/app/history";
 
 const { Text, Title } = Typography;
 
@@ -137,6 +138,8 @@ export function CardDrawer({
 
   return (
     <Drawer
+      // Its state is in the address (pushed), so the router owns back for it.
+      rootClassName={URL_OVERLAY}
       open={cardId !== null}
       width={620}
       onClose={onClose}
