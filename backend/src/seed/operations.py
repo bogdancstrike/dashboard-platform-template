@@ -932,7 +932,7 @@ def _audit_and_activity(world: World) -> None:
         resource_type, resource_id, label, organization_id = rng.pick(
             by_dataset[rng.pick(datasets)]
         )
-        occurred = rng.business_hour(rng.recent(days=180))
+        occurred = rng.past_business_hour(rng.recent(days=180))
         result = rng.weighted((("SUCCESS", 0.9), ("FAILURE", 0.05), ("DENIED", 0.04), ("PARTIAL", 0.01)))
 
         before, after = _change_for(rng, action, resource_type)

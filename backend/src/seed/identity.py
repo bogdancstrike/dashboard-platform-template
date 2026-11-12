@@ -575,7 +575,7 @@ def _login_events(world: World) -> None:
                 # added there has to be given a weight here rather than
                 # silently never appearing.
                 method=rng.weighted(weighted(vocabulary.LOGIN_METHOD, (0.62, 0.28, 0.1))),
-                created_at=rng.business_hour(rng.recent(days=120)),
+                created_at=rng.past_business_hour(rng.recent(days=120)),
             )
         )
 

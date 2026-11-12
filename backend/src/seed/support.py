@@ -156,6 +156,19 @@ class Rng:
             microsecond=0,
         )
 
+    def past_business_hour(self, moment: datetime) -> datetime:
+        """`business_hour` for something that has already *happened*.
+
+        Moving a moment from this morning to a random working hour can move it
+        past the anchor — an audit entry or a sign-in dated an hour after the
+        seed ran, which the activity feed then shows as "in 1 hour". Such a
+        moment goes back a day instead: still recent, never in the future.
+        """
+        placed = self.business_hour(moment)
+        while placed > self.anchor:
+            placed -= timedelta(days=1)
+        return placed
+
 
 # ── formatting helpers ───────────────────────────────────────────────────
 
