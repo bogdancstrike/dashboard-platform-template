@@ -93,7 +93,8 @@ export default function AnnouncementsPage() {
         }
         return next;
       },
-      { replace: true },
+      // The board's tabs and categories are places; back returns through them.
+      { replace: !("view" in changes || "category" in changes || "history" in changes) },
     );
 
   const feed = useQuery({

@@ -105,7 +105,9 @@ export default function ActivityPage() {
         if (!("page" in changes)) next.delete("page");
         return next;
       },
-      { replace: true },
+      // Narrowing to a kind or a person is a place back returns from; the
+      // period and paging are tweaks to the same place.
+      { replace: !("kind" in changes || "actor_id" in changes) },
     );
 
   const feed = useQuery({

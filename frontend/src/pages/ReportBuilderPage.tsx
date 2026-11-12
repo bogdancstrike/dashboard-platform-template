@@ -89,6 +89,7 @@ import {
   type ReportDocument,
 } from "@/api/reportDocuments";
 import { PageHeader } from "@/components/PageHeader";
+import { useSmartBack } from "@/app/history";
 import { BLOCK_SPECS, BLOCK_ORDER, newBlock } from "@/components/documents/blocks";
 import { BlockPreview, type Capturable } from "@/components/documents/DocumentBlocks";
 import { ChartKindStrip } from "@/components/charts/ChartKindStrip";
@@ -169,6 +170,7 @@ export default function ReportBuilderPage() {
     charts.current.clear();
   }, [stored?.id, storedAt]);
 
+  const back = useSmartBack();
   const open = (id: string) =>
     setParams(
       (current) => {
@@ -177,7 +179,8 @@ export default function ReportBuilderPage() {
         else next.delete("doc");
         return next;
       },
-      { replace: true },
+      // Pushed: opening a document is a place, so back closes it.
+      { replace: false },
     );
 
   const failed = (error: unknown) =>
@@ -496,7 +499,7 @@ export default function ReportBuilderPage() {
     <>
       <PageHeader
         title={stored?.name ?? "Document"}
-        onBack={() => open("")}
+        onBack={() => back(() => open(""))}
         subtitle={[
           stored?.owner.name,
           `${blocks.length} ${blocks.length === 1 ? "block" : "blocks"}`,

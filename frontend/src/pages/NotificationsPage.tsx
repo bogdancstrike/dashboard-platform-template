@@ -339,7 +339,7 @@ export default function NotificationsPage() {
       <NotificationDigest
         counts={listing.data}
         active={activeTile}
-        onFilter={(filter) => set({ ...filter, group_key: null, page: null })}
+        onFilter={(filter) => set({ ...filter, group_key: null, page: null }, false)}
       />
 
       <Card size="small" className="nu-filter-bar nx-ov-feedfilters">
@@ -348,7 +348,7 @@ export default function NotificationsPage() {
             options={READ_STATES}
             value={read}
             aria-label="Read state"
-            onChange={(value) => set({ read: String(value) === "all" ? null : String(value), page: null })}
+            onChange={(value) => set({ read: String(value) === "all" ? null : String(value), page: null }, false)}
           />
           <Select
             mode="multiple"

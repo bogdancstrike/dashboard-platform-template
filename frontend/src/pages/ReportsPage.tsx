@@ -129,7 +129,8 @@ export default function ReportsPage() {
         next.set("report", id);
         return next;
       },
-      { replace: true },
+      // Pushed: each report opened is a place back returns to.
+      { replace: false },
     );
 
   const duplicate = useMutation({

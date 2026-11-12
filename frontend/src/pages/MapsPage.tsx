@@ -26,7 +26,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Alert, App as AntApp, Button, Card, Col, Row, Select, Skeleton, Space, Table, Tag, Typography } from "antd";
-import { useState } from "react";
+import { useMemo } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -117,8 +117,8 @@ export default function MapsPage() {
   });
 
   /** Where the side list last flew the map, and which place that was. */
-  const [focus, setFocus] = useState<{ longitude: number; latitude: number; zoom?: number } | null>(null);
-  const [focusKey, setFocusKey] = useState("");
+  // In the address and pushed, so back returns the map to where it was.
+  const focusKey = params.get("place") ?? "";
 
   const here = () => `${location.pathname}${location.search}`;
   const drill = DRILL[dataset];
@@ -180,6 +180,15 @@ export default function MapsPage() {
       onOk: () => openCountry(mapName),
     });
   };
+
+  const focusPoint = places.data?.points.find((item) => item.city === focusKey);
+  const focus = useMemo(
+    () =>
+      focusPoint
+        ? { longitude: focusPoint.longitude, latitude: focusPoint.latitude, zoom: 7 }
+        : { longitude: 8, latitude: 38, zoom: 2.4 },
+    [focusPoint],
+  );
 
   usePageCommands("maps", [
     {
@@ -355,10 +364,16 @@ export default function MapsPage() {
                   <button
                     type="button"
                     className={`nx-ov-place${focusKey === point.city ? " is-on" : ""}`}
-                    onClick={() => {
-                      setFocusKey(point.city);
-                      setFocus({ longitude: point.longitude, latitude: point.latitude, zoom: 7 });
-                    }}
+                    onClick={() =>
+                      setParams(
+                        (current) => {
+                          const next = new URLSearchParams(current);
+                          next.set("place", point.city);
+                          return next;
+                        },
+                        { replace: false },
+                      )
+                    }
                     aria-label={`Show ${point.city} on the map`}
                   >
                     <span className="nx-ov-place-dot" aria-hidden />
