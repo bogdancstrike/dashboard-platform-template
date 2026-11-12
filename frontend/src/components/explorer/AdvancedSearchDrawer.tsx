@@ -27,7 +27,6 @@ import { useSticky } from "@/hooks/useSticky";
 
 import { ConditionBuilder } from "./ConditionBuilder";
 import { treeStats } from "./conditionTree";
-import { FdIcon } from "./fdIcons";
 import { countRules, emptyTree, type QueryNode } from "./queryTree";
 
 const { Text, Paragraph } = Typography;
@@ -58,11 +57,11 @@ export function AdvancedSearchDrawer(props: AdvancedSearchDrawerProps) {
       // at 920 pixels a group three deep put its value field in a column two
       // words wide — so the editor's own shape was arguing with the thing
       // being edited.
-      width="min(860px, 100vw)"
+      width="min(620px, 100vw)"
       rootClassName="nx-fd-advdrawer"
       title={
         <div className="nx-fd-dhead">
-          <span className="nx-fd-dtitle">Advanced <em className="nx-em">conditions</em></span>
+          <span className="nx-fd-dtitle">Rules</span>
           {props.datasetLabel && (
             <span className="nx-fd-dsub">
               {props.datasetLabel}
@@ -81,7 +80,7 @@ export function AdvancedSearchDrawer(props: AdvancedSearchDrawerProps) {
   );
 }
 
-function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, datasetLabel, onOpenSaved }: AdvancedSearchDrawerProps) {
+function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, recordCount, onOpenSaved }: AdvancedSearchDrawerProps) {
   const [draft, setDraft] = useState<QueryNode | null>(request.condition_tree ?? null);
 
   // Same endpoint, same shape, first page only: the preview is the search.
@@ -104,7 +103,7 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, datase
    * have closed it, it stays closed — a tutorial that reappears every time is
    * an alert.
    */
-  const [helpOpen, setHelpOpen] = useSticky<boolean>("explore.advanced.help", true);
+  const [helpOpen, setHelpOpen] = useSticky<boolean>("explore.advanced.help", false);
 
   const rules = countRules(draft);
   const stats = treeStats(draft);
@@ -113,9 +112,18 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, datase
 
   return (
     <div className="nu-advanced-search nx-fd-advbody">
-      <div className="nx-fd-dscope">
-        <span className="nx-fd-muted">Searching in</span>
-        <span className="nx-fd-chip"><FdIcon name="table" size={13} />{datasetLabel ?? request.resource_type}</span>
+      <div className="nx-fd-dcount">
+        <Statistic
+          className="nu-advanced-count"
+          data-testid="preview-count"
+          title={settling ? "Previewing…" : rules === 1 ? "1 rule matches" : `${rules} rules match`}
+          value={preview.data?.total ?? 0}
+          suffix={`of ${(recordCount ?? 0).toLocaleString()}`}
+          valueStyle={{ fontSize: 22 }}
+        />
+        {stats.incomplete > 0 && (
+          <span className="nx-fd-muted nx-fd-small">{stats.incomplete} unfinished, skipped</span>
+        )}
         {onOpenSaved && (
           <button type="button" className="nx-fd-link nx-fd-push" onClick={onOpenSaved}>
             Load a saved search
@@ -129,6 +137,34 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, datase
           what a group was. Collapsible, and it stays as this reader left it
           (§72): it is a tutorial, and a tutorial that will not go away is an
           alert. */}
+
+      <ConditionBuilder fields={fields} value={draft} onChange={setDraft} />
+
+      <Collapse
+        ghost
+        size="small"
+        className="nx-fd-dcode"
+        items={[
+          {
+            key: "sql",
+            forceRender: true,
+            label: (
+              <span className="nx-fd-row">
+                <span>Show SQL</span>
+                <Tooltip title="Rendered by the server from the same tree it compiles into SQL — so what is written here is what will run">
+                  <QuestionCircleOutlined className="nu-advanced-hint" />
+                </Tooltip>
+              </span>
+            ),
+            children: (
+              <pre data-testid="query-inspector">
+                {preview.data?.condition_text?.trim() || "All records"}
+              </pre>
+            ),
+          },
+        ]}
+      />
+
       <Collapse
         ghost
         size="small"
@@ -186,23 +222,6 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, datase
         ]}
       />
 
-      <ConditionBuilder fields={fields} value={draft} onChange={setDraft} />
-
-      <section className="nx-fd-dcode" aria-label="What this asks">
-        <div className="nx-fd-row">
-          <span className="nx-fd-h2">What this asks</span>
-          <Tooltip title="Rendered by the server from the same tree it compiles into SQL — so what is written here is what will run">
-            <QuestionCircleOutlined className="nu-advanced-hint" />
-          </Tooltip>
-          {stats.incomplete > 0 && (
-            <span className="nx-fd-pill nx-fd-pill--warn nx-fd-push">{stats.incomplete} incomplete · skipped</span>
-          )}
-        </div>
-        <pre data-testid="query-inspector">
-          {preview.data?.condition_text?.trim() || "All records"}
-        </pre>
-      </section>
-
       {preview.isError && (
         <Alert
           type="error"
@@ -213,14 +232,7 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, datase
       )}
 
       <div className="nu-advanced-actions">
-        <Statistic
-          className="nu-advanced-count"
-          data-testid="preview-count"
-          title={settling ? "Previewing…" : rules === 1 ? "1 rule matches" : `${rules} rules match`}
-          value={preview.data?.total ?? 0}
-          suffix="records"
-          valueStyle={{ fontSize: 20 }}
-        />
+
         <Space>
           <Tooltip title="Empty the tree and start again. Nothing on the page behind changes.">
             <Button
@@ -245,7 +257,7 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, datase
               onClose();
             }}
           >
-            {applied ? "Search" : `Search · ${(preview.data?.total ?? 0).toLocaleString()} matches`}
+            {applied ? "Apply" : `Apply · ${(preview.data?.total ?? 0).toLocaleString()} matches`}
           </Button>
           </Tooltip>
         </Space>

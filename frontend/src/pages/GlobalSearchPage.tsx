@@ -14,8 +14,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { Alert, Button, Skeleton, Tooltip, Typography } from "antd";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Alert, Skeleton, Tooltip, Typography } from "antd";
 import {
   ArrowRightOutlined,
   ClearOutlined,
@@ -220,18 +220,12 @@ export default function GlobalSearchPage() {
               <div className="nx-fd-row">
                 <h2 className="nx-fd-h2">{group.label}</h2>
                 <Tooltip title={`Explore ${group.label.toLowerCase()} matching this term`}>
-                  <Button
-                    type="link"
+                  <Link
                     className="nx-fd-push nx-fd-alllink"
-                    icon={<SearchOutlined />}
-                    onClick={() =>
-                      navigate(
-                        `/explore?resource=${group.resource_type}&q=${encodeURIComponent(results.data.query)}`,
-                      )
-                    }
+                    to={`/explore?resource=${group.resource_type}&q=${encodeURIComponent(results.data.query)}`}
                   >
-                    {group.has_more ? "See all in Data Explorer" : "Open in Data Explorer"}
-                  </Button>
+                    <SearchOutlined /> {group.has_more ? "See all in Data Explorer" : "Open in Data Explorer"}
+                  </Link>
                 </Tooltip>
               </div>
               {group.items.map((hit, index) => (

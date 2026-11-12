@@ -41,6 +41,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import type { UserPreferences } from "@/api/me";
 import { PageHeader } from "@/components/PageHeader";
+import { SettingsNav } from "@/pages/SettingsNav";
 import { usePageCommands } from "@/commands/CommandContext";
 import { NOTIFICATION_CATEGORIES } from "@/api/notifications";
 import { chime } from "@/lib/chime";
@@ -199,7 +200,18 @@ export default function PreferencesPage() {
           in a two-column grid leaves a hole under every short one — the row
           is as tall as its tallest member, and the gap is the difference.
           CSS columns pack them, so the page has no empty space in it. */}
-      <div className="nu-prefs">
+      <div className="nx-fd-settings">
+      <SettingsNav
+        label="Preference sections"
+        sections={[
+          ["pref-appearance", "Appearance"],
+          ["pref-formats", "Dates, times and numbers"],
+          ["pref-defaults", "Defaults"],
+          ["pref-notifications", "Notifications"],
+          ["pref-mail", "Mail"],
+        ]}
+      />
+      <div className="nu-prefs nx-fd-setcol">
         <div>
           <Card
             size="small"
@@ -210,6 +222,7 @@ export default function PreferencesPage() {
               </Space>
             }
             data-testid="pref-appearance"
+            id="pref-appearance"
           >
             <Space direction="vertical" size={16} style={{ width: "100%" }}>
               <Setting
@@ -265,6 +278,7 @@ export default function PreferencesPage() {
               </Space>
             }
             data-testid="pref-formats"
+            id="pref-formats"
           >
             <Space direction="vertical" size={16} style={{ width: "100%" }}>
               <Setting label="Date" hint="Used by every timestamp in the platform.">
@@ -347,6 +361,7 @@ export default function PreferencesPage() {
               </Space>
             }
             data-testid="pref-defaults"
+            id="pref-defaults"
           >
             <Space direction="vertical" size={16} style={{ width: "100%" }}>
               <Setting
@@ -396,6 +411,7 @@ export default function PreferencesPage() {
               </Space>
             }
             data-testid="pref-notifications"
+            id="pref-notifications"
             extra={
               <Button onClick={() => preview()} data-testid="try-popup">
                 Try it
@@ -557,6 +573,7 @@ export default function PreferencesPage() {
               </Space>
             }
             data-testid="pref-mail"
+            id="pref-mail"
           >
             <Space direction="vertical" size={16} style={{ width: "100%" }}>
               <Setting label="Open in" hint="The folder the mailbox lands on.">
@@ -641,6 +658,7 @@ export default function PreferencesPage() {
             </Text>
           </Card>
         </div>
+      </div>
       </div>
     </>
   );

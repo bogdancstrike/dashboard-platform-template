@@ -110,7 +110,7 @@ describe("Data Explorer", () => {
     );
   });
 
-  it("builds a condition on the advanced page and runs it into the results (§4)", async () => {
+  it("opens the rules drawer from ?mode=advanced and applies the tree (§4)", async () => {
     const user = userEvent.setup();
     const sent: Array<Record<string, unknown>> = [];
     server.use(http.post("/platform/api/explorer/query", async ({ request }) => {
@@ -119,23 +119,26 @@ describe("Data Explorer", () => {
       return HttpResponse.json({
         items: [], total: 3, page: 1, page_size: 25, pages: 1,
         sort: "updated_at", order: "desc", resource_type: "task",
-        columns: [], fields: [], facets: { status: [{ value: "NEW", count: 2 }, { value: "DONE", count: 1 }] },
+        columns: [], fields: [], facets: {},
         condition_text: body.condition_tree ? "Status = 'NEW'" : "", rule_count: 0,
         query_text: "", searchable: [],
       });
     }));
-    renderWithProviders(<DataExplorerPage />, { route: "/explore?resource=task&mode=advanced" });
+    const tree = encodeURIComponent(JSON.stringify({
+      id: "r", type: "group", properties: { conjunction: "AND" },
+      children1: { a: { id: "a", type: "rule", properties: { field: "status", operator: "select_equals", value: ["NEW"] } } },
+    }));
+    renderWithProviders(<DataExplorerPage />, { route: `/explore?resource=task&tree=${tree}&mode=advanced` });
 
-    expect(await screen.findByRole("heading", { name: /Advanced filters/ })).toBeInTheDocument();
-    expect(await screen.findByRole("region", { name: "Query subject" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Add rule: status/ }));
-    expect((await screen.findAllByLabelText("Value for Status: not chosen")).length).toBeGreaterThan(0);
+    const drawer = await screen.findByRole("dialog");
+    expect(within(drawer).getByText("Rules")).toBeInTheDocument();
+    expect(within(drawer).getByText("Where")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByTestId("query-inspector")).toHaveTextContent("Status = 'NEW'"));
-    expect(screen.getByTestId("advanced-live-count")).toHaveTextContent("3");
+    // A second, unfinished filter is muted and skipped, not an error.
+    await user.click(within(drawer).getByRole("button", { name: "+ Add filter" }));
+    expect(await within(drawer).findByText("1 unfinished, skipped")).toBeInTheDocument();
 
-    // "any" flips the root to OR, and Run search hands the tree to the results.
-    await user.click(screen.getByRole("button", { name: "any" }));
-    await user.click(screen.getByTestId("run-advanced-page"));
+    await user.click(screen.getByTestId("run-advanced-search"));
     expect(await screen.findByTestId("condition-chips")).toBeInTheDocument();
     await waitFor(() => expect(sent.at(-1)?.condition_tree).toBeTruthy());
   });
@@ -146,7 +149,7 @@ describe("Data Explorer", () => {
     renderWithProviders(<DataExplorerPage />, { route: "/explore?resource=task" });
 
     expect(await screen.findByRole("heading", { name: /Find anything in/ })).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: "Recent searches" })).toBeInTheDocument();
+    expect(await screen.findByText("Recent searches")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remove recent search: migration" })).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: /status: new/ }));
     expect(await screen.findByTestId("condition-chips")).toHaveTextContent("Status");

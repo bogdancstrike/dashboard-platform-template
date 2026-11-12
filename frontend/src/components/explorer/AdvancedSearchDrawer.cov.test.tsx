@@ -54,7 +54,7 @@ describe("the advanced conditions drawer", () => {
   it("previews the draft and says which rules are skipped", async () => {
     open();
     expect(await screen.findByText("Tasks · 500 records")).toBeInTheDocument();
-    expect(screen.getByText("1 incomplete · skipped")).toBeInTheDocument();
+    expect(screen.getByText("1 unfinished, skipped")).toBeInTheDocument();
     expect(screen.getByTestId("query-inspector")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByTestId("preview-count")).toHaveTextContent(/2 rules match/));
   });
@@ -86,7 +86,10 @@ describe("the advanced conditions drawer", () => {
     await user.click(await screen.findByRole("button", { name: "Load a saved search" }));
     expect(props.onOpenSaved).toHaveBeenCalled();
 
-    expect(screen.getByTestId("advanced-help")).toBeInTheDocument();
+    // The lesson starts folded (the drawer is compact); it opens and folds again.
+    expect(screen.queryByTestId("advanced-help")).not.toBeInTheDocument();
+    await user.click(screen.getByText("How this works"));
+    expect(await screen.findByTestId("advanced-help")).toBeInTheDocument();
     await user.click(screen.getByText("How this works"));
     await waitFor(() => expect(screen.queryByTestId("advanced-help")).not.toBeVisible());
   });

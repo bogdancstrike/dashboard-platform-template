@@ -15,7 +15,7 @@
  * ("Add rule", "Or", "Not", "Duplicate this rule").
  */
 
-import { useMemo, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { DatePicker, Dropdown, Input, InputNumber, Select, Tooltip } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 
@@ -29,9 +29,9 @@ import {
   children,
   conjunctionOf,
   duplicateById,
-  groupLabels,
   incompleteReason,
   isGroup,
+  mapNode,
   isNot,
   moveWithin,
   newGroup,
@@ -44,7 +44,6 @@ import {
   setRuleField,
   setRuleOperator,
   setRuleValue,
-  type Conjunction,
 } from "./conditionTree";
 import { FdIcon, type FdIconName } from "./fdIcons";
 import { BUILDER_TYPE, builderOperators } from "./queryBuilderConfig";
@@ -93,20 +92,10 @@ export function humanise(value: string): string {
 
 export function ConditionBuilder({ fields, value, onChange, extraAdd }: ConditionBuilderProps) {
   const tree = useMemo(() => normalise(value), [value]);
-  const labels = useMemo(() => groupLabels(tree), [tree]);
   const filterable = useMemo(() => fields.filter((field) => field.filterable), [fields]);
   const byName = useMemo(() => new Map(fields.map((field) => [field.name, field] as const)), [fields]);
-  const [dragging, setDragging] = useState<{ id: string; parent: string } | null>(null);
 
-  const ctx: Ctx = {
-    tree,
-    labels,
-    fields: filterable,
-    byName,
-    dragging,
-    setDragging,
-    change: onChange,
-  };
+  const ctx: Ctx = { tree, fields: filterable, byName, change: onChange };
 
   return (
     <div className="nx-fd-cb" aria-label="Advanced query builder">
@@ -117,37 +106,24 @@ export function ConditionBuilder({ fields, value, onChange, extraAdd }: Conditio
 
 interface Ctx {
   tree: QueryNode;
-  labels: Map<string, string>;
   fields: ExplorerField[];
   byName: Map<string, ExplorerField>;
-  dragging: { id: string; parent: string } | null;
-  setDragging: (value: { id: string; parent: string } | null) => void;
   change: (tree: QueryNode) => void;
 }
 
-function groupSentence(node: QueryNode): ReactNode {
-  const count = children(node).length;
-  const conj = conjunctionOf(node);
-  const not = isNot(node);
-  if (count === 0) {
-    return not ? "Excludes nothing yet — add a rule" : "Matches every record — add a rule to narrow it";
-  }
-  const q = count === 1 ? "this" : conj === "AND" ? "ALL" : "ANY";
-  const pre = not ? (count === 1 ? "Exclude records where " : "Exclude records matching ") : "Match ";
-  const post = count === 1 ? " condition is true" : ` of these ${count} conditions`;
-  return (
-    <>
-      {pre}
-      <b>{q}</b>
-      {post}
-    </>
-  );
-}
-
-function GroupBox({ node, depth, parent, ctx, extraAdd }: {
+/**
+ * One group: a list of lines, each reading "Where …", "and …", "or …".
+ *
+ * The connective is the small word at the start of every line after the
+ * first, and pressing it flips the whole group between and / or — the one
+ * decision a group carries. NOT, duplicate and remove live behind the
+ * group's "⋯"; a nested group is just an indented block.
+ */
+function GroupBox({ node, depth, parent, index = 0, ctx, extraAdd }: {
   node: QueryNode;
   depth: number;
-  parent?: string;
+  parent?: QueryNode;
+  index?: number;
   ctx: Ctx;
   extraAdd?: ReactNode;
 }) {
@@ -155,273 +131,202 @@ function GroupBox({ node, depth, parent, ctx, extraAdd }: {
   const root = depth === 0;
   const conj = conjunctionOf(node);
   const not = isNot(node);
-  const label = root ? "Root" : `Group ${ctx.labels.get(id) ?? ""}`;
   const items = children(node);
-  const set = (patch: { conjunction?: Conjunction; not?: boolean }) => ctx.change(setGroupProps(ctx.tree, id, patch));
+  const flip = () => ctx.change(setGroupProps(ctx.tree, id, { conjunction: conj === "AND" ? "OR" : "AND" }));
   const addRule = () => ctx.change(appendChild(ctx.tree, id, newRule()));
   const addGroup = () => {
     const group = newGroup(conj === "AND" ? "OR" : "AND");
-    const withRule = appendChild(group, group.id as string, newRule());
-    ctx.change(appendChild(ctx.tree, id, withRule));
+    ctx.change(appendChild(ctx.tree, id, appendChild(group, group.id as string, newRule())));
   };
 
   const menu = [
-    { key: "rule", label: "Add a rule here", onClick: addRule },
-    { key: "group", label: "Add a group here", onClick: addGroup },
+    {
+      key: "not",
+      label: not ? "Match these again (remove NOT)" : "Exclude matches (NOT)",
+      onClick: () => ctx.change(setGroupProps(ctx.tree, id, { not: !not })),
+    },
+    { key: "conj", label: `Match ${conj === "AND" ? "any" : "all"} of these instead`, onClick: flip },
     ...(root
-      ? [{ key: "clear", label: "Remove every rule", danger: true, disabled: items.length === 0, onClick: () => ctx.change({ ...node, children1: {} }) }]
+      ? [{ key: "clear", label: "Remove every filter", danger: true, disabled: items.length === 0, onClick: () => ctx.change({ ...node, children1: {} }) }]
       : [
+          ...moveItems(ctx, parent, id, index),
           { key: "dup", label: "Duplicate this group", onClick: () => ctx.change(duplicateById(ctx.tree, id)) },
           { key: "del", label: "Remove this group", danger: true, onClick: () => ctx.change(removeNode(ctx.tree, id)) },
         ]),
   ];
 
-  const tone = not ? "not" : root ? "root" : depth % 2 === 1 ? "a" : "b";
-
   return (
     <section
-      className={`nx-fd-cb-group nx-fd-cb-group--${tone}${root ? " is-root" : ""}`}
-      aria-label={root ? "Root group" : label}
+      className={`nx-fd-cb-group${root ? " is-root" : ""}${not ? " is-not" : ""}`}
+      aria-label={root ? "Root group" : "Group"}
       data-depth={depth}
-      {...dragTarget(ctx, parent, id)}
     >
-      <div className="nx-fd-cb-ghead">
-        <span className="nx-fd-cb-gtag">{not ? `Not · ${label}` : label}</span>
-        <div className="nx-fd-cb-seg" role="group" aria-label={`${root ? "Root group" : label} conjunction`}>
-          {(["AND", "OR"] as const).map((option) => (
-            <button
-              key={option}
-              type="button"
-              aria-pressed={conj === option}
-              className={conj === option ? "is-on" : ""}
-              onClick={() => set({ conjunction: option })}
-            >
-              {option === "AND" ? "And" : "Or"}
-            </button>
-          ))}
+      {items.map((child, position) => (
+        <div className="nx-fd-cb-line" key={child.id}>
+          <span className="nx-fd-cb-lead">
+            {position === 0 ? (
+              <span className="nx-fd-cb-where">{not ? "Where not" : "Where"}</span>
+            ) : (
+              <Tooltip title={`Match ${conj === "AND" ? "any" : "all"} of these instead`}>
+                <button
+                  type="button"
+                  className={`nx-fd-cb-conj${conj === "OR" ? " is-or" : ""}`}
+                  data-testid="conj-toggle"
+                  aria-label={`${conj === "AND" ? "and" : "or"} — switch to ${conj === "AND" ? "or" : "and"}`}
+                  onClick={flip}
+                >
+                  {conj === "AND" ? "and" : "or"}
+                </button>
+              </Tooltip>
+            )}
+          </span>
+          {isGroup(child) ? (
+            <GroupBox node={child} depth={depth + 1} parent={node} index={position} ctx={ctx} />
+          ) : (
+            <RuleRow node={child} parent={node} index={position} ctx={ctx} />
+          )}
         </div>
-        <button
-          type="button"
-          className={`nx-fd-cb-not${not ? " is-on" : ""}`}
-          aria-pressed={not}
-          onClick={() => set({ not: !not })}
-        >
-          <span className="nx-fd-cb-notbox" aria-hidden="true" />
-          Not
+      ))}
+
+      <div className="nx-fd-cb-add">
+        <button type="button" className="nx-fd-cb-addrule" onClick={addRule}>
+          + Add filter
         </button>
-        <span className="nx-fd-cb-sentence">{groupSentence(node)}</span>
+        {depth < 2 && (
+          <button type="button" className="nx-fd-cb-addgroup" onClick={addGroup}>
+            + Add group
+          </button>
+        )}
+        {root && extraAdd}
         <Dropdown menu={{ items: menu }} trigger={["click"]} placement="bottomRight">
-          <button type="button" className="nx-fd-cb-icon nx-fd-cb-more" aria-label={`${root ? "Root group" : label} options`}>
-            <FdIcon name="dots" size={16} strokeWidth={3} />
+          <button type="button" className="nx-fd-cb-icon nx-fd-cb-more" aria-label={root ? "Root group options" : "Group options"}>
+            <FdIcon name="dots" size={15} strokeWidth={3} />
           </button>
         </Dropdown>
-      </div>
-
-      <div className="nx-fd-cb-items">
-        {items.map((child, index) => (
-          <div className="nx-fd-cb-item" key={child.id}>
-            {index > 0 && (
-              <div className="nx-fd-cb-conj" aria-hidden="true">
-                <span className={conj === "OR" ? "is-or" : ""}>{conj}</span>
-              </div>
-            )}
-            {isGroup(child) ? (
-              <GroupBox node={child} depth={depth + 1} parent={id} ctx={ctx} />
-            ) : (
-              <RuleRow node={child} parent={id} index={index} siblings={items.length} ctx={ctx} />
-            )}
-          </div>
-        ))}
-      </div>
-
-      <div className={`nx-fd-cb-add${root ? " is-root" : ""}`}>
-        <button type="button" className="nx-fd-cb-addrule" onClick={addRule}>
-          <span aria-hidden="true">+</span> Add rule
-        </button>
-        <button type="button" className="nx-fd-cb-addgroup" onClick={addGroup}>
-          <span aria-hidden="true">+</span> Add group
-        </button>
-        {root && extraAdd}
       </div>
     </section>
   );
 }
 
-/** Drop handling for reordering siblings inside one group. */
-function dragTarget(ctx: Ctx, parent: string | undefined, id: string) {
-  if (!parent) return {};
-  return {
-    onDragOver: (event: DragEvent) => {
-      if (ctx.dragging && ctx.dragging.parent === parent && ctx.dragging.id !== id) event.preventDefault();
-    },
-    onDrop: (event: DragEvent) => {
-      if (!ctx.dragging || ctx.dragging.parent !== parent) return;
-      event.preventDefault();
-      event.stopPropagation();
-      const parentNode = findNode(ctx.tree, parent);
-      const target = parentNode ? children(parentNode).findIndex((child) => child.id === id) : -1;
-      if (target >= 0) ctx.change(moveWithin(ctx.tree, parent, ctx.dragging.id, target));
-      ctx.setDragging(null);
-    },
-  };
+/** "Move up" / "Move down" menu items for a child of `parent`. */
+function moveItems(ctx: Ctx, parent: QueryNode | undefined, id: string, index: number) {
+  if (!parent) return [];
+  const count = children(parent).length;
+  const parentId = parent.id as string;
+  return [
+    { key: "up", label: "Move up", disabled: index === 0, onClick: () => ctx.change(moveWithin(ctx.tree, parentId, id, index - 1)) },
+    { key: "down", label: "Move down", disabled: index >= count - 1, onClick: () => ctx.change(moveWithin(ctx.tree, parentId, id, index + 1)) },
+  ];
 }
 
-function findNode(tree: QueryNode, id: string): QueryNode | null {
-  if (tree.id === id) return tree;
-  for (const child of children(tree)) {
-    const found = findNode(child, id);
-    if (found) return found;
-  }
-  return null;
-}
-
-function RuleRow({ node, parent, index, siblings, ctx }: {
+/** One filter on one line: [field] [operator] [value] [⋯] [×]. */
+function RuleRow({ node, parent, index, ctx }: {
   node: QueryNode;
-  parent: string;
+  parent: QueryNode;
   index: number;
-  siblings: number;
   ctx: Ctx;
 }) {
   const id = node.id as string;
   const { field: fieldName, operator, value } = ruleParts(node);
   const field = ctx.byName.get(fieldName);
   const missing = incompleteReason(node);
-  const [armed, setArmed] = useState(false);
-  const name = field?.label ?? "rule";
-
-  const onHandleKey = (event: KeyboardEvent) => {
-    if (event.key === "ArrowUp" && index > 0) {
-      event.preventDefault();
-      ctx.change(moveWithin(ctx.tree, parent, id, index - 1));
-    } else if (event.key === "ArrowDown" && index < siblings - 1) {
-      event.preventDefault();
-      ctx.change(moveWithin(ctx.tree, parent, id, index + 1));
-    }
-  };
-
   const operators = field ? builderOperators(field) : [];
 
   return (
-    <div className="nx-fd-cb-rulewrap">
-      <div
-        role="group"
-        aria-label={`Rule: ${field?.label ?? "unfinished"} ${operator ? operatorWords(operator, field?.kind) : ""}${missing ? " (incomplete)" : ""}`.trim()}
-        className={`nx-fd-cb-rule${missing ? " is-incomplete" : ""}${ctx.dragging?.id === id ? " is-dragging" : ""}`}
-        draggable={armed}
-        onDragStart={(event) => {
-          event.dataTransfer.effectAllowed = "move";
-          event.dataTransfer.setData("text/plain", id);
-          ctx.setDragging({ id, parent });
-        }}
-        onDragEnd={() => {
-          setArmed(false);
-          ctx.setDragging(null);
-        }}
-        {...dragTarget(ctx, parent, id)}
-      >
-        <Tooltip title="Drag, or use the arrow keys, to reorder">
-          <button
-            type="button"
-            className="nx-fd-cb-handle"
-            aria-label={`Reorder rule: ${name}`}
-            onPointerDown={() => setArmed(true)}
-            onPointerUp={() => setArmed(false)}
-            onKeyDown={onHandleKey}
-          >
-            <FdIcon name="drag" size={14} strokeWidth={3.2} />
-          </button>
-        </Tooltip>
-
-        <div className="nx-fd-cb-f rule--field">
-          <Select
-            variant="borderless"
-            className="nx-fd-cb-ctl nx-fd-cb-fieldsel"
-            popupMatchSelectWidth={false}
-            showSearch
-            optionFilterProp="title"
-            aria-label={field ? `Field: ${field.label}, ${fieldKindLabel(field)}` : "Field: not chosen"}
-            placeholder={<span className="nx-fd-cb-ph"><span className="nx-fd-cb-ticon"><FdIcon name="text" size={14} /></span>Choose a field</span>}
-            value={fieldName || undefined}
-            onChange={(next: string) => {
-              const chosen = ctx.byName.get(next);
-              if (chosen) ctx.change(setRuleField(ctx.tree, id, chosen));
-            }}
-            labelRender={() => (
-              <span className="nx-fd-cb-fieldlabel">
-                <span className="nx-fd-cb-ticon" title={`${fieldKindLabel(field)} field`}>
-                  <FdIcon name={fieldIcon(field)} size={14} strokeWidth={2.1} />
-                </span>
-                <span className="nx-fd-cb-ellipsis">{field?.label ?? fieldName}</span>
+    <div
+      role="group"
+      aria-label={`Rule: ${field?.label ?? "unfinished"} ${operator ? operatorWords(operator, field?.kind) : ""}${missing ? " (incomplete)" : ""}`.trim()}
+      className={`nx-fd-cb-rule${missing ? " is-incomplete" : ""}`}
+    >
+      <div className="nx-fd-cb-f rule--field">
+        <Select
+          variant="borderless"
+          className="nx-fd-cb-ctl nx-fd-cb-fieldsel"
+          popupMatchSelectWidth={false}
+          showSearch
+          optionFilterProp="title"
+          aria-label={field ? `Field: ${field.label}, ${fieldKindLabel(field)}` : "Field: not chosen"}
+          placeholder="Field"
+          value={fieldName || undefined}
+          onChange={(next: string) => {
+            const chosen = ctx.byName.get(next);
+            if (chosen) ctx.change(setRuleField(ctx.tree, id, chosen));
+          }}
+          labelRender={() => (
+            <span className="nx-fd-cb-fieldlabel">
+              <FdIcon name={fieldIcon(field)} size={13} strokeWidth={2.1} className="nx-fd-cb-ficon" />
+              <span className="nx-fd-cb-ellipsis">{field?.label ?? fieldName}</span>
+            </span>
+          )}
+          options={ctx.fields.map((item) => ({
+            value: item.name,
+            title: item.label,
+            label: (
+              <span className="nx-fd-cb-fieldopt">
+                <FdIcon name={fieldIcon(item)} size={13} strokeWidth={2.1} className="nx-fd-cb-ficon" />
+                <span className="nx-fd-cb-ellipsis">{item.label}</span>
+                <span className="nx-fd-cb-kind">{fieldKindLabel(item)}</span>
               </span>
-            )}
-            options={ctx.fields.map((item) => ({
-              value: item.name,
-              title: item.label,
-              label: (
-                <span className="nx-fd-cb-fieldopt">
-                  <span className="nx-fd-cb-ticon"><FdIcon name={fieldIcon(item)} size={13} strokeWidth={2.1} /></span>
-                  <span className="nx-fd-cb-ellipsis">{item.label}</span>
-                  <span className="nx-fd-cb-kind">{fieldKindLabel(item)}</span>
-                </span>
-              ),
-            }))}
-          />
-        </div>
-
-        <div className="nx-fd-cb-o rule--operator">
-          <Select
-            variant="borderless"
-            className="nx-fd-cb-ctl"
-            popupMatchSelectWidth={false}
-            aria-label={operator ? `Operator: ${operatorWords(operator, field?.kind)}` : "Operator"}
-            disabled={!field}
-            placeholder="is"
-            value={operator || undefined}
-            onChange={(next: string) => ctx.change(setRuleOperator(ctx.tree, id, next))}
-            options={operators.map((op) => ({ value: op, label: operatorWords(op, field?.kind) }))}
-          />
-        </div>
-
-        <div className="nx-fd-cb-v rule--value">
-          <ValueEditor
-            field={field}
-            operator={operator}
-            value={value}
-            onChange={(next) => ctx.change(setRuleValue(ctx.tree, id, next))}
-          />
-        </div>
-
-        <div className="nx-fd-cb-a">
-          <Tooltip title="Duplicate">
-            <button
-              type="button"
-              className="nx-fd-cb-icon"
-              aria-label="Duplicate this rule"
-              onClick={() => ctx.change(duplicateById(ctx.tree, id))}
-            >
-              <FdIcon name="copy" />
-            </button>
-          </Tooltip>
-          <Tooltip title="Remove">
-            <button
-              type="button"
-              className="nx-fd-cb-icon"
-              aria-label="Remove this rule"
-              onClick={() => ctx.change(removeNode(ctx.tree, id))}
-            >
-              <FdIcon name="trash" />
-            </button>
-          </Tooltip>
-        </div>
+            ),
+          }))}
+        />
       </div>
-      {missing && (
-        <span className="nx-fd-cb-warn" role="note">
-          <FdIcon name="warn" size={13} strokeWidth={2.2} />
-          {missing === "field"
-            ? "Choose a field — this rule is skipped until it is complete."
-            : "Choose a value — this rule is skipped until it is complete."}
-        </span>
-      )}
+
+      <div className="nx-fd-cb-o rule--operator">
+        <Select
+          variant="borderless"
+          className="nx-fd-cb-ctl"
+          popupMatchSelectWidth={false}
+          aria-label={operator ? `Operator: ${operatorWords(operator, field?.kind)}` : "Operator"}
+          disabled={!field}
+          placeholder="is"
+          value={operator || undefined}
+          onChange={(next: string) => ctx.change(setRuleOperator(ctx.tree, id, next))}
+          options={operators.map((op) => ({ value: op, label: operatorWords(op, field?.kind) }))}
+        />
+      </div>
+
+      <div className="nx-fd-cb-v rule--value">
+        <ValueEditor
+          field={field}
+          operator={operator}
+          value={value}
+          onChange={(next) => ctx.change(setRuleValue(ctx.tree, id, next))}
+        />
+      </div>
+
+      <div className="nx-fd-cb-a">
+        <Dropdown
+          trigger={["click"]}
+          placement="bottomRight"
+          menu={{
+            items: [
+              { key: "dup", label: "Duplicate this rule", onClick: () => ctx.change(duplicateById(ctx.tree, id)) },
+              ...moveItems(ctx, parent, id, index),
+              {
+                key: "wrap",
+                label: "Turn into a group",
+                onClick: () => {
+                  const group = newGroup("OR");
+                  ctx.change(mapNode(ctx.tree, id, (rule) => appendChild(group, group.id as string, rule)));
+                },
+              },
+            ],
+          }}
+        >
+          <button type="button" className="nx-fd-cb-icon nx-fd-cb-hover" aria-label={`More for this rule: ${field?.label ?? "unfinished"}`}>
+            <FdIcon name="dots" size={14} strokeWidth={3} />
+          </button>
+        </Dropdown>
+        <button
+          type="button"
+          className="nx-fd-cb-icon"
+          aria-label="Remove this rule"
+          onClick={() => ctx.change(removeNode(ctx.tree, id))}
+        >
+          <FdIcon name="close" size={13} strokeWidth={2.2} />
+        </button>
+      </div>
     </div>
   );
 }
@@ -433,7 +338,7 @@ function ValueEditor({ field, operator, value, onChange }: {
   onChange: (value: unknown[]) => void;
 }) {
   if (!field) {
-    return <span className="nx-fd-cb-ctl nx-fd-cb-novalue">Pick a field first</span>;
+    return <span className="nx-fd-cb-ctl nx-fd-cb-novalue">Value</span>;
   }
   if (NO_VALUE.has(operator)) {
     return <span className="nx-fd-cb-novalue">no value needed</span>;

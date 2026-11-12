@@ -61,6 +61,7 @@ import { profileApi } from "@/api/profile";
 import { activityApi } from "@/api/activity";
 import { ChartCard } from "@/components/ChartCard";
 import { EmptyState } from "@/components/EmptyState";
+import { useSmartBack } from "@/app/history";
 import { PageHeader } from "@/components/PageHeader";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { StatCard } from "@/components/StatCard";
@@ -144,6 +145,7 @@ export function whereTheySit(profile: Profile): string {
 }
 
 export default function ProfilePage() {
+  const back = useSmartBack();
   const { userId } = useParams();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -207,13 +209,23 @@ export default function ProfilePage() {
 
   const mine = profile.is_me;
 
+  const [firstName, ...restName] = profile.user.full_name.split(" ");
+
   return (
-    <>
+    <div className="nx-fd-profile">
       <PageHeader
-        title={profile.user.full_name}
+        title={
+          restName.length ? (
+            <span>
+              {firstName} <em>{restName.join(" ")}</em>
+            </span>
+          ) : (
+            profile.user.full_name
+          )
+        }
         tag={<StatusTag status={profile.user.status} />}
         subtitle={whereTheySit(profile)}
-        onBack={userId ? () => navigate(-1) : undefined}
+        onBack={userId ? () => back("/admin/users") : undefined}
         actions={
           mine ? (
             <Space size={8} wrap>
@@ -227,7 +239,7 @@ export default function ProfilePage() {
                 onClick={() => setEditing(true)}
                 data-testid="edit-profile"
               >
-                Edit your details
+                Edit profile
               </Button>
               <Link to="/settings/preferences">
                 <Tag icon={<SettingOutlined />} className="nu-profile-jump">
@@ -267,12 +279,14 @@ export default function ProfilePage() {
             name={profile.user.full_name}
             initials={profile.user.initials}
             src={profile.user.avatar_url ?? undefined}
-            size={56}
+            size={76}
           />
           <div className="nu-profile-facts">
             <Descriptions
               size="small"
-              column={{ xs: 1, sm: 2, lg: 3 }}
+              layout="vertical"
+              colon={false}
+              column={{ xs: 2, sm: 2, md: 3, lg: 4, xl: 4, xxl: 4 }}
               items={[
                 { key: "job", label: "Job title", children: profile.user.job_title || "—" },
                 {
@@ -367,7 +381,7 @@ export default function ProfilePage() {
           onClose={() => setEditing(false)}
         />
       )}
-    </>
+    </div>
   );
 }
 

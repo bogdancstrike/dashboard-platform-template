@@ -67,6 +67,7 @@ import {
   type SignInSession,
 } from "@/api/security";
 import { PageHeader } from "@/components/PageHeader";
+import { SettingsNav } from "@/pages/SettingsNav";
 import { usePageCommands } from "@/commands/CommandContext";
 import { errorText } from "@/lib/errors";
 import { formatNumber } from "@/lib/formats";
@@ -271,7 +272,8 @@ export default function SecurityPage() {
     {
       title: "Where from",
       dataIndex: "ip_address",
-      width: 190,
+      width: 170,
+      onCell: () => ({ style: { minWidth: 150 } }),
       render: (value: string | null, row) => (
         <div className="nu-sec-where">
           <Text className="nu-sec-ip">{value ?? "—"}</Text>
@@ -452,7 +454,7 @@ export default function SecurityPage() {
   if (overview.isLoading) return <Skeleton active paragraph={{ rows: 10 }} />;
 
   return (
-    <div className="nu-sec">
+    <div className="nu-sec nx-fd-sec">
       <PageHeader
         title="Security"
         subtitle="Where your account is signed in, who has tried to, and anything the platform has noticed."
@@ -485,6 +487,16 @@ export default function SecurityPage() {
         }
       />
 
+      <div className="nx-fd-settings">
+      <SettingsNav
+        label="Security sections"
+        sections={[
+          ["sessions-card", "Where you are signed in"],
+          ["sign-ins-card", "Sign-in history"],
+          ["events-card", "What the platform noticed"],
+        ]}
+      />
+      <div className="nx-fd-setcol">
       {overview.data ? (
         <Alert
           type={headlineTone(overview.data)}
@@ -509,6 +521,7 @@ export default function SecurityPage() {
         title="Where you are signed in"
         className="nu-sec-card"
         data-testid="sessions-card"
+        id="sessions-card"
       >
         {sessions.isLoading ? (
           <Skeleton active paragraph={{ rows: 3 }} />
@@ -547,6 +560,7 @@ export default function SecurityPage() {
         title="Sign-in history"
         className="nu-sec-card"
         data-testid="sign-ins-card"
+        id="sign-ins-card"
         extra={
           <Segmented
             size="small"
@@ -599,6 +613,7 @@ export default function SecurityPage() {
         title="What the platform noticed"
         className="nu-sec-card"
         data-testid="events-card"
+        id="events-card"
       >
         {events.isLoading ? (
           <Skeleton active paragraph={{ rows: 3 }} />
@@ -619,6 +634,8 @@ export default function SecurityPage() {
           />
         )}
       </Card>
+      </div>
+      </div>
     </div>
   );
 }

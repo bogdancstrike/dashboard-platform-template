@@ -36,12 +36,10 @@ import {
   type SavedSearch,
 } from "@/api/explorer";
 import { AdvancedSearchDrawer } from "@/components/explorer/AdvancedSearchDrawer";
-import { AdvancedWorkspace } from "@/components/explorer/AdvancedWorkspace";
 import { ConditionChips } from "@/components/explorer/ConditionChips";
 import { humanise } from "@/components/explorer/ConditionBuilder";
 import { treeStats } from "@/components/explorer/conditionTree";
 import { FdIcon } from "@/components/explorer/fdIcons";
-import { emptyTree } from "@/components/explorer/queryTree";
 import { NxIcon } from "@/components/NxIcon";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
 import { RecordPreview } from "@/components/explorer/RecordPreview";
@@ -273,29 +271,19 @@ export default function DataExplorerPage() {
    * same place, so the first keystroke turns one into the other without the
    * box losing focus; advanced is its own page, `?mode=advanced`.
    */
-  const mode: "start" | "results" | "advanced" =
-    params.get("mode") === "advanced" && advancedSearch
-      ? "advanced"
-      : activeFilterCount > 0 || Boolean(savedInUrl)
-        ? "results"
-        : "start";
+  const mode: "start" | "results" = activeFilterCount > 0 || Boolean(savedInUrl) ? "results" : "start";
 
-  /** The advanced page's draft: a copy of the question's tree on arrival. */
-  const [pageDraft, setPageDraft] = useState<QueryNode | null>(null);
+  /**
+   * `?mode=advanced` is a link straight into the rules: it opens the drawer
+   * over the results, and closing the drawer drops it from the address.
+   */
+  const askedForRules = params.get("mode") === "advanced" && advancedSearch;
   useEffect(() => {
-    if (mode === "advanced") setPageDraft((tree) ?? emptyTree());
-    // Only on arrival: the draft is edited locally until it is run.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
-
-  const runDraft = (draft: QueryNode | null) => {
-    const rules = treeStats(draft).rules;
-    set({ tree: rules && draft ? JSON.stringify(draft) : null, mode: null, page: null });
-  };
-  const saveDraft = (draft: QueryNode | null) => {
-    setDraftToSave(draft && treeStats(draft).rules ? draft : null);
-    setEditing(undefined);
-    setSaveOpen(true);
+    if (askedForRules) setAdvancedOpen(true);
+  }, [askedForRules]);
+  const closeRules = () => {
+    setAdvancedOpen(false);
+    if (params.get("mode")) set({ mode: null });
   };
 
   /**
@@ -317,13 +305,6 @@ export default function DataExplorerPage() {
             icon: <BuildOutlined />,
             keywords: "query builder rule group nested and or filter",
             run: () => setAdvancedOpen(true),
-          },
-          {
-            id: "explore.advanced.page",
-            label: "Open the advanced filters page",
-            icon: <BuildOutlined />,
-            keywords: "query builder full page rules groups preview sql",
-            run: () => set({ mode: "advanced" }),
           },
         ]
       : []),
@@ -402,28 +383,7 @@ export default function DataExplorerPage() {
   const sortable = resource?.fields.filter((field) => field.sortable) ?? [];
   const suggestions = trySuggestions(resource);
 
-  const header = mode === "advanced" ? (
-    <PageHeader
-      title={<>Advanced <em>filters</em></>}
-      subtitle="Build a condition from rules and nested AND / OR groups"
-      onBack={() => set({ mode: null })}
-      actions={
-        <>
-          <Button icon={<NxIcon name="heart" size={15} />} onClick={() => saveDraft(pageDraft)}>
-            Save…
-          </Button>
-          <Button
-            type="primary"
-            icon={<NxIcon name="search" size={15} />}
-            data-testid="run-advanced-header"
-            onClick={() => runDraft(pageDraft)}
-          >
-            Run search
-          </Button>
-        </>
-      }
-    />
-  ) : (
+  const header = (
     <PageHeader
       title={
         mode === "results" && savedName
@@ -444,12 +404,7 @@ export default function DataExplorerPage() {
           <Button icon={<NxIcon name="heart" size={15} />} onClick={() => set({ panel: "saved" })}>
             Saved searches
           </Button>
-          {mode === "results" && advancedSearch && (
-            <Button icon={<NxIcon name="filter" size={15} />} onClick={() => setAdvancedOpen(true)}>
-              Edit filters
-            </Button>
-          )}
-          {mode === "results" ? (
+          {mode === "results" || !advancedSearch ? (
             <Button
               type="primary"
               icon={<NxIcon name="heart" size={15} />}
@@ -458,20 +413,10 @@ export default function DataExplorerPage() {
               onClick={() => setSaveOpen(true)}
             >
               Save search
-            </Button>
-          ) : advancedSearch ? (
-            <Button type="primary" icon={<NxIcon name="filter" size={15} />} onClick={() => set({ mode: "advanced" })}>
-              Advanced filters
             </Button>
           ) : (
-            <Button
-              type="primary"
-              icon={<NxIcon name="heart" size={15} />}
-              data-testid="save-search"
-              disabled={!request}
-              onClick={() => setSaveOpen(true)}
-            >
-              Save search
+            <Button type="primary" icon={<NxIcon name="filter" size={15} />} onClick={() => setAdvancedOpen(true)}>
+              Build rules
             </Button>
           )}
         </>
@@ -487,46 +432,13 @@ export default function DataExplorerPage() {
         <Alert type="error" showIcon message="The explorer catalogue could not be loaded" description={errorText(catalogue.error)} />
       )}
 
-      {mode === "advanced" && resource && request ? (
-        <AdvancedWorkspace
-          resources={resources}
-          resource={resource}
-          request={request}
-          draft={pageDraft}
-          onDraft={setPageDraft}
-          onChooseResource={(key) => {
-            const next = new URLSearchParams();
-            next.set("resource", key);
-            next.set("mode", "advanced");
-            setParams(next);
-          }}
-          onRun={runDraft}
-          onSave={saveDraft}
-        />
-      ) : (
-        <>
+      <>
           <section className={`nx-fd-bar nx-glass nx-glass--strong${mode === "start" ? " is-start" : ""}`} aria-label="Search">
-            {mode === "start" && (
-              <div className="nx-fd-start-top">
-                <div className="nx-fd-tabs" role="tablist" aria-label="Search mode">
-                  <button type="button" role="tab" aria-selected="true" className="is-on">
-                    <NxIcon name="search" size={14} />
-                    Simple
-                  </button>
-                  {advancedSearch && (
-                    <button type="button" role="tab" aria-selected="false" onClick={() => set({ mode: "advanced" })}>
-                      <NxIcon name="filter" size={14} />
-                      Advanced
-                    </button>
-                  )}
-                </div>
-                {resource && (
-                  <span className="nx-fd-indexed">
-                    <span className="nx-fd-dot" aria-hidden="true" />
-                    {allRecords.toLocaleString()} records in {resources.length} datasets you may read
-                  </span>
-                )}
-              </div>
+            {mode === "start" && resource && (
+              <span className="nx-fd-indexed">
+                <span className="nx-fd-dot" aria-hidden="true" />
+                {allRecords.toLocaleString()} records in {resources.length} datasets you may read
+              </span>
             )}
             {mode === "start" && (
               <h2 className="nx-fd-start-title">
@@ -566,37 +478,34 @@ export default function DataExplorerPage() {
                   onChange={(next: string) => set({ q: next, page: null })}
                 />
               </div>
-              {mode === "start" ? (
+              {mode === "start" && (
                 <Button type="primary" className="nx-fd-go" icon={<NxIcon name="search" size={15} />} onClick={() => void results.refetch()}>
                   Search
                 </Button>
-              ) : (
-                advancedSearch && (
-                  tree ? (
-                    <div className="nx-fd-advpill">
-                      <NxIcon name="filter" size={14} />
-                      <span className="nx-fd-advpill-text">
-                        <b>Advanced</b>
-                        <span> · {stats.rules} {stats.rules === 1 ? "rule" : "rules"}{stats.groups ? ` in ${stats.groups + 1} groups` : ""}</span>
-                      </span>
-                      <Button size="small" className="nx-fd-advpill-edit" onClick={() => setAdvancedOpen(true)}>Edit</Button>
-                      <button
-                        type="button"
-                        className="nx-fd-iconbtn is-plain"
-                        aria-label="Remove the advanced condition"
-                        onClick={() => set({ tree: null, page: null })}
-                      >
-                        <NxIcon name="close" size={14} />
-                      </button>
-                    </div>
-                  ) : (
-                    <Badge count={activeFilterCount} size="small">
-                      <Button icon={<BuildOutlined />} onClick={() => setAdvancedOpen(true)}>
-                        Advanced
-                      </Button>
-                    </Badge>
-                  )
-                )
+              )}
+              {advancedSearch && (
+                <span className="nx-fd-rules">
+                  <Badge count={stats.rules} size="small" color="var(--nu-accent)">
+                    <Button
+                      className={`nx-fd-rulesbtn${tree ? " is-on" : ""}`}
+                      icon={<BuildOutlined />}
+                      data-testid="open-rules"
+                      onClick={() => setAdvancedOpen(true)}
+                    >
+                      Rules
+                    </Button>
+                  </Badge>
+                  {tree && (
+                    <button
+                      type="button"
+                      className="nx-fd-iconbtn is-plain"
+                      aria-label="Remove the rules"
+                      onClick={() => set({ tree: null, page: null })}
+                    >
+                      <NxIcon name="close" size={14} />
+                    </button>
+                  )}
+                </span>
               )}
             </div>
             {mode === "start" && suggestions.length > 0 && (
@@ -663,14 +572,6 @@ export default function DataExplorerPage() {
               onOpenSaved={openSaved}
               onManage={() => set({ panel: "saved" })}
             />
-          )}
-
-          {mode === "results" && advancedSearch && (
-            <button type="button" className="nx-fd-filtersfab" onClick={() => setAdvancedOpen(true)}>
-              <NxIcon name="filter" size={16} />
-              Filters
-              <b>{activeFilterCount + Math.max(0, stats.rules - 1)}</b>
-            </button>
           )}
 
           <section className="nx-fd-results nx-glass" aria-label="Results">
@@ -791,8 +692,7 @@ export default function DataExplorerPage() {
               />
             )}
           </section>
-        </>
-      )}
+      </>
 
       {resource && request && advancedSearch && (
         <AdvancedSearchDrawer
@@ -803,10 +703,10 @@ export default function DataExplorerPage() {
           recordCount={resource.record_count}
           onOpenSaved={() => {
             setAdvancedOpen(false);
-            set({ panel: "saved" });
+            set({ panel: "saved", mode: null });
           }}
-          onClose={() => setAdvancedOpen(false)}
-          onSearch={(next) => set({ tree: next ? JSON.stringify(next) : null, page: null })}
+          onClose={closeRules}
+          onSearch={(next) => set({ tree: next ? JSON.stringify(next) : null, page: null, mode: null })}
           onSave={(next) => {
             setAdvancedOpen(false);
             setDraftToSave(next);
@@ -853,7 +753,7 @@ export default function DataExplorerPage() {
             if (!editing) {
               set({
                 ...(draftToSave !== undefined
-                  ? { tree: draftToSave ? JSON.stringify(draftToSave) : null, mode: null }
+                  ? { tree: draftToSave ? JSON.stringify(draftToSave) : null }
                   : {}),
                 saved: saved.id,
               });
@@ -885,7 +785,15 @@ function trySuggestions(resource?: ExplorerResource) {
   ).slice(0, 5);
 }
 
-/** The start screen's two panels: what you asked before, and what you saved. */
+/**
+ * What you asked before and what you saved, as one compact line of chips
+ * under the search bar — never more than a row, so the results stay where
+ * the eye expects them. Overflow folds into "+N more"; the saved overflow
+ * opens the saved-search drawer.
+ */
+const RECENT_SHOWN = 4;
+const SAVED_SHOWN = 3;
+
 function StartPanels({ dataset, label, onAsk, onOpenSaved, onManage }: {
   dataset: string;
   label: string;
@@ -894,84 +802,64 @@ function StartPanels({ dataset, label, onAsk, onOpenSaved, onManage }: {
   onManage: () => void;
 }) {
   const recent = useRecentSearches(dataset);
+  const [allRecent, setAllRecent] = useState(false);
   const saved = useQuery({
     queryKey: ["explorer", "saved", dataset],
     queryFn: ({ signal }) => explorerApi.saved(dataset, signal),
     staleTime: 30_000,
   });
   const items = [...(saved.data?.items ?? [])]
-    .sort((a, b) => Number(b.is_favorite) - Number(a.is_favorite) || b.use_count - a.use_count)
-    .slice(0, 4);
+    .sort((a, b) => Number(b.is_favorite) - Number(a.is_favorite) || b.use_count - a.use_count);
+  const terms = allRecent ? recent.terms : recent.terms.slice(0, RECENT_SHOWN);
+  const moreRecent = recent.terms.length - RECENT_SHOWN;
+  const moreSaved = items.length - SAVED_SHOWN;
+
+  if (recent.terms.length === 0 && items.length === 0) return null;
 
   return (
-    <div className="nx-fd-startgrid">
-      <section className="nx-fd-panel nx-glass" aria-labelledby="nx-fd-recent">
-        <div className="nx-fd-row">
-          <h2 id="nx-fd-recent" className="nx-fd-h2">Recent searches</h2>
-          {recent.terms.length > 0 && (
-            <button type="button" className="nx-fd-link nx-fd-push" onClick={recent.clear}>Clear all</button>
+    <div className={`nx-fd-quick${allRecent ? " is-open" : ""}`} aria-label={`Recent and saved searches in ${label.toLowerCase()}`}>
+      {recent.terms.length > 0 && (
+        <div className="nx-fd-quickgroup" role="group" aria-labelledby="nx-fd-recent">
+          <h2 id="nx-fd-recent" className="nx-fd-eyebrow">Recent searches</h2>
+          {terms.map((term) => (
+            <span className="nx-fd-qchip" key={term}>
+              <button type="button" className="nx-fd-qchip-main" onClick={() => onAsk(term)}>
+                <FdIcon name="clock" size={12} />
+                {term}
+              </button>
+              <button type="button" className="nx-fd-qchip-x" aria-label={`Remove recent search: ${term}`} onClick={() => recent.forget(term)}>
+                <NxIcon name="close" size={10} />
+              </button>
+            </span>
+          ))}
+          {moreRecent > 0 && (
+            <button type="button" className="nx-fd-qmore" onClick={() => setAllRecent((open) => !open)}>
+              {allRecent ? "Fewer" : `+${moreRecent} more`}
+            </button>
           )}
+          <button type="button" className="nx-fd-link nx-fd-tiny" onClick={recent.clear}>Clear</button>
         </div>
-        {recent.terms.length === 0 ? (
-          <p className="nx-fd-muted nx-fd-small nx-fd-empty">
-            What you search for in {label.toLowerCase()} is kept here, on this device only.
-          </p>
-        ) : (
-          <ul className="nx-fd-recent">
-            {recent.terms.slice(0, 5).map((term) => (
-              <li key={term}>
-                <button type="button" className="nx-fd-recentrow" onClick={() => onAsk(term)}>
-                  <span className="nx-fd-roundicon"><FdIcon name="clock" size={15} /></span>
-                  <span className="nx-fd-grow nx-fd-ellipsis">
-                    <span className="nx-fd-recentq">{term}</span>
-                    <span className="nx-fd-muted nx-fd-tiny">{label}</span>
-                  </span>
-                </button>
-                <button type="button" className="nx-fd-iconbtn is-plain" aria-label={`Remove recent search: ${term}`} onClick={() => recent.forget(term)}>
-                  <NxIcon name="close" size={13} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="nx-fd-panel nx-glass" aria-labelledby="nx-fd-savedh">
-        <div className="nx-fd-row">
-          <h2 id="nx-fd-savedh" className="nx-fd-h2">Saved searches</h2>
-          <button type="button" className="nx-fd-link nx-fd-push" onClick={onManage}>Manage</button>
+      )}
+      {items.length > 0 && (
+        <div className="nx-fd-quickgroup" role="group" aria-labelledby="nx-fd-savedh">
+          <h2 id="nx-fd-savedh" className="nx-fd-eyebrow">Saved searches</h2>
+          {items.slice(0, SAVED_SHOWN).map((item) => (
+            <button
+              type="button"
+              key={item.id}
+              className="nx-fd-qchip nx-fd-qchip--saved"
+              aria-label={`Run saved search: ${item.name}`}
+              onClick={() => onOpenSaved(item)}
+            >
+              {item.is_favorite ? <span className="nx-fd-star"><NxIcon name="star" size={12} /></span> : <FdIcon name="bookmark" size={12} />}
+              {item.name}
+            </button>
+          ))}
+          <button type="button" className="nx-fd-qmore" onClick={onManage}>
+            {moreSaved > 0 ? `+${moreSaved} more` : "Manage"}
+          </button>
         </div>
-        {items.length === 0 ? (
-          <p className="nx-fd-muted nx-fd-small nx-fd-empty">
-            {saved.isLoading ? "Loading…" : `Nothing saved for ${label.toLowerCase()} yet. Ask a question, then save it to come back to it.`}
-          </p>
-        ) : (
-          <div className="nx-fd-savedgrid">
-            {items.map((item) => (
-              <article className="nx-fd-savedcard" key={item.id}>
-                <div className="nx-fd-row">
-                  <span className="nx-fd-savedname nx-fd-ellipsis">{item.name}</span>
-                  {item.is_favorite && <span className="nx-fd-star" aria-label="Favourite"><NxIcon name="star" size={14} /></span>}
-                </div>
-                <span className="nx-fd-mono nx-fd-muted nx-fd-tiny">
-                  {item.rule_count
-                    ? `${item.rule_count} ${item.rule_count === 1 ? "rule" : "rules"}`
-                    : item.query_text ? `“${item.query_text}”` : "every record"}{" "}
-                  · {label}
-                </span>
-                <div className="nx-fd-row">
-                  <span className={`nx-fd-pill${item.scope === "PRIVATE" ? " nx-fd-pill--acc" : ""}`}>
-                    {item.scope === "PRIVATE" ? "Only you" : `${item.scope === "PUBLIC" ? "Everyone" : "Shared"} · ${item.owner.name.split(" ")[0]}`}
-                  </span>
-                  <button type="button" className="nx-fd-link nx-fd-push" aria-label={`Run saved search: ${item.name}`} onClick={() => onOpenSaved(item)}>
-                    Run <FdIcon name="arrowRight" size={13} />
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
+      )}
     </div>
   );
 }

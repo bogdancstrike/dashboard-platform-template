@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
@@ -51,62 +51,69 @@ const sample: QueryNode = {
 };
 
 describe("ConditionBuilder", () => {
-  it("starts as an empty root that matches everything", () => {
+  it("starts as an empty root with an add-filter link", () => {
     render(<Harness />);
     expect(screen.getByRole("region", { name: "Root group" })).toBeInTheDocument();
-    expect(screen.getByText(/Matches every record/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "+ Add filter" })).toBeInTheDocument();
   });
 
-  it("adds a rule, then a group with a rule of its own", async () => {
+  it("adds a filter, then a group with a filter of its own", async () => {
     const user = userEvent.setup();
     let latest: QueryNode | null = null;
     render(<Harness onTree={(tree) => (latest = tree)} />);
 
-    await user.click(screen.getByRole("button", { name: /Add rule/ }));
+    await user.click(screen.getByRole("button", { name: "+ Add filter" }));
     expect(treeStats(latest).rules).toBe(1);
-    expect(screen.getByText(/Choose a field — this rule is skipped/)).toBeInTheDocument();
+    expect(screen.getByText("Where")).toBeInTheDocument();
+    // An unfinished rule is muted, never explained at length.
+    expect(screen.queryByText(/skipped until it is complete/)).not.toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /incomplete/ })).toHaveClass("is-incomplete");
 
-    await user.click(screen.getAllByRole("button", { name: /Add group/ })[0]!);
+    await user.click(screen.getAllByRole("button", { name: "+ Add group" })[0]!);
     expect(treeStats(latest)).toMatchObject({ rules: 2, groups: 1, incomplete: 2 });
-    expect(screen.getByRole("region", { name: "Group A" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Group" })).toBeInTheDocument();
   });
 
-  it("reads a tree back as groups, connectives and rule rows", () => {
+  it("reads a tree back as lines with Where / and / or", () => {
     render(<Harness initial={sample} />);
-    expect(screen.getByRole("region", { name: "Group A" })).toBeInTheDocument();
-    expect(screen.getAllByText(/of these 2 conditions/, { selector: ".nx-fd-cb-sentence" })).toHaveLength(2);
-    // The text rule has no value yet, so it is flagged and skipped.
-    expect(screen.getByText(/Choose a value — this rule is skipped/)).toBeInTheDocument();
+    expect(screen.getAllByText("Where")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: /^and — switch to or/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^or — switch to and/ })).toBeInTheDocument();
     expect(screen.getAllByRole("group", { name: /^Rule:/ })).toHaveLength(3);
   });
 
-  it("switches a group's connective and negates it", async () => {
+  it("flips a group's connective from its word, and negates it from the menu", async () => {
     const user = userEvent.setup();
     let latest: QueryNode | null = null;
     render(<Harness initial={sample} onTree={(tree) => (latest = tree)} />);
 
-    const root = within(screen.getByRole("group", { name: "Root group conjunction" }));
-    await user.click(root.getByRole("button", { name: "Or" }));
+    await user.click(screen.getByRole("button", { name: /^and — switch to or/ }));
     expect(conjunctionOf(latest!)).toBe("OR");
 
-    const nots = screen.getAllByRole("button", { name: "Not" });
-    await user.click(nots[0]!);
+    await user.click(screen.getByRole("button", { name: "Root group options" }));
+    await user.click(await screen.findByText("Exclude matches (NOT)"));
     expect(isNot(latest!)).toBe(true);
-    expect(screen.getByText(/Exclude records matching/)).toBeInTheDocument();
+    expect(screen.getByText("Where not")).toBeInTheDocument();
   });
 
-  it("duplicates and removes rules", async () => {
+  it("duplicates, moves and removes filters", async () => {
     const user = userEvent.setup();
     let latest: QueryNode | null = null;
     render(<Harness initial={sample} onTree={(tree) => (latest = tree)} />);
 
-    await user.click(screen.getAllByRole("button", { name: "Duplicate this rule" })[0]!);
+    await user.click(screen.getAllByRole("button", { name: /^More for this rule/ })[0]!);
+    await user.click(await screen.findByText("Duplicate this rule"));
     expect(treeStats(latest).rules).toBe(4);
     await user.click(screen.getAllByRole("button", { name: "Remove this rule" })[0]!);
     expect(treeStats(latest).rules).toBe(3);
+
+    await user.click(screen.getByRole("button", { name: "More for this rule: Title" }));
+    await user.click(await screen.findByText("Move up"));
+    const moved = children(children(latest!).find((child) => child.id === "g")!);
+    expect(ruleParts(moved[0]!).field).toBe("title");
   });
 
-  it("types a text value and reorders with the keyboard", async () => {
+  it("types a text value", async () => {
     const user = userEvent.setup();
     let latest: QueryNode | null = null;
     render(<Harness initial={sample} onTree={(tree) => (latest = tree)} />);
@@ -114,11 +121,6 @@ describe("ConditionBuilder", () => {
     await user.type(screen.getByLabelText("Value for Title"), "audit");
     const group = children(latest!).find((child) => child.id === "g")!;
     expect(ruleParts(children(group)[1]!).value).toEqual(["audit"]);
-
-    const handle = screen.getByRole("button", { name: "Reorder rule: Title" });
-    fireEvent.keyDown(handle, { key: "ArrowUp" });
-    const moved = children(children(latest!).find((child) => child.id === "g")!);
-    expect(ruleParts(moved[0]!).field).toBe("title");
   });
 
   it("removes a nested group from its options menu", async () => {
@@ -126,7 +128,7 @@ describe("ConditionBuilder", () => {
     let latest: QueryNode | null = null;
     render(<Harness initial={sample} onTree={(tree) => (latest = tree)} />);
 
-    await user.click(screen.getByRole("button", { name: "Group A options" }));
+    await user.click(screen.getByRole("button", { name: "Group options" }));
     await user.click(await screen.findByText("Remove this group"));
     expect(treeStats(latest)).toMatchObject({ rules: 1, groups: 0 });
   });
