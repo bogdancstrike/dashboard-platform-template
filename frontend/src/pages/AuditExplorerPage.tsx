@@ -455,6 +455,7 @@ export default function AuditExplorerPage() {
       </Card>
 
       <Drawer
+        className="nx-ad-drawer"
         width={720}
         open={Boolean(openEntry)}
         onClose={() => set({ entry: null }, false)}

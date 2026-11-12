@@ -177,20 +177,20 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
   },
   {
     what: "A record — task, project, ticket, order, customer, device",
-    shape: "drawer",
+    shape: "modal",
     where: "tasks",
     testId: "record-create",
     opens: "components/records/RecordForm.tsx",
     because:
-      "One object's fields, built from the server's own declaration of which are writable. The list stays visible beside it, which is what a reader creating several in a row needs.",
+      "One object's fields, built from the server's own declaration of which are writable, in a centred two-column sheet: a record is a short form with one decision at the end, and the list it lands in is right behind it when the sheet closes.",
   },
   {
     what: "An announcement",
-    shape: "drawer",
+    shape: "modal",
     where: "announcements",
     testId: "new-announcement",
     opens: "components/announcements/AnnouncementEditor.tsx",
-    because: "A form: audience, severity, body, whether it needs agreement, when it expires.",
+    because: "A form — audience, severity, body, whether it needs agreement, when it expires — in a centred sheet, as the canvas draws it: one decision, made and published.",
   },
   {
     what: "A calendar event",

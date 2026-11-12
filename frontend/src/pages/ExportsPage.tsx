@@ -548,6 +548,19 @@ export default function ExportsPage() {
           })}
           className="nu-exp-table"
           scroll={{ x: 1120 }}
+          onRow={(row) => ({
+            // The phone's card opens the detail; on a desk the reference does.
+            // No event when a phone card is pressed — that press is always "open".
+            onClick: (event?: React.MouseEvent) => {
+              const target = event?.target;
+              if (target instanceof Element && target.closest("button, a")) return;
+              setParams((next) => {
+                const merged = new URLSearchParams(next);
+                merged.set("export", row.id);
+                return merged;
+              });
+            },
+          })}
           data-testid="exports-table"
           rowKey="id"
           size="middle"
@@ -568,6 +581,7 @@ export default function ExportsPage() {
       )}
 
       <Drawer
+        className="nx-ad-drawer"
         title={detail ? `${detail.reference} · ${detail.name}` : "Export"}
         width={520}
         open={Boolean(detail)}
@@ -583,6 +597,7 @@ export default function ExportsPage() {
       </Drawer>
 
       <Drawer
+        className="nx-ad-drawer"
         title="New export"
         width={480}
         open={composing}

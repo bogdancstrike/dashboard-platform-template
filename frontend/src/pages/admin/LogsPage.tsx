@@ -551,6 +551,7 @@ export default function LogsPage() {
       </div>
 
       <Drawer
+        className="nx-ad-drawer"
         open={opened !== null}
         rootClassName={URL_OVERLAY}
         onClose={() => setOpened(null)}

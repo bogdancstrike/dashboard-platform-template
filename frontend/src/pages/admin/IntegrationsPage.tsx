@@ -435,6 +435,7 @@ export default function IntegrationsPage() {
       </div>
 
       <Drawer
+        className="nx-ad-drawer"
         open={opened !== null}
         rootClassName={URL_OVERLAY}
         onClose={overlay.close}

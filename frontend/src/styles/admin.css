@@ -631,3 +631,16 @@ button.nx-ad-card:focus-visible { outline: 2px solid var(--nu-accent); outline-o
 }
 .nx-app--phone .nx-ad .nu-block.ant-card:has(.nx-ad-cards) > .ant-card-body { padding: 0 !important; }
 .nx-ad--exports .nu-exp-state { flex-wrap: wrap; } .nx-ad--exports .nu-exp-state .ant-typography { white-space: normal; }
+
+/* ═════════════ drawers on a phone: nothing runs off the right edge ═════════════ */
+@media (max-width: 767px) {
+  .nx-ad-drawer .ant-drawer-body { overflow-x: hidden; padding: 16px; }
+  .nx-ad-drawer .ant-drawer-body * { max-width: 100%; }
+  .nx-ad-drawer .ant-space-horizontal, .nx-ad-drawer .nu-group-edit { flex-wrap: wrap; }
+  .nx-ad-drawer .nu-group-edit > *, .nx-ad-drawer .ant-select { min-width: 0 !important; width: 100%; }
+  .nx-ad-drawer .ant-descriptions-item-content { word-break: break-word; }
+  .nx-ad-drawer pre { white-space: pre-wrap; word-break: break-word; }
+  .nx-ad-drawer .ant-drawer-header { padding: 16px 16px 6px; }
+  .nx-ad-drawer .ant-drawer-extra { max-width: 50%; }
+  .nx-ad-drawer .ant-table-wrapper { overflow-x: auto; }
+}
