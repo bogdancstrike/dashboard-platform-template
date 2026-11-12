@@ -37,6 +37,7 @@ owner-only writes.
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 from uuid import UUID
 
@@ -602,7 +603,7 @@ def create_card(session, board_id: Any, payload: Any, *, principal) -> dict[str,
         assignee_id=_person(body.get("assignee_id")),
         reporter_id=principal.user_id,
         labels=_labels(body.get("labels")),
-        due_date=body.get("due_date") or None,
+        due_date=_due_date(body.get("due_date")),
     )
     session.add(card_row)
     session.flush()
@@ -648,7 +649,7 @@ def update_card(session, card_id: Any, payload: Any, *, principal) -> dict[str, 
     if "labels" in body:
         row.labels = _labels(body.get("labels"))
     if "due_date" in body:
-        row.due_date = body.get("due_date") or None
+        row.due_date = _due_date(body.get("due_date"))
     if "checklist" in body:
         row.checklist = _checklist(body.get("checklist"))
     if "parent_id" in body:
@@ -922,6 +923,24 @@ def _labels(raw: Any) -> list[str]:
     if not isinstance(raw, list):
         raise ValidationError("labels must be an array of strings.")
     return sorted({str(item).strip()[:40] for item in raw if str(item).strip()})
+
+
+def _due_date(raw: Any) -> date | None:
+    """A calendar day, parsed here rather than handed to the column as text.
+
+    The raw string used to be assigned straight to the `Date` column, and the
+    serialiser then called `.isoformat()` on what was still a `str` — every
+    card created or edited with a due date answered 500, and a malformed one
+    reached the database as a driver error.
+    """
+    if raw in (None, ""):
+        return None
+    try:
+        return date.fromisoformat(str(raw)[:10])
+    except ValueError as exc:
+        raise ValidationError(
+            "due_date must be a date (YYYY-MM-DD).", details={"due_date": raw}
+        ) from exc
 
 
 def _person(raw: Any) -> UUID | None:

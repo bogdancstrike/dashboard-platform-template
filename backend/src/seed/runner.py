@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import time
 from copy import deepcopy
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -1140,13 +1141,32 @@ def sync_health(session) -> dict[str, int]:
     extended = 0
     points = 0
     for row in rows:
-        if len(row.history or []) >= 200:
+        if len(row.history or []) >= 200 and not _history_is_stale(row.history, anchor):
             continue
         series = _health_series(rng.derive(f"health:{row.key}"), anchor)
         row.history = series
         extended += 1
         points = len(series)
     return {"extended": extended, "points": points}
+
+
+#: How old the newest health reading may be before the history counts as stale.
+HEALTH_STALE_AFTER = timedelta(days=1)
+
+
+def _history_is_stale(history, anchor) -> bool:
+    """Whether a history ends so long ago that the windows on screen are empty.
+
+    A month of points is not enough on its own: a database seeded in September
+    and opened in November has two hundred readings, all of them outside the
+    8h, 1d and 7d windows — so `sync_health` used to call it "already has a
+    month of history" and leave every chart on `/admin/health` blank.
+    """
+    from src.core.clock import parse
+
+    readings = [parse(str(point.get("at") or "")) for point in history if isinstance(point, dict)]
+    newest = max((at for at in readings if at is not None), default=None)
+    return newest is None or anchor - newest > HEALTH_STALE_AFTER
 
 
 def sync_org(session) -> dict[str, int]:
