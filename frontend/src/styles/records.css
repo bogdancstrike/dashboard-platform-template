@@ -612,3 +612,29 @@ body.nx-dragging, body.nx-dragging * { cursor: grabbing !important; user-select:
 .nu-mailrail-fold::after { content: "▾"; margin-left: 6px; letter-spacing: 0; }
 .nu-mailrail-fold[aria-expanded="false"]::after { content: "▸"; }
 .nu-mailrail-fold:hover { color: var(--nu-text); }
+
+/* ═══ Phone: two-up metrics, folder chips, a calendar of dots ═════════════ */
+.nx-app--phone .nu-metric-strip { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+.nx-app--phone .nu-metric-strip .nu-statcard .ant-card-body { padding: 12px !important; }
+.nx-app--phone .nu-metric-strip .nu-statcard-number { font-size: 22px; }
+.nx-app--phone .nu-mailrail { flex-direction: row; overflow-x: auto; scrollbar-width: none; gap: 6px; padding-bottom: 4px; }
+.nx-app--phone .nu-mailrail-headrow, .nx-app--phone .nu-mailrail-fold { display: none; }
+.nx-app--phone .nu-mailrail-row { flex: 0 0 auto; min-height: 40px; background: rgba(var(--nu-ink-rgb), 0.06); }
+.nx-app--phone .nu-mailrail-row--active { background: var(--nu-text) !important; color: var(--nu-on-ink) !important; box-shadow: none; }
+.nx-app--phone .nu-mailrail-row--active .nu-mailrail-total { color: var(--nu-on-ink) !important; }
+.nx-app--phone .nu-month-cell-body { display: none !important; }
+.nx-app--phone .nu-month-grid { grid-template-rows: repeat(6, 52px) !important; gap: 4px !important; }
+.nx-app--phone .nu-month-cell { border-radius: 14px; align-items: center; justify-content: center; padding: 4px !important; }
+.nx-app--phone .nu-month-cell-head { justify-content: center !important; }
+.nx-app--phone .nu-month-cell-add { display: none; }
+.nx-app--phone .nu-month-more { font-size: 10px; padding: 0 !important; text-align: center; }
+.nx-app--phone .nx-cal-layout .nu-cal-bar { flex-wrap: wrap; gap: 8px; }
+.nx-app--phone .nu-cal-title.ant-typography { font-size: 22px !important; }
+.nx-app--phone .nx-rec-table .ant-table { font-size: 13px; }
+@media (max-width: 1100px) { .nu-mail { grid-template-columns: minmax(0, 1fr) !important; } .nu-mail > * { min-width: 0; } }
+.nx-app--phone .nu-page-actions .ant-space, .nx-app--phone .nu-page-actions.ant-space { flex-wrap: wrap; }
+.nx-app--phone .nu-page-actions .ant-space-item { max-width: 100%; }
+.nx-app--phone .nx-rec-table.ant-table-wrapper, .nx-app--phone .nu-split > * { min-width: 0; max-width: 100%; }
+.nx-app--phone .nx-rec-table .ant-table-container { overflow-x: auto; }
+.nx-app--phone .nx-rec-kboard { margin-inline: -14px; padding-inline: 14px; scroll-snap-type: x proximity; }
+.nx-app--phone .nx-rec-klane { scroll-snap-align: start; }
