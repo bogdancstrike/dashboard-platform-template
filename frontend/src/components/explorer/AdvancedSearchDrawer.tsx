@@ -15,12 +15,9 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Button, Card, Collapse, Drawer, Space, Statistic, Tooltip, Typography } from "antd";
+import { Alert, Button, Collapse, Drawer, Space, Statistic, Tooltip, Typography } from "antd";
 import {
-  ApartmentOutlined,
-  ClearOutlined,
   QuestionCircleOutlined,
-  SaveOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 
@@ -28,7 +25,9 @@ import { explorerApi, type ExplorerField, type ExplorerRequest } from "@/api/exp
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useSticky } from "@/hooks/useSticky";
 
-import { AdvancedQueryBuilder } from "./AdvancedQueryBuilder";
+import { ConditionBuilder } from "./ConditionBuilder";
+import { treeStats } from "./conditionTree";
+import { FdIcon } from "./fdIcons";
 import { countRules, emptyTree, type QueryNode } from "./queryTree";
 
 const { Text, Paragraph } = Typography;
@@ -44,6 +43,11 @@ export interface AdvancedSearchDrawerProps {
   onSearch: (tree: QueryNode | null) => void;
   /** Save the draft under a name, without having to run it first. */
   onSave: (tree: QueryNode | null) => void;
+  /** What the dataset is called and how big it is, for the header. */
+  datasetLabel?: string;
+  recordCount?: number;
+  /** Open the saved-search panel ("Load a saved search"). */
+  onOpenSaved?: () => void;
 }
 
 export function AdvancedSearchDrawer(props: AdvancedSearchDrawerProps) {
@@ -54,8 +58,19 @@ export function AdvancedSearchDrawer(props: AdvancedSearchDrawerProps) {
       // at 920 pixels a group three deep put its value field in a column two
       // words wide — so the editor's own shape was arguing with the thing
       // being edited.
-      width="min(1180px, 96vw)"
-      title={<Space><ApartmentOutlined />Advanced conditions</Space>}
+      width="min(860px, 100vw)"
+      rootClassName="nx-fd-advdrawer"
+      title={
+        <div className="nx-fd-dhead">
+          <span className="nx-fd-dtitle">Advanced <em className="nx-em">conditions</em></span>
+          {props.datasetLabel && (
+            <span className="nx-fd-dsub">
+              {props.datasetLabel}
+              {props.recordCount !== undefined ? ` · ${props.recordCount.toLocaleString()} records` : ""}
+            </span>
+          )}
+        </div>
+      }
       onClose={props.onClose}
       // Discarding the component discards the draft, which is the whole
       // contract: what was not searched for was not asked.
@@ -66,7 +81,7 @@ export function AdvancedSearchDrawer(props: AdvancedSearchDrawerProps) {
   );
 }
 
-function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave }: AdvancedSearchDrawerProps) {
+function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, datasetLabel, onOpenSaved }: AdvancedSearchDrawerProps) {
   const [draft, setDraft] = useState<QueryNode | null>(request.condition_tree ?? null);
 
   // Same endpoint, same shape, first page only: the preview is the search.
@@ -92,11 +107,21 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave }: Adva
   const [helpOpen, setHelpOpen] = useSticky<boolean>("explore.advanced.help", true);
 
   const rules = countRules(draft);
+  const stats = treeStats(draft);
   const settling = preview.isFetching || previewRequest !== debounced;
   const applied = JSON.stringify(request.condition_tree ?? null) === JSON.stringify(draft ?? null);
 
   return (
-    <div className="nu-advanced-search">
+    <div className="nu-advanced-search nx-fd-advbody">
+      <div className="nx-fd-dscope">
+        <span className="nx-fd-muted">Searching in</span>
+        <span className="nx-fd-chip"><FdIcon name="table" size={13} />{datasetLabel ?? request.resource_type}</span>
+        {onOpenSaved && (
+          <button type="button" className="nx-fd-link nx-fd-push" onClick={onOpenSaved}>
+            Load a saved search
+          </button>
+        )}
+      </div>
       {/* What a rule and a group *are*, before anybody is asked to build one.
           The editor is two nouns and three connectives, and none of them is
           named anywhere on screen — so the panel that used to sit here said
@@ -161,24 +186,22 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave }: Adva
         ]}
       />
 
-      <AdvancedQueryBuilder fields={fields} value={draft} onChange={setDraft} />
+      <ConditionBuilder fields={fields} value={draft} onChange={setDraft} />
 
-      <Card
-        size="small"
-        title={
-          <Space size={6}>
-            <span>What this asks</span>
-            <Tooltip title="Rendered by the server from the same tree it compiles into SQL — so what is written here is what will run">
-              <QuestionCircleOutlined className="nu-advanced-hint" />
-            </Tooltip>
-          </Space>
-        }
-        className="nu-query-inspector"
-      >
+      <section className="nx-fd-dcode" aria-label="What this asks">
+        <div className="nx-fd-row">
+          <span className="nx-fd-h2">What this asks</span>
+          <Tooltip title="Rendered by the server from the same tree it compiles into SQL — so what is written here is what will run">
+            <QuestionCircleOutlined className="nu-advanced-hint" />
+          </Tooltip>
+          {stats.incomplete > 0 && (
+            <span className="nx-fd-pill nx-fd-pill--warn nx-fd-push">{stats.incomplete} incomplete · skipped</span>
+          )}
+        </div>
         <pre data-testid="query-inspector">
           {preview.data?.condition_text?.trim() || "All records"}
         </pre>
-      </Card>
+      </section>
 
       {preview.isError && (
         <Alert
@@ -201,7 +224,6 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave }: Adva
         <Space>
           <Tooltip title="Empty the tree and start again. Nothing on the page behind changes.">
             <Button
-              icon={<ClearOutlined />}
               disabled={rules === 0}
               onClick={() => setDraft(emptyTree())}
             >
@@ -209,7 +231,7 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave }: Adva
             </Button>
           </Tooltip>
           <Tooltip title="Save this condition under a name, without running it first">
-            <Button icon={<SaveOutlined />} onClick={() => onSave(draft)}>
+            <Button onClick={() => onSave(draft)}>
               Save as…
             </Button>
           </Tooltip>
