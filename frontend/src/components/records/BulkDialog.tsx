@@ -177,7 +177,7 @@ export function BulkDialog({
                   value={value || undefined}
                   onChange={setValue}
                   options={(fields.find((item) => item.name === field)?.choices ?? []).map(
-                    (choice) => ({ value: choice, label: choice }),
+                    (choice) => ({ value: choice, label: humanStatus(choice) }),
                   )}
                   placeholder="Set it to"
                   disabled={!field}
