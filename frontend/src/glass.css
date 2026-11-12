@@ -558,3 +558,8 @@ html { zoom: var(--nu-zoom, 1); }
 /* `#nu-main` is a flex column so `.nu-fill` pages can take the height left;
    inside the shell it is the scroller, and must never be taller than its slot. */
 #nu-main.nx-scroll { min-height: 0; }
+/* The selected segment is ink on its own colour in both themes; AntD's
+   hover and focus states otherwise repaint the label with the track's ink. */
+.ant-segmented .ant-segmented-item-selected,
+.ant-segmented .ant-segmented-item-selected:hover,
+.ant-segmented .ant-segmented-item-selected .ant-segmented-item-label { color: var(--nu-on-ink) !important; }

@@ -1196,14 +1196,14 @@ mark.nu-mark {
 /* A list beside what the list is about — tickets' triage queue (§63),
    reports, files. `.nu-fill` on the same element makes it claim the window;
    without it the grid still works and sizes to its content. */
-.nu-split { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: 12px; align-items: start; }
+.nu-split { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 12px; align-items: start; }
 .nu-split.nu-fill { align-items: stretch; }
 /* A narrower left column, for a list of short names — a folder tree needs a
    quarter of what a queue of ticket summaries does, and every pixel it does
    not need is a pixel the table beside it does. */
-.nu-split--rail { grid-template-columns: minmax(180px, 230px) 1fr; }
+.nu-split--rail { grid-template-columns: minmax(180px, 230px) minmax(0, 1fr); }
 .nu-split.nu-fill > * { min-height: 0; }
-@media (max-width: 1100px) { .nu-split { grid-template-columns: 1fr; } }
+@media (max-width: 1100px) { .nu-split, .nu-split--rail { grid-template-columns: minmax(0, 1fr); } }
 .nu-split-list .ant-card-body { padding: 6px; }
 .nu-split-detail { min-height: 420px; }
 .nu-split.nu-fill .nu-split-detail { min-height: 0; }
