@@ -36,7 +36,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Form, Input, Modal, Segmented, Select, Switch, Typography } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { analysisApi } from "@/api/analysis";
 import type { DashboardWidget, WidgetInput, WidgetKind } from "@/api/dashboards";
@@ -100,6 +100,19 @@ export function WidgetModal({
    * redraws and does not refetch.
    */
   const [values, setValues] = useState<Record<string, string | boolean | number>>({});
+  /**
+   * A new widget starts on the canvas's grid of kinds: the first decision is
+   * *what it shows*, and it is the one decision a reader recognises faster as
+   * a picture than as a row in a dropdown. The form follows, with the kind
+   * still changeable there.
+   */
+  const [picking, setPicking] = useState(widget === null);
+  useEffect(() => {
+    if (open) {
+      setPicking(widget === null);
+      if (widget) setKind(widget.kind);
+    }
+  }, [open, widget]);
   // A widget's question is several choices — a dataset, a dimension, a
   // period — and closing the modal would take them all (§74).
   const { touch, requestClose } = useDiscardGuard({ close: onClose, what: "widget" });
@@ -135,7 +148,7 @@ export function WidgetModal({
   });
 
   const initial = {
-    kind: widget?.kind ?? "KPI",
+    kind: widget?.kind ?? kind,
     title: widget?.title ?? "",
     subtitle: widget?.subtitle ?? "",
     entity: widget?.config.entity ?? datasets[0]?.key ?? "",
@@ -192,15 +205,79 @@ export function WidgetModal({
     <Modal
       open={open}
       onCancel={requestClose}
-      width={940}
       destroyOnHidden
-      title={widget ? `Configure ${widget.title}` : "Add a widget"}
-      className="nu-widget-modal"
-      okText={widget ? "Save" : "Add to the dashboard"}
+      title={
+        widget ? (
+          `Configure ${widget.title}`
+        ) : (
+          <div className="nx-ov-modal-title">
+            <span>
+              Add <em>widget</em>
+            </span>
+            <small>
+              {picking
+                ? "Step 1 of 2 · what it shows"
+                : `Step 2 of 2 · ${KINDS[kind].label.toLowerCase()}, and what it answers`}
+            </small>
+          </div>
+        )
+      }
+      className={`nu-widget-modal${picking ? " is-picking" : ""}`}
+      width={picking ? 760 : 940}
+      okText={widget ? "Save" : "Add widget"}
       confirmLoading={saving}
       onOk={() => void form.submit()}
       okButtonProps={{ "data-testid": "save-widget" }}
+      // Nothing to add until a kind is chosen, so the first step has only
+      // the way out.
+      footer={picking ? (_, { CancelBtn }) => <CancelBtn /> : undefined}
+      cancelText={picking || widget ? "Cancel" : "Back"}
+      cancelButtonProps={
+        picking || widget
+          ? undefined
+          : {
+              onClick: (event) => {
+                event.stopPropagation();
+                setPicking(true);
+              },
+            }
+      }
     >
+      {picking ? (
+        <div className="nx-ov-kindgrid" data-testid="widget-kind-tiles">
+          {KIND_FAMILIES.map((family) => {
+            const offered = kindsOf(family, kinds);
+            if (offered.length === 0) return null;
+            return (
+              <section key={family} className="nx-ov-kindgrid-family">
+                <h3>{FAMILY_LABELS[family].label}</h3>
+                <div className="nx-ov-kindgrid-tiles">
+                  {offered.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      className={`nx-ov-kindtile${item === kind ? " is-on" : ""}`}
+                      aria-label={`${KINDS[item].label} — ${KINDS[item].question}`}
+                      title={KINDS[item].question}
+                      data-testid={`widget-tile-${item}`}
+                      onClick={() => {
+                        setKind(item);
+                        setValues((current) => ({ ...current, kind: item }));
+                        setPicking(false);
+                      }}
+                    >
+                      <span className="nx-ov-kindtile-icon" style={{ color: KINDS[item].colour }}>
+                        {KINDS[item].icon}
+                      </span>
+                      <span className="nx-ov-kindtile-label">{KINDS[item].label}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      ) : (
       <div className="nu-widget-modal-panes">
       <div className="nu-widget-modal-form">
       <Form
@@ -580,6 +657,7 @@ export function WidgetModal({
         </Paragraph>
       </aside>
       </div>
+      )}
     </Modal>
   );
 }

@@ -114,14 +114,10 @@ async function addWidget(page: Page, kind: string, title: string): Promise<void>
 
   await page.getByTestId("add-widget").click();
   const drawer = page.getByRole("dialog");
-  // Typed rather than scrolled: thirteen kinds is more than a list somebody
-  // reads top to bottom, and the ones past the window are virtualised away.
-  // The drawer slides in, so the input is not stable for the first frames —
-  // waited for rather than clicked at.
-  const picker = drawer.getByRole("combobox", { name: "Widget kind" });
+  // The kind is a tile on the first step (the canvas's grid of widget types);
+  // the form for it follows.
+  await drawer.getByRole("button", { name: new RegExp(`^${kind} —`) }).click();
   await expect(drawer.getByRole("textbox", { name: /Title/ })).toBeVisible();
-  await picker.fill(kind);
-  await page.locator(".ant-select-item-option").filter({ hasText: kind }).first().click();
   await drawer.getByRole("textbox", { name: /Title/ }).fill(title);
   await drawer.getByTestId("save-widget").click();
   await expect(drawer).toBeHidden();

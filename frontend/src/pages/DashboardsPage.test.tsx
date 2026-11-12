@@ -161,15 +161,10 @@ describe("the dashboards page", () => {
     await user.click(screen.getByTestId("add-widget"));
 
     const dialog = await screen.findByRole("dialog");
-    // The name first, because it is the field every kind has; then the kind,
-    // from a grouped dropdown where each row carries the question it answers.
+    // The kind first, as a tile — the canvas's grid of widget types — then the
+    // form for that kind, where the name is the first field.
+    await user.click(within(dialog).getByTestId("widget-tile-ACTIVITY"));
     await user.type(within(dialog).getByLabelText("Title"), "What just happened");
-    await user.click(within(dialog).getByRole("combobox", { name: "Widget kind" }));
-    await user.type(
-      within(dialog).getByRole("combobox", { name: "Widget kind" }),
-      "Recent activity",
-    );
-    await user.click(await screen.findByTestId("kind-ACTIVITY"));
     await user.click(within(dialog).getByTestId("save-widget"));
 
     await waitFor(() => {
