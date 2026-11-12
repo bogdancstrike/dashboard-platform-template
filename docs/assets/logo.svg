@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96" width="360" height="96" role="img" aria-label="Nucleus">
+  <title>Nucleus</title>
+  <style>
+    /* The mark is the app's NxLogo: two accent orbits and a core. The wordmark
+       flips with the reader's theme so it reads on a dark README too. */
+    .orbit { stroke: #2457D6; }
+    .core  { fill: #2457D6; }
+    .word  { fill: #1B1E26; }
+    .sub   { fill: #5C6370; }
+    @media (prefers-color-scheme: dark) {
+      .orbit { stroke: #C4B5FD; }
+      .core  { fill: #C4B5FD; }
+      .word  { fill: #F3E7D2; }
+      .sub   { fill: #B9AFBE; }
+    }
+  </style>
+  <g transform="translate(48 48)">
+    <ellipse class="orbit" rx="38" ry="16" fill="none" stroke-width="4.8" opacity="0.55" transform="rotate(-28)"/>
+    <ellipse class="orbit" rx="38" ry="16" fill="none" stroke-width="4.8" opacity="0.55" transform="rotate(28)"/>
+    <circle class="core" r="13"/>
+  </g>
+  <text class="word" x="104" y="56" font-family="Inter, -apple-system, Segoe UI, Roboto, sans-serif" font-size="44" font-weight="700" letter-spacing="-1.4">Nucleus</text>
+  <text class="sub" x="106" y="80" font-family="Inter, -apple-system, Segoe UI, Roboto, sans-serif" font-size="13" font-weight="600" letter-spacing="1.6">ENTERPRISE APP TEMPLATE</text>
+</svg>

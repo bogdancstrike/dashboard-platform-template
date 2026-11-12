@@ -1,31 +1,205 @@
-<p align="center">
-  <img src="docs/logo.svg" alt="Nucleus" width="340">
-</p>
+<div align="center">
 
-An enterprise application template platform: the screens, patterns and plumbing
-that every internal business application ends up needing, built once so the next
-project starts at week six instead of week zero.
+<img src="docs/assets/logo.svg" width="320" alt="Nucleus" />
 
-Nucleus is a **template**, not a product. It is meant to be forked, renamed and
-filled with real entities. Everything in it is chosen to be the version you
-would have had to write anyway — a filter bar that filters in PostgreSQL, an
-audit trail that commits in the same transaction as the change it records, a
-permission catalogue that the admin screen is generated from.
+**The screens, patterns and plumbing every internal business application ends up needing — built once.**<br/>
+An enterprise application template: fork it, rename it, fill it with your entities, and start at week six instead of week zero.
 
-> Status: backend foundations, data model and API runtime are complete and
-> tested. The endpoint surface, the seed and the frontend are in progress — see
-> [`docs/TODO.md`](docs/TODO.md) for exactly where the line is.
+[![React 18](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black)](frontend)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](frontend/tsconfig.json)
+[![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=flat-square&logo=vite&logoColor=white)](frontend/vite.config.ts)
+[![Ant Design](https://img.shields.io/badge/Ant%20Design-5-0170FE?style=flat-square&logo=antdesign&logoColor=white)](frontend/src/theme/antd.ts)
+[![ECharts](https://img.shields.io/badge/ECharts-5-AA344D?style=flat-square&logo=apacheecharts&logoColor=white)](frontend/src/components/charts)
+[![Flask](https://img.shields.io/badge/Flask-RESTX-000000?style=flat-square&logo=flask&logoColor=white)](backend)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1?style=flat-square&logo=postgresql&logoColor=white)](docker-compose.yml)
+[![Redis](https://img.shields.io/badge/Redis-cache%20%2B%20live-DC382D?style=flat-square&logo=redis&logoColor=white)](docker-compose.yml)
+[![Keycloak](https://img.shields.io/badge/Keycloak-SSO-4D4D4D?style=flat-square&logo=keycloak&logoColor=white)](keycloak)
+[![MinIO](https://img.shields.io/badge/MinIO-files-C72E49?style=flat-square&logo=minio&logoColor=white)](docker-compose.yml)
+[![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white)](docker-compose.yml)
+
+[What it is](#-what-it-is) · [Quick start](#-quick-start) · [Features](#-features) · [New design](#-the-new-design) · [Screenshots](#-screenshots) · [Architecture](#-architecture) · [Testing](#-testing) · [Contributing](#-contributing) · [Deep dives](#-deep-dives)
+
+<img src="docs/screenshots/home.png" width="860" alt="Nucleus home page in the glass design" />
+
+</div>
 
 ---
 
-## What is here
+## ✨ What it is
+
+Nucleus is a **template**, not a product. Everything in it is chosen to be the version you would have had to write anyway — a filter bar that filters in PostgreSQL, an audit trail that commits in the same transaction as the change it records, a permission catalogue that the admin screen is generated from.
+
+- 🧭 **Eighty-odd screens** grouped the way people work: overview, find, analyse, work, records, administration, data and a template showcase.
+- 🔐 **Keycloak sign-in** with roles, groups, impersonation and a permission matrix that changes real behaviour.
+- 🔎 **Search that scales** — every list is filtered, sorted, faceted and paginated in SQL, with an advanced AND / OR condition builder.
+- 📊 **Dashboards, reports and charts** from PostgreSQL aggregates, with a chart builder, a report builder and maps.
+- ⚡ **Live** — notifications, mail badges, a streaming log and auto-refreshing pages over one channel.
+- 🪟 **A glass design** in light and dark, on desktop, tablet and phone (see [the new design](#-the-new-design)).
+
+> **Status:** backend foundations, data model and API runtime are complete and tested; see [`docs/TODO.md`](docs/TODO.md) for exactly where the line is, and [`docs/features.md`](docs/features.md) for the §1–§77 feature catalogue.
+
+## 🚀 Quick start
+
+```bash
+make up          # build and start PostgreSQL, Redis, MinIO, Keycloak, the seed, the API and the app
+make urls        # print where everything is
+```
+
+(`make up` is `docker compose up -d --build` plus a wait for the API's readiness probe.)
+
+| What | Where |
+| --- | --- |
+| The app | <http://localhost:5174> |
+| API docs (Swagger) | <http://localhost:5101/> |
+| Health | <http://localhost:5101/platform/health/status> |
+| Keycloak | <http://localhost:8080> — `admin` / `admin` |
+| MinIO console | <http://localhost:9001> — `nucleus` / `nucleus-dev-secret` |
+
+**Personas** — each password is the username:
+
+| Sign in as | Role in the realm |
+| --- | --- |
+| `admin` | Administrator — the whole platform, including administration |
+| `manager` | Manager |
+| `operator` | Operator |
+| `analyst` | Analyst |
+| `user` | Viewer — read-only |
+
+The permission matrix at `/admin/roles` shows exactly what each role may do.
+
+Then follow [`docs/WALKTHROUGH.md`](docs/WALKTHROUGH.md): eighteen stops through the platform, each with the address and the persona to sign in as.
+
+Working on the frontend alone against the running stack:
+
+```bash
+cd frontend && npm install && npm run dev     # http://localhost:5174, proxying /platform to the API
+```
+
+## 🧩 Features
+
+Grouped like the navigation.
+
+### Overview
+- 🏠 **Home** — a greeting, what is waiting on you, today's calendar, your work, recent activity and where to jump back in.
+- 📈 **Organisation dashboard** — 17 panels on live aggregates with period comparison, a *needs attention* strip and drill-down from every number.
+- 🧱 **My dashboards** — build your own from widgets; drag to move and resize, share, auto-refresh.
+- 📰 **Activity, notifications and announcements** — filterable feeds, an unread bell, banners for what everyone must see.
+
+### Find
+- 🔍 **Data Explorer** — ask any dataset anything: quick search, facets, and an **advanced search** builder with nested AND / OR groups, NOT, and the compiled query shown.
+- 🌐 **Global search**, **relationships** graph, **data catalog** and **favourites** across every record type.
+
+### Analyse
+- 📊 **Analytics**, **reports** and saved report documents, a **report builder**, a **chart builder** with chart-type tiles, and **maps**.
+
+### Work
+- ✅ **Tasks** with list and board views, 🗂️ **Kanban boards** with WIP limits and drag anywhere, 🔁 **workflows** and automations.
+- 📅 **Calendar**, ✉️ **mail**, 📁 **files** with previews and versioned storage in MinIO.
+
+### Records
+- 💼 **Projects**, **customers**, **orders**, **tickets** and **devices** — lists with KPI tiles, saved views, bulk edits, export, and detail pages with timelines, comments and side-by-side **compare**.
+
+### Administration
+- 🛡️ **Users**, **groups**, **roles & permissions** (the matrix the code enforces), **organizations** and their structure.
+- 🧾 **Audit log** with field-level diffs, **system logs** that stream, **background jobs** with retry, **system health** with history.
+- 🔑 **API clients** with rotating keys, **integrations**, **feature flags** with gradual rollouts, and **settings**.
+
+### Data
+- 🧪 **Data quality** findings that open the rows behind them, a curated **tag** vocabulary, a step-by-step **CSV import** with column mapping and row checks, and **exports** kept as files.
+
+### Template
+- 🧰 **Components** — the shared toolkit rendered live — and a **page gallery** that classifies every route by its page shape, so a new page starts from the right one.
+
+## 🪟 The new design
+
+The whole frontend follows the **Nucleus glass design**: a soft two-glow ground with floating frosted panels, pill controls and quiet motion.
+
+- 🌗 **Light and dark** — a cool blue-accent light theme and a warm plum dark theme with a lavender accent, plus *system*. Every page, modal and chart is designed for both.
+- 🖥️ **Desktop, tablet and phone** — a glass sidebar on desktop; an icon rail with group chips on tablet; bottom tabs and a *More* sheet on phone. No page scrolls sideways.
+- 📌 **Collapsible sidebar** — folds to icons with an animation and remembers the choice per account; the search sits under the logo and folds with it.
+- 🔠 **Density** — *Compact*, *Normal* and *Relaxed* from the account menu scale text and controls together.
+- 🧊 **Glass everywhere** — Ant Design is skinned globally (cards are glass panels, tables are rows of soft pills, modals and drawers are frosted sheets), so new pages look right by default.
+- ✍️ **One typeface** — Inter throughout, with heavy, tightly tracked titles whose emphasised word takes the accent colour.
+
+The tokens live in [`frontend/src/theme/tokens.ts`](frontend/src/theme/tokens.ts) and [`antd.ts`](frontend/src/theme/antd.ts); the shell and the global skin in [`AppShell.tsx`](frontend/src/app/AppShell.tsx) and [`glass.css`](frontend/src/glass.css); each area's composition in [`frontend/src/styles/`](frontend/src/styles).
+
+## 📸 Screenshots
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/dashboard.png" alt="Organisation dashboard" /><br/><b>Organisation dashboard</b> — KPI tiles against the previous period</td>
+<td width="50%"><img src="docs/screenshots/projects.png" alt="Projects" /><br/><b>Projects</b> — a record list with KPI tiles, filters and health</td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/kanban.png" alt="Kanban board" /><br/><b>Kanban</b> — lanes with WIP limits, drag anywhere</td>
+<td><img src="docs/screenshots/advanced-search.png" alt="Advanced search" /><br/><b>Data Explorer · advanced search</b> — nested AND / OR conditions with a live preview</td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/ticket-detail.png" alt="Ticket detail" /><br/><b>Ticket detail</b> — SLA, triage, conversation and history</td>
+<td><img src="docs/screenshots/modal-new-role.png" alt="New role modal" /><br/><b>A modal</b> — a new role, its permissions copied and tuned by area</td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/admin.png" alt="Administration" /><br/><b>Administration</b> — the map of the area, only what you may open</td>
+<td><img src="docs/screenshots/roles.png" alt="Roles and permissions" /><br/><b>Roles &amp; permissions</b> — the matrix the code enforces</td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/home-dark.png" alt="Home in dark" /><br/><b>Dark</b> — home</td>
+<td><img src="docs/screenshots/dashboard-dark.png" alt="Dashboard in dark" /><br/><b>Dark</b> — dashboard</td>
+</tr>
+</table>
+
+<p align="center">
+<img src="docs/screenshots/phone-home.png" width="200" alt="Home on a phone" />
+<img src="docs/screenshots/phone-tasks.png" width="200" alt="Tasks on a phone" />
+<img src="docs/screenshots/phone-users.png" width="200" alt="Users on a phone" />
+<br/><sub>Phone — bottom tabs, the More sheet, nothing scrolls sideways</sub>
+</p>
+
+<p align="center"><img src="docs/screenshots/tablet-projects.png" width="640" alt="Projects on a tablet" /><br/><sub>Tablet — the icon rail with group chips</sub></p>
+
+## 🏗️ Architecture
+
+<p align="center"><img src="docs/architecture.svg" width="760" alt="Architecture" /></p>
 
 ```
 backend/     Flask + Flask-RESTX API on the QF framework, SQLAlchemy 2, PostgreSQL 18
 frontend/    Vite + React + TypeScript + AntD + ECharts + RAQB + cmdk
-keycloak/    Realm export: roles, clients, demo users
-docs/        Architecture notes and the implementation tracker
+keycloak/    Realm export: roles, clients, demo users, and the Nucleus sign-in theme
+docs/        Architecture notes, the walkthrough, the feature catalogue and the tracker
 ```
+
+- **Browser → Vite/nginx → API.** The app proxies `/platform`, so development uses the same request path production does behind a reverse proxy; nothing environment-specific is compiled into the bundle.
+- **Keycloak owns identity; Nucleus owns authorization detail.** The realm proves who you are and which role you hold; the `roles` table turns that into permissions, and every endpoint checks them.
+- **PostgreSQL** is the system of record, **Redis** the cache and the live channel's bus, **MinIO** the file store.
+- **The API surface is data**: `backend/maps/endpoint.json` mounts every endpoint, checked at startup.
+
+More in [`docs/architecture.md`](docs/architecture.md) and [`docs/RBAC.md`](docs/RBAC.md).
+
+## 🧪 Testing
+
+```bash
+cd backend  && python -m pytest          # no database, cache or Keycloak needed
+cd frontend && npm run test              # vitest + React Testing Library + MSW
+cd frontend && npx tsc --noEmit && npx eslint src
+make e2e                                 # Playwright against the compose stack
+```
+
+The browser suite holds every list page to **1.5 seconds to interactive** with the whole seed behind it. Details in [Tests](#tests) below.
+
+## 🤝 Contributing
+
+1. **Fork and branch** — `git checkout -b feat/my-change` from `master`.
+2. **Run the stack** — `make up`, sign in as the persona your change is for.
+3. **Follow the shapes** — new pages start from a shape in the [page gallery](http://localhost:5174/showcase/templates) and reuse the shared components in [`/showcase/components`](http://localhost:5174/showcase/components); colours come from the tokens, never hard-coded.
+4. **Check both themes and three widths** — light and dark, desktop, tablet (1194) and phone (390).
+5. **Test** — add or update the vitest/pytest cases next to what you changed; `tsc`, `eslint`, `pytest` and `vitest` must pass.
+6. **Commit** with a [Conventional Commits](https://www.conventionalcommits.org) message (`feat(admin): …`, `fix(design): …`) and open a pull request describing what changed and how you verified it.
+
+---
+
+## 📚 Deep dives
+
+The notes below are the reasoning behind the platform's less obvious choices — worth reading before changing the part they describe.
 
 ### Backend layout
 
