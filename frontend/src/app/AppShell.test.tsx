@@ -84,9 +84,11 @@ describe("authenticated application shell", () => {
     const user = userEvent.setup();
     renderShell();
 
-    const profileTrigger = document.querySelector(".nu-user") as HTMLElement;
-    expect(profileTrigger.tagName).toBe("BUTTON");
-    await user.click(profileTrigger);
+    // A real button, found by what it says to a screen reader — whichever of
+    // the three layouts (sidebar header, tablet rail, phone bar) is showing.
+    const [profileTrigger] = await screen.findAllByRole("button", { name: "Open profile menu" });
+    expect(profileTrigger!.tagName).toBe("BUTTON");
+    await user.click(profileTrigger!);
     expect(await screen.findByText("Administrator · Northwind Partners")).toBeInTheDocument();
     expect(screen.queryByText("Guest")).not.toBeInTheDocument();
   });
@@ -104,13 +106,15 @@ describe("authenticated application shell", () => {
     try {
       renderShell();
       await waitFor(() => expect(screen.getByText("Dashboard content")).toBeInTheDocument());
-      // The words are on screen, not one hover away.
-      await waitFor(() =>
-        expect(document.querySelector(".ant-layout-sider-collapsed")).toBeNull(),
-      );
-      // And at the width the labels were measured for: 248 wrapped the longest
-      // item in the navigation onto a second line.
-      expect((document.querySelector("aside") as HTMLElement).style.width).toBe("272px");
+      // The words are on screen, not one hover away: the fold control offers
+      // to *collapse*, which it only does while the sidebar is open.
+      const fold = await screen.findByRole("button", { name: "Collapse sidebar" });
+      expect(fold).toHaveAttribute("aria-expanded", "true");
+      const main = screen.getByRole("navigation", { name: "Main" });
+      expect(main).toBeInTheDocument();
+      // And at the width the canvas draws the labelled sidebar.
+      const app = main.closest(".nx-app") as HTMLElement;
+      expect(app.style.getPropertyValue("--nx-side-w")).toBe("248px");
     } finally {
       restore();
     }
@@ -131,9 +135,10 @@ describe("authenticated application shell", () => {
     const restore = atDesktopWidth();
     try {
       renderShell();
-      await waitFor(() =>
-        expect(document.querySelector(".ant-layout-sider-collapsed")).not.toBeNull(),
-      );
+      const unfold = await screen.findByRole("button", { name: "Expand sidebar" });
+      expect(unfold).toHaveAttribute("aria-expanded", "false");
+      const app = screen.getByRole("navigation", { name: "Main" }).closest(".nx-app") as HTMLElement;
+      expect(app.style.getPropertyValue("--nx-side-w")).toBe("76px");
     } finally {
       restore();
     }

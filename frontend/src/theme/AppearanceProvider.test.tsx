@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { STORAGE_KEYS } from "@/config";
 import { renderWithProviders } from "@/test/render";
 import { useAppearance } from "@/theme/AppearanceProvider";
+import { ACCENT, DENSITY } from "@/theme/tokens";
 
 function Probe() {
   const { appearance, density, mode, setAppearance, setDensity } = useAppearance();
@@ -55,8 +56,8 @@ describe("appearance and density", () => {
   it("writes the tokens as CSS variables for everything outside AntD", () => {
     renderWithProviders(<Probe />);
     const root = document.documentElement;
-    expect(root.style.getPropertyValue("--nu-accent")).toBe("#5b5bd6");
-    expect(root.style.getPropertyValue("--nu-row-height")).toBe("40px");
+    expect(root.style.getPropertyValue("--nu-accent")).toBe(ACCENT[500]);
+    expect(root.style.getPropertyValue("--nu-row-height")).toBe(`${DENSITY.middle.rowHeight}px`);
   });
 
   it("changes the row height with the density, so the whole page rescales", async () => {
@@ -64,6 +65,11 @@ describe("appearance and density", () => {
     renderWithProviders(<Probe />);
 
     await user.click(screen.getByText("go compact"));
-    expect(document.documentElement.style.getPropertyValue("--nu-row-height")).toBe("32px");
+    expect(document.documentElement.style.getPropertyValue("--nu-row-height")).toBe(
+      `${DENSITY.compact.rowHeight}px`,
+    );
+    // Compact is the shorter row: a density that did not change the height
+    // would be a setting with no effect.
+    expect(DENSITY.compact.rowHeight).toBeLessThan(DENSITY.middle.rowHeight);
   });
 });

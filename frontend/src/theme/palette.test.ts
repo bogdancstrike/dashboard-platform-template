@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildChartTheme } from "@/theme/echarts";
-import { buildTheme, cssVariables } from "@/theme/antd";
+import { buildTheme, cssVariables, DARK_ACCENT } from "@/theme/antd";
 import { ACCENT, LOGO, PAPER, SEMANTIC, SERIES } from "@/theme/tokens";
 import { shippedSources } from "@/test/sources";
 
@@ -23,10 +23,10 @@ import { shippedSources } from "@/test/sources";
 
 describe("the three consumers all read the tokens", () => {
   it("takes AntD's primary from the accent", () => {
-    // The one accent, in both appearances: the ramp changes, the source does
-    // not.
+    // Light takes the accent ramp; dark takes the canvas's lavender, which is
+    // declared once beside the builders rather than typed into either.
     expect(buildTheme("light", "middle").token?.colorPrimary).toBe(ACCENT[500]);
-    expect(buildTheme("dark", "middle").token?.colorPrimary).toBe(ACCENT[400]);
+    expect(buildTheme("dark", "middle").token?.colorPrimary).toBe(DARK_ACCENT);
   });
 
   it("publishes the same accent as a CSS variable", () => {
@@ -34,7 +34,7 @@ describe("the three consumers all read the tokens", () => {
     // — and a component resolving the theme in JavaScript to pick a hex would
     // be a second place the mode can be got wrong.
     expect(cssVariables("light", "middle")["--nu-accent"]).toBe(ACCENT[500]);
-    expect(cssVariables("dark", "middle")["--nu-accent"]).toBe(ACCENT[400]);
+    expect(cssVariables("dark", "middle")["--nu-accent"]).toBe(DARK_ACCENT);
   });
 
   it("gives the charts the same series palette and the same grounds", () => {
