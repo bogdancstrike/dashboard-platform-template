@@ -61,8 +61,8 @@ import {
   ShareAltOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
-import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { analysisApi } from "@/api/analysis";
@@ -96,7 +96,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { asText } from "@/lib/text";
 import { relativeTime } from "@/lib/time";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
-import { useSticky } from "@/hooks/useSticky";
+import { useSmartBack } from "@/app/history";
 import { COPY_MEANS, confirmCopy } from "@/lib/confirm";
 import { EmptyState } from "@/components/EmptyState";
 import { NxIcon } from "@/components/NxIcon";
@@ -107,7 +107,48 @@ export default function DashboardsPage() {
   const queryClient = useQueryClient();
   const { message, modal } = AntApp.useApp();
   const [params, setParams] = useSearchParams();
-  const [widgetForm, setWidgetForm] = useState<DashboardWidget | "new" | null>(null);
+  /**
+   * Every place on this page is in the address, pushed, so back and forward
+   * walk through them: the open dashboard, Customize, the widget editor and
+   * its two steps. `pushes` counts the entries this page added for the widget
+   * editor, so closing it steps back over them rather than leaving them for
+   * the back button to reopen.
+   */
+  const navigate = useNavigate();
+  const back = useSmartBack();
+  const pushes = useRef(0);
+  const place = (changes: Record<string, string | null>, replace = false) =>
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        for (const [key, value] of Object.entries(changes)) {
+          if (value) next.set(key, value);
+          else next.delete(key);
+        }
+        return next;
+      },
+      { replace },
+    );
+  const widgetParam = params.get("widget");
+  const chosenKind = (params.get("wkind") as WidgetKind | null) ?? null;
+  useEffect(() => {
+    if (!widgetParam) pushes.current = 0;
+    else if (!chosenKind) pushes.current = Math.min(pushes.current, 1);
+  }, [widgetParam, chosenKind]);
+  const setWidgetForm = (next: DashboardWidget | "new" | null) => {
+    if (next === null) {
+      if (pushes.current > 0) {
+        const steps = pushes.current;
+        pushes.current = 0;
+        navigate(-steps);
+      } else {
+        place({ widget: null, wkind: null }, true);
+      }
+      return;
+    }
+    pushes.current = 1;
+    place({ widget: next === "new" ? "new" : next.id, wkind: null });
+  };
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -149,7 +190,8 @@ export default function DashboardsPage() {
    * the drawer they had open gone. Per dashboard rather than per page, because
    * "I am building this one" and "I am reading that one" are true at once.
    */
-  const [editing, setEditing] = useSticky<boolean>(`dashboards.editing.${openId}`, false);
+  const editing = params.get("edit") === "1";
+  const setEditing = (on: boolean) => place({ edit: on ? "1" : null });
 
 
 
@@ -187,15 +229,7 @@ export default function DashboardsPage() {
   });
 
   const open = (id: string) =>
-    setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        if (id) next.set("dashboard", id);
-        else next.delete("dashboard");
-        return next;
-      },
-      { replace: true },
-    );
+    place({ dashboard: id || null, edit: null, widget: null, wkind: null });
 
   /** Every write refreshes the layout it changed, and the list beside it. */
   const settled = (saved: SavedDashboard) => {
@@ -305,6 +339,8 @@ export default function DashboardsPage() {
   const board = dashboard.data;
   const columns = board?.columns ?? listing.data?.columns ?? 12;
   const widgets = board?.widgets ?? [];
+  const widgetForm: DashboardWidget | "new" | null =
+    widgetParam === "new" ? "new" : widgets.find((item) => item.id === widgetParam) ?? null;
   /**
    * The window the chart-shaped widgets read over.
    *
@@ -455,7 +491,7 @@ export default function DashboardsPage() {
             </span>
           )
         }
-        onBack={openId ? () => open("") : undefined}
+        onBack={openId ? () => back(() => open("")) : undefined}
         subtitle={
           openId && board
             ? [
@@ -700,8 +736,8 @@ export default function DashboardsPage() {
                 type="primary"
                 icon={<PlusOutlined />}
                 onClick={() => {
-                  setEditing(true);
-                  setWidgetForm("new");
+                  pushes.current = 1;
+                  place({ edit: "1", widget: "new", wkind: null });
                 }}
               >
                 Add the first one
@@ -746,13 +782,23 @@ export default function DashboardsPage() {
         onCreated={(saved) => {
           setWizardOpen(false);
           settled(saved);
-          open(saved.id);
-          setEditing(true);
+          place({ dashboard: saved.id, edit: "1", widget: null, wkind: null });
           message.success(`${saved.name} created`);
         }}
       />
 
       <WidgetModal
+        chosenKind={chosenKind}
+        onChooseKind={(kind) => {
+          pushes.current += 1;
+          place({ wkind: kind });
+        }}
+        onBackToKinds={() => {
+          if (pushes.current > 1) {
+            pushes.current -= 1;
+            navigate(-1);
+          } else place({ wkind: null }, true);
+        }}
         open={widgetForm !== null}
         widget={widgetForm === "new" ? null : widgetForm}
         datasets={listing.data?.datasets ?? []}

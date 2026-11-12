@@ -44,6 +44,7 @@ import { explorerApi, type ExplorerResource } from "@/api/explorer";
 import { kanbanApi } from "@/api/kanban";
 import { reportsApi } from "@/api/reports";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
+import { URL_OVERLAY } from "@/app/history";
 import { EmptyState } from "@/components/EmptyState";
 
 import { FAMILY_LABELS, KINDS, KIND_FAMILIES, kindsOf, type KindSpec } from "./kinds";
@@ -76,7 +77,18 @@ export function WidgetModal({
   resources,
   onClose,
   onSave,
+  chosenKind,
+  onChooseKind,
+  onBackToKinds,
 }: {
+  /**
+   * The kind chosen on the first step, when the page keeps the steps in its
+   * address — so the browser's back goes from the form to the tiles, and from
+   * the tiles out, one step at a time. Absent, the modal keeps them itself.
+   */
+  chosenKind?: WidgetKind | null;
+  onChooseKind?: (kind: WidgetKind) => void;
+  onBackToKinds?: () => void;
   open: boolean;
   widget: DashboardWidget | null;
   datasets: { key: string; label: string }[];
@@ -106,13 +118,18 @@ export function WidgetModal({
    * a picture than as a row in a dropdown. The form follows, with the kind
    * still changeable there.
    */
-  const [picking, setPicking] = useState(widget === null);
+  const [pickingState, setPicking] = useState(widget === null);
+  const controlled = onChooseKind !== undefined;
+  const picking = controlled ? widget === null && !chosenKind : pickingState;
   useEffect(() => {
     if (open) {
       setPicking(widget === null);
       if (widget) setKind(widget.kind);
     }
   }, [open, widget]);
+  useEffect(() => {
+    if (chosenKind) setKind(chosenKind);
+  }, [chosenKind]);
   // A widget's question is several choices — a dataset, a dimension, a
   // period — and closing the modal would take them all (§74).
   const { touch, requestClose } = useDiscardGuard({ close: onClose, what: "widget" });
@@ -223,6 +240,7 @@ export function WidgetModal({
         )
       }
       className={`nu-widget-modal${picking ? " is-picking" : ""}`}
+      rootClassName={controlled ? URL_OVERLAY : undefined}
       width={picking ? 760 : 940}
       okText={widget ? "Save" : "Add widget"}
       confirmLoading={saving}
@@ -238,7 +256,8 @@ export function WidgetModal({
           : {
               onClick: (event) => {
                 event.stopPropagation();
-                setPicking(true);
+                if (onBackToKinds) onBackToKinds();
+                else setPicking(true);
               },
             }
       }
@@ -263,7 +282,8 @@ export function WidgetModal({
                       onClick={() => {
                         setKind(item);
                         setValues((current) => ({ ...current, kind: item }));
-                        setPicking(false);
+                        if (onChooseKind) onChooseKind(item);
+                        else setPicking(false);
                       }}
                     >
                       <span className="nx-ov-kindtile-icon" style={{ color: KINDS[item].colour }}>
