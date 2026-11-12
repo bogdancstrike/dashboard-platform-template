@@ -44,7 +44,6 @@ import {
   Select,
   Skeleton,
   Space,
-  Table,
   Tag,
   Tooltip,
   Typography,
@@ -57,6 +56,8 @@ import { useSearchParams } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { jobsApi, type Job, type JobDetail, type JobStatus } from "@/api/jobs";
 import { PageHeader } from "@/components/PageHeader";
+import { StatusTag } from "@/components/StatusTag";
+import { ResponsiveTable } from "@/pages/admin/ResponsiveTable";
 import { URL_OVERLAY } from "@/app/history";
 import { useUrlOverlay } from "@/app/useUrlOverlay";
 import { usePageCommands } from "@/commands/CommandContext";
@@ -508,7 +509,13 @@ export default function JobsPage() {
       )}
 
       <div className="nu-pane nu-pane--table nu-job nx-ad-panel">
-        <Table<Job>
+        <ResponsiveTable<Job>
+          card={(row) => ({
+            title: row.name,
+            meta: `${row.reference} · ${row.queue}`,
+            pill: <StatusTag status={row.status} />,
+            right: row.total_units ? `${row.progress} of ${row.total_units}` : undefined,
+          })}
           size="small"
           rowKey="id"
           data-testid="jobs-table"

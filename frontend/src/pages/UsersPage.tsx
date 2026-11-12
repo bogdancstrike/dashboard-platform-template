@@ -6,7 +6,6 @@ import {
   Input,
   Select,
   Space,
-  Table,
   Tag,
   Tooltip,
   Typography,
@@ -23,6 +22,7 @@ import { EmptyState, NoResults } from "@/components/EmptyState";
 import { EdgeTag } from "@/components/EdgeTag";
 import { StatusTag } from "@/components/StatusTag";
 import { PageHeader } from "@/components/PageHeader";
+import { ResponsiveTable } from "@/pages/admin/ResponsiveTable";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
@@ -367,7 +367,14 @@ export default function UsersPage() {
       )}
 
       <Card size="small" className="nu-block">
-        <Table<UserRow>
+        <ResponsiveTable<UserRow>
+          card={(row) => ({
+            lead: <PersonAvatar size="small" src={row.avatar_url} initials={row.initials} />,
+            title: row.full_name,
+            meta: [row.email, row.group_names.join(", ")].filter(Boolean).join(" · "),
+            pill: row.role_name ? <EdgeTag color={row.role_color}>{row.role_name}</EdgeTag> : undefined,
+            right: <StatusTag status={row.status} />,
+          })}
           data-testid="user-table"
           rowKey="id"
           size="small"

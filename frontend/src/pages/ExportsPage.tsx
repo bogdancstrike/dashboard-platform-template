@@ -57,7 +57,6 @@ import {
   Select,
   Skeleton,
   Space,
-  Table,
   Tag,
   Tooltip,
   Typography,
@@ -81,6 +80,8 @@ import {
   type ExportStatus,
 } from "@/api/exports";
 import { PageHeader } from "@/components/PageHeader";
+import { StatusTag } from "@/components/StatusTag";
+import { ResponsiveTable } from "@/pages/admin/ResponsiveTable";
 import { usePageCommands } from "@/commands/CommandContext";
 import { errorText } from "@/lib/errors";
 import { formatNumber } from "@/lib/formats";
@@ -538,8 +539,15 @@ export default function ExportsPage() {
       {listing.isLoading ? (
         <Skeleton active paragraph={{ rows: 6 }} />
       ) : (
-        <Table<ExportRow>
+        <ResponsiveTable<ExportRow>
+          card={(row) => ({
+            title: row.name,
+            meta: `${row.reference} · ${row.format.toUpperCase()} · ${situation(row)}`,
+            pill: <StatusTag status={row.status} label={STATUS_LABELS[row.status]} />,
+            right: row.rows === null ? undefined : `${row.rows.toLocaleString()} rows`,
+          })}
           className="nu-exp-table"
+          scroll={{ x: 1120 }}
           data-testid="exports-table"
           rowKey="id"
           size="middle"

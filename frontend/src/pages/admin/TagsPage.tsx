@@ -42,7 +42,6 @@ import {
   Select,
   Skeleton,
   Space,
-  Table,
   Tag as AntTag,
   Tooltip,
   Typography,
@@ -56,6 +55,7 @@ import type { Tag, TagCategory, TagVocabulary } from "@/api/tags";
 import { tagsApi } from "@/api/tags";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
+import { ResponsiveTable } from "@/pages/admin/ResponsiveTable";
 import { usePageCommands } from "@/commands/CommandContext";
 import { SEMANTIC } from "@/theme/tokens";
 import { formatNumber } from "@/lib/formats";
@@ -320,7 +320,13 @@ export default function TagsPage() {
           </Card>
 
           <Card size="small" className="nu-block">
-            <Table<Tag>
+            <ResponsiveTable<Tag>
+              card={(row) => ({
+            title: row.name,
+            meta: row.description || row.category.toLowerCase(),
+            pill: <AntTag bordered={false}>{row.category.toLowerCase()}</AntTag>,
+            right: `${row.usage_count} records`,
+          })}
               rowKey="id"
               size="small"
               columns={columns}

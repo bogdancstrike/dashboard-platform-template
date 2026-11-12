@@ -9,7 +9,6 @@ import {
   Input,
   Select,
   Space,
-  Table,
   Tag,
   Tooltip,
   Typography,
@@ -28,6 +27,7 @@ import { actionColor, humaniseAction, resultColor } from "@/components/audit/voc
 import { EmptyState, NoResults } from "@/components/EmptyState";
 import { ExportButton } from "@/components/ExportButton";
 import { PageHeader } from "@/components/PageHeader";
+import { ResponsiveTable } from "@/pages/admin/ResponsiveTable";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
@@ -412,7 +412,13 @@ export default function AuditExplorerPage() {
       )}
 
       <Card size="small" className="nu-block">
-        <Table<AuditRow>
+        <ResponsiveTable<AuditRow>
+          card={(row) => ({
+            title: row.resource_label,
+            meta: `${row.actor_label} · ${relativeTime(row.occurred_at)}`,
+            pill: <Tag bordered={false}>{row.action.toLowerCase()}</Tag>,
+            right: row.result.toLowerCase(),
+          })}
           rowKey="id"
           size="small"
           columns={columns}

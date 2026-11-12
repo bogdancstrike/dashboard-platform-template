@@ -45,7 +45,6 @@ import {
   Select,
   Skeleton,
   Space,
-  Table,
   Tag,
   Tooltip,
   Typography,
@@ -65,6 +64,7 @@ import { ApiError } from "@/api/client";
 import { logsApi, type LogLevel, type LogLine } from "@/api/logs";
 import { useAuth } from "@/auth/AuthProvider";
 import { PageHeader } from "@/components/PageHeader";
+import { ResponsiveTable } from "@/pages/admin/ResponsiveTable";
 import { URL_OVERLAY } from "@/app/history";
 import { useUrlOverlay } from "@/app/useUrlOverlay";
 import { usePageCommands } from "@/commands/CommandContext";
@@ -505,7 +505,16 @@ export default function LogsPage() {
       )}
 
       <div className="nu-pane nu-pane--table nu-log nx-ad-panel">
-        <Table<LogLine>
+        <ResponsiveTable<LogLine>
+          card={(row) => ({
+            title: row.message,
+            meta: `${row.service} · ${row.logged_at ? relativeTime(row.logged_at) : "—"}`,
+            pill: (
+              <Tag color={toneFor(row.level)} bordered={false}>
+                {row.level.toLowerCase()}
+              </Tag>
+            ),
+          })}
           size="small"
           rowKey="id"
           data-testid="log-table"

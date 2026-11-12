@@ -43,7 +43,6 @@ import {
   Select,
   Skeleton,
   Space,
-  Table,
   Tag,
   Tooltip,
   Typography,
@@ -56,6 +55,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { groupsApi, type Group, type GroupDetail, type GroupKind } from "@/api/groups";
 import { PageHeader } from "@/components/PageHeader";
+import { ResponsiveTable } from "@/pages/admin/ResponsiveTable";
 import { URL_OVERLAY } from "@/app/history";
 import { useUrlOverlay } from "@/app/useUrlOverlay";
 import { PersonAvatar } from "@/components/PersonAvatar";
@@ -350,7 +350,13 @@ export default function GroupsPage() {
       )}
 
       <div className="nu-pane nu-pane--table nx-ad-panel">
-        <Table<Group>
+        <ResponsiveTable<Group>
+          card={(row) => ({
+            title: row.name,
+            meta: row.description || row.slug,
+            pill: <Tag bordered={false}>{row.kind.toLowerCase()}</Tag>,
+            right: row.member_count === 0 ? "nobody" : `${row.member_count} people`,
+          })}
           size="small"
           rowKey="id"
           data-testid="groups-table"

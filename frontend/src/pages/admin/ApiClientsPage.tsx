@@ -47,7 +47,6 @@ import {
   Skeleton,
   Space,
   Statistic,
-  Table,
   Tag,
   Tooltip,
   Typography,
@@ -68,6 +67,7 @@ import {
   type Minted,
 } from "@/api/apiClients";
 import { PageHeader } from "@/components/PageHeader";
+import { ResponsiveTable } from "@/pages/admin/ResponsiveTable";
 import { URL_OVERLAY } from "@/app/history";
 import { useUrlOverlay } from "@/app/useUrlOverlay";
 import { usePageCommands } from "@/commands/CommandContext";
@@ -389,7 +389,13 @@ export default function ApiClientsPage() {
       </div>
 
       <div className="nu-pane nu-pane--table nx-ad-panel">
-        <Table<ApiClientRow>
+        <ResponsiveTable<ApiClientRow>
+          card={(row) => ({
+            title: row.name,
+            meta: `${row.client_id} · ${row.scopes.length} scopes`,
+            pill: <StatusTag status={row.status} />,
+            right: row.live_credentials === 0 ? "no live key" : `${row.live_credentials} of ${row.credential_count} keys`,
+          })}
           size="small"
           rowKey="id"
           data-testid="clients-table"
