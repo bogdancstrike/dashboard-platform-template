@@ -132,7 +132,11 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     # `calendar_events` points at `tasks`, so it goes first —
     # `test_cleanup_order_respects_the_foreign_keys` caught this pair the wrong
     # way round, which is exactly what that test is for.
-    "CalendarEvent", "Task",
+    # Work planning (§18): watchers, dependencies and recurrences point at a
+    # task, so they go first; `tasks.sprint_id` points at a sprint, so sprints
+    # follow tasks.
+    "TaskWatcher", "TaskDependency", "TaskRecurrence",
+    "CalendarEvent", "Task", "Sprint", "TaskTemplate",
     # Written as a *side effect* of every audited test write, so they
     # accumulate faster than anything else — and a demo `/activity` full of
     # "1m ago · updated the Viewer role" from a test run is a feed nobody can

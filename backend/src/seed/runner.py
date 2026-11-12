@@ -33,6 +33,7 @@ from src.seed import exports as export_files
 from src.seed import imports as import_runs
 from src.seed import assistant as assistant_seed
 from src.seed import knowledge as knowledge_seed
+from src.seed import planning as planning_seed
 from src.seed.support import Rng
 from src.seed.world import SCALES, Scale, World
 
@@ -586,6 +587,7 @@ def run(
     sync_tags(session)
     assistant_seed.seed_safely(session)  # assistant conversations (§41)
     knowledge_seed.seed_safely(session)  # Ask your documents (§44)
+    planning_seed.populate(session)  # sprints, epics, dependencies, templates (§18)
     written = time.perf_counter()
 
     log.info(

@@ -16,7 +16,7 @@
  */
 
 import { useMemo, useState, type ReactNode } from "react";
-import { DatePicker, Dropdown, Input, InputNumber, Select, Tooltip } from "antd";
+import { Checkbox, DatePicker, Dropdown, Input, InputNumber, Select, Tooltip } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 
 import type { ExplorerField } from "@/api/explorer";
@@ -149,13 +149,11 @@ interface Ctx {
 }
 
 /**
- * One group: a list of lines, each reading "Where …", "and …", "or …".
- *
- * The connective is the small word at the start of every line after the
- * first, and pressing it flips the whole group between and / or — the one
- * decision a group carries. NOT, duplicate, move and remove live behind the
- * "⋯"; a nested group is an indent with a thin accent rule. Every line has a
- * grip on hover: drag it to reorder, or into another group (§4).
+ * One group, as a box: a header line — **All of / Any of**, a **Not** box, and
+ * on the right **+ Condition**, **Group** and (nested) a red bin — then one
+ * row per condition or nested group. Nested groups are inset boxes with a
+ * faint tint that deepens a step per level. Every row and group has a grip on
+ * hover: drag it to reorder, or into another group (§4).
  */
 function GroupBox({ node, depth, parent, index = 0, ctx, extraAdd }: {
   node: QueryNode;
@@ -170,37 +168,75 @@ function GroupBox({ node, depth, parent, index = 0, ctx, extraAdd }: {
   const conj = conjunctionOf(node);
   const not = isNot(node);
   const items = children(node);
-  const flip = () => ctx.change(setGroupProps(ctx.tree, id, { conjunction: conj === "AND" ? "OR" : "AND" }));
+  const setConj = (next: "AND" | "OR") => ctx.change(setGroupProps(ctx.tree, id, { conjunction: next }));
   const addRule = () => ctx.change(appendChild(ctx.tree, id, newRule()));
   const addGroup = () => {
     const group = newGroup(conj === "AND" ? "OR" : "AND");
     ctx.change(appendChild(ctx.tree, id, appendChild(group, group.id as string, newRule())));
   };
-
-  const menu = [
-    {
-      key: "not",
-      label: not ? "Match these again (remove NOT)" : "Exclude matches (NOT)",
-      onClick: () => ctx.change(setGroupProps(ctx.tree, id, { not: !not })),
-    },
-    { key: "conj", label: `Match ${conj === "AND" ? "any" : "all"} of these instead`, onClick: flip },
-    ...(root
-      ? [{ key: "clear", label: "Remove every filter", danger: true, disabled: items.length === 0, onClick: () => ctx.change({ ...node, children1: {} }) }]
-      : [
-          ...moveItems(ctx, parent, id, index),
-          { key: "dup", label: "Duplicate this group", onClick: () => ctx.change(duplicateById(ctx.tree, id)) },
-          { key: "del", label: "Remove this group", danger: true, onClick: () => ctx.change(removeNode(ctx.tree, id)) },
-        ]),
-  ];
-
   const dropHere = (position: number) => ctx.drop?.group === id && ctx.drop.index === position;
+
+  const moreMenu = root
+    ? [{ key: "clear", label: "Remove every condition", danger: true, disabled: items.length === 0, onClick: () => ctx.change({ ...node, children1: {} }) }]
+    : [
+        ...moveItems(ctx, parent, id, index),
+        { key: "dup", label: "Duplicate this group", onClick: () => ctx.change(duplicateById(ctx.tree, id)) },
+      ];
 
   return (
     <section
       className={`nx-fd-cb-group${root ? " is-root" : ""}${not ? " is-not" : ""}`}
       aria-label={root ? "Root group" : "Group"}
-      data-depth={depth}
+      data-depth={Math.min(depth, 4)}
     >
+      <div className="nx-fd-cb-ghead">
+        <div className="nx-fd-cb-seg" role="group" aria-label={`${root ? "Root group" : "Group"}: match all or any`}>
+          {(["AND", "OR"] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={conj === option}
+              className={conj === option ? "is-on" : ""}
+              {...(conj !== option ? { "data-testid": "conj-toggle" } : {})}
+              onClick={() => setConj(option)}
+            >
+              {option === "AND" ? "All of" : "Any of"}
+            </button>
+          ))}
+        </div>
+        <Checkbox
+          className="nx-fd-cb-notbox"
+          checked={not}
+          onChange={(event) => ctx.change(setGroupProps(ctx.tree, id, { not: event.target.checked }))}
+        >
+          Not
+        </Checkbox>
+        <span className="nx-fd-push" />
+        <button type="button" className="nx-fd-cb-pillbtn" aria-label="Add a condition" onClick={addRule}>
+          <FdIcon name="plus" size={13} strokeWidth={2.4} /> <span className="nx-fd-cb-pilltext">Condition</span>
+        </button>
+        {depth < 3 && (
+          <button type="button" className="nx-fd-cb-pillbtn" aria-label="Add a group" onClick={addGroup}>
+            <FdIcon name="branch" size={13} /> <span className="nx-fd-cb-pilltext">Group</span>
+          </button>
+        )}
+        {root && extraAdd}
+        {moreMenu.length > 0 && (
+          <Dropdown menu={{ items: moreMenu }} trigger={["click"]} placement="bottomRight">
+            <button type="button" className="nx-fd-cb-icon nx-fd-cb-hover" aria-label={root ? "Root group options" : "Group options"}>
+              <FdIcon name="dots" size={15} strokeWidth={3} />
+            </button>
+          </Dropdown>
+        )}
+        {!root && (
+          <Tooltip title="Remove this group and everything in it">
+            <button type="button" className="nx-fd-cb-icon is-danger" aria-label="Remove this group" onClick={() => ctx.change(removeNode(ctx.tree, id))}>
+              <FdIcon name="trash" size={15} />
+            </button>
+          </Tooltip>
+        )}
+      </div>
+
       {items.map((child, position) => {
         const childId = child.id as string;
         return (
@@ -212,8 +248,7 @@ function GroupBox({ node, depth, parent, index = 0, ctx, extraAdd }: {
             data-node={childId}
             onDragOver={(event) => {
               if (!ctx.drag) return;
-              // The innermost line under the pointer decides; its parents
-              // must not overrule it on the way up.
+              // The innermost line under the pointer decides.
               event.stopPropagation();
               const box = event.currentTarget.getBoundingClientRect();
               const after = event.clientY > box.top + box.height / 2;
@@ -243,23 +278,6 @@ function GroupBox({ node, depth, parent, index = 0, ctx, extraAdd }: {
             >
               <FdIcon name="drag" size={13} strokeWidth={3.2} />
             </button>
-            <span className="nx-fd-cb-lead">
-              {position === 0 ? (
-                <span className="nx-fd-cb-where">{not ? "Where not" : "Where"}</span>
-              ) : (
-                <Tooltip title={`Match ${conj === "AND" ? "any" : "all"} of these instead`}>
-                  <button
-                    type="button"
-                    className={`nx-fd-cb-conj${conj === "OR" ? " is-or" : ""}`}
-                    data-testid="conj-toggle"
-                    aria-label={`${conj === "AND" ? "and" : "or"} — switch to ${conj === "AND" ? "or" : "and"}`}
-                    onClick={flip}
-                  >
-                    {conj === "AND" ? "and" : "or"}
-                  </button>
-                </Tooltip>
-              )}
-            </span>
             {isGroup(child) ? (
               <GroupBox node={child} depth={depth + 1} parent={node} index={position} ctx={ctx} />
             ) : (
@@ -269,8 +287,9 @@ function GroupBox({ node, depth, parent, index = 0, ctx, extraAdd }: {
         );
       })}
 
+      {/* A drop target after the last row, and the place an empty group says so. */}
       <div
-        className={`nx-fd-cb-add${items.length === 0 && dropHere(0) ? " is-drop-before" : ""}`}
+        className={`nx-fd-cb-tail${items.length === 0 && dropHere(0) ? " is-drop-before" : ""}`}
         onDragOver={(event) => {
           if (!ctx.drag) return;
           event.stopPropagation();
@@ -283,20 +302,7 @@ function GroupBox({ node, depth, parent, index = 0, ctx, extraAdd }: {
           ctx.land();
         }}
       >
-        <button type="button" className="nx-fd-cb-addrule" onClick={addRule}>
-          + Add filter
-        </button>
-        {depth < 3 && (
-          <button type="button" className="nx-fd-cb-addgroup" onClick={addGroup}>
-            + Add group
-          </button>
-        )}
-        {root && extraAdd}
-        <Dropdown menu={{ items: menu }} trigger={["click"]} placement="bottomRight">
-          <button type="button" className="nx-fd-cb-icon nx-fd-cb-more" aria-label={root ? "Root group options" : "Group options"}>
-            <FdIcon name="dots" size={15} strokeWidth={3} />
-          </button>
-        </Dropdown>
+        {items.length === 0 && <span className="nx-fd-muted nx-fd-small">No conditions — every record matches.</span>}
       </div>
     </section>
   );
@@ -360,7 +366,7 @@ function RuleRow({ node, parent, index, ctx }: {
           showSearch
           optionFilterProp="title"
           aria-label={field ? `Field: ${field.label}, ${fieldKindLabel(field)}` : "Field: not chosen"}
-          placeholder="Choose a field"
+          placeholder="Field"
           value={fieldName || undefined}
           onChange={(next: string) => {
             const chosen = ctx.byName.get(next);
@@ -434,11 +440,11 @@ function RuleRow({ node, parent, index, ctx }: {
         </Dropdown>
         <button
           type="button"
-          className="nx-fd-cb-icon"
+          className="nx-fd-cb-icon is-danger"
           aria-label="Remove this rule"
           onClick={() => ctx.change(removeNode(ctx.tree, id))}
         >
-          <FdIcon name="close" size={13} strokeWidth={2.2} />
+          <FdIcon name="trash" size={15} />
         </button>
       </div>
     </div>

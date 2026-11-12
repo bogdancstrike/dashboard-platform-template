@@ -23,7 +23,7 @@ import { RULE, chooseOption } from "./query";
 
 async function openAdvanced(page: Page): Promise<void> {
   await page.getByTestId("open-rules").click();
-  await expect(page.getByRole("button", { name: "+ Add filter" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add a condition" })).toBeVisible();
 }
 
 /**
@@ -55,7 +55,7 @@ async function previewCount(page: Page): Promise<number> {
 
 /** Build the nth rule in the open editor as `Status = <value>`. */
 async function addStatusRule(page: Page, value: string, index = 0): Promise<void> {
-  await page.getByRole("button", { name: "+ Add filter" }).click();
+  await page.getByRole("button", { name: "Add a condition" }).click();
   await page.locator(RULE.field).nth(index).click();
   await chooseOption(page, "Status");
   await page.locator(RULE.value).nth(index).click();
@@ -139,14 +139,13 @@ test.describe("Data Explorer", () => {
 
     // A second rule under OR must widen the answer, not narrow it.
     await addStatusRule(page, "Cancelled", 1);
-    // The "and" before the second line flips the group to "or".
+    // "Any of" on the root group flips it to OR.
     await page.getByTestId("conj-toggle").first().click();
     await expect(page.getByTestId("query-inspector")).toContainText("OR");
     await expect.poll(() => previewCount(page)).toBeGreaterThan(blocked);
     const either = await previewCount(page);
 
-    await page.getByRole("button", { name: "Root group options" }).click();
-    await page.getByRole("menuitem", { name: "Exclude matches (NOT)" }).click();
+    await page.getByRole("checkbox", { name: "Not" }).first().check();
     await expect(page.getByTestId("query-inspector")).toContainText("NOT");
     await expect.poll(() => previewCount(page)).toBeGreaterThan(either);
   });
@@ -176,7 +175,7 @@ test.describe("Data Explorer", () => {
 
   test("a rule can be duplicated in place", async ({ page }) => {
     await openAdvanced(page);
-    await page.getByRole("button", { name: "+ Add filter" }).click();
+    await page.getByRole("button", { name: "Add a condition" }).click();
     await page.locator(RULE.field).first().click();
     await chooseOption(page, "Status");
 
@@ -192,7 +191,7 @@ test.describe("Data Explorer", () => {
     const total = await matchCount(page);
     await openAdvanced(page);
 
-    await page.getByRole("button", { name: "+ Add filter" }).click();
+    await page.getByRole("button", { name: "Add a condition" }).click();
     await expect(page.locator(RULE.field)).toHaveCount(1);
     await page.locator(RULE.field).first().click();
     await chooseOption(page, "Status");
@@ -330,7 +329,7 @@ test.describe("Data Explorer", () => {
     await chooseOption(page, /^Devices/);
 
     await expect(page.getByRole("columnheader", { name: "Serial" })).toBeVisible();
-    await page.getByRole("button", { name: "+ Add filter" }).click();
+    await page.getByRole("button", { name: "Add a condition" }).click();
     await page.locator(RULE.field).first().click();
     // The list is virtualised, so a field far down it is found by searching.
     await page.keyboard.type("Battery");
@@ -343,7 +342,7 @@ test.describe("Data Explorer", () => {
   test("drags a rule out of a group, and back walks out of the drawers", async ({ page }) => {
     await openAdvanced(page);
     await addStatusRule(page, "Blocked");
-    await page.getByRole("button", { name: "+ Add group" }).first().click();
+    await page.getByRole("button", { name: "Add a group" }).first().click();
     await page.locator(RULE.field).nth(1).click();
     await chooseOption(page, "Status");
     await page.locator(RULE.value).nth(1).click();

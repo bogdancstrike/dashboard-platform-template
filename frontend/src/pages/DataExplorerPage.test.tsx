@@ -132,10 +132,10 @@ describe("Data Explorer", () => {
 
     const drawer = await screen.findByRole("dialog");
     expect(within(drawer).getByText("Find")).toBeInTheDocument();
-    expect(within(drawer).getByText("Where")).toBeInTheDocument();
+    expect(within(drawer).getByRole("region", { name: "Root group" })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByTestId("query-inspector")).toHaveTextContent("Status = 'NEW'"));
     // A second, unfinished filter is muted and skipped, not an error.
-    await user.click(within(drawer).getByRole("button", { name: "+ Add filter" }));
+    await user.click(within(drawer).getByRole("button", { name: "Add a condition" }));
     expect(await within(drawer).findByRole("group", { name: /incomplete/ })).toHaveClass("is-incomplete");
 
     await user.click(screen.getByTestId("run-advanced-search"));

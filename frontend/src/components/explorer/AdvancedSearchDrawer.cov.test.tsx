@@ -73,8 +73,8 @@ describe("the advanced conditions drawer", () => {
   it("clears the draft, and an empty draft searches for everything", async () => {
     const user = userEvent.setup();
     const props = open();
-    await user.click(await screen.findByRole("button", { name: "Clear" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Clear" })).toBeDisabled());
+    await user.click(await screen.findByRole("button", { name: "Clear all" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Clear all" })).toBeDisabled());
     expect(screen.getByTestId("run-advanced-search")).toHaveTextContent(/matches/);
     await user.click(screen.getByTestId("run-advanced-search"));
     expect(props.onSearch).toHaveBeenCalledWith(null);
@@ -89,7 +89,7 @@ describe("the advanced conditions drawer", () => {
     // The lesson starts folded (the drawer is compact); it opens and folds again.
     // The lesson is a "?" in the header: closed until asked for.
     expect(screen.queryByTestId("advanced-help")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "How this works" }));
+    await user.click(screen.getByText("How this works"));
     expect(await screen.findByTestId("advanced-help")).toBeInTheDocument();
   });
 

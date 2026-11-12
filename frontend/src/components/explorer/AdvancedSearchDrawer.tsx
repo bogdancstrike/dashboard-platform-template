@@ -15,8 +15,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Button, Collapse, Drawer, Popover, Select, Space, Tooltip, Typography } from "antd";
+import { Alert, Button, Collapse, Drawer, Select, Space, Tooltip, Typography } from "antd";
 import {
+  ApartmentOutlined,
   QuestionCircleOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
@@ -65,7 +66,7 @@ export function AdvancedSearchDrawer(props: AdvancedSearchDrawerProps) {
       rootClassName={`nx-fd-advdrawer ${URL_OVERLAY}`}
       title={
         <div className="nx-fd-dhead">
-          <span className="nx-fd-dtitle">Rules</span>
+          <span className="nx-fd-dtitle"><ApartmentOutlined /> Advanced conditions</span>
           {props.datasetLabel && (
             <span className="nx-fd-dsub">
               {props.datasetLabel}
@@ -158,13 +159,20 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, record
           <b>{datasetLabel ?? request.resource_type}</b>
         )}
         <span>where</span>
-        <Popover
-          trigger="click"
-          placement="bottomRight"
-          open={helpOpen}
-          onOpenChange={setHelpOpen}
-          overlayClassName="nx-fd-helppop"
-          content={
+        {onOpenSaved && (
+          <button type="button" className="nx-fd-link nx-fd-push" onClick={onOpenSaved}>
+            Load a saved search
+          </button>
+        )}
+      </div>
+      {/* What a rule and a group *are*, folded until asked for — and it stays
+          as this reader left it (§72). */}
+      <Collapse
+        size="small"
+        className="nu-advanced-help nx-fd-dhow"
+        activeKey={helpOpen ? ["how"] : []}
+        onChange={(keys) => setHelpOpen(keys.length > 0)}
+        items={[{ key: "how", label: "How this works", children: (
               <div className="nu-advanced-lesson" data-testid="advanced-help">
                 <div>
                   <Text strong>A rule</Text>
@@ -201,25 +209,8 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, record
                   </Paragraph>
                 </div>
               </div>
-          }
-        >
-          <button type="button" className="nx-fd-cb-icon nx-fd-push" aria-label="How this works">
-            <QuestionCircleOutlined />
-          </button>
-        </Popover>
-      </div>
-      <div className="nx-fd-dline">
-        <p data-testid="preview-count" aria-live="polite">
-          <b>{(preview.data?.total ?? 0).toLocaleString()}</b> of {(recordCount ?? 0).toLocaleString()}{" "}
-          {(datasetLabel ?? "records").toLowerCase()} match
-          {settling && <span className="nx-fd-muted"> · Previewing…</span>}
-        </p>
-        {onOpenSaved && (
-          <button type="button" className="nx-fd-link nx-fd-push" onClick={onOpenSaved}>
-            Load a saved search
-          </button>
-        )}
-      </div>
+        ) }]}
+      />
       {/* What a rule and a group *are*, before anybody is asked to build one.
           The editor is two nouns and three connectives, and none of them is
           named anywhere on screen — so the panel that used to sit here said
@@ -266,30 +257,34 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, record
       )}
 
       <div className="nu-advanced-actions">
-
-        <Space>
+        <div className="nx-fd-dmatch">
+          <span className="nx-fd-dmatch-label">Records matching</span>
+          <b data-testid="preview-count" aria-live="polite">
+            {(preview.data?.total ?? 0).toLocaleString()}
+            <span className="nx-fd-sr"> of {(recordCount ?? 0).toLocaleString()} {(datasetLabel ?? "records").toLowerCase()} match</span>
+          </b>
+          <span className="nx-fd-muted nx-fd-small">
+            {settling
+              ? "Previewing…"
+              : rules === 0
+                ? `Every ${(datasetLabel ?? "record").toLowerCase().replace(/s$/, "")} (no conditions yet)`
+                : `of ${(recordCount ?? 0).toLocaleString()} · ${rules} ${rules === 1 ? "condition" : "conditions"}`}
+          </span>
+        </div>
+        <Space wrap className="nx-fd-dbtns">
           <Tooltip title="Empty the tree and start again. Nothing on the page behind changes.">
-            <Button
-              disabled={rules === 0}
-              onClick={() => setDraft(emptyTree())}
-            >
-              Clear
+            <Button disabled={rules === 0} onClick={() => setDraft(emptyTree())}>
+              Clear all
             </Button>
           </Tooltip>
           <Tooltip title="Save this condition under a name, without running it first">
-            <Button onClick={() => onSave(draft)}>
-              Save as…
-            </Button>
+            <Button onClick={() => onSave(draft)}>Save as…</Button>
           </Tooltip>
-          <Tooltip title="Run this condition. It becomes the question the page is asking.">
-          <Button
-            type="primary"
-            icon={<SearchOutlined />}
-            data-testid="run-advanced-search"
-            onClick={apply}
-          >
-            {applied ? "Apply" : `Apply · ${(preview.data?.total ?? 0).toLocaleString()} matches`}
-          </Button>
+          <Button onClick={onClose}>Cancel</Button>
+          <Tooltip title="Run this condition (⌘/Ctrl + Enter). It becomes the question the page is asking.">
+            <Button type="primary" icon={<SearchOutlined />} data-testid="run-advanced-search" onClick={apply}>
+              {applied ? "Search" : `Search · ${(preview.data?.total ?? 0).toLocaleString()} matches`}
+            </Button>
           </Tooltip>
         </Space>
       </div>

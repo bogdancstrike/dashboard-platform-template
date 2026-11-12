@@ -39,6 +39,8 @@ export const FD_ICONS = {
   refresh: "M20 11a8 8 0 0 0-14.9-3M4 4v4h4M4 13a8 8 0 0 0 14.9 3M20 20v-4h-4",
   external: "M14 4h6v6M20 4l-9 9M18 14v6H4V6h6",
   check: "M5 12l5 5 9-10",
+  plus: "M12 5v14M5 12h14",
+  branch: "M6 3v12M18 9a3 3 0 1 0 0-6a3 3 0 0 0 0 6zM6 21a3 3 0 1 0 0-6a3 3 0 0 0 0 6zM18 9a9 9 0 0 1-9 9",
 } as const;
 
 export type FdIconName = keyof typeof FD_ICONS;

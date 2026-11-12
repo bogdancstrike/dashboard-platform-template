@@ -341,6 +341,310 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "task_planning_detail",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/tasks/<uuid:task_id>/planning",
+      "description": "A task's place in the plan: epic, sprint, subtasks, dependencies, watchers, recurrence.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "task_planning_detail"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "task_recurrence",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/tasks/<uuid:task_id>/recurrence",
+      "description": "Read, set or clear the rule that makes the next copy of a task.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "task_recurrence"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "task_save_as_template",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/tasks/<uuid:task_id>/save-as-template",
+      "description": "Save a task as a template for new ones.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "task_save_as_template"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "task_schedule",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/tasks/<uuid:task_id>/schedule",
+      "description": "Move or resize a task on the timeline; optionally shift its dependants.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "task_schedule"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "task_watchers",
+      "model_name": "Empty",
+      "request_method": [
+        "POST",
+        "DELETE"
+      ],
+      "api_url": "/api/tasks/<uuid:task_id>/watchers",
+      "description": "Watch or stop watching a task.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "task_watchers"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "work_backlog",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/work/backlog",
+      "description": "Open work in no sprint, in the backlog's hand-made order.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "backlog"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "work_backlog_place",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/work/backlog/place",
+      "description": "Drop a task into a sprint or the backlog, between two neighbours.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "backlog_place"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "work_dependencies",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/work/dependencies",
+      "description": "Make one task wait on another (finish-to-start).",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "dependencies"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "work_dependency",
+      "model_name": "Empty",
+      "request_method": [
+        "DELETE"
+      ],
+      "api_url": "/api/work/dependencies/<uuid:dependency_id>",
+      "description": "Remove a dependency.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "dependency"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "work_epics",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/work/epics",
+      "description": "Every epic, with its progress.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "epics"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "work_lanes",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT"
+      ],
+      "api_url": "/api/work/lanes",
+      "description": "The task board's work-in-progress limits per lane.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "lanes"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "work_scheduler_run",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/work/scheduler/run",
+      "description": "Run the planning jobs now: recurring tasks and sprint snapshots.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "scheduler_run"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "work_sprint_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/work/sprints",
+      "description": "Every sprint, or a new one.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "sprint_collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "work_sprint_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/work/sprints/<uuid:sprint_id>",
+      "description": "One sprint with its scope and burndown, or a change to it.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "sprint_item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "work_sprint_complete",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/work/sprints/<uuid:sprint_id>/complete",
+      "description": "Complete a sprint and carry unfinished work over.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "sprint_complete"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "work_sprint_start",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/work/sprints/<uuid:sprint_id>/start",
+      "description": "Start a planned sprint, freezing its commitment.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "sprint_start"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "work_template_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/work/templates",
+      "description": "Task templates, or a new one.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "template_collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "work_template_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/work/templates/<uuid:template_id>",
+      "description": "One task template, or a change to it.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "template_item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "work_template_use",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/work/templates/<uuid:template_id>/use",
+      "description": "Create a task from a template.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "template_use"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "work_timeline",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/work/timeline",
+      "description": "Tasks as bars in time, grouped, with dependencies and the critical path.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "timeline"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "work_velocity",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/work/velocity",
+      "description": "Committed against completed points for recent sprints.",
+      "exec_method": {
+        "module_name": "src.api.work_planning",
+        "method_name": "velocity"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "maps_catalog",
       "model_name": "Empty",
       "request_method": [

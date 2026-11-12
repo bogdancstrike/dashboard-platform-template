@@ -25,6 +25,7 @@
     python -m src.seed --sync-preferences # fill in preference keys an account predates
     python -m src.seed --sync-assistant   # add the seeded assistant conversations that are missing
     python -m src.seed --sync-knowledge  # add the seeded document collections that are missing
+    python -m src.seed --sync-planning   # sprints, epics, a timeline and templates for the work queue
     python -m src.seed --dry-run          # build in memory, write nothing
 
 It refuses to seed a database that already has data unless `--reset` or
@@ -137,6 +138,10 @@ def _parser() -> argparse.ArgumentParser:
         "--sync-assistant", action="store_true",
         help="add the seeded AI assistant conversations that are missing, and exit",
     )
+    parser.add_argument(
+        "--sync-planning", action="store_true",
+        help="add sprints with history, epics, dependencies, templates and recurring tasks, and exit",
+    )
     parser.add_argument("--dry-run", action="store_true", help="build in memory, write nothing")
     parser.add_argument("--quiet", action="store_true", help="only print the summary line")
     return parser
@@ -186,6 +191,17 @@ def main(argv: list[str] | None = None) -> int:
             if stamped:
                 print(f"recorded schema revision {stamped}")
         return 1 if blocked else 0
+
+    if args.sync_planning:
+        # Work planning (§18) for a database seeded before it existed:
+        # idempotent — the structure is added once, the fill-ins only touch
+        # what is empty.
+        from src.seed import planning
+
+        with session_scope() as session:
+            result = planning.populate(session)
+        print(", ".join(f"{count} {name.replace('_', ' ')}" for name, count in result.items()))
+        return 0
 
     if args.sync_files:
         # A file manager whose every download fails is not a demonstration of

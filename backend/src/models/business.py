@@ -13,7 +13,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import Boolean, DateTime, Double, Integer, Numeric, String, Text
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.models.base import Base, MetadataMixin, SoftDeleteMixin, TimestampMixin, fk, uuid_pk
@@ -198,10 +198,34 @@ class Task(Base, TimestampMixin, SoftDeleteMixin, MetadataMixin):
     tags: Mapped[list[str] | None] = mapped_column(ARRAY(String(48)))
     checklist: Mapped[list[Any] | None] = mapped_column(JSONB)
 
+    # ── Work planning (`models/planning.py`) ─────────────────────────────
+    #: When the work is planned to begin; the timeline's bar runs from here to
+    #: `due_date`.
+    start_date: Mapped[Any | None] = mapped_column(DateTime(timezone=True), index=True)
+    story_points: Mapped[float | None] = mapped_column(Numeric(5, 1))
+    sprint_id: Mapped[UUID | None] = fk("sprints.id")
+    #: When it joined its sprint, so a sprint report can tell committed work
+    #: from work added after the start.
+    sprint_added_at: Mapped[Any | None] = mapped_column(DateTime(timezone=True))
+    #: The epic (a task of kind EPIC) this work belongs to.
+    epic_id: Mapped[UUID | None] = fk("tasks.id")
+    #: The backlog's hand-made order — sparse and fractional, like
+    #: `board_position`, so a drop writes one row.
+    backlog_rank: Mapped[float] = mapped_column(Double, default=0, server_default="0", nullable=False, index=True)
+    is_milestone: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
+    cover_color: Mapped[str | None] = mapped_column(String(16))
+    #: When the status last changed — the card's age in its lane.
+    status_changed_at: Mapped[Any | None] = mapped_column(DateTime(timezone=True))
+    #: The recurrence that made this task, when one did. A plain reference,
+    #: not a foreign key: `task_recurrences.task_id` already points back here,
+    #: and two foreign keys between the same tables are a cycle no delete
+    #: order satisfies.
+    recurrence_id: Mapped[UUID | None] = mapped_column(PgUUID(as_uuid=True), index=True)
+
     project = relationship("Project", back_populates="tasks")
     assignee = relationship("User", foreign_keys=[assignee_id], lazy="joined")
     requester = relationship("User", foreign_keys=[requester_id])
-    parent = relationship("Task", remote_side="Task.id", backref="subtasks")
+    parent = relationship("Task", remote_side="Task.id", backref="subtasks", foreign_keys=[parent_id])
 
 
 class Device(Base, TimestampMixin, SoftDeleteMixin, MetadataMixin):
