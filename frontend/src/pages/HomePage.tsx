@@ -65,20 +65,7 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import {
-  AreaChartOutlined,
-  ArrowRightOutlined,
-  BellOutlined,
-  CalendarOutlined,
-  CheckSquareOutlined,
-  ClockCircleOutlined,
-  FolderOpenOutlined,
-  HeartOutlined,
-  LayoutOutlined,
-  MailOutlined,
-  NotificationOutlined,
-  SearchOutlined,
-} from "@ant-design/icons";
+import { ArrowRightOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -97,6 +84,8 @@ import { rangeFor } from "@/lib/calendarGrid";
 import { relativeTime } from "@/lib/time";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { EmptyState } from "@/components/EmptyState";
+import { PageHeader } from "@/components/PageHeader";
+import { NxIcon } from "@/components/NxIcon";
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -148,7 +137,7 @@ export function whatIsWaiting(counts: {
       count: counts.acknowledgements,
       label: both(counts.acknowledgements, "notice to agree to", "notices to agree to"),
       to: "/announcements",
-      icon: <NotificationOutlined />,
+      icon: <NxIcon name="megaphone" />,
     },
     {
       key: "overdue",
@@ -159,28 +148,28 @@ export function whatIsWaiting(counts: {
         "of your tasks are past their due date",
       ),
       to: "/tasks",
-      icon: <CheckSquareOutlined />,
+      icon: <NxIcon name="check" />,
     },
     {
       key: "invitations",
       count: counts.invitations,
       label: both(counts.invitations, "invitation to answer", "invitations to answer"),
       to: "/calendar?view=agenda&mine=1",
-      icon: <CalendarOutlined />,
+      icon: <NxIcon name="calendar" />,
     },
     {
       key: "mail",
       count: counts.mail,
       label: both(counts.mail, "unread conversation", "unread conversations"),
       to: "/mail?only=unread",
-      icon: <MailOutlined />,
+      icon: <NxIcon name="mail" />,
     },
     {
       key: "notifications",
       count: counts.notifications,
       label: both(counts.notifications, "unread notification", "unread notifications"),
       to: "/notifications",
-      icon: <BellOutlined />,
+      icon: <NxIcon name="bell" />,
     },
   ];
   // Nought is dropped, never drawn: a row of zeroes teaches a reader to stop
@@ -217,7 +206,7 @@ export const SHORTCUTS: Shortcut[] = [
     label: "Explore data",
     hint: "Ask anything of any dataset",
     to: "/explore",
-    icon: <SearchOutlined />,
+    icon: <NxIcon name="search" size={16} />,
     permission: "records.view",
   },
   {
@@ -225,7 +214,7 @@ export const SHORTCUTS: Shortcut[] = [
     label: "Dashboards",
     hint: "The layouts you composed",
     to: "/dashboards",
-    icon: <LayoutOutlined />,
+    icon: <NxIcon name="layout" size={16} />,
     permission: "dashboards.manage",
   },
   {
@@ -233,7 +222,7 @@ export const SHORTCUTS: Shortcut[] = [
     label: "Analytics",
     hint: "Trends, breakdowns, comparisons",
     to: "/analytics",
-    icon: <AreaChartOutlined />,
+    icon: <NxIcon name="area" size={16} />,
     permission: "records.view",
   },
   {
@@ -241,7 +230,7 @@ export const SHORTCUTS: Shortcut[] = [
     label: "Mail",
     hint: "Your conversations",
     to: "/mail",
-    icon: <MailOutlined />,
+    icon: <NxIcon name="mail" size={16} />,
     permission: "mail.access",
   },
   {
@@ -249,7 +238,7 @@ export const SHORTCUTS: Shortcut[] = [
     label: "Files",
     hint: "Documents and uploads",
     to: "/files",
-    icon: <FolderOpenOutlined />,
+    icon: <NxIcon name="folder" size={16} />,
     permission: "files.view",
   },
   {
@@ -257,7 +246,7 @@ export const SHORTCUTS: Shortcut[] = [
     label: "Favourites",
     hint: "What you starred",
     to: "/favorites",
-    icon: <HeartOutlined />,
+    icon: <NxIcon name="heart" size={16} />,
   },
 ];
 
@@ -444,14 +433,38 @@ export default function HomePage() {
   const doors = SHORTCUTS.filter((item) => !item.permission || can(item.permission));
 
   return (
-    <div className="nu-home">
+    <div className="nu-home nx-ov-home">
+      <PageHeader
+        title={
+          <span>
+            {greeting()}, <em>{me?.first_name || me?.full_name}.</em>
+          </span>
+        }
+        subtitle={
+          <>
+            {longDate()}
+            {!settling &&
+              ` · ${
+                waiting.length === 0
+                  ? "nothing is waiting on you"
+                  : `${waiting.reduce((sum, item) => sum + item.count, 0)} things are waiting on you`
+              }`}
+          </>
+        }
+      />
       {/* The band that orients somebody: who they are signed in as, what day
           it is, and one sentence about the day. A greeting on its own is
           decoration; a greeting that answers "is today busy" is a landing
           page doing its job. */}
       <header className="nu-hero">
         <div className="nu-hero-who">
-          <PersonAvatar size={52} src={me?.avatar_url} initials={me?.initials} />
+          <span className="nx-ov-hero-avatar" aria-hidden="true">
+            {me?.avatar_url ? (
+              <PersonAvatar size={52} src={me.avatar_url} initials={me.initials} />
+            ) : (
+              me?.initials
+            )}
+          </span>
           <div className="nu-hero-words">
             <Title level={3} className="nu-home-greeting">
               {greeting()}, {me?.first_name || me?.full_name}
@@ -548,7 +561,7 @@ export default function HomePage() {
             ) : mine.length === 0 ? (
               <EmptyState compact title="Nothing in your calendar today" />
             ) : (
-              <Space direction="vertical" size={6} className="nu-block">
+              <div className="nx-ov-rows">
                 {mine.map((event) => (
                   <div key={event.id} className="nu-home-event">
                     <Text strong className="nu-home-event-when">
@@ -566,7 +579,7 @@ export default function HomePage() {
                     )}
                   </div>
                 ))}
-              </Space>
+              </div>
             )}
           </Card>
         )}
@@ -587,7 +600,7 @@ export default function HomePage() {
             ) : (tasks.data?.items.length ?? 0) === 0 ? (
               <EmptyState compact title="Nothing is assigned to you" />
             ) : (
-              <Space direction="vertical" size={6} className="nu-block">
+              <div className="nx-ov-rows">
                 {(tasks.data?.items ?? []).map((row) => (
                   <div key={String(row["id"])} className="nu-home-task">
                     <Link to={`/tasks/${String(row["id"])}`} className="nu-home-task-title">
@@ -609,7 +622,7 @@ export default function HomePage() {
                     </Space>
                   </div>
                 ))}
-              </Space>
+              </div>
             )}
           </Card>
         )}
@@ -629,7 +642,7 @@ export default function HomePage() {
           ) : (feed.data?.items.length ?? 0) === 0 ? (
             <EmptyState compact title="Nothing has happened this week" />
           ) : (
-            <Space direction="vertical" size={6} className="nu-block">
+            <div className="nx-ov-rows">
               {(feed.data?.items ?? []).slice(0, 6).map((entry) => (
                 <div key={entry.id} className="nu-home-feed">
                   <Text>{entry.summary}</Text>
@@ -638,7 +651,7 @@ export default function HomePage() {
                   </Text>
                 </div>
               ))}
-            </Space>
+            </div>
           )}
         </Card>
       </div>
@@ -681,7 +694,7 @@ export default function HomePage() {
           ) : (recents.data?.items.length ?? 0) === 0 ? (
             <EmptyState compact title="Nowhere yet — the trail fills itself as you work" />
           ) : (
-            <Space direction="vertical" size={4} className="nu-block">
+            <div className="nx-ov-rows nx-ov-rows--plain">
               {(recents.data?.items ?? []).slice(0, 6).map((visit) => (
                 <Link key={visit.id} to={visit.url} className="nu-home-recent">
                   <ClockCircleOutlined aria-hidden />
@@ -693,7 +706,7 @@ export default function HomePage() {
                   </Text>
                 </Link>
               ))}
-            </Space>
+            </div>
           )}
         </Card>
 

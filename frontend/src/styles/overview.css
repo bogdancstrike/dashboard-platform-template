@@ -1,0 +1,116 @@
+/* Glass design — overview pages. Owned by one workstream; see src/glass.css for the shared skin. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Shared overview furniture
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Panel rows: a hairline between rows, 44px tall, as the design's lists. */
+.nx-ov-rows { display: flex; flex-direction: column; }
+.nx-ov-rows > * {
+  min-height: 44px; display: flex; align-items: center; gap: 10px;
+  border-top: 1px solid rgba(var(--nu-ink-rgb), 0.07);
+}
+.nx-ov-rows--plain > * { border-top: 0; min-height: 40px; }
+
+/* Cards on overview pages: the design's 18px panel padding, header inline. */
+.nx-ov-home .ant-card .ant-card-head,
+.nx-ov-panel.ant-card .ant-card-head { min-height: 0; padding: 18px 18px 8px; }
+.nx-ov-home .ant-card .ant-card-body,
+.nx-ov-panel.ant-card .ant-card-body { padding: 0 18px 14px; }
+.nx-ov-home .ant-card-extra a,
+.nx-ov-panel .ant-card-extra a { font-size: 13px; font-weight: 600; color: var(--nu-accent-ink); text-decoration: underline; text-underline-offset: 2px; }
+.nx-app--phone .nx-ov-home .ant-card .ant-card-head { padding: 16px 16px 6px; }
+.nx-app--phone .nx-ov-home .ant-card .ant-card-body { padding: 0 16px 12px; }
+
+/* KPI tile: glass, accent left edge, tinted icon chip, big Inter number. */
+.nx-ov-tile {
+  min-height: 64px; padding: 14px 16px; border-radius: 26px;
+  background: var(--nu-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--nu-glass-border); border-left: 3px solid var(--nu-accent);
+  box-shadow: var(--nu-glass-shadow);
+  color: var(--nu-text);
+  display: flex; align-items: center; gap: 12px;
+  animation: nxRise 0.7s var(--nx-ease) both;
+  transition: transform 0.25s var(--nx-ease), box-shadow 0.25s ease;
+}
+.nx-ov-tile:hover { color: var(--nu-text); transform: translateY(-2px); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Home
+   ═══════════════════════════════════════════════════════════════════════ */
+.nx-ov-home { gap: 16px; }
+.nx-ov-home > .nu-page-header { margin-bottom: 2px; }
+
+.nx-ov-home .nu-hero {
+  border-radius: 30px; padding: 24px 26px;
+  background: var(--nu-glass-strong);
+  background-image: linear-gradient(120deg, rgba(var(--nu-glow-rgb), 0.16) 0%, rgba(var(--nu-glow-rgb), 0.03) 70%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--nu-glass-border);
+  box-shadow: var(--nu-glass-shadow);
+  flex-wrap: nowrap;
+  animation: nxRise 0.8s var(--nx-ease) 0.05s both;
+}
+.nx-ov-home .nu-hero-who { align-items: flex-start; gap: 16px; }
+.nx-ov-hero-avatar {
+  width: 52px; height: 52px; flex-shrink: 0; border-radius: 26px; overflow: hidden;
+  background: var(--nu-accent); color: var(--nu-on-accent);
+  font: 700 17px var(--nu-font);
+  display: flex; align-items: center; justify-content: center;
+}
+.nx-ov-home .nu-hero-words { gap: 4px; }
+.nx-ov-home .nu-home-greeting.ant-typography {
+  font-size: 34px; font-weight: 700; line-height: 1.08; letter-spacing: -0.03em;
+}
+.nx-ov-home .nu-hero-line { font-size: 13px; color: var(--nu-text-secondary); }
+.nx-ov-home .nu-hero-summary { font-size: 14px; font-weight: 600; }
+.nx-ov-home .nu-hero .ant-btn { height: 44px; padding-inline: 18px; font-size: 14px; }
+.nx-ov-home .nu-hero .ant-btn-default { background: var(--nu-raised); border-color: rgba(var(--nu-ink-rgb), 0.12); }
+
+.nx-ov-home .nu-home-waiting { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.nx-ov-home .nu-waitcard {
+  display: flex; align-items: center; gap: 12px;
+  min-height: 64px; padding: 14px 16px; border-radius: 26px;
+  background: var(--nu-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--nu-glass-border); border-left: 3px solid var(--nu-accent);
+  box-shadow: var(--nu-glass-shadow);
+  animation: nxRise 0.7s var(--nx-ease) both;
+}
+.nx-ov-home .nu-waitcard:hover { background: var(--nu-glass-strong); border-color: var(--nu-glass-border); border-left-color: var(--nu-accent); }
+.nx-ov-home .nu-waitcard-icon { width: 36px; height: 36px; border-radius: 12px; background: var(--nu-tint); color: var(--nu-accent-ink); flex-shrink: 0; }
+/* Count and label stack beside the chip. */
+.nx-ov-home .nu-waitcard { flex-wrap: wrap; align-content: center; position: relative; padding-left: 64px; }
+.nx-ov-home .nu-waitcard-icon { position: absolute; left: 16px; top: 50%; margin-top: -18px; }
+.nx-ov-home .nu-waitcard-count { width: 100%; font-size: 28px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+.nx-ov-home .nu-waitcard-label { width: 100%; font-size: 12.5px; color: var(--nu-text-secondary); line-height: 1.25; margin-top: 2px; }
+
+.nx-ov-home .nu-home-event-when { width: 64px; font-size: 12.5px; }
+.nx-ov-home .nu-home-event-what, .nx-ov-home .nu-home-task-title { font-size: 14px; color: var(--nu-text); }
+.nx-ov-home .nu-home-event-what:hover, .nx-ov-home .nu-home-task-title:hover { color: var(--nu-accent-ink); }
+.nx-ov-home .nu-home-event, .nx-ov-home .nu-home-task { align-items: center; }
+.nx-ov-home .nu-home-task .ant-tag { background: rgba(var(--nu-ink-rgb), 0.07); color: var(--nu-text-secondary); font-size: 11px; line-height: 22px; margin: 0; }
+.nx-ov-home .nu-home-task .ant-typography { font-size: 12.5px; }
+.nx-ov-home .nu-home-task .ant-typography-danger { font-weight: 600; }
+.nx-ov-home .nu-home-feed { padding: 10px 0; align-items: baseline; font-size: 13.5px; line-height: 1.4; }
+
+.nx-ov-home .nu-home-doors { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.nx-ov-home .nu-door {
+  min-height: 44px; padding: 9px 10px; border-radius: 18px;
+  background: rgba(var(--nu-ink-rgb), 0.04); border: 0;
+  box-shadow: inset 0 0 0 1px rgba(var(--nu-ink-rgb), 0.07);
+}
+.nx-ov-home .nu-door:hover { background: var(--nu-raised); box-shadow: inset 0 0 0 1px rgba(var(--nu-ink-rgb), 0.1), var(--nu-lift); }
+.nx-ov-home .nu-door-icon { border-radius: 10px; background: var(--nu-raised); }
+.nx-ov-home .nu-home-recent { padding: 0; }
+.nx-ov-home .nu-home-recent .nu-home-recent-label { font-size: 13px; }
+
+.nx-app--tablet .nx-ov-home .nu-home-greeting.ant-typography { font-size: 32px; }
+.nx-app--tablet .nx-ov-home .nu-home-columns { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); }
+
+.nx-app--phone .nx-ov-home .nu-hero { flex-direction: column; align-items: stretch; padding: 20px; }
+.nx-app--phone .nx-ov-home .nu-home-greeting.ant-typography { font-size: 26px; }
+.nx-app--phone .nx-ov-home .nu-hero .ant-space { flex-direction: column; align-items: flex-start; }
+.nx-app--phone .nx-ov-home .nu-home-waiting { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.nx-app--phone .nx-ov-home .nu-home-columns { grid-template-columns: minmax(0, 1fr); }

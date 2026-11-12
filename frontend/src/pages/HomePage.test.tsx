@@ -162,7 +162,9 @@ describe("the page", () => {
 
     // All three from the server: `/api/me` and `/meta/app`. A version typed
     // into the page is a version that is wrong after the next release.
-    expect(await screen.findByText(/Ada/)).toBeInTheDocument();
+    // Twice on purpose: the page title and the hero both greet by name.
+    expect((await screen.findAllByText(/Ada/)).length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/Ada\./);
     expect(screen.getByText(/Administrator/)).toBeInTheDocument();
     expect(screen.getByText(/Nucleus/)).toBeInTheDocument();
   });
