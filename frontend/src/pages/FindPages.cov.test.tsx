@@ -89,7 +89,7 @@ describe("global search", () => {
     const user = userEvent.setup();
     renderAt("/find/global?q=northwind", <GlobalSearchPage />, "/find/global");
     await screen.findAllByTestId("global-hit");
-    const [explore] = screen.getAllByRole("button", { name: /Data Explorer/ });
+    const [explore] = screen.getAllByRole("link", { name: /Data Explorer/ });
     await user.click(explore!);
     await waitFor(() => expect(where()).toMatch(/^\/explore\?resource=.+&q=migration/));
   });
