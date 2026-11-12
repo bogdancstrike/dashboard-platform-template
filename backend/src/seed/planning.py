@@ -422,7 +422,6 @@ def _plan(session) -> dict[str, int]:
             children = [row for row in work if row.epic_id == epic.id]
             if children:
                 epic.progress = round(100 * sum(1 for row in children if row.status == "DONE") / len(children))
-        project.task_count = (project.task_count or 0) + len(extra) + len(epics)
         session.flush()
 
     # ── WIP limits: one lane over its limit, so the warning is seen ──
@@ -494,7 +493,24 @@ def _plan(session) -> dict[str, int]:
 
     counts["tasks"] = make.made
     session.flush()
+    _recount(session, projects)
     return counts
+
+
+def _recount(session, projects) -> None:
+    """Keep the projects' denormalised task counters true (`--check` asserts them)."""
+    from src.models.business import Task
+
+    for project in projects:
+        project.task_count = session.scalar(
+            select(func.count()).select_from(Task).where(Task.project_id == project.id)
+        ) or 0
+        project.open_task_count = session.scalar(
+            select(func.count()).select_from(Task).where(
+                Task.project_id == project.id, Task.status.not_in(("DONE", "CANCELLED"))
+            )
+        ) or 0
+    session.flush()
 
 
 def _history(session, sprint, scope, done_rows, rng, upto: date | None = None) -> int:

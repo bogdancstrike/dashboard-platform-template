@@ -98,7 +98,7 @@ class TaskDependency(Base, TimestampMixin):
     successor_id: Mapped[UUID] = fk("tasks.id", ondelete="CASCADE", nullable=False)
     #: Only finish-to-start for now; a column so the others need no migration.
     kind: Mapped[str] = mapped_column(String(4), default="FS", nullable=False)
-    lag_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    lag_days: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
     created_by_id: Mapped[UUID | None] = fk("users.id")
 
 
@@ -135,7 +135,7 @@ class TaskTemplate(Base, TimestampMixin, SoftDeleteMixin):
     cover_color: Mapped[str | None] = mapped_column(String(16))
     #: How long after creation the copy is due, in days. `None` is no due date.
     due_in_days: Mapped[int | None] = mapped_column(Integer)
-    usage_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    usage_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
     owner_id: Mapped[UUID | None] = fk("users.id")
 
 
@@ -161,8 +161,8 @@ class TaskRecurrence(Base, TimestampMixin):
     until: Mapped[Any | None] = mapped_column(Date)
     next_run_at: Mapped[Any | None] = mapped_column(DateTime(timezone=True), index=True)
     last_run_at: Mapped[Any | None] = mapped_column(DateTime(timezone=True))
-    occurrences: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    occurrences: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true", nullable=False)
     created_by_id: Mapped[UUID | None] = fk("users.id")
 
 
