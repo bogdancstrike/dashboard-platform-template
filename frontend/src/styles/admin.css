@@ -1,0 +1,188 @@
+/* Glass design — admin pages. Owned by one workstream; see src/glass.css for the shared skin.
+ *
+ * Every administration, data and template page renders inside `.nx-ad`, so the
+ * rules below only ever reach those pages. The vocabulary is the canvas's
+ * BodyList / BodySettings / BodyHome: a glass search bar of filled pills,
+ * quick-filter chips with a dot and a count, a glass panel holding rows that
+ * are soft pills, and icon tiles on a tinted square.
+ */
+
+/* ── the page ───────────────────────────────────────────────────────── */
+.nx-ad { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.nx-ad > .nu-page-header { margin-bottom: 4px; }
+.nx-ad .nu-block, .nx-ad .nu-filter-bar { margin: 0 !important; }
+.nx-ad > .ant-alert { margin: 0; }
+
+/* The count beside a title: a quiet tint chip rather than a coloured tag. */
+.nx-ad .nu-page-title .ant-tag {
+  height: 26px; line-height: 26px; padding: 0 10px; margin: 0; align-self: center;
+  border: 0; border-radius: 13px; background: var(--nu-tint); color: var(--nu-accent-ink);
+  font-size: 12px; font-weight: 700; letter-spacing: 0;
+}
+
+/* ── the glass search bar ──────────────────────────────────────────── */
+.nx-ad .nu-filter-bar.ant-card,
+.nx-ad-bar {
+  border-radius: 26px;
+  animation: nxRise 0.6s var(--nx-ease) 0.05s both;
+}
+.nx-ad-bar {
+  padding: 8px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  background: var(--nu-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--nu-glass-border);
+  box-shadow: var(--nu-glass-shadow);
+}
+.nx-ad .nu-filter-bar.ant-card > .ant-card-body { padding: 8px !important; }
+.nx-ad-bar > .nx-ad-grow { flex: 1 1 240px; min-width: 0; }
+.nx-ad-bar .nx-ad-spacer { flex: 1; }
+
+/* Fields on the bar are filled pills, 44 tall, with no outline. */
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) :is(.ant-input-affix-wrapper, .ant-input-outlined:not(.ant-input-affix-wrapper .ant-input), .ant-picker, .ant-select-selector),
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-input-search .ant-input-group .ant-input-affix-wrapper {
+  min-height: 44px; border-radius: 22px !important;
+  background: rgba(var(--nu-ink-rgb), 0.06) !important;
+  border-color: transparent !important; box-shadow: none !important;
+}
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-select-selector { padding-inline: 16px !important; align-items: center; }
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-select-single .ant-select-selector { height: 44px !important; }
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-select-single { height: 44px; }
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-select-selection-placeholder,
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-select-selection-item { font-weight: 600; font-size: 13px; line-height: 42px !important; }
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-select-selection-placeholder { color: var(--nu-text); }
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) :is(.ant-select-focused, .ant-input-affix-wrapper-focused, .ant-picker-focused) :is(.ant-select-selector),
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) :is(.ant-input-affix-wrapper-focused, .ant-picker-focused) {
+  box-shadow: 0 0 0 3px rgba(var(--nu-glow-rgb), 0.18) !important;
+}
+/* A chosen filter reads as an ink pill, as on the canvas ("Role: any" pressed). */
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .nx-ad-set .ant-select-selector { background: var(--nu-text) !important; }
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .nx-ad-set .ant-select-selection-item,
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .nx-ad-set .ant-select-arrow,
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .nx-ad-set .ant-select-clear { color: var(--nu-on-ink) !important; background: transparent; }
+/* Search: the button merges into the pill. */
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-input-search .ant-input-group-addon { background: transparent; }
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-input-search { min-width: 0; }
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-input-search > .ant-input-wrapper { display: flex; }
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-input-search > .ant-input-wrapper > .ant-input-affix-wrapper,
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-input-search > .ant-input-wrapper > .ant-input { flex: 1; border-radius: 22px !important; }
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-input-search .ant-input-group-addon { width: auto; }
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-input-search .ant-input-search-button {
+  height: 44px; width: 44px; margin-inline-start: 6px; border-radius: 22px !important; border: 0;
+  background: rgba(var(--nu-ink-rgb), 0.06) !important; box-shadow: none;
+}
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-input { background: transparent !important; font-size: 14px; }
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-btn:not(.ant-input-search-button) { height: 44px; border-radius: 22px; padding-inline: 16px; }
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-btn-default:not(.ant-input-search-button) { background: rgba(var(--nu-ink-rgb), 0.06) !important; border-color: transparent; }
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-segmented { height: 44px; border-radius: 22px; background: rgba(var(--nu-ink-rgb), 0.06); padding: 3px; }
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-segmented-item { border-radius: 19px; }
+.nx-ad :is(.nu-filter-bar, .nx-ad-bar) .ant-segmented-item-label { min-height: 38px; line-height: 38px; }
+
+/* ── segmented controls anywhere on these pages: track + ink thumb ──── */
+.nx-ad .ant-segmented { border-radius: 22px; background: rgba(var(--nu-ink-rgb), 0.06); }
+.nx-ad .ant-segmented .ant-segmented-item { border-radius: 19px; }
+.nx-ad .ant-segmented .ant-segmented-item-selected { background: var(--nu-text); color: var(--nu-on-ink); }
+.nx-ad .ant-segmented .ant-segmented-thumb { background: var(--nu-text); border-radius: 19px; }
+.nx-ad .ant-segmented-lg .ant-segmented-item-label { min-height: 38px; line-height: 38px; }
+
+/* ── quick-filter chips: dot · label · count ──────────────────────── */
+.nx-ad-segs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 0 2px; }
+.nx-ad-segs::-webkit-scrollbar { display: none; }
+.nx-ad-seg {
+  height: 38px; flex-shrink: 0; padding: 0 14px; border-radius: 19px; border: 0; cursor: pointer;
+  background: rgba(var(--nu-ink-rgb), 0.06); color: var(--nu-text);
+  font: 600 13px var(--nu-font); display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.nx-ad-seg:hover { background: rgba(var(--nu-ink-rgb), 0.1); }
+.nx-ad-seg[aria-pressed="true"], .nx-ad-seg[aria-selected="true"] { background: var(--nu-raised); box-shadow: var(--nu-lift); }
+.nx-ad-seg > i { width: 8px; height: 8px; border-radius: 4px; background: var(--nu-text-tertiary); }
+.nx-ad-seg > b { font-weight: 700; opacity: 0.7; font-variant-numeric: tabular-nums; }
+.nx-ad-seg:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; }
+.nx-ad-dot--ok { background: var(--nu-ok-fill) !important; }
+.nx-ad-dot--warn { background: var(--nu-warn-fill) !important; }
+.nx-ad-dot--bad { background: var(--nu-bad-fill) !important; }
+.nx-ad-dot--acc { background: var(--nu-accent) !important; }
+
+/* ── the panel that holds a table ─────────────────────────────────── */
+.nx-ad .nu-block.ant-card:has(> .ant-card-body > .ant-table-wrapper),
+.nx-ad .nx-ad-panel.ant-card { border-radius: 28px; }
+.nx-ad .nu-block.ant-card:has(> .ant-card-body > .ant-table-wrapper) > .ant-card-body,
+.nx-ad .nx-ad-panel.ant-card > .ant-card-body { padding: 8px !important; }
+
+/* Rows are soft pills: 56 tall, the hovered one lifts onto white. */
+.nx-ad .ant-table-wrapper .ant-table { font-size: 14px; }
+.nx-ad .ant-table-wrapper .ant-table-thead > tr > th { padding: 12px 14px !important; white-space: nowrap; }
+.nx-ad .ant-table-wrapper .ant-table-tbody > tr > td { padding: 10px 14px !important; height: 56px; }
+.nx-ad .ant-table-wrapper .ant-table-tbody > tr > td.ant-table-column-sort,
+.nx-ad .ant-table-wrapper .ant-table-thead > tr > th.ant-table-column-sort { background: transparent !important; }
+.nx-ad .ant-table-wrapper .ant-table-tbody > tr.ant-table-row:hover > td { background: var(--nu-raised) !important; }
+.nx-ad .ant-table-wrapper .ant-table-tbody > tr.ant-table-row:hover { box-shadow: var(--nu-lift); }
+.nx-ad .ant-table-wrapper .ant-table-column-sorters { gap: 6px; justify-content: flex-start; }
+.nx-ad .ant-table-wrapper .ant-table-column-sorters .ant-table-column-title { flex: 0 1 auto; }
+.nx-ad .ant-table-wrapper .ant-table-column-sorter { color: rgba(var(--nu-ink-rgb), 0.28); }
+.nx-ad .ant-table-wrapper .ant-table-thead th.ant-table-column-has-sorters:hover { background: transparent !important; color: var(--nu-text); }
+.nx-ad .ant-table-wrapper .ant-table-pagination { align-items: center; color: var(--nu-text-tertiary); font-size: 13px; }
+.nx-ad .ant-table-wrapper .ant-pagination-total-text { margin-inline-end: auto; padding-inline-start: 6px; }
+.nx-ad .ant-pagination .ant-pagination-item, .nx-ad .ant-pagination .ant-pagination-prev, .nx-ad .ant-pagination .ant-pagination-next {
+  min-width: 36px; height: 36px; line-height: 36px; border-radius: 18px; border: 0; background: transparent;
+}
+.nx-ad .ant-pagination .ant-pagination-item-active { background: var(--nu-text); }
+.nx-ad .ant-pagination .ant-pagination-item-active a { color: var(--nu-on-ink) !important; }
+.nx-ad .ant-pagination .ant-select-selector { border-radius: 18px !important; height: 36px !important; align-items: center; }
+
+/* The two-line main cell: a name over its secondary line. */
+.nx-ad-main { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.nx-ad-main > :first-child { font-weight: 600; color: var(--nu-text); overflow: hidden; text-overflow: ellipsis; }
+.nx-ad-main > :nth-child(2) { font-size: 12px; color: var(--nu-text-tertiary); overflow: hidden; text-overflow: ellipsis; }
+.nx-ad-mono { font: 12.5px var(--nu-font-mono); color: var(--nu-text-secondary); }
+
+/* ── count tiles: the "facet" cards logs/jobs use become KPI-ish chips ── */
+.nx-ad-tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.nx-ad-tile {
+  border-radius: 26px; padding: 18px 20px; min-width: 0;
+  background: var(--nu-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--nu-glass-border);
+  box-shadow: var(--nu-glass-shadow);
+  display: flex; flex-direction: column; gap: 5px;
+  animation: nxRise 0.7s var(--nx-ease) both;
+}
+.nx-ad-tile > small { font-size: 13px; font-weight: 600; color: var(--nu-text-tertiary); }
+.nx-ad-tile > b { font-size: 30px; line-height: 1; font-weight: 700; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; }
+.nx-ad-tile > span { font-size: 12px; line-height: 1.4; color: var(--nu-text-tertiary); }
+
+/* The icon on a tinted square. */
+.nx-ad-icon {
+  width: 38px; height: 38px; flex-shrink: 0; border-radius: 13px;
+  background: var(--nu-tint); color: var(--nu-accent-ink);
+  display: inline-flex; align-items: center; justify-content: center; font-size: 17px;
+}
+
+/* ═════════════ /admin — the map of the area ═════════════ */
+.nx-ad-map { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.nx-app--tablet .nx-ad-map { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.nx-app--phone .nx-ad-map { grid-template-columns: minmax(0, 1fr); }
+.nx-ad-mapcard {
+  min-height: 88px; box-sizing: border-box; padding: 16px; border-radius: 26px;
+  background: var(--nu-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--nu-glass-border);
+  box-shadow: var(--nu-glass-shadow);
+  color: var(--nu-text) !important; text-decoration: none;
+  display: flex; align-items: flex-start; gap: 12px;
+  animation: nxRise 0.7s var(--nx-ease) both;
+  transition: transform 0.25s var(--nx-ease), box-shadow 0.25s ease;
+}
+.nx-ad-mapcard:hover { transform: translateY(-2px); box-shadow: 0 18px 40px rgba(40, 35, 60, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.8); }
+.nx-ad-mapcard:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; }
+.nx-ad-mapcard-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.nx-ad-mapcard-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.nx-ad-mapcard-head b { font-size: 15px; font-weight: 700; }
+.nx-ad-mapcard-what { font-size: 13px; line-height: 1.45; color: var(--nu-text-tertiary); }
+.nx-ad-badge {
+  height: 22px; padding: 0 8px; border-radius: 11px; background: var(--nu-tint); color: var(--nu-accent-ink);
+  font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; white-space: nowrap;
+}

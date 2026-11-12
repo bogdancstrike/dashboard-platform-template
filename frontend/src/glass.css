@@ -539,3 +539,22 @@ textarea.ant-input { border-radius: 18px !important; padding: 10px 14px; }
 @media (prefers-reduced-motion: reduce) {
   .nx-side, .nx-fold-label, .nx-navitem, .nx-group-items { transition: none !important; }
 }
+
+/* ── density (§40): the reader's chosen scale for text and components ── */
+html { zoom: var(--nu-zoom, 1); }
+.nx-app { height: calc(100vh / var(--nu-zoom, 1)); height: calc(100dvh / var(--nu-zoom, 1)); }
+
+/* ── search in the sidebar, under the mark ───────────────────────────── */
+.nx-side .nx-omni { width: 100%; flex-shrink: 0; overflow: hidden; white-space: nowrap; transition: width 0.45s var(--nx-ease), padding 0.45s var(--nx-ease); }
+.nx-side .nx-omni span, .nx-side .nx-omni kbd { transition: opacity 0.2s ease; }
+.nx-app--folded .nx-side .nx-omni { width: 52px; padding: 0 18px; }
+.nx-app--folded .nx-side .nx-omni span, .nx-app--folded .nx-side .nx-omni kbd { opacity: 0; }
+.nx-density { display: flex; flex-direction: column; gap: 6px; padding: 4px 4px 2px; cursor: default; }
+.nx-density > small { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--nu-text-tertiary); }
+.nx-density .ant-segmented { width: 100%; }
+.nx-density .ant-segmented-item { flex: 1; }
+.ant-dropdown-menu-item:has(.nx-density) { background: transparent !important; cursor: default; }
+.nx-omni .nx-icon { flex-shrink: 0; }
+/* `#nu-main` is a flex column so `.nu-fill` pages can take the height left;
+   inside the shell it is the scroller, and must never be taller than its slot. */
+#nu-main.nx-scroll { min-height: 0; }

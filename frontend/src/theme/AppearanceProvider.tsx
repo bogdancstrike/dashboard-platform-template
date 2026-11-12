@@ -154,7 +154,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppearanceContext.Provider value={value}>
-      <ConfigProvider theme={theme} componentSize={rendered === "compact" ? "small" : "middle"}>
+      <ConfigProvider theme={theme} componentSize="middle">
         {children}
       </ConfigProvider>
     </AppearanceContext.Provider>

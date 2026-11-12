@@ -114,3 +114,68 @@
 .nx-app--phone .nx-ov-home .nu-hero .ant-space { flex-direction: column; align-items: flex-start; }
 .nx-app--phone .nx-ov-home .nu-home-waiting { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .nx-app--phone .nx-ov-home .nu-home-columns { grid-template-columns: minmax(0, 1fr); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Dashboard grid — always movable for an owner
+   ═══════════════════════════════════════════════════════════════════════ */
+.nx-ov-rgl .react-grid-item { transition: transform 0.28s var(--nx-ease), width 0.28s var(--nx-ease), height 0.28s var(--nx-ease); }
+.nx-ov-rgl .react-grid-item.react-draggable-dragging,
+.nx-ov-rgl .react-grid-item.resizing { transition: none; }
+.nx-ov-rgl .nu-widget-card.ant-card { animation: none; }
+.nx-ov-rgl .nu-widget-card > .ant-card-head { padding: 12px 18px 0; min-height: 48px; }
+.nx-ov-rgl .nu-widget-card > .ant-card-body { padding: 8px 18px 16px; }
+.nx-ov-rgl .nu-widget-card .ant-card-head-title { font-size: 15px; }
+.nx-ov-rgl:not(.is-movable) .nu-widget-card > .ant-card-head { cursor: default; }
+
+/* The drop target: a soft, accent-tinted glass slot. */
+.nx-ov-rgl .react-grid-placeholder {
+  background: rgba(var(--nu-glow-rgb), 0.12) !important;
+  opacity: 1 !important;
+  border: 1.5px dashed rgba(var(--nu-glow-rgb), 0.55);
+  border-radius: 28px;
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  box-shadow: inset 0 0 0 6px rgba(var(--nu-glow-rgb), 0.05);
+  transition: transform 0.18s var(--nx-ease), width 0.18s ease, height 0.18s ease;
+}
+.nx-ov-rgl .react-grid-item.react-draggable-dragging .nu-widget-card {
+  border-color: rgba(var(--nu-glow-rgb), 0.45) !important;
+  box-shadow: 0 26px 60px rgba(40, 35, 60, 0.22), 0 0 0 4px rgba(var(--nu-glow-rgb), 0.12);
+  transform: rotate(-0.4deg) scale(1.01);
+}
+
+/* The grip shows on hover so the card reads as something you can pick up. */
+.nx-ov-rgl .nu-widget-grip { color: var(--nu-text-tertiary); opacity: 0.45; transition: opacity 0.2s ease; }
+.nx-ov-rgl .react-grid-item:hover .nu-widget-grip { opacity: 1; color: var(--nu-accent-ink); }
+
+/* Resize handles: a round corner knob and soft edge pills, on hover. */
+.nx-ov-rgl .react-resizable-handle { z-index: 3; }
+.nx-ov-rgl .react-resizable-handle-se,
+.nx-ov-rgl .react-resizable-handle-sw {
+  width: 22px; height: 22px; bottom: 6px;
+}
+.nx-ov-rgl .react-resizable-handle-se { right: 6px; cursor: se-resize; }
+.nx-ov-rgl .react-resizable-handle-sw { left: 6px; cursor: sw-resize; }
+.nx-ov-rgl .react-resizable-handle-se::after,
+.nx-ov-rgl .react-resizable-handle-sw::after {
+  content: ""; position: absolute; inset: auto; width: 12px; height: 12px;
+  bottom: 4px; border: 0; border-radius: 0 0 9px 0;
+  border-right: 2.5px solid var(--nu-accent) !important;
+  border-bottom: 2.5px solid var(--nu-accent) !important;
+}
+.nx-ov-rgl .react-resizable-handle-se::after { right: 4px; }
+.nx-ov-rgl .react-resizable-handle-sw::after { left: 4px; transform: scaleX(-1); }
+.nx-ov-rgl .react-resizable-handle-e::after,
+.nx-ov-rgl .react-resizable-handle-s::after { border-radius: 3px; background: rgba(var(--nu-glow-rgb), 0.55); }
+.nx-ov-rgl .react-resizable-handle-e:hover::after,
+.nx-ov-rgl .react-resizable-handle-s:hover::after { background: var(--nu-accent); }
+.nx-ov-rgl .nu-widget-size {
+  top: 12px; right: 14px; padding: 3px 10px; border-radius: 999px;
+  background: var(--nu-accent); color: var(--nu-on-accent);
+  box-shadow: 0 6px 16px rgba(var(--nu-glow-rgb), 0.35);
+}
+
+/* Phone: one column, in reading order, no gestures. */
+.nx-ov-stack { display: flex; flex-direction: column; gap: 12px; }
+.nx-ov-stack-item { display: flex; min-height: 0; }
+.nx-ov-stack-item > .nu-widget { width: 100%; }
+.nx-ov-stack .nu-widget-card > .ant-card-head { cursor: default; }

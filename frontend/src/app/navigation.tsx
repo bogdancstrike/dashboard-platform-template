@@ -68,6 +68,22 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    key: "find",
+    icon: "search",
+    label: "Find",
+    items: [
+      // Saved searches are a *module of* the Data Explorer, not a page of their
+      // own — you open one from the explorer and it loads there, the way
+      // gif_responder's SavedSearchControls works. A separate destination would
+      // mean two places that both claim to be where searches live.
+      { key: "/explore", label: "Data Explorer", icon: <NxIcon name="search" />, permission: "records.view" },
+      { key: "/find/global", label: "Global search", icon: <NxIcon name="globe" />, permission: "records.view" },
+      { key: "/find/relationships", label: "Relationships", icon: <NxIcon name="graph" />, permission: "records.view" },
+      { key: "/find/catalog", label: "Data catalog", icon: <NxIcon name="database" />, permission: "records.view" },
+      { key: "/favorites", label: "Favorites", icon: <NxIcon name="heart" /> },
+    ],
+  },
+  {
     key: "analyse",
     icon: "bars",
     label: "Analyse",
@@ -111,22 +127,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { key: "/orders", label: "Orders", icon: <NxIcon name="cart" />, permission: "records.view" },
       { key: "/tickets", label: "Tickets", icon: <NxIcon name="ticket" />, permission: "records.view", badge: "open_tickets" },
       { key: "/devices", label: "Devices", icon: <NxIcon name="device" />, permission: "records.view" },
-    ],
-  },
-  {
-    key: "find",
-    icon: "search",
-    label: "Find",
-    items: [
-      // Saved searches are a *module of* the Data Explorer, not a page of their
-      // own — you open one from the explorer and it loads there, the way
-      // gif_responder's SavedSearchControls works. A separate destination would
-      // mean two places that both claim to be where searches live.
-      { key: "/explore", label: "Data Explorer", icon: <NxIcon name="search" />, permission: "records.view" },
-      { key: "/find/global", label: "Global search", icon: <NxIcon name="globe" />, permission: "records.view" },
-      { key: "/find/relationships", label: "Relationships", icon: <NxIcon name="graph" />, permission: "records.view" },
-      { key: "/find/catalog", label: "Data catalog", icon: <NxIcon name="database" />, permission: "records.view" },
-      { key: "/favorites", label: "Favorites", icon: <NxIcon name="heart" /> },
     ],
   },
   {

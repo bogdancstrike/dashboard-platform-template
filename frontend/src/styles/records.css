@@ -1,0 +1,21 @@
+/* Glass design — records pages (Work & Records workstream). See src/glass.css for the shared skin.
+   Classes: .nx-pill* (status pills, app-wide), .nx-rec-* (records, work pages, their modals). */
+
+/* ═══ Status pill: a tint of the meaning, its ink, and a dot ═══════════════ */
+.nx-pill {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; box-sizing: border-box;
+  height: 24px; padding: 0 9px; margin: 0; border-radius: 12px; border: 0 !important;
+  font: 700 11.5px/1 var(--nu-font); white-space: nowrap; vertical-align: middle;
+  font-variant-numeric: tabular-nums; letter-spacing: 0;
+  background: rgba(var(--nu-ink-rgb), 0.07); color: var(--nu-text-secondary);
+}
+.nx-pill-dot { width: 6px; height: 6px; flex-shrink: 0; border-radius: 3px; background: currentColor; font-style: normal; }
+.nx-pill--ok { background: var(--nu-ok-bg); color: var(--nu-ok); }
+.nx-pill--warn { background: var(--nu-warn-bg); color: var(--nu-warn); }
+.nx-pill--bad { background: var(--nu-bad-bg); color: var(--nu-bad); }
+.nx-pill--acc { background: var(--nu-tint); color: var(--nu-accent-ink); }
+:root[data-theme="dark"] .nx-pill--acc { color: var(--nu-text); }
+.nx-pill--edge.ant-tag { height: 24px; line-height: 1; padding: 0 9px; color: var(--nu-text-secondary); }
+.nx-pill.nu-status-tag { border-inline-start-width: 0; }
+.nx-pill--sm { height: 22px; padding: 0 8px; font-size: 11px; border-radius: 11px; }
+.nx-pill--nodot .nx-pill-dot { display: none; }

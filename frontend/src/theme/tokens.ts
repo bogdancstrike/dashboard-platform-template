@@ -321,9 +321,24 @@ export const DENSITY: Record<
   Density,
   { rowHeight: number; controlHeight: number; fontSize: number; padding: number }
 > = {
-  compact: { rowHeight: 40, controlHeight: 32, fontSize: 13, padding: 10 },
+  compact: { rowHeight: 44, controlHeight: 36, fontSize: 14, padding: 12 },
   middle: { rowHeight: 52, controlHeight: 40, fontSize: 14, padding: 14 },
-  comfortable: { rowHeight: 58, controlHeight: 44, fontSize: 14, padding: 16 },
+  comfortable: { rowHeight: 56, controlHeight: 44, fontSize: 14, padding: 16 },
+};
+
+/**
+ * How much the whole interface is scaled at each density — text *and*
+ * components together, so "relaxed" is the same page read from further away
+ * rather than the same text in bigger boxes. Applied as CSS `zoom` on the
+ * document, which scales portals (menus, modals) along with the page.
+ */
+export const DENSITY_ZOOM: Record<Density, number> = { compact: 0.9, middle: 1, comfortable: 1.12 };
+
+/** What each density is called where a reader chooses it. */
+export const DENSITY_LABEL: Record<Density, string> = {
+  compact: "Compact",
+  middle: "Normal",
+  comfortable: "Relaxed",
 };
 
 export const LAYOUT = {

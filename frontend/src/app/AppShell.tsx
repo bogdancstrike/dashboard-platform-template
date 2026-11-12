@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { Button, Dropdown, Grid, Tooltip } from "antd";
+import { Button, Dropdown, Grid, Segmented, Tooltip } from "antd";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
@@ -19,6 +19,7 @@ import { useLive, usePollInterval } from "@/live/LiveProvider";
 import { landingPath } from "@/pages/PreferencesPage";
 import { usePreferences } from "@/settings/PreferencesProvider";
 import { useAppearance } from "@/theme/AppearanceProvider";
+import { DENSITY_LABEL, type Density } from "@/theme/tokens";
 import { useFeatures, type FeatureKey } from "@/settings/features";
 import { PageTour } from "@/app/PageTour";
 import { NAV_GROUPS, NAV_ITEMS, selectedKeyFor, trailFor, type NavGroup } from "./navigation";
@@ -74,7 +75,7 @@ export function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const screens = Grid.useBreakpoint();
-  const { mode, setAppearance, appearance } = useAppearance();
+  const { mode, setAppearance, appearance, density, setDensity } = useAppearance();
   const auth = useAuth();
   const features = useFeatures();
   const impersonation = useImpersonation();
@@ -166,7 +167,6 @@ export function AppShell() {
     const el = list?.querySelector<HTMLElement>('[aria-current="page"]');
     if (el && list) list.scrollTop = Math.max(0, el.offsetTop - list.clientHeight / 2);
     // Only on arrival: scrolling on every route change would fight the reader.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPc]);
 
   const toggleGroup = (key: string) => {
@@ -204,6 +204,31 @@ export function AppShell() {
         label: `Appearance: ${appearance}`,
         onClick: () =>
           setAppearance(appearance === "light" ? "dark" : appearance === "dark" ? "system" : "light"),
+      },
+      {
+        key: "density",
+        // A control inside the menu rather than a menu item: choosing a
+        // density is a comparison, and the reader should see the page change
+        // while the three choices are still in front of them (§40).
+        label: (
+          <div
+            className="nx-density"
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
+            <small>Density</small>
+            <Segmented<Density>
+              aria-label="Density"
+              size="small"
+              value={density}
+              onChange={(value) => setDensity(value)}
+              options={(["compact", "middle", "comfortable"] as const).map((value) => ({
+                value,
+                label: DENSITY_LABEL[value],
+              }))}
+            />
+          </div>
+        ),
       },
       { type: "divider" as const },
       { key: "signout", icon: <NxIcon name="logout" size={16} />, label: "Sign out", onClick: () => void auth.signOut() },
@@ -348,6 +373,18 @@ export function AppShell() {
               <NxIcon name="chevronLeft" size={16} stroke={2.2} />
             </button>
           </div>
+          <Tooltip title={folded ? `Search or jump to… (${chord})` : undefined} placement="right">
+            <button
+              type="button"
+              className="nx-omni"
+              onClick={() => openPalette(true)}
+              aria-label={`Open the command palette (${chord})`}
+            >
+              <NxIcon name="search" size={16} stroke={2} />
+              <span>Search or jump to…</span>
+              <kbd>{chord}</kbd>
+            </button>
+          </Tooltip>
           <div role="menu" aria-label="Pages" className="nx-side-menu">
             {navList}
           </div>
@@ -389,16 +426,6 @@ export function AppShell() {
         {isPc && (
           <header className="nx-top nx-glass">
             {crumbs}
-            <button
-              type="button"
-              className="nx-omni"
-              onClick={() => openPalette(true)}
-              aria-label={`Open the command palette (${chord})`}
-            >
-              <NxIcon name="search" size={16} stroke={2} />
-              <span>Search or jump to…</span>
-              <kbd>{chord}</kbd>
-            </button>
             {liveChip}
             {themeButton}
             <NotificationBell />
