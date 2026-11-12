@@ -79,6 +79,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { key: "/assistant", label: "Assistant", icon: <AstIcon name="spark" size={18} />, permission: "ai.use" },
       { key: "/ai/documents", label: "Ask your documents", icon: <KnIcon name="documents" size={18} />, permission: "ai.use" },
+      { key: "/ai/insights", label: "Insights", icon: <KnIcon name="insights" size={18} />, permission: "ai.use" },
     ],
   },
   {

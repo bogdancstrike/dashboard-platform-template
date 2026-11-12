@@ -29,6 +29,7 @@ const CalendarPage = lazy(() => import("@/pages/CalendarPage"));
 const MailPage = lazy(() => import("@/pages/MailPage"));
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const DocumentsPage = lazy(() => import("@/pages/DocumentsPage"));
+const InsightsPage = lazy(() => import("@/pages/InsightsPage"));
 const AssistantPage = lazy(() => import("@/pages/AssistantPage"));
 const AdminHomePage = lazy(() => import("@/pages/admin/AdminHomePage"));
 const SystemSettingsPage = lazy(() => import("@/pages/admin/SettingsPage"));
@@ -199,6 +200,15 @@ export default function App() {
           element={
             <Suspense fallback={<Loading />}>
               <AssistantPage />
+            </Suspense>
+          }
+        />
+        {/* AI (§43): insights — a question about the records, answered as a page. */}
+        <Route
+          path="ai/insights"
+          element={
+            <Suspense fallback={<Loading />}>
+              <InsightsPage />
             </Suspense>
           }
         />

@@ -42,6 +42,7 @@ import { analysisApi } from "@/api/analysis";
 import type { DashboardWidget, WidgetInput, WidgetKind } from "@/api/dashboards";
 import { explorerApi, type ExplorerResource } from "@/api/explorer";
 import { kanbanApi } from "@/api/kanban";
+import { insightsApi } from "@/api/insights";
 import { reportsApi } from "@/api/reports";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { URL_OVERLAY } from "@/app/history";
@@ -149,6 +150,12 @@ export function WidgetModal({
     enabled: open && shape.needs === "report",
     staleTime: 60_000,
   });
+  const insights = useQuery({
+    queryKey: ["insights"],
+    queryFn: ({ signal }) => insightsApi.list({}, signal),
+    enabled: open && shape.needs === "insight",
+    staleTime: 60_000,
+  });
   const searches = useQuery({
     queryKey: ["saved-searches", "all"],
     queryFn: ({ signal }) => explorerApi.saved(undefined, signal),
@@ -176,6 +183,7 @@ export function WidgetModal({
     metric: widget?.config.metric ?? "",
     report_id: widget?.config.report_id ?? "",
     search_id: widget?.config.search_id ?? "",
+    insight_id: widget?.config.insight_id ?? "",
     // Module options. Every one of them optional, because a module widget with
     // nothing said is complete — it shows the module's own default view.
     board_id: widget?.config.board_id ?? "",
@@ -378,6 +386,22 @@ export function WidgetModal({
             }}
           />
         </Form.Item>
+
+        {shape.needs === "insight" && (
+          <Form.Item
+            name="insight_id"
+            label="Which insight"
+            rules={[{ required: true, message: "Pick an insight to show" }]}
+            extra="Its numbers are re-read every time the dashboard opens."
+          >
+            <Select
+              aria-label="Insight"
+              loading={insights.isLoading}
+              options={(insights.data?.items ?? []).map((item) => ({ value: item.id, label: item.title }))}
+              notFoundContent={insights.isLoading ? "Loading…" : "You have not saved an insight yet"}
+            />
+          </Form.Item>
+        )}
 
         {shape.needs === "report" && (
           <Form.Item
@@ -693,6 +717,7 @@ export function WidgetModal({
 function hasSubject(draft: DashboardWidget): boolean {
   if (draft.kind === "REPORT") return Boolean(draft.config.report_id);
   if (draft.kind === "SEARCH") return Boolean(draft.config.search_id);
+  if (draft.kind === "INSIGHT") return Boolean(draft.config.insight_id);
   return Boolean(draft.config.entity);
 }
 
@@ -739,6 +764,8 @@ function configFor(
       return { report_id: String(values["report_id"] ?? "") };
     case "SEARCH":
       return { search_id: String(values["search_id"] ?? "") };
+    case "INSIGHT":
+      return { insight_id: String(values["insight_id"] ?? "") };
     case "TASKS":
       return only({ board_id: text("board_id"), status: text("status") });
     case "MAIL":

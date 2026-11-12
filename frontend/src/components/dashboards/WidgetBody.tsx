@@ -54,6 +54,7 @@ import { formatMetric } from "@/entities/EntityChrome";
 import { asText } from "@/lib/text";
 import { relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
+import { InsightWidgetBody } from "@/components/insights/InsightWidgetBody";
 
 const { Text } = Typography;
 
@@ -67,6 +68,7 @@ const { Text } = Typography;
 function hasSubject(widget: DashboardWidget): boolean {
   if (widget.kind === "REPORT") return Boolean(widget.config.report_id);
   if (widget.kind === "SEARCH") return Boolean(widget.config.search_id);
+  if (widget.kind === "INSIGHT") return Boolean(widget.config.insight_id);
   return Boolean(widget.config.entity);
 }
 
@@ -152,6 +154,7 @@ export function WidgetBody({
 
   if (widget.kind === "REPORT") return <ReportBody widget={widget} period={effectivePeriod} />;
   if (widget.kind === "SEARCH") return <SearchBody widget={widget} resources={resources} />;
+  if (widget.kind === "INSIGHT") return <InsightWidgetBody id={widget.config.insight_id ?? ""} />;
   if (widget.kind === "KPI" || widget.kind === "GAUGE") {
     return <MetricBody widget={widget} gauge={widget.kind === "GAUGE"} />;
   }

@@ -34,7 +34,7 @@ const { Text } = Typography;
 /** What is being placed: the saved thing itself, never a copy of its question. */
 export interface DashboardSubject {
   /** Which referencing kind draws it. */
-  kind: Extract<WidgetKind, "REPORT" | "SEARCH">;
+  kind: Extract<WidgetKind, "REPORT" | "SEARCH" | "INSIGHT">;
   id: string;
   /** What the card will be called — the saved thing's own name. */
   title: string;
@@ -50,9 +50,10 @@ const SCOPE_ICON = {
 } as const;
 
 /** The config key each referencing kind reads. Declared once, in one place. */
-const REFERENCE_KEY: Record<DashboardSubject["kind"], "report_id" | "search_id"> = {
+const REFERENCE_KEY: Record<DashboardSubject["kind"], "report_id" | "search_id" | "insight_id"> = {
   REPORT: "report_id",
   SEARCH: "search_id",
+  INSIGHT: "insight_id",
 };
 
 /** "alerts, revenue and a heatmap" — what a dashboard holds, in its own words. */

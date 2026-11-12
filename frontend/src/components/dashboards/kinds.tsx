@@ -25,6 +25,7 @@ import {
   BarChartOutlined,
   BellOutlined,
   BranchesOutlined,
+  BulbOutlined,
   CalendarOutlined,
   CheckSquareOutlined,
   DashboardOutlined,
@@ -78,7 +79,7 @@ export interface KindSpec {
   /** How many of one kind on a dashboard stops being useful. */
   maximum: number;
   /** Whether it names a dataset, a saved thing, or nothing at all. */
-  needs: "dataset" | "report" | "search" | "nothing";
+  needs: "dataset" | "report" | "search" | "insight" | "nothing";
   /** Where the reader would go to see the whole of it. Modules have a page. */
   page?: string;
 }
@@ -340,6 +341,16 @@ export const KINDS: Record<WidgetKind, KindSpec> = {
     needs: "search",
     page: "/explore",
   },
+  INSIGHT: {
+    label: "An insight",
+    question: "A page the AI built from your question, with today's numbers.",
+    icon: <BulbOutlined />,
+    colour: SERIES[5],
+    family: "saved",
+    maximum: 6,
+    needs: "insight",
+    page: "/ai/insights",
+  },
 };
 
 /** The kinds in the order a person browses them, family by family. */
@@ -375,6 +386,7 @@ export const KIND_ORDER: WidgetKind[] = [
   // Saved
   "REPORT",
   "SEARCH",
+  "INSIGHT",
 ];
 
 /** The kinds of one family, in browsing order. */

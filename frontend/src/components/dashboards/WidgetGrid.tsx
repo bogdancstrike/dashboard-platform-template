@@ -75,6 +75,7 @@ export const PREVIEW_SIZES: Record<DashboardWidget["kind"], { w: number; h: numb
   ACTIVITY: { w: 4, h: 2 },
   REPORT: { w: 6, h: 2 },
   SEARCH: { w: 4, h: 2 },
+  INSIGHT: { w: 6, h: 4 },
   TASKS: { w: 6, h: 3 },
   MAIL: { w: 4, h: 3 },
   FILES: { w: 4, h: 2 },

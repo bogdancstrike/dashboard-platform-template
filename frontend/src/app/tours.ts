@@ -408,6 +408,25 @@ export const TOURS: Record<string, TourStop[]> = {
     },
   ],
 
+  "/ai/insights": [
+    {
+      title: "A question, answered as a page",
+      description:
+        "Ask about your records and the AI builds a small page from a fixed set of components — numbers, charts, tables, lists, notes. It never types a number itself: every figure is a query run as you, with your permissions.",
+    },
+    {
+      target: "insight-ask",
+      title: "Ask, or start from a suggestion",
+      description:
+        "Suggestions are written by hand for each dataset you can read, open instantly and use no AI at all. A question of your own is answered by the model, which looks at the data before it lays out the page.",
+    },
+    {
+      target: "insight-gallery",
+      title: "Saved insights stay current",
+      description:
+        "Refreshing re-runs the queries behind a saved insight — the model is not asked again. Pin the ones you open often, share them, or put one on a dashboard where it refreshes every time the dashboard opens.",
+    },
+  ],
   "/ai/documents": [
     {
       title: "Answers from your files, cited to the page",

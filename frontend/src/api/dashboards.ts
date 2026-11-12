@@ -39,6 +39,8 @@ export type WidgetKind =
   | "REPORT"
   /** A saved search — a question composed in the explorer, answered here. */
   | "SEARCH"
+  /** A saved insight (§43) — a generated page, its numbers re-read on view. */
+  | "INSIGHT"
   // ── modules ───────────────────────────────────────────────────────────
   // A window onto a page of the product rather than a question about a
   // dataset. Each is answered by that module's own endpoint, under that
@@ -83,6 +85,7 @@ export interface WidgetConfig {
   report_id?: string;
   /** A saved search this widget answers, instead of an inline query. */
   search_id?: string;
+  insight_id?: string;
   /** For `CHART`: which picture, from the chart builder's own vocabulary. */
   chart?: string;
 
