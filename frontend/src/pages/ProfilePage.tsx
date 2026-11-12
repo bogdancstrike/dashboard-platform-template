@@ -31,7 +31,7 @@
  * week at all — the server sends the empty buckets and this draws them.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Alert,
@@ -45,7 +45,7 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   CalendarOutlined,
   ClockCircleOutlined,
@@ -149,7 +149,23 @@ export default function ProfilePage() {
   const { userId } = useParams();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const [editing, setEditing] = useState(false);
+  // The edit drawer lives in the address (`?edit=1`), pushed, so back closes
+  // it and a link can open it; × steps back when it was opened from here.
+  const location = useLocation();
+  const editing = params.get("edit") === "1";
+  const setEditing = (open: boolean) => {
+    if (open) {
+      const next = new URLSearchParams(params);
+      next.set("edit", "1");
+      setParams(next, { state: { overlay: true } });
+    } else if ((location.state as { overlay?: boolean } | null)?.overlay) {
+      navigate(-1);
+    } else {
+      const next = new URLSearchParams(params);
+      next.delete("edit");
+      setParams(next, { replace: true });
+    }
+  };
   const auth = useAuth();
   const tab = tabFrom(params.get("tab"));
 

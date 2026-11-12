@@ -16,6 +16,7 @@ import type { ColumnsType, ColumnType, TablePaginationConfig, TableProps } from 
 
 import type { ExplorerField, ExplorerResult, ExplorerView } from "@/api/explorer";
 import { HighlightedText } from "@/components/HighlightedText";
+import { StatusTag } from "@/components/StatusTag";
 import { FavoriteStar } from "@/components/records/FavoriteStar";
 import { asText } from "@/lib/text";
 import { EmptyState } from "@/components/EmptyState";
@@ -311,10 +312,26 @@ function Value({
 }) {
   if (value === null || value === undefined || value === "") return <Text type="secondary">—</Text>;
   if (field?.kind === "bool") return <Tag color={value ? "green" : "default"}>{value ? "Yes" : "No"}</Tag>;
-  if (field?.kind === "enum") return <Tag>{asText(value).replaceAll("_", " ")}</Tag>;
+  // Known vocabulary (status, priority, kind…) reads as the app's one status
+  // pill: sentence case, tinted, with a dot — in every view mode.
+  if (field?.kind === "enum") return <StatusTag status={asText(value)} />;
   if (field?.kind === "datetime") {
     const parsed = new Date(asText(value));
-    return <Text>{Number.isNaN(parsed.valueOf()) ? asText(value) : parsed.toLocaleString()}</Text>;
+    return (
+      <Text className="nu-explorer-date" title={Number.isNaN(parsed.valueOf()) ? undefined : parsed.toLocaleString()}>
+        {Number.isNaN(parsed.valueOf())
+          ? asText(value)
+          : parsed.toLocaleString(undefined, {
+              month: "short",
+              day: "numeric",
+              // The year only when it is not this one: it is the part a
+              // reader can usually supply, and the column stays narrow.
+              ...(parsed.getFullYear() === new Date().getFullYear() ? {} : { year: "numeric" }),
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+      </Text>
+    );
   }
   if (Array.isArray(value)) {
     return <Space size={4} wrap>{value.map((entry) => <Tag key={asText(entry)}>{asText(entry)}</Tag>)}</Space>;

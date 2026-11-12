@@ -32,6 +32,7 @@ import { App as AntApp, Button, Drawer, Form, Input, Select, Space, Typography }
 import { useMemo } from "react";
 
 import { ApiError } from "@/api/client";
+import { URL_OVERLAY } from "@/app/history";
 import { meApi, type CurrentUser, type ProfilePatch } from "@/api/me";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
@@ -103,6 +104,7 @@ export function EditProfileDrawer({
     <Drawer
       open={open}
       onClose={requestClose}
+      rootClassName={URL_OVERLAY}
       width={430}
       destroyOnHidden
       title="Your details"

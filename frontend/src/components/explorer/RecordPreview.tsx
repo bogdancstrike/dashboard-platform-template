@@ -5,16 +5,16 @@
  * never used as detail data, so hiding a column cannot hide the article body.
  * Requests are scoped by resource and ID and cancelled when selection changes.
  */
+import { StatusTag } from "@/components/StatusTag";
 import { URL_OVERLAY } from "@/app/history";
 import { useQuery } from "@tanstack/react-query";
-import { App, Button, Drawer, Skeleton, Space, Tabs, Tag, Tooltip, Typography } from "antd";
+import { App, Button, Drawer, Skeleton, Space, Tabs, Tooltip, Typography } from "antd";
 import { ApartmentOutlined, CopyOutlined, ExportOutlined, LinkOutlined } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
 
 import { recordsApi } from "@/api/records";
 import { FavoriteStar } from "@/components/records/FavoriteStar";
 import { TagPicker } from "@/components/records/TagPicker";
-import { knownStatusColor } from "@/theme/tokens";
 import { RecordContent } from "./RecordContent";
 import { RecordReadError } from "./RecordReadError";
 import { RecordRelations } from "./RecordRelations";
@@ -81,7 +81,7 @@ export function RecordPreview({ resourceType, recordId, term = "", onClose }: Re
         <Space wrap size={8} className="nu-preview-summary">
           <Typography.Text type="secondary">{data.resource_label}</Typography.Text>
           {data.subtitle && <Typography.Text code>{data.subtitle}</Typography.Text>}
-          {data.status && <Tag style={{ borderInlineStart: `3px solid ${knownStatusColor(data.status) ?? "var(--nu-border)"}` }}>{data.status}</Tag>}
+          {data.status && <StatusTag status={data.status} />}
           <Link to={`${data.path}/${data.id}`}><ExportOutlined /> Open full record</Link>
           <Button type="text" aria-label="Show connections" icon={<ApartmentOutlined />}
             onClick={() => navigate(`/find/relationships?resource=${resourceType}&id=${recordId}`)}>

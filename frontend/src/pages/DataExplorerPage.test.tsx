@@ -14,7 +14,7 @@ describe("Data Explorer", () => {
 
     expect(await screen.findByText("Review customer migration")).toBeInTheDocument();
     expect(screen.getByText("TSK-001")).toBeInTheDocument();
-    expect(screen.getAllByText("IN PROGRESS").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("In progress").length).toBeGreaterThan(0);
     expect(screen.getByText("1 match", { exact: false })).toBeInTheDocument();
   });
 

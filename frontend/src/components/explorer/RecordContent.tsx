@@ -1,10 +1,10 @@
 /** Read long-form text as prose and structured attributes as labelled values. */
-import { Descriptions, Tag, Typography } from "antd";
+import { StatusTag } from "@/components/StatusTag";
+import { Descriptions, Typography } from "antd";
 import type { RecordDetail, RecordField } from "@/api/records";
 import { HighlightedText } from "@/components/HighlightedText";
 import { asText } from "@/lib/text";
 import { formatDateTime, formatNumber } from "@/lib/formats";
-import { knownStatusColor } from "@/theme/tokens";
 import { EmptyState } from "@/components/EmptyState";
 
 export function RecordContent({ record, term }: { record: RecordDetail; term: string }) {
@@ -54,6 +54,6 @@ function RecordValue({ field }: { field: RecordField }) {
     return <Typography.Text>{Number.isNaN(date.valueOf()) ? asText(value) : formatDateTime(date)}</Typography.Text>;
   }
   if (kind === "number" && typeof value === "number") return <Typography.Text>{formatNumber(value)}</Typography.Text>;
-  if (kind === "enum") return <Tag style={{ borderInlineStart: `3px solid ${knownStatusColor(asText(value)) ?? "var(--nu-border)"}` }}>{asText(value)}</Tag>;
+  if (kind === "enum") return <StatusTag status={asText(value)} />;
   return <StructuredValue value={value} />;
 }

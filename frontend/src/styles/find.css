@@ -180,11 +180,27 @@ button.nx-fd-qchip { padding: 0 12px 0 10px; }
 .nx-fd-views .ant-segmented-item { border-radius: 17px; }
 .nx-fd-views .ant-segmented-item-label { min-height: 34px; line-height: 34px; padding-inline: 12px; font-size: 13px; }
 .nx-fd-views .ant-segmented-item-selected, .nx-fd-views .ant-segmented-thumb { background: var(--nu-text) !important; color: var(--nu-on-ink) !important; border-radius: 17px; }
-.nx-fd-results .nu-explorer-table .ant-table-tbody > tr:first-child > td { background: var(--nu-raised); }
+
 .nx-fd-results .ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected > td { background: rgba(var(--nu-glow-rgb), 0.10) !important; }
 .nx-fd-results .ant-table-thead > tr > th { background: transparent !important; }
-.nx-fd-results .ant-table-wrapper .ant-table-tbody .ant-table-cell-fix-right,
-.nx-fd-results .ant-table-wrapper .ant-table-thead .ant-table-cell-fix-right { background: var(--nu-surface-raised) !important; }
+/* Pinned columns: an opaque colour equal to the glass panel over the ground,
+   so they hide what scrolls beneath without reading as a separate stripe. */
+.nu-explorer-table { --fd-pin: #fbfbfc; }
+:root[data-theme="dark"] .nu-explorer-table { --fd-pin: #221b26; }
+.nu-explorer-table .ant-table-tbody .ant-table-cell-fix-right,
+.nu-explorer-table .ant-table-tbody .ant-table-cell-fix-left,
+.nu-explorer-table .ant-table-thead .ant-table-cell-fix-right,
+.nu-explorer-table .ant-table-thead .ant-table-cell-fix-left { background: var(--fd-pin) !important; }
+.nu-explorer-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-right,
+.nu-explorer-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-left { background: var(--nu-raised) !important; }
+:root[data-theme="dark"] .nu-explorer-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-right,
+:root[data-theme="dark"] .nu-explorer-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-left { background: #2c2431 !important; }
+.nu-explorer-table .ant-table-cell-fix-right-first::after, .nu-explorer-table .ant-table-cell-fix-left-last::after { box-shadow: none !important; }
+.nu-explorer-table .ant-table-cell-fix-right-first { box-shadow: -10px 0 12px -10px rgba(var(--nu-ink-rgb), 0.18); }
+.nu-explorer-date { white-space: nowrap; }
+/* The sorted column is marked in its header; a tinted band down the body
+   read as a separate stripe in dark. */
+.nu-explorer-table td.ant-table-column-sort { background: transparent; }
 .nx-fd-sr { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .nx-fd-results .ant-list-item { border-block-end: 0 !important; border-radius: 18px; }
 .nx-fd-results .ant-list-items { display: flex; flex-direction: column; gap: 4px; }
@@ -361,7 +377,7 @@ button.nx-fd-qchip { padding: 0 12px 0 10px; }
   .nx-fd-advdrawer .ant-drawer-body { padding: 6px 16px 0; }
   .nx-fd-advbody .nu-advanced-actions { margin: 0 -16px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
   .nx-fd-cb { --cb-lead: 40px; }
-  .nx-fd-cb-rule { grid-template-columns: minmax(96px, 0.8fr) minmax(0, 1.2fr) auto; grid-template-areas: "f f a" "o v v"; row-gap: 6px; }
+  .nx-fd-cb-rule { grid-template-columns: minmax(96px, 0.8fr) minmax(0, 1.2fr) auto; grid-template-areas: "f f a" "o v v"; row-gap: 6px; grid-template-columns: minmax(124px, 0.9fr) minmax(0, 1.1fr) auto; }
   .nx-fd-cb-line { padding-left: 16px; margin-left: -16px; }
   .nx-fd-cb-group:not(.is-root) { padding-left: 10px; }
 }
