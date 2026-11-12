@@ -1,0 +1,26 @@
+# LiteLLM AI gateway: the only service that holds the OpenAI key.
+# Nucleus calls it with LITELLM_MASTER_KEY (see docker-compose.yml, `litellm`).
+#
+# `nucleus-chat` is the name the backend asks for; swapping the model behind it
+# (or adding a fallback) is a change here, never in application code.
+model_list:
+  - model_name: nucleus-chat
+    litellm_params:
+      model: openai/gpt-6-luna
+      api_key: os.environ/OPENAI_API_KEY
+      reasoning_effort: low
+  - model_name: gpt-6-luna
+    litellm_params: {model: openai/gpt-6-luna, api_key: os.environ/OPENAI_API_KEY, reasoning_effort: low}
+  - model_name: nucleus-embed
+    litellm_params: {model: openai/text-embedding-3-large, api_key: os.environ/OPENAI_API_KEY}
+    model_info: {mode: embedding}
+
+litellm_settings:
+  drop_params: true
+  request_timeout: 120
+
+router_settings:
+  num_retries: 1
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY

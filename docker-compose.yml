@@ -55,6 +55,14 @@ x-backend-env: &backend-env
   STORAGE_ACCESS_KEY: "${MINIO_ROOT_USER:-nucleus}"
   STORAGE_SECRET_KEY: "${MINIO_ROOT_PASSWORD:-nucleus-dev-secret}"
   SEED_SCALE: "${SEED_SCALE:-full}"
+  # AI (§41–46). The backend never holds the OpenAI key: it calls the LiteLLM
+  # gateway with its own key, and the gateway holds the provider's. LLM_MODEL
+  # names a LiteLLM model alias (deploy/litellm/config.yaml).
+  LLM_BASE_URL: "http://litellm:4000/v1"
+  LLM_API_KEY: "${LITELLM_MASTER_KEY:-}"
+  LLM_MODEL: "${LLM_MODEL_ALIAS:-nucleus-chat}"
+  LLM_EMBEDDING_MODEL: "nucleus-embed"
+  LLM_REASONING_EFFORT: "${LLM_REASONING_EFFORT:-low}"
   SEED_RANDOM_SEED: "${SEED_RANDOM_SEED:-20260101}"
 
 services:
@@ -81,6 +89,30 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    restart: unless-stopped
+
+  # ── LiteLLM — the AI gateway, and the only holder of the OpenAI key ─────
+  # Keys come from `.env` (git-ignored; see .env.example). Without a key the
+  # gateway still starts and the AI features say they are not configured.
+  litellm:
+    image: ghcr.io/berriai/litellm:${LITELLM_VERSION:-v1.108.0}
+    container_name: nucleus-litellm
+    networks: [nucleusnet]
+    command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "2"]
+    environment:
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      LITELLM_MASTER_KEY: "${LITELLM_MASTER_KEY:-sk-nucleus-dev-only}"
+      LITELLM_LOG: ERROR
+      LITELLM_TELEMETRY: "False"
+    volumes:
+      - ./deploy/litellm/config.yaml:/app/config.yaml:ro
+    ports:
+      - "127.0.0.1:${LITELLM_PORT:-4001}:4000"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request;urllib.request.urlopen('http://localhost:4000/health/liveliness',timeout=3)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 30
     restart: unless-stopped
 
   # ── Redis 8 — a cache, never a dependency ────────────────────────────────
