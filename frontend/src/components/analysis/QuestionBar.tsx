@@ -104,7 +104,7 @@ export function QuestionBar({
         />
       </Part>
 
-      <Part label="Grouped by" hint={GUIDANCE.group}>
+      <Part label="Group by" hint={GUIDANCE.group}>
         <Select
           aria-label="Group by"
           className="nu-question-select"
@@ -136,7 +136,7 @@ export function QuestionBar({
         )}
       </Part>
 
-      <Part label="Then by" hint={GUIDANCE.stack}>
+      <Part label="Then split by" hint={GUIDANCE.stack}>
         <Select
           aria-label="Then by"
           className="nu-question-select"
@@ -153,7 +153,7 @@ export function QuestionBar({
         />
       </Part>
 
-      <Part label="Measuring" hint={GUIDANCE.measure}>
+      <Part label="Measure" hint={GUIDANCE.measure}>
         <Select
           aria-label="Aggregation"
           className="nu-question-select nu-question-select--narrow"
@@ -188,7 +188,7 @@ export function QuestionBar({
       </Part>
 
       {withSecondMeasure && (
-        <Part label="Against" hint={GUIDANCE.measure2}>
+        <Part label="Compare against" hint={GUIDANCE.measure2}>
           <Select
             aria-label="Second aggregation"
             className="nu-question-select nu-question-select--narrow"
@@ -223,7 +223,7 @@ export function QuestionBar({
         </Part>
       )}
 
-      <Part label="Over" hint={GUIDANCE.period}>
+      <Part label="Time range" hint={GUIDANCE.period}>
         <Select
           aria-label="Period"
           className="nu-question-select"

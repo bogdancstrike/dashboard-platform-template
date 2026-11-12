@@ -72,6 +72,11 @@ describe("the chart builder", () => {
     expect(scatter).toHaveAccessibleName(/needs a second measure/);
   });
 
+  it("starts a fresh chart on a categorical grouping, not on one row", async () => {
+    render("/charts/builder");
+    await waitFor(() => expect(screen.getByTestId("address")).toHaveTextContent(/group=/));
+  });
+
   it("unlocks a kind as soon as the question grows to fit it", async () => {
     const user = userEvent.setup();
     render();
@@ -89,11 +94,15 @@ describe("the chart builder", () => {
     expect(screen.getByTestId("address")).toHaveTextContent("stack=channel");
   });
 
-  it("draws the chosen picture in both themes", async () => {
+  it("draws the chosen picture in both themes, when asked to", async () => {
     const user = userEvent.setup();
     render();
 
     await user.click(await screen.findByTestId("chart-kind-pie"));
+    // The check waits to be asked for, so the page is the chart rather than
+    // three copies of it.
+    expect(screen.queryByTestId("chart-themes")).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("toggle-themes"));
 
     // Both appearances on screen at once: a chart checked only in the one its
     // author uses is a chart nobody checked in the other.

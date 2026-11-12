@@ -136,7 +136,7 @@ function pie(panel: ChartPanel, theme: Theme): Record<string, unknown> {
       text: compactNumber(total),
       subtext: "total",
       left: "50%",
-      top: "36%",
+      top: "34%",
       textAlign: "center",
       textStyle: {
         color: theme.valueAxis.axisLabel.color,
@@ -148,8 +148,9 @@ function pie(panel: ChartPanel, theme: Theme): Record<string, unknown> {
     series: [
       {
         type: "pie",
-        radius: ["48%", "72%"],
-        center: ["50%", "44%"],
+        // Sized to leave the bottom band to the legend at any height.
+        radius: ["40%", "62%"],
+        center: ["50%", "42%"],
         avoidLabelOverlap: true,
         itemStyle: theme.pie.itemStyle,
         label: { show: false },
@@ -252,6 +253,7 @@ function bars(panel: ChartPanel, theme: Theme, horizontal: boolean): Record<stri
     axisLabel: {
       ...theme.categoryAxis.axisLabel,
       interval: 0,
+      hideOverlap: true,
       rotate: crowded ? 30 : 0,
       ...(horizontal ? { width: 130, overflow: "truncate" } : {}),
       ...(crowded ? { width: 84, overflow: "truncate" } : {}),

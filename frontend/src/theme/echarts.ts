@@ -49,7 +49,14 @@ export function buildChartTheme(mode: "light" | "dark", density: Density) {
       splitLine: { lineStyle: { color: grid, type: "solid" } },
     },
     legend: {
-      textStyle: { color: text },
+      // Scrolls rather than wraps over the plot, and long names are cut with
+      // the whole name in a tooltip: a legend must never sit on the chart.
+      type: "scroll" as const,
+      pageIconColor: text,
+      pageIconInactiveColor: axis,
+      pageTextStyle: { color: text },
+      tooltip: { show: true },
+      textStyle: { color: text, width: 140, overflow: "truncate" as const },
       icon: "roundRect",
       itemWidth: 10,
       itemHeight: 10,

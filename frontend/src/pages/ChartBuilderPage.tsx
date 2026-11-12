@@ -38,9 +38,9 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, App as AntApp, Button, Card, Col, Row, Skeleton, Space, Tooltip, Typography } from "antd";
+import { Alert, App as AntApp, Button, Card, Col, Row, Select, Skeleton, Space, Tooltip, Typography } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -54,6 +54,7 @@ import {
   type SaveAnalysisValues,
 } from "@/components/analysis/SaveAnalysisDialog";
 import { ChartPreview } from "@/components/charts/ChartPreview";
+import { ChartKindIcon } from "@/components/charts/ChartKindIcon";
 import { CHART_SHAPES, missingFor, type ChartShape } from "@/components/charts/shapes";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
@@ -76,6 +77,16 @@ export default function ChartBuilderPage() {
   const [saving, setSaving] = useState(false);
 
   const editingId = params.get("id") ?? "";
+  const [bothThemes, setBothThemes] = useState(false);
+  /** The big chart takes most of the window's height, not a fixed strip. */
+  const [chartHeight, setChartHeight] = useState(() =>
+    Math.max(360, Math.round(window.innerHeight * 0.62)),
+  );
+  useEffect(() => {
+    const resize = () => setChartHeight(Math.max(360, Math.round(window.innerHeight * 0.62)));
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, []);
 
   const catalogue = useQuery({
     queryKey: ["analysis-catalogue"],
@@ -106,7 +117,41 @@ export default function ChartBuilderPage() {
     chart: stored?.visualization ?? "bar",
   });
 
-  const set = (changes: Record<string, string | null>) =>
+  /**
+   * The grouping a fresh chart starts on: the dataset's first *categorical*
+   * column (a status, a priority). Grouping by a title or a reference draws
+   * one sliver per record, which is a rainbow rather than an answer.
+   */
+  const sensibleGroup = (resource: string) =>
+    datasets
+      .find((item) => item.key === resource)
+      ?.dimensions.find((item) => item.kind === "enum")?.name ?? "";
+
+  // A page opened with no question starts on a sensible one rather than on
+  // "nothing — one row", which draws a single bar.
+  useEffect(() => {
+    if (editingId || datasets.length === 0 || params.has("resource")) return;
+    const resource = datasets[0]?.key ?? "";
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.set("resource", resource);
+        const group = sensibleGroup(resource);
+        if (group) next.set("group", group);
+        return next;
+      },
+      { replace: true },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingId, datasets.length]);
+
+  /** How many values to draw before the rest fold into "Other". */
+  const top = Number(params.get("top") ?? 10);
+  const overTime = datasets
+    .find((item) => item.key === draft.resource)
+    ?.dimensions.find((item) => item.name === draft.group)?.kind === "datetime";
+
+  const setRaw = (changes: Record<string, string | null>) =>
     setParams(
       (current) => {
         const next = new URLSearchParams(current);
@@ -118,6 +163,16 @@ export default function ChartBuilderPage() {
       },
       { replace: true },
     );
+
+  /** Choosing a new dataset also chooses a sensible grouping in it. */
+  const set = (changes: Record<string, string | null>) => {
+    if (changes[DRAFT_KEYS.resource] && !changes[DRAFT_KEYS.group]) {
+      const group = sensibleGroup(changes[DRAFT_KEYS.resource] ?? "");
+      setRaw({ ...changes, [DRAFT_KEYS.group]: group || null });
+      return;
+    }
+    setRaw(changes);
+  };
 
   const dimensions = draftDimensions(draft);
   const measures = draftMeasures(draft);
@@ -133,7 +188,7 @@ export default function ChartBuilderPage() {
   );
 
   const preview = useQuery({
-    queryKey: ["analysis", "chart-builder", draft.resource, dimensions, measures, draft.period],
+    queryKey: ["analysis", "chart-builder", draft.resource, dimensions, measures, draft.period, overTime ? 0 : top],
     queryFn: ({ signal }) =>
       analysisApi.run(
         {
@@ -141,6 +196,9 @@ export default function ChartBuilderPage() {
           dimensions,
           measures,
           period: draft.period,
+          // Over time every bucket is drawn; otherwise the top N, with the
+          // rest folded into "Other" by the server so the parts still add up.
+          ...(overTime ? {} : { limit: top }),
         } satisfies AnalysisRequest,
         signal,
       ),
@@ -264,87 +322,118 @@ export default function ChartBuilderPage() {
           beside it at full height — the canvas's builder layout. */}
       <div className="nx-ov-builder">
       <aside className="nx-ov-builder-side nx-glass">
-      <div data-testid="chart-question">
-        <QuestionBar
-          catalogue={catalogue.data}
-          draft={draft}
-          onChange={set}
-          // Only here: a scatter is the one picture that reads two measures,
-          // and the report builder offers no scatter.
-          withSecondMeasure
-        />
-      </div>
-
-      {/* Every kind, drawn from the reader's own numbers, and the ones this
-          question cannot feed refused with the reason (§76). */}
-      <section className="nx-ov-builder-gallery" data-testid="chart-gallery">
-        <h2 className="nx-ov-builder-h">Chart type</h2>
-        {!draftIsRunnable(draft) ? (
-          <EmptyState compact title="Pick a measure and the pictures will draw themselves" />
-        ) : (
-          <div className="nu-gallery">
-            {CHART_SHAPES.map((shape) => (
-              <Thumbnail
-                key={shape.kind}
-                shape={shape}
-                missing={missingFor(shape, shapeDraft)}
-                chosen={shape.kind === draft.chart}
-                panel={panelFor(preview.data, shape.kind)}
-                onChoose={() => set({ [DRAFT_KEYS.chart]: shape.kind })}
-              />
-            ))}
+        <section className="nx-ov-builder-step">
+          <h2 className="nx-ov-builder-h"><span>1</span>Ask the question</h2>
+          <p className="nx-ov-builder-help">Which records, how to group them, and what to count.</p>
+          <div data-testid="chart-question">
+            <QuestionBar
+              catalogue={catalogue.data}
+              draft={draft}
+              onChange={set}
+              // Only here: a scatter is the one picture that reads two
+              // measures, and the report builder offers no scatter.
+              withSecondMeasure
+            />
           </div>
-        )}
-      </section>
+          {draft.group && !overTime && (
+            <div className="nu-question-part nx-ov-topn">
+              <Text type="secondary" className="nu-question-label">Show</Text>
+              <Select
+                aria-label="How many values to show"
+                className="nu-question-select"
+                value={top}
+                onChange={(next: number) => setRaw({ top: next === 10 ? null : String(next) })}
+                options={[5, 10, 15, 25, 50].map((value) => ({
+                  value,
+                  label: `The top ${value}, the rest as “Other”`,
+                }))}
+              />
+            </div>
+          )}
+        </section>
+
+        {/* Every kind, refused with the reason when the question cannot feed
+            it (§76) — the reason is the tile's tooltip and its name for a
+            screen reader, never text crammed into the tile. */}
+        <section className="nx-ov-builder-gallery" data-testid="chart-gallery">
+          <h2 className="nx-ov-builder-h"><span>2</span>Pick the picture</h2>
+          {!draftIsRunnable(draft) ? (
+            <EmptyState compact title="Pick a measure and the pictures will draw themselves" />
+          ) : (
+            <>
+              <div className="nu-gallery">
+                {CHART_SHAPES.map((shape) => (
+                  <Thumbnail
+                    key={shape.kind}
+                    shape={shape}
+                    missing={missingFor(shape, shapeDraft)}
+                    chosen={shape.kind === draft.chart}
+                    onChoose={() => set({ [DRAFT_KEYS.chart]: shape.kind })}
+                  />
+                ))}
+              </div>
+              <p className="nx-ov-builder-help">
+                Dimmed kinds need more of the question — hover one to see what.
+              </p>
+            </>
+          )}
+        </section>
       </aside>
 
       <div className="nx-ov-builder-main">
-      {/* The chosen picture at full size, with the chrome every chart in the
-          product has: read it as a table, take the numbers away. */}
+      {/* The chosen picture, as large as the window allows, with the chrome
+          every chart in the product has: read it as a table, take the
+          numbers away. */}
       <div className="nu-block" data-testid="chart-preview">
         <ChartCard
           id="chart-builder"
           panel={blocked ? undefined : panel}
-          height={360}
+          height={chartHeight}
           loading={preview.isFetching && !preview.data}
           error={preview.error ?? undefined}
           onRetry={() => void preview.refetch()}
+          extra={
+            <Button
+              type="text"
+              aria-pressed={bothThemes}
+              onClick={() => setBothThemes(!bothThemes)}
+              data-testid="toggle-themes"
+            >
+              {bothThemes ? "Hide themes" : "Both themes"}
+            </Button>
+          }
           empty={
             blocked
               ? {
                   title: `${chosen?.label ?? "This picture"} ${blocked}`,
-                  hint: "Pick a tile that fits the question, or add what it needs in the bar above.",
+                  hint: "Pick a tile that fits the question, or add what it needs on the left.",
                 }
               : undefined
           }
         />
       </div>
 
-      {/* And the same chart in both appearances, because a chart checked only
-          in the one its author happens to use is a chart nobody checked in the
-          other — and half the readers are in the other.
-
-          Side by side and full width: stacked into a third of the page they
-          were 128 pixels tall, and a chart that short renders its own axis
-          labels on top of each other — which is illegible in a panel whose
-          only purpose is judging legibility. */}
-      <Card size="small" title="In both themes" className="nu-block" data-testid="chart-themes">
-        <Row gutter={[12, 12]}>
-          {(["light", "dark"] as const).map((mode) => (
-            <Col xs={24} md={12} key={mode}>
-              <ChartPreview
-                panel={blocked ? undefined : panel}
-                mode={mode}
-                height={200}
-                label={mode === "light" ? "Light" : "Dark"}
-              />
-            </Col>
-          ))}
-        </Row>
-      </Card>
+      {/* The same chart in both appearances, on request: a chart checked only
+          in the theme its author uses is a chart nobody checked in the other —
+          but it is a check, not the page, so it waits to be asked for. */}
+      {bothThemes && (
+        <Card size="small" title="In both themes" className="nu-block" data-testid="chart-themes">
+          <Row gutter={[12, 12]}>
+            {(["light", "dark"] as const).map((mode) => (
+              <Col xs={24} xl={12} key={mode}>
+                <ChartPreview
+                  panel={blocked ? undefined : panel}
+                  mode={mode}
+                  height={340}
+                  label={mode === "light" ? "Light" : "Dark"}
+                />
+              </Col>
+            ))}
+          </Row>
+        </Card>
+      )}
       </div>
       </div>
-
 
       <SaveAnalysisDialog
         open={saving}
@@ -370,13 +459,11 @@ function Thumbnail({
   shape,
   missing,
   chosen,
-  panel,
   onChoose,
 }: {
   shape: ChartShape;
   missing: string | null;
   chosen: boolean;
-  panel: ReturnType<typeof panelFor>;
   onChoose: () => void;
 }) {
   const className = [
@@ -399,11 +486,7 @@ function Thumbnail({
         data-testid={`chart-kind-${shape.kind}`}
       >
         <span className="nu-gallery-canvas">
-          {missing ? (
-            <span className="nu-gallery-missing">{missing}</span>
-          ) : (
-            <ChartPreview panel={panel} height={54} compact />
-          )}
+          <ChartKindIcon kind={shape.kind} />
         </span>
         <span className="nu-gallery-label">{shape.label}</span>
       </button>

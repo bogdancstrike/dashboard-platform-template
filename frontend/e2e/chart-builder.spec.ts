@@ -40,19 +40,18 @@ test.describe("the chart builder", () => {
     const gallery = page.getByTestId("chart-gallery");
     await expect(gallery).toBeVisible();
 
-    // A real canvas, not an icon: the thumbnail answers "is this the right
-    // picture for my data" only if it is drawn from that data.
+    // An icon and a name per kind; the reader's own data is the big chart.
     const bar = page.getByTestId("chart-kind-bar");
-    await expect(bar.locator("canvas")).toBeVisible();
+    await expect(bar.locator("svg")).toBeVisible();
 
     // And the kinds this question cannot feed are offered and refused, with
-    // the missing piece named (§76).
+    // the missing piece named — in the tile's name, not crammed inside it (§76).
     await expect(page.getByTestId("chart-kind-heatmap")).toBeDisabled();
-    await expect(page.getByTestId("chart-kind-heatmap")).toContainText(
-      "needs a second grouping",
+    await expect(page.getByTestId("chart-kind-heatmap")).toHaveAccessibleName(
+      /needs a second grouping/,
     );
-    await expect(page.getByTestId("chart-kind-scatter")).toContainText(
-      "needs a second measure",
+    await expect(page.getByTestId("chart-kind-scatter")).toHaveAccessibleName(
+      /needs a second measure/,
     );
   });
 
@@ -108,8 +107,9 @@ test.describe("the chart builder", () => {
   test("is legible in both themes, and shows the reader both at once", async ({ page }) => {
     await signIn(page, "admin", SIMPLE);
 
-    // The point of the page's own two-theme strip: whichever appearance the
-    // reader is in, they see the other one too.
+    // The page's own two-theme check, on request: whichever appearance the
+    // reader is in, they can see the other one too.
+    await page.getByTestId("toggle-themes").click();
     const themes = page.getByTestId("chart-themes");
     await expect(themes).toBeVisible();
     await themes.scrollIntoViewIfNeeded();
