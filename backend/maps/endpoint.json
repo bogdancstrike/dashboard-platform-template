@@ -820,6 +820,20 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "files_content",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/files/<uuid:file_id>/content",
+      "description": "An upload's bytes through the API, for when object storage refuses the page's origin.",
+      "exec_method": {
+        "module_name": "src.api.files",
+        "method_name": "content"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "files_blob",
       "model_name": "Empty",
       "request_method": [

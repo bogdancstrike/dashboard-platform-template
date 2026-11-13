@@ -192,7 +192,11 @@ services:
       MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-nucleus-dev-secret}"
       # The browser uploads and downloads directly, so the bucket's own CORS
       # has to allow the app's origin — the API is not in the path to add it.
-      MINIO_API_CORS_ALLOW_ORIGIN: "http://localhost:${FRONTEND_PORT:-5174},http://localhost:5174"
+      # Every address the app is opened on: the dev server (5174), the built
+      # SPA (8090, or FRONTEND_PORT), and their 127.0.0.1 twins. An origin
+      # missing here is an upload the browser blocks before it is sent — the
+      # client then falls back to sending the bytes through the API.
+      MINIO_API_CORS_ALLOW_ORIGIN: "${MINIO_CORS_ORIGINS:-http://localhost:${FRONTEND_PORT:-5174},http://localhost:5174,http://localhost:8090,http://localhost:3000,http://127.0.0.1:5174,http://127.0.0.1:8090}"
     command: ["server", "/data", "--console-address", ":9001"]
     volumes:
       - minio-data:/data

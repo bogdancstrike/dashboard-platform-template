@@ -233,6 +233,32 @@ def confirm_upload(session, file_id: Any, *, principal) -> dict[str, Any]:
     return _serialize(row)
 
 
+def receive_bytes(session, file_id: Any, data: bytes, *, principal) -> dict[str, Any]:
+    """Store an upload's bytes sent *through* the API, then confirm it.
+
+    The fallback, not the path: the browser PUTs straight to object storage
+    whenever it can. It cannot when storage refuses the page's origin (CORS) —
+    an app opened on another host or port than the one storage was told about —
+    and failing the upload there is worse than one request through a worker.
+    Bounded by `MAX_UPLOAD_MB`, so a fallback can never hold a worker for long.
+    """
+    from src.config import Config
+
+    principal.require(MANAGE_PERMISSION)
+    row = _file(session, file_id)
+    if row.status != UPLOADING:
+        raise ConflictError("That file has already been uploaded.", details={"status": row.status})
+    limit = Config.MAX_UPLOAD_MB * 1024 * 1024
+    if len(data) > limit:
+        raise ValidationError(
+            f"Through the application a file may be at most {Config.MAX_UPLOAD_MB} MB.",
+            details={"size_bytes": len(data), "maximum": limit},
+        )
+    storage.for_config().put(row.storage_key or "", data,
+                             content_type=row.mime_type or "application/octet-stream")
+    return confirm_upload(session, file_id, principal=principal)
+
+
 def download_url(
     session, file_id: Any, *, principal, inline: bool = False
 ) -> dict[str, Any]:

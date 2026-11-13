@@ -72,6 +72,18 @@ def confirm(app=None, operation: str = "", request=None, file_id: str = "", **kw
         return service.confirm_upload(session, identifier, principal=me()), 200
 
 
+@requires("files.manage")
+def content(app=None, operation: str = "", request=None, file_id: str = "", **kwargs: Any):
+    """The upload's bytes, through the API — when storage refused the browser."""
+    from src.config import Config
+
+    identifier = file_id or str(kwargs.get("file_id") or "")
+    limit = Config.MAX_UPLOAD_MB * 1024 * 1024
+    data = request.stream.read(limit + 1) if request is not None else b""
+    with session_scope() as session:
+        return service.receive_bytes(session, identifier, data, principal=me()), 200
+
+
 def blob(app=None, operation: str = "", request=None, **_: Any):
     """Serve one object from the *local* store to the holder of a signed link.
 

@@ -1,4 +1,5 @@
-import { api } from "./client";
+import { accessToken, api } from "./client";
+import { API_PREFIX } from "@/config";
 
 /**
  * The file manager (§20).
@@ -119,30 +120,80 @@ export const filesApi = {
  * product that reaches for it: `fetch` has no upload-progress event, and a
  * multi-file drop with no per-file progress is a spinner somebody watches for
  * four minutes wondering whether it is stuck.
+ *
+ * **Straight to storage first, through the API when that is refused.** A
+ * presigned PUT is cross-origin, so object storage has to allow the page's
+ * origin (CORS). Opened on a host or port storage was not told about, the
+ * browser blocks the PUT before it is sent — which used to end every upload
+ * with "could not reach storage". A blocked PUT (status 0) now retries once,
+ * same-origin, through `/api/files/<id>/content`; a PUT storage answered and
+ * refused is still an error, because that is a real answer.
+ *
+ * `signal` cancels either leg.
  */
 export function putBytes(
   ticket: UploadTicket,
   file: File,
   onProgress: (fraction: number) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  return send(ticket.upload.method, ticket.upload.url, ticket.upload.headers, file, onProgress, signal).catch(
+    async (error: unknown) => {
+      if (!(error instanceof Blocked)) throw error;
+      const token = await accessToken();
+      await send(
+        "POST",
+        `${API_PREFIX}/api/files/${ticket.file.id}/content`,
+        { "Content-Type": "application/octet-stream", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        file,
+        onProgress,
+        signal,
+      ).catch((second: unknown) => {
+        throw second instanceof Blocked ? new Error("The upload could not reach storage.") : second;
+      });
+    },
+  );
+}
+
+/** The browser refused to send (network down, or CORS) — no answer at all. */
+class Blocked extends Error {}
+
+function send(
+  method: string,
+  url: string,
+  headers: Record<string, string>,
+  file: File,
+  onProgress: (fraction: number) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
-    request.open(ticket.upload.method, ticket.upload.url, true);
-    for (const [header, value] of Object.entries(ticket.upload.headers)) {
+    request.open(method, url, true);
+    for (const [header, value] of Object.entries(headers)) {
       if (value) request.setRequestHeader(header, value);
     }
     request.upload.addEventListener("progress", (event) => {
       if (event.lengthComputable) onProgress(event.loaded / event.total);
     });
-    request.addEventListener("load", () =>
-      request.status >= 200 && request.status < 300
-        ? resolve()
-        : reject(new Error(`Storage refused the upload (${request.status})`)),
-    );
-    request.addEventListener("error", () =>
-      reject(new Error("The upload could not reach storage.")),
-    );
+    request.addEventListener("load", () => {
+      if (request.status >= 200 && request.status < 300) return resolve();
+      let reason = "";
+      try {
+        reason = (JSON.parse(request.responseText) as { message?: string }).message ?? "";
+      } catch {
+        reason = "";
+      }
+      reject(new Error(reason || `Storage refused the upload (${request.status})`));
+    });
+    request.addEventListener("error", () => reject(new Blocked("The upload could not reach storage.")));
     request.addEventListener("abort", () => reject(new Error("The upload was cancelled.")));
+    if (signal) {
+      if (signal.aborted) {
+        reject(new Error("The upload was cancelled."));
+        return;
+      }
+      signal.addEventListener("abort", () => request.abort(), { once: true });
+    }
     request.send(file);
   });
 }
