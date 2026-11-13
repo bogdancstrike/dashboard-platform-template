@@ -69,9 +69,12 @@ describe("the ticket support console", () => {
   });
 
   it("takes the breach from the server rather than deciding for itself", async () => {
-    // Past its deadline, but the server has not called it a breach — a page
-    // that recomputed the rule would contradict every report ever run.
-    serveTicket({}, { sla_breached: false, due_at: "2027-01-01T09:00:00Z" });
+    // The server has not called it a breach, so the page must not either — a
+    // page that recomputed the rule would contradict every report ever run.
+    // The deadline is relative to now: a fixed date in the "future" turned
+    // into a breach (and a red test) the day the calendar passed it.
+    const dueAt = new Date(Date.now() + 30 * 24 * 3_600_000).toISOString();
+    serveTicket({}, { sla_breached: false, due_at: dueAt });
     render();
 
     const sla = await screen.findByTestId("sla-standing");
