@@ -14,9 +14,11 @@ import {
 import { accessToken } from "@/api/client";
 import type { Notification } from "@/api/notifications";
 import { API_PREFIX } from "@/config";
-import { chime } from "@/lib/chime";
 import { usePreferences } from "@/settings/PreferencesProvider";
 import { queryKeys } from "@/lib/queryKeys";
+
+import { popUp } from "./popups";
+import { createPresence } from "./presence";
 
 /**
  * The live channel (§17): one WebSocket for the whole application.
@@ -69,27 +71,11 @@ const LiveContext = createContext<LiveContextValue>({
   subscribe: () => () => undefined,
 });
 
-/** How long without a key, a click or a scroll before somebody is "away". */
-const IDLE_MS = 5 * 60_000;
-
 /** Reconnect delays, in milliseconds. The last one repeats. */
 const BACKOFF = [1_000, 2_000, 5_000, 10_000, 30_000];
 
 /** Cap on how long a socket may stay silent before it is treated as dead. */
 const SILENCE_LIMIT_MS = 90_000;
-
-/**
- * How many notifications may be on screen at once, and for how long.
- *
- * Three, because a burst is a real thing this platform produces — one
- * automation can fire across forty records — and forty stacked cards cover
- * half the screen for a minute with something nobody reads. Past the third,
- * the rest are counted in one card that points at the notification centre,
- * which is where all of them are anyway (§17).
- */
-const MAX_TOASTS = 3;
-/** The overflow card reopens under one key, so it replaces itself. */
-const OVERFLOW_KEY = "nu-live-overflow";
 
 function socketUrl(): string {
   const base = window.location.origin.replace(/^http/, "ws");
@@ -157,66 +143,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       setReceived((count) => count + 1);
       void queryClient.invalidateQueries({ queryKey: queryKeys.notifications() });
 
-      // The badge and the centre always update; the *pop-up* is the reader's
-      // to switch off (§40). Read from the live preference rather than
-      // captured at mount, so turning pop-ups off on `/preferences` takes
-      // effect on the next notification rather than on the next reload.
-      const wanted = popups.current;
-      if (wanted.popups === "none") return;
-      if (wanted.popups === "important" && payload.data.severity === "INFO") return;
-      if (
-        wanted.popup_categories.length > 0 &&
-        !wanted.popup_categories.includes(payload.data.category)
-      ) {
-        return;
-      }
-      if (wanted.sound) chime();
-
-      // A toast is the difference between "the badge changed while you were
-      // looking elsewhere" and a notification you actually saw arrive. Kept
-      // brief, bottom-right, and never for something the reader just did.
-      //
-      // **And never more than three at once.** A burst — an automation firing
-      // across forty records, a batch job finishing — used to raise forty
-      // stacked cards that covered the right-hand half of the screen for the
-      // best part of a minute, and there is no reading forty toasts. Past the
-      // third, the rest are *counted* rather than drawn, in one card that says
-      // how many and points at the page where they all are. The notification
-      // centre is the place that holds everything; a toast is only ever a
-      // nudge (§17).
-      const showing = shown.current;
-      showing.add(payload.data.id);
-      if (showing.size <= MAX_TOASTS) {
-        toast.open({
-          message: payload.data.title,
-          // `compact` is the title alone: a burst of five is readable as five
-          // lines and unreadable as five paragraphs.
-          description:
-            wanted.popup_style === "compact" ? undefined : (payload.data.body ?? undefined),
-          placement: wanted.popup_placement,
-          duration: wanted.popup_seconds,
-          key: payload.data.id,
-          onClose: () => showing.delete(payload.data!.id),
-        });
-        return;
-      }
-
-      // One card for the overflow, reopened under the same key so it replaces
-      // itself rather than becoming the fortieth toast. Its own timer is
-      // restarted by each arrival, because a burst that is still arriving is
-      // one event, not several.
-      overflow.current += 1;
-      toast.open({
-        key: OVERFLOW_KEY,
-        message: `${overflow.current} more notification${overflow.current === 1 ? "" : "s"}`,
-        description: "Open the notification centre to read them.",
-        placement: wanted.popup_placement,
-        duration: wanted.popup_seconds,
-        onClose: () => {
-          overflow.current = 0;
-          showing.clear();
-        },
-      });
+      popUp(payload.data, popups.current, toast, { shown: shown.current, overflow });
     },
     [queryClient, toast],
   );
@@ -294,8 +221,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         resetWatchdog();
         // The server marks a new socket online; a tab opened (or reconnected)
         // in the background says at once that nobody is looking at it.
-        reported = "online";
-        if (document.hidden) reportPresence("away");
+        presence.opened();
         // A reconnect may have missed a message, so the first thing a fresh
         // socket does is ask for the truth rather than assume it is current.
         void queryClient.invalidateQueries({ queryKey: queryKeys.notifications() });
@@ -337,42 +263,13 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       };
     };
 
-    /**
-     * Presence (§47): away when the tab is hidden or nobody has touched it
-     * for a while, online again at the next sign of life. Sent on the socket
-     * — the one frame besides the heartbeat the server accepts — and only on
-     * a change, so moving the mouse is not a message per pixel.
-     */
-    let reported: "online" | "away" = "online";
-    let idleTimer: number | undefined;
-    const reportPresence = (status: "online" | "away") => {
-      if (status === reported) return;
-      reported = status;
-      try {
-        if (socketRef.current?.readyState === 1) {
-          socketRef.current.send(JSON.stringify({ type: "presence", status }));
-        }
-      } catch {
-        /* closing; the server will mark this socket gone on its own */
-      }
-    };
-    const active = () => {
-      window.clearTimeout(idleTimer);
-      idleTimer = window.setTimeout(() => reportPresence("away"), IDLE_MS);
-      if (!document.hidden) reportPresence("online");
-    };
-    const visibility = () => (document.hidden ? reportPresence("away") : active());
-    const activity = ["keydown", "pointerdown", "wheel", "touchstart"] as const;
-    document.addEventListener("visibilitychange", visibility);
-    for (const name of activity) window.addEventListener(name, active, { passive: true });
-    active();
+    const presence = createPresence(socketRef);
+    presence.start();
 
     void connect();
 
     return () => {
-      document.removeEventListener("visibilitychange", visibility);
-      for (const name of activity) window.removeEventListener(name, active);
-      window.clearTimeout(idleTimer);
+      presence.stop();
       alive.current = false;
       closedByUs.current = true;
       clearTimers();
