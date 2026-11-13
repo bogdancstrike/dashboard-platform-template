@@ -1,7 +1,7 @@
 """Keycloak's JWKS endpoint unreachable or hung: signed-in people stay signed in.
 
 Tokens are verified against the realm's public keys, fetched from Keycloak and
-cached (`core/auth._JwksCache`, `JWKS_CACHE_TTL`). What an outage used to do:
+cached (`core/tokens._JwksCache`, `JWKS_CACHE_TTL`). What an outage used to do:
 
 * once the cache went stale, **every** request tried to re-fetch — under the
   cache's lock, so with Keycloak hung each request waited its 5 s turn and the
@@ -22,6 +22,7 @@ import requests
 
 from src.config import Config
 from src.core import auth
+from src.core.auth import tokens
 from src.core.errors import UnauthorizedError
 from tests.chaos.conftest import Stopwatch
 from tests.test_jwks import Realm
@@ -48,15 +49,15 @@ def keycloak(monkeypatch):
             raise requests.Timeout("Read timed out")
         return Response()
 
-    monkeypatch.setattr(auth.requests, "get", fetch)
-    monkeypatch.setattr(auth, "_jwks", auth._JwksCache())
+    monkeypatch.setattr(tokens.requests, "get", fetch)
+    monkeypatch.setattr(tokens, "_jwks", tokens._JwksCache())
     monkeypatch.setattr("src.core.cache.get_json", lambda _key: None)
     monkeypatch.setattr("src.core.cache.set_json", lambda *_a, **_k: None)
     return state
 
 
 def _make_stale():
-    auth._jwks._fetched_at = time.time() - Config.JWKS_CACHE_TTL - 1
+    tokens._jwks._fetched_at = time.time() - Config.JWKS_CACHE_TTL - 1
 
 
 @pytest.mark.parametrize("mode", ["refused", "hung"])
@@ -85,10 +86,10 @@ def test_keycloak_is_tried_again_after_the_back_off(keycloak, monkeypatch):
     fetches = keycloak["fetches"]
 
     keycloak["mode"] = "up"
-    auth._jwks._failed_at = time.time() - auth._JwksCache.RETRY_SECONDS - 1
+    tokens._jwks._failed_at = time.time() - tokens._JwksCache.RETRY_SECONDS - 1
     auth.verify_token(key.token())
     assert keycloak["fetches"] == fetches + 1
-    assert not auth._jwks._stale()
+    assert not tokens._jwks._stale()
 
 
 def test_an_unknown_key_while_keycloak_is_down_is_a_401_not_a_500(keycloak):

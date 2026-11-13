@@ -2,7 +2,7 @@
 
 The claim this module exists for, and the one worth reading first: **editing a
 group's grants is a different privilege from editing its membership**, because
-`core/auth._permissions_for` unions a group's permissions onto its members'
+`core/auth/users.permissions_for` unions a group's permissions onto its members'
 roles. A manager holds `users.manage` and not `roles.manage`; if one permission
 covered both, a manager could add `roles.manage` to a group they are in and
 have it on their next request. `test_a_manager_cannot_escalate_through_a_group`
@@ -45,7 +45,7 @@ GROUPS = f"{PREFIX}/admin/groups"
 
 def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):
     monkeypatch.setattr(
-        "src.core.auth.verify_token",
+        "src.core.auth.tokens.verify_token",
         lambda _token: persona_claims(username, role, sid=f"grp-{username}"),
     )
     return {"Authorization": f"Bearer grp-{username}"}
@@ -262,7 +262,7 @@ def test_the_audit_row_names_what_moved(client, monkeypatch):
 def test_a_group_grants_its_permissions_on_the_next_request(client, monkeypatch):
     """The claim that makes this screen worth having.
 
-    Same as the role matrix: `_permissions_for` reads the tables on every
+    Same as the role matrix: `permissions_for` reads the tables on every
     request, so a person added to a group holds its permissions immediately —
     no re-login, no cache to bust.
     """
@@ -312,7 +312,7 @@ def test_removing_somebody_takes_the_permission_away_again(client, monkeypatch):
 
 
 def test_a_retired_group_stops_granting(client, monkeypatch):
-    """Soft-delete is a flag, and `_permissions_for` walks the relationship —
+    """Soft-delete is a flag, and `permissions_for` walks the relationship —
     so a retired group whose membership rows survived would go on granting
     everything it granted, invisibly, because no screen lists it any more."""
     admin = _authenticate(monkeypatch)

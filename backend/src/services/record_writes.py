@@ -42,6 +42,7 @@ from sqlalchemy.exc import IntegrityError
 from src.core import audit
 from src.core.clock import now
 from src.core.errors import ConflictError, NotFoundError, ValidationError
+from src.core.events import Hook
 from src.core.naming import identifier, sequence_of
 from src.core.pagination import parse_uuid
 from src.core.query import Field
@@ -59,6 +60,16 @@ _IDENTIFIER_ATTEMPTS = 5
 
 #: Sent by a client that read the record first, to say which version it edited.
 CONCURRENCY_KEY = "expected_updated_at"
+
+#: `(session, resource, row, values, raw, principal=)` before an update is
+#: applied; the first handler answering a dict holds the edit for approval.
+update_requested = Hook("record.update_requested")
+#: `(session, resource, row, changed)` inside the write, before it is audited:
+#: state other features derive from the record.
+derived = Hook("record.derived")
+#: `(session, resource, row, changed, created=, principal=)` after the write is
+#: audited and flushed: automations triggered by it.
+written = Hook("record.written")
 
 
 def create(session, resource_type: Any, payload: dict[str, Any], *, principal) -> dict[str, Any]:
@@ -164,9 +175,7 @@ def update(
     values = _coerced(session, resource, body, creating=False)
     # A rule may say this edit needs a second pair of eyes: it is then held as
     # a change request and applied only when approved (Time & decisions).
-    from src.services.approval_kinds import intercept
-
-    held = intercept(session, resource, row, values, body, principal=principal)
+    held = update_requested.first(session, resource, row, values, body, principal=principal)
     if held is not None:
         return {**detail(session, resource.key, row.id, principal=principal), "pending_approval": held}
     apply_values(session, resource, row, values, principal=principal)
@@ -219,20 +228,14 @@ def apply_values(
 
 
 def _after_write(session, resource: Resource, row: Any, changed: set[str]) -> None:
-    """What other features derive from a record: a ticket's SLA clock."""
-    if resource.key == "ticket":
-        from src.services import sla
-
-        sla.on_ticket_write(session, row, changed)
+    """What other features derive from a record (a ticket's SLA clock)."""
+    derived.emit(session, resource, row, changed)
 
 
 def _automations(session, resource: Resource, row: Any, changed: set[str], *, created: bool,
                  principal) -> None:
     """Workflows whose trigger is this write (§49): created, updated, a field changed."""
-    from src.services import automation_graph
-
-    automation_graph.on_record_write(session, resource, row, changed, created=created,
-                                     principal=principal)
+    written.emit(session, resource, row, changed, created=created, principal=principal)
 
 
 def delete(session, resource_type: Any, record_id: Any, *, principal) -> dict[str, Any]:

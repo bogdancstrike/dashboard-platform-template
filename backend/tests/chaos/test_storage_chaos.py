@@ -69,7 +69,7 @@ def test_health_reports_the_outage(broken_store):
 def test_the_files_pages_degrade_gracefully(client, monkeypatch):
     """The list and the tree answer; a download is a clean 503 envelope."""
     monkeypatch.setattr(storage, "_store", _store(f"http://{REFUSED_HOST}:{REFUSED_PORT}"))
-    monkeypatch.setattr("src.core.auth.verify_token", lambda _t: persona_claims("admin", "administrator",
+    monkeypatch.setattr("src.core.auth.tokens.verify_token", lambda _t: persona_claims("admin", "administrator",
                                                                                   sid="chaos-storage"))
     headers = {"Authorization": "Bearer chaos"}
 

@@ -64,7 +64,7 @@ def _tokens(monkeypatch):
             raise UnauthorizedError("Unknown test token.")
         return claims
 
-    monkeypatch.setattr("src.core.auth.verify_token", verify)
+    monkeypatch.setattr("src.core.auth.tokens.verify_token", verify)
     yield
     _CLAIMS.clear()
 

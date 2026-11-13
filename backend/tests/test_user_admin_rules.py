@@ -13,6 +13,7 @@ import uuid
 import pytest
 
 from src.core import auth
+from src.core.auth import tokens
 from tests.personas import PREFIX, as_each
 
 USERS = f"{PREFIX}/admin/users"
@@ -32,9 +33,9 @@ def newcomer(client, monkeypatch):
     claims = {"sub": f"kc-{name}", "email": f"{name}@nucleus.example", "preferred_username": name,
               "name": "Drawer Probe", "sid": f"cov-{name}", "realm_access": {"roles": ["user"]}}
     real = auth.verify_token
-    monkeypatch.setattr(auth, "verify_token", lambda _token: claims)
+    monkeypatch.setattr(tokens, "verify_token", lambda _token: claims)
     assert client.get(f"{PREFIX}/api/me", headers={"Authorization": "Bearer x"}).status_code == 200
-    monkeypatch.setattr(auth, "verify_token", real)
+    monkeypatch.setattr(tokens, "verify_token", real)
     with session_scope() as session:
         return str(session.scalar(select(User.id).where(User.username == name)))
 

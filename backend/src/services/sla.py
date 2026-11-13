@@ -33,6 +33,7 @@ from src.core.errors import ValidationError
 from src.core.pagination import parse_uuid
 from src.core.repository import get_or_404
 from src.models.sla import BusinessCalendar, SlaPolicy, TicketSla
+from src.services import record_writes
 
 MANAGE = "sla.manage"
 DAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
@@ -236,6 +237,12 @@ def clock_start(ticket, policy: SlaPolicy | None, moment: datetime | None = None
 #: Changes that move a ticket's clock.
 CLOCK_FIELDS = {"status", "priority", "customer_id", "category", "channel", "resolved_at",
                 "first_response_at", "subject"}
+
+
+@record_writes.derived.connect
+def _on_record_write(session, resource, row, changed: set[str]) -> None:
+    if resource.key == "ticket":
+        on_ticket_write(session, row, changed)
 
 
 def on_ticket_write(session, ticket, changed: set[str]) -> None:

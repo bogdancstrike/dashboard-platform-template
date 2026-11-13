@@ -42,6 +42,7 @@ from src.core.clock import now
 from src.core.errors import ValidationError
 from src.core.pagination import parse_uuid
 from src.core.repository import found_or_404
+from src.services import analytics_jobs
 
 VIEW = "records.view"
 CONFIGURE = "health.configure"
@@ -486,6 +487,14 @@ def gather(session, *, today: datetime, thresholds: dict[str, Any], customer_ids
 
 
 # ── recompute ────────────────────────────────────────────────────────────
+
+
+@analytics_jobs.runner("analytics.customer-health")
+def _daily_job(session) -> tuple[dict[str, Any], str, int]:
+    outcome = recompute(session, notify=True)
+    line = (f"{outcome['customers']} customer(s) scored, {outcome['dropped']} dropped a band, "
+            f"{outcome['improved']} improved")
+    return outcome, line, outcome["customers"]
 
 
 def recompute(session, *, principal=None, notify: bool = True, customer_ids: list[UUID] | None = None,

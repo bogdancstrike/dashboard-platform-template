@@ -25,7 +25,7 @@ def _claims(username: str, role: str) -> dict:
 
 
 def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):
-    monkeypatch.setattr("src.core.auth.verify_token", lambda _token: _claims(username, role))
+    monkeypatch.setattr("src.core.auth.tokens.verify_token", lambda _token: _claims(username, role))
     return {"Authorization": f"Bearer users-{username}"}
 
 
@@ -111,7 +111,7 @@ def test_search_finds_a_person_by_name_or_email(client, monkeypatch):
 @pytest.mark.database
 def test_reading_people_requires_users_view(client, monkeypatch):
     _authenticate(monkeypatch, "user", "viewer")
-    monkeypatch.setattr("src.core.auth._permissions_for", lambda *_args: set())
+    monkeypatch.setattr("src.core.auth.users.permissions_for", lambda *_args: set())
 
     response = client.get(
         f"{PREFIX}/admin/users", headers={"Authorization": "Bearer no-permissions"}

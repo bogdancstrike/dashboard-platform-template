@@ -1,7 +1,7 @@
 """Roles and the permission matrix (§13).
 
 The property the whole screen rests on is that it shows and edits what is
-actually in force — `core/auth._permissions_for` reads the `roles` table on
+actually in force — `core/auth/users.permissions_for` reads the `roles` table on
 every request, so an edit here has to change what the next request may do. A
 matrix that displayed the shipped defaults while the database said something
 else would be worse than no matrix at all.
@@ -22,7 +22,7 @@ def _claims(username: str, role: str) -> dict:
 
 
 def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):
-    monkeypatch.setattr("src.core.auth.verify_token", lambda _token: _claims(username, role))
+    monkeypatch.setattr("src.core.auth.tokens.verify_token", lambda _token: _claims(username, role))
     return {"Authorization": f"Bearer roles-{username}"}
 
 
@@ -319,7 +319,7 @@ def test_a_created_role_grants_only_permissions_the_code_checks_for(client, monk
 @pytest.mark.database
 def test_a_built_in_role_cannot_be_deleted(client, monkeypatch):
     """The seed writes it and `--sync-roles` maintains it, so a deleted one
-    comes back on the next deploy — and `_permissions_for` reads a row that
+    comes back on the next deploy — and `permissions_for` reads a row that
     vanished in between."""
     headers = _authenticate(monkeypatch)
     response = client.delete(f"{PREFIX}/admin/roles/VIEWER", headers=headers)

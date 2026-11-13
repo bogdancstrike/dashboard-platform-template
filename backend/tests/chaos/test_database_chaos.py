@@ -22,7 +22,7 @@ PREFIX = Config.API_PREFIX
 
 @pytest.fixture()
 def signed_in(monkeypatch):
-    monkeypatch.setattr("src.core.auth.verify_token", lambda _t: persona_claims("user", "user", sid="chaos-db"))
+    monkeypatch.setattr("src.core.auth.tokens.verify_token", lambda _t: persona_claims("user", "user", sid="chaos-db"))
     return {"Authorization": "Bearer chaos"}
 
 

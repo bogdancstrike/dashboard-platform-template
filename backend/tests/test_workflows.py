@@ -36,7 +36,7 @@ CATALOG = f"{PREFIX}/api/automations/catalog"
 
 def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):
     monkeypatch.setattr(
-        "src.core.auth.verify_token",
+        "src.core.auth.tokens.verify_token",
         lambda _token: persona_claims(username, role, sid=f"auto-{username}"),
     )
     return {"Authorization": f"Bearer auto-{username}"}
@@ -530,7 +530,7 @@ def test_only_the_author_changes_an_automation(client, monkeypatch):
 
     # A second person who holds the permission, and is not an administrator.
     monkeypatch.setattr(
-        "src.core.auth.verify_token",
+        "src.core.auth.tokens.verify_token",
         lambda _token: persona_claims("admin", "manager", sid="auto-other"),
     )
     other = {"Authorization": "Bearer auto-other"}

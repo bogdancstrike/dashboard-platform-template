@@ -57,6 +57,8 @@ from src.core.pagination import parse_uuid
 from src.core.query import apply_filters
 from src.core.repository import get_or_404
 from src.core.validation import Field, Schema
+from src.services import analytics_jobs
+from src.services.automated_mail import next_message_ref
 
 VIEW = "records.view"
 MANAGE = "alerts.manage"
@@ -586,6 +588,13 @@ def evaluate_now(session, watch_id: Any, *, principal) -> dict[str, Any]:
     return {**result, "watch": _watch_dict(row, principal)}
 
 
+@analytics_jobs.runner("analytics.anomaly-watch")
+def _hourly_job(session) -> tuple[dict[str, Any], str, int]:
+    outcome = evaluate_all(session)
+    line = f"{outcome['watches']} watch(es) evaluated, {outcome['anomalies']} new anomal(ies)"
+    return outcome, line, outcome["watches"]
+
+
 def evaluate_all(session) -> dict[str, Any]:
     from src.models.records_analytics import MetricWatch
 
@@ -627,7 +636,6 @@ def _notify(session, row, anomaly) -> None:
     from src.models.content import EmailMessage
     from src.models.identity import User
     from src.services import notifications
-    from src.services.workflows import _next_message_ref
 
     title, body = _describe(row, anomaly)
     people = _recipients(row)
@@ -642,7 +650,7 @@ def _notify(session, row, anomaly) -> None:
     if "email" in (row.channels or []) and people:
         users = session.scalars(select(User).where(User.id.in_(people))).all()
         session.add(EmailMessage(
-            message_ref=_next_message_ref(session), subject=title[:300],
+            message_ref=next_message_ref(session), subject=title[:300],
             from_name="Nucleus alerts", from_email="alerts@nucleus.local",
             to_recipients=[{"name": u.full_name, "email": u.email} for u in users],
             body_text=f"{body}\n\nOpen the alert: /alerts/{row.id}", preview=body[:400],
@@ -784,6 +792,5 @@ def acknowledge(session, anomaly_id: Any, *, principal) -> dict[str, Any]:
 
 
 def _maybe_catch_up(session) -> None:
-    from src.services import analytics_jobs
 
     analytics_jobs.catch_up(session)

@@ -29,7 +29,7 @@ ROLES = {
 def sign_in(monkeypatch, persona: str = "admin") -> dict[str, str]:
     """Headers that authenticate as `persona` for every request after this call."""
     claims = persona_claims(persona, ROLES[persona], sid=f"cov-{persona}")
-    monkeypatch.setattr("src.core.auth.verify_token", lambda _token: claims)
+    monkeypatch.setattr("src.core.auth.tokens.verify_token", lambda _token: claims)
     return {"Authorization": f"Bearer cov-{persona}"}
 
 
@@ -41,12 +41,12 @@ def as_each(monkeypatch):
         persona = token.removeprefix("cov-")
         return current.setdefault(persona, persona_claims(persona, ROLES[persona], sid=f"cov-{persona}"))
 
-    monkeypatch.setattr("src.core.auth.verify_token", verify)
+    monkeypatch.setattr("src.core.auth.tokens.verify_token", verify)
     return lambda persona: {"Authorization": f"Bearer cov-{persona}"}
 
 
 def principal(app, persona: str = "admin"):
-    from src.core.auth import _principal_from_claims
+    from src.core.auth.users import principal_from_claims as _principal_from_claims
 
     with app.test_request_context("/"):
         return _principal_from_claims(persona_claims(persona, ROLES[persona], sid=f"cov-{persona}"))

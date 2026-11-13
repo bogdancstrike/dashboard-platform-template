@@ -26,6 +26,7 @@ from sqlalchemy.orm import aliased
 
 from src.core import vocabulary
 from src.core.clock import iso, now
+from src.core.events import Hook
 from src.core.errors import NotFoundError, ValidationError
 from src.core.pagination import Page, envelope, parse_uuid
 from src.core.repository import found_or_404
@@ -37,6 +38,9 @@ from src.core.repository import found_or_404
 #: notification an automation sent was unfilterable.
 CATEGORIES = vocabulary.NOTIFICATION_CATEGORY
 SEVERITIES = vocabulary.NOTIFICATION_SEVERITY
+
+#: `(session, user_id) -> dict` — extra menu badges for the summary poll.
+badges = Hook("notifications.badges")
 
 
 def serialize(row) -> dict[str, Any]:
@@ -102,33 +106,13 @@ def counts(session, user_id: UUID) -> dict[str, Any]:
 
     return {
         "unread": int(unread),
-        # The approvals inbox badge rides on the same poll (Time & decisions).
-        "pending_approvals": _pending_approvals(session),
         "by_category": _grouped(Notification.category),
         "by_severity": _grouped(Notification.severity),
         "recent": int(recent),
-        # The Chat menu item's badge rides on the same poll (§47).
-        "chat_unread": _chat_unread(session, user_id),
+        # Other menu badges ride on the same poll: the approvals inbox (Time &
+        # decisions) and chat (§47) connect to `badges`.
+        **{key: value for answer in badges.emit(session, user_id) for key, value in answer.items()},
     }
-
-
-def _pending_approvals(session) -> int:
-    from src.core.auth import maybe_me
-    from src.services import approvals
-
-    principal = maybe_me()
-    return approvals.pending_count(session, principal) if principal is not None else 0
-
-
-def _chat_unread(session, user_id: UUID) -> int:
-    """Unread chat lines across the reader's conversations; 0 if chat is not there."""
-    from src.services import chat
-
-    try:
-        with session.begin_nested():
-            return chat.unread_total(session, user_id)
-    except Exception:  # pragma: no cover - a database without the chat tables
-        return 0
 
 
 def _clauses(user_id: UUID, args) -> list:

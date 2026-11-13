@@ -20,7 +20,7 @@ RUN = f"{PREFIX}/api/analysis/run"
 
 def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):
     monkeypatch.setattr(
-        "src.core.auth.verify_token",
+        "src.core.auth.tokens.verify_token",
         lambda _token: persona_claims(username, role, sid=f"analysis-{username}"),
     )
     return {"Authorization": f"Bearer analysis-{username}"}
@@ -230,7 +230,7 @@ def test_an_average_has_no_remainder_because_averages_do_not_decompose(client, m
 @pytest.mark.database
 def test_analysis_requires_the_permission_the_dataset_declares(client, monkeypatch):
     _authenticate(monkeypatch, "user", "viewer")
-    monkeypatch.setattr("src.core.auth._permissions_for", lambda *_args: set())
+    monkeypatch.setattr("src.core.auth.users.permissions_for", lambda *_args: set())
 
     response = client.post(
         RUN, json={"resource_type": "order"},

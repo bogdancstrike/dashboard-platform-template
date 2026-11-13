@@ -62,7 +62,7 @@ ENUM_BAD = "NOT-A-SEGMENT"
 
 def _authenticate(monkeypatch, username: str = "manager", role: str = "manager"):
     monkeypatch.setattr(
-        "src.core.auth.verify_token",
+        "src.core.auth.tokens.verify_token",
         lambda _token: persona_claims(username, role, sid=f"imp-{username}"),
     )
     return {"Authorization": f"Bearer imp-{username}"}

@@ -39,7 +39,7 @@ MINE = f"{PREFIX}/api/profile"
 
 def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):
     monkeypatch.setattr(
-        "src.core.auth.verify_token",
+        "src.core.auth.tokens.verify_token",
         lambda _token: persona_claims(username, role, sid=f"profile-{username}"),
     )
     return {"Authorization": f"Bearer profile-{username}"}
@@ -113,7 +113,7 @@ def test_a_colleague_sees_the_business_card_and_not_the_rest(client, monkeypatch
 
     # The viewer role holds `users.view` in this realm, so the permission has
     # to be removed to test the reader who does not.
-    monkeypatch.setattr("src.core.auth._permissions_for", lambda *_: {"records.view"})
+    monkeypatch.setattr("src.core.auth.users.permissions_for", lambda *_: {"records.view"})
     other = _authenticate(monkeypatch, "manager", "manager")
     identifier = mine["user"]["id"]
     body = client.get(f"{MINE}/{identifier}", headers=other).get_json()
@@ -159,14 +159,14 @@ def test_the_activity_trail_of_another_person_needs_audit_view(client, monkeypat
     identifier = _someone_else(client, headers, mine_id=mine["user"]["id"])
 
     monkeypatch.setattr(
-        "src.core.auth._permissions_for", lambda *_: {"records.view", "users.view"}
+        "src.core.auth.users.permissions_for", lambda *_: {"records.view", "users.view"}
     )
     body = client.get(f"{MINE}/{identifier}", headers=headers).get_json()
     assert body["visibility"]["activity"] is False
     assert "recent_activity" not in body
 
     monkeypatch.setattr(
-        "src.core.auth._permissions_for",
+        "src.core.auth.users.permissions_for",
         lambda *_: {"records.view", "users.view", "audit.view"},
     )
     allowed = client.get(f"{MINE}/{identifier}", headers=headers).get_json()

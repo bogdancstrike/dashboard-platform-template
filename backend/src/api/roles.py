@@ -1,6 +1,6 @@
 """Roles and the permission matrix (§13).
 
-Reads and writes the `roles` table, which `core/auth._permissions_for`
+Reads and writes the `roles` table, which `core/auth/users.permissions_for`
 consults on every request — so a change here applies to the next request the
 affected user makes, with no re-login and no cache to invalidate.
 """
@@ -30,7 +30,7 @@ def item(app=None, operation: str = "", request=None, code: str = "", **kwargs: 
 
     A built-in role can be edited and never removed: the seed writes it and
     `--sync-roles` maintains it, so a deleted one would come back on the next
-    deploy — and `_permissions_for` would be reading a row that vanished in
+    deploy — and `permissions_for` would be reading a row that vanished in
     between.
     """
     identifier = code or str(kwargs.get("code") or "")

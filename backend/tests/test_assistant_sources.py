@@ -22,7 +22,7 @@ KN = f"{Config.API_PREFIX}/api/knowledge"
 
 
 def _as(monkeypatch, username="admin", role="administrator"):
-    monkeypatch.setattr("src.core.auth.verify_token", lambda _t: persona_claims(username, role, sid=f"src-{username}"))
+    monkeypatch.setattr("src.core.auth.tokens.verify_token", lambda _t: persona_claims(username, role, sid=f"src-{username}"))
     return {"Authorization": f"Bearer src-{username}"}
 
 

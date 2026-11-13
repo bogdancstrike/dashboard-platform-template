@@ -14,7 +14,7 @@ since it was written that a revoked session is refused on its next request —
 and nothing read the table at all. So this page would have offered a "sign out
 this device" button that left the device signed in, which is worse than
 offering nothing: a control that does nothing is one people rely on.
-`core/auth._touch_session` is the other half, and it is where the guarantee
+`core/auth/sessions.touch_session` is the other half, and it is where the guarantee
 lives; this is only the button.
 
 **"Current" is derived from the request, not read from a column.** Which

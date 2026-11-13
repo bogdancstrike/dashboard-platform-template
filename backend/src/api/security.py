@@ -55,7 +55,7 @@ def session_item(app=None, operation: str = "", request=None, session_id: str = 
     """Sign one device out, or mark it as one you recognise.
 
     `DELETE` revokes — and the revocation is *enforced*, by
-    `core/auth._touch_session`, which is what makes this button worth having:
+    `core/auth/sessions.touch_session`, which is what makes this button worth having:
     the model claimed a revoked session is refused on its next request long
     before anything read the table.
     """

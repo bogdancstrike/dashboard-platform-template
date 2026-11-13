@@ -45,7 +45,8 @@ def register(app, sock) -> None:
     from framework.commons.logger import logger as log
 
     from src.config import Config
-    from src.core.auth import verify_token, _principal_from_claims
+    from src.core.auth.tokens import verify_token
+    from src.core.auth.users import principal_from_claims
     from src.services import live, presence
 
     route = f"{Config.API_PREFIX.rstrip('/')}/live"
@@ -62,7 +63,7 @@ def register(app, sock) -> None:
 
         try:
             claims = verify_token(token)
-            principal = _principal_from_claims(claims)
+            principal = principal_from_claims(claims)
         except Exception as exc:
             ws.send(json.dumps({"type": "error", "error": "unauthorized", "message": str(exc)[:200]}))
             return

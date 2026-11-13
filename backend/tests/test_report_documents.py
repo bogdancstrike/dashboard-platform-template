@@ -35,7 +35,7 @@ DOCUMENTS = f"{PREFIX}/api/report-documents"
 
 def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):
     monkeypatch.setattr(
-        "src.core.auth.verify_token",
+        "src.core.auth.tokens.verify_token",
         lambda token: persona_claims(
             _persona_of(token), _role_of(token), sid=f"documents-{_persona_of(token)}"
         ),

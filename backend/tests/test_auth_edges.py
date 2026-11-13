@@ -16,6 +16,7 @@ from werkzeug.datastructures import Headers
 
 from src.config import Config
 from src.core import auth
+from src.core.auth import tokens
 from src.core.errors import ValidationError
 from tests.conftest import persona_claims
 from tests.personas import PREFIX, sign_in
@@ -45,7 +46,7 @@ def test_the_highest_mapped_role_wins_and_an_unmapped_one_reads_only():
     claims = {"realm_access": {"roles": ["user"]},
               "resource_access": {Config.KEYCLOAK_AUDIENCE: {"roles": ["manager"]}}}
     assert auth.role_from_claims(claims) == "MANAGER"
-    assert auth._expiry({"exp": "soon"}) == 0.0 and auth._expiry({"exp": 5}) == 5.0
+    assert tokens._expiry({"exp": "soon"}) == 0.0 and tokens._expiry({"exp": 5}) == 5.0
 
 
 def test_a_request_body_is_a_json_object_or_nothing(app):
@@ -65,7 +66,7 @@ def test_the_caller_is_resolved_once_per_request(app, monkeypatch):
         calls["n"] += 1
         return persona_claims("admin", "administrator", sid="cov-once")
 
-    monkeypatch.setattr(auth, "verify_token", verify)
+    monkeypatch.setattr(tokens, "verify_token", verify)
     with app.test_request_context("/", headers=Headers({"Authorization": "Bearer x"})):
         if not __import__("os").getenv("TEST_DATABASE_URL"):
             pytest.skip("needs the database")
@@ -84,7 +85,7 @@ def test_a_new_realm_identity_gets_a_profile_and_a_suspended_one_is_refused(clie
     name = f"newcomer{uuid.uuid4().hex[:6]}"
     claims = {"sub": f"kc-{name}", "email": f"{name}@nucleus.example", "preferred_username": name,
               "name": "New Comer", "sid": f"cov-{name}", "realm_access": {"roles": ["analyst"]}}
-    monkeypatch.setattr(auth, "verify_token", lambda _token: claims)
+    monkeypatch.setattr(tokens, "verify_token", lambda _token: claims)
     headers = {"Authorization": f"Bearer {name}"}
 
     monkeypatch.setattr(Config, "AUTO_PROVISION_USERS", False)
@@ -112,7 +113,7 @@ def test_a_token_without_a_session_id_records_no_session(client, monkeypatch):
 
     claims = persona_claims("analyst", "analyst", sid="")
     claims["sid"] = ""
-    monkeypatch.setattr(auth, "verify_token", lambda _token: claims)
+    monkeypatch.setattr(tokens, "verify_token", lambda _token: claims)
     with session_scope() as session:
         before = session.scalar(select(func.count()).select_from(UserSession))
     assert client.get(ME, headers={"Authorization": "Bearer nosid"}).status_code == 200

@@ -37,7 +37,7 @@ def _script(*replies):
 
 
 def _auth(monkeypatch, username="admin", role="administrator"):
-    monkeypatch.setattr("src.core.auth.verify_token",
+    monkeypatch.setattr("src.core.auth.tokens.verify_token",
                         lambda _t: persona_claims(username, role, sid=f"ai-{username}"))
     return {"Authorization": f"Bearer ai-{username}"}
 

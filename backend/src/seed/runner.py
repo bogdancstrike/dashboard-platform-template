@@ -1996,7 +1996,7 @@ def sync_roles(session) -> dict[str, list[str]]:
     """Give the built-in roles every permission their declaration names.
 
     A permission that exists in code and in no role's row can be granted by
-    nobody: `core/auth._permissions_for` reads the database, so adding one to
+    nobody: `core/auth/users.permissions_for` reads the database, so adding one to
     the catalogue leaves every existing installation unable to use it until
     somebody grants it by hand. Seeding again is not an answer — it refuses to
     run on a populated database, and rightly.

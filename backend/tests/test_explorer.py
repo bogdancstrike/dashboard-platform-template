@@ -18,7 +18,7 @@ def _claims(username: str, role: str) -> dict:
 
 
 def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):
-    monkeypatch.setattr("src.core.auth.verify_token", lambda _token: _claims(username, role))
+    monkeypatch.setattr("src.core.auth.tokens.verify_token", lambda _token: _claims(username, role))
     return {"Authorization": f"Bearer explorer-{username}"}
 
 
@@ -158,7 +158,7 @@ def test_query_rejects_unknown_resources_and_operators(client, monkeypatch):
 @pytest.mark.database
 def test_explorer_checks_live_rbac_after_jwt_verification(client, monkeypatch):
     _authenticate(monkeypatch, "user", "viewer")
-    monkeypatch.setattr("src.core.auth._permissions_for", lambda *_args: set())
+    monkeypatch.setattr("src.core.auth.users.permissions_for", lambda *_args: set())
 
     response = client.get(
         f"{PREFIX}/api/explorer/catalog",
@@ -966,7 +966,7 @@ def test_the_connection_map_omits_datasets_the_caller_cannot_read(client, monkey
     # The map is drawn from what the reader may see, not from the schema —
     # otherwise it is a diagram of data they were refused.
     _authenticate(monkeypatch, "user", "viewer")
-    monkeypatch.setattr("src.core.auth._permissions_for", lambda *_args: set())
+    monkeypatch.setattr("src.core.auth.users.permissions_for", lambda *_args: set())
 
     response = client.get(
         f"{PREFIX}/api/relationships/overview",

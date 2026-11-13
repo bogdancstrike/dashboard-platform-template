@@ -23,7 +23,7 @@ BASE = f"{PREFIX}/api/onboarding"
 
 
 def _auth(monkeypatch, username: str = "admin", role: str = "administrator"):
-    monkeypatch.setattr("src.core.auth.verify_token",
+    monkeypatch.setattr("src.core.auth.tokens.verify_token",
                         lambda _token: persona_claims(username, role, sid=f"onb-{username}"))
     return {"Authorization": f"Bearer onb-{username}"}
 

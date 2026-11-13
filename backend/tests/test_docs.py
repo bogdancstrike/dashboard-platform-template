@@ -28,7 +28,7 @@ def people(monkeypatch):
         username = token.removeprefix("docs-")
         return persona_claims(username, ROLES[username], sid=f"docs-{username}")
 
-    monkeypatch.setattr("src.core.auth.verify_token", verify)
+    monkeypatch.setattr("src.core.auth.tokens.verify_token", verify)
     return {name: {"Authorization": f"Bearer docs-{name}"} for name in ROLES}
 
 

@@ -27,7 +27,7 @@ def _restore_client():
 
 
 def _auth(monkeypatch):
-    monkeypatch.setattr("src.core.auth.verify_token",
+    monkeypatch.setattr("src.core.auth.tokens.verify_token",
                         lambda _t: persona_claims("analyst", "analyst", sid="chaos-turn"))
     return {"Authorization": "Bearer chaos-turn"}
 

@@ -411,7 +411,8 @@ def meta(session, token: str, *, client: str) -> dict[str, Any]:
 def _owner_principal(session, owner_id):
     from sqlalchemy.orm import selectinload
 
-    from src.core.auth import DEFAULT_ROLE_CODE, Principal, _permissions_for
+    from src.core.auth import DEFAULT_ROLE_CODE, Principal
+    from src.core.auth.users import permissions_for
     from src.models.identity import User
 
     user = session.scalars(
@@ -420,7 +421,7 @@ def _owner_principal(session, owner_id):
     if user is None or user.deleted_at is not None:
         raise _gone("The owner of this dashboard no longer has an account.", "owner_gone")
     role_code = user.role.code if user.role else DEFAULT_ROLE_CODE
-    permissions = _permissions_for(session, user, role_code) & READ_ONLY
+    permissions = permissions_for(session, user, role_code) & READ_ONLY
     return Principal(
         user_id=user.id, subject=user.external_id or "", email=user.email, username=user.username,
         full_name=user.full_name, role_code=role_code, permissions=frozenset(permissions),

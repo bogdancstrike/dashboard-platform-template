@@ -62,7 +62,7 @@ RESOURCE = "ticket"
 
 def _authenticate(monkeypatch, username: str = "analyst", role: str = "analyst"):
     monkeypatch.setattr(
-        "src.core.auth.verify_token",
+        "src.core.auth.tokens.verify_token",
         lambda _token: persona_claims(username, role, sid=f"exp-{username}"),
     )
     return {"Authorization": f"Bearer exp-{username}"}

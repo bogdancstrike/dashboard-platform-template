@@ -31,7 +31,7 @@ pytestmark = pytest.mark.database
 
 
 def _auth(monkeypatch, username: str = "admin", role: str = "administrator") -> dict[str, str]:
-    monkeypatch.setattr("src.core.auth.verify_token",
+    monkeypatch.setattr("src.core.auth.tokens.verify_token",
                         lambda _t: persona_claims(username, role, sid=f"links-{username}"))
     return {"Authorization": f"Bearer links-{username}"}
 

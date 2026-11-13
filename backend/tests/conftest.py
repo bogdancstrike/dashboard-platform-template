@@ -203,7 +203,7 @@ def _flags_as_shipped(_undo_log, monkeypatch):
 
 #: The five seeded personas, by the names the realm and the seed give them.
 #:
-#: Test claims have to carry these. `core/auth._sync_user` trusts the identity
+#: Test claims have to carry these. `core/auth/users.sync_user` trusts the identity
 #: provider for a person's display name — correctly, since the IdP owns it — so
 #: a synthetic claim of `name: "Admin"` silently renames Ada Administrator in
 #: the demo database, and the next person to open the app finds a directory of

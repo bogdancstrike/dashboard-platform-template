@@ -27,7 +27,7 @@ REPORTS = f"{PREFIX}/api/reports"
 
 def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):
     monkeypatch.setattr(
-        "src.core.auth.verify_token",
+        "src.core.auth.tokens.verify_token",
         lambda token: persona_claims(
             _persona_of(token), _role_of(token), sid=f"reports-{_persona_of(token)}"
         ),
@@ -197,7 +197,7 @@ def test_reading_reports_and_building_them_are_different_permissions(client, mon
     # An analyst reads and builds; a viewer reads and cannot build.
     _authenticate(monkeypatch)
     monkeypatch.setattr(
-        "src.core.auth._permissions_for", lambda *_args: {"records.view", "reports.view"}
+        "src.core.auth.users.permissions_for", lambda *_args: {"records.view", "reports.view"}
     )
 
     response = client.post(

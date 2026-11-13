@@ -31,6 +31,7 @@ from jose import jwt
 
 from src.config import Config
 from src.core import auth
+from src.core.auth import tokens
 from src.core.errors import UnauthorizedError
 
 
@@ -107,10 +108,10 @@ def realm(monkeypatch):
             raise RuntimeError("keycloak is unreachable")
         return Response()
 
-    monkeypatch.setattr(auth.requests, "get", fetch)
+    monkeypatch.setattr(tokens.requests, "get", fetch)
     # A fresh cache per test: the module-level one carries whatever the last
     # test taught it, and a "rotation" that was really a stale hit would pass.
-    monkeypatch.setattr(auth, "_jwks", auth._JwksCache())
+    monkeypatch.setattr(tokens, "_jwks", tokens._JwksCache())
     # And no Redis: this file is about the verification, not the cache around
     # it, and a hit would skip the whole path under test.
     monkeypatch.setattr("src.core.cache.get_json", lambda _key: None)

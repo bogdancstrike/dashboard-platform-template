@@ -36,7 +36,7 @@ def as_(monkeypatch):
         name = token.split("-", 1)[1]
         return persona_claims(name, roles[name], sid=f"time-{name}")
 
-    monkeypatch.setattr("src.core.auth.verify_token", claims)
+    monkeypatch.setattr("src.core.auth.tokens.verify_token", claims)
     return lambda name: {"Authorization": f"Bearer time-{name}"}
 
 

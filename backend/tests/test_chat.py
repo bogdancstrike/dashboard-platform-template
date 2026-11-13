@@ -32,7 +32,7 @@ def people(monkeypatch):
         username = token.removeprefix("chat-")
         return persona_claims(username, ROLES[username], sid=f"chat-{username}")
 
-    monkeypatch.setattr("src.core.auth.verify_token", verify)
+    monkeypatch.setattr("src.core.auth.tokens.verify_token", verify)
     return {name: {"Authorization": f"Bearer chat-{name}"} for name in ROLES}
 
 

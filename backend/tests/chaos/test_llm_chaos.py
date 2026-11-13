@@ -84,7 +84,7 @@ def test_ai_endpoints_answer_503_within_the_cap(client, monkeypatch, black_hole,
     """End to end: the AI endpoints turn a gateway outage into a clean answer."""
     url = f"http://{REFUSED_HOST}:{REFUSED_PORT}" if kind == "refused" else f"http://127.0.0.1:{black_hole.port}"
     llm.set_client(_gateway(url))
-    monkeypatch.setattr("src.core.auth.verify_token", lambda _t: persona_claims("user", "user", sid="chaos-llm"))
+    monkeypatch.setattr("src.core.auth.tokens.verify_token", lambda _t: persona_claims("user", "user", sid="chaos-llm"))
     headers = {"Authorization": "Bearer chaos"}
     prefix = Config.API_PREFIX
     with Stopwatch() as watch:

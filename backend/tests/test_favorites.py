@@ -46,7 +46,7 @@ SEARCHES = f"{PREFIX}/api/saved-searches"
 
 def _authenticate(monkeypatch, username: str = "analyst", role: str = "analyst"):
     monkeypatch.setattr(
-        "src.core.auth.verify_token",
+        "src.core.auth.tokens.verify_token",
         lambda _token: persona_claims(username, role, sid=f"fav-{username}"),
     )
     return {"Authorization": f"Bearer fav-{username}"}

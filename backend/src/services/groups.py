@@ -2,7 +2,7 @@
 
 A group is not a role. A role is the one thing a person *is*, and everybody has
 exactly one; a group is something a person is *in*, and they can be in several.
-`core/auth._permissions_for` unions every group's permissions onto the role's,
+`core/auth/users.permissions_for` unions every group's permissions onto the role's,
 which is what makes this screen change real behaviour rather than describe an
 org chart.
 
@@ -461,7 +461,7 @@ def set_members(session, group_id: str, payload: dict[str, Any], *, principal) -
 
     Takes the whole membership rather than a delta, so the request says what the
     group *is* and two administrators editing at once cannot interleave into a
-    state neither chose. Effective immediately: `_permissions_for` reads the
+    state neither chose. Effective immediately: `permissions_for` reads the
     table on every request, so somebody added here has the group's permissions
     on their next call without signing in again.
     """
@@ -532,7 +532,7 @@ def remove(session, group_id: str, *, principal) -> dict[str, Any]:
     row.deleted_at = now()
     # Emptied as well as retired: a soft-deleted group whose rows stayed in
     # `user_groups` would keep granting its permissions, since
-    # `_permissions_for` walks the relationship and not the flag.
+    # `permissions_for` walks the relationship and not the flag.
     row.members = []
 
     audit.record(

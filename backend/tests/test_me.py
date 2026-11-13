@@ -31,7 +31,7 @@ def _claims(username: str, role: str) -> dict:
 
 
 def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):
-    monkeypatch.setattr("src.core.auth.verify_token", lambda _token: _claims(username, role))
+    monkeypatch.setattr("src.core.auth.tokens.verify_token", lambda _token: _claims(username, role))
     return {"Authorization": "Bearer test-token"}
 
 
@@ -71,7 +71,7 @@ def test_me_rejects_an_inactive_local_profile(client, monkeypatch):
 
     claims = _claims(username, "viewer")
     claims["email"] = email
-    monkeypatch.setattr("src.core.auth.verify_token", lambda _token: claims)
+    monkeypatch.setattr("src.core.auth.tokens.verify_token", lambda _token: claims)
 
     response = client.get(
         f"{PREFIX}/api/me", headers={"Authorization": "Bearer test-token"}

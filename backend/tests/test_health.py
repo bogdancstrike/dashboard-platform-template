@@ -12,7 +12,7 @@ PREFIX = Config.API_PREFIX
 
 def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):
     monkeypatch.setattr(
-        "src.core.auth.verify_token",
+        "src.core.auth.tokens.verify_token",
         lambda token: persona_claims(
             str(token).split("-")[1], str(token).split("-")[2], sid=f"health-{username}"
         ),

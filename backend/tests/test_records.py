@@ -25,7 +25,7 @@ def _claims(username: str, role: str) -> dict:
 
 
 def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):
-    monkeypatch.setattr("src.core.auth.verify_token", lambda _token: _claims(username, role))
+    monkeypatch.setattr("src.core.auth.tokens.verify_token", lambda _token: _claims(username, role))
     return {"Authorization": f"Bearer records-{username}"}
 
 
@@ -163,7 +163,7 @@ def test_a_record_of_the_wrong_type_is_not_found_rather_than_returned(client, mo
 def test_reading_a_record_requires_the_permission_the_entity_declares(client, monkeypatch):
     ticket = _a_ticket()
     _authenticate(monkeypatch, "user", "viewer")
-    monkeypatch.setattr("src.core.auth._permissions_for", lambda *_args: set())
+    monkeypatch.setattr("src.core.auth.users.permissions_for", lambda *_args: set())
 
     response = client.get(
         f"{PREFIX}/api/records/ticket/{ticket.id}",

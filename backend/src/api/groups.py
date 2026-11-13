@@ -6,7 +6,7 @@ Three permissions across five endpoints, and the split is the whole design:
 * `users.manage` creates, renames, removes and changes *who is in* a group;
 * `roles.manage` changes what a group *grants*.
 
-That last line is not bureaucracy. `core/auth._permissions_for` unions a
+That last line is not bureaucracy. `core/auth/users.permissions_for` unions a
 group's permissions onto its members' roles, so whoever may edit them may grant
 any permission to anybody — including themselves. A manager holds
 `users.manage` and not `roles.manage`; collapsing the two would quietly make
@@ -62,7 +62,7 @@ def members(app=None, operation: str = "", request=None, group_id: str = "", **k
     The whole membership rather than a delta, so the request says what the
     group *is* — two administrators editing at once cannot interleave into a
     state neither of them chose. Effective on the members' next request, with
-    no re-login: `_permissions_for` reads the table every time.
+    no re-login: `permissions_for` reads the table every time.
     """
     identifier = group_id or str(kwargs.get("group_id") or "")
     payload = (request.get_json(silent=True) if request is not None else None) or {}

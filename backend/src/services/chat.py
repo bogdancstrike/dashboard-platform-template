@@ -26,6 +26,7 @@ from src.core.clock import iso, now
 from src.core.errors import ConflictError, ForbiddenError, NotFoundError, ValidationError
 from src.core.pagination import parse_uuid
 from src.core.repository import found_or_404, get_or_404
+from src.services import notifications
 
 RESOURCE = "chat_channel"
 USE = "chat.use"
@@ -134,6 +135,16 @@ def channels(session, args, *, principal) -> dict[str, Any]:
         "mention_total": sum(item["mentions"] for item in items if item["is_member"]),
         "can_create": principal.can(USE),
     }
+
+
+@notifications.badges.connect
+def _unread_badge(session, user_id: UUID) -> dict[str, int]:
+    """The Chat menu item's badge on the notification poll; 0 without the chat tables."""
+    try:
+        with session.begin_nested():
+            return {"chat_unread": unread_total(session, user_id)}
+    except Exception:  # pragma: no cover - a database without the chat tables
+        return {"chat_unread": 0}
 
 
 def unread_total(session, user_id: UUID) -> int:

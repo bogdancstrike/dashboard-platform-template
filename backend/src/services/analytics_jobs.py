@@ -14,7 +14,7 @@ a job's `next_run_at` — spawned off that request.
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Any
+from typing import Any, Callable
 
 from sqlalchemy import select
 
@@ -24,6 +24,21 @@ JOBS: dict[str, tuple[str, str, str, timedelta]] = {
     "analytics.customer-health": ("Customer health scores", "15 2 * * *", "HEALTH", timedelta(hours=24)),
     "analytics.anomaly-watch": ("Metric anomaly watch", "0 * * * *", "ANOMALY", timedelta(hours=1)),
 }
+
+
+#: `session -> (outcome, log line, units)` per job code, registered by the
+#: feature that owns the job (`@runner(code)` in customer_health, metric_watches).
+Runner = Callable[[Any], tuple[dict[str, Any], str, int]]
+_RUNNERS: dict[str, Runner] = {}
+
+
+def runner(code: str) -> Callable[[Runner], Runner]:
+    """Register the function that performs job `code`."""
+    def register(fn: Runner) -> Runner:
+        _RUNNERS[code] = fn
+        return fn
+
+    return register
 
 
 def ensure_jobs(session) -> dict[str, Any]:
@@ -47,7 +62,6 @@ def ensure_jobs(session) -> dict[str, Any]:
 def run(session, code: str, *, principal=None) -> dict[str, Any]:
     """Run one job now and record it."""
     from src.models.platform import BackgroundJob
-    from src.services import customer_health, metric_watches
 
     scheduled = ensure_jobs(session)[code]
     name, _cron, kind, period = JOBS[code]
@@ -55,15 +69,8 @@ def run(session, code: str, *, principal=None) -> dict[str, Any]:
     error = None
     try:
         nested = session.begin_nested()
-        if code == "analytics.customer-health":
-            outcome = customer_health.recompute(session, notify=True)
-            lines = [f"{outcome['customers']} customer(s) scored, {outcome['dropped']} dropped a band, "
-                     f"{outcome['improved']} improved"]
-            units = outcome["customers"]
-        else:
-            outcome = metric_watches.evaluate_all(session)
-            lines = [f"{outcome['watches']} watch(es) evaluated, {outcome['anomalies']} new anomal(ies)"]
-            units = outcome["watches"]
+        outcome, line, units = _RUNNERS[code](session)
+        lines = [line]
         nested.commit()
     except Exception as exc:  # recorded on the job, never raised into a request
         nested.rollback()

@@ -34,7 +34,7 @@ pytestmark = pytest.mark.database
 def as_persona(monkeypatch):
     def _sign_in(name: str) -> dict[str, str]:
         claims = persona_claims(name, ROLES[name], sid=f"edge-{name}")
-        monkeypatch.setattr("src.core.auth.verify_token", lambda _t: claims)
+        monkeypatch.setattr("src.core.auth.tokens.verify_token", lambda _t: claims)
         return {"Authorization": f"Bearer edge-{name}"}
 
     return _sign_in

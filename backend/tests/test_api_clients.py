@@ -44,7 +44,7 @@ CREDENTIALS = f"{PREFIX}/admin/api-credentials"
 
 def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):
     monkeypatch.setattr(
-        "src.core.auth.verify_token",
+        "src.core.auth.tokens.verify_token",
         lambda _token: persona_claims(username, role, sid=f"api-{username}"),
     )
     return {"Authorization": f"Bearer api-{username}"}

@@ -11,7 +11,7 @@ PREFIX = f"{Config.API_PREFIX}/dashboard"
 
 
 def authenticate(monkeypatch):
-    monkeypatch.setattr("src.core.auth.verify_token", lambda _: persona_claims("admin", "administrator"))
+    monkeypatch.setattr("src.core.auth.tokens.verify_token", lambda _: persona_claims("admin", "administrator"))
     return {"Authorization": "Bearer dashboard-test"}
 
 
@@ -23,7 +23,7 @@ def test_dashboard_requires_authentication(client, endpoint):
 @pytest.mark.database
 def test_dashboard_requires_record_access(client, monkeypatch):
     headers = authenticate(monkeypatch)
-    monkeypatch.setattr("src.core.auth._permissions_for", lambda *_: set())
+    monkeypatch.setattr("src.core.auth.users.permissions_for", lambda *_: set())
     assert client.get(f"{PREFIX}/summary", headers=headers).status_code == 403
 
 

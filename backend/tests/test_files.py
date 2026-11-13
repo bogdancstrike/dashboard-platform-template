@@ -27,7 +27,7 @@ FILES = f"{PREFIX}/api/files"
 
 def _authenticate(monkeypatch, username: str = "admin", role: str = "administrator"):
     monkeypatch.setattr(
-        "src.core.auth.verify_token",
+        "src.core.auth.tokens.verify_token",
         lambda _token: persona_claims(username, role, sid=f"files-{username}"),
     )
     return {"Authorization": f"Bearer files-{username}"}

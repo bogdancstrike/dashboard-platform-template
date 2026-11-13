@@ -175,7 +175,7 @@ def test_dashboard_answers_with_redis_down(client, monkeypatch, fresh_cache):
     from tests.conftest import persona_claims
 
     monkeypatch.setattr(Config, "REDIS_URL", f"redis://{REFUSED_HOST}:{REFUSED_PORT}/0")
-    monkeypatch.setattr("src.core.auth.verify_token", lambda _t: persona_claims("user", "user", sid="chaos-redis"))
+    monkeypatch.setattr("src.core.auth.tokens.verify_token", lambda _t: persona_claims("user", "user", sid="chaos-redis"))
     headers = {"Authorization": "Bearer chaos"}
     for path in ("/dashboard/summary", "/dashboard/alerts", "/notifications/counts", "/api/me"):
         response = client.get(f"{Config.API_PREFIX}{path}", headers=headers)

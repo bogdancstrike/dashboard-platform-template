@@ -209,7 +209,7 @@ def test_a_bad_token_reads_as_anonymous_to_the_gate(monkeypatch):
     def boom(**_):
         raise RuntimeError("bad token")
 
-    monkeypatch.setattr("src.core.auth.principal_from_request", boom)
+    monkeypatch.setattr("src.core.auth.caller.principal_from_request", boom)
     assert features._caller() is None
 
 
@@ -468,7 +468,7 @@ def _authenticate(monkeypatch, username: str = "admin", role: str = "administrat
     from tests.conftest import persona_claims
 
     monkeypatch.setattr(
-        "src.core.auth.verify_token",
+        "src.core.auth.tokens.verify_token",
         lambda _token: persona_claims(username, role, sid=f"ff-{username}"),
     )
     return {"Authorization": f"Bearer ff-{username}"}

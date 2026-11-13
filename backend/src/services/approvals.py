@@ -34,7 +34,9 @@ from src.core.errors import ForbiddenError, NotFoundError, ValidationError
 from src.core.naming import identifier, sequence_of
 from src.core.pagination import envelope, parse_page, parse_uuid
 from src.core.repository import get_or_404
+from src.core.auth import maybe_me
 from src.models.approvals import ApprovalRequest
+from src.services import notifications
 
 REFERENCE_PREFIX = "APR"
 
@@ -69,7 +71,6 @@ class Provider:
 
 
 _PROVIDERS: dict[str, Provider] = {}
-_LOADED = False
 
 
 def register(provider: Provider) -> Provider:
@@ -79,18 +80,8 @@ def register(provider: Provider) -> Provider:
 
 
 def providers() -> dict[str, Provider]:
-    """Every registered provider, importing the built-in ones on first use.
-
-    Lazily, because the providers import this module to register themselves —
-    and an import cycle at boot is a worse failure than one more function call.
-    """
-    global _LOADED
-    if not _LOADED:
-        _LOADED = True
-        from src.services import approval_kinds, timekeeping  # noqa: F401
-        from src.services.automation_graph import register_provider
-
-        register_provider()  # a workflow's "request approval" step (§49)
+    """Every registered provider. The built-in ones register when their modules
+    are imported by the composition root (`src/services/wiring.py`)."""
     return _PROVIDERS
 
 
@@ -202,8 +193,6 @@ def submit(
     session.flush()
 
     if notify:
-        from src.services import notifications
-
         targets = (
             [assignee_id]
             if assignee_id
@@ -312,6 +301,13 @@ def _inbox(principal):
         ApprovalRequest.decide_permission.in_(held),
         ApprovalRequest.requester_id != principal.user_id,
     )
+
+
+@notifications.badges.connect
+def _pending_badge(session, user_id) -> dict[str, int]:
+    """The approvals inbox badge on the notification poll."""
+    principal = maybe_me()
+    return {"pending_approvals": pending_count(session, principal) if principal is not None else 0}
 
 
 def pending_count(session, principal) -> int:
@@ -503,8 +499,6 @@ def _decide_row(session, row: ApprovalRequest, status: str, comment: str, *, pri
     )
 
     if row.requester_id:
-        from src.services import notifications
-
         verb = "approved" if status == "APPROVED" else "rejected"
         notifications.publish(
             session,

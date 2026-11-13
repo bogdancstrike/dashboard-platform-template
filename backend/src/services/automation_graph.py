@@ -40,7 +40,8 @@ import contextvars
 import re
 import secrets
 from copy import deepcopy
-from dataclasses import dataclass, field as dataclass_field
+from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from datetime import datetime, timedelta
 from typing import Any, Iterable
 from uuid import UUID
@@ -51,10 +52,15 @@ from src.core import audit
 from src.core.clock import iso, now
 from src.core.errors import NotFoundError, ValidationError
 from src.core.pagination import parse_uuid
-from src.core.rules import compile_tree, describe_tree, rule_count
 from src.core.repository import get_or_404
-from src.models.automation_graphs import AutomationGraph, AutomationVersion, AutomationWait
+from src.core.rules import compile_tree, describe_tree, rule_count
+from src.models.automation_graphs import (
+    AutomationGraph,
+    AutomationVersion,
+    AutomationWait,
+)
 from src.models.platform import AlertRule, AlertRuleRun
+from src.services import approvals, record_writes
 
 PERMISSION = "automations.manage"
 
@@ -450,7 +456,6 @@ def _clean_flow(kind: str, data: dict[str, Any]) -> dict[str, Any]:
 
 
 def _clean_update(session, data: dict[str, Any], resource, config: dict[str, Any]) -> None:
-    from src.services import record_writes
 
     name = str(data.get("field") or "")
     if resource is None:
@@ -469,7 +474,6 @@ def _clean_update(session, data: dict[str, Any], resource, config: dict[str, Any
 
 
 def _clean_create(session, data: dict[str, Any], config: dict[str, Any]) -> None:
-    from src.services import record_writes
 
     target = _resource(data.get("resource_type"))
     if target is None or target.identity is None:
@@ -905,10 +909,8 @@ def _flow(session, walk: Walk, node, kind: str, data: dict[str, Any], matches: l
 
 
 def _ask(session, walk: Walk, data: dict[str, Any], match, wait: AutomationWait) -> str:
-    from src.services import approvals
     from src.services.workflows import _text
 
-    register_provider()
     owner = walk.rule.owner
     row = approvals.submit(
         session,
@@ -1091,7 +1093,8 @@ def resource_for_principal(resource, principal) -> None:
 
 def samples(session, rule_id: Any, args, *, principal) -> dict[str, Any]:
     """Records to test with: the newest in the trigger's dataset, optionally searched."""
-    from sqlalchemy import cast, or_, String as SqlString
+    from sqlalchemy import String as SqlString
+    from sqlalchemy import cast, or_
 
     principal.require(PERMISSION)
     rule = _rule(session, rule_id)
@@ -1320,6 +1323,7 @@ def node_stats(session, rule_id: Any) -> dict[str, Any]:
 # ── Events ───────────────────────────────────────────────────────────────
 
 
+@record_writes.written.connect
 def on_record_write(session, resource, row, changed: set[str], *, created: bool, principal=None) -> int:
     """A record was written: run every published workflow whose trigger matches.
 
@@ -1472,28 +1476,22 @@ def resume(session, wait: AutomationWait, port: str) -> dict[str, Any] | None:
 
 
 APPROVAL_KIND = "automation"
-_REGISTERED = False
 
 
-def register_provider() -> None:
+def _resume_on_decision(session, row, *, approved: bool, principal=None, comment: str = "",
+                        **_: Any) -> None:
     """Approvals know "an automation asked" — deciding one resumes the workflow."""
-    global _REGISTERED
-    if _REGISTERED:
-        return
-    from src.services import approvals
+    wait = session.scalar(select(AutomationWait).where(
+        AutomationWait.approval_id == str(row.id), AutomationWait.status == "PENDING"))
+    if wait is not None:
+        resume(session, wait, "approved" if approved else "rejected")
 
-    def apply(session, row, *, approved: bool, principal=None, comment: str = "", **_: Any) -> None:
-        wait = session.scalar(select(AutomationWait).where(
-            AutomationWait.approval_id == str(row.id), AutomationWait.status == "PENDING"))
-        if wait is not None:
-            resume(session, wait, "approved" if approved else "rejected")
 
-    approvals.register(approvals.Provider(
-        kind=APPROVAL_KIND, label="Workflow approval", icon="flow",
-        decide_permission="approvals.decide", sla_hours=24, apply=apply,
-        reject_needs_comment=False,
-    ))
-    _REGISTERED = True
+approvals.register(approvals.Provider(
+    kind=APPROVAL_KIND, label="Workflow approval", icon="flow",
+    decide_permission="approvals.decide", sla_hours=24, apply=_resume_on_decision,
+    reject_needs_comment=False,
+))
 
 
 def run_due(session, *, principal=None) -> dict[str, int]:

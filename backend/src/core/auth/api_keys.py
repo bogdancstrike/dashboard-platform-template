@@ -24,8 +24,12 @@ from typing import Any
 
 from sqlalchemy import func, select
 
+from src.core.auth import users
+from src.core.auth.principal import Principal
 from src.core.clock import now
+from src.core.db import session_scope
 from src.core.errors import ForbiddenError, RateLimitedError, UnauthorizedError
+from src.models.platform import ApiClient, ApiCredential, ApiRequestLog
 
 HEADER = "X-Api-Key"
 PREFIX = "nuc_"
@@ -41,9 +45,6 @@ def _hash(plaintext: str) -> str:
 
 def principal_for_key(plaintext: str, *, address: str | None = None):
     """The principal an API key acts as, or a refusal saying why not."""
-    from src.core.auth import Principal, _permissions_for
-    from src.core.db import session_scope
-    from src.models.platform import ApiClient, ApiCredential, ApiRequestLog
 
     key = (plaintext or "").strip()
     if not key.startswith(PREFIX) or len(key) < PREFIX_LENGTH + 8:
@@ -80,7 +81,7 @@ def principal_for_key(plaintext: str, *, address: str | None = None):
         if client.rate_limit_per_minute and recent >= client.rate_limit_per_minute:
             raise RateLimitedError("This API client is over its per-minute limit.",
                                    details={"limit": client.rate_limit_per_minute})
-        held = _permissions_for(session, owner, owner.role.code if owner.role else "VIEWER")
+        held = users.permissions_for(session, owner, owner.role.code if owner.role else "VIEWER")
         scopes = set(client.scopes or [])
         if credential.last_used_at is None or (moment - credential.last_used_at).total_seconds() > TOUCH_SECONDS:
             credential.last_used_at = moment

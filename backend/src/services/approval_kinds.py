@@ -31,7 +31,7 @@ from src.core.errors import ConflictError, NotFoundError, ValidationError
 from src.core.pagination import parse_uuid
 from src.core.repository import get_or_404
 from src.models.approvals import ApprovalRequest, ChangeRule
-from src.services import approvals
+from src.services import approvals, record_writes
 from src.services.approvals import Provider
 
 ACCESS_DECIDER = "roles.manage"
@@ -157,6 +157,7 @@ def _matches(rule: ChangeRule, before: Any, after: Any) -> bool:
     return number > bound if rule.operator == "GT" else number < bound
 
 
+@record_writes.update_requested.connect
 def intercept(session, resource, row, values: dict[str, Any], raw: dict[str, Any], *,
               principal) -> dict[str, Any] | None:
     """Hold an edit back when a rule says it needs approval.
@@ -214,7 +215,6 @@ def intercept(session, resource, row, values: dict[str, Any], raw: dict[str, Any
 def _apply_change(session, row: ApprovalRequest, *, approved: bool, principal, comment: str) -> None:
     if not approved:
         return
-    from src.services import record_writes
     from src.services.explorer import resource_for
 
     payload = row.payload or {}

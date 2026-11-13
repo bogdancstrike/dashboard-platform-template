@@ -7,7 +7,7 @@ description of them:
 * the **permission catalogue** in `core/auth.py`, which is the list of things
   the code checks for — so every permission an endpoint can require appears on
   the screen that grants it, and one that does not exist cannot be granted;
-* the **`roles` table**, which `_permissions_for` reads on every request — so
+* the **`roles` table**, which `permissions_for` reads on every request — so
   an edit here changes what the next request is allowed to do, with no
   re-login and no cache to invalidate.
 
@@ -48,7 +48,7 @@ SELF_LOCKOUT_GUARD = ("roles.manage", "admin.access")
 MAX_NAME = 96
 MAX_DESCRIPTION = 500
 
-#: A role code is a stable identifier: `_permissions_for` looks a role up by
+#: A role code is a stable identifier: `permissions_for` looks a role up by
 #: it, `REALM_ROLE_MAP` maps Keycloak's names onto it, and an audit row quotes
 #: it years later. Letters, digits and underscores only, and never renamed.
 _CODE = re.compile(r"[A-Z0-9_]{2,48}")
@@ -235,7 +235,7 @@ def remove(session, code: Any, *, principal) -> dict[str, Any]:
 
     Two refusals, both worth the words. A **system** role cannot be deleted:
     the seed writes it, `--sync-roles` maintains it, and deleting one would
-    leave `_permissions_for` reading a row that comes back on the next deploy.
+    leave `permissions_for` reading a row that comes back on the next deploy.
     And a role **somebody holds** cannot be deleted either, with the number
     named — a cascade would silently leave people with no permissions at all,
     which reads to them as the platform being broken.

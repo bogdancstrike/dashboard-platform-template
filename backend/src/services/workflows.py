@@ -66,6 +66,7 @@ from src.models.business import Task
 from src.models.content import EmailMessage, EmailTemplate
 from src.models.identity import User
 from src.models.platform import AlertRule, AlertRuleFire, AlertRuleRun
+from src.services.automated_mail import next_message_ref
 from src.services.explorer import resource_for, resources
 
 #: Holding this is what separates somebody who reads the automations from
@@ -193,7 +194,7 @@ def _email(session, *, rule: AlertRule, match: Match, config: dict[str, Any], **
         body = template.body_text or template.body_html or ""
 
     message = EmailMessage(
-        message_ref=_next_message_ref(session),
+        message_ref=next_message_ref(session),
         subject=_text(subject, match, rule)[:300],
         from_name="Nucleus automation",
         from_email="automation@nucleus.local",
@@ -1136,10 +1137,3 @@ def _next_task_reference(session) -> str:
         select(func.max(Task.reference)).where(Task.reference.like("TSK-%"))
     )
     return identifier("TSK", sequence_of(latest, prefix="TSK") + 1)
-
-
-def _next_message_ref(session) -> str:
-    latest = session.scalar(
-        select(func.max(EmailMessage.message_ref)).where(EmailMessage.message_ref.like("AUTO-%"))
-    )
-    return identifier("AUTO", sequence_of(latest, prefix="AUTO") + 1, width=6)

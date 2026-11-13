@@ -113,7 +113,7 @@ def install(app) -> None:
         except Exception:  # noqa: BLE001 - a log line is never worth a 500
             g.request_log = None
         try:
-            from src.core.api_keys import capture
+            from src.core.auth.api_keys import capture
 
             # A keyed request is also usage for its API client (§31).
             g.api_usage = capture(response.status_code)
@@ -125,7 +125,7 @@ def install(app) -> None:
     def _write(_exception) -> None:
         usage = getattr(g, "api_usage", None)
         if usage:
-            from src.core.api_keys import record_usage
+            from src.core.auth.api_keys import record_usage
 
             record_usage(usage)
         row = getattr(g, "request_log", None)

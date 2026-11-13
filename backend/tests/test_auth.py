@@ -5,18 +5,19 @@ from __future__ import annotations
 import time
 
 from src.core import auth
+from src.core.auth import tokens
 
 
 def _install_verifier(monkeypatch, claims):
-    monkeypatch.setattr(auth.jwt, "get_unverified_header", lambda _token: {"kid": "key-1"})
-    monkeypatch.setattr(auth._jwks, "get", lambda _kid: {"kid": "key-1", "alg": "RS256"})
+    monkeypatch.setattr(tokens.jwt, "get_unverified_header", lambda _token: {"kid": "key-1"})
+    monkeypatch.setattr(tokens._jwks, "get", lambda _kid: {"kid": "key-1", "alg": "RS256"})
     calls = []
 
     def decode(token, *_args, **_kwargs):
         calls.append(token)
         return dict(claims)
 
-    monkeypatch.setattr(auth.jwt, "decode", decode)
+    monkeypatch.setattr(tokens.jwt, "decode", decode)
     return calls
 
 

@@ -63,7 +63,9 @@ SQL_IN_HANDLERS = re.compile(r"\b(?:select\(|session\.execute\(|session\.query\(
 
 
 def modules(layer: str) -> list[pathlib.Path]:
-    return sorted(path for path in (SRC / layer).glob("*.py") if path.name != "__init__.py")
+    """Every module of a layer, subpackages included (`__init__` files too: a
+    package facade imports like any other module)."""
+    return sorted((SRC / layer).rglob("*.py"))
 
 
 def imported(path: pathlib.Path) -> set[str]:
@@ -88,7 +90,7 @@ def test_a_layer_imports_only_what_it_is_allowed_to(layer: str):
     for path in found:
         for package in imported(path):
             assert package in ALLOWED[layer], (
-                f"src/{layer}/{path.name} imports src.{package}, "
+                f"{path.relative_to(SRC)} imports src.{package}, "
                 f"which {layer} may not depend on"
             )
 
@@ -99,7 +101,7 @@ def test_a_layer_does_not_reach_for_what_it_must_not_know(layer: str):
         text = path.read_text()
         for forbidden in FORBIDDEN_MODULES[layer]:
             assert f"import {forbidden}" not in text, (
-                f"src/{layer}/{path.name} imports {forbidden}"
+                f"{path.relative_to(SRC)} imports {forbidden}"
             )
 
 
@@ -151,10 +153,10 @@ def test_a_handler_names_a_permission_and_calls_a_service():
 
     for path in modules("api"):
         text = path.read_text()
-        # `app.py` assembles the process, `handler.py` is the adapter and
-        # `endpoint_map.py` validates the
-        # map; neither is a handler module.
-        if path.name in {"app.py", "endpoint_map.py", "handler.py"}:
+        # `app.py` assembles the process, `handler.py` is the adapter,
+        # `endpoint_map.py` validates the map and `__init__.py` is empty; none
+        # is a handler module.
+        if path.name in {"app.py", "endpoint_map.py", "handler.py", "__init__.py"}:
             continue
         if path.stem in public:
             continue

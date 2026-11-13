@@ -23,7 +23,7 @@ PREFIX = Config.API_PREFIX
 def headers(monkeypatch):
     """A signed-in reader — any reader: these need a token, not a permission."""
     monkeypatch.setattr(
-        "src.core.auth.verify_token",
+        "src.core.auth.tokens.verify_token",
         lambda _token: persona_claims("user", "viewer", sid="meta-user"),
     )
     return {"Authorization": "Bearer meta-user"}

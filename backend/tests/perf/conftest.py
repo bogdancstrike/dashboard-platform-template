@@ -79,7 +79,7 @@ def count_queries(engine):
 def as_persona(monkeypatch) -> Callable[[str], dict[str, str]]:
     def _sign_in(persona: str) -> dict[str, str]:
         claims = persona_claims(persona, ROLES[persona], sid=f"perf-{persona}")
-        monkeypatch.setattr("src.core.auth.verify_token", lambda _token: claims)
+        monkeypatch.setattr("src.core.auth.tokens.verify_token", lambda _token: claims)
         return {"Authorization": f"Bearer perf-{persona}", "Content-Type": "application/json"}
 
     return _sign_in
