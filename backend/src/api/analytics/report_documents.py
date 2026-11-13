@@ -10,45 +10,50 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import json_body, me, requires
 from src.core.db import session_scope
 from src.services.analytics import report_documents as service
 
 
 @requires("reports.view")
-def collection(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def collection(call: Call):
     """Every document this reader may open, or one more of their own."""
-    method = (request.method if request is not None else "GET").upper()
+    method = call.method
     with session_scope() as session:
         if method == "POST":
-            return service.create(session, json_body(), principal=me()), 201
+            return service.create(session, call.body, principal=me()), 201
         return service.listing(session, principal=me()), 200
 
 
 @requires("reports.view")
-def item(app=None, operation: str = "", request=None, document_id: str = "", **kwargs: Any):
+@endpoint
+def item(call: Call, document_id: str = ""):
     """One document: read it, change it, or remove it. Only the owner writes."""
-    identifier = document_id or str(kwargs.get("document_id") or "")
-    method = (request.method if request is not None else "GET").upper()
+    identifier = document_id
+    method = call.method
     with session_scope() as session:
         principal = me()
         if method == "PUT":
-            return service.update(session, identifier, json_body(), principal=principal), 200
+            return service.update(session, identifier, call.body, principal=principal), 200
         if method == "DELETE":
             return service.remove(session, identifier, principal=principal), 200
         return service.get(session, identifier, principal=principal), 200
 
 
 @requires("reports.manage")
-def duplicate(app=None, operation: str = "", request=None, document_id: str = "", **kwargs: Any):
+@endpoint
+def duplicate(call: Call, document_id: str = ""):
     """A private copy, owned by the caller — how a document becomes a template."""
-    identifier = document_id or str(kwargs.get("document_id") or "")
+    identifier = document_id
     with session_scope() as session:
         return service.duplicate(session, identifier, principal=me()), 201
 
 
 @requires("reports.manage")
-def compose(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def compose(call: Call):
     """A whole document about one dataset, composed from its declarations.
 
     The empty document is the honest starting point and it is still a blank
@@ -59,7 +64,7 @@ def compose(app=None, operation: str = "", request=None, **_: Any):
     an ordinary block somebody can edit or remove.
     """
     with session_scope() as session:
-        return service.compose(session, json_body(), principal=me()), 201
+        return service.compose(session, call.body, principal=me()), 201
 
 
 @requires("reports.view", "records.export")

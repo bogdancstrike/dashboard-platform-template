@@ -10,9 +10,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import authenticated, json_body, me
 from src.core.db import session_scope
-from src.services.decisions import approval_kinds, approvals as service
+from src.services.decisions import approval_kinds
+from src.services.decisions import approvals as service
 
 
 def _ident(kwargs: dict[str, Any], key: str) -> str:
@@ -42,10 +44,11 @@ def decision(app=None, operation: str = "", request=None, **kwargs: Any):
 
 
 @authenticated
-def bulk(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def bulk(call: Call):
     """Approve or reject several; each succeeds or fails on its own."""
     with session_scope() as session:
-        return service.decide_many(session, json_body(), principal=me()), 200
+        return service.decide_many(session, call.body, principal=me()), 200
 
 
 @authenticated
@@ -56,26 +59,29 @@ def withdraw(app=None, operation: str = "", request=None, **kwargs: Any):
 
 
 @authenticated
-def access(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def access(call: Call):
     """Ask for a permission, from the page that needed it."""
     with session_scope() as session:
-        return approval_kinds.request_access(session, json_body(), principal=me()), 201
+        return approval_kinds.request_access(session, call.body, principal=me()), 201
 
 
 @authenticated
-def publish_report(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def publish_report(call: Call):
     """Ask for one of my reports to be published to the organisation."""
     with session_scope() as session:
-        return approval_kinds.request_publish(session, json_body(), principal=me()), 201
+        return approval_kinds.request_publish(session, call.body, principal=me()), 201
 
 
 @authenticated
-def rules(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def rules(call: Call):
     """The change rules (GET), or a new one (POST, `approvals.decide`)."""
-    method = (request.method if request is not None else "GET").upper()
+    method = call.method
     with session_scope() as session:
         if method == "POST":
-            return approval_kinds.save_rule(session, json_body(), principal=me()), 201
+            return approval_kinds.save_rule(session, call.body, principal=me()), 201
         return approval_kinds.rules(session, principal=me()), 200
 
 

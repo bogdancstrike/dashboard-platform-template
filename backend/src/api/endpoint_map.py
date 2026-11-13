@@ -144,7 +144,6 @@ def check_prefix(api_prefix: str, path: str | Path | None = None) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     """`python -m src.api.endpoint_map` — check the map, then print the surface."""
-    import sys
 
     from src.config import Config
 

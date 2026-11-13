@@ -18,15 +18,15 @@ order, because that is the only part of a bookmark somebody decides.
 
 from __future__ import annotations
 
-from typing import Any
-
-from src.core.auth import json_body, me, requires
+from src.api.handler import Call, endpoint
+from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.records import favorites as service
 
 
 @requires()
-def collection(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def collection(call: Call):
     """Every bookmark, in the order this person arranged them.
 
     Not sorted by name or date: a shortcut bar's order is a decision the reader
@@ -37,7 +37,8 @@ def collection(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires()
-def add(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def add(call: Call):
     """Bookmark something addressable.
 
     The type is checked against the platform's own registry rather than a list
@@ -45,19 +46,21 @@ def add(app=None, operation: str = "", request=None, **_: Any):
     navigated off the platform would be a link nobody expects (§76).
     """
     with session_scope() as session:
-        return service.add(session, json_body(), principal=me()), 201
+        return service.add(session, call.body, principal=me()), 201
 
 
 @requires()
-def item(app=None, operation: str = "", request=None, favorite_id: str = "", **kwargs: Any):
+@endpoint
+def item(call: Call, favorite_id: str = ""):
     """Unstar one thing. Answers with the list, because that is what changed."""
-    identifier = favorite_id or str(kwargs.get("favorite_id") or "")
+    identifier = favorite_id
     with session_scope() as session:
         return service.remove(session, identifier, principal=me()), 200
 
 
 @requires()
-def arrange(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def arrange(call: Call):
     """Put the bookmarks in the order somebody dragged them into.
 
     The whole list at once rather than a move-one call: a shortcut bar is
@@ -65,11 +68,12 @@ def arrange(app=None, operation: str = "", request=None, **_: Any):
     how two drags end up fighting over one position.
     """
     with session_scope() as session:
-        return service.arrange(session, json_body(), principal=me()), 200
+        return service.arrange(session, call.body, principal=me()), 200
 
 
 @requires()
-def recents(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def recents(call: Call):
     """What this person has looked at lately, most recent first.
 
     Each row carries `is_favorite`, so the page can offer "star this" without
@@ -80,7 +84,8 @@ def recents(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires()
-def visit(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def visit(call: Call):
     """Record that this person looked at something.
 
     Upserted on `(user, type, id)` — the table's own unique constraint — so a
@@ -88,11 +93,12 @@ def visit(app=None, operation: str = "", request=None, **_: Any):
     trimmed, because an unbounded by-product is a table that only grows.
     """
     with session_scope() as session:
-        return service.visit(session, json_body(), principal=me()), 200
+        return service.visit(session, call.body, principal=me()), 200
 
 
 @requires()
-def clear_recents(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def clear_recents(call: Call):
     """Forget the trail. All of it or none.
 
     Removing one entry from a trail leaves a misleading one. Bookmarks are

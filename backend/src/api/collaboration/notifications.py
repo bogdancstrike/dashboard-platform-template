@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import json_body, me, requires
 from src.core.db import session_scope
 from src.core.pagination import parse_page
@@ -27,7 +28,8 @@ def collection(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires()
-def unread_counts(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def unread_counts(call: Call):
     """Just the numbers — what the header badge polls when the socket is down."""
     principal = me()
     with session_scope() as session:
@@ -52,10 +54,11 @@ def item(app=None, operation: str = "", request=None, notification_id: str = "",
 
 
 @requires()
-def mark_all(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def mark_all(call: Call):
     """Mark everything read, or everything in one category or collapsed group."""
     principal = me()
-    body = json_body()
+    body = call.body
     with session_scope() as session:
         return service.mark_all_read(
             session,

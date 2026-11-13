@@ -12,7 +12,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core.auth import json_body, me, requires
+from src.api.handler import Call, endpoint
+from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.people import users as service
 
@@ -26,19 +27,21 @@ def collection(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("users.view")
-def item(app=None, operation: str = "", request=None, user_id: str = "", **kwargs: Any):
+@endpoint
+def item(call: Call, user_id: str = ""):
     """One person: their profile, their effective access, and how they got it."""
-    identifier = user_id or str(kwargs.get("user_id") or "")
-    method = (request.method if request is not None else "GET").upper()
+    identifier = user_id
+    method = call.method
 
     with session_scope() as session:
         if method == "PUT":
-            return service.update(session, identifier, json_body(), principal=me()), 200
+            return service.update(session, identifier, call.body, principal=me()), 200
         return service.detail(session, identifier, principal=me()), 200
 
 
 @requires("users.impersonate")
-def impersonate(app=None, operation: str = "", request=None, user_id: str = "", **kwargs: Any):
+@endpoint
+def impersonate(call: Call, user_id: str = ""):
     """Begin acting as somebody else.
 
     Answers *whether* it is allowed and records that it started; the client
@@ -46,6 +49,6 @@ def impersonate(app=None, operation: str = "", request=None, user_id: str = "", 
     start rather than only per action, because "an administrator viewed the
     platform as this person" is itself the event worth having.
     """
-    identifier = user_id or str(kwargs.get("user_id") or "")
+    identifier = user_id
     with session_scope() as session:
         return service.impersonation_target(session, identifier, principal=me()), 200

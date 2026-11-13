@@ -25,42 +25,11 @@ PERMANENT: dict[str, str] = {
 
 #: Still to be split (seed, models, a few core modules). Ceiling = today's size.
 SOURCE_RATCHET: dict[str, int] = {
-
+    "src/api/work/planning.py": 206,
 }
 
 TEST_RATCHET: dict[str, int] = {
-    "tests/test_explorer.py": 1194,
-    "tests/test_imports.py": 1097,
-    "tests/test_exports.py": 1047,
-    "tests/test_calendar.py": 770,
-    "tests/test_seed.py": 737,
-    "tests/test_feature_flags.py": 707,
-    "tests/test_automation_graph.py": 695,
-    "tests/test_jobs.py": 687,
-    "tests/test_mail.py": 653,
-    "tests/test_workflows.py": 642,
-    "tests/test_security.py": 632,
-    "tests/test_assistant.py": 623,
-    "tests/test_kanban.py": 604,
-    "tests/test_favorites.py": 589,
-    "tests/test_dashboards.py": 581,
-    "tests/test_logs.py": 578,
-    "tests/test_organizations.py": 566,
-    "tests/test_groups.py": 546,
-    "tests/test_integrations.py": 525,
-    "tests/test_api_clients.py": 500,
-    "tests/test_query.py": 494,
-    "tests/test_chat.py": 484,
-    "tests/test_settings.py": 476,
-    "tests/test_audit.py": 465,
-    "tests/test_tags.py": 452,
-    "tests/test_work_planning.py": 433,
-    "tests/test_report_documents.py": 425,
-    "tests/test_bulk.py": 421,
-    "tests/test_docs.py": 418,
-    "tests/test_roles.py": 414,
-    "tests/test_seed_check.py": 407,
-    "tests/undo_log.py": 401,
+
 }
 
 

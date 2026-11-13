@@ -4,27 +4,37 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import json_body, me, requires
 from src.core.db import session_scope
 from src.services.ai import (
-    usage as ai,
-    filters as ai_filters,
     assistant as service,
+)
+from src.services.ai import (
     brief as assistant_brief,
+)
+from src.services.ai import (
+    filters as ai_filters,
+)
+from src.services.ai import (
     page_help,
+)
+from src.services.ai import (
+    usage as ai,
 )
 
 AI = ai.AI_PERMISSION
 
 
 @requires(AI)
-def conversations(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def conversations(call: Call):
     """This person's conversations (newest first, searchable), or a new one."""
     principal = me()
     with session_scope() as session:
-        if request is not None and request.method == "POST":
-            return service.create_conversation(session, json_body(), principal=principal), 201
-        args = request.args.to_dict() if request is not None else {}
+        if call.method == "POST":
+            return service.create_conversation(session, call.body, principal=principal), 201
+        args = call.args
         return service.list_conversations(session, args, principal=principal), 200
 
 
@@ -42,13 +52,14 @@ def conversation(app=None, operation: str = "", request=None, conversation_id=No
 
 
 @requires(AI)
-def messages(app=None, operation: str = "", request=None, conversation_id=None, **_: Any):
+@endpoint
+def messages(call: Call, conversation_id=None):
     """Ask — or ask again — and stream the answer as server-sent events."""
     from flask import Response, stream_with_context
 
     principal = me()
     with session_scope() as session:
-        turn = service.begin_turn(session, conversation_id, json_body(), principal=principal)
+        turn = service.begin_turn(session, conversation_id, call.body, principal=principal)
     return Response(
         stream_with_context(service.stream_turn(turn, principal=principal)),
         mimetype="text/event-stream",
@@ -57,36 +68,41 @@ def messages(app=None, operation: str = "", request=None, conversation_id=None, 
 
 
 @requires(AI)
-def usage(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def usage(call: Call):
     """What this person's AI use has cost in tokens, and which model answers."""
     with session_scope() as session:
         return service.usage(session, principal=me()), 200
 
 
 @requires("records.view", AI)
-def filters(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def filters(call: Call):
     """A described question → the explorer's condition tree, validated and counted."""
     with session_scope() as session:
-        return ai_filters.compile_question(session, json_body(), principal=me()), 200
+        return ai_filters.compile_question(session, call.body, principal=me()), 200
 
 
 @requires(AI)
-def brief(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def brief(call: Call):
     """Today's brief (cached per day); POST writes it again."""
-    refresh = request is not None and request.method == "POST"
+    refresh = call.method == "POST"
     with session_scope() as session:
         return assistant_brief.get(session, principal=me(), refresh=refresh), 200
 
 
 @requires(AI)
-def page_question(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def page_question(call: Call):
     """A how-to question about the page the reader is on."""
     with session_scope() as session:
-        return page_help.ask(session, json_body(), principal=me()), 200
+        return page_help.ask(session, call.body, principal=me()), 200
 
 
 @requires(AI)
-def page_action(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def page_action(call: Call):
     """Record that a proposed action was confirmed and run."""
     with session_scope() as session:
-        return page_help.confirm(session, json_body(), principal=me()), 200
+        return page_help.confirm(session, call.body, principal=me()), 200

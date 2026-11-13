@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import json_body, me, requires
 from src.core.db import session_scope
 from src.services.analytics import jobs as analytics_jobs
@@ -45,7 +46,8 @@ def model(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("health.configure")
-def recompute(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def recompute(call: Call):
     """Score every customer now and snapshot today, recorded as a job."""
     with session_scope() as session:
         return analytics_jobs.run(session, "analytics.customer-health", principal=me()), 200

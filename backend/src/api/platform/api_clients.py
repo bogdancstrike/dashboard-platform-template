@@ -14,13 +14,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.platform import api_clients as service
 
 
 @requires("api.manage")
-def catalogue(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def catalogue(call: Call):
     """The statuses and the scopes *this caller* may grant.
 
     Only their own: offering the whole catalogue and refusing half of it on
@@ -47,13 +49,14 @@ def collection(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("api.manage")
-def item(app=None, operation: str = "", request=None, client_id: str = "", **kwargs: Any):
+@endpoint
+def item(call: Call, client_id: str = ""):
     """One client: its credentials and the requests it has recently made."""
-    identifier = client_id or str(kwargs.get("client_id") or "")
-    method = (request.method if request is not None else "GET").upper()
+    identifier = client_id
+    method = call.method
     with session_scope() as session:
         if method == "PUT":
-            payload = (request.get_json(silent=True) if request is not None else None) or {}
+            payload = (call.loose_body) or {}
             return service.update(session, identifier, payload, principal=me()), 200
         if method == "DELETE":
             return service.remove(session, identifier, principal=me()), 200
@@ -61,28 +64,28 @@ def item(app=None, operation: str = "", request=None, client_id: str = "", **kwa
 
 
 @requires("api.manage")
-def rotate(app=None, operation: str = "", request=None, client_id: str = "", **kwargs: Any):
+@endpoint
+def rotate(call: Call, client_id: str = ""):
     """Mint a new credential and put the old one on a deadline (§25).
 
     Not a replacement: the previous key keeps working for a grace period,
     because a rotation that killed it immediately is an outage with extra
     steps. The new plaintext is in this response and nowhere else, ever.
     """
-    identifier = client_id or str(kwargs.get("client_id") or "")
-    payload = (request.get_json(silent=True) if request is not None else None) or {}
+    identifier = client_id
+    payload = (call.loose_body) or {}
     with session_scope() as session:
         return service.rotate(session, identifier, payload, principal=me()), 201
 
 
 @requires("api.manage")
-def credential(
-    app=None, operation: str = "", request=None, credential_id: str = "", **kwargs: Any
-):
+@endpoint
+def credential(call: Call, credential_id: str = ""):
     """Revoke one credential now, keeping the row (§25).
 
     Kept because the question after a leak is always *when, and by whom*, and a
     row that vanished answers neither.
     """
-    identifier = credential_id or str(kwargs.get("credential_id") or "")
+    identifier = credential_id
     with session_scope() as session:
         return service.revoke(session, identifier, principal=me()), 200

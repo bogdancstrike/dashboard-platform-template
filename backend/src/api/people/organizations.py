@@ -18,13 +18,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.people import organizations as service
 
 
 @requires("users.view")
-def catalogue(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def catalogue(call: Call):
     """Tiers, statuses, regions, and what this reader may change."""
     with session_scope() as session:
         return service.catalogue(session, principal=me()), 200
@@ -39,24 +41,24 @@ def collection(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("users.view")
-def item(app=None, operation: str = "", request=None, organization_id: str = "", **kwargs: Any):
+@endpoint
+def item(call: Call, organization_id: str = ""):
     """One organisation's whole structure — or a change to its own details."""
-    identifier = organization_id or str(kwargs.get("organization_id") or "")
-    method = (request.method if request is not None else "GET").upper()
+    identifier = organization_id
+    method = call.method
     with session_scope() as session:
         if method == "PUT":
-            payload = (request.get_json(silent=True) if request is not None else None) or {}
+            payload = (call.loose_body) or {}
             return service.update(session, identifier, payload, principal=me()), 200
         return service.tree(session, identifier, principal=me()), 200
 
 
 @requires("users.view", "orgs.manage")
-def departments(
-    app=None, operation: str = "", request=None, organization_id: str = "", **kwargs: Any
-):
+@endpoint
+def departments(call: Call, organization_id: str = ""):
     """Add a department, optionally inside another (§42)."""
-    identifier = organization_id or str(kwargs.get("organization_id") or "")
-    payload = (request.get_json(silent=True) if request is not None else None) or {}
+    identifier = organization_id
+    payload = (call.loose_body) or {}
     with session_scope() as session:
         return service.create_department(session, identifier, payload, principal=me()), 201
 

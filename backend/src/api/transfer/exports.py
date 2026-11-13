@@ -22,13 +22,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core.auth import json_body, me, requires
+from src.api.handler import Call, endpoint
+from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.transfer import exports as service
 
 
 @requires("records.export")
-def catalogue(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def catalogue(call: Call):
     """What can be exported, the ceilings that apply, and where mine stand.
 
     The ceilings come from the settings table, so the number this page prints
@@ -47,7 +49,8 @@ def collection(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("records.export")
-def estimate(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def estimate(call: Call):
     """How many rows a query has, and whether it streams or has to be queued.
 
     Asked before the file is committed to, because the answer changes what the
@@ -55,11 +58,12 @@ def estimate(app=None, operation: str = "", request=None, **_: Any):
     added for nothing.
     """
     with session_scope() as session:
-        return service.estimate(session, json_body(), principal=me()), 200
+        return service.estimate(session, call.body, principal=me()), 200
 
 
 @requires("records.export")
-def queue(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def queue(call: Call):
     """Accept an export and start producing it off the request.
 
     Returns the job immediately, with the mechanism that is producing it in
@@ -68,24 +72,26 @@ def queue(app=None, operation: str = "", request=None, **_: Any):
     accepted and failed later.
     """
     with session_scope() as session:
-        return service.queue(session, json_body(), principal=me()), 201
+        return service.queue(session, call.body, principal=me()), 201
 
 
 @requires("records.export")
-def again(app=None, operation: str = "", request=None, export_id: str = "", **kwargs: Any):
+@endpoint
+def again(call: Call, export_id: str = ""):
     """Ask the same question again, as a new export.
 
     Not a retry: the rows have moved on since the original was requested, so
     this queues a fresh export from the stored query rather than re-running the
     old job in place. What the page offers on a failed or stalled one.
     """
-    identifier = export_id or str(kwargs.get("export_id") or "")
+    identifier = export_id
     with session_scope() as session:
         return service.again(session, identifier, principal=me()), 201
 
 
 @requires("records.export")
-def item(app=None, operation: str = "", request=None, export_id: str = "", **kwargs: Any):
+@endpoint
+def item(call: Call, export_id: str = ""):
     """One of my exports, with its log lines — or a `DELETE` that lets it go.
 
     `DELETE` takes two presses, the platform's own rule for this shape of thing
@@ -96,8 +102,8 @@ def item(app=None, operation: str = "", request=None, export_id: str = "", **kwa
     other tidies away a note — and because the audit trail keeps the history
     either way.
     """
-    identifier = export_id or str(kwargs.get("export_id") or "")
-    method = (request.method if request is not None else "GET").upper()
+    identifier = export_id
+    method = call.method
     with session_scope() as session:
         if method == "DELETE":
             return service.forget(session, identifier, principal=me()), 200
@@ -105,7 +111,8 @@ def item(app=None, operation: str = "", request=None, export_id: str = "", **kwa
 
 
 @requires("records.export")
-def download(app=None, operation: str = "", request=None, export_id: str = "", **kwargs: Any):
+@endpoint
+def download(call: Call, export_id: str = ""):
     """A signed URL for the file.
 
     A URL rather than the bytes, deliberately: streaming a finished artefact
@@ -113,6 +120,6 @@ def download(app=None, operation: str = "", request=None, export_id: str = "", *
     storage can serve on its own. `core/storage` signs it either way — MinIO in
     the compose stack, this process when storage is local.
     """
-    identifier = export_id or str(kwargs.get("export_id") or "")
+    identifier = export_id
     with session_scope() as session:
         return service.download(session, identifier, principal=me()), 200

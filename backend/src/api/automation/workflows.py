@@ -17,40 +17,43 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.automation import workflows as service
 
 
 @requires("automations.manage")
-def rules(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def rules(call: Call):
     """Every automation, or a new one."""
     principal = me()
-    if request is not None and request.method == "POST":
+    if call.method == "POST":
         with session_scope() as session:
             return (
-                service.create(session, request.get_json(silent=True), principal=principal),
+                service.create(session, call.loose_body, principal=principal),
                 201,
             )
 
-    args = request.args.to_dict() if request is not None else {}
+    args = call.args
     with session_scope() as session:
         return service.list_rules(session, args, principal=principal), 200
 
 
 @requires("automations.manage")
-def rule(app=None, operation: str = "", request=None, rule_id=None, **_: Any):
+@endpoint
+def rule(call: Call, rule_id=None):
     """One automation with its recent runs, a change to it, or its withdrawal."""
     principal = me()
     with session_scope() as session:
-        if request is not None and request.method == "PUT":
+        if call.method == "PUT":
             return (
                 service.update(
-                    session, rule_id, request.get_json(silent=True), principal=principal
+                    session, rule_id, call.loose_body, principal=principal
                 ),
                 200,
             )
-        if request is not None and request.method == "DELETE":
+        if call.method == "DELETE":
             return service.remove(session, rule_id, principal=principal), 200
         return service.get(session, rule_id, principal=principal), 200
 
@@ -70,10 +73,11 @@ def run(app=None, operation: str = "", request=None, rule_id=None, **_: Any):
 
 
 @requires("automations.manage")
-def runs(app=None, operation: str = "", request=None, rule_id=None, **_: Any):
+@endpoint
+def runs(call: Call, rule_id=None):
     """What this automation has done, most recent first."""
     principal = me()
-    args = request.args.to_dict() if request is not None else {}
+    args = call.args
     with session_scope() as session:
         return (
             service.runs(session, rule_id, principal=principal, limit=int(args.get("limit", 25))),
@@ -82,7 +86,8 @@ def runs(app=None, operation: str = "", request=None, rule_id=None, **_: Any):
 
 
 @requires("automations.manage")
-def catalog(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def catalog(call: Call):
     """What an automation may watch and what it may do."""
     principal = me()
     with session_scope() as session:
@@ -93,16 +98,17 @@ def catalog(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("automations.manage")
-def graph(app=None, operation: str = "", request=None, rule_id=None, **_: Any):
+@endpoint
+def graph(call: Call, rule_id=None):
     """The canvas's draft, the published version, versions and run counts — or a saved draft."""
     from src.services.automation import graph as automation_graph
 
     principal = me()
     with session_scope() as session:
-        if request is not None and request.method == "PUT":
+        if call.method == "PUT":
             return (
                 automation_graph.save_draft(
-                    session, rule_id, request.get_json(silent=True), principal=principal
+                    session, rule_id, call.loose_body, principal=principal
                 ),
                 200,
             )
@@ -158,18 +164,20 @@ def test(app=None, operation: str = "", request=None, rule_id=None, **_: Any):
 
 
 @requires("automations.manage")
-def samples(app=None, operation: str = "", request=None, rule_id=None, **_: Any):
+@endpoint
+def samples(call: Call, rule_id=None):
     """Records to test with, from the trigger's dataset."""
     from src.services.automation import graph as automation_graph
 
     principal = me()
-    args = request.args.to_dict() if request is not None else {}
+    args = call.args
     with session_scope() as session:
         return automation_graph.samples(session, rule_id, args, principal=principal), 200
 
 
 @requires("automations.manage")
-def scheduler(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def scheduler(call: Call):
     """Run scheduled workflows that are due, and resume delays that are over."""
     from src.services.automation import graph as automation_graph
 

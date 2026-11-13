@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import json_body, me, requires
 from src.core.db import session_scope
 from src.services.analytics.insights import pages as service
@@ -32,14 +33,16 @@ def collection(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("ai.use")
-def generate(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def generate(call: Call):
     """Compose a page for a question — the model looks at the data, then lays it out."""
     with session_scope() as session:
-        return service.generate(session, json_body(), principal=me()), 200
+        return service.generate(session, call.body, principal=me()), 200
 
 
 @requires("ai.use")
-def suggestion(app=None, operation: str = "", request=None, key: str = "", **_: Any):
+@endpoint
+def suggestion(call: Call, key: str = ""):
     """A suggested insight, bound for this reader. No model involved."""
     with session_scope() as session:
         return service.from_suggestion(session, key, principal=me()), 200
@@ -58,7 +61,8 @@ def item(app=None, operation: str = "", request=None, insight_id: str = "", **_:
 
 
 @requires("ai.use")
-def refresh(app=None, operation: str = "", request=None, insight_id: str = "", **_: Any):
+@endpoint
+def refresh(call: Call, insight_id: str = ""):
     """Re-run the insight's queries and keep the new numbers."""
     with session_scope() as session:
         return service.refresh(session, insight_id, principal=me()), 200

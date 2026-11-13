@@ -12,56 +12,59 @@ when the work has shipped.
 
 from __future__ import annotations
 
-from typing import Any
-
-from src.core.auth import json_body, me, requires
+from src.api.handler import Call, endpoint
+from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.platform import settings as service
 
 
 @requires("settings.manage")
-def collection(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def collection(call: Call):
     """Every setting, grouped, with what the platform ships with beside it."""
     principal = me()
-    args = request.args.to_dict() if request is not None else {}
+    args = call.args
     with session_scope() as session:
         return service.settings(session, args, principal=principal), 200
 
 
 @requires("settings.manage")
-def item(app=None, operation: str = "", request=None, key: str = "", **kwargs: Any):
+@endpoint
+def item(call: Call, key: str = ""):
     """Change one setting, or reset it to its default."""
     principal = me()
-    identifier = key or str(kwargs.get("key") or "")
+    identifier = key
     with session_scope() as session:
-        return service.update_setting(session, identifier, json_body(), principal=principal), 200
+        return service.update_setting(session, identifier, call.body, principal=principal), 200
 
 
 @requires("flags.manage")
-def flags(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def flags(call: Call):
     """Every flag and whether it is on for this reader, or a new one."""
     principal = me()
-    if request is not None and request.method == "POST":
+    if call.method == "POST":
         with session_scope() as session:
-            answer = service.create_flag(session, json_body(), principal=principal)
+            answer = service.create_flag(session, call.body, principal=principal)
         _flags_changed([answer["key"]])
         return answer, 201
 
-    args = request.args.to_dict() if request is not None else {}
+    args = call.args
     with session_scope() as session:
         return service.flags(session, args, principal=principal), 200
 
 
 @requires("flags.manage")
-def flag(app=None, operation: str = "", request=None, key: str = "", **kwargs: Any):
+@endpoint
+def flag(call: Call, key: str = ""):
     """Turn a flag on or off, change its rollout, or remove it."""
     principal = me()
-    identifier = key or str(kwargs.get("key") or "")
+    identifier = key
     with session_scope() as session:
-        if request is not None and request.method == "DELETE":
+        if call.method == "DELETE":
             answer = service.remove_flag(session, identifier, principal=principal)
         else:
-            answer = service.update_flag(session, identifier, json_body(), principal=principal)
+            answer = service.update_flag(session, identifier, call.body, principal=principal)
     # After the commit, never inside it: a worker that re-read the flags
     # between the bump and the commit would cache the old state under the
     # new generation.
@@ -70,18 +73,20 @@ def flag(app=None, operation: str = "", request=None, key: str = "", **kwargs: A
 
 
 @requires("flags.manage")
-def flag_history(app=None, operation: str = "", request=None, key: str = "", **kwargs: Any):
+@endpoint
+def flag_history(call: Call, key: str = ""):
     """Every recorded change to one flag."""
-    identifier = key or str(kwargs.get("key") or "")
-    args = request.args.to_dict() if request is not None else {}
+    identifier = key
+    args = call.args
     with session_scope() as session:
         return service.flag_history(session, identifier, args, principal=me()), 200
 
 
 @requires("flags.manage")
-def flag_preview(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def flag_preview(call: Call):
     """What a role, person, group or organization would see."""
-    args = request.args.to_dict() if request is not None else {}
+    args = call.args
     with session_scope() as session:
         return service.preview(session, args, principal=me()), 200
 

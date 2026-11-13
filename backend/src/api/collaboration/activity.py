@@ -8,16 +8,16 @@ was done to *this record*, exactly" and sits behind `audit.view`; this answers
 
 from __future__ import annotations
 
-from typing import Any
-
+from src.api.handler import Call, endpoint
 from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.collaboration import activity as service
 
 
 @requires("records.view")
-def collection(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def collection(call: Call):
     """One page of the feed, with a count per kind over the whole match."""
-    args = request.args.to_dict() if request is not None else {}
+    args = call.args
     with session_scope() as session:
         return service.feed(session, args, principal=me()), 200

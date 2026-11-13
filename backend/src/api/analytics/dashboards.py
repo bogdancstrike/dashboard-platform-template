@@ -10,41 +10,45 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import json_body, me, requires
 from src.core.db import session_scope
 from src.services.analytics import dashboards as service
 
 
 @requires("records.view")
-def collection(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def collection(call: Call):
     """Every dashboard this reader may open, or one more of their own."""
-    method = (request.method if request is not None else "GET").upper()
+    method = call.method
     with session_scope() as session:
         if method == "POST":
-            return service.create(session, json_body(), principal=me()), 201
+            return service.create(session, call.body, principal=me()), 201
         return service.listing(session, principal=me()), 200
 
 
 @requires("records.view")
-def item(app=None, operation: str = "", request=None, dashboard_id: str = "", **kwargs: Any):
+@endpoint
+def item(call: Call, dashboard_id: str = ""):
     """One dashboard: read it, change it, or remove it."""
-    identifier = dashboard_id or str(kwargs.get("dashboard_id") or "")
-    method = (request.method if request is not None else "GET").upper()
+    identifier = dashboard_id
+    method = call.method
     with session_scope() as session:
         principal = me()
         if method == "PUT":
-            return service.update(session, identifier, json_body(), principal=principal), 200
+            return service.update(session, identifier, call.body, principal=principal), 200
         if method == "DELETE":
             return service.remove(session, identifier, principal=principal), 200
         return service.get(session, identifier, principal=principal), 200
 
 
 @requires("records.view")
-def widgets(app=None, operation: str = "", request=None, dashboard_id: str = "", **kwargs: Any):
+@endpoint
+def widgets(call: Call, dashboard_id: str = ""):
     """Add a widget to a dashboard. Returns the whole layout it now has."""
-    identifier = dashboard_id or str(kwargs.get("dashboard_id") or "")
+    identifier = dashboard_id
     with session_scope() as session:
-        return service.add_widget(session, identifier, json_body(), principal=me()), 201
+        return service.add_widget(session, identifier, call.body, principal=me()), 201
 
 
 @requires("records.view")
@@ -70,20 +74,22 @@ def widget(
 
 
 @requires("records.view")
-def duplicate(app=None, operation: str = "", request=None, dashboard_id: str = "", **kwargs: Any):
+@endpoint
+def duplicate(call: Call, dashboard_id: str = ""):
     """A private copy of a dashboard the caller may see, owned by them.
 
     What makes a shared dashboard worth sharing: you can adopt a colleague's
     layout instead of rebuilding it. The copy is private and shares nothing.
     """
-    identifier = dashboard_id or str(kwargs.get("dashboard_id") or "")
+    identifier = dashboard_id
     with session_scope() as session:
         return service.duplicate(session, identifier, principal=me()), 201
 
 
 @requires("records.view")
-def arrange(app=None, operation: str = "", request=None, dashboard_id: str = "", **kwargs: Any):
+@endpoint
+def arrange(call: Call, dashboard_id: str = ""):
     """Every widget's geometry at once, which is what one drag produces."""
-    identifier = dashboard_id or str(kwargs.get("dashboard_id") or "")
+    identifier = dashboard_id
     with session_scope() as session:
-        return service.arrange(session, identifier, json_body(), principal=me()), 200
+        return service.arrange(session, identifier, call.body, principal=me()), 200

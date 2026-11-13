@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.records import quality as service
@@ -30,10 +31,9 @@ def overview(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("records.view")
-def summary(
-    app=None, operation: str = "", request=None, resource_type: str = "", **kwargs: Any
-):
+@endpoint
+def summary(call: Call, resource_type: str = ""):
     """Just the counts for one dataset, for the chip on its list page."""
-    kind = resource_type or str(kwargs.get("resource_type") or "")
+    kind = resource_type
     with session_scope() as session:
         return service.summary(session, kind, principal=me()), 200

@@ -11,54 +11,58 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import authenticated, me
 from src.core.db import session_scope
 from src.services.collaboration import announcements as service
 
 
 @authenticated
-def collection(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def collection(call: Call):
     """The notices addressed to this reader, or a new one (`announcements.manage`)."""
     principal = me()
-    if request is not None and request.method == "POST":
+    if call.method == "POST":
         # Checked before the session is opened, not inside the service: a
         # refusal that has already taken a database connection has paid for
         # work it was never going to do, and on a pool under load that is the
         # connection somebody else was waiting for.
         principal.require(service.MANAGE_PERMISSION)
         with session_scope() as session:
-            return service.create(session, request.get_json(silent=True), principal=principal), 201
+            return service.create(session, call.loose_body, principal=principal), 201
 
-    args = request.args.to_dict() if request is not None else {}
+    args = call.args
     with session_scope() as session:
         return service.feed(session, args, principal=principal), 200
 
 
 @authenticated
-def drafts(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def drafts(call: Call):
     """Every notice whatever its state — the author's list."""
     principal = me()
     principal.require(service.MANAGE_PERMISSION)
-    args = request.args.to_dict() if request is not None else {}
+    args = call.args
     with session_scope() as session:
         return service.drafts(session, args, principal=principal), 200
 
 
 @authenticated
-def item(app=None, operation: str = "", request=None, announcement_id=None, **_: Any):
+@endpoint
+def item(call: Call, announcement_id=None):
     """One notice: read it, change it, or withdraw it."""
     principal = me()
-    if request is not None and request.method in ("PUT", "DELETE"):
+    if call.method in ("PUT", "DELETE"):
         principal.require(service.MANAGE_PERMISSION)
     with session_scope() as session:
-        if request is not None and request.method == "PUT":
+        if call.method == "PUT":
             return (
                 service.update(
-                    session, announcement_id, request.get_json(silent=True), principal=principal
+                    session, announcement_id, call.loose_body, principal=principal
                 ),
                 200,
             )
-        if request is not None and request.method == "DELETE":
+        if call.method == "DELETE":
             return service.remove(session, announcement_id, principal=principal), 200
         return service.get(session, announcement_id, principal=principal), 200
 

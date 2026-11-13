@@ -17,7 +17,7 @@ from __future__ import annotations
 import pytest
 
 from tests.patching import patch_package
-from tests.test_seed import scratch_database  # noqa: F401 - a fixture, used by name
+from tests.seed_support import scratch_database  # noqa: F401 - a fixture, used by name
 
 SYNC_FLAGS = (
     "--sync-files",

@@ -8,21 +8,22 @@ measure them this way*, so they share one compiler — and one place where "last
 
 from __future__ import annotations
 
-from typing import Any
-
-from src.core.auth import json_body, me, requires
+from src.api.handler import Call, endpoint
+from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.analytics import analysis as service
 
 
 @requires("records.view")
-def catalogue(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def catalogue(call: Call):
     """What each dataset can be grouped by, measured by, and over which periods."""
     return service.catalogue(principal=me()), 200
 
 
 @requires("records.view")
-def run(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def run(call: Call):
     """Execute one analysis, aggregated entirely in PostgreSQL."""
     with session_scope() as session:
-        return service.run(session, json_body(), principal=me()), 200
+        return service.run(session, call.body, principal=me()), 200

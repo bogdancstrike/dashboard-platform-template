@@ -22,13 +22,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core.auth import json_body, me, requires
+from src.api.handler import Call, endpoint
+from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.people import security as service
 
 
 @requires()
-def overview(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def overview(call: Call):
     """The three things worth knowing before scrolling.
 
     A summary rather than a row of counts: the page's job is to answer "is
@@ -39,7 +41,8 @@ def overview(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires()
-def sessions(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def sessions(call: Call):
     """Every sign-in on this account, the live ones first.
 
     `current` on each row is derived from *this request's* session claim rather
@@ -51,7 +54,8 @@ def sessions(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires()
-def session_item(app=None, operation: str = "", request=None, session_id: str = "", **kwargs: Any):
+@endpoint
+def session_item(call: Call, session_id: str = ""):
     """Sign one device out, or mark it as one you recognise.
 
     `DELETE` revokes — and the revocation is *enforced*, by
@@ -59,16 +63,17 @@ def session_item(app=None, operation: str = "", request=None, session_id: str = 
     the model claimed a revoked session is refused on its next request long
     before anything read the table.
     """
-    identifier = session_id or str(kwargs.get("session_id") or "")
-    method = (request.method if request is not None else "GET").upper()
+    identifier = session_id
+    method = call.method
     with session_scope() as scope:
         if method == "DELETE":
             return service.revoke(scope, identifier, principal=me()), 200
-        return service.trust(scope, identifier, json_body(), principal=me()), 200
+        return service.trust(scope, identifier, call.body, principal=me()), 200
 
 
 @requires()
-def revoke_others(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def revoke_others(call: Call):
     """Sign out everywhere else, keeping this session.
 
     The action somebody takes when they think their password is known. It keeps
@@ -102,13 +107,14 @@ def events(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires()
-def event_item(app=None, operation: str = "", request=None, event_id: str = "", **kwargs: Any):
+@endpoint
+def event_item(call: Call, event_id: str = ""):
     """Mark one event as dealt with, or as not.
 
     Reversible and not a delete: "I have seen this and it was me" is worth
     recording, and losing the row would leave the page unable to answer whether
     anything was ever looked at.
     """
-    identifier = event_id or str(kwargs.get("event_id") or "")
+    identifier = event_id
     with session_scope() as session:
-        return service.resolve(session, identifier, json_body(), principal=me()), 200
+        return service.resolve(session, identifier, call.body, principal=me()), 200

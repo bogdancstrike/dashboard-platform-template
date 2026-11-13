@@ -13,40 +13,43 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.work import calendar as service
 
 
 @requires("calendar.view")
-def events(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def events(call: Call):
     """Everything in a window, or a new event."""
     principal = me()
-    if request is not None and request.method == "POST":
+    if call.method == "POST":
         with session_scope() as session:
             return (
-                service.create(session, request.get_json(silent=True), principal=principal),
+                service.create(session, call.loose_body, principal=principal),
                 201,
             )
 
-    args = request.args.to_dict() if request is not None else {}
+    args = call.args
     with session_scope() as session:
         return service.window(session, args, principal=principal), 200
 
 
 @requires("calendar.view")
-def event(app=None, operation: str = "", request=None, event_id=None, **_: Any):
+@endpoint
+def event(call: Call, event_id=None):
     """One event, a change to the whole series, or its cancellation."""
     principal = me()
     with session_scope() as session:
-        if request is not None and request.method == "PUT":
+        if call.method == "PUT":
             return (
                 service.update(
-                    session, event_id, request.get_json(silent=True), principal=principal
+                    session, event_id, call.loose_body, principal=principal
                 ),
                 200,
             )
-        if request is not None and request.method == "DELETE":
+        if call.method == "DELETE":
             return service.remove(session, event_id, principal=principal), 200
         return service.get(session, event_id, principal=principal), 200
 

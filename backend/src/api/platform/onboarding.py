@@ -4,13 +4,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import authenticated, me, requires
 from src.core.db import session_scope
 from src.services.platform import onboarding as service
 
 
 @authenticated
-def checklist(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def checklist(call: Call):
     """This person's checklist for their role, with progress."""
     with session_scope() as session:
         return service.checklist(session, principal=me()), 200
@@ -31,16 +33,18 @@ def dismiss(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("admin.access")
-def samples(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def samples(call: Call):
     """Which areas have sample data loaded."""
     with session_scope() as session:
         return service.samples(session, principal=me()), 200
 
 
 @requires("admin.access")
-def sample(app=None, operation: str = "", request=None, area=None, **_: Any):
+@endpoint
+def sample(call: Call, area=None):
     """Load a tagged sample dataset for an area, or remove exactly what was loaded."""
     with session_scope() as session:
-        if request is not None and request.method == "DELETE":
+        if call.method == "DELETE":
             return service.remove(session, str(area), principal=me()), 200
         return service.load(session, str(area), principal=me()), 201

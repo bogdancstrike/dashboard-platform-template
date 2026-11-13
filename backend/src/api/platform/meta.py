@@ -20,13 +20,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.config import Config
 from src.core.auth import (
     ALL_PERMISSIONS,
-    authenticated,
     PERMISSION_GROUPS,
     PERMISSION_LABELS,
     ROLE_DEFAULTS,
+    authenticated,
 )
 from src.core.clock import iso, now
 
@@ -60,7 +61,8 @@ def application(app=None, operation: str = "", request=None, **_: Any):
 
 
 @authenticated
-def permissions(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def permissions(call: Call):
     """The catalogue, in the grouping the admin permission matrix renders."""
     return {
         "groups": [
@@ -77,7 +79,8 @@ def permissions(app=None, operation: str = "", request=None, **_: Any):
 
 
 @authenticated
-def roles(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def roles(call: Call):
     """Built-in role definitions.
 
     These are the *defaults* the seed writes into the `roles` table, not the
@@ -107,7 +110,8 @@ def roles(app=None, operation: str = "", request=None, **_: Any):
 
 
 @authenticated
-def routes(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def routes(call: Call):
     """Every route this process serves, read from the map it was mounted from.
 
     Published rather than derived in the browser: a generated API client that

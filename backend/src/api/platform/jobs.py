@@ -13,13 +13,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.platform import jobs as service
 
 
 @requires("jobs.view")
-def catalogue(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def catalogue(call: Call):
     """The filter vocabulary, the per-status counts, and what this reader may do."""
     with session_scope() as session:
         return service.catalogue(session, principal=me()), 200
@@ -34,46 +36,50 @@ def collection(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("jobs.view")
-def item(app=None, operation: str = "", request=None, job_id: str = "", **kwargs: Any):
+@endpoint
+def item(call: Call, job_id: str = ""):
     """One job in full: its payload, its result and its own log lines."""
-    identifier = job_id or str(kwargs.get("job_id") or "")
+    identifier = job_id
     with session_scope() as session:
         return service.entry(session, identifier, principal=me()), 200
 
 
 @requires("jobs.view", "jobs.manage")
-def retry(app=None, operation: str = "", request=None, job_id: str = "", **kwargs: Any):
+@endpoint
+def retry(call: Call, job_id: str = ""):
     """Queue another attempt on the same job (§23).
 
     Refused while the job is still running, and refused once it has used its
     attempts — both with the reason and the bound named, because a queue that
     appears to accept a retry and does nothing is worse than one that says no.
     """
-    identifier = job_id or str(kwargs.get("job_id") or "")
+    identifier = job_id
     with session_scope() as session:
         return service.retry(session, identifier, principal=me()), 200
 
 
 @requires("jobs.view", "jobs.manage")
-def allow_attempts(app=None, operation: str = "", request=None, job_id: str = "", **kwargs: Any):
+@endpoint
+def allow_attempts(call: Call, job_id: str = ""):
     """Grant a job more attempts (§23).
 
     The action the retry refusal points at. Its own verb rather than a flag on
     retry, because raising a limit and running the work are two decisions.
     """
-    identifier = job_id or str(kwargs.get("job_id") or "")
-    payload = (request.get_json(silent=True) if request is not None else None) or {}
+    identifier = job_id
+    payload = (call.loose_body) or {}
     with session_scope() as session:
         return service.allow_attempts(session, identifier, payload, principal=me()), 200
 
 
 @requires("jobs.view", "jobs.manage")
-def cancel(app=None, operation: str = "", request=None, job_id: str = "", **kwargs: Any):
+@endpoint
+def cancel(call: Call, job_id: str = ""):
     """Stop a job that has not finished, keeping the row (§23).
 
     Not a delete: a queue whose cancelled jobs vanish cannot answer "why did
     the nightly export not run last Tuesday".
     """
-    identifier = job_id or str(kwargs.get("job_id") or "")
+    identifier = job_id
     with session_scope() as session:
         return service.cancel(session, identifier, principal=me()), 200

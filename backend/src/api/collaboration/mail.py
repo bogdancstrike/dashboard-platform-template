@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.core.pagination import parse_page
@@ -24,10 +25,11 @@ from src.services.collaboration import mail as service
 
 
 @requires("mail.access")
-def threads(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def threads(call: Call):
     """One folder of this reader's mailbox."""
     principal = me()
-    args = request.args.to_dict() if request is not None else {}
+    args = call.args
     with session_scope() as session:
         return (
             service.threads(
@@ -41,21 +43,22 @@ def threads(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("mail.access")
-def thread(app=None, operation: str = "", request=None, thread_id=None, **_: Any):
+@endpoint
+def thread(call: Call, thread_id=None):
     """One conversation with its messages, a change to it, or its removal."""
     principal = me()
     with session_scope() as session:
-        if request is not None and request.method == "PUT":
+        if call.method == "PUT":
             return (
                 service.update_thread(
-                    session, thread_id, request.get_json(silent=True), principal=principal
+                    session, thread_id, call.loose_body, principal=principal
                 ),
                 200,
             )
-        if request is not None and request.method == "DELETE":
+        if call.method == "DELETE":
             return service.remove_thread(session, thread_id, principal=principal), 200
 
-        args = request.args.to_dict() if request is not None else {}
+        args = call.args
         return service.thread(session, thread_id, args, principal=principal), 200
 
 
@@ -84,22 +87,24 @@ def messages(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("mail.access")
-def message(app=None, operation: str = "", request=None, message_id=None, **_: Any):
+@endpoint
+def message(call: Call, message_id=None):
     """Edit a draft, send it, or discard it. Only ever a draft."""
     principal = me()
     with session_scope() as session:
-        if request is not None and request.method == "DELETE":
+        if call.method == "DELETE":
             return service.remove_message(session, message_id, principal=principal), 200
         return (
             service.update_message(
-                session, message_id, request.get_json(silent=True), principal=principal
+                session, message_id, call.loose_body, principal=principal
             ),
             200,
         )
 
 
 @requires("mail.access")
-def mail_templates(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def mail_templates(call: Call):
     """The composer's wording, or one of them filled in.
 
     A `POST` fills a template's placeholders on the server, because the
@@ -108,8 +113,8 @@ def mail_templates(app=None, operation: str = "", request=None, **_: Any):
     """
     principal = me()
     with session_scope() as session:
-        if request is not None and request.method == "POST":
-            body = request.get_json(silent=True) or {}
+        if call.method == "POST":
+            body = call.loose_body or {}
             return (
                 service.render_template(
                     session, str(body.get("code") or ""), body.get("variables") or {},

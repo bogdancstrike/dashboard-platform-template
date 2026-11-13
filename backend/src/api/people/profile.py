@@ -11,23 +11,24 @@ mysteriously blank.
 
 from __future__ import annotations
 
-from typing import Any
-
+from src.api.handler import Call, endpoint
 from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.people import profile as service
 
 
 @requires()
-def mine(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def mine(call: Call):
     """The signed-in reader's own page."""
     with session_scope() as session:
         return service.profile(session, None, principal=me()), 200
 
 
 @requires()
-def person(app=None, operation: str = "", request=None, user_id: str = "", **kwargs: Any):
+@endpoint
+def person(call: Call, user_id: str = ""):
     """A colleague's page, showing only what this reader may be told."""
-    identifier = user_id or str(kwargs.get("user_id") or "")
+    identifier = user_id
     with session_scope() as session:
         return service.profile(session, identifier, principal=me()), 200

@@ -16,31 +16,27 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core.auth import json_body, me, requires
+from src.api.handler import Call, endpoint
+from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.records import bulk as bulk_service
 from src.services.records import compare as compare_service
-from src.services.records import writes as writes
 from src.services.records import detail as service
+from src.services.records import writes as writes
 
 
 @requires("records.view")
-def collection(app=None, operation: str = "", request=None, resource_type: str = "", **kwargs: Any):
+@endpoint
+def collection(call: Call, resource_type: str = ""):
     """Create one record (§9). The server names it; the client describes it."""
-    kind = resource_type or str(kwargs.get("resource_type") or "")
+    kind = resource_type
     with session_scope() as session:
-        return writes.create(session, kind, json_body(), principal=me()), 201
+        return writes.create(session, kind, call.body, principal=me()), 201
 
 
 @requires("records.view")
-def item(
-    app=None,
-    operation: str = "",
-    request=None,
-    resource_type: str = "",
-    record_id: str = "",
-    **kwargs: Any,
-):
+@endpoint
+def item(call: Call, resource_type: str = "", record_id: str = ""):
     """One record: read it, edit it, or remove it.
 
     `records.view` gates the handler because every verb here begins by reading
@@ -48,23 +44,22 @@ def item(
     service, so a caller who may read but not edit is told which permission is
     missing rather than which route to use.
     """
-    kind = resource_type or str(kwargs.get("resource_type") or "")
-    identifier = record_id or str(kwargs.get("record_id") or "")
-    method = (request.method if request is not None else "GET").upper()
+    kind = resource_type
+    identifier = record_id
+    method = call.method
 
     with session_scope() as session:
         principal = me()
         if method == "PUT":
-            return writes.update(session, kind, identifier, json_body(), principal=principal), 200
+            return writes.update(session, kind, identifier, call.body, principal=principal), 200
         if method == "DELETE":
             return writes.delete(session, kind, identifier, principal=principal), 200
         return service.detail(session, kind, identifier, principal=principal), 200
 
 
 @requires("records.view")
-def bulk_preview(
-    app=None, operation: str = "", request=None, resource_type: str = "", **kwargs: Any
-):
+@endpoint
+def bulk_preview(call: Call, resource_type: str = ""):
     """What a bulk gesture would do, before it does it (§75).
 
     A separate call and not a flag on the write, because the answer has to be
@@ -74,13 +69,14 @@ def bulk_preview(
     as an error — somebody who may read but not delete should see how many rows
     they are not allowed to delete, not a 403 with no number in it.
     """
-    kind = resource_type or str(kwargs.get("resource_type") or "")
+    kind = resource_type
     with session_scope() as session:
-        return bulk_service.preview(session, kind, json_body(), principal=me()), 200
+        return bulk_service.preview(session, kind, call.body, principal=me()), 200
 
 
 @requires("records.view")
-def bulk(app=None, operation: str = "", request=None, resource_type: str = "", **kwargs: Any):
+@endpoint
+def bulk(call: Call, resource_type: str = ""):
     """Apply one change to many records, and report both halves (§43).
 
     200 rather than 207 or 400 when some rows fail. Partial success is the
@@ -93,9 +89,9 @@ def bulk(app=None, operation: str = "", request=None, resource_type: str = "", *
     own permission is required by the service, so a caller who may read but not
     write is told which permission is missing rather than which route to use.
     """
-    kind = resource_type or str(kwargs.get("resource_type") or "")
+    kind = resource_type
     with session_scope() as session:
-        return bulk_service.apply(session, kind, json_body(), principal=me()), 200
+        return bulk_service.apply(session, kind, call.body, principal=me()), 200
 
 
 @requires("records.view")

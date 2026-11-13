@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import authenticated, json_body, me
 from src.core.db import session_scope
 from src.services.decisions import timekeeping as service
@@ -19,20 +20,22 @@ def _args(request):
 
 
 @authenticated
-def timer(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def timer(call: Call):
     """GET what is running; POST to start one (stopping any other)."""
-    method = (request.method if request is not None else "GET").upper()
+    method = call.method
     with session_scope() as session:
         if method == "POST":
-            return service.start(session, json_body(), principal=me()), 200
+            return service.start(session, call.body, principal=me()), 200
         return service.current(session, principal=me()), 200
 
 
 @authenticated
-def stop(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def stop(call: Call):
     """Stop the running timer, with an optional note."""
     with session_scope() as session:
-        return service.stop(session, json_body(), principal=me()), 200
+        return service.stop(session, call.body, principal=me()), 200
 
 
 @authenticated
@@ -64,17 +67,19 @@ def week(app=None, operation: str = "", request=None, **_: Any):
 
 
 @authenticated
-def cell(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def cell(call: Call):
     """Set one cell of my week grid to a number of minutes."""
     with session_scope() as session:
-        return service.set_cell(session, json_body(), principal=me()), 200
+        return service.set_cell(session, call.body, principal=me()), 200
 
 
 @authenticated
-def submit(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def submit(call: Call):
     """Submit my week for approval, which locks it."""
     with session_scope() as session:
-        return service.submit_week(session, json_body(), principal=me()), 200
+        return service.submit_week(session, call.body, principal=me()), 200
 
 
 @authenticated

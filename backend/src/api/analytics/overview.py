@@ -10,8 +10,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core.db import session_scope
+from src.api.handler import Call, endpoint
 from src.core.auth import requires
+from src.core.db import session_scope
 from src.services.analytics import overview as service
 
 
@@ -36,7 +37,8 @@ def summary(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("records.view")
-def alerts(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def alerts(call: Call):
     """Just the alert strip, for the polling the dashboard does between loads."""
     with session_scope() as session:
         items = service.alerts(session)

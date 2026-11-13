@@ -17,13 +17,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.platform import integrations as service
 
 
 @requires("integrations.manage")
-def catalogue(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def catalogue(call: Call):
     """Categories and states with a count against each, and what needs attention."""
     with session_scope() as session:
         return service.catalogue(session, principal=me()), 200
@@ -38,45 +40,46 @@ def collection(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("integrations.manage")
-def item(app=None, operation: str = "", request=None, integration_id: str = "", **kwargs: Any):
+@endpoint
+def item(call: Call, integration_id: str = ""):
     """One integration with its configuration — or a change to those settings.
 
     Values whose *names* say they hold something sensitive come back redacted,
     and sending the redaction back means "leave it alone": a form that had
     never shown the real token would otherwise overwrite it with bullets.
     """
-    identifier = integration_id or str(kwargs.get("integration_id") or "")
-    method = (request.method if request is not None else "GET").upper()
+    identifier = integration_id
+    method = call.method
     with session_scope() as session:
         if method == "PUT":
-            payload = (request.get_json(silent=True) if request is not None else None) or {}
+            payload = (call.loose_body) or {}
             return service.configure(session, identifier, payload, principal=me()), 200
         return service.entry(session, identifier, principal=me()), 200
 
 
 @requires("integrations.manage")
-def enablement(
-    app=None, operation: str = "", request=None, integration_id: str = "", **kwargs: Any
-):
+@endpoint
+def enablement(call: Call, integration_id: str = ""):
     """Turn an integration on or off (§26).
 
     Refused while it is missing settings: switching on something that cannot
     possibly work produces a failure with no cause to find, and the refusal
     names the settings instead.
     """
-    identifier = integration_id or str(kwargs.get("integration_id") or "")
-    payload = (request.get_json(silent=True) if request is not None else None) or {}
+    identifier = integration_id
+    payload = (call.loose_body) or {}
     with session_scope() as session:
         return service.set_enabled(session, identifier, payload, principal=me()), 200
 
 
 @requires("integrations.manage")
-def check(app=None, operation: str = "", request=None, integration_id: str = "", **kwargs: Any):
+@endpoint
+def check(call: Call, integration_id: str = ""):
     """Verify the configuration, and say what was and was not tried (§26).
 
     Carries `reached_provider: false`, because it is a configuration check and
     not a handshake. See the service docstring for where to make it real.
     """
-    identifier = integration_id or str(kwargs.get("integration_id") or "")
+    identifier = integration_id
     with session_scope() as session:
         return service.check(session, identifier, principal=me()), 200

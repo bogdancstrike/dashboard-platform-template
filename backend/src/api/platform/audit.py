@@ -10,13 +10,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.platform import audit as service
 
 
 @requires("audit.view")
-def catalogue(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def catalogue(call: Call):
     """The filter vocabulary the explorer's controls are generated from."""
     with session_scope() as session:
         return service.catalogue(session, principal=me()), 200
@@ -31,9 +33,10 @@ def collection(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("audit.view")
-def item(app=None, operation: str = "", request=None, entry_id: str = "", **kwargs: Any):
+@endpoint
+def item(call: Call, entry_id: str = ""):
     """One entry, with its field-level before → after diff."""
-    identifier = entry_id or str(kwargs.get("entry_id") or "")
+    identifier = entry_id
     with session_scope() as session:
         return service.entry(session, identifier, principal=me()), 200
 

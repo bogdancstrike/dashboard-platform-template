@@ -11,12 +11,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.work import (
     sprints,
     task_planning,
     task_templates,
+)
+from src.services.work import (
     timeline as timeline_service,
 )
 
@@ -43,7 +46,8 @@ def _catch_up() -> None:
 
 
 @requires("tasks.view")
-def task_planning_detail(app=None, operation: str = "", request=None, task_id=None, **_: Any):
+@endpoint
+def task_planning_detail(call: Call, task_id=None):
     with session_scope() as session:
         return task_planning.planning(session, task_id, principal=me()), 200
 
@@ -95,7 +99,8 @@ def dependencies(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("tasks.view")
-def dependency(app=None, operation: str = "", request=None, dependency_id=None, **_: Any):
+@endpoint
+def dependency(call: Call, dependency_id=None):
     with session_scope() as session:
         return timeline_service.unlink(session, dependency_id, principal=me()), 200
 
@@ -195,6 +200,7 @@ def template_use(app=None, operation: str = "", request=None, template_id=None, 
 
 
 @requires("tasks.view")
-def scheduler_run(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def scheduler_run(call: Call):
     with session_scope() as session:
         return task_templates.run_now(session, principal=me()), 200

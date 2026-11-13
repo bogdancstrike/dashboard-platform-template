@@ -25,13 +25,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core.auth import json_body, me, requires
+from src.api.handler import Call, endpoint
+from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.transfer import imports as service
 
 
 @requires("records.import")
-def catalogue(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def catalogue(call: Call):
     """What can be imported into, what each field accepts, and the limits.
 
     The fields come from the same `Writable` declarations an edit form is
@@ -51,7 +53,8 @@ def collection(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("records.import")
-def begin(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def begin(call: Call):
     """Accept a file, read it, and propose a mapping. The first step.
 
     The CSV arrives as text in the body rather than through a presigned upload,
@@ -60,11 +63,12 @@ def begin(app=None, operation: str = "", request=None, **_: Any):
     `core/importer.MAX_BYTES` and refused before anything is stored.
     """
     with session_scope() as session:
-        return service.begin(session, json_body(), principal=me()), 201
+        return service.begin(session, call.body, principal=me()), 201
 
 
 @requires("records.import")
-def item(app=None, operation: str = "", request=None, import_id: str = "", **kwargs: Any):
+@endpoint
+def item(call: Call, import_id: str = ""):
     """One import with a page of its rows and their problems — the preview.
 
     `DELETE` takes two presses, as `/exports` and `/mail` do: the first
@@ -72,8 +76,8 @@ def item(app=None, operation: str = "", request=None, import_id: str = "", **kwa
     the second removes the record. `removed` in the answer says which
     happened, and the audit trail keeps the history either way.
     """
-    identifier = import_id or str(kwargs.get("import_id") or "")
-    method = (request.method if request is not None else "GET").upper()
+    identifier = import_id
+    method = call.method
     with session_scope() as session:
         if method == "DELETE":
             return service.discard(session, identifier, principal=me()), 200
@@ -81,39 +85,42 @@ def item(app=None, operation: str = "", request=None, import_id: str = "", **kwa
 
 
 @requires("records.import")
-def mapping(app=None, operation: str = "", request=None, import_id: str = "", **kwargs: Any):
+@endpoint
+def mapping(call: Call, import_id: str = ""):
     """Set which column is which field, and validate every row.
 
     One call for both, because they are one thought: a mapping change changes
     which rows are wrong. Answers with the preview, so the page has the result
     of the decision it just made.
     """
-    identifier = import_id or str(kwargs.get("import_id") or "")
+    identifier = import_id
     with session_scope() as session:
-        return service.map_columns(session, identifier, json_body(), principal=me()), 200
+        return service.map_columns(session, identifier, call.body, principal=me()), 200
 
 
 @requires("records.import")
-def execute(app=None, operation: str = "", request=None, import_id: str = "", **kwargs: Any):
+@endpoint
+def execute(call: Call, import_id: str = ""):
     """Write the valid rows — all of them or none of them.
 
     Runs off the request, as a queued export does (§30), and answers with the
     run marked RUNNING plus the mechanism producing it. A small import is
     finished before the page redraws; a large one is followed.
     """
-    identifier = import_id or str(kwargs.get("import_id") or "")
+    identifier = import_id
     with session_scope() as session:
         return service.execute(session, identifier, principal=me()), 202
 
 
 @requires("records.import")
-def problems(app=None, operation: str = "", request=None, import_id: str = "", **kwargs: Any):
+@endpoint
+def problems(call: Call, import_id: str = ""):
     """The error report, as a CSV.
 
     A file rather than a list, because the rows have to go back to the
     spreadsheet they came from: line, column, the value as written, and the
     reason.
     """
-    identifier = import_id or str(kwargs.get("import_id") or "")
+    identifier = import_id
     with session_scope() as session:
         return service.problems(session, identifier, principal=me())

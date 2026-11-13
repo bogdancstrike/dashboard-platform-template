@@ -4,13 +4,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import authenticated, me, requires
 from src.core.db import session_scope
 from src.services.platform import developer_portal as service
 
 
 @authenticated
-def reference(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def reference(call: Call):
     """Every endpoint, grouped, with who may call it and a real example where one is captured."""
     with session_scope() as session:
         return service.reference(session, principal=me()), 200
@@ -24,8 +26,9 @@ def examples(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("api.manage")
-def usage(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def usage(call: Call):
     """Requests, errors, latency and busiest routes over a window — overall or per API client."""
-    args = request.args.to_dict() if request is not None else {}
+    args = call.args
     with session_scope() as session:
         return service.usage(session, args, principal=me()), 200

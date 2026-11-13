@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import json_body, me, requires
 from src.core.db import session_scope
 from src.services.records import saved_searches as service
@@ -19,25 +20,28 @@ def collection(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("records.view")
-def item(app=None, operation: str = "", request=None, search_id=None, **_: Any):
+@endpoint
+def item(call: Call, search_id=None):
     principal = me()
     with session_scope() as session:
-        if request.method == "PUT":
-            return service.update(session, search_id, json_body(), principal=principal), 200
-        if request.method == "DELETE":
+        if call.method == "PUT":
+            return service.update(session, search_id, call.body, principal=principal), 200
+        if call.method == "DELETE":
             service.remove(session, search_id, principal=principal)
             return None, 204
         return service.get(session, search_id, principal=principal, mark_used=True), 200
 
 
 @requires("records.view")
-def duplicate(app=None, operation: str = "", request=None, search_id=None, **_: Any):
+@endpoint
+def duplicate(call: Call, search_id=None):
     with session_scope() as session:
         return service.duplicate(session, search_id, principal=me()), 201
 
 
 @requires("records.view")
-def transfer(app=None, operation: str = "", request=None, search_id=None, **_: Any):
+@endpoint
+def transfer(call: Call, search_id=None):
     """Hand ownership to somebody else — owner-only, and audited (§5, §21)."""
     with session_scope() as session:
-        return service.transfer(session, search_id, json_body(), principal=me()), 200
+        return service.transfer(session, search_id, call.body, principal=me()), 200

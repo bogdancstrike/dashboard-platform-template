@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import json_body, me, requires
 from src.core.db import session_scope
 from src.services.knowledge import collections as service
@@ -23,7 +24,8 @@ def _args(request) -> dict[str, Any]:
 
 
 @requires("ai.use")
-def overview(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def overview(call: Call):
     """Headline numbers across every collection this reader may see."""
     with session_scope() as session:
         return service.overview(session, principal=me()), 200
@@ -51,10 +53,11 @@ def collection(app=None, operation: str = "", request=None, collection_id: str =
 
 
 @requires("ai.use")
-def documents(app=None, operation: str = "", request=None, collection_id: str = "", **_: Any):
+@endpoint
+def documents(call: Call, collection_id: str = ""):
     """Put files of the file manager in the collection and start reading them."""
     with session_scope() as session:
-        result = service.add_documents(session, collection_id, json_body(), principal=me())
+        result = service.add_documents(session, collection_id, call.body, principal=me())
     service.start_pending(result.pop("pending"))
     return result, 201
 
@@ -70,8 +73,8 @@ def document(app=None, operation: str = "", request=None, collection_id: str = "
 
 
 @requires("ai.use")
-def reprocess(app=None, operation: str = "", request=None, collection_id: str = "",
-              document_id: str = "", **_: Any):
+@endpoint
+def reprocess(call: Call, collection_id: str = "", document_id: str = ""):
     """Read a document again — after a failure, or with a newer converter."""
     with session_scope() as session:
         result = service.reprocess(session, collection_id, document_id, principal=me())
@@ -80,15 +83,16 @@ def reprocess(app=None, operation: str = "", request=None, collection_id: str = 
 
 
 @requires("ai.use")
-def passage(app=None, operation: str = "", request=None, collection_id: str = "",
-            chunk_id: str = "", **_: Any):
+@endpoint
+def passage(call: Call, collection_id: str = "", chunk_id: str = ""):
     """One cited passage, with its page and the boxes to mark."""
     with session_scope() as session:
         return service.passage(session, collection_id, chunk_id, principal=me()), 200
 
 
 @requires("ai.use")
-def suggestions(app=None, operation: str = "", request=None, collection_id: str = "", **_: Any):
+@endpoint
+def suggestions(call: Call, collection_id: str = ""):
     """Questions worth asking this collection."""
     with session_scope() as session:
         return service.suggestions(session, collection_id, principal=me()), 200
@@ -102,15 +106,16 @@ def history(app=None, operation: str = "", request=None, collection_id: str = ""
 
 
 @requires("ai.use")
-def thread(app=None, operation: str = "", request=None, collection_id: str = "",
-           thread_id: str = "", **_: Any):
+@endpoint
+def thread(call: Call, collection_id: str = "", thread_id: str = ""):
     """Forget one conversation."""
     with session_scope() as session:
         return service.forget_thread(session, collection_id, thread_id, principal=me()), 200
 
 
 @requires("ai.use")
-def ask(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def ask(call: Call):
     """Answer a question from a collection's documents, with numbered citations."""
     with session_scope() as session:
-        return service.ask(session, json_body(), principal=me()), 200
+        return service.ask(session, call.body, principal=me()), 200

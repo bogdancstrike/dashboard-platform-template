@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import json_body, me, requires
 from src.core.db import session_scope
 from src.services.analytics import reports as service
@@ -26,14 +27,15 @@ def collection(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("reports.view")
-def item(app=None, operation: str = "", request=None, report_id: str = "", **kwargs: Any):
+@endpoint
+def item(call: Call, report_id: str = ""):
     """One report: read it, change it, or remove it. Only the owner writes."""
-    identifier = report_id or str(kwargs.get("report_id") or "")
-    method = (request.method if request is not None else "GET").upper()
+    identifier = report_id
+    method = call.method
 
     with session_scope() as session:
         if method == "PUT":
-            return service.update(session, identifier, json_body(), principal=me()), 200
+            return service.update(session, identifier, call.body, principal=me()), 200
         if method == "DELETE":
             service.remove(session, identifier, principal=me())
             # `str`, because the route converter hands back a `UUID` and the
@@ -53,8 +55,9 @@ def run(app=None, operation: str = "", request=None, report_id: str = "", **kwar
 
 
 @requires("reports.manage")
-def duplicate(app=None, operation: str = "", request=None, report_id: str = "", **kwargs: Any):
+@endpoint
+def duplicate(call: Call, report_id: str = ""):
     """A copy of somebody else's report, owned by the caller and private."""
-    identifier = report_id or str(kwargs.get("report_id") or "")
+    identifier = report_id
     with session_scope() as session:
         return service.duplicate(session, identifier, principal=me()), 201

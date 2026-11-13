@@ -1,33 +1,6 @@
 """Undo what a test did to the shared database — and only that.
 
-The suite runs against the development database the stack serves, because the
-tests read the seeded world (personas, records, boards) the way the app does.
-A transaction rolled back around each test would be the textbook isolation and
-does not work here: the app opens its own sessions through `session_scope` and
-commits them, which is the behaviour under test.
-
-The first answer was to delete, from a hand-kept list of tables, every row
-whose `created_at` was later than the moment the test began. That is
-*anybody's* row: it deleted the load test's fixtures, the end-to-end suite's
-scratch data and whatever a person was doing in the app while the suite ran.
-And it undid nothing else — a test that trimmed the admin's recents or deleted
-a seeded conversation left the demo poorer by that much, run after run.
-
-So the suite keeps an undo log of the statements *this process* sends:
-
-* **INSERT** — the table and primary key of every row written, read from the
-  statement's own parameters (ORM flushes, bulk inserts and Core upserts
-  alike). Teardown deletes exactly those rows.
-* **UPDATE / DELETE** — before the statement runs, the rows it is about to
-  change are read (same connection, same transaction, same WHERE) and the
-  first version seen of each is kept, together with the rows an
-  `ON DELETE CASCADE` / `SET NULL` foreign key is about to take with them.
-  Teardown puts each one back as it was: updated back if it still exists,
-  re-inserted if it does not.
-
-A row another process wrote meanwhile is in neither list. The capture reads
-through the raw DBAPI cursor, below SQLAlchemy's events, so it never shows up
-in a statement count (`tests/perf`).
+How it works and why: docs/testing/backend.md ("undoes exactly what it did").
 """
 
 from __future__ import annotations

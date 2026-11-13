@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import json_body, me, requires
 from src.core.db import session_scope
 from src.core.errors import NotFoundError, ValidationError
@@ -23,20 +24,22 @@ from src.services.knowledge import files as service
 
 
 @requires("files.view")
-def tree(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def tree(call: Call):
     """Every folder, what is in it, and what this reader may do."""
     with session_scope() as session:
         return service.tree(session, principal=me()), 200
 
 
 @requires("files.view")
-def collection(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def collection(call: Call):
     """The files in one folder, or a place to put a new one."""
-    method = (request.method if request is not None else "GET").upper()
+    method = call.method
     with session_scope() as session:
         if method == "POST":
-            return service.begin_upload(session, json_body(), principal=me()), 201
-        args = request.args.to_dict() if request is not None else {}
+            return service.begin_upload(session, call.body, principal=me()), 201
+        args = call.args
         return service.listing(session, args, principal=me()), 200
 
 
@@ -65,9 +68,10 @@ def item(app=None, operation: str = "", request=None, file_id: str = "", **kwarg
 
 
 @requires("files.manage")
-def confirm(app=None, operation: str = "", request=None, file_id: str = "", **kwargs: Any):
+@endpoint
+def confirm(call: Call, file_id: str = ""):
     """The bytes are there — checked, not taken on trust."""
-    identifier = file_id or str(kwargs.get("file_id") or "")
+    identifier = file_id
     with session_scope() as session:
         return service.confirm_upload(session, identifier, principal=me()), 200
 
@@ -147,15 +151,17 @@ def blob(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("files.view")
-def folders(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def folders(call: Call):
     """Create a folder."""
     with session_scope() as session:
-        return service.create_folder(session, json_body(), principal=me()), 201
+        return service.create_folder(session, call.body, principal=me()), 201
 
 
 @requires("files.manage")
-def folder(app=None, operation: str = "", request=None, folder_id: str = "", **kwargs: Any):
+@endpoint
+def folder(call: Call, folder_id: str = ""):
     """Remove an empty folder."""
-    identifier = folder_id or str(kwargs.get("folder_id") or "")
+    identifier = folder_id
     with session_scope() as session:
         return service.remove_folder(session, identifier, principal=me()), 200

@@ -17,13 +17,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.people import groups as service
 
 
 @requires("users.view")
-def catalogue(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def catalogue(call: Call):
     """The kinds, the permission catalogue, and what this reader may change."""
     with session_scope() as session:
         return service.catalogue(session, principal=me()), 200
@@ -42,13 +44,14 @@ def collection(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("users.view")
-def item(app=None, operation: str = "", request=None, group_id: str = "", **kwargs: Any):
+@endpoint
+def item(call: Call, group_id: str = ""):
     """One group and the people in it — read it, rename it, or retire it."""
-    identifier = group_id or str(kwargs.get("group_id") or "")
-    method = (request.method if request is not None else "GET").upper()
+    identifier = group_id
+    method = call.method
     with session_scope() as session:
         if method == "PUT":
-            payload = (request.get_json(silent=True) if request is not None else None) or {}
+            payload = (call.loose_body) or {}
             return service.update(session, identifier, payload, principal=me()), 200
         if method == "DELETE":
             return service.remove(session, identifier, principal=me()), 200
@@ -56,7 +59,8 @@ def item(app=None, operation: str = "", request=None, group_id: str = "", **kwar
 
 
 @requires("users.view", "users.manage")
-def members(app=None, operation: str = "", request=None, group_id: str = "", **kwargs: Any):
+@endpoint
+def members(call: Call, group_id: str = ""):
     """Set who is in a group (§11).
 
     The whole membership rather than a delta, so the request says what the
@@ -64,20 +68,21 @@ def members(app=None, operation: str = "", request=None, group_id: str = "", **k
     state neither of them chose. Effective on the members' next request, with
     no re-login: `permissions_for` reads the table every time.
     """
-    identifier = group_id or str(kwargs.get("group_id") or "")
-    payload = (request.get_json(silent=True) if request is not None else None) or {}
+    identifier = group_id
+    payload = (call.loose_body) or {}
     with session_scope() as session:
         return service.set_members(session, identifier, payload, principal=me()), 200
 
 
 @requires("users.view", "roles.manage")
-def grants(app=None, operation: str = "", request=None, group_id: str = "", **kwargs: Any):
+@endpoint
+def grants(call: Call, group_id: str = ""):
     """Set what being in a group adds (§11, §13).
 
     `roles.manage`, not `users.manage`: this is granting permissions. See the
     module docstring for why the two cannot be the same privilege.
     """
-    identifier = group_id or str(kwargs.get("group_id") or "")
-    payload = (request.get_json(silent=True) if request is not None else None) or {}
+    identifier = group_id
+    payload = (call.loose_body) or {}
     with session_scope() as session:
         return service.set_grants(session, identifier, payload, principal=me()), 200

@@ -4,13 +4,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.records import relationships as service
 
 
 @requires("records.view")
-def overview(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def overview(call: Call):
     """The connection map itself, before any record has been chosen.
 
     An explorer that opens on an empty search box asks the reader to already

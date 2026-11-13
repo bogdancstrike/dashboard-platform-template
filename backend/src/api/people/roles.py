@@ -7,25 +7,26 @@ affected user makes, with no re-login and no cache to invalidate.
 
 from __future__ import annotations
 
-from typing import Any
-
-from src.core.auth import json_body, me, requires
+from src.api.handler import Call, endpoint
+from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.people import roles as service
 
 
 @requires("roles.manage")
-def collection(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def collection(call: Call):
     """The roles in force, or a new one of this installation's own."""
-    if request is not None and request.method == "POST":
+    if call.method == "POST":
         with session_scope() as session:
-            return service.create(session, json_body(), principal=me()), 201
+            return service.create(session, call.body, principal=me()), 201
     with session_scope() as session:
         return service.listing(session, principal=me()), 200
 
 
 @requires("roles.manage")
-def item(app=None, operation: str = "", request=None, code: str = "", **kwargs: Any):
+@endpoint
+def item(call: Call, code: str = ""):
     """Change what a role grants, or remove one this installation added.
 
     A built-in role can be edited and never removed: the seed writes it and
@@ -33,8 +34,8 @@ def item(app=None, operation: str = "", request=None, code: str = "", **kwargs: 
     deploy — and `permissions_for` would be reading a row that vanished in
     between.
     """
-    identifier = code or str(kwargs.get("code") or "")
+    identifier = code
     with session_scope() as session:
-        if request is not None and request.method == "DELETE":
+        if call.method == "DELETE":
             return service.remove(session, identifier, principal=me()), 200
-        return service.update(session, identifier, json_body(), principal=me()), 200
+        return service.update(session, identifier, call.body, principal=me()), 200

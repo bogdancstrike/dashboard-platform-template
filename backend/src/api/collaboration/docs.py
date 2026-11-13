@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import json_body, me, requires
 from src.core.db import session_scope
 from src.services.collaboration import docs as service
@@ -131,7 +132,8 @@ def search(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires(VIEW)
-def templates(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def templates(call: Call):
     return service.templates(principal=me()), 200
 
 

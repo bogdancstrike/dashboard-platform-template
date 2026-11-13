@@ -13,13 +13,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.platform import system_logs as service
 
 
 @requires("logs.view")
-def catalogue(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def catalogue(call: Call):
     """The filter vocabulary, the per-level counts and the retention bound."""
     with session_scope() as session:
         return service.catalogue(session, principal=me()), 200
@@ -46,9 +48,10 @@ def tail(app=None, operation: str = "", request=None, **_: Any):
 
 
 @requires("logs.view")
-def item(app=None, operation: str = "", request=None, line_id: str = "", **kwargs: Any):
+@endpoint
+def item(call: Call, line_id: str = ""):
     """One line in full: its context, its stack trace and its siblings."""
-    identifier = line_id or str(kwargs.get("line_id") or "")
+    identifier = line_id
     with session_scope() as session:
         return service.entry(session, identifier, principal=me()), 200
 

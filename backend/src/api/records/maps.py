@@ -8,22 +8,23 @@ line is where it is.
 
 from __future__ import annotations
 
-from typing import Any
-
+from src.api.handler import Call, endpoint
 from src.core.auth import me, requires
 from src.core.db import session_scope
 from src.services.records import maps as service
 
 
 @requires("records.view")
-def catalogue(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def catalogue(call: Call):
     """Which datasets can be mapped, how they reach a place, and the gazetteer."""
     return service.catalogue(principal=me()), 200
 
 
 @requires("records.view")
-def places(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def places(call: Call):
     """Where one dataset is, measured one way, over one period."""
-    args = request.args.to_dict() if request is not None else {}
+    args = call.args
     with session_scope() as session:
         return service.places(session, args, principal=me()), 200

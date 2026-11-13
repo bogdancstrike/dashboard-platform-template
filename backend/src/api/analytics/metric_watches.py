@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.api.handler import Call, endpoint
 from src.core.auth import json_body, me, requires
 from src.core.db import session_scope
-from src.services.analytics import jobs as analytics_jobs, metric_watches as service
+from src.services.analytics import jobs as analytics_jobs
+from src.services.analytics import metric_watches as service
 
 
 def _method(request, default: str = "GET") -> str:
@@ -18,7 +20,8 @@ def _args(request):
 
 
 @requires("records.view")
-def catalogue(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def catalogue(call: Call):
     """What a watch may name: datasets, measures, dates, methods."""
     return service.catalogue(principal=me()), 200
 
@@ -67,10 +70,11 @@ def silence(app=None, operation: str = "", request=None, **kwargs: Any):
 
 
 @requires("records.view")
-def preview(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def preview(call: Call):
     """What a draft watch would see and flag, without saving it."""
     with session_scope() as session:
-        return service.preview(session, json_body(), principal=me()), 200
+        return service.preview(session, call.body, principal=me()), 200
 
 
 @requires("records.view")
@@ -95,7 +99,8 @@ def acknowledge(app=None, operation: str = "", request=None, **kwargs: Any):
 
 
 @requires("alerts.manage")
-def run_all(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def run_all(call: Call):
     """Evaluate every watch now, recorded as a job."""
     with session_scope() as session:
         return analytics_jobs.run(session, "analytics.anomaly-watch", principal=me()), 200
