@@ -54,7 +54,7 @@ import {
   MoreOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { FilePreview } from "@/components/files/FilePreview";
@@ -94,6 +94,17 @@ interface Transfer {
 export default function FilesPage() {
   const queryClient = useQueryClient();
   const { message, modal } = AntApp.useApp();
+  // On a phone the table scrolls sideways inside its container, which a
+  // keyboard could not reach (axe scrollable-region-focusable, audit A). AntD
+  // gives no prop for it, so the container is made focusable once drawn.
+  const tableBox = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const scroller = tableBox.current?.querySelector<HTMLElement>(".ant-table-container");
+    if (scroller && !scroller.hasAttribute("tabindex")) {
+      scroller.tabIndex = 0;
+      scroller.setAttribute("aria-label", "Files");
+    }
+  });
   // Which folder is open lives in the address (§69, §72), so "look in
   // /contracts" is a link rather than a set of instructions. Empty until the
   // tree answers, and then the first folder — a file manager that opens on
@@ -791,6 +802,7 @@ export default function FilesPage() {
               something is being dragged over it. A permanent band of
               instructions is chrome that is read once and then occupies a
               tenth of the page forever. */}
+          <div ref={tableBox} className="nx-files-tablebox">
           <DropArea enabled={canManage} onFiles={send} limit={tree.data?.max_upload_bytes ?? 0}>
             <Table<StoredFile>
               className="nx-rec-table"
@@ -927,6 +939,7 @@ export default function FilesPage() {
               ]}
             />
           </DropArea>
+          </div>
         </Card>
       </div>
 
