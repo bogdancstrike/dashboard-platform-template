@@ -33,7 +33,9 @@ export function relativeTime(value: string | null | undefined, now: Date = new D
   if (!moment) return "—";
 
   const delta = now.valueOf() - moment.valueOf();
-  if (delta < 0) return moment.toLocaleDateString();
+  // The reader's own date format, as for the past: the browser's locale here
+  // put "11/19/2026" beside "2026-10-30" in one list (audit A).
+  if (delta < 0) return formatDate(moment);
   if (delta < MINUTE) return "just now";
   if (delta < HOUR) return `${Math.floor(delta / MINUTE)}m ago`;
   if (delta < DAY) return `${Math.floor(delta / HOUR)}h ago`;

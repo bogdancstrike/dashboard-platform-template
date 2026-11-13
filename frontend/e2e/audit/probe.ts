@@ -193,7 +193,11 @@ export async function measure(page: Page, scope = "body", includeFloating = fals
     for (const el of root.querySelectorAll<HTMLElement>("h1,h2,h3,h4,h5,button,a,span,label,th,td,p,.ant-tag,.ant-typography")) {
       if (!visible(el) || el.children.length > 2) continue;
       if (!el.textContent?.trim()) continue;
+      // antd scales an avatar's initials to fit (a transform, not a cut), and
+      // screen-reader-only text is clipped on purpose.
+      if (el.closest(".ant-avatar")) continue;
       const s = getComputedStyle(el);
+      if (s.clipPath !== "none" || s.clip !== "auto" || el.clientWidth <= 1) continue;
       if (s.textOverflow === "ellipsis" || s.webkitLineClamp !== "none") continue;
       const overflowX = s.overflowX === "hidden" || s.overflowX === "clip";
       const overflowY = s.overflowY === "hidden" || s.overflowY === "clip";

@@ -39,6 +39,7 @@
 .nx-ra-kpi--bad b { color: var(--nu-bad); }
 
 .nx-ra-chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.nx-ra-chips-tabs { display: contents; }
 .nx-ra-chip {
   border: 1px solid var(--nu-glass-border); background: var(--nu-glass); color: var(--nu-text);
   border-radius: 999px; padding: 6px 14px; font: 600 13px/1.2 var(--nu-font); cursor: pointer;

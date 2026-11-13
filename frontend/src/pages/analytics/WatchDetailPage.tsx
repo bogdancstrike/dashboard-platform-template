@@ -156,12 +156,12 @@ export default function WatchDetailPage() {
         <section className="nx-ra-panel" aria-label="Alert history">
           <div className="nx-ra-panel-head"><h2>Flagged</h2><span className="nx-ra-sub">{history.data?.total ?? 0} in total</span></div>
           {items.length === 0 ? <EmptyState compact title="Nothing flagged yet" /> : (
-            <ul className="nx-ra-rows">
+            <div className="nx-ra-rows">
               {items.map((anomaly) => (
                 <AnomalyRow key={anomaly.id} anomaly={anomaly} selected={anomaly.id === selected}
                   onOpen={() => select(anomaly.id === selected ? null : anomaly.id)} />
               ))}
-            </ul>
+            </div>
           )}
         </section>
         <section className="nx-ra-panel" aria-label="Selected alert">

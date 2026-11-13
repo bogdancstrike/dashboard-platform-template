@@ -24,6 +24,11 @@ describe("relativeTime", () => {
     // Clock skew between a server and a browser is normal, and "in -3 minutes"
     // is the kind of thing that makes a reader distrust the whole feed.
     expect(relativeTime("2026-09-03T12:05:00Z", NOW)).not.toMatch(/ago/);
+    // …and writes a future date the way it writes a past one: the same
+    // function, so a list never mixes two formats.
+    const future = relativeTime("2026-09-20T12:00:00Z", NOW);
+    const sameDayAsPast = relativeTime("2026-09-20T12:00:00Z", new Date("2026-10-30T12:00:00Z"));
+    expect(future).toBe(sameDayAsPast);
   });
 
   it("says nothing rather than NaN when there is no timestamp", () => {

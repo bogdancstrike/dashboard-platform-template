@@ -80,7 +80,7 @@ export function AgeDots({ since, closed }: { since: string | null | undefined; c
   if (closed || dots === 0) return null;
   return (
     <Tooltip title={`In this lane for ${days} days`}>
-      <span className={`nx-pl-age${stale ? " is-stale" : ""}`} aria-label={`${days} days in this lane`} data-testid="card-age">
+      <span className={`nx-pl-age${stale ? " is-stale" : ""}`} role="img" aria-label={`${days} days in this lane`} data-testid="card-age">
         {[0, 1, 2, 3].map((index) => (
           <i key={index} className={index < dots ? "is-on" : undefined} />
         ))}

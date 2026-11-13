@@ -391,6 +391,9 @@ export default function DashboardPage() {
             {isLoading ? (
               <Skeleton active paragraph={{ rows: 6 }} />
             ) : (
+              // The scroller is this region, focusable, so the feed can be
+              // read with the keyboard (axe scrollable-region-focusable).
+              <div className="nu-activity-scroll" tabIndex={0} role="region" aria-label="Recent activity">
               <Timeline
                 items={(data?.activity ?? []).map((entry) => ({
                   color: "gray",
@@ -404,6 +407,7 @@ export default function DashboardPage() {
                   ),
                 }))}
               />
+              </div>
             )}
           </Card>
         </div>

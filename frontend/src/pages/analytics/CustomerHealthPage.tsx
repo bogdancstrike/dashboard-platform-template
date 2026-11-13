@@ -170,7 +170,8 @@ export default function CustomerHealthPage() {
                 <h2>Customers</h2>
                 <span className="nx-ra-sub">{data.matching} matching</span>
               </div>
-              <div className="nx-ra-chips" role="tablist" aria-label="Health band">
+              <div className="nx-ra-chips">
+                <div className="nx-ra-chips-tabs" role="tablist" aria-label="Health band">
                 {["", ...BANDS].map((key) => (
                   <button
                     key={key || "all"}
@@ -183,6 +184,7 @@ export default function CustomerHealthPage() {
                     {key ? BAND_LABEL[key as HealthBand] : "All"}
                   </button>
                 ))}
+                </div>
                 <Input.Search
                   allowClear
                   placeholder="Find a customer"
@@ -202,11 +204,11 @@ export default function CustomerHealthPage() {
               {data.items.length === 0 ? (
                 <EmptyState title="No customers match" />
               ) : (
-                <ul className="nx-ra-rows" data-testid="health-list">
+                <div className="nx-ra-rows" data-testid="health-list">
                   {data.items.map((row) => (
                     <PortfolioRow key={row.id} row={row} period={period} onOpen={() => navigate(`/customers/${row.id}?tab=health`)} />
                   ))}
-                </ul>
+                </div>
               )}
               {data.matching > data.page_size && (
                 <Pagination
@@ -229,9 +231,9 @@ export default function CustomerHealthPage() {
               {data.drops.length === 0 ? (
                 <EmptyState compact title="No recent drops" />
               ) : (
-                <ul className="nx-ra-rows">
+                <div className="nx-ra-rows">
                   {data.drops.map((row) => (
-                    <li key={row.id} className="nx-ra-row" tabIndex={0} role="link"
+                    <div key={row.id} className="nx-ra-row" tabIndex={0} role="link"
                       onClick={() => navigate(`/customers/${row.id}?tab=health`)}
                       onKeyDown={(e) => e.key === "Enter" && navigate(`/customers/${row.id}?tab=health`)}>
                       <div className="nx-ra-row-main">
@@ -242,9 +244,9 @@ export default function CustomerHealthPage() {
                         </span>
                       </div>
                       <BandPill band={row.band} score={row.score} />
-                    </li>
+                    </div>
                   ))}
-                </ul>
+                </div>
               )}
             </section>
           </div>
@@ -259,17 +261,17 @@ export default function CustomerHealthPage() {
 function Movers({ rows, period, onOpen }: { rows: PortfolioEntry[]; period: string; onOpen: (id: string) => void }) {
   if (rows.length === 0) return <p className="nx-ra-muted">Nobody moved much.</p>;
   return (
-    <ul className="nx-ra-rows">
+    <div className="nx-ra-rows">
       {rows.slice(0, 4).map((row) => (
         <PortfolioRow key={row.id} row={row} period={period} onOpen={() => onOpen(row.id)} />
       ))}
-    </ul>
+    </div>
   );
 }
 
 function PortfolioRow({ row, period, onOpen }: { row: PortfolioEntry; period: string; onOpen: () => void }) {
   return (
-    <li className="nx-ra-row" tabIndex={0} role="link" onClick={onOpen} onKeyDown={(e) => e.key === "Enter" && onOpen()}>
+    <div className="nx-ra-row" tabIndex={0} role="link" onClick={onOpen} onKeyDown={(e) => e.key === "Enter" && onOpen()}>
       <div className="nx-ra-row-main">
         <b>{row.name}</b>
         <span>
@@ -279,7 +281,7 @@ function PortfolioRow({ row, period, onOpen }: { row: PortfolioEntry; period: st
       <Delta value={period === "7d" ? row.delta_7d : row.delta_30d} />
       <BandPill band={row.band} />
       <span className="nx-ra-row-score">{row.score}</span>
-    </li>
+    </div>
   );
 }
 

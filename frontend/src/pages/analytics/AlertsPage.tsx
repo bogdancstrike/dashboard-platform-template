@@ -44,7 +44,7 @@ export function describeWatch(watch: Pick<MetricWatch, "measure" | "measure_fiel
 export function AnomalyRow({ anomaly, onOpen, selected }: { anomaly: Anomaly; onOpen: () => void; selected?: boolean }) {
   const up = anomaly.direction === "up";
   return (
-    <li className={`nx-ra-anomaly${selected ? " is-selected" : ""}`} tabIndex={0} role="button" onClick={onOpen}
+    <div className={`nx-ra-anomaly${selected ? " is-selected" : ""}`} tabIndex={0} role="button" onClick={onOpen}
       onKeyDown={(e) => e.key === "Enter" && onOpen()} data-testid="anomaly-row">
       <span className={`nx-ra-anomaly-icon ${up ? "is-up" : "is-down"}`} aria-hidden>{up ? "↑" : "↓"}</span>
       <div className="nx-ra-row-main">
@@ -59,7 +59,7 @@ export function AnomalyRow({ anomaly, onOpen, selected }: { anomaly: Anomaly; on
       <span className={`nx-ra-status nx-ra-status--${anomaly.status === "OPEN" ? "ANOMALY" : "NO_DATA"}`}>
         {anomaly.status === "OPEN" ? "Open" : "Seen"}
       </span>
-    </li>
+    </div>
   );
 }
 
@@ -130,9 +130,13 @@ export default function AlertsPage() {
         <Kpi label="Open alerts" value={watches.data?.open_anomalies ?? 0} tone={watches.data?.open_anomalies ? "warn" : undefined} />
         <Kpi label="Silenced" value={silenced} hint="muted or snoozed" />
       </div>
-      <div className="nx-ra-chips" role="tablist" aria-label="Alert views">
-        <button type="button" role="tab" className="nx-ra-chip" aria-selected={tab === "watches"} onClick={() => set("tab", null, true)}>Watches</button>
-        <button type="button" role="tab" className="nx-ra-chip" aria-selected={tab === "history"} onClick={() => set("tab", "history", true)}>History</button>
+      <div className="nx-ra-chips">
+        {/* The tabs in their own tablist: a search box inside role="tablist"
+            is a child it may not have (axe aria-required-children). */}
+        <div className="nx-ra-chips-tabs" role="tablist" aria-label="Alert views">
+          <button type="button" role="tab" className="nx-ra-chip" aria-selected={tab === "watches"} onClick={() => set("tab", null, true)}>Watches</button>
+          <button type="button" role="tab" className="nx-ra-chip" aria-selected={tab === "history"} onClick={() => set("tab", "history", true)}>History</button>
+        </div>
         {tab === "watches" && (
           <Input.Search allowClear defaultValue={q} placeholder="Find a watch" onSearch={(v) => set("q", v || null)}
             style={{ maxWidth: 240 }} aria-label="Find a watch" />
@@ -212,9 +216,9 @@ function History({ onOpen }: { onOpen: (anomaly: Anomaly) => void }) {
       {feed.isLoading ? <Skeleton active /> : feed.isError ? <FailureAlert error={feed.error} /> : feed.data!.items.length === 0 ? (
         <EmptyState title="Nothing flagged" />
       ) : (
-        <ul className="nx-ra-rows">
+        <div className="nx-ra-rows">
           {feed.data!.items.map((anomaly) => <AnomalyRow key={anomaly.id} anomaly={anomaly} onOpen={() => onOpen(anomaly)} />)}
-        </ul>
+        </div>
       )}
       {(feed.data?.total ?? 0) > 20 && (
         <Pagination style={{ marginTop: 12 }} size="small" current={page} pageSize={20} total={feed.data!.total}
