@@ -64,7 +64,6 @@
   "src/pages/FilesPage.tsx",
   "src/pages/GlobalSearchPage.tsx",
   "src/pages/HomePage.tsx",
-  "src/pages/ImportPage.tsx",
   "src/pages/InsightsPage.tsx",
   "src/pages/KanbanPage.tsx",
   "src/pages/MailPage.tsx",
