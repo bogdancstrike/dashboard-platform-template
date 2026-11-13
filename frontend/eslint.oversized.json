@@ -18,7 +18,6 @@
   "src/components/graph/ForceGraph.tsx",
   "src/components/kanban/CardDrawer.tsx",
   "src/components/kanban/LaneColumn.tsx",
-  "src/components/kanban/useBoardDrag.tsx",
   "src/components/mail/Composer.tsx",
   "src/components/planning/BoardExtras.tsx",
   "src/components/planning/Gantt.tsx",
