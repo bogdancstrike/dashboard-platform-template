@@ -14,9 +14,10 @@ from sqlalchemy.orm import selectinload
 
 from src.core import audit, sharing
 from src.core.clock import iso, now
-from src.core.errors import NotFoundError, ValidationError
+from src.core.errors import ValidationError
 from src.core.pagination import PAGE_SIZE_CHOICES, parse_uuid
 from src.core.rules import compile_tree, describe_tree, rule_count
+from src.core.repository import found_or_404
 from src.models.personal import SavedSearch
 from src.services import favorites
 from src.services.explorer import resource_for
@@ -235,9 +236,10 @@ def _visible_statement(principal):
 
 def _visible(session, search_id: Any, principal) -> SavedSearch:
     identifier = parse_uuid(search_id, field="search_id")
-    row = session.scalars(_visible_statement(principal).where(SavedSearch.id == identifier)).unique().one_or_none()
-    if row is None:
-        raise NotFoundError("The saved search does not exist or is private.")
+    row = found_or_404(
+        session.scalars(_visible_statement(principal).where(SavedSearch.id == identifier)).unique().one_or_none(),
+        "The saved search does not exist or is private.",
+    )
     return row
 
 

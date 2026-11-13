@@ -40,7 +40,7 @@ from sqlalchemy.orm import selectinload
 
 from src.core import audit
 from src.core.clock import iso, now
-from src.core.errors import ForbiddenError, NotFoundError, ValidationError
+from src.core.errors import ForbiddenError, ValidationError
 from src.core.naming import initials
 from src.core.pagination import parse_uuid
 from src.core.vocabulary import (
@@ -49,6 +49,7 @@ from src.core.vocabulary import (
     EVENT_RESPONSE,
     EVENT_STATUS,
 )
+from src.core.repository import get_or_404
 from src.models.business import CalendarEvent
 
 #: Reading the calendar and writing to it are separate privileges: everybody
@@ -697,9 +698,13 @@ def _event(session, event_id: Any) -> CalendarEvent:
     call site that forgets.
     """
     raw = str(event_id or "").split(":", 1)[0]
-    row = session.get(CalendarEvent, parse_uuid(raw, field="event_id"))
-    if row is None or row.deleted_at is not None:
-        raise NotFoundError("That event does not exist.")
+    row = get_or_404(
+        session,
+        CalendarEvent,
+        parse_uuid(raw, field="event_id"),
+        "That event does not exist.",
+        live=True,
+    )
     return row
 
 

@@ -29,8 +29,9 @@ from sqlalchemy import func, select
 
 from src.core import audit, vocabulary
 from src.core.clock import iso, now
-from src.core.errors import NotFoundError, ValidationError
+from src.core.errors import ValidationError
 from src.core.pagination import parse_uuid
+from src.core.repository import get_or_404
 from src.models.sla import BusinessCalendar, SlaPolicy, TicketSla
 
 MANAGE = "sla.manage"
@@ -355,9 +356,13 @@ def for_ticket(session, ticket_id: Any, *, principal) -> dict[str, Any]:
     principal.require("records.view")
     from src.models.business import Ticket
 
-    ticket = session.get(Ticket, parse_uuid(ticket_id, field="ticket_id"))
-    if ticket is None or ticket.deleted_at is not None:
-        raise NotFoundError("That ticket does not exist.")
+    ticket = get_or_404(
+        session,
+        Ticket,
+        parse_uuid(ticket_id, field="ticket_id"),
+        "That ticket does not exist.",
+        live=True,
+    )
     state = session.scalars(select(TicketSla).where(TicketSla.ticket_id == ticket.id)).first()
     if state is None:
         state = compute(session, ticket, sweep=False)
@@ -483,9 +488,13 @@ def policy(session, ident: Any, *, principal) -> dict[str, Any]:
 
 
 def _policy_row(session, ident: Any) -> SlaPolicy:
-    row = session.get(SlaPolicy, parse_uuid(ident, field="policy_id"))
-    if row is None or row.deleted_at is not None:
-        raise NotFoundError("That SLA policy does not exist.")
+    row = get_or_404(
+        session,
+        SlaPolicy,
+        parse_uuid(ident, field="policy_id"),
+        "That SLA policy does not exist.",
+        live=True,
+    )
     return row
 
 
@@ -630,9 +639,13 @@ def reorder(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
 
 
 def _calendar_row(session, ident: Any) -> BusinessCalendar:
-    row = session.get(BusinessCalendar, parse_uuid(ident, field="calendar_id"))
-    if row is None or row.deleted_at is not None:
-        raise NotFoundError("That calendar does not exist.")
+    row = get_or_404(
+        session,
+        BusinessCalendar,
+        parse_uuid(ident, field="calendar_id"),
+        "That calendar does not exist.",
+        live=True,
+    )
     return row
 
 

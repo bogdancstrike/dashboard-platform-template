@@ -50,9 +50,10 @@ from sqlalchemy import Select, func, select
 
 from src.core import audit, vocabulary
 from src.core.clock import iso, now
-from src.core.errors import ConflictError, NotFoundError, ValidationError
+from src.core.errors import ConflictError, ValidationError
 from src.core.pagination import envelope, parse_page, parse_uuid
 from src.core.query import Field, FieldSet, apply_filters, apply_sort, count_of, facets_for
+from src.core.repository import get_or_404
 
 #: Reading the queue: what ran, and what it did.
 VIEW_PERMISSION = "jobs.view"
@@ -272,9 +273,9 @@ def entry(session, job_id: str, *, principal) -> dict[str, Any]:
 def _job(session, job_id: str):
     from src.models.platform import BackgroundJob
 
-    row = session.get(BackgroundJob, parse_uuid(job_id, field="id"))
-    if row is None:
-        raise NotFoundError("That job does not exist.")
+    row = get_or_404(
+        session, BackgroundJob, parse_uuid(job_id, field="id"), "That job does not exist."
+    )
     return row
 
 

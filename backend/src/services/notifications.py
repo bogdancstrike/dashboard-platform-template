@@ -28,6 +28,7 @@ from src.core import vocabulary
 from src.core.clock import iso, now
 from src.core.errors import NotFoundError, ValidationError
 from src.core.pagination import Page, envelope, parse_uuid
+from src.core.repository import found_or_404
 
 #: Categories the filter offers. Free strings are still accepted on write.
 #: Read from `core/vocabulary` rather than written here. These two lists were
@@ -297,9 +298,10 @@ def mark_unread(session, user_id: UUID, notification_id: str) -> dict[str, Any]:
     from src.models.platform import Notification
 
     identifier = parse_uuid(notification_id, field="notification_id")
-    row = session.scalars(_base_query(user_id).where(Notification.id == identifier)).first()
-    if row is None:
-        raise NotFoundError("That notification does not exist.")
+    row = found_or_404(
+        session.scalars(_base_query(user_id).where(Notification.id == identifier)).first(),
+        "That notification does not exist.",
+    )
     row.is_read = False
     row.read_at = None
     return serialize(row)
@@ -345,9 +347,10 @@ def delete(session, user_id: UUID, notification_id: str) -> dict[str, Any]:
     from src.models.platform import Notification
 
     identifier = parse_uuid(notification_id, field="notification_id")
-    row = session.scalars(_base_query(user_id).where(Notification.id == identifier)).first()
-    if row is None:
-        raise NotFoundError("That notification does not exist.")
+    row = found_or_404(
+        session.scalars(_base_query(user_id).where(Notification.id == identifier)).first(),
+        "That notification does not exist.",
+    )
     session.delete(row)
     return {"deleted": str(identifier)}
 

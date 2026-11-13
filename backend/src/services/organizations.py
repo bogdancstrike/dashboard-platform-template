@@ -42,9 +42,10 @@ from sqlalchemy import Select, func, select
 
 from src.core import audit, vocabulary
 from src.core.clock import iso, now
-from src.core.errors import ConflictError, NotFoundError, ValidationError
+from src.core.errors import ConflictError, ValidationError
 from src.core.pagination import envelope, parse_page, parse_uuid
 from src.core.query import Field, FieldSet, apply_filters, apply_sort, count_of, facets_for
+from src.core.repository import get_or_404
 
 #: Reading the structure. The same permission the directory needs: where
 #: somebody sits is directory information.
@@ -302,18 +303,26 @@ def _counts(session, model, ids: list[Any]) -> dict[Any, int]:
 def _organization(session, organization_id: str):
     from src.models.identity import Organization
 
-    row = session.get(Organization, parse_uuid(organization_id, field="id"))
-    if row is None or row.deleted_at is not None:
-        raise NotFoundError("That organization does not exist.")
+    row = get_or_404(
+        session,
+        Organization,
+        parse_uuid(organization_id, field="id"),
+        "That organization does not exist.",
+        live=True,
+    )
     return row
 
 
 def _department(session, department_id: str):
     from src.models.identity import Department
 
-    row = session.get(Department, parse_uuid(department_id, field="id"))
-    if row is None or row.deleted_at is not None:
-        raise NotFoundError("That department does not exist.")
+    row = get_or_404(
+        session,
+        Department,
+        parse_uuid(department_id, field="id"),
+        "That department does not exist.",
+        live=True,
+    )
     return row
 
 

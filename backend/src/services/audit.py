@@ -34,6 +34,7 @@ from src.core.audit import ACTIONS, MASK, RESULTS, is_secret
 from src.core.errors import NotFoundError, ValidationError
 from src.core.pagination import envelope, parse_page, parse_uuid
 from src.core.query import Field, FieldSet, apply_filters, apply_sort, count_of, facets_for
+from src.core.repository import get_or_404
 
 #: The permission the ledger requires. The per-record timeline asks for less —
 #: see `timeline` — because reading the history of a record you may already
@@ -189,9 +190,7 @@ def entry(session, entry_id: Any, *, principal) -> dict[str, Any]:
     from src.models.platform import AuditLog
 
     identifier = parse_uuid(entry_id, field="entry_id")
-    row = session.get(AuditLog, identifier)
-    if row is None:
-        raise NotFoundError("That audit entry does not exist.")
+    row = get_or_404(session, AuditLog, identifier, "That audit entry does not exist.")
     return detail(row)
 
 

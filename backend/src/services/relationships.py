@@ -27,8 +27,9 @@ from typing import Any
 from sqlalchemy import func, select
 
 from src.core.clock import iso
-from src.core.errors import NotFoundError, ValidationError
+from src.core.errors import ValidationError
 from src.core.pagination import parse_uuid
+from src.core.repository import get_or_404
 from src.services.explorer import resources
 
 #: Rows shown per inbound relation before "and N more".
@@ -104,9 +105,9 @@ def graph(session, resource_type: Any, record_id: Any, *, principal, sample: int
     principal.require(resource.permission)
 
     identifier = parse_uuid(record_id, field="id")
-    record = session.get(resource.model, identifier)
-    if record is None or getattr(record, "deleted_at", None) is not None:
-        raise NotFoundError("That record does not exist.")
+    record = get_or_404(
+        session, resource.model, identifier, "That record does not exist.", live=True
+    )
 
     linkables = _linkables()
     root = _node(record, linkables[resource.model.__tablename__])

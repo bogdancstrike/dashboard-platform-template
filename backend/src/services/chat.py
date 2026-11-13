@@ -25,6 +25,7 @@ from sqlalchemy import String, and_, cast, func, or_, select
 from src.core.clock import iso, now
 from src.core.errors import ConflictError, ForbiddenError, NotFoundError, ValidationError
 from src.core.pagination import parse_uuid
+from src.core.repository import found_or_404, get_or_404
 
 RESOURCE = "chat_channel"
 USE = "chat.use"
@@ -42,9 +43,12 @@ _NAME = re.compile(r"[^a-z0-9\-_]+")
 def _channel(session, channel_id: Any):
     from src.models.collab import ChatChannel
 
-    row = session.get(ChatChannel, parse_uuid(channel_id, field="channel_id"))
-    if row is None:
-        raise NotFoundError("That conversation does not exist.")
+    row = get_or_404(
+        session,
+        ChatChannel,
+        parse_uuid(channel_id, field="channel_id"),
+        "That conversation does not exist.",
+    )
     return row
 
 
@@ -450,9 +454,7 @@ def remove_member(session, channel_id: Any, user_id: Any, *, principal) -> dict[
     if not _may_manage(row, principal):
         raise ForbiddenError("Only the channel's owner can remove people.")
     target = parse_uuid(user_id, field="user_id")
-    membership = _member(row, target)
-    if membership is None:
-        raise NotFoundError("That person is not in this channel.")
+    membership = found_or_404(_member(row, target), "That person is not in this channel.")
     row.members.remove(membership)
     session.flush()
     _changed(session, row, also=[str(target)])

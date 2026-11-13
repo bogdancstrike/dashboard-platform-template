@@ -33,8 +33,9 @@ from sqlalchemy import func, select
 
 from src.core import audit
 from src.core.clock import iso, now
-from src.core.errors import ConflictError, NotFoundError, ValidationError
+from src.core.errors import ConflictError, ValidationError
 from src.core.pagination import parse_uuid
+from src.core.repository import found_or_404, get_or_404
 from src.models.platform import FeatureFlag, SystemSetting
 
 #: Reading the configuration and changing it are the same privilege: a setting
@@ -127,9 +128,11 @@ def update_setting(session, key: Any, payload: dict[str, Any], *, principal):
     useful thing an audit trail can say.
     """
     principal.require(SETTINGS_PERMISSION)
-    row = session.scalar(select(SystemSetting).where(SystemSetting.key == str(key or "")))
-    if row is None:
-        raise NotFoundError("That setting does not exist.", details={"key": str(key or "")})
+    row = found_or_404(
+        session.scalar(select(SystemSetting).where(SystemSetting.key == str(key or ""))),
+        "That setting does not exist.",
+        details={"key": str(key or "")},
+    )
 
     data = payload if isinstance(payload, dict) else {}
     if "value" not in data and not data.get("reset"):
@@ -316,12 +319,18 @@ def flags(session, args, *, principal) -> dict[str, Any]:
     }
 
 
+def _flag_row(session, key: Any) -> FeatureFlag:
+    return found_or_404(
+        session.scalar(select(FeatureFlag).where(FeatureFlag.key == str(key or ""))),
+        "That flag does not exist.",
+        details={"key": str(key or "")},
+    )
+
+
 def update_flag(session, key: Any, payload: dict[str, Any], *, principal):
     """Turn a flag on or off, or change who it is on for."""
     principal.require(FLAGS_PERMISSION)
-    row = session.scalar(select(FeatureFlag).where(FeatureFlag.key == str(key or "")))
-    if row is None:
-        raise NotFoundError("That flag does not exist.", details={"key": str(key or "")})
+    row = _flag_row(session, key)
 
     data = payload if isinstance(payload, dict) else {}
     before = _flag_state(row)
@@ -433,9 +442,7 @@ def remove_flag(session, key: Any, *, principal) -> dict[str, Any]:
     rarely the person who finds out. Turn it off, watch, then remove it.
     """
     principal.require(FLAGS_PERMISSION)
-    row = session.scalar(select(FeatureFlag).where(FeatureFlag.key == str(key or "")))
-    if row is None:
-        raise NotFoundError("That flag does not exist.", details={"key": str(key or "")})
+    row = _flag_row(session, key)
     if row.enabled:
         raise ConflictError(
             f"{row.name} is on. Turn it off first — deleting a live flag ships "
@@ -463,9 +470,7 @@ def flag_history(session, key: Any, args, *, principal) -> dict[str, Any]:
     from src.models.platform import AuditLog
 
     principal.require(FLAGS_PERMISSION)
-    row = session.scalar(select(FeatureFlag).where(FeatureFlag.key == str(key or "")))
-    if row is None:
-        raise NotFoundError("That flag does not exist.", details={"key": str(key or "")})
+    row = _flag_row(session, key)
     try:
         limit = max(1, min(int((args or {}).get("limit") or 50), 200))
     except (TypeError, ValueError):
@@ -513,9 +518,12 @@ def preview(session, args, *, principal) -> dict[str, Any]:
     organization_id = str(data.get("organization_id") or "").strip() or None
     groups = tuple(item for item in str(data.get("group") or "").split(",") if item.strip())
     if data.get("user_id"):
-        user = session.get(User, parse_uuid(data["user_id"], field="user_id"))
-        if user is None:
-            raise NotFoundError("That person does not exist.")
+        user = get_or_404(
+            session,
+            User,
+            parse_uuid(data["user_id"], field="user_id"),
+            "That person does not exist.",
+        )
         user_id = user.id
         organization_id = organization_id or (str(user.organization_id) if user.organization_id else None)
         if role_code is None and user.role_id:

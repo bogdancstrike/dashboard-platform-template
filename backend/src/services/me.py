@@ -19,6 +19,7 @@ from src.core import vocabulary
 from src.services import settings
 from src.core.clock import iso
 from src.core.errors import NotFoundError, ValidationError
+from src.core.repository import found_or_404, get_or_404
 
 PREFERENCE_DEFAULTS: dict[str, dict[str, Any]] = {
     "appearance": {
@@ -212,9 +213,9 @@ def update_preferences(
     """Validate and merge a partial preference document."""
     from src.models.identity import User
 
-    user = session.get(User, user_id)
-    if user is None or user.deleted_at is not None:
-        raise NotFoundError("The signed-in user's platform profile no longer exists.")
+    user = get_or_404(
+        session, User, user_id, "The signed-in user's platform profile no longer exists.", live=True
+    )
 
     validated = _validate_patch(patch)
     preferences = merged_preferences(user.preferences)
@@ -275,9 +276,7 @@ def update_profile(session, user_id: UUID, patch: Any) -> dict[str, Any]:
     if unknown:
         _invalid(f"user.{sorted(unknown)[0]}", "This is not yours to change here.")
 
-    user = session.get(_user_model(), user_id)
-    if user is None:
-        raise NotFoundError("No profile for the signed-in user.")
+    user = found_or_404(session.get(_user_model(), user_id), "No profile for the signed-in user.")
 
     for key, value in patch.items():
         if value is not None and not isinstance(value, str):

@@ -43,9 +43,10 @@ from sqlalchemy import Select, func, select
 
 from src.core import audit, vocabulary
 from src.core.clock import iso, now
-from src.core.errors import NotFoundError, ValidationError
+from src.core.errors import ValidationError
 from src.core.pagination import envelope, parse_page, parse_uuid
 from src.core.query import Field, FieldSet, apply_filters, apply_sort, count_of, facets_for
+from src.core.repository import get_or_404
 
 #: Reading which systems are connected. Its own permission because the
 #: configuration names hosts and secret references — reconnaissance, if not
@@ -233,9 +234,13 @@ def listing(session, args, *, principal) -> dict[str, Any]:
 def _integration(session, integration_id: str):
     from src.models.platform import Integration
 
-    row = session.get(Integration, parse_uuid(integration_id, field="id"))
-    if row is None or row.deleted_at is not None:
-        raise NotFoundError("That integration does not exist.")
+    row = get_or_404(
+        session,
+        Integration,
+        parse_uuid(integration_id, field="id"),
+        "That integration does not exist.",
+        live=True,
+    )
     return row
 
 

@@ -56,11 +56,12 @@ from sqlalchemy import func, select
 
 from src.core import audit
 from src.core.clock import iso, now
-from src.core.errors import ForbiddenError, NotFoundError, ValidationError
+from src.core.errors import ForbiddenError, ValidationError
 from src.core.naming import identifier, sequence_of
 from src.core.pagination import parse_uuid
 from src.core.rules import MAX_RULES, compile_tree, describe_tree, rule_count
 from src.core.vocabulary import PRIORITY
+from src.core.repository import get_or_404
 from src.models.business import Task
 from src.models.content import EmailMessage, EmailTemplate
 from src.models.identity import User
@@ -1008,9 +1009,13 @@ def _whole(value: Any, name: str) -> int:
 
 
 def _rule(session, rule_id: Any) -> AlertRule:
-    rule = session.get(AlertRule, parse_uuid(rule_id, field="rule_id"))
-    if rule is None or rule.deleted_at is not None:
-        raise NotFoundError("That automation does not exist.")
+    rule = get_or_404(
+        session,
+        AlertRule,
+        parse_uuid(rule_id, field="rule_id"),
+        "That automation does not exist.",
+        live=True,
+    )
     return rule
 
 

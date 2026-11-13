@@ -25,12 +25,13 @@ from datetime import date, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import func, or_, select
 
 from src.core import audit
 from src.core.clock import iso, now
 from src.core.errors import ConflictError, NotFoundError, ValidationError
 from src.core.pagination import envelope, parse_page, parse_uuid
+from src.core.repository import found_or_404, get_or_404
 from src.models.timekeeping import TimeEntry, Timesheet
 from src.services import approvals
 from src.services.approvals import Provider
@@ -240,9 +241,7 @@ def start(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
 
 def stop(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
     principal.require(TRACK)
-    running = _running(session, principal.user_id)
-    if running is None:
-        raise NotFoundError("No timer is running.")
+    running = found_or_404(_running(session, principal.user_id), "No timer is running.")
     _close(running, now(), str(payload.get("note") or "").strip() or None)
     if "billable" in payload:
         running.billable = bool(payload.get("billable"))
@@ -258,9 +257,9 @@ def stop(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
 
 
 def _load(session, ident: Any) -> TimeEntry:
-    entry = session.get(TimeEntry, parse_uuid(ident, field="entry_id"))
-    if entry is None:
-        raise NotFoundError("That time entry does not exist.")
+    entry = get_or_404(
+        session, TimeEntry, parse_uuid(ident, field="entry_id"), "That time entry does not exist."
+    )
     return entry
 
 
@@ -582,9 +581,12 @@ def submit_week(session, payload: dict[str, Any], *, principal) -> dict[str, Any
 
 
 def _apply_timesheet(session, row, *, approved: bool, principal, comment: str) -> None:
-    sheet = session.get(Timesheet, parse_uuid((row.payload or {}).get("timesheet_id"), field="timesheet_id"))
-    if sheet is None:
-        raise NotFoundError("The timesheet no longer exists.")
+    sheet = get_or_404(
+        session,
+        Timesheet,
+        parse_uuid((row.payload or {}).get("timesheet_id"), field="timesheet_id"),
+        "The timesheet no longer exists.",
+    )
     sheet.status = "APPROVED" if approved else "REJECTED"
     sheet.decided_at = now()
     sheet.decided_by_id = principal.user_id

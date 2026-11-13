@@ -34,6 +34,7 @@ from src.core import audit
 from src.core.clock import now
 from src.core.errors import ConflictError, NotFoundError, ValidationError
 from src.core.pagination import parse_uuid
+from src.core.repository import get_or_404
 from src.services import record_writes
 from src.services.explorer import resource_for
 
@@ -99,7 +100,6 @@ def violates(pred_end: date, succ_start: date, lag: int) -> bool:
 def timeline(session, args: dict[str, Any], *, principal) -> dict[str, Any]:
     """Bars, groups, dependencies and the critical path for a window of time."""
     from src.models.business import Project, Task
-    from src.models.identity import User
     from src.models.planning import TaskDependency
 
     principal.require("tasks.view")
@@ -541,9 +541,13 @@ def unlink(session, dependency_id: Any, *, principal) -> dict[str, Any]:
 
     principal.require(record_writes.UPDATE_PERMISSION)
     identifier = parse_uuid(dependency_id, field="dependency_id")
-    row = session.get(TaskDependency, identifier)
-    if row is None:
-        raise NotFoundError("No dependency with that id.", details={"dependency_id": str(dependency_id)})
+    row = get_or_404(
+        session,
+        TaskDependency,
+        identifier,
+        "No dependency with that id.",
+        details={"dependency_id": str(dependency_id)},
+    )
     succ = _task(session, row.successor_id)
     pred = _task(session, row.predecessor_id)
     session.delete(row)

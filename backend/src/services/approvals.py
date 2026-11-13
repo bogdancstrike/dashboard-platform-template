@@ -33,6 +33,7 @@ from src.core.clock import iso, now
 from src.core.errors import ForbiddenError, NotFoundError, ValidationError
 from src.core.naming import identifier, sequence_of
 from src.core.pagination import envelope, parse_page, parse_uuid
+from src.core.repository import get_or_404
 from src.models.approvals import ApprovalRequest
 
 REFERENCE_PREFIX = "APR"
@@ -433,9 +434,12 @@ def _requester_facet(base):
 
 
 def _load(session, ident: Any) -> ApprovalRequest:
-    row = session.get(ApprovalRequest, parse_uuid(ident, field="approval_id"))
-    if row is None:
-        raise NotFoundError("That request does not exist.")
+    row = get_or_404(
+        session,
+        ApprovalRequest,
+        parse_uuid(ident, field="approval_id"),
+        "That request does not exist.",
+    )
     return row
 
 

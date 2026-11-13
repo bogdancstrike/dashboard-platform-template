@@ -33,6 +33,7 @@ from src.core.errors import ConflictError, NotFoundError, ValidationError
 from src.core.naming import initials
 from src.core.pagination import envelope, parse_page, parse_uuid
 from src.core.query import Field, FieldSet, apply_filters, apply_sort, count_of, facets_for
+from src.core.repository import found_or_404
 
 VIEW_PERMISSION = "users.view"
 MANAGE_PERMISSION = "users.manage"
@@ -212,9 +213,11 @@ def update(session, user_id: Any, payload: dict[str, Any], *, principal) -> dict
 
     if "role_code" in payload:
         code = str(payload["role_code"] or "").strip()
-        role = session.scalars(select(Role).where(Role.code == code)).first()
-        if role is None:
-            raise NotFoundError("That role does not exist.", details={"role_code": code})
+        role = found_or_404(
+            session.scalars(select(Role).where(Role.code == code)).first(),
+            "That role does not exist.",
+            details={"role_code": code},
+        )
         if user.id == principal.user_id and role.code != (user.role.code if user.role else ""):
             raise ConflictError(
                 "You cannot change your own role. Ask another administrator.",

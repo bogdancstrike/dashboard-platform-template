@@ -46,6 +46,7 @@ from src.core import vocabulary
 from src.core.errors import NotFoundError, ValidationError
 from src.core.pagination import envelope, parse_page, parse_uuid
 from src.core.query import Field, FieldSet, apply_filters, apply_sort, count_of, facets_for
+from src.core.repository import get_or_404
 
 #: Reading the logs is its own privilege and a narrow one: a log line names an
 #: address, a user id and whatever a failure said, so this is not something
@@ -287,9 +288,9 @@ def entry(session, line_id: str, *, principal) -> dict[str, Any]:
     principal.require(PERMISSION)
     from src.models.platform import SystemLog
 
-    row = session.get(SystemLog, parse_uuid(line_id, field="id"))
-    if row is None:
-        raise NotFoundError("That log line does not exist.")
+    row = get_or_404(
+        session, SystemLog, parse_uuid(line_id, field="id"), "That log line does not exist."
+    )
 
     return {
         **summarise(row),

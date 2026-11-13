@@ -44,6 +44,7 @@ from src.core.clock import now
 from src.core.errors import NotFoundError, ValidationError
 from src.core.pagination import parse_uuid
 from src.core.query import apply_filters
+from src.core.repository import get_or_404
 
 VIEW = "records.view"
 MANAGE = "alerts.manage"
@@ -762,9 +763,13 @@ def acknowledge(session, anomaly_id: Any, *, principal) -> dict[str, Any]:
     from src.models.records_analytics import MetricAnomaly
 
     principal.require(VIEW)
-    row = session.get(MetricAnomaly, parse_uuid(anomaly_id, field="anomaly_id"))
-    if row is None:
-        raise NotFoundError("That alert does not exist.", details={"id": str(anomaly_id)})
+    row = get_or_404(
+        session,
+        MetricAnomaly,
+        parse_uuid(anomaly_id, field="anomaly_id"),
+        "That alert does not exist.",
+        details={"id": str(anomaly_id)},
+    )
     if row.status != "ACKNOWLEDGED":
         row.status = "ACKNOWLEDGED"
         row.acknowledged_at = now()

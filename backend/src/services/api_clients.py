@@ -44,7 +44,7 @@ import re
 import secrets
 from typing import Any
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, select
 
 from src.core import audit, vocabulary
 from src.core.auth import ALL_PERMISSIONS, PERMISSION_LABELS
@@ -52,6 +52,7 @@ from src.core.clock import iso, now
 from src.core.errors import ConflictError, NotFoundError, ValidationError
 from src.core.pagination import envelope, parse_page, parse_uuid
 from src.core.query import Field, FieldSet, apply_filters, apply_sort, count_of, facets_for
+from src.core.repository import get_or_404
 
 #: Reading and writing are the same privilege here, and deliberately so: a
 #: client's scopes and its allowed addresses are exactly the information
@@ -297,9 +298,13 @@ def listing(session, args, *, principal) -> dict[str, Any]:
 def _client(session, client_id: str):
     from src.models.platform import ApiClient
 
-    row = session.get(ApiClient, parse_uuid(client_id, field="id"))
-    if row is None or row.deleted_at is not None:
-        raise NotFoundError("That API client does not exist.")
+    row = get_or_404(
+        session,
+        ApiClient,
+        parse_uuid(client_id, field="id"),
+        "That API client does not exist.",
+        live=True,
+    )
     return row
 
 
@@ -584,9 +589,12 @@ def revoke(session, credential_id: str, *, principal) -> dict[str, Any]:
     principal.require(PERMISSION)
     from src.models.platform import ApiCredential
 
-    row = session.get(ApiCredential, parse_uuid(credential_id, field="id"))
-    if row is None:
-        raise NotFoundError("That credential does not exist.")
+    row = get_or_404(
+        session,
+        ApiCredential,
+        parse_uuid(credential_id, field="id"),
+        "That credential does not exist.",
+    )
     if row.revoked_at is not None:
         raise ConflictError(
             f"{row.prefix}… was already revoked {iso(row.revoked_at)[:10]}.",

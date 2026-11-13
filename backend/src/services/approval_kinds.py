@@ -29,6 +29,7 @@ from src.core.auth import ALL_PERMISSIONS, PERMISSION_LABELS
 from src.core.clock import iso
 from src.core.errors import ConflictError, NotFoundError, ValidationError
 from src.core.pagination import parse_uuid
+from src.core.repository import get_or_404
 from src.models.approvals import ApprovalRequest, ChangeRule
 from src.services import approvals
 from src.services.approvals import Provider
@@ -69,9 +70,7 @@ def _apply_access(session, row: ApprovalRequest, *, approved: bool, principal, c
         return
     from src.models.identity import User
 
-    user = session.get(User, row.requester_id)
-    if user is None:
-        raise NotFoundError("The person who asked no longer exists.")
+    user = get_or_404(session, User, row.requester_id, "The person who asked no longer exists.")
     permission = (row.payload or {}).get("permission")
     group = _access_group(session, permission)
     if user not in group.members:
@@ -308,9 +307,13 @@ def _checked_rule(payload: dict[str, Any], rule: ChangeRule) -> None:
 def save_rule(session, payload: dict[str, Any], *, principal, rule_id: Any = None) -> dict[str, Any]:
     principal.require(CHANGE_DECIDER)
     if rule_id:
-        rule = session.get(ChangeRule, parse_uuid(rule_id, field="rule_id"))
-        if rule is None or rule.deleted_at is not None:
-            raise NotFoundError("That rule does not exist.")
+        rule = get_or_404(
+            session,
+            ChangeRule,
+            parse_uuid(rule_id, field="rule_id"),
+            "That rule does not exist.",
+            live=True,
+        )
     else:
         rule = ChangeRule(created_by_id=principal.user_id, active=True)
     _checked_rule(payload, rule)
@@ -327,9 +330,13 @@ def delete_rule(session, rule_id: Any, *, principal) -> dict[str, Any]:
     from src.core.clock import now
 
     principal.require(CHANGE_DECIDER)
-    rule = session.get(ChangeRule, parse_uuid(rule_id, field="rule_id"))
-    if rule is None or rule.deleted_at is not None:
-        raise NotFoundError("That rule does not exist.")
+    rule = get_or_404(
+        session,
+        ChangeRule,
+        parse_uuid(rule_id, field="rule_id"),
+        "That rule does not exist.",
+        live=True,
+    )
     rule.deleted_at = now()
     audit.record(session, action="DELETE", resource_type="change_rule", resource_id=rule.id,
                  resource_label=rule.name, principal=principal, message=f"removed approval rule {rule.name}")
@@ -344,9 +351,13 @@ def _apply_report(session, row: ApprovalRequest, *, approved: bool, principal, c
         return
     from src.models.personal import Report
 
-    report = session.get(Report, parse_uuid((row.payload or {}).get("report_id"), field="report_id"))
-    if report is None or report.deleted_at is not None:
-        raise NotFoundError("The report no longer exists.")
+    report = get_or_404(
+        session,
+        Report,
+        parse_uuid((row.payload or {}).get("report_id"), field="report_id"),
+        "The report no longer exists.",
+        live=True,
+    )
     report.scope = (row.payload or {}).get("scope") or "ORGANIZATION"
     audit.record(session, action="UPDATE", resource_type="report", resource_id=report.id,
                  resource_label=report.name, principal=principal,

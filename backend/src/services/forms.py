@@ -36,6 +36,7 @@ from src.core.errors import (
 )
 from src.core.naming import identifier, sequence_of
 from src.core.pagination import envelope, parse_page, parse_uuid
+from src.core.repository import get_or_404
 from src.models.forms import FormSubmission, IntakeForm
 
 MANAGE = "forms.manage"
@@ -205,9 +206,13 @@ def listing(session, args, *, principal) -> dict[str, Any]:
 
 
 def _row(session, ident: Any) -> IntakeForm:
-    row = session.get(IntakeForm, parse_uuid(ident, field="form_id"))
-    if row is None or row.deleted_at is not None:
-        raise NotFoundError("That form does not exist.")
+    row = get_or_404(
+        session,
+        IntakeForm,
+        parse_uuid(ident, field="form_id"),
+        "That form does not exist.",
+        live=True,
+    )
     return row
 
 

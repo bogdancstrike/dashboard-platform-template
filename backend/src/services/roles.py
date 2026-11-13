@@ -30,7 +30,8 @@ from src.core.auth import (
     PERMISSION_LABELS,
     ROLE_DEFAULTS,
 )
-from src.core.errors import ConflictError, NotFoundError, ValidationError
+from src.core.errors import ConflictError, ValidationError
+from src.core.repository import found_or_404
 
 VIEW_PERMISSION = "roles.manage"
 MANAGE_PERMISSION = "roles.manage"
@@ -97,9 +98,11 @@ def update(session, code: Any, payload: dict[str, Any], *, principal) -> dict[st
     if not isinstance(payload, dict):
         raise ValidationError("The role must be a JSON object.")
 
-    role = session.scalars(select(Role).where(Role.code == str(code or ""))).first()
-    if role is None:
-        raise NotFoundError("That role does not exist.", details={"code": str(code or "")})
+    role = found_or_404(
+        session.scalars(select(Role).where(Role.code == str(code or ""))).first(),
+        "That role does not exist.",
+        details={"code": str(code or "")},
+    )
 
     before = _state(role)
     changed = False
@@ -240,9 +243,11 @@ def remove(session, code: Any, *, principal) -> dict[str, Any]:
     principal.require(MANAGE_PERMISSION)
     from src.models.identity import Role, User
 
-    role = session.scalars(select(Role).where(Role.code == str(code or ""))).first()
-    if role is None:
-        raise NotFoundError("That role does not exist.", details={"code": str(code or "")})
+    role = found_or_404(
+        session.scalars(select(Role).where(Role.code == str(code or ""))).first(),
+        "That role does not exist.",
+        details={"code": str(code or "")},
+    )
     if role.is_system or role.code in ROLE_DEFAULTS:
         raise ConflictError(
             f"{role.name} is a built-in role. Its permissions can be changed; it cannot be removed.",

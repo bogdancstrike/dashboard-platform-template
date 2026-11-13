@@ -39,8 +39,9 @@ from sqlalchemy import and_, case, func, or_, select
 
 from src.core import audit
 from src.core.clock import now
-from src.core.errors import NotFoundError, ValidationError
+from src.core.errors import ValidationError
 from src.core.pagination import parse_uuid
+from src.core.repository import found_or_404
 
 VIEW = "records.view"
 CONFIGURE = "health.configure"
@@ -630,9 +631,11 @@ def customer(session, customer_id: Any, *, principal, days: int = 90) -> dict[st
 
     principal.require(VIEW)
     identifier = parse_uuid(customer_id, field="customer_id")
-    row = session.scalars(select(Customer).where(Customer.id == identifier, Customer.deleted_at.is_(None))).first()
-    if row is None:
-        raise NotFoundError("That customer does not exist.", details={"id": str(customer_id)})
+    row = found_or_404(
+        session.scalars(select(Customer).where(Customer.id == identifier, Customer.deleted_at.is_(None))).first(),
+        "That customer does not exist.",
+        details={"id": str(customer_id)},
+    )
     health = session.scalars(select(CustomerHealth).where(CustomerHealth.customer_id == identifier)).first()
     if health is None:
         recompute(session, notify=False, customer_ids=[identifier])

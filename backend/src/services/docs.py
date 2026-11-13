@@ -37,6 +37,7 @@ from sqlalchemy import func, or_, select
 from src.core.clock import iso, now
 from src.core.errors import ConflictError, ForbiddenError, NotFoundError, ValidationError
 from src.core.pagination import parse_uuid
+from src.core.repository import get_or_404
 
 VIEW = "docs.view"
 EDIT = "docs.edit"
@@ -252,9 +253,13 @@ def plain_text(title: str, blocks: list[dict[str, Any]]) -> str:
 def _space(session, space_id: Any):
     from src.models.collab import DocSpace
 
-    row = session.get(DocSpace, parse_uuid(space_id, field="space_id"))
-    if row is None or row.deleted_at is not None:
-        raise NotFoundError("That space does not exist.")
+    row = get_or_404(
+        session,
+        DocSpace,
+        parse_uuid(space_id, field="space_id"),
+        "That space does not exist.",
+        live=True,
+    )
     return row
 
 
@@ -377,9 +382,13 @@ def tree(session, space_id: Any, *, principal) -> dict[str, Any]:
 def _page(session, page_id: Any):
     from src.models.collab import DocPage
 
-    row = session.get(DocPage, parse_uuid(page_id, field="page_id"))
-    if row is None or row.deleted_at is not None:
-        raise NotFoundError("That page does not exist.")
+    row = get_or_404(
+        session,
+        DocPage,
+        parse_uuid(page_id, field="page_id"),
+        "That page does not exist.",
+        live=True,
+    )
     return row
 
 
@@ -741,9 +750,14 @@ def _record_label(session, resource_type: str, resource_id: Any, principal) -> s
     from src.services.explorer import resource_for
 
     resource = resource_for(resource_type, principal=principal)
-    record = session.get(resource.model, parse_uuid(resource_id, field="resource_id"))
-    if record is None or getattr(record, "deleted_at", None) is not None:
-        raise NotFoundError("That record does not exist.", details={"resource_type": resource_type})
+    record = get_or_404(
+        session,
+        resource.model,
+        parse_uuid(resource_id, field="resource_id"),
+        "That record does not exist.",
+        details={"resource_type": resource_type},
+        live=True,
+    )
     return resource.label_for(record)
 
 
@@ -974,9 +988,7 @@ def take_notes(session, payload: dict[str, Any], *, principal) -> dict[str, Any]
     principal.require(EDIT)
     principal.require("calendar.view")
     event_id = parse_uuid((payload or {}).get("event_id"), field="event_id")
-    event = session.get(CalendarEvent, event_id)
-    if event is None or event.deleted_at is not None:
-        raise NotFoundError("That event does not exist.")
+    event = get_or_404(session, CalendarEvent, event_id, "That event does not exist.", live=True)
     existing = session.scalars(
         select(DocPage).where(DocPage.event_id == event.id, DocPage.deleted_at.is_(None))
         .order_by(DocPage.created_at).limit(1)

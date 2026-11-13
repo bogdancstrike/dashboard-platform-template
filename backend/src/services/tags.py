@@ -46,6 +46,7 @@ from sqlalchemy import func, select
 from src.core import audit
 from src.core.errors import ConflictError, NotFoundError, ValidationError
 from src.core.pagination import parse_uuid
+from src.core.repository import get_or_404
 from src.services.explorer import resource_for, resources
 
 #: Managing the vocabulary. Applying a tag is `records.update` — see above.
@@ -215,7 +216,7 @@ def update(session, tag_id: Any, payload: dict[str, Any], *, principal) -> dict[
 
 def remove(session, tag_id: Any, *, principal) -> dict[str, Any]:
     """Delete a tag and take it off everything it was on."""
-    from src.models.content import Tag, TagLink
+    from src.models.content import TagLink
 
     principal.require(MANAGE_PERMISSION)
     tag = _load(session, tag_id)
@@ -506,9 +507,13 @@ def _category(raw: Any) -> str:
 def _load(session, tag_id: Any):
     from src.models.content import Tag
 
-    tag = session.get(Tag, parse_uuid(tag_id, field="tag_id"))
-    if tag is None:
-        raise NotFoundError("That tag does not exist.", details={"id": str(tag_id)})
+    tag = get_or_404(
+        session,
+        Tag,
+        parse_uuid(tag_id, field="tag_id"),
+        "That tag does not exist.",
+        details={"id": str(tag_id)},
+    )
     return tag
 
 

@@ -32,8 +32,9 @@ from sqlalchemy import and_, or_, select
 
 from src.core import audit, llm, sharing
 from src.core.clock import iso, now
-from src.core.errors import NotFoundError, ValidationError
+from src.core.errors import ValidationError
 from src.core.pagination import parse_uuid
+from src.core.repository import found_or_404
 from src.services import ai, analysis, explorer
 from src.services import insight_spec as specs
 from src.services import insight_suggestions as suggestions
@@ -277,9 +278,9 @@ def plan(question: str, catalogue: list[dict[str, Any]]) -> dict[str, Any]:
 def from_suggestion(session, key: str, *, principal) -> dict[str, Any]:
     """A suggested insight, bound for this reader — instant, and no model."""
     principal.require(USE_PERMISSION)
-    item = suggestions.find(key)
-    if item is None:
-        raise NotFoundError("That suggestion does not exist.", details={"key": key})
+    item = found_or_404(
+        suggestions.find(key), "That suggestion does not exist.", details={"key": key}
+    )
     explorer.resource_for(item["dataset"], principal=principal)
     validated, dropped = specs.validate(item["spec"])
     rendered, errors = specs.bind(session, validated, principal=principal)
@@ -301,9 +302,11 @@ def _row(session, ident: Any, principal):
     from src.models.insights import Insight
 
     identifier = parse_uuid(ident, field="insight_id")
-    row = session.scalars(select(Insight).where(Insight.id == identifier, _visible(principal))).first()
-    if row is None:
-        raise NotFoundError("That insight does not exist.", details={"id": str(identifier)})
+    row = found_or_404(
+        session.scalars(select(Insight).where(Insight.id == identifier, _visible(principal))).first(),
+        "That insight does not exist.",
+        details={"id": str(identifier)},
+    )
     return row
 
 
