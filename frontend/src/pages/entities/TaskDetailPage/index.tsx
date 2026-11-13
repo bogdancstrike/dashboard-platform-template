@@ -37,7 +37,6 @@ import {
   Descriptions,
   Progress,
   Row,
-  Select,
   Space,
   Tooltip,
   Typography,
@@ -51,15 +50,13 @@ import { CommentThread } from "@/components/comments/CommentThread";
 import { PageHeader } from "@/components/PageHeader";
 import { RecordTimeCard, RecordTimerButton } from "@/components/decisions/RecordTimer";
 import { TagPicker } from "@/components/records/TagPicker";
-import { PeoplePicker } from "@/components/PeoplePicker";
 import { useRecordPage } from "@/components/records/useRecordPage";
 import { humanStatus, StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
-import { Field, RecordDeleteButton, RecordEditButton } from "@/entities/detail";
+import { ChoiceField, Field, PersonField, RecordDeleteButton, RecordEditButton } from "@/entities/detail";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { asText } from "@/lib/text";
 import {
-  ReorderableChecklist,
   SaveAsTemplateButton,
   TaskPlanningSide,
   TaskRelations,
@@ -67,13 +64,10 @@ import {
 } from "@/components/planning/TaskPlanning";
 import "@/styles/planning.css";
 
+import { ChecklistCard } from "./ChecklistCard";
+
 const { Text, Paragraph } = Typography;
 
-/** One line of the card's to-do list, as the record stores it. */
-interface ChecklistItem {
-  text: string;
-  done: boolean;
-}
 
 export default function TaskDetailPage() {
   const { id = "" } = useParams();
@@ -105,14 +99,6 @@ export default function TaskDetailPage() {
   if (page.fallback) return page.fallback;
 
   const task = page.record!;
-  // Older rows were seeded as `{label, done}`; the field's contract is
-  // `{text, done}`, so read either and write the contract back.
-  const checklist = ((page.value("checklist") as (ChecklistItem & { label?: string })[] | null) ?? []).map(
-    (item) => ({ text: item.text || item.label || "", done: Boolean(item.done) }),
-  );
-  const done = checklist.filter((item) => item.done).length;
-
-  const writeChecklist = (items: ChecklistItem[]) => page.write({ checklist: items });
 
   return (
     <>
@@ -152,36 +138,7 @@ export default function TaskDetailPage() {
             </Paragraph>
           </Card>
 
-          <Card
-            size="small"
-            className="nu-block"
-            title={
-              <Space size={8}>
-                <span>Checklist</span>
-                {checklist.length > 0 && (
-                  <Text type="secondary" data-testid="checklist-progress">
-                    {done} of {checklist.length}
-                  </Text>
-                )}
-              </Space>
-            }
-            data-testid="task-checklist"
-          >
-            {checklist.length > 0 && (
-              <Progress
-                aria-label={`Checklist: ${done} of ${checklist.length} done`}
-                className="nu-block nu-gauge"
-                percent={Math.round((done / checklist.length) * 100)}
-                size="small"
-              />
-            )}
-            <ReorderableChecklist
-              items={checklist}
-              canEdit={Boolean(task.can_edit)}
-              saving={page.writing}
-              onChange={writeChecklist}
-            />
-          </Card>
+          <ChecklistCard page={page} />
 
           <TaskRelations id={id} page={page} />
 
@@ -201,43 +158,9 @@ export default function TaskDetailPage() {
           <RecordTimeCard subjectType="task" subjectId={id} />
           <Card size="small" title="Details" data-testid="task-side">
             <Space direction="vertical" size={12} style={{ width: "100%" }}>
-              <Field label="Status">
-                <Select
-                  aria-label="Status"
-                  style={{ width: "100%" }}
-                  value={task.status}
-                  disabled={!task.can_edit}
-                  loading={page.writing}
-                  onChange={(next) => page.write({ status: next })}
-                  options={page.choices("status").map((choice) => ({
-                    value: choice,
-                    label: humanStatus(choice),
-                  }))}
-                />
-              </Field>
-
-              <Field label="Priority">
-                <Select
-                  aria-label="Priority"
-                  style={{ width: "100%" }}
-                  value={asText(page.value("priority"))}
-                  disabled={!task.can_edit}
-                  onChange={(next) => page.write({ priority: next })}
-                  options={page.choices("priority").map((choice) => ({ value: choice, label: humanStatus(choice) }))}
-                />
-              </Field>
-
-              <Field label="Assignee">
-                <PeoplePicker
-                  multiple={false}
-                  aria-label="Assignee"
-                  placeholder="Nobody yet"
-                  disabled={!task.can_edit}
-                  value={page.value("assignee_id") ? [asText(page.value("assignee_id"))] : []}
-                  onChange={(ids) => page.write({ assignee_id: ids[0] ?? null })}
-                />
-              </Field>
-
+              <ChoiceField page={page} field="status" label="Status" value={task.status} loading={page.writing} />
+              <ChoiceField page={page} field="priority" label="Priority" />
+              <PersonField page={page} field="assignee_id" label="Assignee" placeholder="Nobody yet" />
               <Field label="Progress">
                 <Progress
                   aria-label={`Progress: ${Number(page.value("progress") ?? 0)}%`}

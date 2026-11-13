@@ -19,7 +19,6 @@ const STANDING_INK = {
   done: "var(--nu-success-ink)",
 } as const;
 
-
 /**
  * The finding, above everything else: three measures of the same project that
  * are only interesting next to one another.
@@ -82,7 +81,6 @@ export function StandingCard({
     </Card>
   );
 }
-
 
 /**
  * How a "how much is used up" bar is coloured.

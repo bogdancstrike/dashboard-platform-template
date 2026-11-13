@@ -2,3 +2,4 @@
 
 export { Field } from "./Field";
 export { RecordDeleteButton, RecordEditButton } from "./RecordButtons";
+export { ChoiceField, PersonField } from "./RecordFields";

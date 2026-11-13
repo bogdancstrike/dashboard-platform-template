@@ -1,10 +1,8 @@
-import { Card, Descriptions, Select, Space } from "antd";
+import { Card, Descriptions, Space } from "antd";
 
-import { PeoplePicker } from "@/components/PeoplePicker";
 import type { RecordPage } from "@/components/records/useRecordPage";
-import { humanStatus } from "@/components/StatusTag";
-import { Field } from "@/entities/detail";
 import { asText } from "@/lib/text";
+import { ChoiceField, PersonField } from "@/entities/detail";
 import { absoluteTime } from "@/lib/time";
 
 /** The review panel: the fields a delivery review changes, and the dates and money it reads. */
@@ -13,60 +11,10 @@ export function ReviewPanel({ page, money }: { page: RecordPage; money: (value: 
   return (
     <Card size="small" title="Review" data-testid="project-review">
       <Space direction="vertical" size={12} style={{ width: "100%" }}>
-        <Field label="Health">
-          <Select
-            aria-label="Health"
-            style={{ width: "100%" }}
-            value={asText(page.value("health"))}
-            disabled={!project.can_edit}
-            loading={page.writing}
-            onChange={(next) => page.write({ health: next })}
-            options={page.choices("health").map((choice) => ({
-              value: choice,
-              label: humanStatus(choice),
-            }))}
-          />
-        </Field>
-
-        <Field label="Phase">
-          <Select
-            aria-label="Phase"
-            style={{ width: "100%" }}
-            value={asText(page.value("phase"))}
-            disabled={!project.can_edit}
-            onChange={(next) => page.write({ phase: next })}
-            options={page.choices("phase").map((choice) => ({
-              value: choice,
-              label: humanStatus(choice),
-            }))}
-          />
-        </Field>
-
-        <Field label="Status">
-          <Select
-            aria-label="Status"
-            style={{ width: "100%" }}
-            value={project.status}
-            disabled={!project.can_edit}
-            onChange={(next) => page.write({ status: next })}
-            options={page.choices("status").map((choice) => ({
-              value: choice,
-              label: humanStatus(choice),
-            }))}
-          />
-        </Field>
-
-        <Field label="Owner">
-          <PeoplePicker
-            multiple={false}
-            aria-label="Owner"
-            placeholder="Nobody yet"
-            disabled={!project.can_edit}
-            value={page.value("owner_id") ? [asText(page.value("owner_id"))] : []}
-            onChange={(ids) => page.write({ owner_id: ids[0] ?? null })}
-          />
-        </Field>
-
+        <ChoiceField page={page} field="health" label="Health" loading={page.writing} />
+        <ChoiceField page={page} field="phase" label="Phase" />
+        <ChoiceField page={page} field="status" label="Status" value={project.status} />
+        <PersonField page={page} field="owner_id" label="Owner" placeholder="Nobody yet" />
         <Descriptions size="small" column={1} bordered>
           <Descriptions.Item label="Priority">
             {asText(page.value("priority")) || "—"}
