@@ -82,7 +82,6 @@
   "src/pages/UsersPage.tsx",
   "src/pages/WorkflowCanvasPage.tsx",
   "src/pages/WorkflowsPage.tsx",
-  "src/pages/admin/QualityPage.tsx",
   "src/pages/decisions/ApprovalsPage.tsx",
   "src/pages/decisions/FormDesignerPage.tsx",
   "src/pages/decisions/SlaPoliciesPage.tsx",
