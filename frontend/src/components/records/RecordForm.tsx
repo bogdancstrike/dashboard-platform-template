@@ -80,7 +80,7 @@ export interface EditableField {
  * "Account manager", not the column "Account manager ID" — which also leaked
  * into the placeholder as "Search people for account manager id".
  */
-export function referenceLabel(label: string, references: string): string {
+function referenceLabel(label: string, references: string): string {
   return references ? label.replace(/\s+id$/i, "") : label;
 }
 
@@ -93,7 +93,7 @@ export function referenceLabel(label: string, references: string): string {
  * values an enum allows. Reading choices off the record would mean an edit
  * form whose status select is empty for a status nobody has used yet.
  */
-export function editableFields(
+function editableFields(
   resource: ExplorerResource | undefined,
   fields: RecordField[],
   contentFields: string[] = [],
@@ -117,7 +117,7 @@ export function editableFields(
 }
 
 /** The same list, for a record that does not exist yet (§9 — create). */
-export function creatableFields(resource: ExplorerResource | undefined): EditableField[] {
+function creatableFields(resource: ExplorerResource | undefined): EditableField[] {
   return (resource?.fields ?? [])
     .filter((field) => field.editable)
     .map((field) => ({

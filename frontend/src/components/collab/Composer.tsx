@@ -24,7 +24,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { STALE, queryKeys } from "@/lib/queryKeys";
 
-export const EMOJI = [
+const EMOJI = [
   "😀", "😄", "😂", "🙂", "😉", "😍", "🤔", "😮", "😢", "😅", "🙏", "👍",
   "👎", "👏", "🙌", "💪", "🎉", "🚀", "🔥", "✅", "❌", "⚠️", "💡", "👀",
   "❤️", "⭐", "📌", "📎", "☕", "🍕",

@@ -61,7 +61,7 @@ export function AttachmentList({ files }: { files: Attachment[] }) {
   );
 }
 
-export function ReactionBar({
+function ReactionBar({
   reactions,
   offered,
   onReact,
@@ -94,7 +94,7 @@ export function ReactionBar({
   );
 }
 
-export function ReactionPicker({
+function ReactionPicker({
   offered,
   onReact,
   disabled,

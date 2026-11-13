@@ -255,7 +255,7 @@ export const SHORTCUTS: Shortcut[] = [
 ];
 
 /** Today, written the way somebody would say it out loud. */
-export function longDate(now: Date = new Date()): string {
+function longDate(now: Date = new Date()): string {
   return now.toLocaleDateString(undefined, {
     weekday: "long",
     day: "numeric",

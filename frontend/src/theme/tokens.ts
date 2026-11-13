@@ -298,9 +298,6 @@ export function categoryColor(value: string | null | undefined, index: number): 
 
 export const RADIUS = { control: 12, card: 28, modal: 30, pill: 999 } as const;
 
-/** 4px base unit. Anything not on this scale is a mistake, not a nuance. */
-export const SPACE = [0, 4, 8, 12, 16, 24, 32, 48] as const;
-
 export const FONT = {
   family:
     "'Inter Variable', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
@@ -347,16 +344,6 @@ export const LAYOUT = {
   sidebarCollapsedWidth: 64,
   contentMaxWidth: 1680,
   breakpoints: { mobile: 768, tablet: 1024, laptop: 1440 },
-} as const;
-
-/**
- * Fast enough to feel immediate, slow enough to be followed. Nothing that
- * happens on every keystroke gets a transition at all.
- */
-export const MOTION = {
-  fast: "120ms cubic-bezier(0.4, 0, 0.2, 1)",
-  base: "180ms cubic-bezier(0.4, 0, 0.2, 1)",
-  slow: "240ms cubic-bezier(0.4, 0, 0.2, 1)",
 } as const;
 
 export const SHADOW = {

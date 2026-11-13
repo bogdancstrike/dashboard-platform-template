@@ -214,15 +214,6 @@ export function clamp(value: number, low: number, high: number): number {
   return Math.min(high, Math.max(low, value));
 }
 
-export interface PaletteItem {
-  type: NodeType;
-  data: Record<string, unknown>;
-  label: string;
-  description: string;
-  icon: string;
-  group: "Logic" | "Actions" | "Flow";
-}
-
 /** Data a fresh node of each action kind starts with. */
 export function blankData(kind: string): Record<string, unknown> {
   switch (kind) {

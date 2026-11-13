@@ -127,7 +127,7 @@ export function throughputPanel(profile: Profile) {
 }
 
 /** Which record types somebody spends their time on. */
-export function touchesPanel(profile: Profile) {
+function touchesPanel(profile: Profile) {
   return {
     kind: "hbar" as const,
     title: "What they work on",
@@ -457,8 +457,6 @@ function Overview({
         />
       </div>
 
-
-
     </div>
   );
 }
@@ -540,5 +538,3 @@ function MyDigests({
     </div>
   );
 }
-
-

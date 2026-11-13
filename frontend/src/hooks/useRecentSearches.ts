@@ -13,7 +13,7 @@ import { useCallback, useEffect, useState } from "react";
 import { STORAGE_KEYS } from "@/config";
 
 /** Long enough to be useful, short enough to stay scannable in a dropdown. */
-export const MAX_RECENT = 8;
+const MAX_RECENT = 8;
 
 export interface RecentSearches {
   terms: string[];

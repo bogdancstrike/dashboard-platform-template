@@ -175,8 +175,6 @@ export const queryKeys = {
   workflowSamples: root("workflow-samples"),
 } as const;
 
-export type QueryKeyRoot = keyof typeof queryKeys;
-
 /**
  * How long a fetched answer counts as fresh, named rather than repeated.
  *

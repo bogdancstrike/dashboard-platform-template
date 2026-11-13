@@ -23,7 +23,7 @@ import { Button, Space, Tooltip } from "antd";
 import type { EventResponse } from "@/api/calendar";
 
 /** What each answer commits the reader to, said in the control itself. */
-export const ANSWERS: ReadonlyArray<{ value: EventResponse; label: string; hint: string }> = [
+const ANSWERS: ReadonlyArray<{ value: EventResponse; label: string; hint: string }> = [
   { value: "ACCEPTED", label: "Going", hint: "You will be there." },
   { value: "TENTATIVE", label: "Maybe", hint: "You might be there — the organiser sees this." },
   { value: "DECLINED", label: "No", hint: "You will not be there." },

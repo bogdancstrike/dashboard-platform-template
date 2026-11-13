@@ -50,7 +50,7 @@ export interface Cluster {
  * look twice at. Not large either — a generous gap merges cities that are
  * perfectly distinguishable, and the reader loses the city names for nothing.
  */
-export const GAP = 3;
+const GAP = 3;
 
 /** Whether two drawn markers overlap, allowing for the gap. */
 export function overlaps(a: Placed, b: Placed, gap: number = GAP): boolean {

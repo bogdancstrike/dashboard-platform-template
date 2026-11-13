@@ -38,7 +38,7 @@ import { FEATURES, withFeature } from "@/settings/features";
 import { STALE, queryKeys } from "@/lib/queryKeys";
 
 /** What the whole page needs to know about what this reader has starred. */
-export function useFavorites() {
+function useFavorites() {
   const bookmarks = useQuery({
     queryKey: queryKeys.favorites(),
     queryFn: ({ signal }) => favoritesApi.list(signal),

@@ -29,7 +29,7 @@ const { Text } = Typography;
 
 type Tab = "week" | "entries" | "team" | "reports";
 
-export const SHEET_TONE: Record<SheetStatus, string> = {
+const SHEET_TONE: Record<SheetStatus, string> = {
   DRAFT: "nx-td-pilltag",
   SUBMITTED: "nx-td-pilltag nx-td-pilltag--acc",
   APPROVED: "nx-td-pilltag nx-td-pilltag--ok",

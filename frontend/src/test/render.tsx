@@ -29,7 +29,7 @@ export function makeQueryClient(): QueryClient {
   });
 }
 
-export function Providers({
+function Providers({
   children,
   route = "/",
 }: {

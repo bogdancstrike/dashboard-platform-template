@@ -26,7 +26,7 @@ import { queryKeys } from "@/lib/queryKeys";
 
 const { Title, Text } = Typography;
 
-export function asReportBlock(block: DocBlock): DocumentBlock {
+function asReportBlock(block: DocBlock): DocumentBlock {
   return {
     ...(block as unknown as DocumentBlock),
     id: block.id,

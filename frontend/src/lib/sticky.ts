@@ -51,11 +51,3 @@ export function writeSticky(key: string, value: Sticky): void {
     // failure than losing the interaction that produced it.
   }
 }
-
-export function clearSticky(key: string): void {
-  try {
-    window.localStorage.removeItem(PREFIX + key);
-  } catch {
-    // As above.
-  }
-}

@@ -221,7 +221,7 @@ export interface CellEdit {
   after: PendingCell | undefined;
 }
 
-export interface PendingCell {
+interface PendingCell {
   value: unknown;
   error?: string;
 }

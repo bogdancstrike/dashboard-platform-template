@@ -20,7 +20,7 @@ import { PresenceDot } from "./presence";
 import { EmptyState } from "@/components/EmptyState";
 import { queryKeys } from "@/lib/queryKeys";
 
-export function ChannelRow({
+function ChannelRow({
   channel,
   active,
   presence,

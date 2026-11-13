@@ -48,11 +48,11 @@ export interface ListNode extends Base {
   type: "list";
   items: { title: string; subtitle?: string; value?: number | string | null; status?: string | null; href?: string }[];
 }
-export interface MarkdownNode extends Base {
+interface MarkdownNode extends Base {
   type: "markdown";
   text: string;
 }
-export interface CalloutNode extends Base {
+interface CalloutNode extends Base {
   type: "callout";
   tone: Tone;
   text: string;
@@ -74,7 +74,7 @@ export interface TimelineNode extends Base {
   type: "timeline";
   events: { date: string; title: string; text?: string; tone?: Tone | null; href?: string }[];
 }
-export interface SectionNode extends Base {
+interface SectionNode extends Base {
   type: "section";
   blocks: InsightNode[];
 }
@@ -90,11 +90,6 @@ export type InsightNode =
   | ComparisonNode
   | TimelineNode
   | SectionNode;
-
-export const REGISTRY = [
-  "kpi", "bar", "line", "area", "pie", "table", "list", "markdown", "callout",
-  "progress", "comparison", "timeline", "section",
-] as const;
 
 type Raw = Record<string, unknown>;
 

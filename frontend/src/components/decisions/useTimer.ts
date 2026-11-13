@@ -7,7 +7,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { errorToast } from "@/lib/errors";
 import { queryKeys } from "@/lib/queryKeys";
 
-export const TIMER_KEY = queryKeys.time("timer");
+const TIMER_KEY = queryKeys.time("timer");
 
 /**
  * The one running timer, wherever it is shown — the header pill, a task, a

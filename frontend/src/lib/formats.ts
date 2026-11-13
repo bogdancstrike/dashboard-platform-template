@@ -19,9 +19,9 @@
  * functions, and a hook cannot be called from one.
  */
 
-export type DateFormat = "YYYY-MM-DD" | "DD/MM/YYYY" | "MM/DD/YYYY";
-export type TimeFormat = "24h" | "12h";
-export type NumberFormat = "1 234,56" | "1,234.56";
+type DateFormat = "YYYY-MM-DD" | "DD/MM/YYYY" | "MM/DD/YYYY";
+type TimeFormat = "24h" | "12h";
+type NumberFormat = "1 234,56" | "1,234.56";
 
 export interface FormatSettings {
   date: DateFormat;

@@ -15,7 +15,7 @@ import type { TimeEntry, Week } from "@/api/time";
 const DAYS = ["2026-11-09", "2026-11-10", "2026-11-11", "2026-11-12", "2026-11-13", "2026-11-14", "2026-11-15"];
 const at = "2026-11-12T10:00:00Z";
 
-export function timeEntry(partial: Partial<TimeEntry> & { id: string }): TimeEntry {
+function timeEntry(partial: Partial<TimeEntry> & { id: string }): TimeEntry {
   return {
     user_id: "user-1", user_name: "Ada Administrator", subject_type: "task", subject_id: "task-1",
     subject_label: "TSK-00001 · Ship the thing", link: "/tasks/task-1", project_id: null, customer_id: null,

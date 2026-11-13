@@ -39,7 +39,7 @@ import type { CalendarOccurrence } from "@/api/calendar";
 import { addDays, isSameMonth, isToday, isoDay, whyNotMovable } from "@/lib/calendarGrid";
 
 /** How many events one month cell shows before it starts counting. */
-export const CELL_LIMIT = 3;
+const CELL_LIMIT = 3;
 
 const WEEKDAY_HEADINGS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 

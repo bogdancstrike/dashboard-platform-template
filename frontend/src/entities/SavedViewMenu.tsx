@@ -59,7 +59,7 @@ const { Text } = Typography;
  * act on. Snapped to the nearest allowed size instead — a view is about the
  * question, and a card grid decides its own rows anyway.
  */
-export const PAGE_SIZES = [10, 25, 50, 100, 200] as const;
+const PAGE_SIZES = [10, 25, 50, 100, 200] as const;
 
 export function nearestPageSize(size: number): number {
   return PAGE_SIZES.reduce((best, option) =>

@@ -20,7 +20,7 @@ import type { PassageBox } from "@/api/knowledge";
 type PdfModule = typeof import("pdfjs-dist");
 let loading: Promise<PdfModule> | null = null;
 
-export function loadPdf(): Promise<PdfModule> {
+function loadPdf(): Promise<PdfModule> {
   loading ??= Promise.all([
     import("pdfjs-dist"),
     import("pdfjs-dist/build/pdf.worker.min.mjs?url"),

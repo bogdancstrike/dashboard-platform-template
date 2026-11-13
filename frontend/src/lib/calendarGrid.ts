@@ -25,7 +25,7 @@ export type CalendarView = "month" | "week" | "day" | "agenda";
 export const VIEWS: readonly CalendarView[] = ["month", "week", "day", "agenda"];
 
 /** How many days forward an agenda looks. A fortnight is what fits a screen. */
-export const AGENDA_DAYS = 14;
+const AGENDA_DAYS = 14;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -44,7 +44,7 @@ export function startOfWeek(when: Date): Date {
   return new Date(day.valueOf() - offset * DAY_MS);
 }
 
-export function startOfMonth(when: Date): Date {
+function startOfMonth(when: Date): Date {
   const day = startOfDay(when);
   day.setDate(1);
   return day;
@@ -179,7 +179,7 @@ export function fromIsoDay(value: string | null | undefined): Date | null {
   return Number.isNaN(parsed.valueOf()) ? null : parsed;
 }
 
-export function isSameDay(left: Date, right: Date): boolean {
+function isSameDay(left: Date, right: Date): boolean {
   return isoDay(left) === isoDay(right);
 }
 

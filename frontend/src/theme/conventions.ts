@@ -86,18 +86,6 @@
  * which the global stylesheet (`styles/global`) already underlines for exactly this case (§55).
  */
 
-/** The button roles, as the product spells them. */
-export const BUTTON_ROLES = {
-  /** The page's one main verb. */
-  primary: { type: "primary" as const, when: "The single thing this surface is for." },
-  /** Everything else with a word on it. */
-  secondary: { type: undefined, when: "Other verbs beside the primary one." },
-  /** Repeated, or subordinate: row actions and toolbar glyphs. */
-  quiet: { type: "text" as const, when: "Anything repeated per row, or a glyph in a toolbar." },
-  /** Cannot be taken back. Always paired with a confirmation (§73). */
-  destructive: { danger: true, when: "Delete, remove, revoke — with a confirm behind it." },
-} as const;
-
 /**
  * Button types this product does not use, and what to write instead.
  *
@@ -194,13 +182,6 @@ export const EMPTY_STATE = {
    * page's primary verb at the moment it matters most.
    */
   action: "<Button>, usually type=\"primary\" — never a bare <button>",
-} as const;
-
-/** Where a page's own controls live, so two pages do not invent two toolbars. */
-export const ACTION_PLACEMENT = {
-  page: "PageHeader's `actions` — one primary, then secondary verbs, then quiet glyphs.",
-  row: 'Inside the row, `type="text"`, icon-only, with the verb and its object as the label.',
-  surface: "A drawer or a modal owns its own primary, in `extra` or `okText`.",
 } as const;
 
 /**

@@ -6,7 +6,7 @@ import { StrokeIcon, iconClass } from "./StrokeIcon";
  * The assistant's stroke icons, on the same 24-unit grid and round stroke as
  * `NxIcon`.
  */
-export const AST_ICONS = {
+const AST_ICONS = {
   spark: "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 3v4M17 5h4M5 17v4M3 19h4",
   send: "M4 12l16-8-6 16-2.5-6.5zM11.5 13.5L20 4",
   stop: "M7 7h10v10H7z",

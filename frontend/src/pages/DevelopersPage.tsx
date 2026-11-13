@@ -29,7 +29,7 @@ import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Paragraph, Text } = Typography;
 
-export const DEVELOPER_TABS = [
+const DEVELOPER_TABS = [
   { key: "reference", label: "API reference" },
   { key: "console", label: "Try it" },
   { key: "usage", label: "Usage", permission: "api.manage" },

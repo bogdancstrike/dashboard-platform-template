@@ -49,7 +49,7 @@ interface FormValues {
  * and a preview that suggested something the server refuses would be a form
  * that fails on its own suggestion.
  */
-export function codeFor(name: string): string {
+function codeFor(name: string): string {
   return name
     .trim()
     .toUpperCase()

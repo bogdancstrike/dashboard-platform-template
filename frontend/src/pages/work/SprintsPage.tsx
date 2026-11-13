@@ -504,7 +504,7 @@ export default function SprintsPage() {
 }
 
 /** The running sprint as a board: status lanes, the task board's drag and write. */
-export function SprintBoard({ sprint, onOpen, onChanged }: { sprint: SprintDetail; onOpen: (id: string) => void; onChanged: () => void }) {
+function SprintBoard({ sprint, onOpen, onChanged }: { sprint: SprintDetail; onOpen: (id: string) => void; onChanged: () => void }) {
   const queryClient = useQueryClient();
   const { message } = AntApp.useApp();
   const byLane = (lane: string) =>
@@ -655,7 +655,7 @@ export function SprintBoard({ sprint, onOpen, onChanged }: { sprint: SprintDetai
 }
 
 /** Burndown, velocity and the report of one sprint. */
-export function SprintReports({
+function SprintReports({
   project,
   sprints,
   chosen,

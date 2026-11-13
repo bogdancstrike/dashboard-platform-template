@@ -20,7 +20,7 @@ import type {
 } from "@/api/planning";
 
 const P = "/platform";
-export const TODAY = "2026-09-03";
+const TODAY = "2026-09-03";
 
 export function bar(partial: Partial<TimelineBar> & { id: string; reference: string }): TimelineBar {
   return {

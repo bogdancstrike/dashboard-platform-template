@@ -22,7 +22,7 @@ import { NEUTRAL, SEMANTIC } from "@/theme/tokens";
 
 type Theme = ReturnType<typeof useAppearance>["chartTheme"];
 
-export function burndownOption(burndown: Burndown, theme: Theme) {
+function burndownOption(burndown: Burndown, theme: Theme) {
   const labels = burndown.days.map(shortDate);
   return {
     color: [theme.accent, NEUTRAL[400], SEMANTIC.warning],
@@ -49,7 +49,7 @@ export function burndownOption(burndown: Burndown, theme: Theme) {
   };
 }
 
-export function velocityOption(velocity: Velocity, theme: Theme) {
+function velocityOption(velocity: Velocity, theme: Theme) {
   const names = velocity.items.map((item) => item.name.replace(/^.*?(Sprint)/, "$1"));
   return {
     color: [NEUTRAL[300], theme.accent, SEMANTIC.warning],

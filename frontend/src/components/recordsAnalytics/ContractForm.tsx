@@ -44,7 +44,7 @@ interface Values {
 }
 
 /** Customers by name, from the explorer — the same list the customers page reads. */
-export function CustomerPicker({
+function CustomerPicker({
   value,
   onChange,
   initialLabel,

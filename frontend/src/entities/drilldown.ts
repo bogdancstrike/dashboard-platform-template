@@ -26,7 +26,7 @@
  */
 
 /** The parameter that carries it. Short, because it sits in shared links. */
-export const ORIGIN_KEY = "from";
+const ORIGIN_KEY = "from";
 
 /** What a returning link says, by where it goes. */
 const NAMES: { prefix: string; label: string }[] = [

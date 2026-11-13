@@ -37,7 +37,7 @@ const STATUS_TONE: Record<string, string> = {
   WITHDRAWN: "nx-td-pilltag",
 };
 
-export function KindIcon({ icon, size = 18 }: { icon: string; size?: number }) {
+function KindIcon({ icon, size = 18 }: { icon: string; size?: number }) {
   const td: Record<string, TdIconName> = { key: "key", clock: "clock", pen: "form", check: "stamp" };
   if (icon in td) return <TdIcon name={td[icon]!} size={size} />;
   return <NxIcon name={(icon as NxIconName) || "check"} size={size} />;

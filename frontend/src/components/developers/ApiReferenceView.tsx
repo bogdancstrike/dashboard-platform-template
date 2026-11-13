@@ -22,7 +22,7 @@ export function MethodTag({ method }: { method: string }) {
   return <StatusTag status={method} tone={(METHOD_TONE[method] ?? "neutral") as "acc"} label={method} />;
 }
 
-export function AccessTag({ endpoint }: { endpoint: Pick<ApiEndpoint, "access" | "permissions" | "allowed"> }) {
+function AccessTag({ endpoint }: { endpoint: Pick<ApiEndpoint, "access" | "permissions" | "allowed"> }) {
   if (endpoint.access === "public") return <Tag bordered={false} color="green">Public</Tag>;
   if (endpoint.access === "authenticated") return <Tag bordered={false}>Signed in</Tag>;
   if (endpoint.access === "unknown") return <Tag bordered={false}>Unknown guard</Tag>;

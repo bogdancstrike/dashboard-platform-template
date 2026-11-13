@@ -77,5 +77,3 @@ export function buildChartTheme(mode: "light" | "dark", density: Density) {
     },
   };
 }
-
-export const CHART_THEME_NAME = "nucleus";

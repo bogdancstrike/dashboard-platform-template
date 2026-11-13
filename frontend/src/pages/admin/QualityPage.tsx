@@ -52,7 +52,7 @@ const { Text, Paragraph } = Typography;
  * alert tags are: a custom colour makes AntD write white on the fill, and white
  * on our amber is 2.87:1 (§55).
  */
-export const SEVERITY_TONE: Record<QualitySeverity, string> = {
+const SEVERITY_TONE: Record<QualitySeverity, string> = {
   CRITICAL: "error",
   WARNING: "warning",
   INFO: "processing",

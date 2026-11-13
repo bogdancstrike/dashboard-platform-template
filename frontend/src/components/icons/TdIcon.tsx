@@ -7,7 +7,7 @@ import { StrokeIcon, iconClass } from "./StrokeIcon";
  * drawn the same way as `NxIcon` — one path on a 24-unit grid, a round 1.9
  * stroke — so they sit beside it as one family.
  */
-export const TD_ICONS = {
+const TD_ICONS = {
   clock: "M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z",
   play: "M8 5.5v13l10.5-6.5z",
   stop: "M7.5 7.5h9v9h-9z",

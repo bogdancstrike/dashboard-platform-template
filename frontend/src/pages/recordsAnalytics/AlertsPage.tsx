@@ -24,7 +24,7 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
 import { queryKeys } from "@/lib/queryKeys";
 
-export const STATUS_LABEL: Record<string, string> = { OK: "Normal", ANOMALY: "Anomaly", NO_DATA: "No data", ERROR: "Error" };
+const STATUS_LABEL: Record<string, string> = { OK: "Normal", ANOMALY: "Anomaly", NO_DATA: "No data", ERROR: "Error" };
 
 export function WatchStatus({ watch }: { watch: Pick<MetricWatch, "last_status" | "muted" | "snoozed_until"> }) {
   const key = watch.last_status ?? "none";

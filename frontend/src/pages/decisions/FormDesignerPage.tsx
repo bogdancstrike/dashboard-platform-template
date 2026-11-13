@@ -29,7 +29,7 @@ import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
-export const FIELD_TYPES: { type: FieldType; label: string; hint: string }[] = [
+const FIELD_TYPES: { type: FieldType; label: string; hint: string }[] = [
   { type: "text", label: "Short text", hint: "One line" },
   { type: "textarea", label: "Long text", hint: "Paragraphs" },
   { type: "email", label: "Email", hint: "Checked address" },

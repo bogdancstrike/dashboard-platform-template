@@ -227,7 +227,7 @@ function timeSeries(panel: ChartPanel, theme: Theme): Record<string, unknown> {
  * that names a known status keeps that status's colour, because "Done" in
  * red would be a lie told in paint.
  */
-export function barColor(name: string | null | undefined, index: number, theme: Theme): string {
+function barColor(name: string | null | undefined, index: number, theme: Theme): string {
   const known = knownStatusColor(name);
   if (known) return known;
   // Rank-graded: full accent, then lighter steps down to about 45%.

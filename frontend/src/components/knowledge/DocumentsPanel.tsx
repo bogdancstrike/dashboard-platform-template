@@ -48,7 +48,7 @@ const TONE: Record<string, "ok" | "warn" | "bad" | "acc" | "neutral"> = {
 };
 
 /** The converter's own ceiling; the server refuses above it too. */
-export const DEFAULT_MAX_BYTES = 50 * 1024 * 1024;
+const DEFAULT_MAX_BYTES = 50 * 1024 * 1024;
 
 type TrayState = "uploading" | "adding" | "done" | "error" | "refused" | "cancelled";
 
@@ -446,7 +446,7 @@ function DocumentRow({
   );
 }
 
-export function extensionOf(name: string): string {
+function extensionOf(name: string): string {
   const dot = name.lastIndexOf(".");
   return dot < 0 ? "" : name.slice(dot + 1).toLowerCase();
 }

@@ -10,7 +10,7 @@ import { StrokeIcon } from "./StrokeIcon";
  * are the field-type glyphs and row controls only the condition builder and
  * the find pages use.
  */
-export const FD_ICONS = {
+const FD_ICONS = {
   enum: "M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01",
   date: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
   number: "M5 9h14M5 15h14M10 4L8 20M16 4l-2 16",

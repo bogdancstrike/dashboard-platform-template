@@ -66,6 +66,3 @@ export function refreshRecordViews(queryClient: QueryClient): void {
     },
   });
 }
-
-/** Exported for the test that asserts the allowlist is what it claims to be. */
-export const UNAFFECTED_BY_RECORD_WRITES = UNAFFECTED;

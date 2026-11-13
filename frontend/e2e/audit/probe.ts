@@ -37,7 +37,7 @@ export const VIEWPORTS: Record<Device, { width: number; height: number }> = {
 const PLATFORM_WRITES =
   /\/platform\/api\/(settings|flags|feature-flags|roles|admin\/|sla|integrations|impersonat|onboarding\/sample|sample-data|api-clients|announcements\/[^/]+\/publish|forms\/[^/]+\/publish|jobs)/;
 
-export async function guardPlatformWrites(context: BrowserContext): Promise<void> {
+async function guardPlatformWrites(context: BrowserContext): Promise<void> {
   await context.route(PLATFORM_WRITES, async (route) => {
     if (route.request().method() === "GET") return route.continue();
     return route.fulfill({ status: 200, json: {} });
@@ -352,11 +352,11 @@ export async function axe(page: Page, include?: string): Promise<string[]> {
 }
 
 /** The overlays antd draws, open right now. */
-export const OVERLAY =
+const OVERLAY =
   ".ant-modal-wrap:not([style*='display: none']) .ant-modal, .ant-drawer-open .ant-drawer-content-wrapper, .ant-dropdown:not(.ant-dropdown-hidden), .ant-select-dropdown:not(.ant-select-dropdown-hidden), .ant-popover:not(.ant-popover-hidden), .ant-picker-dropdown:not(.ant-picker-dropdown-hidden)";
 
 /** Antd's overlays plus any of the product's own dialogs (palette, sheets, tour). */
-export const ANY_OVERLAY = `${OVERLAY}, [role="dialog"]:visible, [cmdk-input]:visible, .nx-sheet:visible`;
+const ANY_OVERLAY = `${OVERLAY}, [role="dialog"]:visible, [cmdk-input]:visible, .nx-sheet:visible`;
 
 export async function openOverlays(page: Page): Promise<number> {
   return page.locator(ANY_OVERLAY).count();

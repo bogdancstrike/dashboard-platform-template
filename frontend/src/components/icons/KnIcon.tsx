@@ -6,7 +6,7 @@ import { StrokeIcon, iconClass } from "./StrokeIcon";
  * Stroke icons for Ask your documents and Insights, drawn on NxIcon's grid with
  * its stroke so they sit in the navigation as one family.
  */
-export const KN_ICONS = {
+const KN_ICONS = {
   /** Ask your documents: an open book with a spark. */
   documents: "M3 5.5C5.5 4.5 8.5 4.5 12 6.5v13c-3.5-2-6.5-2-9-1zM21 5.5c-2.5-1-5.5-1-9 1v13c3.5-2 6.5-2 9-1zM18 2v3M16.5 3.5h3",
   /** Insights: a chart that grew from a spark. */

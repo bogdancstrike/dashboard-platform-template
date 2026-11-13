@@ -16,7 +16,7 @@ import { FEATURES, withFeature } from "@/settings/features";
 import { apiMessageToast } from "@/lib/errors";
 
 /** Per area: what the page is for, and where its first record is made. */
-export const GUIDES: Record<string, { purpose: string; first: string; to?: string; sample?: string }> = {
+const GUIDES: Record<string, { purpose: string; first: string; to?: string; sample?: string }> = {
   task: { purpose: "Tasks are the work: who does what, by when, and how far along it is.", first: "Create the first task with New task, or start from a template.", sample: "tasks" },
   project: { purpose: "Projects group work for a customer or a goal, with a budget, a phase and a health.", first: "Create a project, then raise its tasks.", sample: "projects" },
   customer: { purpose: "Customers are the accounts you serve — their orders, tickets and health in one place.", first: "Add a customer, or import a spreadsheet of them.", to: "/import", sample: "customers" },

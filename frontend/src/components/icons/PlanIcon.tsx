@@ -6,7 +6,7 @@ import { StrokeIcon, iconClass } from "./StrokeIcon";
  * The planning area's stroke icons, on `NxIcon`'s 24-unit grid and round
  * stroke so they sit in the navigation beside the shell's own.
  */
-export const PLAN_ICONS = {
+const PLAN_ICONS = {
   timeline: "M4 5h9M8 12h11M6 19h7M3 3v18",
   sprint: "M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4",
   template: "M5 4h14v6H5zM5 14h6v6H5zM15 14h4M15 17h4M15 20h4",
