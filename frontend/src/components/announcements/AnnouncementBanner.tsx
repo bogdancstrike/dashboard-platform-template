@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 
 import { announcementsApi, type Announcement } from "@/api/announcements";
 import { useAuth } from "@/auth/AuthProvider";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 /**
  * The platform's own voice, in the shell (§17).
@@ -67,7 +68,7 @@ export function AnnouncementBanner() {
   const queryClient = useQueryClient();
 
   const feed = useQuery({
-    queryKey: ["announcement-banner"],
+    queryKey: queryKeys.announcementBanner(),
     queryFn: ({ signal }) => announcementsApi.feed({ unread: true }, signal),
     // Only once somebody is signed in: the shell renders before the profile
     // arrives, and an unauthenticated call would 401 on every boot.
@@ -76,17 +77,17 @@ export function AnnouncementBanner() {
     // them without a reload — and every ten minutes is often enough for a
     // maintenance window, which is what these are for.
     refetchInterval: 600_000,
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   const mark = useMutation({
     mutationFn: ({ id, acknowledged }: { id: string; acknowledged: boolean }) =>
       announcementsApi.mark(id, acknowledged),
     onSuccess: (_notice, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ["announcement-banner"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.announcementBanner() });
       // The page and the sidebar's count read the same notices.
-      void queryClient.invalidateQueries({ queryKey: ["announcements"] });
-      void queryClient.invalidateQueries({ queryKey: ["nav-badges"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.announcements() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.navBadges() });
       if (variables.acknowledged) message.success("Acknowledged");
     },
     onError: (error: Error) => message.error(error.message),

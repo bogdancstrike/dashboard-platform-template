@@ -27,6 +27,7 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 import { asText } from "@/lib/text";
 import { EmptyState } from "@/components/EmptyState";
 import { FEATURES, withFeature } from "@/settings/features";
+import { queryKeys } from "@/lib/queryKeys";
 
 export function displayValue(
   field: VersionField,
@@ -77,7 +78,7 @@ function VersionHistoryInner({
   const [picked, setPicked] = useState<string[]>([]);
 
   const history = useQuery({
-    queryKey: ["record-versions", resourceType, recordId, asOf],
+    queryKey: queryKeys.recordVersions(resourceType, recordId, asOf),
     queryFn: ({ signal }) => versionsApi.history(resourceType, recordId, asOf, signal),
   });
   const data = history.data;
@@ -116,11 +117,11 @@ function VersionHistoryInner({
       versionsApi.restore(resourceType, recordId, { version: target!.number, fields, expected_updated_at: data?.updated_at }),
     onSuccess: (result) => {
       void message.success(result.message);
-      client.setQueryData(["record-versions", resourceType, recordId, null], result.history);
+      client.setQueryData(queryKeys.recordVersions(resourceType, recordId, null), result.history);
       setAsOf(null);
-      void client.invalidateQueries({ queryKey: ["record-versions", resourceType, recordId] });
-      void client.invalidateQueries({ queryKey: ["record", resourceType, recordId] });
-      void client.invalidateQueries({ queryKey: ["contract", recordId] });
+      void client.invalidateQueries({ queryKey: queryKeys.recordVersions(resourceType, recordId) });
+      void client.invalidateQueries({ queryKey: queryKeys.record(resourceType, recordId) });
+      void client.invalidateQueries({ queryKey: queryKeys.contract(recordId) });
       onRestored?.();
     },
     onError: (error) => void message.error(errorText(error, { action: "restore this record" })),

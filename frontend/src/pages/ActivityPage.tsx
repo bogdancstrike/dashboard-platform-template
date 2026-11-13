@@ -52,6 +52,7 @@ import { PeoplePicker } from "@/components/PeoplePicker";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, groupByDay, relativeTime } from "@/lib/time";
 import { AutoRefresh } from "@/components/AutoRefresh";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -111,7 +112,7 @@ export default function ActivityPage() {
     );
 
   const feed = useQuery({
-    queryKey: ["activity", kind, resourceType, actorId, period, page],
+    queryKey: queryKeys.activity(kind, resourceType, actorId, period, page),
     queryFn: ({ signal }) =>
       activityApi.feed({ kind, resource_type: resourceType, actor_id: actorId, period, page }, signal),
     placeholderData: (previous) => previous,
@@ -121,9 +122,9 @@ export default function ActivityPage() {
   // which is generated from the same declarations the feed validates against —
   // so this select cannot offer a value the endpoint would refuse.
   const catalogue = useQuery({
-    queryKey: ["explorer-catalogue"],
+    queryKey: queryKeys.explorerCatalogue(),
     queryFn: ({ signal }) => explorerApi.catalogue(signal),
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
 
   /**
@@ -133,13 +134,13 @@ export default function ActivityPage() {
    * so a number here cannot disagree with a row in the feed.
    */
   const context = useQuery({
-    queryKey: ["activity-context", resourceType, actorId, period],
+    queryKey: queryKeys.activityContext(resourceType, actorId, period),
     queryFn: ({ signal }) =>
       activityApi.feed(
         { resource_type: resourceType, actor_id: actorId, period, page_size: 200 },
         signal,
       ),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
   const summary = useMemo(() => summarise(context.data?.items ?? []), [context.data]);
 

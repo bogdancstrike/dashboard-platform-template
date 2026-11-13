@@ -66,6 +66,7 @@ import {
   draftMeasures,
   readDraft,
 } from "@/entities/analysisDraft";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -89,15 +90,15 @@ export default function ChartBuilderPage() {
   }, []);
 
   const catalogue = useQuery({
-    queryKey: ["analysis-catalogue"],
+    queryKey: queryKeys.analysisCatalogue(),
     queryFn: ({ signal }) => analysisApi.catalogue(signal),
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
 
   // The saved chart being edited, when there is one. It is a report, because a
   // chart is a saved analysis and so is a report.
   const existing = useQuery({
-    queryKey: ["report", editingId],
+    queryKey: queryKeys.report(editingId),
     queryFn: ({ signal }) => reportsApi.get(editingId, signal),
     enabled: Boolean(editingId),
   });
@@ -188,7 +189,7 @@ export default function ChartBuilderPage() {
   );
 
   const preview = useQuery({
-    queryKey: ["analysis", "chart-builder", draft.resource, dimensions, measures, draft.period, overTime ? 0 : top],
+    queryKey: queryKeys.analysis("chart-builder", draft.resource, dimensions, measures, draft.period, overTime ? 0 : top),
     queryFn: ({ signal }) =>
       analysisApi.run(
         {
@@ -224,7 +225,7 @@ export default function ChartBuilderPage() {
     },
     onSuccess: (saved) => {
       message.success(editingId ? `${saved.name} saved` : `${saved.name} created`);
-      void queryClient.invalidateQueries({ queryKey: ["reports"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.reports() });
       setSaving(false);
       navigate(`/reports?report=${saved.id}`);
     },

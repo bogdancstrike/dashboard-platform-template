@@ -63,6 +63,7 @@ import { EgoGraph } from "@/components/graph/EgoGraph";
 import { SimpleSearch } from "@/components/explorer/SimpleSearch";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -83,7 +84,7 @@ export default function RelationshipExplorerPage() {
   const trail = useMemo(() => parseTrail(params.get("trail")), [params]);
 
   const graph = useQuery({
-    queryKey: ["relationships", resource, id],
+    queryKey: queryKeys.relationships(resource, id),
     queryFn: ({ signal }) => relationshipsApi.of(resource, id, signal),
     enabled: Boolean(resource && id),
   });
@@ -309,7 +310,7 @@ function StartHere({ onStart }: { onStart: (node: RelatedNode, entity: string) =
   const [term, setTerm] = useState("");
   const debounced = useDebouncedValue(term.trim(), 280);
   const results = useQuery({
-    queryKey: ["global-search", debounced],
+    queryKey: queryKeys.globalSearch(debounced),
     queryFn: ({ signal }) => searchApi.global(debounced, signal),
     enabled: debounced.length >= 2,
   });

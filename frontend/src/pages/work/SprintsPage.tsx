@@ -42,6 +42,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { knownStatusColor } from "@/theme/tokens";
 import "@/styles/planning.css";
+import { queryKeys } from "@/lib/queryKeys";
 
 const BACKLOG = "backlog";
 const BOARD_LANES = ["NEW", "ASSIGNED", "IN_PROGRESS", "BLOCKED", "IN_REVIEW", "DONE"];
@@ -63,14 +64,14 @@ export default function SprintsPage() {
 
   // With no project in the address, the one whose sprint is running.
   const running = useQuery({
-    queryKey: ["sprints", "active-any"],
+    queryKey: queryKeys.sprints("active-any"),
     queryFn: ({ signal }) => planningApi.sprints({ state: "ACTIVE" }, signal),
     enabled: !params.get("project"),
   });
   const project = params.get("project") ?? running.data?.items[0]?.project?.id ?? "";
 
   const sprints = useQuery({
-    queryKey: ["sprints", project],
+    queryKey: queryKeys.sprints(project),
     queryFn: ({ signal }) => planningApi.sprints({ project_id: project || undefined }, signal),
     enabled: Boolean(project) || running.isSuccess,
   });
@@ -81,7 +82,7 @@ export default function SprintsPage() {
 
   const details = useQueries({
     queries: open.map((item) => ({
-      queryKey: ["sprint", item.id],
+      queryKey: queryKeys.sprint(item.id),
       queryFn: ({ signal }: { signal: AbortSignal }) => planningApi.sprint(item.id, signal),
     })),
   });
@@ -89,22 +90,22 @@ export default function SprintsPage() {
   details.forEach((query) => query.data && byId.set(query.data.id, query.data));
 
   const backlog = useQuery({
-    queryKey: ["backlog", project, search],
+    queryKey: queryKeys.backlog(project, search),
     queryFn: ({ signal }) => planningApi.backlog({ project_id: project || undefined, q: search || undefined }, signal),
     enabled: Boolean(project) || running.isSuccess,
   });
   const epics = useQuery({
-    queryKey: ["epics", project],
+    queryKey: queryKeys.epics(project),
     queryFn: ({ signal }) => planningApi.epics({ project_id: project || undefined }, signal),
     enabled: Boolean(project),
   });
   const epicName = useMemo(() => new Map((epics.data?.items ?? []).map((epic) => [epic.id, epic.title])), [epics.data]);
 
   const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: ["sprints"] });
-    void queryClient.invalidateQueries({ queryKey: ["sprint"] });
-    void queryClient.invalidateQueries({ queryKey: ["backlog"] });
-    void queryClient.invalidateQueries({ queryKey: ["velocity"] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.sprints() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.sprint() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.backlog() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.velocity() });
   };
   const failed = (error: unknown) =>
     message.error(error instanceof ApiError ? error.message : "That could not be saved.");
@@ -125,10 +126,10 @@ export default function SprintsPage() {
         before_id: input.before_id,
       }),
     onMutate: async ({ task, to, index }) => {
-      await queryClient.cancelQueries({ queryKey: ["sprint"] });
-      await queryClient.cancelQueries({ queryKey: ["backlog"] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.sprint() });
+      await queryClient.cancelQueries({ queryKey: queryKeys.backlog() });
       const from = task.sprint_id ?? BACKLOG;
-      const keyOf = (lane: string) => (lane === BACKLOG ? ["backlog", project, search] : ["sprint", lane]);
+      const keyOf = (lane: string) => (lane === BACKLOG ? queryKeys.backlog(project, search) : queryKeys.sprint(lane));
       const previous = [from, to].map((lane) => [keyOf(lane), queryClient.getQueryData(keyOf(lane))] as const);
       const without = (lane: string) => listOf(lane).filter((item) => item.id !== task.id);
       const target = without(to);
@@ -513,7 +514,7 @@ export function SprintBoard({ sprint, onOpen, onChanged }: { sprint: SprintDetai
     mutationFn: ({ task, to, after, before }: { task: SprintCard; to: string; index: number; after: string | null; before: string | null }) =>
       taskBoardApi.place(task.id, { status: to, after_id: after, before_id: before, expected_updated_at: task.updated_at }),
     onMutate: async ({ task, to, index }) => {
-      const key = ["sprint", sprint.id];
+      const key = queryKeys.sprint(sprint.id);
       await queryClient.cancelQueries({ queryKey: key });
       const previous = queryClient.getQueryData(key);
       const lane = byLane(to).filter((item) => item.id !== task.id);
@@ -533,7 +534,7 @@ export function SprintBoard({ sprint, onOpen, onChanged }: { sprint: SprintDetai
     },
     onSettled: () => {
       onChanged();
-      void queryClient.invalidateQueries({ queryKey: ["task-lane"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.taskLane() });
     },
   });
 
@@ -671,12 +672,12 @@ export function SprintReports({
     [...reportable].filter((item) => item.state === "COMPLETED").sort((a, b) => (b.end_date ?? "").localeCompare(a.end_date ?? ""))[0];
   const id = chosen && reportable.some((item) => item.id === chosen) ? chosen : fallback?.id ?? "";
   const detail = useQuery({
-    queryKey: ["sprint", id],
+    queryKey: queryKeys.sprint(id),
     queryFn: ({ signal }) => planningApi.sprint(id, signal),
     enabled: Boolean(id),
   });
   const velocity = useQuery({
-    queryKey: ["velocity", project],
+    queryKey: queryKeys.velocity(project),
     queryFn: ({ signal }) => planningApi.velocity({ project_id: project || undefined }, signal),
   });
   const sprint = detail.data;

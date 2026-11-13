@@ -37,6 +37,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { setFeatureDisabledHandler } from "@/api/client";
 import { useOptionalAuth } from "@/auth/AuthProvider";
 import { useLive, useLiveEvents } from "@/live/LiveProvider";
+import { queryKeys } from "@/lib/queryKeys";
 
 /**
  * Every flag the product reads, by the name the code uses for it.
@@ -258,7 +259,7 @@ export const FEATURE_POLL_MS = 60_000;
 export function useFeatureSync(): void {
   const queryClient = useQueryClient();
   const live = useLive();
-  const refetch = () => void queryClient.invalidateQueries({ queryKey: ["me"] });
+  const refetch = () => void queryClient.invalidateQueries({ queryKey: queryKeys.me() });
 
   useLiveEvents((message) => {
     if (message.type === "features.changed") refetch();

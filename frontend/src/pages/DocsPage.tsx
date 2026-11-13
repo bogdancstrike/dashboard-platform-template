@@ -29,6 +29,7 @@ import { relativeTime } from "@/lib/time";
 import "@/styles/collab.css";
 import "@/styles/docs.css";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -46,25 +47,25 @@ export default function DocsPage() {
   const query = params.get("q") ?? "";
   const term = useDebouncedValue(query.trim(), 250);
 
-  const spaces = useQuery({ queryKey: ["doc-spaces"], queryFn: ({ signal }) => docsApi.spaces(signal) });
+  const spaces = useQuery({ queryKey: queryKeys.docSpaces(), queryFn: ({ signal }) => docsApi.spaces(signal) });
   const current = useQuery({
-    queryKey: ["doc-page", pageId],
+    queryKey: queryKeys.docPage(pageId),
     queryFn: ({ signal }) => docsApi.page(pageId!, signal),
     enabled: Boolean(pageId),
   });
   const spaceId = current.data?.space.id ?? params.get("space") ?? spaces.data?.items.find((s) => s.kind === "GENERAL")?.id ?? spaces.data?.items[0]?.id;
   const tree = useQuery({
-    queryKey: ["doc-tree", spaceId],
+    queryKey: queryKeys.docTree(spaceId),
     queryFn: ({ signal }) => docsApi.tree(spaceId!, signal),
     enabled: Boolean(spaceId),
   });
   const recent = useQuery({
-    queryKey: ["doc-recent"],
+    queryKey: queryKeys.docRecent(),
     queryFn: ({ signal }) => docsApi.recent(signal),
     enabled: !pageId,
   });
   const results = useQuery({
-    queryKey: ["doc-search", term],
+    queryKey: queryKeys.docSearch(term),
     queryFn: ({ signal }) => docsApi.search(term, signal),
     enabled: term.length >= 2,
   });
@@ -83,7 +84,7 @@ export default function DocsPage() {
       const { id, ...rest } = request;
       return docsApi.move(id, rest);
     },
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["doc-tree", spaceId] }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.docTree(spaceId) }),
     onError: (error) => message.error(error instanceof ApiError ? error.message : "The page was not moved."),
   });
 
@@ -95,8 +96,8 @@ export default function DocsPage() {
 
   const opened = (page: DocPage) => {
     setCreating(false);
-    void queryClient.invalidateQueries({ queryKey: ["doc-tree", page.space.id] });
-    void queryClient.invalidateQueries({ queryKey: ["doc-spaces"] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.docTree(page.space.id) });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.docSpaces() });
     navigate(`/docs/${page.id}?edit=1`);
   };
 
@@ -188,7 +189,7 @@ export default function DocsPage() {
             <DocView
               pageId={pageId}
               onDeleted={(id) => {
-                void queryClient.invalidateQueries({ queryKey: ["doc-tree", id] });
+                void queryClient.invalidateQueries({ queryKey: queryKeys.docTree(id) });
                 navigate(`/docs?space=${id}`, { replace: true });
               }}
             />
@@ -244,7 +245,7 @@ export default function DocsPage() {
         onClose={() => setSpacing(false)}
         onCreated={(created) => {
           setSpacing(false);
-          void queryClient.invalidateQueries({ queryKey: ["doc-spaces"] });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.docSpaces() });
           navigate(`/docs?space=${created.id}`);
         }}
       />

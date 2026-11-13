@@ -18,6 +18,7 @@ import { TagPicker } from "@/components/records/TagPicker";
 import { RecordContent } from "./RecordContent";
 import { RecordReadError } from "./RecordReadError";
 import { RecordRelations } from "./RecordRelations";
+import { queryKeys } from "@/lib/queryKeys";
 
 export interface RecordPreviewProps {
   resourceType: string;
@@ -30,7 +31,7 @@ export function RecordPreview({ resourceType, recordId, term = "", onClose }: Re
   const { message } = App.useApp();
   const navigate = useNavigate();
   const record = useQuery({
-    queryKey: ["record", resourceType, recordId],
+    queryKey: queryKeys.record(resourceType, recordId),
     queryFn: ({ signal }) => recordsApi.get(resourceType, recordId, signal),
     enabled: Boolean(resourceType && recordId),
   });

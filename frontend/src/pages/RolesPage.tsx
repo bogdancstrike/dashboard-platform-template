@@ -28,6 +28,7 @@ import { useNavigate } from "react-router-dom";
 
 import { usePageCommands } from "@/commands/CommandContext";
 import { usePhoneList } from "@/pages/admin/ResponsiveTable";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -71,7 +72,7 @@ export default function RolesPage() {
   const [staged, setStaged] = useState<Record<string, boolean>>({});
 
   const matrix = useQuery({
-    queryKey: ["admin", "roles"],
+    queryKey: queryKeys.admin("roles"),
     queryFn: ({ signal }) => rolesApi.matrix(signal),
   });
 
@@ -79,7 +80,7 @@ export default function RolesPage() {
     mutationFn: (code: string) => rolesApi.remove(code),
     onSuccess: async (answer) => {
       message.success(`The ${answer.code} role is gone`);
-      await queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin("roles") });
     },
     onError: (error) =>
       message.error(
@@ -97,9 +98,9 @@ export default function RolesPage() {
     },
     onSuccess: async (_result, changes) => {
       setStaged({});
-      await queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin("roles") });
       // The caller's own permissions may have just changed.
-      await queryClient.invalidateQueries({ queryKey: ["me"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.me() });
       message.success(
         `${changes.length} role${changes.length === 1 ? "" : "s"} updated. It applies to the next request each holder makes.`,
       );
@@ -476,7 +477,7 @@ export default function RolesPage() {
         onClose={() => setCreating(false)}
         onCreated={() => {
           setCreating(false);
-          void queryClient.invalidateQueries({ queryKey: ["admin", "roles"] });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.admin("roles") });
         }}
       />
     </div>

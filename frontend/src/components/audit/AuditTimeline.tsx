@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { AuditDiff } from "./AuditDiff";
 import { actionColor, humaniseAction } from "./vocabulary";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -53,7 +54,7 @@ export function AuditTimeline({
 }) {
   const [thread, setThread] = useState(false);
   const timeline = useQuery({
-    queryKey: ["audit", "timeline", resourceType, resourceId, limit, thread],
+    queryKey: queryKeys.audit("timeline", resourceType, resourceId, limit, thread),
     queryFn: ({ signal }) =>
       auditApi.timeline(
         { resource_type: resourceType, resource_id: resourceId, limit, thread },

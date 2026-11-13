@@ -33,6 +33,7 @@ import { ChartPreview } from "@/components/charts/ChartPreview";
 import { formatMetric } from "@/entities/EntityChrome";
 import { asText } from "@/lib/text";
 import { EmptyState } from "@/components/EmptyState";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -130,10 +131,10 @@ function ChartBlock({
   };
 
   const analysis = useQuery({
-    queryKey: ["analysis", "document", block.id, request],
+    queryKey: queryKeys.analysis("document", block.id, request),
     queryFn: ({ signal }) => analysisApi.run(request, signal),
     enabled: Boolean(entity && block.dimension),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   if (!entity) return <Unfinished what="No dataset chosen yet" />;
@@ -198,10 +199,10 @@ function ReportBlock({
 }) {
   const reportId = block.report_id ?? "";
   const run = useQuery({
-    queryKey: ["report-run", reportId, ""],
+    queryKey: queryKeys.reportRun(reportId, ""),
     queryFn: ({ signal }) => reportsApi.run(reportId, {}, signal),
     enabled: Boolean(reportId),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   if (!reportId) return <Unfinished what="No report chosen yet" />;
@@ -281,10 +282,10 @@ function TableBlock({
   };
 
   const rows = useQuery({
-    queryKey: ["entity-rows", request],
+    queryKey: queryKeys.entityRows(request),
     queryFn: ({ signal }) => explorerApi.query(request, signal),
     enabled: Boolean(entity),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   if (!entity) return <Unfinished what="No dataset chosen yet" />;
@@ -323,11 +324,11 @@ function TableBlock({
 function MetricsBlock({ block }: { block: DocumentBlock }) {
   const entity = block.entity ?? "";
   const insights = useQuery({
-    queryKey: ["entity-insights", entity, undefined, block.filters],
+    queryKey: queryKeys.entityInsights(entity, undefined, block.filters),
     queryFn: ({ signal }) =>
       explorerApi.insights({ resource_type: entity, filters: block.filters ?? {} }, signal),
     enabled: Boolean(entity),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   if (!entity) return <Unfinished what="No dataset chosen yet" />;

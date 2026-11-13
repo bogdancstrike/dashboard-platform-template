@@ -75,6 +75,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text, Paragraph } = Typography;
 
@@ -158,7 +159,7 @@ export default function FilesPage() {
   const term = useDebouncedValue(search, 280);
 
   const tree = useQuery({
-    queryKey: ["files-tree"],
+    queryKey: queryKeys.filesTree(),
     queryFn: ({ signal }) => filesApi.tree(signal),
   });
 
@@ -168,15 +169,15 @@ export default function FilesPage() {
     open === UNFILED ? "" : (tree.data?.folders.find((item) => item.id === open)?.name ?? "");
 
   const files = useQuery({
-    queryKey: ["files", open, term],
+    queryKey: queryKeys.files(open, term),
     queryFn: ({ signal }) => filesApi.list({ folder_id: open, q: term || undefined }, signal),
     enabled: Boolean(tree.data),
     placeholderData: (previous) => previous,
   });
 
   const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: ["files"] });
-    void queryClient.invalidateQueries({ queryKey: ["files-tree"] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.files() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.filesTree() });
   };
 
   const failed = (error: unknown) =>

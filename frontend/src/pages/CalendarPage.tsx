@@ -77,6 +77,7 @@ import {
   weekGrid,
   type CalendarView,
 } from "@/lib/calendarGrid";
+import { queryKeys } from "@/lib/queryKeys";
 
 /** The address keys that are places rather than adjustments (§history). */
 const PLACES = new Set(["view", "on"]);
@@ -132,7 +133,7 @@ export default function CalendarPage() {
   const range = useMemo(() => rangeFor(view, anchor), [view, anchor]);
 
   const events = useQuery({
-    queryKey: ["calendar", range.from.toISOString(), range.to.toISOString(), category, onlyMine],
+    queryKey: queryKeys.calendar(range.from.toISOString(), range.to.toISOString(), category, onlyMine),
     queryFn: ({ signal }) =>
       calendarApi.window(
         {
@@ -146,8 +147,8 @@ export default function CalendarPage() {
   });
 
   const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: ["calendar"] });
-    void queryClient.invalidateQueries({ queryKey: ["calendar-event"] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.calendar() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.calendarEvent() });
   };
 
   const answer = useMutation({
@@ -182,11 +183,11 @@ export default function CalendarPage() {
       return calendarApi.update(item.event_id, when);
     },
     onMutate: async ({ item, day }) => {
-      await queryClient.cancelQueries({ queryKey: ["calendar"] });
-      const previous = queryClient.getQueriesData<CalendarWindow>({ queryKey: ["calendar"] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.calendar() });
+      const previous = queryClient.getQueriesData<CalendarWindow>({ queryKey: queryKeys.calendar() });
       const when = movedTo(item, day);
       if (when) {
-        queryClient.setQueriesData<CalendarWindow>({ queryKey: ["calendar"] }, (current) =>
+        queryClient.setQueriesData<CalendarWindow>({ queryKey: queryKeys.calendar() }, (current) =>
           current
             ? {
                 ...current,

@@ -31,6 +31,7 @@ import { DescribeFilters } from "@/components/assistant/DescribeFilters";
 
 import { ConditionBuilder } from "./ConditionBuilder";
 import { countRules, emptyTree, type QueryNode } from "./queryTree";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text, Paragraph } = Typography;
 
@@ -98,7 +99,7 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, record
   );
   const debounced = useDebouncedValue(previewRequest, 280);
   const preview = useQuery({
-    queryKey: ["explorer-preview", debounced],
+    queryKey: queryKeys.explorerPreview(debounced),
     queryFn: ({ signal }) => explorerApi.query(debounced, signal),
     placeholderData: (previous) => previous,
   });

@@ -61,6 +61,7 @@ import { SEMANTIC } from "@/theme/tokens";
 import { formatNumber } from "@/lib/formats";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { refreshRecordViews } from "@/lib/refresh";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -96,7 +97,7 @@ export default function TagsPage() {
   const [editing, setEditing] = useState<Tag | "new" | null>(null);
 
   const query = useQuery({
-    queryKey: ["tag-vocabulary"],
+    queryKey: queryKeys.tagVocabulary(),
     queryFn: ({ signal }) => tagsApi.vocabulary(signal),
   });
   const vocabulary = query.data;
@@ -132,9 +133,9 @@ export default function TagsPage() {
   ]);
 
   const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: ["tag-vocabulary"] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.tagVocabulary() });
     // Every record's chips and every list's rows carry tag names.
-    void queryClient.invalidateQueries({ queryKey: ["record-tags"] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.recordTags() });
     refreshRecordViews(queryClient);
   };
 

@@ -32,6 +32,7 @@ import type { Person } from "@/api/directory";
 import { useAuth } from "@/auth/AuthProvider";
 import { PeoplePicker } from "@/components/PeoplePicker";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -114,7 +115,7 @@ export function SavedSearchForm({
   }, [open, initial, search, form]);
 
   const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: ["saved-searches", value.resource_type] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.savedSearches(value.resource_type) });
 
   const save = useMutation({
     mutationFn: async (values: FormValues) => {

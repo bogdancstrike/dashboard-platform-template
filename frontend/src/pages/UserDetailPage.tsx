@@ -44,6 +44,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { FEATURES, useFeature } from "@/settings/features";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -68,7 +69,7 @@ export default function UserDetailPage() {
   const tab = params.get("tab") ?? "access";
 
   const person = useQuery({
-    queryKey: ["admin", "user", id],
+    queryKey: queryKeys.admin("user", id),
     queryFn: ({ signal }) => usersApi.get(id, signal),
     enabled: Boolean(id),
   });
@@ -76,17 +77,17 @@ export default function UserDetailPage() {
   // Only fetched when there is something to do with it: a reader who cannot
   // manage anybody has no use for the list of roles.
   const roles = useQuery({
-    queryKey: ["admin", "roles"],
+    queryKey: queryKeys.admin("roles"),
     queryFn: ({ signal }) => rolesApi.matrix(signal),
     enabled: person.data?.can_manage === true,
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
 
   const change = useMutation({
     mutationFn: (body: { status?: string; role_code?: string }) => usersApi.update(id, body),
     onSuccess: async (updated) => {
-      queryClient.setQueryData(["admin", "user", id], updated);
-      await queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.setQueryData(queryKeys.admin("user", id), updated);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin("users") });
       message.success(`${updated.full_name} updated. It applies on their next request.`);
     },
     onError: (error) =>

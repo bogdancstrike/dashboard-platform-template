@@ -38,6 +38,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { StatCard } from "@/components/StatCard";
 import { HIDDEN_ON_DASHBOARD, balancedColumns, packSpans } from "@/pages/dashboardLayout";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -129,7 +130,7 @@ export default function DashboardPage() {
   const period = params.get("period") ?? "last_30_days";
 
   const { data, isLoading, isError, error, refetch, dataUpdatedAt, isFetching } = useQuery({
-    queryKey: ["dashboard", period],
+    queryKey: queryKeys.dashboard(period),
     queryFn: ({ signal }) => dashboardApi.summary({ period }, signal),
   });
 

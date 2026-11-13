@@ -24,6 +24,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { errorText } from "@/lib/errors";
 import { asText } from "@/lib/text";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 interface Values {
   title: string;
@@ -55,13 +56,13 @@ export function CustomerPicker({
   const [term, setTerm] = useState("");
   const debounced = useDebouncedValue(term, 250);
   const results = useQuery({
-    queryKey: ["contract-customer-picker", debounced],
+    queryKey: queryKeys.contractCustomerPicker(debounced),
     queryFn: ({ signal }) =>
       explorerApi.query(
         { resource_type: "customer", columns: ["name", "code"], query_text: debounced || undefined, page_size: 20, sort: "name", order: "asc" },
         signal,
       ),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
   const options = (results.data?.items ?? []).map((row) => ({
     value: asText(row.id),
@@ -163,9 +164,9 @@ export function ContractForm({
     onSuccess: (saved) => {
       settled();
       void message.success(contract ? `${saved.reference} saved.` : `${saved.reference} created.`);
-      void client.invalidateQueries({ queryKey: ["contracts"] });
-      void client.invalidateQueries({ queryKey: ["contract", saved.id] });
-      void client.invalidateQueries({ queryKey: ["record-versions", "contract", saved.id] });
+      void client.invalidateQueries({ queryKey: queryKeys.contracts() });
+      void client.invalidateQueries({ queryKey: queryKeys.contract(saved.id) });
+      void client.invalidateQueries({ queryKey: queryKeys.recordVersions("contract", saved.id) });
       // A page that moves on to the saved record replaces the overlay's
       // history entry itself; closing first would send "back" after it.
       if (onSaved) onSaved(saved);

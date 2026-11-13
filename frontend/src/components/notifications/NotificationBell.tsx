@@ -10,6 +10,7 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
 import { useEscapeToClose } from "@/hooks/useEscapeToClose";
 import { categoryIcon, severityColor } from "./presentation";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -37,18 +38,18 @@ export function NotificationBell() {
   const refetchInterval = usePollInterval(30_000);
 
   const counts = useQuery({
-    queryKey: ["notifications", "counts"],
+    queryKey: queryKeys.notifications("counts"),
     queryFn: ({ signal }) => notificationsApi.counts(signal),
     refetchInterval,
   });
 
   const latest = useQuery({
-    queryKey: ["notifications", "latest"],
+    queryKey: queryKeys.notifications("latest"),
     queryFn: ({ signal }) => notificationsApi.list({ page_size: 20 }, signal),
     enabled: open,
   });
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["notifications"] });
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: queryKeys.notifications() });
 
   const markAll = useMutation({
     mutationFn: () => notificationsApi.markAllRead(),

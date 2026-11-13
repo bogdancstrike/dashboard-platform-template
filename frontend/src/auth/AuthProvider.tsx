@@ -13,6 +13,7 @@ import { meApi, type CurrentUser } from "@/api/me";
 import { markSignedIn } from "@/auth/keycloak";
 import { useAppearance } from "@/theme/AppearanceProvider";
 import { signOut } from "./keycloak";
+import { queryKeys } from "@/lib/queryKeys";
 
 interface AuthContextValue {
   profile: CurrentUser | null;
@@ -32,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const lastSaved = useRef({ theme: appearance, density });
 
   const query = useQuery({
-    queryKey: ["me"],
+    queryKey: queryKeys.me(),
     queryFn: ({ signal }) => meApi.get(signal),
     staleTime: 0,
   });
@@ -41,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     mutationFn: (preferences: Parameters<typeof meApi.updatePreferences>[0]) =>
       meApi.updatePreferences(preferences),
     onSuccess: ({ preferences }) => {
-      queryClient.setQueryData<CurrentUser>(["me"], (current) =>
+      queryClient.setQueryData<CurrentUser>(queryKeys.me(), (current) =>
         current ? { ...current, preferences } : current,
       );
     },

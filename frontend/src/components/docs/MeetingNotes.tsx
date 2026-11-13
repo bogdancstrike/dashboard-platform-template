@@ -14,6 +14,7 @@ import { CoIcon } from "@/components/collab/icons";
 import { relativeTime } from "@/lib/time";
 import "@/styles/docs.css";
 import { FEATURES, withFeature } from "@/settings/features";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -21,7 +22,7 @@ function MeetingNotesInner({ eventId }: { eventId: string }) {
   const { message } = AntApp.useApp();
   const navigate = useNavigate();
   const notes = useQuery({
-    queryKey: ["meeting-notes", eventId],
+    queryKey: queryKeys.meetingNotes(eventId),
     queryFn: ({ signal }) => docsApi.meetingNotes(eventId, signal),
     retry: false,
   });

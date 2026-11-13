@@ -41,6 +41,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { formatNumber } from "@/lib/formats";
 import { relativeTime } from "@/lib/time";
 import { withOrigin } from "@/entities/drilldown";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text, Paragraph } = Typography;
 
@@ -89,7 +90,7 @@ export default function QualityPage() {
   const chosen = params.get("resource_type") ?? "";
 
   const query = useQuery({
-    queryKey: ["quality", chosen],
+    queryKey: queryKeys.quality(chosen),
     queryFn: ({ signal }) => qualityApi.overview({ resource_type: chosen }, signal),
   });
   const overview = query.data;

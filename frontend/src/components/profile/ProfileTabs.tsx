@@ -22,6 +22,7 @@ import { securityApi } from "@/api/security";
 import { EmptyState } from "@/components/EmptyState";
 import { formatNumber } from "@/lib/formats";
 import { relativeTime } from "@/lib/time";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text, Paragraph } = Typography;
 
@@ -238,7 +239,7 @@ function humanArea(area: string): string {
 export function ProfileAccessTab({ profile }: { profile: Profile }) {
   const mine = profile.is_me;
   const security = useQuery({
-    queryKey: ["security", "overview"],
+    queryKey: queryKeys.security("overview"),
     queryFn: ({ signal }) => securityApi.overview(signal),
     enabled: mine,
   });

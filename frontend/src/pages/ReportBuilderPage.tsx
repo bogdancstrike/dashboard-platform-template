@@ -99,6 +99,7 @@ import { relativeTime } from "@/lib/time";
 import { PAPER } from "@/theme/tokens";
 import { COPY_MEANS, confirmCopy } from "@/lib/confirm";
 import { EmptyState } from "@/components/EmptyState";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -127,35 +128,35 @@ export default function ReportBuilderPage() {
   }, []);
 
   const listing = useQuery({
-    queryKey: ["report-documents"],
+    queryKey: queryKeys.reportDocuments(),
     queryFn: ({ signal }) => reportDocumentsApi.list(signal),
   });
 
   const document = useQuery({
-    queryKey: ["report-document", openId],
+    queryKey: queryKeys.reportDocument(openId),
     queryFn: ({ signal }) => reportDocumentsApi.get(openId, signal),
     enabled: Boolean(openId),
   });
 
   const resources = useQuery({
-    queryKey: ["explorer-catalogue"],
+    queryKey: queryKeys.explorerCatalogue(),
     queryFn: ({ signal }) => explorerApi.catalogue(signal),
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
 
   const savedReports = useQuery({
-    queryKey: ["reports"],
+    queryKey: queryKeys.reports(),
     queryFn: ({ signal }) => reportsApi.list(signal),
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
 
   // What a chart block can be asked — the same catalogue the chart builder and
   // the analytics workspace compose from, so a question posed on a page is a
   // question those screens would also accept.
   const catalogue = useQuery({
-    queryKey: ["analysis-catalogue"],
+    queryKey: queryKeys.analysisCatalogue(),
     queryFn: ({ signal }) => analysisApi.catalogue(signal),
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
 
   // The server's answer is the starting point for the draft, and replaces it
@@ -189,8 +190,8 @@ export default function ReportBuilderPage() {
   const create = useMutation({
     mutationFn: () => reportDocumentsApi.create({ name: "Untitled report" }),
     onSuccess: (saved) => {
-      queryClient.setQueryData(["report-document", saved.id], saved);
-      void queryClient.invalidateQueries({ queryKey: ["report-documents"] });
+      queryClient.setQueryData(queryKeys.reportDocument(saved.id), saved);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.reportDocuments() });
       open(saved.id);
     },
     onError: failed,
@@ -211,8 +212,8 @@ export default function ReportBuilderPage() {
     mutationFn: (input: { entity: string; period?: string }) =>
       reportDocumentsApi.compose(input),
     onSuccess: (saved) => {
-      queryClient.setQueryData(["report-document", saved.id], saved);
-      void queryClient.invalidateQueries({ queryKey: ["report-documents"] });
+      queryClient.setQueryData(queryKeys.reportDocument(saved.id), saved);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.reportDocuments() });
       setComposeOpen(false);
       open(saved.id);
       message.success(`Composed ${saved.name} — edit anything in it.`);
@@ -224,8 +225,8 @@ export default function ReportBuilderPage() {
     mutationFn: (input: Parameters<typeof reportDocumentsApi.update>[1]) =>
       reportDocumentsApi.update(openId, input),
     onSuccess: (saved) => {
-      queryClient.setQueryData(["report-document", saved.id], saved);
-      void queryClient.invalidateQueries({ queryKey: ["report-documents"] });
+      queryClient.setQueryData(queryKeys.reportDocument(saved.id), saved);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.reportDocuments() });
       setSettingsOpen(false);
       message.success("Saved");
     },
@@ -235,8 +236,8 @@ export default function ReportBuilderPage() {
   const duplicate = useMutation({
     mutationFn: (id: string) => reportDocumentsApi.duplicate(id),
     onSuccess: (saved) => {
-      queryClient.setQueryData(["report-document", saved.id], saved);
-      void queryClient.invalidateQueries({ queryKey: ["report-documents"] });
+      queryClient.setQueryData(queryKeys.reportDocument(saved.id), saved);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.reportDocuments() });
       open(saved.id);
       message.success(`Copied as ${saved.name}`);
     },

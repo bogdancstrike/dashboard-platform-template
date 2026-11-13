@@ -89,6 +89,7 @@ import { DailyBrief } from "@/components/assistant/DailyBrief";
 import { OnboardingCard } from "@/components/onboarding/OnboardingCard";
 import { NxIcon } from "@/components/NxIcon";
 import { flagForPath, useFeatures } from "@/settings/features";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -291,19 +292,19 @@ export default function HomePage() {
   const me = profile?.user;
 
   const app = useQuery({
-    queryKey: ["meta-app"],
+    queryKey: queryKeys.metaApp(),
     queryFn: ({ signal }) => metaApi.app(signal),
-    staleTime: 3_600_000,
+    staleTime: STALE.hour,
   });
 
   const notices = useQuery({
-    queryKey: ["announcements", "", false],
+    queryKey: queryKeys.announcements("", false),
     queryFn: ({ signal }) =>
       announcementsApi.feed({ category: "", include_expired: false }, signal),
   });
 
   const notifications = useQuery({
-    queryKey: ["notification-counts"],
+    queryKey: queryKeys.notificationCounts(),
     queryFn: ({ signal }) => notificationsApi.counts(signal),
   });
 
@@ -311,7 +312,7 @@ export default function HomePage() {
   // same thing here and there, including at the midnight boundary.
   const today = rangeFor("day", new Date());
   const events = useQuery({
-    queryKey: ["calendar", today.from.toISOString(), today.to.toISOString(), "", true],
+    queryKey: queryKeys.calendar(today.from.toISOString(), today.to.toISOString(), "", true),
     queryFn: ({ signal }) =>
       calendarApi.window(
         { from: today.from.toISOString(), to: today.to.toISOString(), mine: "1" },
@@ -321,14 +322,14 @@ export default function HomePage() {
   });
 
   const mail = useQuery({
-    queryKey: ["mail", "INBOX", "", "", "unread", 1],
+    queryKey: queryKeys.mail("INBOX", "", "", "unread", 1),
     queryFn: ({ signal }) =>
       mailApi.threads({ folder: "INBOX", unread: "1", page: 1 }, signal),
     enabled: can("mail.access"),
   });
 
   const tasks = useQuery({
-    queryKey: ["home-tasks", me?.id],
+    queryKey: queryKeys.homeTasks(me?.id),
     queryFn: ({ signal }) =>
       explorerApi.query(
         {
@@ -346,7 +347,7 @@ export default function HomePage() {
   });
 
   const feed = useQuery({
-    queryKey: ["activity-home"],
+    queryKey: queryKeys.activityHome(),
     queryFn: ({ signal }) => activityApi.feed({ period: "last_7_days" }, signal),
   });
 
@@ -359,7 +360,7 @@ export default function HomePage() {
    * are still gated by the page it points at.
    */
   const recents = useQuery({
-    queryKey: ["favorites", "recents"],
+    queryKey: queryKeys.favorites("recents"),
     queryFn: ({ signal }) => favoritesApi.recents(signal),
   });
 

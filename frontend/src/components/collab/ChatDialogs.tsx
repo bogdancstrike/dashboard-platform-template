@@ -14,6 +14,7 @@ import { PersonAvatar } from "@/components/PersonAvatar";
 
 import { initials } from "./MessageItem";
 import { PresenceDot } from "./presence";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -43,7 +44,7 @@ export function NewChannelModal({
         member_ids: members,
       }),
     onSuccess: (channel) => {
-      void queryClient.invalidateQueries({ queryKey: ["chat-channels"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.chatChannels() });
       form.resetFields();
       setMembers([]);
       onCreated(channel);
@@ -100,7 +101,7 @@ export function NewDirectModal({
   const start = useMutation({
     mutationFn: (id: string) => chatApi.direct(id),
     onSuccess: (channel) => {
-      void queryClient.invalidateQueries({ queryKey: ["chat-channels"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.chatChannels() });
       setPerson([]);
       onOpened(channel);
     },

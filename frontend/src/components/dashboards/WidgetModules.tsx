@@ -57,6 +57,7 @@ import { asText } from "@/lib/text";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { knownStatusColor, SEMANTIC } from "@/theme/tokens";
 import { EmptyState } from "@/components/EmptyState";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -116,9 +117,9 @@ export function TasksBody({ widget, fallback }: ModuleBodyProps) {
 
 function BoardLanes({ id, fallback }: { id: string; fallback: ModuleBodyProps["fallback"] }) {
   const detail = useQuery({
-    queryKey: ["kanban-board", id, {}],
+    queryKey: queryKeys.kanbanBoard(id, {}),
     queryFn: ({ signal }) => kanbanApi.board(id, {}, signal),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 
   if (detail.isLoading) return <Loading />;
@@ -167,9 +168,9 @@ function TaskLanes({ widget, fallback }: { widget: DashboardWidget; fallback: Mo
   };
 
   const rows = useQuery({
-    queryKey: ["entity-rows", request],
+    queryKey: queryKeys.entityRows(request),
     queryFn: ({ signal }) => explorerApi.query(request, signal),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 
   if (rows.isLoading) return <Loading />;
@@ -243,9 +244,9 @@ export function ProjectsBody({ widget, fallback }: ModuleBodyProps) {
   };
 
   const rows = useQuery({
-    queryKey: ["entity-rows", request],
+    queryKey: queryKeys.entityRows(request),
     queryFn: ({ signal }) => explorerApi.query(request, signal),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 
   if (rows.isLoading) return <Loading />;
@@ -304,9 +305,9 @@ export function MailBody({ widget, fallback }: ModuleBodyProps) {
   };
 
   const list = useQuery({
-    queryKey: ["mail-threads", params],
+    queryKey: queryKeys.mailThreads(params),
     queryFn: ({ signal }) => mailApi.threads(params, signal),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 
   if (list.isLoading) return <Loading />;
@@ -372,9 +373,9 @@ export function FilesBody({ widget, fallback }: ModuleBodyProps) {
   };
 
   const page = useQuery({
-    queryKey: ["files", params],
+    queryKey: queryKeys.files(params),
     queryFn: ({ signal }) => filesApi.list(params, signal),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 
   if (page.isLoading) return <Loading />;
@@ -428,7 +429,7 @@ export function NotificationsBody({ widget, fallback }: ModuleBodyProps) {
   };
 
   const page = useQuery({
-    queryKey: ["notifications", params],
+    queryKey: queryKeys.notifications(params),
     queryFn: ({ signal }) => notificationsApi.list(params, signal),
     staleTime: 20_000,
   });
@@ -482,9 +483,9 @@ export function AnnouncementsBody({ widget, fallback }: ModuleBodyProps) {
   const params = widget.config.category ? { category: widget.config.category } : {};
 
   const feed = useQuery({
-    queryKey: ["announcements", params],
+    queryKey: queryKeys.announcements(params),
     queryFn: ({ signal }) => announcementsApi.feed(params, signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   if (feed.isLoading) return <Loading />;
@@ -545,7 +546,7 @@ export function AnnouncementsBody({ widget, fallback }: ModuleBodyProps) {
 export function ExplorerBody({ widget, resources, fallback }: ModuleBodyProps) {
   const entity = widget.config.entity || undefined;
   const saved = useQuery({
-    queryKey: ["saved-searches", entity ?? "all"],
+    queryKey: queryKeys.savedSearches(entity ?? "all"),
     queryFn: ({ signal }) => explorerApi.saved(entity, signal),
     staleTime: 120_000,
   });
@@ -604,9 +605,9 @@ export function ExplorerBody({ widget, resources, fallback }: ModuleBodyProps) {
  */
 export function RelationshipsBody({ resources, fallback }: ModuleBodyProps) {
   const map = useQuery({
-    queryKey: ["relationship-overview"],
+    queryKey: queryKeys.relationshipOverview(),
     queryFn: ({ signal }) => relationshipsApi.overview(signal),
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
 
   if (map.isLoading) return <Loading />;
@@ -664,16 +665,16 @@ export function FavoritesBody({ widget, fallback }: ModuleBodyProps) {
   const recents = widget.config.view === "recents";
 
   const bookmarks = useQuery({
-    queryKey: ["favorites"],
+    queryKey: queryKeys.favorites(),
     queryFn: ({ signal }) => favoritesApi.list(signal),
     enabled: !recents,
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
   const visits = useQuery({
-    queryKey: ["recents"],
+    queryKey: queryKeys.recents(),
     queryFn: ({ signal }) => favoritesApi.recents(signal),
     enabled: recents,
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   const active = recents ? visits : bookmarks;
@@ -752,9 +753,9 @@ export function CalendarBody({ widget, fallback }: ModuleBodyProps) {
   const to = end.toISOString().slice(0, 10);
 
   const ahead = useQuery({
-    queryKey: ["calendar-window", from, to],
+    queryKey: queryKeys.calendarWindow(from, to),
     queryFn: ({ signal }) => calendarApi.window({ from, to }, signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   if (ahead.isLoading) return <Loading />;

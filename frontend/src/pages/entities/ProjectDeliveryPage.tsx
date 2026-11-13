@@ -69,6 +69,7 @@ import { formatNumber } from "@/lib/formats";
 import { asText } from "@/lib/text";
 import { knownStatusColor, SEMANTIC } from "@/theme/tokens";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text, Paragraph } = Typography;
 
@@ -115,7 +116,7 @@ export default function ProjectDeliveryPage() {
    * counts therefore describe the whole queue rather than the rows on screen.
    */
   const rollup = useQuery({
-    queryKey: ["record-analysis", "project-tasks", id],
+    queryKey: queryKeys.recordAnalysis("project-tasks", id),
     queryFn: ({ signal }) =>
       analysisApi.run(
         {
@@ -130,7 +131,7 @@ export default function ProjectDeliveryPage() {
   });
 
   const nextUp = useQuery({
-    queryKey: ["record-analysis", "project-next-tasks", id],
+    queryKey: queryKeys.recordAnalysis("project-next-tasks", id),
     queryFn: ({ signal }) =>
       explorerApi.query(
         {
@@ -148,7 +149,7 @@ export default function ProjectDeliveryPage() {
 
   const customerId = asText(page.value("customer_id"));
   const account = useQuery({
-    queryKey: ["record", "customer", customerId],
+    queryKey: queryKeys.record("customer", customerId),
     queryFn: ({ signal }) => recordsApi.get("customer", customerId, signal),
     // Fetched only once there is an account to fetch, so a project without a
     // customer costs nothing rather than a 404 on every open.

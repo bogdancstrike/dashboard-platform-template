@@ -18,6 +18,7 @@ import { relativeTime } from "@/lib/time";
 import { initials } from "./MessageItem";
 import { PresenceDot } from "./presence";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 export function ChannelRow({
   channel,
@@ -102,7 +103,7 @@ export function ChannelRail({
   const [browsing, setBrowsing] = useState(false);
   const term = useDebouncedValue(query.trim(), 250);
   const hits = useQuery({
-    queryKey: ["chat-search", term],
+    queryKey: queryKeys.chatSearch(term),
     queryFn: ({ signal }) => chatApi.search(term, signal),
     enabled: term.length >= 2,
   });

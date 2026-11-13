@@ -35,6 +35,7 @@ import { StatCard } from "@/components/StatCard";
 import { SavedViewMenu } from "@/entities/SavedViewMenu";
 import type { EntityView } from "@/entities/useEntityView";
 import { FEATURES, useFeature } from "@/settings/features";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 /** Title, live count, export and the escape hatch to the Data Explorer. */
 export function EntityHeader({
@@ -155,9 +156,9 @@ export function EntityHeader({
  */
 function QualityChip({ resourceKey }: { resourceKey: string }) {
   const found = useQuery({
-    queryKey: ["quality-summary", resourceKey],
+    queryKey: queryKeys.qualitySummary(resourceKey),
     queryFn: ({ signal }) => qualityApi.summary(resourceKey, signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
   const summary = found.data;
   if (!summary || summary.failing === 0) return null;

@@ -27,6 +27,7 @@ import { errorText } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
 
 import { riskFlag } from "./ContractsPage";
+import { queryKeys } from "@/lib/queryKeys";
 
 export default function ContractDetailPage() {
   const { id = "" } = useParams();
@@ -39,9 +40,9 @@ export default function ContractDetailPage() {
   const { message } = App.useApp();
   const { can } = useAuth();
 
-  const contract = useQuery({ queryKey: ["contract", id], queryFn: ({ signal }) => contractsApi.get(id, signal), enabled: Boolean(id) });
+  const contract = useQuery({ queryKey: queryKeys.contract(id), queryFn: ({ signal }) => contractsApi.get(id, signal), enabled: Boolean(id) });
   const files = useQuery({
-    queryKey: ["contract", id, "files"],
+    queryKey: queryKeys.contract(id, "files"),
     queryFn: ({ signal }) => contractsApi.files(id, signal),
     enabled: Boolean(id),
   });
@@ -49,9 +50,9 @@ export default function ContractDetailPage() {
   const move = useMutation({
     mutationFn: (stage: ContractStage) => contractsApi.move(id, { stage }),
     onSuccess: (saved) => {
-      client.setQueryData(["contract", id], saved);
-      void client.invalidateQueries({ queryKey: ["contracts"] });
-      void client.invalidateQueries({ queryKey: ["record-versions", "contract", id] });
+      client.setQueryData(queryKeys.contract(id), saved);
+      void client.invalidateQueries({ queryKey: queryKeys.contracts() });
+      void client.invalidateQueries({ queryKey: queryKeys.recordVersions("contract", id) });
       void message.success(`Moved to ${STAGE_LABEL[saved.stage]}.`);
     },
     onError: (error) => void message.error(errorText(error, { action: "move contracts" })),
@@ -59,7 +60,7 @@ export default function ContractDetailPage() {
   const remove = useMutation({
     mutationFn: () => contractsApi.remove(id),
     onSuccess: () => {
-      void client.invalidateQueries({ queryKey: ["contracts"] });
+      void client.invalidateQueries({ queryKey: queryKeys.contracts() });
       navigate("/contracts", { replace: true });
     },
     onError: (error) => void message.error(errorText(error, { action: "delete contracts" })),
@@ -97,7 +98,7 @@ export default function ContractDetailPage() {
       await putBytes(ticket, file, () => undefined);
       await filesApi.confirmUpload(ticket.file.id);
       void message.success(`${file.name} attached.`);
-      void client.invalidateQueries({ queryKey: ["contract", id, "files"] });
+      void client.invalidateQueries({ queryKey: queryKeys.contract(id, "files") });
     } catch (error) {
       void message.error(errorText(error, { action: "upload files" }));
     }

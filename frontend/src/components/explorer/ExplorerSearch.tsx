@@ -24,6 +24,7 @@ import { searchApi } from "@/api/search";
 import { HighlightedText } from "@/components/HighlightedText";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -48,12 +49,12 @@ export function ExplorerSearch({ dataset, label, value, onChange }: ExplorerSear
   const debounced = useDebouncedValue(term, 280);
 
   const elsewhere = useQuery({
-    queryKey: ["global-search", debounced],
+    queryKey: queryKeys.globalSearch(debounced),
     queryFn: ({ signal }) => searchApi.global(debounced, signal),
     enabled: debounced.length >= MIN_TERM,
     // Shared with the global search page, and names do not change while a
     // dropdown is open.
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 
   const options = useMemo(() => {

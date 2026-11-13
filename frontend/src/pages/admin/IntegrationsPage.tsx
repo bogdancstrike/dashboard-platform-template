@@ -64,6 +64,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { asText } from "@/lib/text";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text, Paragraph } = Typography;
 
@@ -139,13 +140,13 @@ export default function IntegrationsPage() {
   }, [term]);
 
   const catalogue = useQuery({
-    queryKey: ["integrations", "catalogue"],
+    queryKey: queryKeys.integrations("catalogue"),
     queryFn: ({ signal }) => integrationsApi.catalogue(signal),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 
   const listing = useQuery({
-    queryKey: ["integrations", "list", term, category],
+    queryKey: queryKeys.integrations("list", term, category),
     queryFn: ({ signal }) =>
       integrationsApi.list(
         { ...(term ? { q: term } : {}), ...(category ? { category } : {}), page_size: 100 },
@@ -154,13 +155,13 @@ export default function IntegrationsPage() {
   });
 
   const detail = useQuery({
-    queryKey: ["integrations", "entry", opened],
+    queryKey: queryKeys.integrations("entry", opened),
     queryFn: ({ signal }) => integrationsApi.entry(opened!, signal),
     enabled: opened !== null,
   });
 
   const refresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["integrations"] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.integrations() });
   };
 
   const failed = (error: unknown) =>

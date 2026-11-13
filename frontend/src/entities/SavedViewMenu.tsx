@@ -46,6 +46,7 @@ import { explorerApi, type SaveSearchInput, type SavedSearch } from "@/api/explo
 import { SavedSearchForm } from "@/components/explorer/SavedSearchForm";
 import { fitsAList, type EntityView } from "@/entities/useEntityView";
 import { FEATURES, withFeature } from "@/settings/features";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -112,7 +113,7 @@ function SavedViewMenuInner({ view }: { view: EntityView }) {
   const snapshot = snapshotOf(view);
 
   const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: ["saved-searches", resourceKey] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.savedSearches(resourceKey) });
 
   const update = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Partial<SaveSearchInput> }) =>

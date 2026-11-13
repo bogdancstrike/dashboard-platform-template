@@ -27,6 +27,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { PersonAvatar } from "@/components/PersonAvatar";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -94,7 +95,7 @@ export default function UsersPage() {
   );
 
   const people = useQuery({
-    queryKey: ["admin", "users", query],
+    queryKey: queryKeys.admin("users", query),
     queryFn: ({ signal }) => usersApi.list(query, signal),
     placeholderData: (previous) => previous,
   });

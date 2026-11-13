@@ -53,6 +53,7 @@ import { ForceGraph, type GraphLink, type GraphNode } from "@/components/graph/F
 import { StatCard } from "@/components/StatCard";
 import { NEUTRAL, SERIES } from "@/theme/tokens";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -75,7 +76,7 @@ export function NetworkView({
   const [selected, setSelected] = useState<string | null>(null);
 
   const network = useQuery({
-    queryKey: ["relationships", "network", focus],
+    queryKey: queryKeys.relationships("network", focus),
     queryFn: ({ signal }) => relationshipsApi.network(focus, signal),
     staleTime: 120_000,
   });

@@ -14,6 +14,7 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 
 import { BlockView } from "./BlockView";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -31,12 +32,12 @@ export function HistoryDrawer({
   const { message } = AntApp.useApp();
   const [viewing, setViewing] = useState<string | null>(null);
   const history = useQuery({
-    queryKey: ["doc-revisions", page.id, page.version],
+    queryKey: queryKeys.docRevisions(page.id, page.version),
     queryFn: ({ signal }) => docsApi.revisions(page.id, signal),
     enabled: open,
   });
   const version = useQuery({
-    queryKey: ["doc-revision", page.id, viewing],
+    queryKey: queryKeys.docRevision(page.id, viewing),
     queryFn: ({ signal }) => docsApi.revision(page.id, viewing!, signal),
     enabled: open && Boolean(viewing),
   });

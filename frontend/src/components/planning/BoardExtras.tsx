@@ -22,6 +22,7 @@ import { refreshRecordViews } from "@/lib/refresh";
 import { Points } from "./PlanItem";
 import { projectOptions, useProjects } from "./useProjects";
 import { FEATURES, withFeature } from "@/settings/features";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 export type Swimlane = "none" | "assignee" | "priority" | "epic";
 
@@ -148,7 +149,7 @@ export function WipBadge({ count, setting }: { count: number; setting?: LaneSett
 }
 
 export function useLaneSettings() {
-  return useQuery({ queryKey: ["task-lanes"], queryFn: ({ signal }) => planningApi.lanes(signal), staleTime: 30_000 });
+  return useQuery({ queryKey: queryKeys.taskLanes(), queryFn: ({ signal }) => planningApi.lanes(signal), staleTime: STALE.short });
 }
 
 /** Set the work-in-progress limit of every lane at once. */
@@ -163,7 +164,7 @@ export function WipLimitsModal({ open, onClose }: { open: boolean; onClose: () =
   const save = useMutation({
     mutationFn: () => planningApi.setLanes(limits),
     onSuccess: (saved) => {
-      queryClient.setQueryData(["task-lanes"], saved);
+      queryClient.setQueryData(queryKeys.taskLanes(), saved);
       message.success("Lane limits saved");
       onClose();
     },
@@ -247,7 +248,7 @@ function TemplatePickerInner({ open, onClose, onCreated }: { open: boolean; onCl
   const queryClient = useQueryClient();
   const projects = useProjects();
   const templates = useQuery({
-    queryKey: ["task-templates"],
+    queryKey: queryKeys.taskTemplates(),
     queryFn: ({ signal }) => planningApi.templates({}, signal),
     enabled: open,
   });
@@ -388,9 +389,9 @@ export function ShortcutsModal({ open, onClose }: { open: boolean; onClose: () =
 /** Everybody's name by id, for assignee swimlanes (the directory pages by fifty). */
 export function usePeopleNames(enabled: boolean) {
   return useQuery({
-    queryKey: ["planning-people"],
+    queryKey: queryKeys.planningPeople(),
     enabled,
-    staleTime: 5 * 60_000,
+    staleTime: STALE.long,
     queryFn: async ({ signal }) => {
       const names = new Map<string, Person>();
       for (let page = 1; page <= 6; page += 1) {

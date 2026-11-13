@@ -21,6 +21,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { commentsApi, type CommentThread, type ListOptions } from "@/api/comments";
 import { useLiveEvents } from "@/live/LiveProvider";
 import { FEATURES, useFeature } from "@/settings/features";
+import { queryKeys } from "@/lib/queryKeys";
 
 export interface Typist {
   id: string;
@@ -32,7 +33,7 @@ const TYPING_EVERY_MS = 3_000;
 const WINDOW = 50;
 
 export function conversationKey(resourceType: string, resourceId: string, scope = "all") {
-  return ["comments", resourceType, resourceId, scope] as const;
+  return queryKeys.comments(resourceType, resourceId, scope);
 }
 
 export function useConversation({
@@ -80,13 +81,13 @@ export function useConversation({
   }
 
   const refresh = useCallback(
-    () => queryClient.invalidateQueries({ queryKey: ["comments", resourceType, resourceId] }),
+    () => queryClient.invalidateQueries({ queryKey: queryKeys.comments(resourceType, resourceId) }),
     [queryClient, resourceType, resourceId],
   );
 
   const read = useMutation({
     mutationFn: () => commentsApi.read(resourceType, resourceId),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["chat-channels"] }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.chatChannels() }),
   });
   const newest = thread.data?.items[thread.data.items.length - 1]?.created_at;
   useEffect(() => {
@@ -144,7 +145,7 @@ export function useConversation({
     onSuccess: () => {
       lastTyped.current = 0;
       void refresh();
-      void queryClient.invalidateQueries({ queryKey: ["chat-channels"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.chatChannels() });
     },
   });
   const edit = useMutation({
@@ -161,7 +162,7 @@ export function useConversation({
       // The server answered with the line as it now is; put it in place at
       // once so the chip does not flicker back while the listing is re-read.
       queryClient.setQueriesData<CommentThread>(
-        { queryKey: ["comments", resourceType, resourceId] },
+        { queryKey: queryKeys.comments(resourceType, resourceId) },
         (old) =>
           old
             ? { ...old, items: old.items.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)) }

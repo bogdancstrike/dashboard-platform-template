@@ -88,6 +88,7 @@ import { errorText } from "@/lib/errors";
 import { formatNumber } from "@/lib/formats";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text, Paragraph } = Typography;
 
@@ -184,17 +185,17 @@ export default function ImportPage() {
   const opened = params.get("run") ?? "";
 
   const catalogue = useQuery({
-    queryKey: ["imports", "catalogue"],
+    queryKey: queryKeys.imports("catalogue"),
     queryFn: ({ signal }) => importsApi.catalogue(signal),
   });
 
   const listing = useQuery({
-    queryKey: ["imports", "list"],
+    queryKey: queryKeys.imports("list"),
     queryFn: ({ signal }) => importsApi.list({ page_size: 25 }, signal),
   });
 
   const run = useQuery({
-    queryKey: ["imports", "run", opened],
+    queryKey: queryKeys.imports("run", opened),
     queryFn: ({ signal }) => importsApi.entry(opened, signal),
     enabled: Boolean(opened),
     // Only while an execute is in flight. A page that polls a finished import
@@ -223,7 +224,7 @@ export default function ImportPage() {
   }, [serverMapping]);
 
   const refresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["imports"] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.imports() });
   };
 
   const open = (id: string) =>

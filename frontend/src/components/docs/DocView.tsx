@@ -52,6 +52,7 @@ import { DOC_BLOCK_ORDER, DOC_BLOCKS, newDocBlock, recordPath, RECORD_LABELS } f
 import { HistoryDrawer } from "./HistoryDrawer";
 import { RecordPicker } from "./RecordPicker";
 import { FEATURES, useFeature } from "@/settings/features";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 const SAVE_AFTER_MS = 1000;
@@ -102,7 +103,7 @@ export function DocView({ pageId, onDeleted }: { pageId: string; onDeleted: (spa
   const version = useRef(0);
 
   const page = useQuery({
-    queryKey: ["doc-page", pageId],
+    queryKey: queryKeys.docPage(pageId),
     queryFn: ({ signal }) => docsApi.page(pageId, signal),
     // An action item's task moves on without this page knowing; re-read its
     // state while the page is open.
@@ -131,8 +132,8 @@ export function DocView({ pageId, onDeleted }: { pageId: string; onDeleted: (spa
 
   const accept = (saved: DocPage) => {
     version.current = saved.version;
-    queryClient.setQueryData(["doc-page", pageId], saved);
-    void queryClient.invalidateQueries({ queryKey: ["doc-tree", saved.space.id] });
+    queryClient.setQueryData(queryKeys.docPage(pageId), saved);
+    void queryClient.invalidateQueries({ queryKey: queryKeys.docTree(saved.space.id) });
   };
 
   const save = useMutation({

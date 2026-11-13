@@ -16,6 +16,7 @@ import type { Notification } from "@/api/notifications";
 import { API_PREFIX } from "@/config";
 import { chime } from "@/lib/chime";
 import { usePreferences } from "@/settings/PreferencesProvider";
+import { queryKeys } from "@/lib/queryKeys";
 
 /**
  * The live channel (§17): one WebSocket for the whole application.
@@ -154,7 +155,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       if (payload.type !== "notification" || !payload.data) return;
 
       setReceived((count) => count + 1);
-      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.notifications() });
 
       // The badge and the centre always update; the *pop-up* is the reader's
       // to switch off (§40). Read from the live preference rather than
@@ -297,7 +298,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         if (document.hidden) reportPresence("away");
         // A reconnect may have missed a message, so the first thing a fresh
         // socket does is ask for the truth rather than assume it is current.
-        void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.notifications() });
       };
 
       socket.onmessage = (event: MessageEvent<string>) => {

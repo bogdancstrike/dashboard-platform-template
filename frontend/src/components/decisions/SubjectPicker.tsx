@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { timeApi, type Subject, type SubjectType } from "@/api/time";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 /** "task:<uuid>" — one string so a Select can hold a subject of any kind. */
 export function subjectKey(type: SubjectType, id: string): string {
@@ -38,9 +39,9 @@ export function SubjectPicker({
   const [search, setSearch] = useState("");
   const q = useDebouncedValue(search, 250);
   const found = useQuery({
-    queryKey: ["time", "subjects", q],
+    queryKey: queryKeys.time("subjects", q),
     queryFn: ({ signal }) => timeApi.subjects(q, signal),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
   const items = [...(initial ? [initial] : []), ...(found.data?.items ?? [])].filter(
     (item, index, all) => all.findIndex((other) => other.subject_id === item.subject_id) === index,

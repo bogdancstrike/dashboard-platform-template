@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { KnIcon } from "@/components/knowledge/KnIcon";
 import { MiniMarkdown } from "@/components/knowledge/MiniMarkdown";
 import { relativeTime } from "@/lib/time";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -37,13 +38,13 @@ export function AskPanel({
   const bottom = useRef<HTMLDivElement>(null);
 
   const history = useQuery({
-    queryKey: ["knowledge-history", collection.id, threadId],
+    queryKey: queryKeys.knowledgeHistory(collection.id, threadId),
     queryFn: ({ signal }) => knowledgeApi.history(collection.id, threadId, signal),
   });
   const suggestions = useQuery({
-    queryKey: ["knowledge-suggestions", collection.id],
+    queryKey: queryKeys.knowledgeSuggestions(collection.id),
     queryFn: ({ signal }) => knowledgeApi.suggestions(collection.id, signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   const turns: Answer[] = threadId ? (history.data?.items ?? []) : [];
@@ -61,14 +62,14 @@ export function AskPanel({
       setDraft("");
       setPending(null);
       queryClient.setQueryData(
-        ["knowledge-history", collection.id, answer.thread_id],
+        queryKeys.knowledgeHistory(collection.id, answer.thread_id),
         (current: { items: Answer[]; threads: unknown[] } | undefined) => ({
           items: [...(threadId === answer.thread_id ? (current?.items ?? []) : []), answer],
           threads: current?.threads ?? [],
         }),
       );
       if (answer.thread_id !== threadId) onThread(answer.thread_id);
-      void queryClient.invalidateQueries({ queryKey: ["knowledge-history", collection.id] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.knowledgeHistory(collection.id) });
     },
     onError: (error: Error, question) => {
       setPending(null);
@@ -87,7 +88,7 @@ export function AskPanel({
     onSuccess: (_result, id) => {
       message.success("Conversation forgotten");
       if (id === threadId) onThread(null);
-      void queryClient.invalidateQueries({ queryKey: ["knowledge-history", collection.id] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.knowledgeHistory(collection.id) });
     },
   });
 

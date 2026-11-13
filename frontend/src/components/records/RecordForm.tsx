@@ -52,6 +52,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { asText } from "@/lib/text";
 import { refreshRecordViews } from "@/lib/refresh";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -212,7 +213,7 @@ export function RecordForm({
       settled();
       // Every list, lane and aggregate that could contain it is now stale. The
       // server stays the authority: nothing is patched into a cache by hand.
-      void queryClient.invalidateQueries({ queryKey: ["record", saved.resource_type] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.record(saved.resource_type) });
       refreshRecordViews(queryClient);
       onSaved?.(saved);
       onClose();
@@ -553,7 +554,7 @@ function RecordPicker({
   const debounced = useDebouncedValue(term, 250);
 
   const results = useQuery({
-    queryKey: ["record-picker", resourceType, debounced, value],
+    queryKey: queryKeys.recordPicker(resourceType, debounced, value),
     queryFn: ({ signal }) =>
       explorerApi.query(
         {
@@ -565,7 +566,7 @@ function RecordPicker({
         },
         signal,
       ),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 
   const options = (results.data?.items ?? []).map((row) => {

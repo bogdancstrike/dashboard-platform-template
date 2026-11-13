@@ -103,6 +103,7 @@ import {
 } from "@/components/planning/BoardExtras";
 import { PlanIcon } from "@/components/planning/planIcons";
 import "@/styles/planning.css";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 /** Rows fetched per lane. A lane is scanned, not read to the end. */
 const PER_LANE = 12;
@@ -166,7 +167,7 @@ export default function TasksBoardPage() {
   const [limiting, setLimiting] = useState(false);
   const [helping, setHelping] = useState(false);
   const laneSettings = useLaneSettings();
-  const epics = useQuery({ queryKey: ["epics", ""], queryFn: ({ signal }) => planningApi.epics({}, signal), staleTime: 60_000 });
+  const epics = useQuery({ queryKey: queryKeys.epics(""), queryFn: ({ signal }) => planningApi.epics({}, signal), staleTime: STALE.minute });
   const epicName = useMemo(() => new Map((epics.data?.items ?? []).map((epic) => [epic.id, epic.title])), [epics.data]);
   const people = usePeopleNames(swim === "assignee");
 
@@ -196,7 +197,7 @@ export default function TasksBoardPage() {
 
   const laneQueries = useQueries({
     queries: lanes.map((lane) => ({
-      queryKey: ["task-lane", lane.status, term, filters, perLane],
+      queryKey: queryKeys.taskLane(lane.status, term, filters, perLane),
       queryFn: ({ signal }: { signal: AbortSignal }) =>
         explorerApi.query(
           {
@@ -245,9 +246,9 @@ export default function TasksBoardPage() {
     },
     onMutate: async ({ task, to, index, field }) => {
       setPending((current) => [...current, task.id]);
-      await queryClient.cancelQueries({ queryKey: ["task-lane"] });
-      const fromKey = ["task-lane", task.status ?? "", term, filters, perLane];
-      const toKey = ["task-lane", to, term, filters, perLane];
+      await queryClient.cancelQueries({ queryKey: queryKeys.taskLane() });
+      const fromKey = queryKeys.taskLane(task.status ?? "", term, filters, perLane);
+      const toKey = queryKeys.taskLane(to, term, filters, perLane);
       const previous = [
         [fromKey, queryClient.getQueryData(fromKey)],
         [toKey, queryClient.getQueryData(toKey)],
@@ -304,7 +305,7 @@ export default function TasksBoardPage() {
     },
     onSettled: (_saved, _error, { task }) => {
       setPending((current) => current.filter((id) => id !== task.id));
-      void queryClient.invalidateQueries({ queryKey: ["task-lane"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.taskLane() });
       refreshRecordViews(queryClient);
     },
   });

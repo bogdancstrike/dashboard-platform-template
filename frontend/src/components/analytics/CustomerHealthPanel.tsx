@@ -15,11 +15,12 @@ import { relativeTime } from "@/lib/time";
 import { BandPill, Delta, meterTone, ScoreRing } from "./parts";
 import { TrendChart } from "./TrendChart";
 import { FEATURES, withFeature } from "@/settings/features";
+import { queryKeys } from "@/lib/queryKeys";
 
 function CustomerHealthPanelInner({ customerId }: { customerId: string }) {
   const [days, setDays] = useState(90);
   const health = useQuery({
-    queryKey: ["customer-health", customerId, days],
+    queryKey: queryKeys.customerHealth(customerId, days),
     queryFn: ({ signal }) => healthApi.customer(customerId, days, signal),
   });
 

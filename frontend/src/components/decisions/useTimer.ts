@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import { timeApi, type SubjectType, type TimerState } from "@/api/time";
 import { useAuth } from "@/auth/AuthProvider";
 import { errorText } from "@/lib/errors";
+import { queryKeys } from "@/lib/queryKeys";
 
-export const TIMER_KEY = ["time", "timer"] as const;
+export const TIMER_KEY = queryKeys.time("timer");
 
 /**
  * The one running timer, wherever it is shown — the header pill, a task, a
@@ -39,7 +40,7 @@ export function useTimer() {
 
   const settle = (next: TimerState) => {
     client.setQueryData(TIMER_KEY, { ...(state.data ?? {}), running: next.running });
-    void client.invalidateQueries({ queryKey: ["time"] });
+    void client.invalidateQueries({ queryKey: queryKeys.time() });
   };
 
   const start = useMutation({

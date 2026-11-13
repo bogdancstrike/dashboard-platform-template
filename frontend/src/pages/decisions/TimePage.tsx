@@ -23,6 +23,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { errorText } from "@/lib/errors";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -137,7 +138,7 @@ function WeekView({ params, go }: { params: URLSearchParams; go: Go }) {
   const [adding, setAdding] = useState(false);
 
   const week = useQuery({
-    queryKey: ["time", "week", weekParam, mine ? "" : userParam],
+    queryKey: queryKeys.time("week", weekParam, mine ? "" : userParam),
     queryFn: ({ signal }) => timeApi.week({ week: weekParam, user_id: mine ? undefined : userParam }, signal),
   });
 
@@ -146,8 +147,8 @@ function WeekView({ params, go }: { params: URLSearchParams; go: Go }) {
   const cell = useMutation({
     mutationFn: timeApi.cell,
     onSuccess: (next) => {
-      client.setQueryData(["time", "week", weekParam, ""], next);
-      void client.invalidateQueries({ queryKey: ["time", "timer"] });
+      client.setQueryData(queryKeys.time("week", weekParam, ""), next);
+      void client.invalidateQueries({ queryKey: queryKeys.time("timer") });
     },
     onError: (error) => {
       message.error(errorText(error, { action: "change this cell" }));
@@ -158,8 +159,8 @@ function WeekView({ params, go }: { params: URLSearchParams; go: Go }) {
   const submit = useMutation({
     mutationFn: (note: string) => timeApi.submit({ week: weekParam, note }),
     onSuccess: (next) => {
-      client.setQueryData(["time", "week", weekParam, ""], next);
-      void client.invalidateQueries({ queryKey: ["notifications"] });
+      client.setQueryData(queryKeys.time("week", weekParam, ""), next);
+      void client.invalidateQueries({ queryKey: queryKeys.notifications() });
       message.success("Week submitted for approval");
     },
     onError: (error) => message.error(errorText(error, { action: "submit this week" })),
@@ -168,7 +169,7 @@ function WeekView({ params, go }: { params: URLSearchParams; go: Go }) {
   const remove = useMutation({
     mutationFn: timeApi.remove,
     onSuccess: () => {
-      void client.invalidateQueries({ queryKey: ["time"] });
+      void client.invalidateQueries({ queryKey: queryKeys.time() });
       message.success("Entry removed");
     },
     onError: (error) => message.error(errorText(error, { action: "remove this entry" })),
@@ -505,12 +506,12 @@ function EntriesView() {
   const [editing, setEditing] = useState<TimeEntry | null>(null);
   const [from, to] = RANGES[range]!();
   const list = useQuery({
-    queryKey: ["time", "entries", range, billable, page],
+    queryKey: queryKeys.time("entries", range, billable, page),
     queryFn: ({ signal }) => timeApi.entries({ from, to, billable, page, page_size: 25 }, signal),
   });
   const remove = useMutation({
     mutationFn: timeApi.remove,
-    onSuccess: () => { void client.invalidateQueries({ queryKey: ["time"] }); message.success("Entry removed"); },
+    onSuccess: () => { void client.invalidateQueries({ queryKey: queryKeys.time() }); message.success("Entry removed"); },
     onError: (error) => message.error(errorText(error, { action: "remove this entry" })),
   });
   return (
@@ -552,7 +553,7 @@ function EntriesView() {
 function TeamView({ params, go }: { params: URLSearchParams; go: Go }) {
   const weekParam = params.get("week") ?? isoDay(dayjs(mondayOf()).subtract(7, "day").toDate());
   const team = useQuery({
-    queryKey: ["time", "team", weekParam],
+    queryKey: queryKeys.time("team", weekParam),
     queryFn: ({ signal }) => timeApi.team(weekParam, signal),
   });
   if (team.isLoading) return <Skeleton active />;
@@ -613,7 +614,7 @@ function ReportsView({ params, go }: { params: URLSearchParams; go: Go }) {
   const billable = (params.get("billable") ?? "") as "" | "true" | "false";
   const filter = { from, to, group_by: group, billable };
   const report = useQuery({
-    queryKey: ["time", "report", filter],
+    queryKey: queryKeys.time("report", filter),
     queryFn: ({ signal }) => timeApi.report(filter, signal),
   });
   const [exporting, setExporting] = useState(false);

@@ -27,6 +27,7 @@ import {
 } from "@/api/explorer";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useDefaultPageSize } from "@/settings/PreferencesProvider";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 export interface EntityView {
   /** The dataset declaration, once the catalogue has answered. */
@@ -138,23 +139,23 @@ function useSavedViews(resourceKey: string) {
     // The Data Explorer's drawer and its save dialog read and invalidate this
     // exact key. Sharing it rather than keeping a parallel one is why saving a
     // view in one place shows up in the other without either knowing.
-    queryKey: ["saved-searches", resourceKey],
+    queryKey: queryKeys.savedSearches(resourceKey),
     queryFn: ({ signal }) => explorerApi.saved(resourceKey, signal),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 }
 
 function useCatalogue() {
   return useQuery({
-    queryKey: ["explorer-catalogue"],
+    queryKey: queryKeys.explorerCatalogue(),
     queryFn: ({ signal }) => explorerApi.catalogue(signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 }
 
 function useRows(request: ExplorerRequest | null) {
   return useQuery({
-    queryKey: ["entity-rows", request],
+    queryKey: queryKeys.entityRows(request),
     queryFn: ({ signal }) => explorerApi.query(request!, signal),
     enabled: Boolean(request),
     placeholderData: (previous) => previous,
@@ -163,7 +164,7 @@ function useRows(request: ExplorerRequest | null) {
 
 function useInsights(request: ExplorerRequest | null, enabled: boolean) {
   return useQuery({
-    queryKey: ["entity-insights", request?.resource_type, request?.query_text, request?.filters],
+    queryKey: queryKeys.entityInsights(request?.resource_type, request?.query_text, request?.filters),
     queryFn: ({ signal }) =>
       explorerApi.insights(
         {
@@ -177,7 +178,7 @@ function useInsights(request: ExplorerRequest | null, enabled: boolean) {
     // must not refetch four aggregates that cannot have changed.
     enabled: enabled && Boolean(request),
     placeholderData: (previous) => previous,
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 }
 

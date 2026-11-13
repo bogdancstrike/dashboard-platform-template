@@ -16,6 +16,7 @@ import { directoryApi, type Person } from "@/api/directory";
 import { profileApi } from "@/api/profile";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { PersonAvatar } from "@/components/PersonAvatar";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -48,10 +49,10 @@ export function PeoplePicker({
   const debounced = useDebouncedValue(term, 250);
 
   const results = useQuery({
-    queryKey: ["directory-people", debounced],
+    queryKey: queryKeys.directoryPeople(debounced),
     queryFn: ({ signal }) => directoryApi.people(debounced, signal),
     // Names do not change while a drawer is open.
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   // The selection has to keep rendering as names once the search term moves on,
@@ -62,9 +63,9 @@ export function PeoplePicker({
   const missing = value.filter((id) => id && !listed.has(id));
   const looked = useQueries({
     queries: missing.map((id) => ({
-      queryKey: ["person-card", id],
+      queryKey: queryKeys.personCard(id),
       queryFn: ({ signal }: { signal: AbortSignal }) => profileApi.person(id, signal),
-      staleTime: 300_000,
+      staleTime: STALE.long,
       retry: false,
     })),
   });

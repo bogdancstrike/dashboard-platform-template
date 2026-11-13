@@ -30,6 +30,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { Gantt } from "./Gantt";
 import { shortDate, windowFor, ZOOMS, type Zoom } from "./gantt";
 import { projectOptions, useProjects } from "./useProjects";
+import { queryKeys } from "@/lib/queryKeys";
 
 export interface TimelineState {
   group: TimelineGrouping;
@@ -79,7 +80,7 @@ export function TimelineView({
   const today = new Date().toISOString().slice(0, 10);
   const range = windowFor(state.zoom, today);
   const project = fixedProject ?? state.project;
-  const key = ["timeline", state.group, range.from, range.to, project, search, state.done];
+  const key = queryKeys.timeline(state.group, range.from, range.to, project, search, state.done);
 
   const timeline = useQuery({
     queryKey: key,
@@ -99,8 +100,8 @@ export function TimelineView({
   });
 
   const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: ["timeline"] });
-    void queryClient.invalidateQueries({ queryKey: ["task-planning"] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.timeline() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.taskPlanning() });
   };
   const failed = (error: unknown) =>
     message.error(error instanceof ApiError ? error.message : "That change could not be saved.");

@@ -28,6 +28,7 @@ import { ApiError } from "@/api/client";
 import { relationshipsApi, type HubRecord, type MapEdge } from "@/api/relationships";
 import { EntityGraph } from "@/components/graph/EntityGraph";
 import { StatCard } from "@/components/StatCard";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -58,7 +59,7 @@ export function ConnectionMapView({
   const [selected, setSelected] = useState<MapEdge | null>(null);
 
   const map = useQuery({
-    queryKey: ["relationships", "overview"],
+    queryKey: queryKeys.relationships("overview"),
     queryFn: ({ signal }) => relationshipsApi.overview(signal),
     staleTime: 120_000,
   });

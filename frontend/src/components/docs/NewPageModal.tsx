@@ -7,6 +7,7 @@ import { App as AntApp, Form, Input, Modal, Select, type SelectProps } from "ant
 
 import { ApiError } from "@/api/client";
 import { docsApi, type DocPage, type DocSpace, type TreeItem } from "@/api/docs";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 export function NewPageModal({
   open,
@@ -28,10 +29,10 @@ export function NewPageModal({
   const { message } = AntApp.useApp();
   const [form] = Form.useForm<{ space_id: string; parent_id?: string; template: string; title: string }>();
   const templates = useQuery({
-    queryKey: ["doc-templates"],
+    queryKey: queryKeys.docTemplates(),
     queryFn: ({ signal }) => docsApi.templates(signal),
     enabled: open,
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
   const chosenSpace = Form.useWatch("space_id", form) ?? spaceId;
   const create = useMutation({

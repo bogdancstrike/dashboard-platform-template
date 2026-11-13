@@ -24,6 +24,7 @@ import { LiveProvider } from "@/live/LiveProvider";
 import { PreferencesProvider } from "@/settings/PreferencesProvider";
 import App from "@/App";
 import { AppearanceProvider } from "@/theme/AppearanceProvider";
+import { STALE } from "@/lib/queryKeys";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,7 +32,7 @@ const queryClient = new QueryClient({
       // A list page is read far more often than it changes, and refetching on
       // every window focus makes a table the user is reading jump under them.
       refetchOnWindowFocus: false,
-      staleTime: 30_000,
+      staleTime: STALE.short,
       retry: (failureCount, error) => {
         // Retrying a 403 will not make the caller more authorised, and
         // retrying a 404 will not make the record exist. Only transient

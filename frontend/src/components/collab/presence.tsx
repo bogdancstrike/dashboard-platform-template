@@ -12,15 +12,16 @@ import { Tooltip } from "antd";
 
 import { chatApi, type PresenceStatus } from "@/api/chat";
 import { useLiveEvents } from "@/live/LiveProvider";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
-const KEY = ["chat-presence"] as const;
+const KEY = queryKeys.chatPresence();
 
 export function usePresence(): Record<string, PresenceStatus> {
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: KEY,
     queryFn: ({ signal }) => chatApi.presence(signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
     refetchInterval: 120_000,
   });
   useLiveEvents((message) => {

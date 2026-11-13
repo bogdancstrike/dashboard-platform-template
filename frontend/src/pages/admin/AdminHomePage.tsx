@@ -31,6 +31,7 @@ import { usersApi } from "@/api/users";
 import { useAuth } from "@/auth/AuthProvider";
 import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 interface Destination {
   to: string;
@@ -151,22 +152,22 @@ export default function AdminHomePage() {
   // Two cheap counts, each from the endpoint its own page uses — so a number
   // here cannot disagree with the page it sends somebody to.
   const people = useQuery({
-    queryKey: ["admin", "users", "count"],
+    queryKey: queryKeys.admin("users", "count"),
     queryFn: ({ signal }) => usersApi.list({ page: 1, page_size: 1 }, signal),
     enabled: can("users.view"),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
   const config = useQuery({
-    queryKey: ["admin-settings", "", ""],
+    queryKey: queryKeys.adminSettings("", ""),
     queryFn: ({ signal }) => settingsApi.all({}, signal),
     enabled: can("settings.manage"),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
   const flags = useQuery({
-    queryKey: ["admin-flags", ""],
+    queryKey: queryKeys.adminFlags(""),
     queryFn: ({ signal }) => settingsApi.flags({}, signal),
     enabled: can("flags.manage"),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   /**

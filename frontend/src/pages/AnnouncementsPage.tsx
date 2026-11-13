@@ -62,6 +62,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -98,13 +99,13 @@ export default function AnnouncementsPage() {
     );
 
   const feed = useQuery({
-    queryKey: ["announcements", category, includeExpired],
+    queryKey: queryKeys.announcements(category, includeExpired),
     queryFn: ({ signal }) =>
       announcementsApi.feed({ category, include_expired: includeExpired }, signal),
   });
 
   const drafts = useQuery({
-    queryKey: ["announcement-drafts", status],
+    queryKey: queryKeys.announcementDrafts(status),
     queryFn: ({ signal }) => announcementsApi.drafts({ status }, signal),
     enabled: view === "manage" && (feed.data?.can_manage ?? false),
   });
@@ -114,15 +115,15 @@ export default function AnnouncementsPage() {
   const mark = useMutation({
     mutationFn: ({ id, acknowledged }: { id: string; acknowledged: boolean }) =>
       announcementsApi.mark(id, acknowledged),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["announcements"] }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.announcements() }),
   });
 
   const remove = useMutation({
     mutationFn: (id: string) => announcementsApi.remove(id),
     onSuccess: () => {
       message.success("Announcement withdrawn");
-      void queryClient.invalidateQueries({ queryKey: ["announcements"] });
-      void queryClient.invalidateQueries({ queryKey: ["announcement-drafts"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.announcements() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.announcementDrafts() });
     },
     onError: (error) =>
       message.error(error instanceof ApiError ? error.message : "That could not be withdrawn."),
@@ -333,8 +334,8 @@ export default function AnnouncementsPage() {
         onClose={() => setEditing(null)}
         onSaved={() => {
           setEditing(null);
-          void queryClient.invalidateQueries({ queryKey: ["announcements"] });
-          void queryClient.invalidateQueries({ queryKey: ["announcement-drafts"] });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.announcements() });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.announcementDrafts() });
         }}
       />
     </>

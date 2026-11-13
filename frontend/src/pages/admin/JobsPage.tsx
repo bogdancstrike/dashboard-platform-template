@@ -65,6 +65,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { EmptyState } from "@/components/EmptyState";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -176,13 +177,13 @@ export default function JobsPage() {
   };
 
   const catalogue = useQuery({
-    queryKey: ["jobs", "catalogue"],
+    queryKey: queryKeys.jobs("catalogue"),
     queryFn: ({ signal }) => jobsApi.catalogue(signal),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 
   const listing = useQuery({
-    queryKey: ["jobs", "list", filters, page],
+    queryKey: queryKeys.jobs("list", filters, page),
     queryFn: ({ signal }) => jobsApi.list({ ...filters, page, page_size: 25 }, signal),
     // A queue moves, so this page opens with a refresh already running — the
     // one page where watching progress *is* the job. It is the reader's to
@@ -191,7 +192,7 @@ export default function JobsPage() {
   });
 
   const detail = useQuery({
-    queryKey: ["jobs", "entry", opened],
+    queryKey: queryKeys.jobs("entry", opened),
     queryFn: ({ signal }) => jobsApi.entry(opened!, signal),
     enabled: opened !== null,
   });
@@ -213,7 +214,7 @@ export default function JobsPage() {
             ? `${job.reference} was stopped.`
             : `${job.reference} may now be tried ${job.max_attempts} times. Retry is available.`,
       );
-      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.jobs() });
     },
     // The server's own sentence, which names the state or the bound. A generic
     // "that failed" would throw away the only useful part.

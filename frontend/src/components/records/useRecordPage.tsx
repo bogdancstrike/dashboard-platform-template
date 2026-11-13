@@ -36,6 +36,7 @@ import { FailureAlert, failureKind, retryHelps } from "@/components/FailureAlert
 import { PageHeader } from "@/components/PageHeader";
 import { useRecordEditing, type RecordEditing } from "@/components/records/useRecordEditing";
 import { refreshRecordViews } from "@/lib/refresh";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 export interface RecordPage {
   /** The record, once it has arrived. `undefined` while `fallback` is showing. */
@@ -66,15 +67,15 @@ export function useRecordPage(
   const { message } = AntApp.useApp();
 
   const record = useQuery({
-    queryKey: ["record", resourceKey, id],
+    queryKey: queryKeys.record(resourceKey, id),
     queryFn: ({ signal }) => recordsApi.get(resourceKey, id, signal),
     enabled: Boolean(id),
   });
 
   const catalogue = useQuery({
-    queryKey: ["explorer-catalogue"],
+    queryKey: queryKeys.explorerCatalogue(),
     queryFn: ({ signal }) => explorerApi.catalogue(signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
   const resource = catalogue.data?.items.find((item) => item.key === resourceKey);
 
@@ -87,7 +88,7 @@ export function useRecordPage(
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const patch = useMutation({
     mutationFn: (changes: Record<string, unknown>) => {
-      const key = ["record", resourceKey, id];
+      const key = queryKeys.record(resourceKey, id);
       const run = queue.current
         .catch(() => undefined)
         .then(() =>
@@ -107,7 +108,7 @@ export function useRecordPage(
     onSuccess: (saved) => {
       const held = heldMessage(saved);
       if (held) message.info(held);
-      queryClient.setQueryData(["record", resourceKey, id], saved);
+      queryClient.setQueryData(queryKeys.record(resourceKey, id), saved);
       // Every list, lane and aggregate that could be showing this row is now
       // stale — including the counts, which are computed over the whole
       // dataset and cannot be adjusted in the browser without lying.

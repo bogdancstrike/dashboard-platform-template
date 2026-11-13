@@ -72,6 +72,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
 import { FEATURES, useFeature } from "@/settings/features";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -170,13 +171,13 @@ export default function LogsPage() {
   }, [term]);
 
   const catalogue = useQuery({
-    queryKey: ["logs", "catalogue"],
+    queryKey: queryKeys.logs("catalogue"),
     queryFn: ({ signal }) => logsApi.catalogue(signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   const listing = useQuery({
-    queryKey: ["logs", "list", filters, page],
+    queryKey: queryKeys.logs("list", filters, page),
     queryFn: ({ signal }) => logsApi.list({ ...filters, page, page_size: 50 }, signal),
     // While the tail is running the table is the stream, so the paged read is
     // not refetched underneath it.
@@ -184,7 +185,7 @@ export default function LogsPage() {
   });
 
   const detail = useQuery({
-    queryKey: ["logs", "entry", opened],
+    queryKey: queryKeys.logs("entry", opened),
     queryFn: ({ signal }) => logsApi.entry(opened!, signal),
     enabled: opened !== null,
   });
@@ -197,7 +198,7 @@ export default function LogsPage() {
           ? `Nothing was older than ${result.retention_days} days.`
           : `${result.removed.toLocaleString()} lines older than ${result.retention_days} days removed.`,
       );
-      await queryClient.invalidateQueries({ queryKey: ["logs"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.logs() });
     },
     onError: (error) =>
       message.error(error instanceof ApiError ? error.message : "That was refused."),

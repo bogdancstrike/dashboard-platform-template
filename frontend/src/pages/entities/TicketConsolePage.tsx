@@ -64,6 +64,7 @@ import { TicketSlaCard, useTicketSla } from "@/components/decisions/TicketSlaCar
 import { absoluteTime, parseInstant, relativeTime } from "@/lib/time";
 import { asText } from "@/lib/text";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text, Paragraph } = Typography;
 
@@ -101,13 +102,13 @@ export default function TicketConsolePage() {
   const customerId = asText(page.value("customer_id"));
   const projectId = asText(page.value("project_id"));
   const account = useQuery({
-    queryKey: ["record", "customer", customerId],
+    queryKey: queryKeys.record("customer", customerId),
     queryFn: ({ signal }) => recordsApi.get("customer", customerId, signal),
     enabled: Boolean(customerId),
   });
 
   const siblings = useQuery({
-    queryKey: ["record-analysis", "customer-tickets", customerId],
+    queryKey: queryKeys.recordAnalysis("customer-tickets", customerId),
     queryFn: ({ signal }) =>
       explorerApi.query(
         {

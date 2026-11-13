@@ -101,6 +101,7 @@ import { useSmartBack } from "@/app/history";
 import { COPY_MEANS, confirmCopy } from "@/lib/confirm";
 import { EmptyState } from "@/components/EmptyState";
 import { NxIcon } from "@/components/NxIcon";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -155,7 +156,7 @@ export default function DashboardsPage() {
   const [wizardOpen, setWizardOpen] = useState(false);
 
   const listing = useQuery({
-    queryKey: ["dashboards"],
+    queryKey: queryKeys.dashboards(),
     queryFn: ({ signal }) => dashboardsApi.list(signal),
   });
 
@@ -197,7 +198,7 @@ export default function DashboardsPage() {
 
 
   const dashboard = useQuery({
-    queryKey: ["dashboard", openId],
+    queryKey: queryKeys.dashboard(openId),
     queryFn: ({ signal }) => dashboardsApi.get(openId, signal),
     enabled: Boolean(openId),
   });
@@ -205,28 +206,28 @@ export default function DashboardsPage() {
   // What a widget may group by and measure, and which datasets exist. Read
   // once for the whole grid rather than once per widget.
   const catalogue = useQuery({
-    queryKey: ["analysis-catalogue"],
+    queryKey: queryKeys.analysisCatalogue(),
     queryFn: ({ signal }) => analysisApi.catalogue(signal),
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
   const resources = useQuery({
-    queryKey: ["explorer-catalogue"],
+    queryKey: queryKeys.explorerCatalogue(),
     queryFn: ({ signal }) => explorerApi.catalogue(signal),
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
 
   // Whether the reader has anything to point a `REPORT` or `SEARCH` widget at.
   // Asked once for the page rather than per card, and only to decide what the
   // picker may offer.
   const savedReports = useQuery({
-    queryKey: ["reports"],
+    queryKey: queryKeys.reports(),
     queryFn: ({ signal }) => reportsApi.list(signal),
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
   const savedSearches = useQuery({
-    queryKey: ["saved-searches", "all"],
+    queryKey: queryKeys.savedSearches("all"),
     queryFn: ({ signal }) => explorerApi.saved(undefined, signal),
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
 
   const open = (id: string) =>
@@ -234,8 +235,8 @@ export default function DashboardsPage() {
 
   /** Every write refreshes the layout it changed, and the list beside it. */
   const settled = (saved: SavedDashboard) => {
-    queryClient.setQueryData(["dashboard", saved.id], saved);
-    void queryClient.invalidateQueries({ queryKey: ["dashboards"] });
+    queryClient.setQueryData(queryKeys.dashboard(saved.id), saved);
+    void queryClient.invalidateQueries({ queryKey: queryKeys.dashboards() });
   };
 
   const failed = (error: unknown) =>
@@ -263,7 +264,7 @@ export default function DashboardsPage() {
         },
         { replace: true },
       );
-      void queryClient.invalidateQueries({ queryKey: ["dashboards"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.dashboards() });
     },
     onError: failed,
   });
@@ -302,11 +303,11 @@ export default function DashboardsPage() {
   const arrange = useMutation({
     mutationFn: (placements: Placement[]) => dashboardsApi.arrange(openId, placements),
     onMutate: async (placements: Placement[]) => {
-      await queryClient.cancelQueries({ queryKey: ["dashboard", openId] });
-      const previous = queryClient.getQueryData<SavedDashboard>(["dashboard", openId]);
+      await queryClient.cancelQueries({ queryKey: queryKeys.dashboard(openId) });
+      const previous = queryClient.getQueryData<SavedDashboard>(queryKeys.dashboard(openId));
       if (previous?.widgets) {
         const geometry = new Map(placements.map((item) => [item.id, item]));
-        queryClient.setQueryData<SavedDashboard>(["dashboard", openId], {
+        queryClient.setQueryData<SavedDashboard>(queryKeys.dashboard(openId), {
           ...previous,
           widgets: previous.widgets.map((widget) => {
             const placed = geometry.get(widget.id);
@@ -320,10 +321,10 @@ export default function DashboardsPage() {
     },
     onSuccess: settled,
     onError: (error, _placements, context) => {
-      if (context?.previous) queryClient.setQueryData(["dashboard", openId], context.previous);
+      if (context?.previous) queryClient.setQueryData(queryKeys.dashboard(openId), context.previous);
       failed(error);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["dashboard", openId] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(openId) }),
   });
 
   /** A colleague's layout, adopted as your own so you can adapt it. */
@@ -705,7 +706,7 @@ export default function DashboardsPage() {
                     onOk: async () => {
                       await dashboardsApi.remove(item.id);
                       message.success(`${item.name} deleted`);
-                      void queryClient.invalidateQueries({ queryKey: ["dashboards"] });
+                      void queryClient.invalidateQueries({ queryKey: queryKeys.dashboards() });
                     },
                   })
                 }

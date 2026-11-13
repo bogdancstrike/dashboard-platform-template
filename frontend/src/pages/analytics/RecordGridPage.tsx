@@ -20,6 +20,7 @@ import { RecordGrid, type GridRow } from "@/components/analytics/RecordGrid";
 import { FailureAlert } from "@/components/FailureAlert";
 import { PageHeader } from "@/components/PageHeader";
 import type { GridColumn, GridKind } from "@/lib/gridSheet";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const PAGE = 200;
 const CAP = 500;
@@ -76,7 +77,7 @@ export default function RecordGridPage({ resourceKey }: { resourceKey: string })
     });
   };
   const [params] = useSearchParams();
-  const catalogue = useQuery({ queryKey: ["explorer-catalogue"], queryFn: ({ signal }) => explorerApi.catalogue(signal), staleTime: 60_000 });
+  const catalogue = useQuery({ queryKey: queryKeys.explorerCatalogue(), queryFn: ({ signal }) => explorerApi.catalogue(signal), staleTime: STALE.minute });
   const resource = catalogue.data?.items.find((item) => item.key === resourceKey);
   const columns = useMemo(() => (resource ? gridColumns(resource) : []), [resource]);
   const filters = useMemo(() => {
@@ -89,7 +90,7 @@ export default function RecordGridPage({ resourceKey }: { resourceKey: string })
   const q = params.get("q") ?? undefined;
 
   const rows = useQuery({
-    queryKey: ["record-grid", resourceKey, filters, q, columns.map((c) => c.name)],
+    queryKey: queryKeys.recordGrid(resourceKey, filters, q, columns.map((c) => c.name)),
     enabled: Boolean(resource && columns.length),
     queryFn: async ({ signal }) => {
       const wanted = [...new Set([resource!.title_field, ...columns.map((c) => c.name), "updated_at"])];

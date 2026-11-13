@@ -79,6 +79,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { usePreferences } from "@/settings/PreferencesProvider";
 import { EmptyState } from "@/components/EmptyState";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 /** The address keys that are places rather than adjustments (§history). */
 const PLACES = new Set(["thread", "folder", "label"]);
@@ -140,14 +141,14 @@ export default function MailPage() {
     );
 
   const profile = useQuery({
-    queryKey: ["me"],
+    queryKey: queryKeys.me(),
     queryFn: ({ signal }) => meApi.get(signal),
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
   const meEmail = profile.data?.user.email ?? null;
 
   const list = useQuery({
-    queryKey: ["mail", folder, debounced, label, only, page],
+    queryKey: queryKeys.mail(folder, debounced, label, only, page),
     queryFn: ({ signal }) =>
       mailApi.threads(
         {
@@ -166,14 +167,14 @@ export default function MailPage() {
   const listed = list.data;
 
   const opened = useQuery({
-    queryKey: ["mail-thread", openId],
+    queryKey: queryKeys.mailThread(openId),
     queryFn: ({ signal }) => mailApi.thread(openId!, {}, signal),
     enabled: Boolean(openId),
   });
 
   const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: ["mail"] });
-    void queryClient.invalidateQueries({ queryKey: ["mail-thread"] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.mail() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.mailThread() });
   };
 
   // Opening a thread marks its messages read *on the server*, so the list and
@@ -193,7 +194,7 @@ export default function MailPage() {
   const settledAt = opened.dataUpdatedAt;
   useEffect(() => {
     if (openedUnread === 0 && (listedUnread ?? 0) > 0) {
-      void queryClient.invalidateQueries({ queryKey: ["mail"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.mail() });
     }
   }, [settledAt, openedUnread, listedUnread, queryClient]);
 

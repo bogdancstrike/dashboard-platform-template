@@ -55,6 +55,7 @@ import { errorText } from "@/lib/errors";
 import { asText } from "@/lib/text";
 import { FEATURES, useFeature } from "@/settings/features";
 import { EmptyState } from "@/components/EmptyState";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -88,9 +89,9 @@ export default function DataExplorerPage() {
   const [editing, setEditing] = useState<SavedSearch | undefined>(undefined);
 
   const catalogue = useQuery({
-    queryKey: ["explorer-catalogue"],
+    queryKey: queryKeys.explorerCatalogue(),
     queryFn: ({ signal }) => explorerApi.catalogue(signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
   const resources = catalogue.data?.items ?? [];
   const requestedResource = params.get("resource") ?? "task";
@@ -126,7 +127,7 @@ export default function DataExplorerPage() {
   }) : null, [resource, queryText, tree, filters, columns, page, pageSize, sort, order, groupBy]);
   const debouncedRequest = useDebouncedValue(request, 280);
   const results = useQuery({
-    queryKey: ["explorer-results", debouncedRequest],
+    queryKey: queryKeys.explorerResults(debouncedRequest),
     queryFn: ({ signal }) => explorerApi.query(debouncedRequest!, signal),
     enabled: Boolean(debouncedRequest),
     placeholderData: (previous) => previous,
@@ -261,7 +262,7 @@ export default function DataExplorerPage() {
   const savedInUrl = params.get("saved") ?? "";
   const hasQuestion = params.has("columns") || params.has("tree") || params.has("q");
   const savedLink = useQuery({
-    queryKey: ["explorer", "saved-link", savedInUrl],
+    queryKey: queryKeys.explorer("saved-link", savedInUrl),
     queryFn: ({ signal }) => explorerApi.openSaved(savedInUrl, signal),
     // Also fetched once the question is on screen, for its name in the title.
     enabled: Boolean(savedInUrl) && savedOn,

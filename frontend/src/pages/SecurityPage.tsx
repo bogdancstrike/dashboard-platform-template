@@ -73,6 +73,7 @@ import { errorText } from "@/lib/errors";
 import { formatNumber } from "@/lib/formats";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text, Paragraph } = Typography;
 
@@ -160,15 +161,15 @@ export default function SecurityPage() {
   const [signInFilter, setSignInFilter] = useState<"all" | "FAILURE">("all");
 
   const overview = useQuery({
-    queryKey: ["security", "overview"],
+    queryKey: queryKeys.security("overview"),
     queryFn: ({ signal }) => securityApi.overview(signal),
   });
   const sessions = useQuery({
-    queryKey: ["security", "sessions"],
+    queryKey: queryKeys.security("sessions"),
     queryFn: ({ signal }) => securityApi.sessions(signal),
   });
   const signIns = useQuery({
-    queryKey: ["security", "sign-ins", signInFilter],
+    queryKey: queryKeys.security("sign-ins", signInFilter),
     queryFn: ({ signal }) =>
       securityApi.signIns(
         { ...(signInFilter === "all" ? {} : { result: signInFilter }), page_size: 25 },
@@ -176,12 +177,12 @@ export default function SecurityPage() {
       ),
   });
   const events = useQuery({
-    queryKey: ["security", "events"],
+    queryKey: queryKeys.security("events"),
     queryFn: ({ signal }) => securityApi.events({ page_size: 25 }, signal),
   });
 
   const refresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["security"] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.security() });
   };
 
   const revoked = useMutation({

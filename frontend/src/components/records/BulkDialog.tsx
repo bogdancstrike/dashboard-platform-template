@@ -9,6 +9,7 @@ import type { BulkAction, BulkFailure, BulkRequest, BulkSelection } from "@/api/
 import { bulkApi } from "@/api/bulk";
 import type { ExplorerField, ExplorerResource } from "@/api/explorer";
 import { formatNumber } from "@/lib/formats";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -95,7 +96,7 @@ export function BulkDialog({
   const ready = action === "delete" || Boolean(changes);
 
   const preview = useQuery({
-    queryKey: ["bulk-preview", resource?.key, request],
+    queryKey: queryKeys.bulkPreview(resource?.key, request),
     queryFn: ({ signal }) => bulkApi.preview(resource!.key, request, signal),
     // Only once the gesture is fully described. Previewing an update with no
     // value chosen would ask the server a question with no answer.

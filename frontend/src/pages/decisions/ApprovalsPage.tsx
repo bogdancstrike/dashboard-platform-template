@@ -26,6 +26,7 @@ import { asText } from "@/lib/text";
 import { errorText } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text, Paragraph } = Typography;
 
@@ -81,7 +82,7 @@ export default function ApprovalsPage() {
   };
 
   const counts = useQuery({
-    queryKey: ["approvals", "list", { scope: "inbox", page_size: 1 }],
+    queryKey: queryKeys.approvals("list", { scope: "inbox", page_size: 1 }),
     queryFn: ({ signal }) => approvalsApi.list({ scope: "inbox", page_size: 1 }, signal),
   });
 
@@ -144,14 +145,14 @@ function Queue({
 
   const query = { scope, kind, requester_id: requester, age: ageFilter, q, page, page_size: 20 };
   const list = useQuery({
-    queryKey: ["approvals", "list", query],
+    queryKey: queryKeys.approvals("list", query),
     queryFn: ({ signal }) => approvalsApi.list(query, signal),
   });
 
   const refresh = () => {
-    void client.invalidateQueries({ queryKey: ["approvals"] });
-    void client.invalidateQueries({ queryKey: ["notifications", "counts"] });
-    void client.invalidateQueries({ queryKey: ["time"] });
+    void client.invalidateQueries({ queryKey: queryKeys.approvals() });
+    void client.invalidateQueries({ queryKey: queryKeys.notifications("counts") });
+    void client.invalidateQueries({ queryKey: queryKeys.time() });
   };
 
   const bulk = useMutation({
@@ -359,7 +360,7 @@ function ApprovalDrawer() {
   const client = useQueryClient();
   const [comment, setComment] = useState("");
   const detail = useQuery({
-    queryKey: ["approvals", "item", overlay.value],
+    queryKey: queryKeys.approvals("item", overlay.value),
     queryFn: ({ signal }) => approvalsApi.get(overlay.value!, signal),
     enabled: Boolean(overlay.value),
   });
@@ -367,10 +368,10 @@ function ApprovalDrawer() {
   const decide = useMutation({
     mutationFn: (decision: "approve" | "reject") => approvalsApi.decide(overlay.value!, decision, comment.trim()),
     onSuccess: (row) => {
-      client.setQueryData(["approvals", "item", overlay.value], row);
-      void client.invalidateQueries({ queryKey: ["approvals", "list"] });
-      void client.invalidateQueries({ queryKey: ["notifications", "counts"] });
-      void client.invalidateQueries({ queryKey: ["time"] });
+      client.setQueryData(queryKeys.approvals("item", overlay.value), row);
+      void client.invalidateQueries({ queryKey: queryKeys.approvals("list") });
+      void client.invalidateQueries({ queryKey: queryKeys.notifications("counts") });
+      void client.invalidateQueries({ queryKey: queryKeys.time() });
       message.success(`${row.reference} ${row.status.toLowerCase()}`);
     },
     onError: (error) => message.error(errorText(error, { action: "decide this" })),
@@ -378,9 +379,9 @@ function ApprovalDrawer() {
   const withdraw = useMutation({
     mutationFn: () => approvalsApi.withdraw(overlay.value!),
     onSuccess: (row) => {
-      client.setQueryData(["approvals", "item", overlay.value], row);
-      void client.invalidateQueries({ queryKey: ["approvals", "list"] });
-      void client.invalidateQueries({ queryKey: ["time"] });
+      client.setQueryData(queryKeys.approvals("item", overlay.value), row);
+      void client.invalidateQueries({ queryKey: queryKeys.approvals("list") });
+      void client.invalidateQueries({ queryKey: queryKeys.time() });
       message.success("Request withdrawn");
     },
     onError: (error) => message.error(errorText(error, { action: "withdraw this" })),
@@ -531,15 +532,15 @@ function RulesView() {
   const client = useQueryClient();
   const auth = useAuth();
   const [editing, setEditing] = useState<Partial<ChangeRule> | null>(null);
-  const rules = useQuery({ queryKey: ["approvals", "rules"], queryFn: ({ signal }) => approvalsApi.rules(signal) });
+  const rules = useQuery({ queryKey: queryKeys.approvals("rules"), queryFn: ({ signal }) => approvalsApi.rules(signal) });
   const remove = useMutation({
     mutationFn: approvalsApi.deleteRule,
-    onSuccess: () => { void client.invalidateQueries({ queryKey: ["approvals", "rules"] }); message.success("Rule removed"); },
+    onSuccess: () => { void client.invalidateQueries({ queryKey: queryKeys.approvals("rules") }); message.success("Rule removed"); },
     onError: (error) => message.error(errorText(error, { action: "remove this rule" })),
   });
   const toggle = useMutation({
     mutationFn: (rule: ChangeRule) => approvalsApi.updateRule(rule.id, { active: !rule.active }),
-    onSuccess: () => void client.invalidateQueries({ queryKey: ["approvals", "rules"] }),
+    onSuccess: () => void client.invalidateQueries({ queryKey: queryKeys.approvals("rules") }),
     onError: (error) => message.error(errorText(error, { action: "change this rule" })),
   });
   if (rules.isLoading) return <Skeleton active />;
@@ -608,7 +609,7 @@ function RuleModal({ rule, catalogue, onClose }: { rule: Partial<ChangeRule> | n
   const save = useMutation({
     mutationFn: (values: Partial<ChangeRule>) =>
       rule?.id ? approvalsApi.updateRule(rule.id, values) : approvalsApi.createRule(values),
-    onSuccess: () => { void client.invalidateQueries({ queryKey: ["approvals", "rules"] }); message.success("Rule saved"); onClose(); },
+    onSuccess: () => { void client.invalidateQueries({ queryKey: queryKeys.approvals("rules") }); message.success("Rule saved"); onClose(); },
     onError: (error) => message.error(errorText(error, { action: "save this rule" })),
   });
   const valueInput = field?.choices.length ? (

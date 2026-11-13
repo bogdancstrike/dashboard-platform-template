@@ -50,6 +50,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { relativeTime } from "@/lib/time";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -77,7 +78,7 @@ export default function SettingsPage() {
     );
 
   const config = useQuery({
-    queryKey: ["admin-settings", category, debounced],
+    queryKey: queryKeys.adminSettings(category, debounced),
     queryFn: ({ signal }) =>
       settingsApi.all({ ...(category ? { category } : {}), ...(debounced ? { q: debounced } : {}) }, signal),
   });
@@ -87,7 +88,7 @@ export default function SettingsPage() {
       settingsApi.set(key, value),
     onSuccess: async (saved) => {
       message.success(`${saved.label} saved`);
-      await queryClient.invalidateQueries({ queryKey: ["admin-settings"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.adminSettings() });
     },
     onError: (error) =>
       message.error(error instanceof ApiError ? error.message : "That change was refused."),
@@ -97,7 +98,7 @@ export default function SettingsPage() {
     mutationFn: (key: string) => settingsApi.reset(key),
     onSuccess: async (saved) => {
       message.success(`${saved.label} is back at its default`);
-      await queryClient.invalidateQueries({ queryKey: ["admin-settings"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.adminSettings() });
     },
     onError: (error) =>
       message.error(error instanceof ApiError ? error.message : "That reset was refused."),

@@ -20,6 +20,7 @@ import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
 import { humanStatus } from "@/components/StatusTag";
 import { errorText } from "@/lib/errors";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 const PRIORITIES: Priority[] = ["CRITICAL", "HIGH", "NORMAL", "LOW"];
@@ -44,12 +45,12 @@ export default function SlaPoliciesPage() {
   const policyOverlay = useUrlOverlay("policy");
   const [calendar, setCalendar] = useState<Partial<BusinessCalendar> | null>(null);
 
-  const overview = useQuery({ queryKey: ["sla", "overview"], queryFn: ({ signal }) => slaApi.overview(signal) });
-  const catalogue = useQuery({ queryKey: ["sla", "catalogue"], queryFn: ({ signal }) => slaApi.catalogue(signal), staleTime: 300_000 });
+  const overview = useQuery({ queryKey: queryKeys.sla("overview"), queryFn: ({ signal }) => slaApi.overview(signal) });
+  const catalogue = useQuery({ queryKey: queryKeys.sla("catalogue"), queryFn: ({ signal }) => slaApi.catalogue(signal), staleTime: STALE.long });
 
   const refresh = () => {
-    void client.invalidateQueries({ queryKey: ["sla"] });
-    void client.invalidateQueries({ queryKey: ["record"] });
+    void client.invalidateQueries({ queryKey: queryKeys.sla() });
+    void client.invalidateQueries({ queryKey: queryKeys.record() });
   };
   const apply = useMutation({
     mutationFn: slaApi.apply,
@@ -58,7 +59,7 @@ export default function SlaPoliciesPage() {
   });
   const reorder = useMutation({
     mutationFn: slaApi.reorder,
-    onSuccess: (next) => { client.setQueryData(["sla", "overview"], next); refresh(); },
+    onSuccess: (next) => { client.setQueryData(queryKeys.sla("overview"), next); refresh(); },
     onError: (error) => message.error(errorText(error, { action: "reorder policies" })),
   });
   const toggle = useMutation({

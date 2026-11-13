@@ -30,6 +30,7 @@ import { ServiceHistoryCard } from "@/components/health/ServiceHistoryCard";
 import { shortRange } from "@/components/health/when";
 import { statusColor } from "@/theme/tokens";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -136,9 +137,9 @@ export default function SystemPage() {
   /** A custom window, as two moments. Empty until somebody picks one. */
   const [range, setRange] = useState<[Dayjs, Dayjs] | null>(null);
 
-  const meta = useQuery({ queryKey: ["meta", "app"], queryFn: ({ signal }) => metaApi.app(signal) });
+  const meta = useQuery({ queryKey: queryKeys.meta("app"), queryFn: ({ signal }) => metaApi.app(signal) });
   const health = useQuery({
-    queryKey: ["health", "status"],
+    queryKey: queryKeys.health("status"),
     queryFn: ({ signal }) => healthApi.status(signal),
     refetchInterval: 15_000,
   });
@@ -147,7 +148,7 @@ export default function SystemPage() {
     ? { from: range[0].toISOString(), to: range[1].toISOString() }
     : { period };
   const history = useQuery({
-    queryKey: ["health", "history", window],
+    queryKey: queryKeys.health("history", window),
     queryFn: ({ signal }) => healthApi.history(window, signal),
     // Slower than the snapshot on purpose: a month of history does not change
     // meaningfully every fifteen seconds, and refetching it that often would

@@ -76,6 +76,7 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 import { formatNumber } from "@/lib/formats";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { EmptyState } from "@/components/EmptyState";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text, Paragraph } = Typography;
 
@@ -163,25 +164,25 @@ export default function ApiClientsPage() {
   }, [term]);
 
   const catalogue = useQuery({
-    queryKey: ["api-clients", "catalogue"],
+    queryKey: queryKeys.apiClients("catalogue"),
     queryFn: ({ signal }) => apiClientsApi.catalogue(signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   const listing = useQuery({
-    queryKey: ["api-clients", "list", term],
+    queryKey: queryKeys.apiClients("list", term),
     queryFn: ({ signal }) =>
       apiClientsApi.list({ ...(term ? { q: term } : {}), page_size: 100 }, signal),
   });
 
   const detail = useQuery({
-    queryKey: ["api-clients", "entry", opened],
+    queryKey: queryKeys.apiClients("entry", opened),
     queryFn: ({ signal }) => apiClientsApi.entry(opened!, signal),
     enabled: opened !== null,
   });
 
   const refresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["api-clients"] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.apiClients() });
   };
 
   const failed = (error: unknown) =>

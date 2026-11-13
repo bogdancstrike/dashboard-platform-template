@@ -39,6 +39,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, groupByDay, relativeTime } from "@/lib/time";
 import { useLive, usePollInterval } from "@/live/LiveProvider";
 import { confirmDelete } from "@/lib/confirm";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -151,13 +152,13 @@ export default function NotificationsPage() {
   );
 
   const listing = useQuery({
-    queryKey: ["notifications", "list", query],
+    queryKey: queryKeys.notifications("list", query),
     queryFn: ({ signal }) => notificationsApi.list(query, signal),
     refetchInterval,
     placeholderData: (previous) => previous,
   });
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["notifications"] });
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: queryKeys.notifications() });
 
   /**
    * Read and unread, applied at once and reconciled afterwards (§73).
@@ -179,12 +180,12 @@ export default function NotificationsPage() {
     onMutate: async ({ id, isRead }) => {
       // Cancelled first, or an in-flight list can land *after* the guess and
       // undo it — which reads as the click having been ignored.
-      await queryClient.cancelQueries({ queryKey: ["notifications"] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications() });
       const snapshot = queryClient.getQueriesData<NotificationPage>({
-        queryKey: ["notifications", "list"],
+        queryKey: queryKeys.notifications("list"),
       });
       queryClient.setQueriesData<NotificationPage>(
-        { queryKey: ["notifications", "list"] },
+        { queryKey: queryKeys.notifications("list") },
         (current) => (current ? withReadState(current, id, isRead) : current),
       );
       return { snapshot };

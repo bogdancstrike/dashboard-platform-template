@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import { docsApi } from "@/api/docs";
 import { relativeTime } from "@/lib/time";
 import { FEATURES, withFeature } from "@/settings/features";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const SOURCE: Record<string, string> = {
   MANUAL: "linked",
@@ -19,11 +20,11 @@ const SOURCE: Record<string, string> = {
 
 function RecordBacklinksInner({ resourceType, resourceId }: { resourceType: string; resourceId: string }) {
   const links = useQuery({
-    queryKey: ["doc-backlinks", resourceType, resourceId],
+    queryKey: queryKeys.docBacklinks(resourceType, resourceId),
     queryFn: ({ signal }) => docsApi.backlinks(resourceType, resourceId, signal),
     enabled: Boolean(resourceId),
     retry: false,
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
   const items = links.data?.items ?? [];
   if (items.length === 0) return null;

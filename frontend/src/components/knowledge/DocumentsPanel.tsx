@@ -24,6 +24,7 @@ import { NameModal } from "@/components/NameModal";
 import { NxIcon } from "@/components/NxIcon";
 import { StatusTag } from "@/components/StatusTag";
 import { relativeTime } from "@/lib/time";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -97,8 +98,8 @@ export function DocumentsPanel({
   const counter = useRef(0);
 
   const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: ["knowledge-collection", collection.id] });
-    void queryClient.invalidateQueries({ queryKey: ["knowledge-collections"] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.knowledgeCollection(collection.id) });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.knowledgeCollections() });
   };
   const patch = (key: string, next: Partial<TrayItem>) =>
     setTray((items) => items.map((item) => (item.key === key ? { ...item, ...next } : item)));

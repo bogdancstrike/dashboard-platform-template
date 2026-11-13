@@ -8,6 +8,7 @@ import { ApiError } from "@/api/client";
 import type { Tag } from "@/api/tags";
 import { tagsApi } from "@/api/tags";
 import { refreshRecordViews } from "@/lib/refresh";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -49,17 +50,17 @@ export function TagPicker({
   const [chosen, setChosen] = useState<string[]>([]);
 
   const current = useQuery({
-    queryKey: ["record-tags", resourceType, recordId],
+    queryKey: queryKeys.recordTags(resourceType, recordId),
     queryFn: ({ signal }) => tagsApi.onRecord(resourceType, recordId, signal),
   });
 
   const vocabulary = useQuery({
-    queryKey: ["tag-vocabulary"],
+    queryKey: queryKeys.tagVocabulary(),
     queryFn: ({ signal }) => tagsApi.vocabulary(signal),
     // Only once the reader has asked to edit: a picker nobody opened does not
     // need the whole vocabulary fetched behind it.
     enabled: editing,
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   // Reset to what the record actually carries whenever it changes or the
@@ -71,7 +72,7 @@ export function TagPicker({
   const save = useMutation({
     mutationFn: (names: string[]) => tagsApi.apply(resourceType, recordId, names),
     onSuccess: (answer) => {
-      queryClient.setQueryData(["record-tags", resourceType, recordId], answer);
+      queryClient.setQueryData(queryKeys.recordTags(resourceType, recordId), answer);
       // The list's rows carry the tags too, from the derived column — so they
       // are stale until refetched.
       // Everything that shows the record, and the vocabulary itself — the

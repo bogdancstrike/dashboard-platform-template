@@ -7,6 +7,7 @@ import { decimalHours, parseDuration, timeApi, type Subject, type TimeEntry } fr
 import { errorText } from "@/lib/errors";
 
 import { SubjectPicker, parseSubjectKey, subjectKey } from "./SubjectPicker";
+import { queryKeys } from "@/lib/queryKeys";
 
 interface Values {
   subject?: string;
@@ -86,7 +87,7 @@ export function EntryModal({
       return entry ? timeApi.update(entry.id, body) : timeApi.create(body);
     },
     onSuccess: () => {
-      void client.invalidateQueries({ queryKey: ["time"] });
+      void client.invalidateQueries({ queryKey: queryKeys.time() });
       message.success(entry ? "Entry updated" : "Time logged");
       onClose();
     },

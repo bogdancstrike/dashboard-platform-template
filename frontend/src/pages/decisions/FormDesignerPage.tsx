@@ -25,6 +25,7 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 import { FORM_STATUS_TONE } from "./FormsPage";
 import { EmptyState } from "@/components/EmptyState";
 import { FEATURES, useFeature } from "@/settings/features";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -93,11 +94,11 @@ export default function FormDesignerPage() {
     "design" | "settings" | "submissions";
 
   const loaded = useQuery({
-    queryKey: ["forms", "item", id],
+    queryKey: queryKeys.forms("item", id),
     queryFn: ({ signal }) => formsApi.get(id, signal),
     enabled: !creating,
   });
-  const list = useQuery({ queryKey: ["forms", "list"], queryFn: ({ signal }) => formsApi.list(signal), enabled: creating });
+  const list = useQuery({ queryKey: queryKeys.forms("list"), queryFn: ({ signal }) => formsApi.list(signal), enabled: creating });
   const [draft, setDraft] = useState<FormDetail | null>(null);
   const [dirty, setDirty] = useState(false);
   useEffect(() => {
@@ -119,8 +120,8 @@ export default function FormDesignerPage() {
       return creating ? formsApi.create(body) : formsApi.update(id, body);
     },
     onSuccess: (saved) => {
-      client.setQueryData(["forms", "item", saved.id], saved);
-      void client.invalidateQueries({ queryKey: ["forms", "list"] });
+      client.setQueryData(queryKeys.forms("item", saved.id), saved);
+      void client.invalidateQueries({ queryKey: queryKeys.forms("list") });
       setDraft(saved);
       setDirty(false);
       message.success(saved.status === "PUBLISHED" ? "Saved — the form is live" : "Saved");
@@ -130,7 +131,7 @@ export default function FormDesignerPage() {
   });
   const remove = useMutation({
     mutationFn: () => formsApi.remove(id),
-    onSuccess: () => { void client.invalidateQueries({ queryKey: ["forms"] }); message.success("Form removed"); navigate("/admin/forms", { replace: true }); },
+    onSuccess: () => { void client.invalidateQueries({ queryKey: queryKeys.forms() }); message.success("Form removed"); navigate("/admin/forms", { replace: true }); },
     onError: (error) => message.error(errorText(error, { action: "remove this form" })),
   });
 
@@ -455,12 +456,12 @@ function Submissions({ formId }: { formId: string }) {
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState<string | null>(null);
   const list = useQuery({
-    queryKey: ["forms", "submissions", formId, status, page],
+    queryKey: queryKeys.forms("submissions", formId, status, page),
     queryFn: ({ signal }) => formsApi.submissions(formId, { status, page }, signal),
   });
   const retry = useMutation({
     mutationFn: (submissionId: string) => formsApi.retry(formId, submissionId),
-    onSuccess: (item) => { void client.invalidateQueries({ queryKey: ["forms"] }); message.success(item.status === "CONVERTED" ? "It became a record" : "Still failing — see why"); },
+    onSuccess: (item) => { void client.invalidateQueries({ queryKey: queryKeys.forms() }); message.success(item.status === "CONVERTED" ? "It became a record" : "Still failing — see why"); },
     onError: (error) => message.error(errorText(error, { action: "retry this submission" })),
   });
   if (list.isLoading) return <Skeleton active />;

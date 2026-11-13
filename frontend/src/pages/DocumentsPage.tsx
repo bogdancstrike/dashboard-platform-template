@@ -25,6 +25,7 @@ import { DocumentsPanel } from "@/components/knowledge/DocumentsPanel";
 import { KnIcon } from "@/components/knowledge/KnIcon";
 import { relativeTime } from "@/lib/time";
 import "@/styles/knowledge.css";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -55,11 +56,11 @@ export default function DocumentsPage() {
   const tab = params.get("tab") === "documents" ? "documents" : "ask";
 
   const list = useQuery({
-    queryKey: ["knowledge-collections"],
+    queryKey: queryKeys.knowledgeCollections(),
     queryFn: ({ signal }) => knowledgeApi.list({}, signal),
   });
   const overview = useQuery({
-    queryKey: ["knowledge-overview"],
+    queryKey: queryKeys.knowledgeOverview(),
     queryFn: ({ signal }) => knowledgeApi.overview(signal),
   });
 
@@ -67,7 +68,7 @@ export default function DocumentsPage() {
   const activeId = selectedId ?? collections[0]?.id ?? null;
 
   const detail = useQuery({
-    queryKey: ["knowledge-collection", activeId],
+    queryKey: queryKeys.knowledgeCollection(activeId),
     queryFn: ({ signal }) => knowledgeApi.get(activeId!, signal),
     enabled: Boolean(activeId),
     // Poll while anything is being read, so a file's status moves on its own.
@@ -79,8 +80,8 @@ export default function DocumentsPage() {
   const reading = collection?.documents.some(isReading) ?? false;
   useEffect(() => {
     if (!reading) {
-      void queryClient.invalidateQueries({ queryKey: ["knowledge-collections"] });
-      void queryClient.invalidateQueries({ queryKey: ["knowledge-overview"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.knowledgeCollections() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.knowledgeOverview() });
     }
   }, [reading, queryClient]);
 
@@ -97,8 +98,8 @@ export default function DocumentsPage() {
     onSuccess: (saved) => {
       message.success(modal === "edit" ? "Collection saved" : "Collection created — add its files");
       setModal(null);
-      void queryClient.invalidateQueries({ queryKey: ["knowledge-collections"] });
-      queryClient.setQueryData(["knowledge-collection", saved.id], saved);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.knowledgeCollections() });
+      queryClient.setQueryData(queryKeys.knowledgeCollection(saved.id), saved);
       if (modal === "create") select(saved.id, "documents");
     },
     onError: (error: Error) => message.error(error.message),
@@ -107,7 +108,7 @@ export default function DocumentsPage() {
     mutationFn: (id: string) => knowledgeApi.remove(id),
     onSuccess: () => {
       message.success("Collection removed — its files stay in Files");
-      void queryClient.invalidateQueries({ queryKey: ["knowledge-collections"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.knowledgeCollections() });
       const next = new URLSearchParams(params);
       next.delete("collection");
       next.delete("thread");
@@ -142,7 +143,7 @@ export default function DocumentsPage() {
   // or from a pasted link — asked for by the passage id in the address.
   const [clicked, setClicked] = useState<Citation | null>(null);
   const fetched = useQuery({
-    queryKey: ["knowledge-passage", activeId, passage.value],
+    queryKey: queryKeys.knowledgePassage(activeId, passage.value),
     queryFn: ({ signal }) => knowledgeApi.passage(activeId!, passage.value!, signal),
     enabled: Boolean(activeId && passage.value && clicked?.chunk_id !== passage.value),
   });
@@ -150,11 +151,11 @@ export default function DocumentsPage() {
   const previewDoc = collection?.documents.find((d) => d.id === docPreview.value) ?? null;
   const previewFileId = passage.value ? cited?.file_id : docPreview.value ? previewDoc?.file.id : null;
   const previewFile = useQuery({
-    queryKey: ["knowledge-preview-file", previewFileId],
+    queryKey: queryKeys.knowledgePreviewFile(previewFileId),
     // The inline URL: looking is not downloading, and is not counted as one.
     queryFn: ({ signal }) => filesApi.previewUrl(previewFileId!, signal).then((r) => r.file),
     enabled: Boolean(previewFileId),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   function openCitation(citation: Citation) {

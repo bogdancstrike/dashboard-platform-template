@@ -19,6 +19,7 @@ import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { errorText } from "@/lib/errors";
 
 import { TrendChart } from "./TrendChart";
+import { queryKeys } from "@/lib/queryKeys";
 
 type Values = Required<Pick<WatchInput, "name" | "dataset" | "measure" | "granularity" | "method" | "sensitivity" | "direction" | "window" | "channels">> & {
   description?: string;
@@ -44,7 +45,7 @@ export function WatchForm({
   const { touch, settled, requestClose } = useDiscardGuard({ close: onClose, what: "watch" });
   const client = useQueryClient();
   const { message } = App.useApp();
-  const catalogue = useQuery({ queryKey: ["alerts-catalogue"], queryFn: ({ signal }) => alertsApi.catalogue(signal), enabled: open });
+  const catalogue = useQuery({ queryKey: queryKeys.alertsCatalogue(), queryFn: ({ signal }) => alertsApi.catalogue(signal), enabled: open });
   const values = Form.useWatch([], form) as Values | undefined;
   const dataset = catalogue.data?.datasets.find((d) => d.key === values?.dataset);
 
@@ -84,7 +85,7 @@ export function WatchForm({
   const debounced = useDebouncedValue(draft, 400);
   const ready = Boolean(debounced && (debounced.measure === "count" || debounced.measure_field));
   const preview = useQuery({
-    queryKey: ["alerts-preview", debounced],
+    queryKey: queryKeys.alertsPreview(debounced),
     queryFn: ({ signal }) => alertsApi.preview(debounced!, signal),
     enabled: open && ready,
   });
@@ -103,7 +104,7 @@ export function WatchForm({
     onSuccess: (saved) => {
       settled();
       void message.success(watch ? "Watch saved." : `Watching “${saved.name}”.`);
-      void client.invalidateQueries({ queryKey: ["alerts"] });
+      void client.invalidateQueries({ queryKey: queryKeys.alerts() });
       // A page that moves on to the saved record replaces the overlay's
       // history entry itself; closing first would send "back" after it.
       if (onSaved) onSaved(saved);

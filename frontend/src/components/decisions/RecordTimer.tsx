@@ -13,6 +13,7 @@ import { TdIcon } from "./TdIcon";
 import { useTimer } from "./useTimer";
 import { EmptyState } from "@/components/EmptyState";
 import { FEATURES, withFeature } from "@/settings/features";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -67,7 +68,7 @@ function RecordTimerButtonInner({
 function RecordTimeCardInner({ subjectType, subjectId }: { subjectType: SubjectType; subjectId: string }) {
   const timer = useTimer();
   const logged = useQuery({
-    queryKey: ["time", "on", subjectType, subjectId],
+    queryKey: queryKeys.time("on", subjectType, subjectId),
     queryFn: ({ signal }) => timeApi.on(subjectType, subjectId, signal),
     enabled: timer.allowed,
   });

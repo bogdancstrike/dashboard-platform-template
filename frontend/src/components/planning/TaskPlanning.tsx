@@ -48,6 +48,7 @@ import { KindBadge, Points } from "./PlanItem";
 import { PlanIcon } from "./planIcons";
 import { shortDate } from "./gantt";
 import { FEATURES, useFeature, useFeatures, withFeature } from "@/settings/features";
+import { queryKeys } from "@/lib/queryKeys";
 
 // Stored on the task as `cover_color` and seeded with these exact strings, so
 // they are data the server keeps rather than styling. palette-exempt
@@ -56,7 +57,7 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export function useTaskPlanning(id: string) {
   return useQuery({
-    queryKey: ["task-planning", id],
+    queryKey: queryKeys.taskPlanning(id),
     queryFn: ({ signal }) => planningApi.planning(id, signal),
     enabled: Boolean(id),
   });
@@ -65,7 +66,7 @@ export function useTaskPlanning(id: string) {
 function useRefresh(id: string) {
   const queryClient = useQueryClient();
   return () => {
-    void queryClient.invalidateQueries({ queryKey: ["task-planning", id] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.taskPlanning(id) });
     refreshRecordViews(queryClient);
   };
 }
@@ -87,12 +88,12 @@ export function TaskPlanningSide({ id, page }: { id: string; page: RecordPage })
   const recurringOn = features(FEATURES.recurringTasks);
   const projectId = asText(page.value("project_id"));
   const epics = useQuery({
-    queryKey: ["epics", projectId],
+    queryKey: queryKeys.epics(projectId),
     queryFn: ({ signal }) => planningApi.epics({ project_id: projectId || undefined }, signal),
     enabled: sprintsOn,
   });
   const sprints = useQuery({
-    queryKey: ["sprints", projectId],
+    queryKey: queryKeys.sprints(projectId),
     queryFn: ({ signal }) => planningApi.sprints({ project_id: projectId || undefined }, signal),
     enabled: sprintsOn,
   });
@@ -477,7 +478,7 @@ export function TaskRelations({ id, page }: { id: string; page: RecordPage }) {
     });
 
   const candidates = useQuery({
-    queryKey: ["timeline-candidates", asText(page.value("project_id"))],
+    queryKey: queryKeys.timelineCandidates(asText(page.value("project_id"))),
     queryFn: ({ signal }) =>
       planningApi.timeline({ project_id: asText(page.value("project_id")) || undefined, group: "project" }, signal),
     enabled: canEdit && Boolean(page.value("project_id")),
@@ -650,7 +651,7 @@ function SaveAsTemplateButtonInner({ id, title, disabled }: { id: string; title:
     mutationFn: () => planningApi.saveAsTemplate(id, name.trim() || title),
     onSuccess: (template) => {
       message.success(`Saved as the template “${template.name}”`);
-      void queryClient.invalidateQueries({ queryKey: ["task-templates"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.taskTemplates() });
       setOpen(false);
     },
     onError: (error) => message.error(failure(error)),

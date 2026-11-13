@@ -31,6 +31,7 @@ import { StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { asText } from "@/lib/text";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -70,7 +71,7 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
   const tab = params.get("tab") ?? "overview";
 
   const record = useQuery({
-    queryKey: ["record", resourceKey, id],
+    queryKey: queryKeys.record(resourceKey, id),
     queryFn: ({ signal }) => recordsApi.get(resourceKey, id, signal),
     enabled: Boolean(id),
   });
@@ -79,9 +80,9 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
   // publishes: read off the record, a status select would offer nothing but
   // the value the record already has.
   const catalogue = useQuery({
-    queryKey: ["explorer-catalogue"],
+    queryKey: queryKeys.explorerCatalogue(),
     queryFn: ({ signal }) => explorerApi.catalogue(signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
   const resource = catalogue.data?.items.find((item) => item.key === resourceKey);
 

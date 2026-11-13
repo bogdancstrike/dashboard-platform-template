@@ -42,6 +42,7 @@ import { withOrigin } from "@/entities/drilldown";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { usePageCommands } from "@/commands/CommandContext";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 /** How a breakdown of one dimension is drawn, by how many values it has. */
 const BREAKDOWN_KINDS: ChartKind[] = ["bar", "pie", "hbar", "treemap"];
@@ -54,9 +55,9 @@ export default function AnalyticsPage() {
   const location = useLocation();
 
   const catalogue = useQuery({
-    queryKey: ["analysis-catalogue"],
+    queryKey: queryKeys.analysisCatalogue(),
     queryFn: ({ signal }) => analysisApi.catalogue(signal),
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
 
   const datasets = catalogue.data?.datasets ?? [];
@@ -371,11 +372,11 @@ export default function AnalyticsPage() {
 /** One analysis, keyed by the whole request so a changed period refetches. */
 function useAnalysis(name: string, request: AnalysisRequest | null) {
   return useQuery({
-    queryKey: ["analysis", name, request],
+    queryKey: queryKeys.analysis(name, request),
     queryFn: ({ signal }) => analysisApi.run(request!, signal),
     enabled: Boolean(request),
     placeholderData: (previous) => previous,
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 }
 

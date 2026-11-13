@@ -71,6 +71,7 @@ import { relativeTime } from "@/lib/time";
 import { formatDate, formatNumber } from "@/lib/formats";
 import { EditProfileDrawer } from "@/components/profile/EditProfileDrawer";
 import { Highlights, ProfileAccessTab, ProfileActivityTab, WhoCard } from "@/components/profile/ProfileTabs";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text, Paragraph } = Typography;
 
@@ -170,7 +171,7 @@ export default function ProfilePage() {
   const tab = tabFrom(params.get("tab"));
 
   const query = useQuery({
-    queryKey: ["profile", userId ?? "me"],
+    queryKey: queryKeys.profile(userId ?? "me"),
     queryFn: ({ signal }) =>
       userId ? profileApi.person(userId, signal) : profileApi.mine(signal),
   });
@@ -205,7 +206,7 @@ export default function ProfilePage() {
 
   const activityKind = params.get("kind") ?? "";
   const activity = useQuery({
-    queryKey: ["profile-activity", profile?.user.id, activityKind],
+    queryKey: queryKeys.profileActivity(profile?.user.id, activityKind),
     queryFn: ({ signal }) =>
       activityApi.feed({ actor_id: profile!.user.id, page_size: 100, ...(activityKind ? { kind: activityKind } : {}) }, signal),
     placeholderData: (previous) => previous,

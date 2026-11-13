@@ -88,6 +88,7 @@ import { errorText } from "@/lib/errors";
 import { formatNumber } from "@/lib/formats";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text, Paragraph } = Typography;
 
@@ -181,12 +182,12 @@ export default function ExportsPage() {
   const status = params.get("status") ?? "";
 
   const catalogue = useQuery({
-    queryKey: ["exports", "catalogue"],
+    queryKey: queryKeys.exports("catalogue"),
     queryFn: ({ signal }) => exportsApi.catalogue(signal),
   });
 
   const listing = useQuery({
-    queryKey: ["exports", "list", status],
+    queryKey: queryKeys.exports("list", status),
     queryFn: ({ signal }) =>
       exportsApi.list({ ...(status ? { status } : {}), page_size: 50 }, signal),
     // Only while something is actually being produced. A page that polls a
@@ -212,7 +213,7 @@ export default function ExportsPage() {
   );
 
   const estimate = useQuery({
-    queryKey: ["exports", "estimate", dataset, format],
+    queryKey: queryKeys.exports("estimate", dataset, format),
     queryFn: ({ signal }) => exportsApi.estimate(request, signal),
     // Nothing to count until a dataset is chosen, and nothing worth counting
     // while the drawer is shut.
@@ -220,7 +221,7 @@ export default function ExportsPage() {
   });
 
   const refresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["exports"] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.exports() });
   };
 
   const queued = useMutation({

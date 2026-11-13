@@ -19,6 +19,7 @@ import { PeoplePicker } from "@/components/PeoplePicker";
 import { BlockView } from "./BlockView";
 import { itemText, RECORD_LABELS } from "./blocks";
 import { RecordPicker } from "./RecordPicker";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -32,9 +33,9 @@ const CHARTS = [
 
 function ChartSettings({ block, onChange }: { block: DocBlock; onChange: (next: DocBlock) => void }) {
   const catalogue = useQuery({
-    queryKey: ["explorer-catalogue"],
+    queryKey: queryKeys.explorerCatalogue(),
     queryFn: ({ signal }) => explorerApi.catalogue(signal),
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
   const datasets = catalogue.data?.items ?? [];
   const dataset = datasets.find((item) => item.key === block.entity);
@@ -74,7 +75,7 @@ function ChartSettings({ block, onChange }: { block: DocBlock; onChange: (next: 
 }
 
 function ReportSettings({ block, onChange }: { block: DocBlock; onChange: (next: DocBlock) => void }) {
-  const reports = useQuery({ queryKey: ["reports"], queryFn: ({ signal }) => reportsApi.list(signal), staleTime: 60_000 });
+  const reports = useQuery({ queryKey: queryKeys.reports(), queryFn: ({ signal }) => reportsApi.list(signal), staleTime: STALE.minute });
   return (
     <Space wrap className="nx-dc-settings">
       <Select

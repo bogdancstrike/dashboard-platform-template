@@ -64,6 +64,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { EmptyState } from "@/components/EmptyState";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -140,13 +141,13 @@ export default function GroupsPage() {
   }, [term]);
 
   const catalogue = useQuery({
-    queryKey: ["groups", "catalogue"],
+    queryKey: queryKeys.groups("catalogue"),
     queryFn: ({ signal }) => groupsApi.catalogue(signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   const listing = useQuery({
-    queryKey: ["groups", "list", term, kind],
+    queryKey: queryKeys.groups("list", term, kind),
     queryFn: ({ signal }) =>
       groupsApi.list(
         { ...(term ? { q: term } : {}), ...(kind ? { kind } : {}), page_size: 100 },
@@ -155,13 +156,13 @@ export default function GroupsPage() {
   });
 
   const detail = useQuery({
-    queryKey: ["groups", "entry", opened],
+    queryKey: queryKeys.groups("entry", opened),
     queryFn: ({ signal }) => groupsApi.entry(opened!, signal),
     enabled: opened !== null,
   });
 
   const refresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["groups"] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.groups() });
   };
 
   const failed = (error: unknown) =>

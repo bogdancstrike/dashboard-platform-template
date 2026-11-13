@@ -21,6 +21,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { RECORD_PAGES } from "@/app/records";
 import { useAppearance } from "@/theme/AppearanceProvider";
 import type { Density } from "@/theme/tokens";
+import { queryKeys } from "@/lib/queryKeys";
 
 //: Two letters before the server is asked. One matches most of a database,
 //: and the answer would be discarded by the next keystroke.
@@ -95,7 +96,7 @@ export function CommandPalette() {
    */
   const term = useDebouncedValue(query.trim(), 200);
   const hits = useQuery({
-    queryKey: ["palette-search", term],
+    queryKey: queryKeys.paletteSearch(term),
     queryFn: ({ signal }) => searchApi.global(term, signal),
     enabled: open && term.length >= MIN_RECORD_TERM && features(FEATURES.globalSearch),
     placeholderData: (previous) => previous,

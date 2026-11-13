@@ -35,13 +35,14 @@ import type { MouseEvent } from "react";
 import { ApiError } from "@/api/client";
 import { favoritesApi, type BookmarkList } from "@/api/favorites";
 import { FEATURES, withFeature } from "@/settings/features";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 /** What the whole page needs to know about what this reader has starred. */
 export function useFavorites() {
   const bookmarks = useQuery({
-    queryKey: ["favorites"],
+    queryKey: queryKeys.favorites(),
     queryFn: ({ signal }) => favoritesApi.list(signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   const byKey = new Map(
@@ -90,17 +91,17 @@ function FavoriteStarInner({
     // right without a second request — so the cache is replaced rather than
     // invalidated and re-fetched.
     onSuccess: (list: BookmarkList) => {
-      queryClient.setQueryData(["favorites"], list);
-      void queryClient.invalidateQueries({ queryKey: ["recents"] });
+      queryClient.setQueryData(queryKeys.favorites(), list);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.recents() });
     },
     onError: (error) =>
       message.error(error instanceof ApiError ? error.message : "That star was not saved."),
     onMutate: () => {
       // Optimistic: fill the glyph now. `onError` puts it back by refetching,
       // which is the honest behaviour for a write that can be refused.
-      const previous = queryClient.getQueryData<BookmarkList>(["favorites"]);
+      const previous = queryClient.getQueryData<BookmarkList>(queryKeys.favorites());
       if (!previous) return;
-      queryClient.setQueryData<BookmarkList>(["favorites"], {
+      queryClient.setQueryData<BookmarkList>(queryKeys.favorites(), {
         ...previous,
         items: existing
           ? previous.items.filter((item) => item.id !== existing)
@@ -119,7 +120,7 @@ function FavoriteStarInner({
             ],
       });
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["favorites"] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.favorites() }),
   });
 
   // Refused with the reason rather than hidden: a limit somebody meets once is

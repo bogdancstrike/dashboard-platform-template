@@ -36,6 +36,7 @@ import { URL_OVERLAY } from "@/app/history";
 import { meApi, type CurrentUser, type ProfilePatch } from "@/api/me";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -88,9 +89,9 @@ export function EditProfileDrawer({
       // Written from the answer rather than invalidated: the server has just
       // returned the whole merged profile, and refetching would show the
       // reader their own change arriving a second time.
-      queryClient.setQueryData<CurrentUser>(["me"], saved);
-      void queryClient.invalidateQueries({ queryKey: ["profile"] });
-      void queryClient.invalidateQueries({ queryKey: ["directory"] });
+      queryClient.setQueryData<CurrentUser>(queryKeys.me(), saved);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.profile() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.directory() });
       message.success("Saved");
       onClose();
     },

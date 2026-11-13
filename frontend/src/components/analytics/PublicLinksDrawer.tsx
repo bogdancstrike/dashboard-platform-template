@@ -18,6 +18,7 @@ import { errorText } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
 import { FEATURES, withFeature } from "@/settings/features";
+import { queryKeys } from "@/lib/queryKeys";
 
 export function shareUrl(link: Pick<DashboardLink, "path">): string {
   return `${window.location.origin}${link.path}`;
@@ -52,7 +53,7 @@ export function PublicLinksDrawer({ dashboardId, open, onClose }: { dashboardId:
   const client = useQueryClient();
   const { message } = App.useApp();
   const [form] = Form.useForm<Values>();
-  const key = ["dashboard-links", dashboardId];
+  const key = queryKeys.dashboardLinks(dashboardId);
   const links = useQuery({ queryKey: key, queryFn: ({ signal }) => linksApi.list(dashboardId, signal), enabled: open });
   const embed = Form.useWatch("allow_embed", form);
 

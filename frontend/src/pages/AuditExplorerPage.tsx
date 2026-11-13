@@ -31,6 +31,7 @@ import { ResponsiveTable } from "@/pages/admin/ResponsiveTable";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -98,9 +99,9 @@ export default function AuditExplorerPage() {
   };
 
   const catalogue = useQuery({
-    queryKey: ["audit", "catalog"],
+    queryKey: queryKeys.audit("catalog"),
     queryFn: ({ signal }) => auditApi.catalogue(signal),
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
 
   const query = useMemo<AuditQuery>(
@@ -126,13 +127,13 @@ export default function AuditExplorerPage() {
   );
 
   const ledger = useQuery({
-    queryKey: ["audit", "ledger", query],
+    queryKey: queryKeys.audit("ledger", query),
     queryFn: ({ signal }) => auditApi.list(query, signal),
     placeholderData: (previous) => previous,
   });
 
   const entry = useQuery({
-    queryKey: ["audit", "entry", openEntry],
+    queryKey: queryKeys.audit("entry", openEntry),
     queryFn: ({ signal }) => auditApi.entry(openEntry, signal),
     enabled: Boolean(openEntry),
   });

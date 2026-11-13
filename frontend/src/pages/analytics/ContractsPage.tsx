@@ -37,6 +37,7 @@ import { StatusTag } from "@/components/StatusTag";
 import { useAuth } from "@/auth/AuthProvider";
 import { errorText } from "@/lib/errors";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 type View = "board" | "list" | "forecast" | "calendar";
 const VIEWS: { value: View; label: string }[] = [
@@ -151,7 +152,7 @@ function PipelineBoard({
 }) {
   const client = useQueryClient();
   const { message } = App.useApp();
-  const key = ["contracts", "board", filters];
+  const key = queryKeys.contracts("board", filters);
   const board = useQuery({ queryKey: key, queryFn: ({ signal }) => contractsApi.board(filters, signal), placeholderData: keepPreviousData });
   const columns = board.data?.columns ?? [];
   const byId = useMemo(() => new Map(columns.flatMap((c) => c.cards.map((card) => [card.id, card] as const))), [columns]);
@@ -184,7 +185,7 @@ function PipelineBoard({
     },
     onSuccess: (saved) => void message.success(`${saved.reference} → ${STAGE_LABEL[saved.stage]} (${saved.probability}%)`),
     onSettled: () => {
-      void client.invalidateQueries({ queryKey: ["contracts"] });
+      void client.invalidateQueries({ queryKey: queryKeys.contracts() });
     },
   });
 
@@ -279,7 +280,7 @@ function PipelineBoard({
 
 function ContractTable({ filters, onOpen }: { filters: Record<string, string | undefined>; onOpen: (id: string) => void }) {
   const list = useQuery({
-    queryKey: ["contracts", "list", filters],
+    queryKey: queryKeys.contracts("list", filters),
     queryFn: ({ signal }) => contractsApi.list({ ...filters, page_size: 200 }, signal), 
     placeholderData: keepPreviousData,
   });
@@ -313,7 +314,7 @@ function ContractTable({ filters, onOpen }: { filters: Record<string, string | u
 }
 
 function Forecast() {
-  const forecast = useQuery({ queryKey: ["contracts", "forecast"], queryFn: ({ signal }) => contractsApi.forecast({ quarters: 4 }, signal) });
+  const forecast = useQuery({ queryKey: queryKeys.contracts("forecast"), queryFn: ({ signal }) => contractsApi.forecast({ quarters: 4 }, signal) });
   if (forecast.isLoading) return <Skeleton active paragraph={{ rows: 8 }} />;
   if (forecast.isError) return <FailureAlert error={forecast.error} onRetry={() => void forecast.refetch()} />;
   const data = forecast.data!;
@@ -371,7 +372,7 @@ function RenewalCalendar({ filters, onOpen }: { filters: Record<string, string |
   const [params, setParams] = useSearchParams();
   const month = params.get("month") ?? dayjs().format("YYYY-MM");
   const calendar = useQuery({
-    queryKey: ["contracts", "calendar", month, filters],
+    queryKey: queryKeys.contracts("calendar", month, filters),
     queryFn: ({ signal }) => contractsApi.calendar({ ...filters, month }, signal), 
     placeholderData: keepPreviousData,
   });

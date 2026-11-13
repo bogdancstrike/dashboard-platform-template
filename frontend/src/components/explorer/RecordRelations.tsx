@@ -37,6 +37,7 @@ import { EmptyState } from "@/components/EmptyState";
 
 import { RecordReadError } from "./RecordReadError";
 import { FEATURES, withFeature } from "@/settings/features";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text, Title } = Typography;
 
@@ -52,7 +53,7 @@ function RecordRelationsInner({
   const [view, setView] = useSticky<string>("explore.relations.view", "graph");
 
   const relations = useQuery({
-    queryKey: ["relationships", resourceType, recordId],
+    queryKey: queryKeys.relationships(resourceType, recordId),
     queryFn: ({ signal }) => relationshipsApi.of(resourceType, recordId, signal),
   });
 

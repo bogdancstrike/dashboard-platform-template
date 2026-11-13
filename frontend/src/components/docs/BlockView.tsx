@@ -22,6 +22,7 @@ import { MarkdownLite, renderInline } from "@/components/collab/MarkdownLite";
 import { initials } from "@/components/collab/MessageItem";
 
 import { itemText, RECORD_LABELS, recordPath } from "./blocks";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Title, Text } = Typography;
 
@@ -35,7 +36,7 @@ export function asReportBlock(block: DocBlock): DocumentBlock {
 
 function ImageBlock({ block }: { block: DocBlock }) {
   const url = useQuery({
-    queryKey: ["file-preview", block.file_id],
+    queryKey: queryKeys.filePreview(block.file_id),
     queryFn: ({ signal }) => filesApi.previewUrl(block.file_id!, signal),
     enabled: Boolean(block.file_id),
     staleTime: 240_000,

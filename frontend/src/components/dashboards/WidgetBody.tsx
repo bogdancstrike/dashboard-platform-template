@@ -58,6 +58,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { InsightWidgetBody } from "@/components/insights/InsightWidgetBody";
 import { useFeatures } from "@/settings/features";
 import { kindFlag } from "./kinds";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -236,11 +237,11 @@ export function WidgetBody({
 function MetricStripBody({ widget }: { widget: DashboardWidget }) {
   const entity = widget.config.entity ?? "";
   const insights = useQuery({
-    queryKey: ["entity-insights", entity, undefined, widget.config.filters],
+    queryKey: queryKeys.entityInsights(entity, undefined, widget.config.filters),
     queryFn: ({ signal }) =>
       explorerApi.insights({ resource_type: entity, filters: widget.config.filters ?? {} }, signal),
     enabled: Boolean(entity),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 
   if (insights.isLoading) return <Skeleton active title={false} paragraph={{ rows: 2 }} />;
@@ -301,10 +302,10 @@ function MapBody({ widget, period }: { widget: DashboardWidget; period: string }
   };
 
   const places = useQuery({
-    queryKey: ["map-places", params],
+    queryKey: queryKeys.mapPlaces(params),
     queryFn: ({ signal }) => mapsApi.places(params, signal),
     enabled: Boolean(dataset),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   if (places.isLoading) return <Skeleton active title={false} paragraph={{ rows: 5 }} />;
@@ -330,14 +331,14 @@ function MapBody({ widget, period }: { widget: DashboardWidget; period: string }
 function MetricBody({ widget, gauge }: { widget: DashboardWidget; gauge: boolean }) {
   const entity = widget.config.entity ?? "";
   const insights = useQuery({
-    queryKey: ["entity-insights", entity, undefined, widget.config.filters],
+    queryKey: queryKeys.entityInsights(entity, undefined, widget.config.filters),
     queryFn: ({ signal }) =>
       explorerApi.insights(
         { resource_type: entity, filters: widget.config.filters ?? {} },
         signal,
       ),
     enabled: Boolean(entity),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 
   if (insights.isLoading) return <Skeleton active title={false} paragraph={{ rows: 2 }} />;
@@ -431,10 +432,10 @@ function ChartBody({
   };
 
   const analysis = useQuery({
-    queryKey: ["analysis", "widget", widget.id, request],
+    queryKey: queryKeys.analysis("widget", widget.id, request),
     queryFn: ({ signal }) => analysisApi.run(request, signal),
     enabled: Boolean(config.entity && group),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 
   if (!config.entity || !group) {
@@ -475,10 +476,10 @@ function RowsBody({
   };
 
   const rows = useQuery({
-    queryKey: ["entity-rows", request],
+    queryKey: queryKeys.entityRows(request),
     queryFn: ({ signal }) => explorerApi.query(request, signal),
     enabled: Boolean(entity),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 
   if (rows.isLoading) return <Skeleton active title={false} paragraph={{ rows: 4 }} />;
@@ -539,9 +540,9 @@ function RowsBody({
 /** The alert strip the home dashboard already computes. */
 function AlertsBody() {
   const alerts = useQuery({
-    queryKey: ["dashboard-alerts"],
+    queryKey: queryKeys.dashboardAlerts(),
     queryFn: ({ signal }) => dashboardApi.alerts(signal),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 
   if (alerts.isLoading) return <Skeleton active title={false} paragraph={{ rows: 3 }} />;
@@ -582,9 +583,9 @@ function AlertsBody() {
 /** The activity feed, from the same summary the home page reads. */
 function ActivityBody() {
   const summary = useQuery({
-    queryKey: ["dashboard-summary", "activity"],
+    queryKey: queryKeys.dashboardSummary("activity"),
     queryFn: ({ signal }) => dashboardApi.summary({ period: "last_7_days" }, signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   if (summary.isLoading) return <Skeleton active title={false} paragraph={{ rows: 4 }} />;
@@ -627,10 +628,10 @@ function ActivityBody() {
 function ReportBody({ widget, period }: { widget: DashboardWidget; period: string }) {
   const reportId = widget.config.report_id ?? "";
   const run = useQuery({
-    queryKey: ["report-run", reportId, period],
+    queryKey: queryKeys.reportRun(reportId, period),
     queryFn: ({ signal }) => reportsApi.run(reportId, { period }, signal),
     enabled: Boolean(reportId),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 
   if (!reportId) {
@@ -688,15 +689,15 @@ function SearchBody({
 }) {
   const searchId = widget.config.search_id ?? "";
   const search = useQuery({
-    queryKey: ["saved-search", searchId],
+    queryKey: queryKeys.savedSearch(searchId),
     queryFn: ({ signal }) => explorerApi.openSaved(searchId, signal),
     enabled: Boolean(searchId),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   const stored = search.data;
   const rows = useQuery({
-    queryKey: ["entity-rows", "saved-search", searchId],
+    queryKey: queryKeys.entityRows("saved-search", searchId),
     queryFn: ({ signal }) =>
       explorerApi.query(
         {
@@ -711,7 +712,7 @@ function SearchBody({
         signal,
       ),
     enabled: Boolean(stored),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 
   if (!searchId) {

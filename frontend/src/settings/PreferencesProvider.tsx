@@ -29,6 +29,7 @@ import { createContext, useContext, useEffect, useMemo, type ReactNode } from "r
 import { meApi, type CurrentUser, type PreferencePatch, type UserPreferences } from "@/api/me";
 import { useAuth } from "@/auth/AuthProvider";
 import { applyFormats } from "@/lib/formats";
+import { queryKeys } from "@/lib/queryKeys";
 
 /** What the app falls back to before the profile has answered. */
 export const PREFERENCE_DEFAULTS: UserPreferences = {
@@ -89,7 +90,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       // Written from the response rather than invalidated: the server has just
       // told us the whole merged document, and re-fetching it would show the
       // reader their own change arriving a second time.
-      queryClient.setQueryData<CurrentUser>(["me"], (current) =>
+      queryClient.setQueryData<CurrentUser>(queryKeys.me(), (current) =>
         current ? { ...current, preferences: saved } : current,
       );
     },

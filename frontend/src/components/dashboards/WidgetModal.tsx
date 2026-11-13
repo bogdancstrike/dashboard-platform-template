@@ -53,6 +53,7 @@ import { WidgetBody } from "./WidgetBody";
 import { WidgetCard, type WidgetMoves } from "./WidgetCard";
 import { PREVIEW_SIZES, ROW_HEIGHT } from "./WidgetGrid";
 import { useFeatures } from "@/settings/features";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text, Paragraph } = Typography;
 
@@ -143,39 +144,39 @@ export function WidgetModal({
   const { touch, requestClose } = useDiscardGuard({ close: onClose, what: "widget" });
 
   const catalogue = useQuery({
-    queryKey: ["analysis-catalogue"],
+    queryKey: queryKeys.analysisCatalogue(),
     queryFn: ({ signal }) => analysisApi.catalogue(signal),
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
 
   // What the reader has already made. Fetched only when a kind that references
   // one is chosen, so opening the drawer for a KPI costs nothing.
   const shape = KINDS[kind];
   const reports = useQuery({
-    queryKey: ["reports"],
+    queryKey: queryKeys.reports(),
     queryFn: ({ signal }) => reportsApi.list(signal),
     enabled: open && shape.needs === "report",
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
   const insights = useQuery({
-    queryKey: ["insights"],
+    queryKey: queryKeys.insights(),
     queryFn: ({ signal }) => insightsApi.list({}, signal),
     enabled: open && shape.needs === "insight",
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
   const searches = useQuery({
-    queryKey: ["saved-searches", "all"],
+    queryKey: queryKeys.savedSearches("all"),
     queryFn: ({ signal }) => explorerApi.saved(undefined, signal),
     enabled: open && shape.needs === "search",
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
   // Only a `TASKS` widget pointed at a board needs the board list, so it is
   // asked for only then — a drawer opened on a KPI should cost nothing.
   const boards = useQuery({
-    queryKey: ["kanban-boards", {}],
+    queryKey: queryKeys.kanbanBoards({}),
     queryFn: ({ signal }) => kanbanApi.boards({}, signal),
     enabled: open && kind === "TASKS",
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
 
   const initial = {

@@ -31,6 +31,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { SimpleSearch } from "@/components/explorer/SimpleSearch";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -46,7 +47,7 @@ export default function GlobalSearchPage() {
   const listRef = useRef<HTMLDivElement>(null);
 
   const results = useQuery({
-    queryKey: ["global-search", debounced],
+    queryKey: queryKeys.globalSearch(debounced),
     queryFn: ({ signal }) => searchApi.global(debounced, signal),
     enabled: debounced.length >= MIN_TERM,
     placeholderData: (previous) => previous,

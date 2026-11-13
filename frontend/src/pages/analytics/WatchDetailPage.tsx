@@ -25,6 +25,7 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 
 import { AnomalyRow, describeWatch, WatchStatus } from "./AlertsPage";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 export default function WatchDetailPage() {
   const { id = "" } = useParams();
@@ -36,14 +37,14 @@ export default function WatchDetailPage() {
   const client = useQueryClient();
   const { message } = App.useApp();
 
-  const chart = useQuery({ queryKey: ["alerts", "chart", id], queryFn: ({ signal }) => alertsApi.chart(id, 45, signal), enabled: Boolean(id) });
+  const chart = useQuery({ queryKey: queryKeys.alerts("chart", id), queryFn: ({ signal }) => alertsApi.chart(id, 45, signal), enabled: Boolean(id) });
   const history = useQuery({
-    queryKey: ["alerts", "anomalies", "watch", id],
+    queryKey: queryKeys.alerts("anomalies", "watch", id),
     queryFn: ({ signal }) => alertsApi.anomalies({ watch_id: id, page_size: 50 }, signal),
     enabled: Boolean(id),
   });
   const refresh = () => {
-    void client.invalidateQueries({ queryKey: ["alerts"] });
+    void client.invalidateQueries({ queryKey: queryKeys.alerts() });
   };
 
   const evaluate = useMutation({

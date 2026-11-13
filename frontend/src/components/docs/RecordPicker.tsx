@@ -12,6 +12,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 import { RECORD_PATHS } from "./blocks";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 export interface PickedRecord {
   resource_type: string;
@@ -33,7 +34,7 @@ export function RecordPicker({
   const [term, setTerm] = useState("");
   const query = useDebouncedValue(term.trim(), 250);
   const results = useQuery({
-    queryKey: ["global-search", "picker", query],
+    queryKey: queryKeys.globalSearch("picker", query),
     queryFn: ({ signal }) => searchApi.global(query, signal),
     enabled: open && query.length >= 2,
   });

@@ -9,6 +9,7 @@ import { URL_OVERLAY } from "@/app/history";
 import type { PassageBox } from "@/api/knowledge";
 import { PdfPageHighlight } from "@/components/knowledge/PdfPageHighlight";
 import { MarkedText } from "@/components/knowledge/passage";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text, Paragraph } = Typography;
 
@@ -76,17 +77,17 @@ export function FilePreview({
   const kind = file ? previewKind(file) : "none";
 
   const link = useQuery({
-    queryKey: ["file-preview", file?.id],
+    queryKey: queryKeys.filePreview(file?.id),
     queryFn: ({ signal }) => filesApi.previewUrl(file!.id, signal),
     enabled: Boolean(open && file && kind !== "none"),
     // Presigned and short-lived, so it is refetched rather than kept past its
     // own expiry — a cached URL is a link that has stopped working.
-    staleTime: 60_000,
+    staleTime: STALE.minute,
     retry: false,
   });
 
   const body = useQuery({
-    queryKey: ["file-preview-text", file?.id, link.data?.download.url],
+    queryKey: queryKeys.filePreviewText(file?.id, link.data?.download.url),
     queryFn: async () => {
       const response = await fetch(link.data!.download.url);
       if (!response.ok) throw new Error(`The file could not be read (${response.status}).`);

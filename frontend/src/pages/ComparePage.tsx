@@ -39,6 +39,7 @@ import { humanStatus, StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { asText } from "@/lib/text";
 import { formatNumber } from "@/lib/formats";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -74,7 +75,7 @@ export default function ComparePage() {
   const [show, setShow] = useState<"differences" | "everything">("differences");
 
   const query = useQuery({
-    queryKey: ["compare", resourceType, ids],
+    queryKey: queryKeys.compare(resourceType, ids),
     queryFn: ({ signal }) => compareApi.records(resourceType, ids, signal),
     enabled: Boolean(resourceType) && ids.length >= 2,
   });

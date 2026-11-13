@@ -9,16 +9,17 @@ import { useAuth } from "@/auth/AuthProvider";
 import { duration } from "@/entities/sla";
 import { absoluteTime } from "@/lib/time";
 import { FEATURES, withFeature } from "@/settings/features";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
 /** The ticket's SLA, as its policy computes it — shared by the card and the banner. */
 export function useTicketSla(ticketId: string, enabled = true) {
   return useQuery({
-    queryKey: ["sla", "ticket", ticketId],
+    queryKey: queryKeys.sla("ticket", ticketId),
     queryFn: ({ signal }) => slaApi.ticket(ticketId, signal),
     enabled: enabled && Boolean(ticketId),
-    staleTime: 30_000,
+    staleTime: STALE.short,
   });
 }
 

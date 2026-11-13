@@ -22,6 +22,7 @@ import { filesApi, putBytes, readableSize } from "@/api/files";
 import type { Attachment } from "@/api/comments";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { PersonAvatar } from "@/components/PersonAvatar";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 export const EMOJI = [
   "😀", "😄", "😂", "🙂", "😉", "😍", "🤔", "😮", "😢", "😅", "🙏", "👍",
@@ -116,12 +117,12 @@ export function Composer({
   const active = mentionAt(text, caret);
   const term = useDebouncedValue(active?.query ?? "", 150);
   const people = useQuery({
-    queryKey: ["directory-people", term, "mention"],
+    queryKey: queryKeys.directoryPeople(term, "mention"),
     // A wide net, ranked here: the directory sorts by name, so "@Mar" would
     // otherwise fill its first page with Amaras before reaching Mara.
     queryFn: ({ signal }) => directoryApi.people(term, signal, 50),
     enabled: active !== null,
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
   const suggestions = useMemo(
     () => (active ? rankPeople(people.data?.items ?? [], active.query).slice(0, 6) : []),

@@ -39,6 +39,7 @@ import { WorldMap } from "@/components/maps/WorldMap";
 import { usePageCommands } from "@/commands/CommandContext";
 import { formatNumber } from "@/lib/formats";
 import { EmptyState } from "@/components/EmptyState";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -77,17 +78,17 @@ export default function MapsPage() {
   const location = useLocation();
 
   const catalogue = useQuery({
-    queryKey: ["maps-catalogue"],
+    queryKey: queryKeys.mapsCatalogue(),
     queryFn: ({ signal }) => mapsApi.catalogue(signal),
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
 
   // The period vocabulary the analytics workspace and both builders use, so
   // "last 90 days" means one thing across the ANALYSE section (§44).
   const analysis = useQuery({
-    queryKey: ["analysis-catalogue"],
+    queryKey: queryKeys.analysisCatalogue(),
     queryFn: ({ signal }) => analysisApi.catalogue(signal),
-    staleTime: 300_000,
+    staleTime: STALE.long,
   });
 
   const datasets = catalogue.data?.datasets ?? [];
@@ -110,7 +111,7 @@ export default function MapsPage() {
     );
 
   const places = useQuery({
-    queryKey: ["maps-places", dataset, metric, period],
+    queryKey: queryKeys.mapsPlaces(dataset, metric, period),
     queryFn: ({ signal }) => mapsApi.places({ dataset, metric, period }, signal),
     enabled: Boolean(chosen),
     placeholderData: (previous) => previous,

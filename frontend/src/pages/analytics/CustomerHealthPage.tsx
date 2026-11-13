@@ -30,6 +30,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { errorText } from "@/lib/errors";
 import { relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 const BANDS: HealthBand[] = ["HEALTHY", "AT_RISK", "CRITICAL"];
 
@@ -56,7 +57,7 @@ export default function CustomerHealthPage() {
   };
 
   const portfolio = useQuery({
-    queryKey: ["health-portfolio", band, period, q, page, sort],
+    queryKey: queryKeys.healthPortfolio(band, period, q, page, sort),
     queryFn: ({ signal }) =>
       healthApi.portfolio(
         { band: band || undefined, period, q: q || undefined, page, page_size: 12, sort, order: sort === "score" ? "asc" : "desc" },
@@ -69,7 +70,7 @@ export default function CustomerHealthPage() {
     mutationFn: () => healthApi.recompute(),
     onSuccess: (result) => {
       void message.success(`Scored ${result.customers} customers${result.dropped ? ` — ${result.dropped} dropped a band` : ""}.`);
-      void client.invalidateQueries({ queryKey: ["health-portfolio"] });
+      void client.invalidateQueries({ queryKey: queryKeys.healthPortfolio() });
     },
     onError: (error) => void message.error(errorText(error)),
   });
@@ -290,7 +291,7 @@ function ModelDrawer({ open, onClose }: { open: boolean; onClose: () => void }) 
   const client = useQueryClient();
   const { message } = App.useApp();
   const [form] = Form.useForm<HealthModel>();
-  const model = useQuery({ queryKey: ["health-model"], queryFn: ({ signal }) => healthApi.model(signal), enabled: open });
+  const model = useQuery({ queryKey: queryKeys.healthModel(), queryFn: ({ signal }) => healthApi.model(signal), enabled: open });
   const weights = Form.useWatch("weights", form) as HealthModel["weights"] | undefined;
   const total = weights ? Object.values(weights).reduce((sum, value) => sum + Number(value || 0), 0) : 0;
 
@@ -303,9 +304,9 @@ function ModelDrawer({ open, onClose }: { open: boolean; onClose: () => void }) 
       healthApi.saveModel({ name: values.name, weights: values.weights, thresholds: values.thresholds }),
     onSuccess: (saved) => {
       void message.success(`Model saved — ${saved.recomputed.customers} customers rescored.`);
-      void client.invalidateQueries({ queryKey: ["health-model"] });
-      void client.invalidateQueries({ queryKey: ["health-portfolio"] });
-      void client.invalidateQueries({ queryKey: ["customer-health"] });
+      void client.invalidateQueries({ queryKey: queryKeys.healthModel() });
+      void client.invalidateQueries({ queryKey: queryKeys.healthPortfolio() });
+      void client.invalidateQueries({ queryKey: queryKeys.customerHealth() });
       onClose();
     },
     onError: (error) => void message.error(errorText(error)),

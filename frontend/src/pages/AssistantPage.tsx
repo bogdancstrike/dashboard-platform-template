@@ -22,6 +22,7 @@ import { NameModal } from "@/components/NameModal";
 import { PageHeader } from "@/components/PageHeader";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { relativeTime } from "@/lib/time";
+import { queryKeys } from "@/lib/queryKeys";
 
 export default function AssistantPage() {
   const { conversationId = null } = useParams();
@@ -36,10 +37,10 @@ export default function AssistantPage() {
   const q = useDebouncedValue(search.trim(), 250);
 
   const list = useQuery({
-    queryKey: ["assistant-conversations", q],
+    queryKey: queryKeys.assistantConversations(q),
     queryFn: ({ signal }) => assistantApi.conversations(q, signal),
   });
-  const usage = useQuery({ queryKey: ["assistant-usage"], queryFn: ({ signal }) => assistantApi.usage(signal) });
+  const usage = useQuery({ queryKey: queryKeys.assistantUsage(), queryFn: ({ signal }) => assistantApi.usage(signal) });
 
   const open = (id: string | null) => navigate(id ? `/assistant/${id}` : "/assistant");
   const items = useMemo(() => list.data?.items ?? [], [list.data]);
@@ -51,8 +52,8 @@ export default function AssistantPage() {
   const rename = async (convo: Conversation, title: string) => {
     await assistantApi.update(convo.id, { title });
     setRenaming(null);
-    await queryClient.invalidateQueries({ queryKey: ["assistant-conversations"] });
-    await queryClient.invalidateQueries({ queryKey: ["assistant-conversation", convo.id] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.assistantConversations() });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.assistantConversation(convo.id) });
   };
 
   const remove = (convo: Conversation) =>
@@ -65,7 +66,7 @@ export default function AssistantPage() {
         await assistantApi.remove(convo.id);
         message.success("Conversation deleted");
         if (convo.id === conversationId) navigate("/assistant", { replace: true });
-        await queryClient.invalidateQueries({ queryKey: ["assistant-conversations"] });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.assistantConversations() });
       },
     });
 

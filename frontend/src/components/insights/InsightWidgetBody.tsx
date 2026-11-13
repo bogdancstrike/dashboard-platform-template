@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { InsightView } from "./InsightView";
 import "@/styles/insights.css";
 import { FEATURES, withFeature } from "@/settings/features";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 /**
  * A saved insight on a dashboard (§43): the page as composed, with its numbers
@@ -15,9 +16,9 @@ import { FEATURES, withFeature } from "@/settings/features";
  */
 function InsightWidgetBodyInner({ id }: { id: string }) {
   const insight = useQuery({
-    queryKey: ["insight-widget", id],
+    queryKey: queryKeys.insightWidget(id),
     queryFn: ({ signal }) => insightsApi.get(id, true, signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
     retry: false,
   });
   if (insight.isLoading) return <Skeleton active paragraph={{ rows: 3 }} />;

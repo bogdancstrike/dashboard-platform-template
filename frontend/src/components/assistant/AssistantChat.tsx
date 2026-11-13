@@ -31,6 +31,7 @@ import { AstIcon as AiIcon } from "./AstIcon";
 import { Markdown } from "./Markdown";
 import { DEFAULT_SOURCES, SourcePicker } from "./SourcePicker";
 import "@/styles/assistant.css";
+import { queryKeys } from "@/lib/queryKeys";
 
 const SUGGESTIONS: Record<AssistantMode, string[]> = {
   general: [
@@ -74,7 +75,7 @@ export function AssistantChat({ conversationId, onConversationChange, compact, o
   const bottom = useRef<HTMLDivElement>(null);
 
   const conversation = useQuery({
-    queryKey: ["assistant-conversation", conversationId],
+    queryKey: queryKeys.assistantConversation(conversationId),
     queryFn: ({ signal }) => assistantApi.get(conversationId!, signal),
     enabled: Boolean(conversationId),
   });
@@ -92,8 +93,8 @@ export function AssistantChat({ conversationId, onConversationChange, compact, o
   useEffect(() => () => abort.current?.abort(), []);
 
   const refresh = async (id: string) => {
-    await queryClient.invalidateQueries({ queryKey: ["assistant-conversation", id] });
-    await queryClient.invalidateQueries({ queryKey: ["assistant-conversations"] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.assistantConversation(id) });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.assistantConversations() });
   };
 
   const changeMode = async (next: AssistantMode) => {
@@ -101,7 +102,7 @@ export function AssistantChat({ conversationId, onConversationChange, compact, o
       setNewMode(next);
       return;
     }
-    queryClient.setQueryData(["assistant-conversation", conversationId], { ...conversation.data, mode: next });
+    queryClient.setQueryData(queryKeys.assistantConversation(conversationId), { ...conversation.data, mode: next });
     await assistantApi.update(conversationId, { mode: next });
     await refresh(conversationId);
   };
@@ -111,7 +112,7 @@ export function AssistantChat({ conversationId, onConversationChange, compact, o
       setNewSources(next);
       return;
     }
-    queryClient.setQueryData(["assistant-conversation", conversationId], { ...conversation.data, sources: next });
+    queryClient.setQueryData(queryKeys.assistantConversation(conversationId), { ...conversation.data, sources: next });
     try {
       await assistantApi.update(conversationId, { sources: next });
     } catch (error) {
@@ -131,7 +132,7 @@ export function AssistantChat({ conversationId, onConversationChange, compact, o
       if (!id) {
         const created = await assistantApi.create(mode === "data" ? { mode, sources } : { mode });
         id = created.id;
-        queryClient.setQueryData(["assistant-conversation", id], created);
+        queryClient.setQueryData(queryKeys.assistantConversation(id), created);
         createdId = id;
       }
       const controller = new AbortController();

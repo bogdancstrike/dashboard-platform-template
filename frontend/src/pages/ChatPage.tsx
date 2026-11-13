@@ -44,6 +44,7 @@ import { PresenceDot, usePresence } from "@/components/collab/presence";
 import { conversationKey } from "@/components/collab/useConversation";
 import { useLiveEvents } from "@/live/LiveProvider";
 import "@/styles/collab.css";
+import { queryKeys } from "@/lib/queryKeys";
 
 
 const { Text } = Typography;
@@ -67,11 +68,11 @@ export default function ChatPage() {
   const presence = usePresence();
 
   const channels = useQuery({
-    queryKey: ["chat-channels"],
+    queryKey: queryKeys.chatChannels(),
     queryFn: ({ signal }) => chatApi.channels(signal),
   });
   const channel = useQuery({
-    queryKey: ["chat-channel", channelId],
+    queryKey: queryKeys.chatChannel(channelId),
     queryFn: ({ signal }) => chatApi.get(channelId!, signal),
     enabled: Boolean(channelId),
     retry: false,
@@ -80,11 +81,11 @@ export default function ChatPage() {
   // A conversation somewhere else changed: its unread count did too.
   useLiveEvents((event) => {
     if (event.type === "thread" && event["resource_type"] === CHAT_RESOURCE) {
-      void queryClient.invalidateQueries({ queryKey: ["chat-channels"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.chatChannels() });
     } else if (event.type === "chat.channel") {
-      void queryClient.invalidateQueries({ queryKey: ["chat-channels"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.chatChannels() });
       if (event["channel_id"] === channelId) {
-        void queryClient.invalidateQueries({ queryKey: ["chat-channel", channelId] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.chatChannel(channelId) });
       }
     }
   });
@@ -111,8 +112,8 @@ export default function ChatPage() {
 
   const detail = channel.data;
   const refreshChannel = () => {
-    void queryClient.invalidateQueries({ queryKey: ["chat-channel", channelId] });
-    void queryClient.invalidateQueries({ queryKey: ["chat-channels"] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.chatChannel(channelId) });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.chatChannels() });
   };
 
   const join = async () => {
@@ -305,7 +306,7 @@ export default function ChatPage() {
           onSaved={refreshChannel}
           onArchived={() => {
             setSettings(false);
-            void queryClient.invalidateQueries({ queryKey: ["chat-channels"] });
+            void queryClient.invalidateQueries({ queryKey: queryKeys.chatChannels() });
             navigate("/chat");
           }}
         />

@@ -46,6 +46,7 @@ import { clock } from "@/components/calendar/MonthGrid";
 import { ResponseButtons } from "@/components/calendar/ResponseButtons";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { MeetingNotes } from "@/components/docs/MeetingNotes";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -75,7 +76,7 @@ export function EventDrawer({
   // opened from a window fetched two minutes ago would show an answer somebody
   // has since changed.
   const event = useQuery({
-    queryKey: ["calendar-event", occurrence?.event_id],
+    queryKey: queryKeys.calendarEvent(occurrence?.event_id),
     queryFn: ({ signal }) => calendarApi.get(occurrence!.event_id, signal),
     enabled: Boolean(occurrence),
   });
@@ -86,7 +87,7 @@ export function EventDrawer({
     mutationFn: (response: EventResponse) =>
       calendarApi.respond(occurrence!.event_id, response),
     onSuccess: (updated) => {
-      queryClient.setQueryData(["calendar-event", occurrence?.event_id], updated);
+      queryClient.setQueryData(queryKeys.calendarEvent(occurrence?.event_id), updated);
       onChanged();
     },
     onError: (error) =>

@@ -41,6 +41,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { catalogApi, type CatalogDataset, type CatalogField } from "@/api/catalog";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -51,9 +52,9 @@ export default function DataCatalogPage() {
   const navigate = useNavigate();
   const [term, setTerm] = useState("");
   const catalog = useQuery({
-    queryKey: ["catalog"],
+    queryKey: queryKeys.catalog(),
     queryFn: ({ signal }) => catalogApi.datasets(signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   const needle = term.trim().toLowerCase();

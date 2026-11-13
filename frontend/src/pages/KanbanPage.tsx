@@ -63,6 +63,7 @@ import { PeoplePicker } from "@/components/PeoplePicker";
 import { useBoardDrag } from "@/components/kanban/useBoardDrag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { queryKeys } from "@/lib/queryKeys";
 
 /** The address keys that are places rather than adjustments (§history). */
 const PLACES = new Set(["board", "card"]);
@@ -102,7 +103,7 @@ export default function KanbanPage() {
     );
 
   const boards = useQuery({
-    queryKey: ["kanban-boards"],
+    queryKey: queryKeys.kanbanBoards(),
     queryFn: ({ signal }) => kanbanApi.boards({}, signal),
   });
 
@@ -111,7 +112,7 @@ export default function KanbanPage() {
   const chosen = boardId || boards.data?.items[0]?.id || "";
 
   const board = useQuery({
-    queryKey: ["kanban-board", chosen, label, kind, assignee, search],
+    queryKey: queryKeys.kanbanBoard(chosen, label, kind, assignee, search),
     queryFn: ({ signal }) =>
       kanbanApi.board(chosen, { label, kind, assignee_id: assignee, q: search }, signal),
     enabled: Boolean(chosen),
@@ -124,8 +125,8 @@ export default function KanbanPage() {
   const canEdit = detail?.board.can_edit ?? false;
 
   const invalidate = () => {
-    void queryClient.invalidateQueries({ queryKey: ["kanban-board"] });
-    void queryClient.invalidateQueries({ queryKey: ["kanban-boards"] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.kanbanBoard() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.kanbanBoards() });
   };
 
   const failed = (error: unknown) =>
@@ -138,7 +139,7 @@ export default function KanbanPage() {
     // server's answer is what stays — a refused move snaps back rather than
     // leaving the reader believing something that did not happen.
     onMutate: async ({ id, laneId, position }) => {
-      const key = ["kanban-board", chosen, label, kind, assignee, search];
+      const key = queryKeys.kanbanBoard(chosen, label, kind, assignee, search);
       await queryClient.cancelQueries({ queryKey: key });
       const previous = queryClient.getQueryData(key);
       queryClient.setQueryData(key, (current: typeof detail) =>

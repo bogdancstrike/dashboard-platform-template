@@ -49,6 +49,7 @@ import { PeoplePicker } from "@/components/PeoplePicker";
 import { KIND_LABELS } from "@/components/kanban/KanbanCardTile";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { URL_OVERLAY } from "@/app/history";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text, Title } = Typography;
 
@@ -74,7 +75,7 @@ export function CardDrawer({
   const [step, setStep] = useState("");
 
   const card = useQuery({
-    queryKey: ["kanban-card", cardId],
+    queryKey: queryKeys.kanbanCard(cardId),
     queryFn: ({ signal }) => kanbanApi.card(cardId!, signal),
     enabled: Boolean(cardId),
   });
@@ -85,7 +86,7 @@ export function CardDrawer({
   const write = useMutation({
     mutationFn: (input: CardInput) => kanbanApi.updateCard(cardId!, input),
     onSuccess: (updated) => {
-      queryClient.setQueryData(["kanban-card", cardId], (current: typeof detail) =>
+      queryClient.setQueryData(queryKeys.kanbanCard(cardId), (current: typeof detail) =>
         current ? { ...current, ...updated } : current,
       );
       onChanged();

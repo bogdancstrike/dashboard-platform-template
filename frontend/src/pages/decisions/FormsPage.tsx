@@ -11,6 +11,7 @@ import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
 import { errorText } from "@/lib/errors";
 import { relativeTime } from "@/lib/time";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -23,7 +24,7 @@ export const FORM_STATUS_TONE: Record<FormStatus, string> = {
 /** Intake forms: what each one creates, who can answer it, and how it is doing. */
 export default function FormsPage() {
   const navigate = useNavigate();
-  const list = useQuery({ queryKey: ["forms", "list"], queryFn: ({ signal }) => formsApi.list(signal) });
+  const list = useQuery({ queryKey: queryKeys.forms("list"), queryFn: ({ signal }) => formsApi.list(signal) });
   const canManage = Boolean(list.data?.can_manage);
   usePageCommands("forms", canManage ? [{ id: "forms.new", label: "New intake form", run: () => navigate("/admin/forms/new") }] : []);
 

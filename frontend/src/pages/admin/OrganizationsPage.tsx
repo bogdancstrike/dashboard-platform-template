@@ -70,6 +70,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { formatNumber } from "@/lib/formats";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { EmptyState } from "@/components/EmptyState";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -138,13 +139,13 @@ export default function OrganizationsPage() {
   const chosen = params.get("org");
 
   const catalogue = useQuery({
-    queryKey: ["orgs", "catalogue"],
+    queryKey: queryKeys.orgs("catalogue"),
     queryFn: ({ signal }) => organizationsApi.catalogue(signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   const listing = useQuery({
-    queryKey: ["orgs", "list"],
+    queryKey: queryKeys.orgs("list"),
     queryFn: ({ signal }) => organizationsApi.list({ page_size: 100 }, signal),
   });
 
@@ -157,13 +158,13 @@ export default function OrganizationsPage() {
     null;
 
   const tree = useQuery({
-    queryKey: ["orgs", "tree", opened],
+    queryKey: queryKeys.orgs("tree", opened),
     queryFn: ({ signal }) => organizationsApi.tree(opened!, signal),
     enabled: opened !== null,
   });
 
   const refresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["orgs"] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.orgs() });
   };
 
   const failed = (error: unknown) =>

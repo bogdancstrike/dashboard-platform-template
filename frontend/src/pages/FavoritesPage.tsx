@@ -71,6 +71,7 @@ import { errorText } from "@/lib/errors";
 import { formatNumber } from "@/lib/formats";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -127,16 +128,16 @@ export default function FavoritesPage() {
   const [kind, setKind] = useState<string>("all");
 
   const bookmarks = useQuery({
-    queryKey: ["favorites", "list"],
+    queryKey: queryKeys.favorites("list"),
     queryFn: ({ signal }) => favoritesApi.list(signal),
   });
   const recents = useQuery({
-    queryKey: ["favorites", "recents"],
+    queryKey: queryKeys.favorites("recents"),
     queryFn: ({ signal }) => favoritesApi.recents(signal),
   });
 
   const refresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["favorites"] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.favorites() });
   };
 
   const removed = useMutation({

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { explorerApi } from "@/api/explorer";
 import { asText } from "@/lib/text";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 export interface ProjectOption {
   id: string;
@@ -14,8 +15,8 @@ export interface ProjectOption {
 /** The projects a planning page can be narrowed to, active ones first. */
 export function useProjects() {
   return useQuery({
-    queryKey: ["planning-projects"],
-    staleTime: 60_000,
+    queryKey: queryKeys.planningProjects(),
+    staleTime: STALE.minute,
     queryFn: async ({ signal }) => {
       const page = await explorerApi.query(
         {

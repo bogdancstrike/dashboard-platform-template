@@ -28,6 +28,7 @@ import type { ExplorerResource } from "@/api/explorer";
 import { recordsApi } from "@/api/records";
 import { RecordForm } from "@/components/records/RecordForm";
 import { refreshRecordViews } from "@/lib/refresh";
+import { queryKeys } from "@/lib/queryKeys";
 
 export interface RecordEditing {
   canCreate: boolean;
@@ -53,7 +54,7 @@ export function useRecordEditing(
   const [creating, setCreating] = useState(false);
 
   const record = useQuery({
-    queryKey: ["record", resource?.key, editingId],
+    queryKey: queryKeys.record(resource?.key, editingId),
     queryFn: ({ signal }) => recordsApi.get(resource!.key, editingId!, signal),
     enabled: Boolean(resource && editingId),
   });

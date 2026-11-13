@@ -44,6 +44,7 @@ import { AddToDashboard, type DashboardSubject } from "@/components/dashboards/A
 import { COPY_MEANS, confirmCopy } from "@/lib/confirm";
 import { EmptyState } from "@/components/EmptyState";
 import { FEATURES, useFeature } from "@/settings/features";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -85,12 +86,12 @@ export function SavedSearchDrawer({
   const dashboardsOn = useFeature(FEATURES.dashboardBuilder);
 
   const query = useQuery({
-    queryKey: ["saved-searches", resourceType],
+    queryKey: queryKeys.savedSearches(resourceType),
     queryFn: ({ signal }) => explorerApi.saved(resourceType, signal),
     enabled: open && Boolean(resourceType),
   });
   const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: ["saved-searches", resourceType] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.savedSearches(resourceType) });
 
   const openSearch = useMutation({
     mutationFn: (id: string) => explorerApi.openSaved(id),

@@ -8,6 +8,7 @@ import { dashboardsApi, type SavedDashboard, type WidgetKind } from "@/api/dashb
 import { EmptyState } from "@/components/EmptyState";
 import { FailureAlert } from "@/components/FailureAlert";
 import { KINDS } from "@/components/dashboards/kinds";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -81,7 +82,7 @@ export function AddToDashboard({
   const [newName, setNewName] = useState("");
 
   const listing = useQuery({
-    queryKey: ["dashboards"],
+    queryKey: queryKeys.dashboards(),
     queryFn: ({ signal }) => dashboardsApi.list(signal),
     enabled: open,
   });
@@ -111,8 +112,8 @@ export function AddToDashboard({
         : dashboardsApi.addWidget(chosen, widget);
     },
     onSuccess: (saved) => {
-      void queryClient.invalidateQueries({ queryKey: ["dashboards"] });
-      void queryClient.invalidateQueries({ queryKey: ["dashboard", saved.id] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.dashboards() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(saved.id) });
       // A button carrying a closure rather than a `<Link>`: a toast is
       // portalled by `AntApp`, which sits *outside* the router, so a `<Link>`
       // rendered inside one has no routing context and throws. The closure

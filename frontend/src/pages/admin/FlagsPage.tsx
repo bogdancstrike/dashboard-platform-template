@@ -73,6 +73,7 @@ import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { EmptyState } from "@/components/EmptyState";
 import { usePhoneList } from "@/pages/admin/ResponsiveTable";
 import "@/styles/flags.css";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -200,21 +201,21 @@ export default function FlagsPage() {
     );
 
   const flags = useQuery({
-    queryKey: ["admin-flags", state],
+    queryKey: queryKeys.adminFlags(state),
     queryFn: ({ signal }) => settingsApi.flags(state && state !== "PARTIAL" ? { state } : {}, signal),
   });
-  const roles = useQuery({ queryKey: ["meta-roles"], queryFn: ({ signal }) => metaApi.roles(signal), staleTime: 300_000 });
+  const roles = useQuery({ queryKey: queryKeys.metaRoles(), queryFn: ({ signal }) => metaApi.roles(signal), staleTime: STALE.long });
   const preview = useQuery({
-    queryKey: ["admin-flags", "preview", previewRole],
+    queryKey: queryKeys.adminFlags("preview", previewRole),
     queryFn: ({ signal }) => settingsApi.flagPreview({ role: previewRole }, signal),
     enabled: Boolean(previewRole),
   });
 
   const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: ["admin-flags"] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.adminFlags() });
     // And the profile, which carries the features that are on for this
     // reader — the menu and the pages follow at once.
-    void queryClient.invalidateQueries({ queryKey: ["me"] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.me() });
   };
 
   const write = useMutation({
@@ -719,19 +720,19 @@ function FlagDrawer({
   }, [flag]);
 
   const groups = useQuery({
-    queryKey: ["flag-groups"],
+    queryKey: queryKeys.flagGroups(),
     queryFn: ({ signal }) => groupsApi.list({ page_size: 200 }, signal),
     enabled: open,
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
   const organizations = useQuery({
-    queryKey: ["flag-organizations"],
+    queryKey: queryKeys.flagOrganizations(),
     queryFn: ({ signal }) => organizationsApi.list({}, signal),
     enabled: open,
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
   const history = useQuery({
-    queryKey: ["admin-flags", "history", flag?.key],
+    queryKey: queryKeys.adminFlags("history", flag?.key),
     queryFn: ({ signal }) => settingsApi.flagHistory(flag!.key, signal),
     enabled: open && Boolean(flag),
   });

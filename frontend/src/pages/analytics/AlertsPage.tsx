@@ -22,6 +22,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { errorText } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
+import { queryKeys } from "@/lib/queryKeys";
 
 export const STATUS_LABEL: Record<string, string> = { OK: "Normal", ANOMALY: "Anomaly", NO_DATA: "No data", ERROR: "Error" };
 
@@ -83,7 +84,7 @@ export default function AlertsPage() {
   };
 
   const watches = useQuery({
-    queryKey: ["alerts", "watches", q],
+    queryKey: queryKeys.alerts("watches", q),
     queryFn: ({ signal }) => alertsApi.watches({ q: q || undefined }, signal), 
     placeholderData: keepPreviousData,
   });
@@ -94,7 +95,7 @@ export default function AlertsPage() {
     onSuccess: (results) => {
       const fired = results.reduce((sum, r) => sum + r.new, 0);
       void message.success(fired ? `${fired} new anomal${fired === 1 ? "y" : "ies"}.` : "Every watch evaluated — nothing new.");
-      void client.invalidateQueries({ queryKey: ["alerts"] });
+      void client.invalidateQueries({ queryKey: queryKeys.alerts() });
     },
     onError: (error) => void message.error(errorText(error)),
   });
@@ -193,7 +194,7 @@ function History({ onOpen }: { onOpen: (anomaly: Anomaly) => void }) {
   const status = params.get("status") ?? "";
   const page = Number(params.get("page") ?? 1) || 1;
   const feed = useQuery({
-    queryKey: ["alerts", "anomalies", status, page],
+    queryKey: queryKeys.alerts("anomalies", status, page),
     queryFn: ({ signal }) => alertsApi.anomalies({ status: status || undefined, page, page_size: 20 }, signal), 
     placeholderData: keepPreviousData,
   });

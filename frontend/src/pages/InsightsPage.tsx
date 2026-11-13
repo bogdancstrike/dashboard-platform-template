@@ -27,6 +27,7 @@ import { relativeTime } from "@/lib/time";
 import "@/styles/insights.css";
 import "@/styles/knowledge.css";
 import { FEATURES, useFeature } from "@/settings/features";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -61,9 +62,9 @@ export default function InsightsPage() {
   const openId = params.get("insight");
   const showingDraft = params.get("draft") === "1" && draft !== null;
 
-  const list = useQuery({ queryKey: ["insights"], queryFn: ({ signal }) => insightsApi.list({}, signal) });
+  const list = useQuery({ queryKey: queryKeys.insights(), queryFn: ({ signal }) => insightsApi.list({}, signal) });
   const saved = useQuery({
-    queryKey: ["insight", openId],
+    queryKey: queryKeys.insight(openId),
     queryFn: ({ signal }) => insightsApi.get(openId!, false, signal),
     enabled: Boolean(openId),
   });
@@ -97,13 +98,13 @@ export default function InsightsPage() {
     },
     onError: failed,
   });
-  const invalidate = () => void queryClient.invalidateQueries({ queryKey: ["insights"] });
+  const invalidate = () => void queryClient.invalidateQueries({ queryKey: queryKeys.insights() });
   const save = useMutation({
     mutationFn: (current: InsightDraft) => insightsApi.save(current),
     onSuccess: (result) => {
       message.success("Insight saved");
       invalidate();
-      queryClient.setQueryData(["insight", result.id], result);
+      queryClient.setQueryData(queryKeys.insight(result.id), result);
       setDraft(null);
       setParams(new URLSearchParams({ insight: result.id }), { replace: true });
     },
@@ -113,7 +114,7 @@ export default function InsightsPage() {
     mutationFn: ({ id, input }: { id: string; input: Parameters<typeof insightsApi.update>[1] }) =>
       insightsApi.update(id, input),
     onSuccess: (result) => {
-      queryClient.setQueryData(["insight", result.id], result);
+      queryClient.setQueryData(queryKeys.insight(result.id), result);
       invalidate();
     },
     onError: (error: Error) => message.error(error.message),
@@ -121,7 +122,7 @@ export default function InsightsPage() {
   const refresh = useMutation({
     mutationFn: (id: string) => insightsApi.refresh(id),
     onSuccess: (result) => {
-      queryClient.setQueryData(["insight", result.id], result);
+      queryClient.setQueryData(queryKeys.insight(result.id), result);
       message.success("Numbers re-read");
       invalidate();
     },

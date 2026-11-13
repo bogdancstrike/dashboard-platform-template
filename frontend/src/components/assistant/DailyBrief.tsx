@@ -21,6 +21,7 @@ import { relativeTime } from "@/lib/time";
 import { AstIcon } from "./AstIcon";
 import "@/styles/assistant.css";
 import { FEATURES, withFeature } from "@/settings/features";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const URGENCY = { high: "Now", medium: "Today", low: "When you can" } as const;
 
@@ -31,10 +32,10 @@ function DailyBriefInner() {
   const [error, setError] = useState<string | null>(null);
   const enabled = can("ai.use");
   const brief = useQuery({
-    queryKey: ["assistant-brief"],
+    queryKey: queryKeys.assistantBrief(),
     queryFn: ({ signal }) => assistantApi.brief(signal),
     enabled,
-    staleTime: 5 * 60_000,
+    staleTime: STALE.long,
   });
   if (!enabled) return null;
 
@@ -43,7 +44,7 @@ function DailyBriefInner() {
     setError(null);
     try {
       const fresh = await assistantApi.refreshBrief();
-      queryClient.setQueryData<Brief>(["assistant-brief"], fresh);
+      queryClient.setQueryData<Brief>(queryKeys.assistantBrief(), fresh);
     } catch (failure) {
       setError(failure instanceof ApiError || failure instanceof Error ? failure.message : "Could not refresh the brief.");
     } finally {

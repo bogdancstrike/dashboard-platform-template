@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import type { AssistantSources } from "@/api/assistant";
 import { knowledgeApi } from "@/api/knowledge";
 import { EmptyState } from "@/components/EmptyState";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -44,12 +45,12 @@ export function SourcePicker({
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const list = useQuery({
-    queryKey: ["knowledge-collections"],
+    queryKey: queryKeys.knowledgeCollections(),
     queryFn: ({ signal }) => knowledgeApi.list({}, signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
   const files = useQuery({
-    queryKey: ["knowledge-collection", expanded],
+    queryKey: queryKeys.knowledgeCollection(expanded),
     queryFn: ({ signal }) => knowledgeApi.get(expanded!, signal),
     enabled: Boolean(expanded),
   });

@@ -36,6 +36,7 @@ import { useEffect, useState } from "react";
 import { ApiError } from "@/api/client";
 import { mailApi, type ComposeInput, type MailMessage, type MailThread } from "@/api/mail";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -110,9 +111,9 @@ export function Composer({
   const body = (Form.useWatch("body", form) as string | undefined) ?? "";
 
   const templates = useQuery({
-    queryKey: ["mail-templates"],
+    queryKey: queryKeys.mailTemplates(),
     queryFn: ({ signal }) => mailApi.templates(signal),
-    staleTime: 300_000,
+    staleTime: STALE.long,
     enabled: open,
   });
 

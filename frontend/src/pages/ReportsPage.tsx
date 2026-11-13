@@ -62,6 +62,7 @@ import { NxIcon } from "@/components/NxIcon";
 import { usePageCommands } from "@/commands/CommandContext";
 import { relativeTime } from "@/lib/time";
 import { FEATURES, useFeature } from "@/settings/features";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -87,7 +88,7 @@ export default function ReportsPage() {
   const dashboardsOn = useFeature(FEATURES.dashboardBuilder);
 
   const reports = useQuery({
-    queryKey: ["reports"],
+    queryKey: queryKeys.reports(),
     queryFn: ({ signal }) => reportsApi.list(signal),
   });
 
@@ -119,7 +120,7 @@ export default function ReportsPage() {
   }, [items, term, which]);
 
   const run = useQuery({
-    queryKey: ["report-run", openId],
+    queryKey: queryKeys.reportRun(openId),
     queryFn: ({ signal }) => reportsApi.run(openId, {}, signal),
     enabled: Boolean(openId),
     placeholderData: (previous) => previous,
@@ -140,7 +141,7 @@ export default function ReportsPage() {
     mutationFn: (id: string) => reportsApi.duplicate(id),
     onSuccess: (copy) => {
       message.success(`${copy.name} is yours to change`);
-      void queryClient.invalidateQueries({ queryKey: ["reports"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.reports() });
       choose(copy.id);
     },
     onError: (error) =>
@@ -151,7 +152,7 @@ export default function ReportsPage() {
     mutationFn: (id: string) => reportsApi.remove(id),
     onSuccess: () => {
       message.success("Report deleted");
-      void queryClient.invalidateQueries({ queryKey: ["reports"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.reports() });
       setParams(new URLSearchParams(), { replace: true });
     },
     onError: (error) =>
@@ -530,7 +531,7 @@ export default function ReportsPage() {
   async function rerun(period: string) {
     if (!open) return;
     const result = await reportsApi.run(open.id, { period });
-    queryClient.setQueryData(["report-run", open.id], result);
+    queryClient.setQueryData(queryKeys.reportRun(open.id), result);
   }
 }
 
