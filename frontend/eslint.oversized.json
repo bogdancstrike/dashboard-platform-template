@@ -1,7 +1,6 @@
 [
   "src/components/CommandPalette.tsx",
   "src/components/ProblemPage.tsx",
-  "src/components/assistant/AssistantChat.tsx",
   "src/components/automations/ActionListEditor.tsx",
   "src/components/automations/AutomationDrawer.tsx",
   "src/components/automations/AutomationWizard.tsx",
