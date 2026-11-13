@@ -68,3 +68,6 @@ tmp/
 
 # Claude Code session state and worktrees.
 .claude/
+
+# vitest coverage reports (npm run test:coverage)
+frontend/coverage/

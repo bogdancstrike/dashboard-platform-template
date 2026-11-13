@@ -56,7 +56,7 @@ export function WatchForm({
         description: watch.description ?? undefined,
         filter_values: Object.fromEntries(Object.entries(watch.filters).map(([k, v]) => [k, String(v)])),
         recipient_ids: watch.recipient_ids,
-      } as never);
+      });
     } else {
       form.resetFields();
       form.setFieldsValue({
@@ -203,6 +203,10 @@ export function WatchForm({
               <Alert type="warning" showIcon message={errorText(preview.error)} />
             ) : preview.data ? (
               <TrendChart label="Value" height={160} points={preview.data.points.map((p) => ({ ...p, marked: p.unusual }))} />
+            ) : !ready ? (
+              // Nothing is being fetched until a number is chosen, so a
+              // skeleton here would be a spinner that never ends.
+              <p className="nx-ra-sub" data-testid="watch-preview-idle">Choose the number to watch to see a preview.</p>
             ) : (
               <Skeleton active paragraph={{ rows: 3 }} title={false} />
             )}

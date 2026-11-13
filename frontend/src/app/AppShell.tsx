@@ -265,7 +265,7 @@ export function AppShell() {
     <nav aria-label="Breadcrumb" className="nx-crumbs">
       <ol>
         {trail.map((crumb, index) => (
-          <li key={crumb.key}>
+          <li key={`${index}:${crumb.key}`}>
             {index > 0 && <NxIcon name="chevronRight" size={12} stroke={2.4} className="nx-crumb-sep" />}
             <Link
               to={crumb.key}

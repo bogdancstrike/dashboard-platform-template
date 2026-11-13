@@ -202,9 +202,10 @@ function Wireframe({ layout }: { layout: PageLayout }) {
     >
       {layout.wireframe.map((row, index) => (
         <div className="nu-wire-row" key={index}>
-          {row.map((region) => (
+          {row.map((region, at) => (
             <span
-              key={region.label + String(region.span)}
+              // Two "Card"s of the same width in one row are legitimate.
+              key={`${at}:${region.label}`}
               className={`nu-wire-box${region.primary ? " is-primary" : ""}`}
               style={{
                 gridColumn: `span ${region.span}`,
