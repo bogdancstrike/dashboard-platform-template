@@ -6,7 +6,7 @@
  */
 import "@/styles/analytics.css";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Button, Drawer, Empty, Form, Input, InputNumber, Pagination, Segmented, Skeleton, Slider, Tooltip } from "antd";
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -61,6 +61,7 @@ export default function CustomerHealthPage() {
         { band: band || undefined, period, q: q || undefined, page, page_size: 12, sort, order: sort === "score" ? "asc" : "desc" },
         signal,
       ),
+    placeholderData: keepPreviousData,
   });
 
   const recompute = useMutation({
@@ -337,7 +338,7 @@ function ModelDrawer({ open, onClose }: { open: boolean; onClose: () => void }) 
           <div className="nx-ra-weights">
             {model.data?.signals.map((signal) => (
               <Form.Item key={signal.key} name={["weights", signal.key]} label={signal.label} style={{ marginBottom: 0 }}>
-                <Slider min={0} max={100} aria-label={`${signal.label} weight`} />
+                <Slider min={0} max={100} ariaLabelForHandle={`${signal.label} weight`} />
               </Form.Item>
             ))}
           </div>

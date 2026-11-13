@@ -21,6 +21,7 @@ import { insightsHandlers } from "@/test/handlers/insights";
 import { knowledgeHandlers } from "@/test/handlers/knowledge";
 import { decisionHandlers } from "@/test/handlers/decisions";
 import { planningHandlers } from "@/test/handlers/planning";
+import { recordsAnalyticsHandlers } from "@/test/handlers/recordsAnalytics";
 
 export const appMeta = {
   name: "Nucleus",
@@ -3883,6 +3884,7 @@ function recentList(): Record<string, unknown> {
 }
 
 export const handlers = [
+  ...recordsAnalyticsHandlers,
   ...collabHandlers,
   ...assistantHandlers,
   ...knowledgeHandlers,

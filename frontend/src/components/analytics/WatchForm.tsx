@@ -12,7 +12,7 @@ import { useEffect, useMemo } from "react";
 
 import { URL_OVERLAY } from "@/app/history";
 import { alertsApi, type MetricWatch, type WatchInput } from "@/api/recordsAnalytics";
-import { PeoplePicker } from "@/components/PeoplePicker";
+import { PeopleField } from "./parts";
 import { humanStatus } from "@/components/StatusTag";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { errorText } from "@/lib/errors";
@@ -205,7 +205,7 @@ export function WatchForm({
             <Checkbox.Group options={[{ value: "in_app", label: "In-app" }, { value: "email", label: "Email" }]} />
           </Form.Item>
           <Form.Item name="recipient_ids" label="Also tell" extra="You are always told about your own watches.">
-            <PeoplePicker value={values?.recipient_ids ?? []} onChange={(ids) => form.setFieldValue("recipient_ids", ids)} aria-label="Recipients" />
+            <PeopleField label="Recipients" />
           </Form.Item>
         </Form>
       )}

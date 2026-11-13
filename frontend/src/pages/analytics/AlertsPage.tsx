@@ -5,7 +5,7 @@
  */
 import "@/styles/analytics.css";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Button, Empty, Input, Pagination, Skeleton } from "antd";
 import dayjs from "dayjs";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -83,7 +83,8 @@ export default function AlertsPage() {
 
   const watches = useQuery({
     queryKey: ["alerts", "watches", q],
-    queryFn: ({ signal }) => alertsApi.watches({ q: q || undefined }, signal),
+    queryFn: ({ signal }) => alertsApi.watches({ q: q || undefined }, signal), 
+    placeholderData: keepPreviousData,
   });
   const runAll = useMutation({
     mutationFn: () =>
@@ -187,7 +188,8 @@ function History({ onOpen }: { onOpen: (anomaly: Anomaly) => void }) {
   const page = Number(params.get("page") ?? 1) || 1;
   const feed = useQuery({
     queryKey: ["alerts", "anomalies", status, page],
-    queryFn: ({ signal }) => alertsApi.anomalies({ status: status || undefined, page, page_size: 20 }, signal),
+    queryFn: ({ signal }) => alertsApi.anomalies({ status: status || undefined, page, page_size: 20 }, signal), 
+    placeholderData: keepPreviousData,
   });
   const set = (key: string, value: string | null) => {
     const next = new URLSearchParams(params);

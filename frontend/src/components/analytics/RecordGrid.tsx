@@ -468,6 +468,8 @@ export function RecordGrid({
                           onChange={(draft) => setEditing({ cell: editing.cell, draft })}
                           onCommit={(move) => commitEdit(move ? { row: r + move[0], col: c + move[1] } : undefined)}
                           onCancel={() => {
+                            // The blur that follows must not commit the draft.
+                            committed.current = editing;
                             setEditing(null);
                             sheet.current?.focus();
                           }}

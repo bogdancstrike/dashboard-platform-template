@@ -8,6 +8,7 @@ import "@/styles/analytics.css";
 import type { ReactNode } from "react";
 
 import { BAND_LABEL, type HealthBand } from "@/api/recordsAnalytics";
+import { PeoplePicker } from "@/components/PeoplePicker";
 
 export function BandPill({ band, score }: { band: HealthBand | null | undefined; score?: number | null }) {
   if (!band) return <span className="nx-ra-muted">No score</span>;
@@ -105,4 +106,26 @@ export function meterTone(score: number): "ok" | "warn" | "bad" {
   if (score >= 65) return "ok";
   if (score >= 40) return "warn";
   return "bad";
+}
+
+/** PeoplePicker as a Form control: tolerates an unset value, optionally keeps one. */
+export function PeopleField({
+  value,
+  onChange,
+  single = false,
+  label,
+}: {
+  value?: string[];
+  onChange?: (ids: string[]) => void;
+  single?: boolean;
+  label: string;
+}) {
+  return (
+    <PeoplePicker
+      value={value ?? []}
+      onChange={(ids) => onChange?.(single ? ids.slice(-1) : ids)}
+      multiple={!single}
+      aria-label={label}
+    />
+  );
 }

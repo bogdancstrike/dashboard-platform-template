@@ -10,7 +10,7 @@
  */
 import "@/styles/analytics.css";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Button, Empty, Input, Segmented, Skeleton, Table, Tooltip } from "antd";
 import dayjs from "dayjs";
 import { useMemo } from "react";
@@ -151,7 +151,7 @@ function PipelineBoard({
   const client = useQueryClient();
   const { message } = App.useApp();
   const key = ["contracts", "board", filters];
-  const board = useQuery({ queryKey: key, queryFn: ({ signal }) => contractsApi.board(filters, signal) });
+  const board = useQuery({ queryKey: key, queryFn: ({ signal }) => contractsApi.board(filters, signal), placeholderData: keepPreviousData });
   const columns = board.data?.columns ?? [];
   const byId = useMemo(() => new Map(columns.flatMap((c) => c.cards.map((card) => [card.id, card] as const))), [columns]);
 
@@ -279,7 +279,8 @@ function PipelineBoard({
 function ContractTable({ filters, onOpen }: { filters: Record<string, string | undefined>; onOpen: (id: string) => void }) {
   const list = useQuery({
     queryKey: ["contracts", "list", filters],
-    queryFn: ({ signal }) => contractsApi.list({ ...filters, page_size: 200 }, signal),
+    queryFn: ({ signal }) => contractsApi.list({ ...filters, page_size: 200 }, signal), 
+    placeholderData: keepPreviousData,
   });
   if (list.isError) return <FailureAlert error={list.error} onRetry={() => void list.refetch()} />;
   return (
@@ -370,7 +371,8 @@ function RenewalCalendar({ filters, onOpen }: { filters: Record<string, string |
   const month = params.get("month") ?? dayjs().format("YYYY-MM");
   const calendar = useQuery({
     queryKey: ["contracts", "calendar", month, filters],
-    queryFn: ({ signal }) => contractsApi.calendar({ ...filters, month }, signal),
+    queryFn: ({ signal }) => contractsApi.calendar({ ...filters, month }, signal), 
+    placeholderData: keepPreviousData,
   });
   const go = (delta: number) => {
     const next = new URLSearchParams(params);

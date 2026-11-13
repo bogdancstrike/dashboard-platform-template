@@ -19,7 +19,7 @@ import {
   type ContractInput,
   type ContractStage,
 } from "@/api/recordsAnalytics";
-import { PeoplePicker } from "@/components/PeoplePicker";
+import { PeopleField } from "@/components/analytics/parts";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { errorText } from "@/lib/errors";
 import { asText } from "@/lib/text";
@@ -190,13 +190,7 @@ export function ContractForm({
           <CustomerPicker initialLabel={contract?.customer.name} />
         </Form.Item>
         <Form.Item name="owner_id" label="Owner" extra="Defaults to you.">
-          <PeoplePicker
-            value={form.getFieldValue("owner_id") ?? []}
-            onChange={(ids) => form.setFieldValue("owner_id", ids.slice(-1))}
-            multiple={false}
-            known={contract?.owner.id ? [{ id: contract.owner.id, name: contract.owner.name ?? "", email: "" } as never] : []}
-            aria-label="Owner"
-          />
+          <PeopleField single label="Owner" />
         </Form.Item>
         <div style={{ display: "flex", gap: 12 }}>
           <Form.Item name="value" label="Value (ARR)" rules={[{ required: true, message: "Enter the annual value" }]} style={{ flex: 1 }}>
