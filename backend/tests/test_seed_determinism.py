@@ -7,6 +7,7 @@ from src.seed.identity import PERSONA_DOMAIN, PERSONAS
 from src.seed.world import SMALL
 from tests.seed_support import (  # noqa: F401
     SEED,
+    scratch_database,
     world,
 )
 

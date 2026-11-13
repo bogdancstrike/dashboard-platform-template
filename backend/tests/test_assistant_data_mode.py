@@ -13,6 +13,7 @@ from src.core.clock import now
 from tests.assistant_support import (  # noqa: F401
     BASE,
     _auth,
+    _fake_model,
     _principal,
     _script,
 )

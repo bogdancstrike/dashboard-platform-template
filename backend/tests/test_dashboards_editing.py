@@ -7,6 +7,10 @@ and removing a single widget, and every refusal that keeps a config honest.
 
 from __future__ import annotations
 
+from tests.dashboards_support import (  # noqa: F401
+    scratch,
+)
+
 from uuid import uuid4
 
 import pytest

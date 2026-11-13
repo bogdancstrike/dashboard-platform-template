@@ -14,6 +14,11 @@ finds work on its own output is a repair that never converges.
 
 from __future__ import annotations
 
+from tests.seed_support import (  # noqa: F401
+    scratch_database,
+    world,
+)
+
 import pytest
 
 from tests.patching import patch_package

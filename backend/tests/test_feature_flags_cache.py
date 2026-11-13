@@ -15,10 +15,11 @@ from src.core.feature_catalogue import (
 )
 from src.services.platform import settings as service
 from tests.feature_flags_support import (  # noqa: F401
-    _frontend_features,
     _Socket,
+    _frontend_features,
     _state,
     flags,
+    temp_flag,
 )
 from tests.patching import patch_package
 

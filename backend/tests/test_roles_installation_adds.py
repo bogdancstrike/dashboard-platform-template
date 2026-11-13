@@ -7,6 +7,7 @@ import pytest
 from tests.roles_support import (  # noqa: F401
     PREFIX,
     _authenticate,
+    restore_roles,
 )
 
 

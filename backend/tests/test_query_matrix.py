@@ -17,7 +17,9 @@ from tests.query_support import (  # noqa: F401
     ONE,
     SAMPLE,
     TWO,
+    filtered,
     matching,
+    probe,
     spec,
 )
 

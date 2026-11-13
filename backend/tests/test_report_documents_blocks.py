@@ -10,6 +10,10 @@ orientations.
 
 from __future__ import annotations
 
+from tests.report_documents_support import (  # noqa: F401
+    document,
+)
+
 import base64
 import io
 import zipfile

@@ -10,6 +10,8 @@ from sqlalchemy import func, select
 from tests.explorer_support import (  # noqa: F401
     PREFIX,
     _authenticate,
+    created_searches,
+    preserved_defaults,
 )
 
 

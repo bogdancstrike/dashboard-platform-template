@@ -16,6 +16,7 @@ from src.core.query import (
 )
 from tests.query_support import (  # noqa: F401
     filtered,
+    matching,
     probe,
     spec,
 )

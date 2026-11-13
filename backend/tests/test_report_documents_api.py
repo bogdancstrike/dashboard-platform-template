@@ -6,8 +6,8 @@ import pytest
 
 from src.core import documents
 from tests.report_documents_support import (  # noqa: F401
-    _PIXEL,
     DOCUMENTS,
+    _PIXEL,
     _authenticate,
     _erase,
     document,

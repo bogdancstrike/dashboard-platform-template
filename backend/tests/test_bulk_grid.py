@@ -10,6 +10,11 @@ The claims:
 
 from __future__ import annotations
 
+from tests.bulk_support import (  # noqa: F401
+    scratch,
+    untouched_dataset,
+)
+
 from uuid import uuid4
 
 import pytest

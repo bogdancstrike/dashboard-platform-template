@@ -7,6 +7,10 @@ and the answer cites file and page next to any records. Fake model only.
 
 from __future__ import annotations
 
+from tests.assistant_support import (  # noqa: F401
+    _fake_model,
+)
+
 import json
 
 import pytest

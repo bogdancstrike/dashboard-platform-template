@@ -7,6 +7,8 @@ import pytest
 from tests.explorer_support import (  # noqa: F401
     PREFIX,
     _authenticate,
+    created_searches,
+    preserved_defaults,
 )
 
 

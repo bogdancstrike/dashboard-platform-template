@@ -15,6 +15,7 @@ from tests.assistant_support import (  # noqa: F401
     BASE,
     PAGE,
     _auth,
+    _fake_model,
     _notify,
     _principal,
     _script,
