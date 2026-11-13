@@ -43,7 +43,7 @@ describe("sharing a dashboard", () => {
 
   it("keeps the named people when it stays shared", async () => {
     const user = userEvent.setup();
-    const { onSave } = open({ dashboard: { ...BOARD, scope: "PRIVATE" } as SavedDashboard });
+    const { onSave } = open({ dashboard: { ...BOARD, scope: "PRIVATE" } });
     await user.click(screen.getByText("Named people"));
     await user.click(screen.getByTestId("save-share"));
     expect(onSave).toHaveBeenCalledWith({ scope: "SHARED", member_ids: ["u-2"] });
@@ -65,7 +65,7 @@ describe("sharing a dashboard", () => {
     const writeText = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("denied"));
     vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
     open();
-    expect((screen.getByRole("textbox", { name: "Link to this dashboard" }) as HTMLInputElement).value).toContain(`dashboard=${BOARD.id}`);
+    expect(screen.getByRole("textbox", { name: "Link to this dashboard" })).toHaveValue(`${window.location.origin}/dashboards?dashboard=${BOARD.id}`);
     await user.click(screen.getByTestId("copy-link"));
     expect(await screen.findByText("Link copied")).toBeInTheDocument();
     await user.click(screen.getByTestId("copy-link"));
