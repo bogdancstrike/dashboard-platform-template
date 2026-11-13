@@ -126,12 +126,12 @@ describe("the menu and the header", () => {
     });
     renderShell("/dashboard");
     expect(await screen.findByText("Dashboard content")).toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByRole("menuitem", { name: /Kanban boards/ })).not.toBeInTheDocument());
-    expect(screen.queryByRole("menuitem", { name: /Time & timesheets/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: /^Chat/ })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("link", { name: /Kanban boards/ })).not.toBeInTheDocument());
+    expect(screen.queryByRole("link", { name: /Time & timesheets/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^Chat/ })).not.toBeInTheDocument();
     // The AI and Developers groups are empty, so their headings go too.
     expect(screen.queryByText("Developers")).not.toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: /Assistant/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Assistant/ })).not.toBeInTheDocument();
     expect(screen.queryByTestId("live-status")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Open the command palette/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Switch to (dark|light)/ })).not.toBeInTheDocument();

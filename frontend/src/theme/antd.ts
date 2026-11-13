@@ -169,6 +169,11 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
         // same white at 5.37:1 and reads as the same button.
         colorPrimary: dark ? DARK_ACCENT : ACCENT[500],
         primaryColor: dark ? DARK_ON_ACCENT : PAPER,
+        // Hover and press go *darker* in light (white text stays >= 4.5:1;
+        // AntD's derived #4b7be3 was 4.0:1) and lighter in dark, where the
+        // label is dark ink on lavender.
+        colorPrimaryHover: dark ? "#d6ccfe" : ACCENT[600],
+        colorPrimaryActive: dark ? "#b3a1fb" : ACCENT[700],
         primaryShadow: dark ? "0 10px 22px rgba(196, 181, 253, 0.28)" : "0 10px 22px rgba(36, 87, 214, 0.3)",
         defaultShadow: "none",
         dangerShadow: "none",

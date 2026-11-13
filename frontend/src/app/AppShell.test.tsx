@@ -195,7 +195,7 @@ describe("authenticated application shell", () => {
 
     // Not in the menu…
     await waitFor(() =>
-      expect(screen.queryByRole("menuitem", { name: /Kanban boards/ })).not.toBeInTheDocument(),
+      expect(screen.queryByRole("link", { name: /Kanban boards/ })).not.toBeInTheDocument(),
     );
     // …and not reachable by address either, or the menu is one somebody
     // routes around. Said as "switched off" rather than "forbidden": a

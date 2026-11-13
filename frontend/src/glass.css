@@ -747,3 +747,16 @@ html { zoom: var(--nu-zoom, 1); }
   .ant-notification-bottomLeft { bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important; }
   .ant-notification .ant-notification-notice-wrapper { max-width: calc(100vw - 28px); }
 }
+
+/* The page list scrolls inside its own box and never runs under the help pill. */
+.nx-side-menu { overflow: hidden; }
+/* Room at the end of every page for the floating assistant button, so the
+   last row and any send button can always be scrolled clear of it. */
+.nx-app--pc .nx-scroll, .nx-app--tablet .nx-scroll { padding-bottom: 88px; }
+.nx-app--phone .nx-scroll { padding-bottom: 150px; }
+/* Phones: at most two notices at once, so a burst of live toasts never
+   covers the screen. */
+@media (max-width: 767px) {
+  .ant-notification .ant-notification-notice-wrapper:nth-last-child(n + 3) { display: none; }
+  .ant-notification-bottomRight { bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important; }
+}

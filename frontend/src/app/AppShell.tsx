@@ -331,11 +331,8 @@ export function AppShell() {
         const closed = showLabels && closedGroups.includes(group.key);
         return (
           <div key={group.key} className="nx-group" role="group" aria-label={group.label}>
-            {/* A menuitem rather than a button: inside role="menu" only menu
-                roles are allowed, and axe failed every page on it. */}
             <button
               type="button"
-              role="menuitem"
               className="nx-grouphead"
               aria-expanded={!closed}
               onClick={() => toggleGroup(group.key)}
@@ -356,7 +353,6 @@ export function AppShell() {
                     <Link
                       key={item.key}
                       to={item.key}
-                      role="menuitem"
                       aria-current={on ? "page" : undefined}
                       aria-label={folded ? item.label : undefined}
                       className={`nx-navitem${on ? " is-on" : ""}${item.badge === "failed_jobs" ? " is-bad" : ""}`}
@@ -443,7 +439,7 @@ export function AppShell() {
               has: drawn early, the groups re-flowed as permissions and
               feature flags arrived — a 0.11 layout shift on every page load
               (audit A). Invisible content that appears is not a shift. */}
-          <div role="menu" aria-label="Pages" className={`nx-side-menu${auth.profile ? "" : " is-pending"}`}>
+          <div className={`nx-side-menu${auth.profile ? "" : " is-pending"}`}>
             {navList}
           </div>
           <PageTour variant="side" />

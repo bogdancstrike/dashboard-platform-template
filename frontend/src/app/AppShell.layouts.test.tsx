@@ -165,8 +165,8 @@ describe("on a desktop", () => {
     atWidth(1400);
     const user = userEvent.setup();
     renderShell("/dashboard");
-    const menu = await screen.findByRole("menu", { name: "Pages" });
-    const [head] = within(menu).getAllByRole("menuitem").filter((item) => item.hasAttribute("aria-expanded"));
+    const menu = await screen.findByRole("navigation", { name: "Main" });
+    const [head] = within(menu).getAllByRole("button").filter((item) => item.hasAttribute("aria-expanded") && item.classList.contains("nx-grouphead"));
     expect(head).toHaveAttribute("aria-expanded", "true");
     await user.click(head!);
     expect(head).toHaveAttribute("aria-expanded", "false");
@@ -179,7 +179,7 @@ describe("on a desktop", () => {
     atWidth(1400);
     window.localStorage.setItem("nu.nav.closed", JSON.stringify(["overview", 7]));
     renderShell("/dashboard");
-    await screen.findByRole("menu", { name: "Pages" });
+    await screen.findByRole("navigation", { name: "Main" });
     window.localStorage.setItem("nu.nav.closed", "{not json");
   });
 
