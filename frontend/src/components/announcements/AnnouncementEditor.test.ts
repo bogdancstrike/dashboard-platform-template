@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { describe, expect, it } from "vitest";
 
-import { windowProblem } from "@/components/announcements/AnnouncementEditor";
+import { windowProblem } from "@/components/announcements/editorValues";
 
 /**
  * A notice's window, checked while somebody is still typing (§17).
