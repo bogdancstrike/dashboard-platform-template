@@ -56,19 +56,26 @@ def test_retiring_worker_closes_its_live_sockets_with_1012(monkeypatch):
     sockets = [_Socket(), _Socket(), _Socket(broken=True)]
     monkeypatch.setattr(live, "_subscribers", {"u1": {sockets[0], sockets[2]}, "u2": {sockets[1]}})
     worker = _Worker()
+    # The watcher is a greenlet polling `worker.alive`. Run it ourselves
+    # rather than racing its 0.5 s poll against wall-clock sleeps, which
+    # failed now and then in a loaded full run: first while the worker is
+    # alive (it must close nothing and keep waiting), then once it retires.
+    watchers = []
+    monkeypatch.setattr(gevent, "spawn", lambda fn, *a, **k: watchers.append(fn))
     _gunicorn_conf().post_worker_init(worker)
+    assert len(watchers) == 1
 
-    gevent.sleep(0.6)
-    assert all(s.closed_with is None for s in sockets), "nothing is closed while the worker is alive"
+    polls = {"n": 0}
 
-    worker.alive = False
-    # The watcher polls every 0.5 s; under a loaded suite its turn can come
-    # late, so wait for the outcome (bounded) rather than a fixed 0.8 s —
-    # which failed now and then in a full run.
-    for _ in range(40):
-        if all(s.event.is_set() for s in sockets):
-            break
-        gevent.sleep(0.1)
+    def sleep(_seconds):
+        polls["n"] += 1
+        assert all(s.closed_with is None for s in sockets), "nothing is closed while the worker is alive"
+        if polls["n"] == 3:
+            worker.alive = False
+
+    monkeypatch.setattr(gevent, "sleep", sleep)
+    watchers[0]()
+    assert polls["n"] == 3
     assert sockets[0].closed_with == (1012, "server restarting")
     assert sockets[1].closed_with == (1012, "server restarting")
     # Each waiting receive() is woken rather than left to its 25 s heartbeat.
