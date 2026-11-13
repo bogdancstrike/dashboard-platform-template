@@ -61,9 +61,6 @@
 .nx-dc-body.is-editing { gap: 12px; }
 .nx-dc-block { min-width: 0; }
 .nx-dc-h.ant-typography { margin: 14px 0 0; letter-spacing: -.015em; font-weight: 700; }
-.nx-dc-h1.ant-typography { font-size: 24px; }
-.nx-dc-h2.ant-typography { font-size: 19px; }
-.nx-dc-h3.ant-typography { font-size: 16px; }
 .nx-dc-text { font-size: 15px; }
 .nx-dc-empty-line { height: 6px; }
 .nx-dc-quote { margin: 0; padding: 4px 0 4px 16px; border-left: 3px solid var(--nu-accent); color: var(--nu-text-secondary); font-style: normal; }
@@ -87,7 +84,6 @@
 .nx-dc-figure img { border-radius: 16px; max-width: 100%; }
 .nx-dc-figure figcaption { font-size: 12.5px; color: var(--nu-text-tertiary); margin-top: 4px; }
 .nx-dc-data { padding: 12px; border-radius: 18px; border: 1px solid var(--nu-glass-border); min-width: 0; }
-.nx-dc-caption { font-size: 12.5px; font-weight: 600; color: var(--nu-text-secondary); margin-bottom: 6px; }
 .nx-dc-record {
   display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; max-width: 100%;
   background: rgba(var(--nu-ink-rgb), .05); color: var(--nu-text); font-weight: 600; font-size: 13.5px;

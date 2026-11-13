@@ -413,8 +413,6 @@ body.nx-dragging, body.nx-dragging * { cursor: grabbing !important; user-select:
 .nx-rec-facts.ant-descriptions .ant-descriptions-row + .ant-descriptions-row .ant-descriptions-item { border-top: 1px solid rgba(var(--nu-ink-rgb), 0.07); padding-top: 10px; }
 .nx-rec-facts.ant-descriptions .ant-descriptions-item-label::after { display: none; }
 .nx-rec-facts.ant-descriptions .ant-descriptions-item-content { justify-content: flex-end; font-weight: 600; text-align: right; }
-[data-testid="task-checklist"] .nu-checklist { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-direction: column; }
-[data-testid="task-checklist"] .nu-checklist > li { display: flex; align-items: center; gap: 10px; min-height: 46px; border-bottom: 1px solid rgba(var(--nu-ink-rgb), 0.06); }
 [data-testid="task-checklist"] .nu-checklist-done { text-decoration: line-through; color: var(--nu-text-tertiary); }
 [data-testid="task-checklist"] .ant-progress-inner { height: 8px !important; }
 [data-testid="task-checklist"] .ant-progress-bg { height: 8px !important; }

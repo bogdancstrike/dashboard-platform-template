@@ -24,11 +24,6 @@
   box-shadow: var(--nu-glass-shadow);
 }
 .nx-td-chip b { font-weight: 600; color: var(--nu-text-secondary); font-variant-numeric: tabular-nums; }
-.nx-td-chip .nx-td-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--nu-text-tertiary); }
-.nx-td-dot--acc { background: var(--nu-accent) !important; }
-.nx-td-dot--bad { background: var(--nu-bad) !important; }
-.nx-td-dot--warn { background: var(--nu-warn) !important; }
-.nx-td-dot--ok { background: var(--nu-ok) !important; }
 
 .nx-td-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .nx-td-bar > .nx-td-grow { flex: 1 1 220px; min-width: 0; }
@@ -45,7 +40,6 @@
 .nx-td-kpi span { font-size: 12.5px; color: var(--nu-text-secondary); }
 .nx-app--phone .nx-td-kpis, .nx-app--tablet .nx-td-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
-.nx-td-muted { color: var(--nu-text-secondary); }
 .nx-td-faint { color: var(--nu-text-tertiary); font-size: 12.5px; }
 .nx-td-num { font-variant-numeric: tabular-nums; }
 .nx-td-mono { font-family: var(--nu-font-mono); font-size: 12.5px; }
@@ -237,7 +231,6 @@
 
 .nx-td-clock { display: flex; flex-direction: column; gap: 10px; }
 .nx-td-clock-row { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
-.nx-td-clock-big { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .nx-td-meter { height: 8px; border-radius: 999px; background: rgba(var(--nu-ink-rgb), 0.07); overflow: hidden; position: relative; }
 .nx-td-meter i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--nu-ok); }
 .nx-td-meter.is-warn i { background: var(--nu-warn); }

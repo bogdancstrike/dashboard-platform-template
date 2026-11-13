@@ -320,13 +320,10 @@ a:hover > .nu-tag-chip { border-color: var(--nu-accent); }
 .nu-profile-digests { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
 .nu-profile-digest { margin-bottom: 4px !important; }
 .nu-profile-access { display: flex; flex-direction: column; gap: 12px; }
-.nu-profile-groups, .nu-profile-trail { margin: 0; padding: 0; list-style: none; }
-.nu-profile-groups > li + li,
-.nu-profile-trail > li + li {
+.nu-profile-groups { margin: 0; padding: 0; list-style: none; }
+.nu-profile-groups > li + li {
   margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--nu-border-subtle);
 }
-.nu-profile-trail > li { display: flex; justify-content: space-between; gap: 12px; }
-.nu-profile-when { flex: 0 0 auto; font-size: 12px; }
 
 @media (max-width: 900px) {
   .nu-profile-charts, .nu-profile-digests { grid-template-columns: 1fr; }
@@ -403,17 +400,6 @@ a:hover > .nu-tag-chip { border-color: var(--nu-accent); }
    Data Explorer (§4–§6, §51)
    ═══════════════════════════════════════════════════════════════════════ */
 
-.nu-explorer-controls { margin-bottom: 12px; border-color: var(--nu-border); }
-.nu-explorer-toolbar {
-  display: grid;
-  grid-template-columns: minmax(190px, 0.5fr) minmax(260px, 1.5fr) auto auto auto;
-  gap: 8px;
-  align-items: center;
-}
-.nu-resource-select { width: 100%; }
-.nu-explorer-results { border-color: var(--nu-border); }
-.nu-explorer-results > .ant-card-body { padding: 0; }
-.nu-explorer-results .ant-alert { margin: 12px; }
 .nu-explorer-table .ant-table-cell { white-space: nowrap; }
 /* The mode decides how the fields lay out; the row around them is always the
    fields plus the preview action, so that action sits in one place. */
@@ -501,13 +487,6 @@ a:hover > .nu-tag-chip { border-color: var(--nu-accent); }
   flex-wrap: wrap; padding: 12px 0 4px;
   background: var(--nu-surface); border-top: 1px solid var(--nu-border);
 }
-.nu-advanced-count .ant-statistic-title { margin-bottom: 0; font-size: 12px; }
-.nu-query-inspector { background: var(--nu-bg); }
-.nu-query-inspector pre {
-  margin: 0 0 8px; padding: 12px; overflow: auto; border-radius: 6px;
-  background: var(--nu-surface); border: 1px solid var(--nu-border-subtle);
-  color: var(--nu-text); font: 12px/1.55 var(--nu-font-mono); white-space: pre-wrap;
-}
 .nu-saved-card { width: 100%; border-color: var(--nu-border); }
 .nu-saved-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
 .nu-link-button {
@@ -572,9 +551,6 @@ mark.nu-mark {
 .nu-preview-title { font-weight: 650; }
 .nu-preview .ant-descriptions-item-label { width: 38%; }
 
-/* Global search: a ranked list read top to bottom, so each hit is one row
-   with its evidence beneath it and the whole row is the target. */
-.nu-global-search-box { border-color: var(--nu-border); }
 .nu-global-results { display: flex; flex-direction: column; gap: 12px; }
 .nu-global-group { border-color: var(--nu-border); }
 .nu-global-group > .ant-card-body { padding: 4px 0; }
@@ -587,8 +563,6 @@ mark.nu-mark {
 .nu-global-hit:hover, .nu-global-hit.is-active {
   background: var(--nu-accent-soft); border-inline-start-color: var(--nu-accent);
 }
-.nu-global-hit-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
-.nu-global-hit-snippet { display: flex; gap: 8px; align-items: baseline; margin-top: 4px; }
 .nu-global-hit-go {
   position: absolute; inset-inline-end: 14px; top: 50%; transform: translateY(-50%);
   color: var(--nu-text-tertiary); opacity: 0;
@@ -659,15 +633,7 @@ mark.nu-mark {
 .nu-danger-link:hover:not(:disabled) { color: var(--nu-danger); text-decoration: underline; }
 .nu-danger-link:disabled { color: var(--nu-text-tertiary); cursor: not-allowed; }
 
-@media (max-width: 1100px) {
-  .nu-explorer-toolbar { grid-template-columns: minmax(180px, 0.6fr) minmax(220px, 1.4fr) auto auto; }
-  .nu-explorer-toolbar > :last-child { grid-column: auto; }
-}
-
 @media (max-width: 767px) {
-  .nu-explorer-toolbar { display: flex; flex-wrap: wrap; }
-  .nu-explorer-toolbar > .ant-input-affix-wrapper { flex: 1 1 100%; order: -1; }
-  .nu-resource-select { flex: 1 1 180px; }
   .nu-column-picker { grid-template-columns: 1fr; }
 }
 
@@ -706,8 +672,6 @@ mark.nu-mark {
   background: rgba(2, 6, 23, 0.4);
   font-family: var(--nu-font-mono); font-size: 10.5px; color: rgba(226, 232, 240, 0.6);
 }
-
-.nu-header-spacer { min-width: 0; }
 
 /* ── the dialog ─────────────────────────────────────────────────────── */
 [cmdk-overlay] { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.45); z-index: 1200; }
@@ -793,8 +757,6 @@ mark.nu-mark {
 .nu-board-choice > span:last-child { display: grid; gap: 2px; }
 .nu-board-choice-name { display: inline-flex; align-items: center; gap: 6px; }
 
-.nu-nav-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-
 .nu-bell-panel {
   width: min(380px, calc(100vw - 24px));
   background: var(--nu-surface-raised);
@@ -822,7 +784,6 @@ mark.nu-mark {
 .nu-bell-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
 .nu-bell-text .ant-typography { font-size: 12.5px; margin: 0; }
 .nu-bell-text .ant-typography:first-child { font-size: 13px; }
-.nu-bell-empty { padding: 20px 12px; }
 .nu-bell-foot { padding: 6px 8px; border-top: 1px solid var(--nu-border-subtle); text-align: center; }
 
 /* ── The notification centre (§17) ───────────────────────────────────────
@@ -929,29 +890,6 @@ mark.nu-mark {
 /* ── The connection map (§50) ─────────────────────────────────────────────
    A deterministic layout, so two screenshots of the same data are the same
    picture and "the node on the left" keeps meaning something. */
-
-.nu-schema-graph svg { width: 100%; height: auto; display: block; }
-.nu-schema-edge {
-  fill: none;
-  stroke: var(--nu-border);
-  opacity: 0.55;
-  cursor: pointer;
-  transition: stroke 140ms ease-out, opacity 140ms ease-out;
-}
-.nu-schema-edge:hover,
-.nu-schema-edge--active { stroke: var(--nu-accent); opacity: 1; }
-.nu-schema-node { cursor: pointer; }
-.nu-schema-node circle { transition: filter 140ms ease-out; }
-.nu-schema-node:hover circle,
-.nu-schema-node--active circle { filter: brightness(1.12); }
-.nu-schema-node:focus-visible circle { outline: 2px solid var(--nu-accent); }
-.nu-schema-node text {
-  font-size: 12px;
-  fill: var(--nu-text);
-  pointer-events: none;
-}
-.nu-schema-node .nu-schema-count { font-size: 11px; fill: var(--nu-text-tertiary); }
-.nu-schema-legend { display: block; margin-top: 8px; font-size: 12px; }
 
 .nu-hub .ant-card-body { padding: 10px 12px; }
 .nu-row-selected > td { background: var(--nu-accent-soft) !important; }
@@ -1094,14 +1032,6 @@ mark.nu-mark {
 }
 /* Where the card will land. A gap the size of a card, not a line between two
    of them: a line promises an ordering this board does not have. */
-.nu-lane-slot {
-  display: flex; align-items: center; justify-content: center;
-  min-height: 56px; border-radius: var(--nu-radius-card);
-  border: 1px dashed var(--nu-accent);
-  background: color-mix(in srgb, var(--nu-accent) 8%, transparent);
-  color: var(--nu-accent-ink);
-  font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
-}
 /* What the drop will do, in words rather than in a colour somebody has to have
    learned (§34). */
 .nu-lane-intent {
@@ -1134,14 +1064,6 @@ mark.nu-mark {
 .nu-task-meta { font-size: 11px; }
 .nu-task-meta .ant-typography { font-size: 11px; }
 
-/* The task work page: a checklist and a conversation (§18, §36). */
-.nu-checklist { list-style: none; margin: 0 0 8px; padding: 0; }
-.nu-checklist > li {
-  display: flex; align-items: center; gap: 6px;
-  padding: 3px 0; border-bottom: 1px solid var(--nu-border-subtle);
-}
-.nu-checklist > li:last-child { border-bottom: none; }
-.nu-checklist .ant-checkbox-wrapper { flex: 1; align-items: center; }
 .nu-checklist-done { text-decoration: line-through; color: var(--nu-text-tertiary); }
 
 .nu-comments { list-style: none; margin: 0 0 12px; padding: 0; }
@@ -1209,8 +1131,6 @@ mark.nu-mark {
 .nu-split.nu-fill .nu-split-detail { min-height: 0; }
 /* The queue scrolls inside its pane. The cap is for the pages that do not
    fill the window; a filling one gets its height from the grid instead. */
-.nu-queue { list-style: none; margin: 0; padding: 0; max-height: 66vh; overflow-y: auto; }
-.nu-fill .nu-queue { max-height: none; flex: 1 1 auto; min-height: 0; }
 .nu-queue-row {
   display: flex; gap: 10px; width: 100%; text-align: start;
   padding: 9px 8px; border: none; background: transparent; cursor: pointer;
@@ -1219,13 +1139,9 @@ mark.nu-mark {
 .nu-queue-row:hover { background: var(--nu-hover); }
 .nu-queue-row.is-open { background: var(--nu-accent-soft); box-shadow: inset 2px 0 0 var(--nu-accent); }
 .nu-queue-row:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: -2px; }
-.nu-queue-severity { width: 4px; border-radius: 2px; flex: none; }
 .nu-queue-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
 .nu-queue-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.nu-queue-breach { color: var(--nu-danger); }
-.nu-queue-meta { display: flex; align-items: center; gap: 6px; font-size: 11.5px; }
 .nu-queue-pager { display: flex; justify-content: center; padding: 8px 0 2px; }
-.nu-ticket-body { white-space: pre-wrap; margin-bottom: 0 !important; }
 
 /* Devices — the fleet monitor. */
 .nu-fleet {
@@ -1349,10 +1265,6 @@ mark.nu-mark {
 .nu-gallery-canvas {
   display: flex; align-items: center; justify-content: center;
   height: 104px; overflow: hidden; border-radius: var(--nu-radius-control);
-}
-.nu-gallery-missing {
-  padding: 0 8px; text-align: center; font-size: 11.5px; line-height: 1.4;
-  color: var(--nu-text-secondary);
 }
 .nu-gallery-label {
   font-size: 12px; font-weight: 600; padding: 0 2px;
@@ -1731,7 +1643,6 @@ mark.nu-mark {
 .nu-waitcard:hover,
 .nu-waitcard-icon,
 .nu-door:hover,
-.nu-adminmap-card:hover,
 .nu-tmpl-preview-row.is-active,
 mark.nu-mark {
   --nu-text-tertiary: var(--nu-text-secondary);
@@ -1916,14 +1827,6 @@ p a:not(.ant-btn),
 /* Where the card will drop, on a board where position is a real instruction.
    A card-sized gap rather than a line: a two-pixel rule between two bordered
    tiles is a target nobody can see. */
-.nu-lane-col-slot {
-  display: flex; align-items: center; justify-content: center;
-  min-height: 52px; border-radius: var(--nu-radius-card);
-  border: 1px dashed var(--nu-accent);
-  background: color-mix(in srgb, var(--nu-accent) 8%, transparent);
-  color: var(--nu-accent-ink);
-  font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
-}
 .nu-card.is-carried { opacity: 0.4; }
 .nu-card[draggable="true"] { cursor: grab; }
 .nu-card[draggable="true"]:active { cursor: grabbing; }
@@ -2043,23 +1946,6 @@ p a:not(.ant-btn),
    a hundred-character line is hard to read whatever the window is doing — and
    the width it does not use carries the notice's own facts rather than being
    left blank. Half of every card was empty before this. */
-.nu-announce-grid { display: grid; grid-template-columns: minmax(0, 1fr) 244px; gap: 24px; }
-.nu-announce-main { min-width: 0; }
-.nu-announce-facts {
-  display: flex; flex-direction: column; gap: 5px;
-  padding-inline-start: 18px; border-inline-start: 1px solid var(--nu-border-subtle);
-  font-size: 12px;
-}
-/* Label and value on one line. Stacked, four facts made the rail eight lines
-   tall and the *rail* then set the card's height — so the space under the
-   prose was the new empty space. One line each and they balance. */
-.nu-announce-fact {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
-}
-.nu-announce-fact-label {
-  flex: none; font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase;
-}
-.nu-announce-fact-value { font-size: 12px; text-align: end; min-width: 0; }
 /* A notice's title in the authoring table. The pin must not shrink and the
    title must, or `Text ellipsis` measures against its own content, never
    engages, and the cell clips the longest notice mid-word. */
@@ -2068,15 +1954,7 @@ p a:not(.ant-btn),
 .nu-announce-cell > .ant-typography { flex: 1 1 auto; min-width: 0; margin-bottom: 0; }
 .nu-announce-author { display: inline-flex; align-items: center; gap: 6px; }
 .nu-announce-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-@media (max-width: 900px) {
-  /* Stacked, and the rail becomes a row of facts under the prose. */
-  .nu-announce-grid { grid-template-columns: 1fr; gap: 12px; }
-  .nu-announce-facts {
-    flex-direction: row; flex-wrap: wrap; gap: 12px;
-    padding-inline-start: 0; padding-top: 10px;
-    border-inline-start: 0; border-top: 1px solid var(--nu-border-subtle);
-  }
-}
+
 .nu-announce { border-inline-start: 3px solid var(--nu-border-strong); }
 /* Severity on the leading edge rather than as a fill: the same device
    `StatusTag` uses, and it clears 3:1 as a border where a tinted card would
@@ -2251,43 +2129,6 @@ p a:not(.ant-btn),
   display: flex; align-items: center; justify-content: space-between;
   gap: 8px; padding-top: 6px; border-top: 1px solid var(--nu-border-subtle);
   font-size: 12px;
-}
-
-/* The collapsed sidebar: icons and nothing else.
-   AntD sizes a collapsed menu's padding from its own `collapsedWidth` and
-   derives the item inset from it, so on a narrower rail the icon lands
-   off-centre and the (invisible) label shoves it further. Re-centre on the
-   rail instead, and let a group heading become a rule rather than a truncated
-   word — "OV…" costs a row of the rail to say nothing. */
-.nu-sider.ant-layout-sider-collapsed .ant-menu-inline-collapsed {
-  width: 100%;
-}
-.nu-sider.ant-layout-sider-collapsed .ant-menu-inline-collapsed > .ant-menu-item,
-.nu-sider.ant-layout-sider-collapsed
-  .ant-menu-inline-collapsed
-  > .ant-menu-submenu
-  > .ant-menu-submenu-title {
-  padding-inline: calc(50% - 16px) !important;
-  justify-content: center !important;
-}
-.nu-sider.ant-layout-sider-collapsed .ant-menu-inline-collapsed .ant-menu-title-content {
-  flex: 0 0 0 !important;
-  width: 0 !important;
-  min-width: 0 !important;
-  margin-inline-start: 0 !important;
-}
-.nu-sider.ant-layout-sider-collapsed .ant-menu-inline-collapsed .anticon {
-  margin: 0 !important;
-  font-size: 17px;
-}
-/* An empty group heading is a separator, not a blank row. */
-.nu-sider.ant-layout-sider-collapsed .ant-menu-item-group-title {
-  height: 1px;
-  padding: 0;
-  margin: 6px 12px;
-  overflow: hidden;
-  background: var(--nu-border);
-  opacity: 0.5;
 }
 
 /* ── Automations (§49) ──────────────────────────────────────────────── */
@@ -2859,25 +2700,6 @@ p a:not(.ant-btn),
 .nu-home-feed-when { flex: none; font-size: 11.5px; }
 .nu-home-notice-body { margin: 4px 0 0 !important; font-size: 12.5px; }
 
-/* ── Administration (§11, §27) ──────────────────────────────────────── */
-
-/* The admin index is a map: cards wide enough for a sentence, sized to their
-   own content, and never four narrow columns of prose. */
-.nu-adminmap {
-  display: grid; gap: 12px; align-items: start;
-  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
-}
-.nu-adminmap-card {
-  display: block; padding: 14px 16px;
-  border: 1px solid var(--nu-border); border-radius: 10px;
-  background: var(--nu-surface); color: var(--nu-text);
-  transition: border-color 120ms ease, background-color 120ms ease;
-}
-.nu-adminmap-card:hover { border-color: var(--nu-accent); background: var(--nu-accent-soft); }
-.nu-adminmap-icon { font-size: 20px; color: var(--nu-accent-ink); line-height: 1; }
-.nu-adminmap-title { margin: 0 !important; }
-.nu-adminmap-what { display: block; font-size: 12.5px; margin-top: 2px; }
-
 /* One setting a line: the label and its control across from each other, the
    description under the label. A category of eight settings is then eight
    lines rather than a stack of cards — this page is scanned for the one thing
@@ -3273,10 +3095,6 @@ p a:not(.ant-btn),
 .nu-fav > * + * { margin-top: 12px; }
 .nu-fav-what { display: flex; flex-direction: column; gap: 0; min-width: 0; }
 .nu-fav-link { font-weight: 500; }
-.nu-fav-kind {
-  font-size: 11px; text-transform: none;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
 .nu-fav-capacity,
 .nu-fav-note { display: block; font-size: 11.5px; }
 .nu-fav-capacity { margin-bottom: 8px; }
@@ -3290,35 +3108,8 @@ p a:not(.ant-btn),
    Documentation pages, so the layout gives the *explanation* as much room as
    the thing being explained: a component demonstrated without saying which of
    its states are decisions teaches nothing worth knowing. */
-.nu-show > * + *,
 .nu-tmpl > * + * { margin-top: 12px; }
-.nu-show-gap,
 .nu-tmpl-note { margin-bottom: 4px; }
-.nu-show-gap-note { font-size: 12px; margin-bottom: 10px !important; }
-.nu-show-section { margin: 18px 0 6px !important; font-size: 15px !important; }
-.nu-show-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; }
-.nu-show-what { font-size: 12px; line-height: 1.5; max-width: 78ch; }
-/* The stage is inset and neutral, so the component's own surface is what a
-   reader compares rather than the card it sits on. */
-.nu-show-stage {
-  padding: 14px; border-radius: 6px; background: var(--nu-bg);
-  border: 1px solid var(--nu-border-subtle);
-}
-.nu-show-grid {
-  display: grid; gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
-}
-.nu-show-pair {
-  display: grid; gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
-}
-.nu-show-inset {
-  padding: 10px 12px; border-radius: 6px; background: var(--nu-surface);
-  border: 1px solid var(--nu-border-subtle);
-}
-.nu-show-lines { display: flex; flex-direction: column; gap: 6px; }
-.nu-show-path { font-family: var(--nu-font-mono); font-size: 11.5px; }
-.nu-show-note { margin-top: 16px; }
 
 .nu-tmpl-grid {
   display: grid; gap: 12px;
@@ -3379,7 +3170,6 @@ p a:not(.ant-btn),
 .nu-tmpl-preview-detail .ant-typography { font-size: 12px; }
 .nu-tmpl-flows .ant-typography { font-size: 12px; line-height: 1.5; }
 .nu-tmpl-flows .nu-tmpl-link { font-family: inherit; font-size: 13px; }
-
 
 /* ── the report document composer (§28) ─────────────────────────────────
    Three columns: what the document is made of, the document, and the settings
@@ -3549,7 +3339,6 @@ p a:not(.ant-btn),
 .nu-health-name { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
 .nu-health-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
 .nu-health-category { font-size: 11px; text-transform: capitalize; }
-.nu-health-when { font-size: 11.5px; }
 
 /* The status band: one segment per reading, under the latency line. Status
    drawn as a second *line* would put two unrelated scales on one axis; drawn
@@ -3647,25 +3436,6 @@ p a:not(.ant-btn),
 }
 .nu-quiet-link:hover { color: var(--nu-accent); }
 .nu-quiet-link:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; border-radius: 4px; }
-
-/* The button vocabulary, shown as four roles rather than described (§60).
-   A gallery of parts without this is one somebody reads, picks whatever looks
-   right from, and the product gains a fifth kind of grey. */
-.nu-show-roles {
-  display: grid; gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
-}
-.nu-show-role {
-  display: flex; flex-direction: column; gap: 3px;
-  padding: 12px; border-radius: var(--nu-radius-card);
-  border: 1px solid var(--nu-border-subtle); background: var(--nu-bg);
-}
-.nu-show-role-stage {
-  display: flex; align-items: center; justify-content: center;
-  min-height: 44px; margin-bottom: 4px;
-}
-.nu-show-role .ant-typography:last-child { font-size: 12px; }
-.nu-show-rule { margin: 12px 0 0 !important; font-size: 12.5px; }
 
 /* A chart in a widget fills what the card leaves it (audit A): the scroll
    region is a column, and the fitting box takes all of it. */

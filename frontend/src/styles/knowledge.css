@@ -198,13 +198,6 @@
   color: var(--nu-accent);
   flex: none;
 }
-.nx-kn-upload {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 160px;
-  gap: 12px;
-  align-items: center;
-  padding: 0 8px;
-}
 .nx-kn-doclist {
   list-style: none;
   margin: 0;
@@ -256,9 +249,6 @@
 }
 .is-phone .nx-kn-doc-actions {
   grid-column: 2 / -1;
-}
-.is-phone .nx-kn-upload {
-  grid-template-columns: minmax(0, 1fr);
 }
 
 /* ── asking ──────────────────────────────────────────────────────────── */

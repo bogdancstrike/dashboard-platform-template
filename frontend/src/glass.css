@@ -481,7 +481,7 @@ body:has(.nx-ai-fab) .nx-app--phone .nx-scroll { padding-bottom: 144px; }
 /* A badge beside a title ("2 to answer", a count, a key) is not display text:
    the title's tight tracking is computed in px and inherited, which squeezed
    "2 to answer" into "2toanswer" (audit A). */
-.nu-page-title .ant-tag, .nu-page-title .ant-badge, .nu-page-title small, .nu-page-title .nu-page-badge { letter-spacing: normal; }
+.nu-page-title .ant-tag, .nu-page-title .ant-badge, .nu-page-title small { letter-spacing: normal; }
 .nu-page-subtitle { margin-top: 0; font-size: 14px; color: var(--nu-text-tertiary); max-width: 90ch; }
 .nu-page-actions.ant-space { gap: 8px !important; }
 .nu-page-actions .ant-btn { height: 44px; padding-inline: 18px; font-size: 14px; }

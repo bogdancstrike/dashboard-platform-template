@@ -19,10 +19,7 @@
 .nx-ra-muted { color: var(--nu-text-tertiary); font-size: 12px; }
 .nx-ra-grid { display: grid; gap: 14px; }
 .nx-ra-grid--2 { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
-.nx-ra-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.nx-app--tablet .nx-ra-grid--2, .nx-app--phone .nx-ra-grid--2,
-.nx-app--phone .nx-ra-grid--3 { grid-template-columns: minmax(0, 1fr); }
-.nx-app--tablet .nx-ra-grid--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.nx-app--tablet .nx-ra-grid--2, .nx-app--phone .nx-ra-grid--2 { grid-template-columns: minmax(0, 1fr); }
 .nx-ra-stack { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 
 .nx-ra-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
