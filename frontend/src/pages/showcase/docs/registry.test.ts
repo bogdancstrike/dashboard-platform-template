@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -43,7 +43,9 @@ describe("the component documentation", () => {
   it("documents only props the component's source actually has", () => {
     for (const entry of ENTRIES) {
       if (!entry.component || !entry.api) continue;
-      const source = readFileSync(join(process.cwd(), "src/components", `${entry.component}.tsx`), "utf8");
+      // A component is `X.tsx`, or — once split — the folder `X/` whose index is what callers import.
+      const base = join(process.cwd(), "src/components", entry.component);
+      const source = readFileSync(existsSync(`${base}.tsx`) ? `${base}.tsx` : join(base, "index.tsx"), "utf8");
       for (const prop of entry.api) {
         // `size` on PersonAvatar comes from AntD's Avatar, which it spreads.
         if (entry.component === "PersonAvatar" && prop.name === "size") continue;

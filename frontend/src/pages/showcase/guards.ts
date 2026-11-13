@@ -62,7 +62,7 @@ export const LAYERS: readonly GuardedLayer[] = [
     because: "Times, participants, a recurrence rule and a reminder: several choices that are slow to make twice.",
   },
   {
-    module: "components/automations/AutomationWizard.tsx",
+    module: "components/automations/AutomationWizard/index.tsx",
     what: "automation",
     guarded: true,
     because: "A condition tree and a list of actions, built over several steps. Nothing is written until the last one.",
@@ -86,7 +86,7 @@ export const LAYERS: readonly GuardedLayer[] = [
     because: "The same four answers, for a chart or a report. The question itself is in the URL, but the naming is not.",
   },
   {
-    module: "components/roles/NewRoleModal.tsx",
+    module: "components/roles/NewRoleModal/index.tsx",
     what: "role",
     guarded: true,
     because: "A name and the code derived from it, which the reader may have edited away from the derivation.",

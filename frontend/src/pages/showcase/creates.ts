@@ -156,7 +156,7 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
     shape: "modal",
     where: "admin/roles",
     testId: "new-role",
-    opens: "components/roles/NewRoleModal.tsx",
+    opens: "components/roles/NewRoleModal/index.tsx",
     because: "The name and the code, which is derived from it. The permissions are chosen afterwards against the matrix, which is the page underneath.",
   },
   {
@@ -213,7 +213,7 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
     shape: "drawer",
     where: "workflows",
     testId: "new-automation",
-    opens: "components/automations/AutomationDrawer.tsx",
+    opens: "components/automations/AutomationDrawer/index.tsx",
     because:
       "A condition tree and a list of actions. It is the largest thing this template puts in a drawer, and it stays one because the rule being written is *about* the list of rules behind it.",
   },
