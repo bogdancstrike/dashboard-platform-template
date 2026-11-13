@@ -5,7 +5,7 @@ import { Route, Routes } from "react-router-dom";
 
 import InsightsPage from "@/pages/InsightsPage";
 import { CommandProvider } from "@/commands/CommandContext";
-import { chartOption } from "@/components/insights/InsightView";
+import { chartOption } from "@/components/insights/nodes/chartOption";
 import { InsightWidgetBody } from "@/components/insights/InsightWidgetBody";
 import { formatValue, parseBlocks, parseNode, type ChartNode } from "@/components/insights/spec";
 import { BOUND_BLOCKS, insightsFlags, insightsState, resetInsights } from "@/test/handlers/insights";

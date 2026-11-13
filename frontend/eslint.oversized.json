@@ -24,7 +24,6 @@
   "src/components/explorer/SavedSearchForm.tsx",
   "src/components/explorer/conditionTree.ts",
   "src/components/graph/ForceGraph.tsx",
-  "src/components/insights/InsightView.tsx",
   "src/components/kanban/CardDrawer.tsx",
   "src/components/kanban/LaneColumn.tsx",
   "src/components/kanban/useBoardDrag.tsx",
