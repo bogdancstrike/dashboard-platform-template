@@ -4,20 +4,20 @@
  * documents, and its full history — versions that can be compared and
  * restored like any record's (§17).
  */
-import "@/styles/analytics.css";
+import "@/styles/records-analytics.css";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Button, Modal, Progress, Skeleton, Tabs, Upload } from "antd";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { useSmartBack } from "@/app/history";
-import { useUrlOverlay } from "@/app/useUrlOverlay";
+import { useUrlOverlay } from "@/hooks/useUrlOverlay";
 import { useAuth } from "@/auth/AuthProvider";
 import { filesApi, putBytes } from "@/api/files";
 import { contractsApi, money, STAGE_LABEL, STAGE_ORDER, type ContractStage } from "@/api/recordsAnalytics";
-import { ContractForm } from "@/components/analytics/ContractForm";
-import { BandPill } from "@/components/analytics/parts";
-import { VersionHistory } from "@/components/analytics/VersionHistory";
+import { ContractForm } from "@/components/recordsAnalytics/ContractForm";
+import { BandPill } from "@/components/recordsAnalytics/parts";
+import { VersionHistory } from "@/components/recordsAnalytics/VersionHistory";
 import { FailureAlert } from "@/components/FailureAlert";
 import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";

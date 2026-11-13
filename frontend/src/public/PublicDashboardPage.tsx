@@ -8,7 +8,7 @@
  * the server which origin framed it, and the server refuses origins the owner
  * did not allow.
  */
-import "@/styles/analytics.css";
+import "@/styles/records-analytics.css";
 
 import { Button, Input, Result, Skeleton, Table } from "antd";
 import { useCallback, useEffect, useState } from "react";

@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 import { Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { embedSnippet, PublicLinksDrawer, PublishButton, shareUrl } from "@/components/analytics/PublicLinksDrawer";
+import { embedSnippet, PublicLinksDrawer, PublishButton, shareUrl } from "@/components/recordsAnalytics/PublicLinksDrawer";
 import { embeddingOrigin, PublicDashboardPage } from "@/public/PublicDashboardPage";
 import { sharedDashboardToken } from "@/public/publicDashboardEntry";
 import { currentUser } from "@/test/handlers";

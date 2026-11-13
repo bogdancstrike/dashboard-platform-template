@@ -2,7 +2,7 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ResponsiveTable } from "@/pages/admin/ResponsiveTable";
+import { ResponsiveTable } from "@/components/listing/ResponsiveTable";
 import { renderWithProviders } from "@/test/render";
 import { restoreViewport, viewport } from "@/test/viewport";
 

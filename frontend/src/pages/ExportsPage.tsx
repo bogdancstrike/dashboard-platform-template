@@ -82,7 +82,7 @@ import {
 } from "@/api/exports";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusTag } from "@/components/StatusTag";
-import { ResponsiveTable } from "@/pages/admin/ResponsiveTable";
+import { ResponsiveTable } from "@/components/listing/ResponsiveTable";
 import { usePageCommands } from "@/commands/CommandContext";
 import { errorText } from "@/lib/errors";
 import { formatNumber } from "@/lib/formats";

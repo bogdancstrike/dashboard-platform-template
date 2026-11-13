@@ -15,7 +15,7 @@
  *   answer marks what was applied and puts the server's reason on any cell
  *   it refused.
  */
-import "@/styles/analytics.css";
+import "@/styles/records-analytics.css";
 
 import { App, Button, Tooltip } from "antd";
 import {

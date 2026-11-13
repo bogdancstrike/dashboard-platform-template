@@ -48,7 +48,7 @@ import { useParams } from "react-router-dom";
 import { useSmartBack } from "@/app/history";
 
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
-import { VersionHistoryButton } from "@/components/analytics/VersionHistory";
+import { VersionHistoryButton } from "@/components/recordsAnalytics/VersionHistory";
 import { CommentThread } from "@/components/comments/CommentThread";
 import { PageHeader } from "@/components/PageHeader";
 import { RecordTimeCard, RecordTimerButton } from "@/components/decisions/RecordTimer";

@@ -4,7 +4,7 @@
  * evaluate now, snooze, mute, edit, delete. `?anomaly=<id>` selects an alert
  * and shows the window it was judged against.
  */
-import "@/styles/analytics.css";
+import "@/styles/records-analytics.css";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Button, Dropdown, Modal, Skeleton } from "antd";
@@ -12,11 +12,11 @@ import dayjs from "dayjs";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { useSmartBack } from "@/app/history";
-import { useUrlOverlay } from "@/app/useUrlOverlay";
+import { useUrlOverlay } from "@/hooks/useUrlOverlay";
 import { usePageCommands } from "@/commands/CommandContext";
 import { alertsApi } from "@/api/recordsAnalytics";
-import { TrendChart } from "@/components/analytics/TrendChart";
-import { WatchForm } from "@/components/analytics/WatchForm";
+import { TrendChart } from "@/components/recordsAnalytics/TrendChart";
+import { WatchForm } from "@/components/recordsAnalytics/WatchForm";
 import { FailureAlert } from "@/components/FailureAlert";
 import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";

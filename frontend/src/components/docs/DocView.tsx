@@ -40,7 +40,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { docsApi, type DocBlock, type DocBlockKind, type DocPage } from "@/api/docs";
-import { useUrlOverlay } from "@/app/useUrlOverlay";
+import { useUrlOverlay } from "@/hooks/useUrlOverlay";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { MarkdownLite } from "@/components/collab/MarkdownLite";
 import { initials } from "@/components/collab/MessageItem";

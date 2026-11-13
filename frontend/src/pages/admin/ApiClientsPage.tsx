@@ -67,9 +67,9 @@ import {
   type Minted,
 } from "@/api/apiClients";
 import { PageHeader } from "@/components/PageHeader";
-import { ResponsiveTable } from "@/pages/admin/ResponsiveTable";
+import { ResponsiveTable } from "@/components/listing/ResponsiveTable";
 import { URL_OVERLAY } from "@/app/history";
-import { useUrlOverlay } from "@/app/useUrlOverlay";
+import { useUrlOverlay } from "@/hooks/useUrlOverlay";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";

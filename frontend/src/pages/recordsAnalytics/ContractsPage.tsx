@@ -8,7 +8,7 @@
  * end dates and notice deadlines. Contracts whose customer's health is at
  * risk or critical carry the flag everywhere.
  */
-import "@/styles/analytics.css";
+import "@/styles/records-analytics.css";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Button, Input, Segmented, Skeleton, Table, Tooltip } from "antd";
@@ -16,7 +16,7 @@ import dayjs from "dayjs";
 import { useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { useUrlOverlay } from "@/app/useUrlOverlay";
+import { useUrlOverlay } from "@/hooks/useUrlOverlay";
 import { usePageCommands } from "@/commands/CommandContext";
 import {
   contractsApi,
@@ -27,8 +27,8 @@ import {
   type ContractCard,
   type ContractStage,
 } from "@/api/recordsAnalytics";
-import { ContractForm } from "@/components/analytics/ContractForm";
-import { BandPill, Kpi } from "@/components/analytics/parts";
+import { ContractForm } from "@/components/recordsAnalytics/ContractForm";
+import { BandPill, Kpi } from "@/components/recordsAnalytics/parts";
 import { DropGap, useBoardDrag } from "@/components/kanban/useBoardDrag";
 import { FailureAlert } from "@/components/FailureAlert";
 import { NxIcon } from "@/components/NxIcon";

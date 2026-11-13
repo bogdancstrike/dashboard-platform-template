@@ -7,11 +7,11 @@ const ReportBuilderPage = lazyPage(() => import("@/pages/ReportBuilderPage"));
 const ChartBuilderPage = lazyPage(() => import("@/pages/ChartBuilderPage"));
 const MapsPage = lazyPage(() => import("@/pages/MapsPage"));
 // Records & analytics (§12, §13, §22).
-const CustomerHealthPage = lazyPage(() => import("@/pages/analytics/CustomerHealthPage"));
-const ContractsPage = lazyPage(() => import("@/pages/analytics/ContractsPage"));
-const ContractDetailPage = lazyPage(() => import("@/pages/analytics/ContractDetailPage"));
-const AlertsPage = lazyPage(() => import("@/pages/analytics/AlertsPage"));
-const WatchDetailPage = lazyPage(() => import("@/pages/analytics/WatchDetailPage"));
+const CustomerHealthPage = lazyPage(() => import("@/pages/recordsAnalytics/CustomerHealthPage"));
+const ContractsPage = lazyPage(() => import("@/pages/recordsAnalytics/ContractsPage"));
+const ContractDetailPage = lazyPage(() => import("@/pages/recordsAnalytics/ContractDetailPage"));
+const AlertsPage = lazyPage(() => import("@/pages/recordsAnalytics/AlertsPage"));
+const WatchDetailPage = lazyPage(() => import("@/pages/recordsAnalytics/WatchDetailPage"));
 
 /** Analyse: the builders, and the records-analytics pages (§12, §13, §22). */
 export const analyseRoutes = (

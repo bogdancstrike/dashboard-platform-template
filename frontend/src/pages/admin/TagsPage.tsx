@@ -55,7 +55,7 @@ import type { Tag, TagCategory, TagVocabulary } from "@/api/tags";
 import { tagsApi } from "@/api/tags";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
-import { ResponsiveTable } from "@/pages/admin/ResponsiveTable";
+import { ResponsiveTable } from "@/components/listing/ResponsiveTable";
 import { usePageCommands } from "@/commands/CommandContext";
 import { SEMANTIC } from "@/theme/tokens";
 import { formatNumber } from "@/lib/formats";

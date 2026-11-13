@@ -50,7 +50,7 @@ import { useSmartBack } from "@/app/history";
 import { explorerApi } from "@/api/explorer";
 import { recordsApi } from "@/api/records";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
-import { VersionHistoryButton } from "@/components/analytics/VersionHistory";
+import { VersionHistoryButton } from "@/components/recordsAnalytics/VersionHistory";
 import { CommentThread } from "@/components/comments/CommentThread";
 import { PageHeader } from "@/components/PageHeader";
 import { TagPicker } from "@/components/records/TagPicker";

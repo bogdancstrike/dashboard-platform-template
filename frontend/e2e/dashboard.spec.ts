@@ -2,7 +2,7 @@
 import { expect, test } from "@playwright/test";
 
 import { CHART_KEYS } from "../src/api/dashboard";
-import { HIDDEN_ON_DASHBOARD } from "../src/pages/dashboardLayout";
+import { HIDDEN_ON_DASHBOARD } from "../src/lib/dashboardLayout";
 import { apiAs, endpoint } from "./api";
 import { signIn } from "./auth";
 

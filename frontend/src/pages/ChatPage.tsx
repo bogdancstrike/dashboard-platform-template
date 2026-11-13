@@ -31,7 +31,7 @@ import { ApiError } from "@/api/client";
 import { CHAT_RESOURCE, chatApi, type ChannelDetail } from "@/api/chat";
 import type { RecordComment } from "@/api/comments";
 import { URL_OVERLAY, useSmartBack } from "@/app/history";
-import { useUrlOverlay } from "@/app/useUrlOverlay";
+import { useUrlOverlay } from "@/hooks/useUrlOverlay";
 import { usePageCommands } from "@/commands/CommandContext";
 import { PageHeader } from "@/components/PageHeader";
 import { PersonAvatar } from "@/components/PersonAvatar";

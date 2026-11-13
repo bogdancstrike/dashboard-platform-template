@@ -44,7 +44,7 @@ import { Stage } from "./docs/DemoFrame";
 import { TEMPLATES, TEMPLATE_SOURCE } from "./docs/sources";
 import { STARTERS, type StarterTemplate } from "./docs/templateRegistry";
 import { URL_OVERLAY } from "@/app/history";
-import { useUrlOverlay } from "@/app/useUrlOverlay";
+import { useUrlOverlay } from "@/hooks/useUrlOverlay";
 import { StatusTag } from "@/components/StatusTag";
 import {
   CREATE_FLOWS,

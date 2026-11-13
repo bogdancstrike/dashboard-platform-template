@@ -354,7 +354,7 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
     shape: "drawer",
     where: "alerts",
     testId: "watch-new",
-    opens: "components/analytics/WatchForm.tsx",
+    opens: "components/recordsAnalytics/WatchForm.tsx",
     because:
       "A metric, a threshold, a window and who to tell: enough fields to need a form, and the list of existing watches stays visible beside it to compare against.",
   },
@@ -363,7 +363,7 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
     shape: "drawer",
     where: "contracts",
     testId: "contract-new",
-    opens: "components/analytics/ContractForm.tsx",
+    opens: "components/recordsAnalytics/ContractForm.tsx",
     because:
       "Customer, value, dates and renewal terms are one object's fields, and the pipeline behind the drawer is the context they are entered against.",
   },

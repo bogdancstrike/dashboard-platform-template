@@ -27,7 +27,7 @@ import { actionColor, humaniseAction, resultColor } from "@/components/audit/voc
 import { EmptyState, NoResults } from "@/components/EmptyState";
 import { ExportButton } from "@/components/ExportButton";
 import { PageHeader } from "@/components/PageHeader";
-import { ResponsiveTable } from "@/pages/admin/ResponsiveTable";
+import { ResponsiveTable } from "@/components/listing/ResponsiveTable";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";

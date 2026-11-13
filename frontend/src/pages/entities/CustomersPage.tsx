@@ -17,7 +17,7 @@ import { Avatar, Card, Pagination, Progress, Skeleton, Space, Tag, Tooltip, Typo
 import { MailOutlined, ShopOutlined } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
 
-import { BandPill } from "@/components/analytics/parts";
+import { BandPill } from "@/components/recordsAnalytics/parts";
 import type { HealthBand } from "@/api/recordsAnalytics";
 import { humanStatus, StatusTag } from "@/components/StatusTag";
 import {

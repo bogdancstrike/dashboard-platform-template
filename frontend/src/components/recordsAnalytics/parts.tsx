@@ -3,7 +3,7 @@
  * movement figure, a score ring, a KPI tile and an SVG sparkline. Pure and
  * presentational — every number they show comes from the API.
  */
-import "@/styles/analytics.css";
+import "@/styles/records-analytics.css";
 
 import type { ReactNode } from "react";
 

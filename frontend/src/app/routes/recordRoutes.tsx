@@ -2,7 +2,7 @@ import { Route } from "react-router-dom";
 
 import { lazyPage } from "./lazyPage";
 
-const RecordGridPage = lazyPage(() => import("@/pages/analytics/RecordGridPage"));
+const RecordGridPage = lazyPage(() => import("@/pages/recordsAnalytics/RecordGridPage"));
 const EntityDetailPage = lazyPage(() => import("@/pages/EntityDetailPage"));
 const ComparePage = lazyPage(() => import("@/pages/ComparePage"));
 

@@ -4,7 +4,7 @@
  * who dropped a band lately — and the model behind it all, which an
  * administrator tunes here.
  */
-import "@/styles/analytics.css";
+import "@/styles/records-analytics.css";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Button, Drawer, Form, Input, InputNumber, Pagination, Segmented, Skeleton, Slider, Tooltip } from "antd";
@@ -12,7 +12,7 @@ import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { URL_OVERLAY } from "@/app/history";
-import { useUrlOverlay } from "@/app/useUrlOverlay";
+import { useUrlOverlay } from "@/hooks/useUrlOverlay";
 import { usePageCommands } from "@/commands/CommandContext";
 import {
   BAND_LABEL,
@@ -22,8 +22,8 @@ import {
   type HealthModel,
   type PortfolioEntry,
 } from "@/api/recordsAnalytics";
-import { BandPill, Delta, Kpi } from "@/components/analytics/parts";
-import { TrendChart } from "@/components/analytics/TrendChart";
+import { BandPill, Delta, Kpi } from "@/components/recordsAnalytics/parts";
+import { TrendChart } from "@/components/recordsAnalytics/TrendChart";
 import { FailureAlert } from "@/components/FailureAlert";
 import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";

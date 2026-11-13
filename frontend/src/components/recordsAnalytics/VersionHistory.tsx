@@ -10,7 +10,7 @@
  * Used as a panel on the generic record page's History tab, and as a drawer
  * (URL key `?versions=1`) from the task, project, ticket and contract pages.
  */
-import "@/styles/analytics.css";
+import "@/styles/records-analytics.css";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Button, Checkbox, DatePicker, Drawer, Grid, Skeleton, Tooltip } from "antd";
@@ -18,7 +18,7 @@ import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 
 import { URL_OVERLAY } from "@/app/history";
-import { useUrlOverlay } from "@/app/useUrlOverlay";
+import { useUrlOverlay } from "@/hooks/useUrlOverlay";
 import { versionsApi, type RecordVersion, type VersionField, type VersionHistory as History } from "@/api/recordsAnalytics";
 import { FailureAlert } from "@/components/FailureAlert";
 import { humanStatus } from "@/components/StatusTag";

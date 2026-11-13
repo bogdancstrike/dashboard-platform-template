@@ -27,7 +27,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useNavigate } from "react-router-dom";
 
 import { usePageCommands } from "@/commands/CommandContext";
-import { usePhoneList } from "@/pages/admin/ResponsiveTable";
+import { usePhoneList } from "@/components/listing/ResponsiveTable";
 import { queryKeys } from "@/lib/queryKeys";
 import { apiErrorDetails } from "@/components/feedback/apiErrorDetails";
 

@@ -41,7 +41,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import type { UserPreferences } from "@/api/me";
 import { PageHeader } from "@/components/PageHeader";
-import { SettingsNav } from "@/pages/SettingsNav";
+import { SettingsNav } from "@/components/layout/SettingsNav";
 import { usePageCommands } from "@/commands/CommandContext";
 import { NOTIFICATION_CATEGORIES } from "@/api/notifications";
 import { chime } from "@/lib/chime";

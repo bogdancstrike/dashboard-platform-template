@@ -2,7 +2,7 @@
  * The contract form (§13), for a new contract and for an edit. A drawer whose
  * open state the page keeps in the address (`?contract=new`, `?edit=1`).
  */
-import "@/styles/analytics.css";
+import "@/styles/records-analytics.css";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Button, DatePicker, Drawer, Form, Input, InputNumber, Select, Switch } from "antd";
@@ -19,7 +19,7 @@ import {
   type ContractInput,
   type ContractStage,
 } from "@/api/recordsAnalytics";
-import { PeopleField } from "@/components/analytics/parts";
+import { PeopleField } from "@/components/recordsAnalytics/parts";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { errorToast } from "@/lib/errors";

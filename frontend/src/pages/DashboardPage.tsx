@@ -37,7 +37,7 @@ import { withOrigin } from "@/entities/drilldown";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { StatCard } from "@/components/StatCard";
-import { HIDDEN_ON_DASHBOARD, balancedColumns, packSpans } from "@/pages/dashboardLayout";
+import { HIDDEN_ON_DASHBOARD, balancedColumns, packSpans } from "@/lib/dashboardLayout";
 import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;

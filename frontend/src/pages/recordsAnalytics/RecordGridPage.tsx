@@ -6,7 +6,7 @@
  * shown locked. The rows are the list's own query — the same filters arrive
  * in the address — up to the bulk API's five-hundred-row cap.
  */
-import "@/styles/analytics.css";
+import "@/styles/records-analytics.css";
 
 import { useQuery } from "@tanstack/react-query";
 import { Alert, App, Button, Skeleton } from "antd";
@@ -16,7 +16,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSmartBack } from "@/app/history";
 import { usePageCommands } from "@/commands/CommandContext";
 import { explorerApi, type ExplorerResource } from "@/api/explorer";
-import { RecordGrid, type GridRow } from "@/components/analytics/RecordGrid";
+import { RecordGrid, type GridRow } from "@/components/recordsAnalytics/RecordGrid";
 import { FailureAlert } from "@/components/FailureAlert";
 import { PageHeader } from "@/components/PageHeader";
 import type { GridColumn, GridKind } from "@/lib/gridSheet";

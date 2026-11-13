@@ -4,7 +4,7 @@
  * chart underneath previews what the detector would flag in the last thirty
  * buckets with these settings, before anything is saved.
  */
-import "@/styles/analytics.css";
+import "@/styles/records-analytics.css";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, App, Button, Checkbox, Drawer, Form, Input, InputNumber, Segmented, Select, Skeleton } from "antd";

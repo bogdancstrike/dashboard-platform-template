@@ -67,7 +67,7 @@ import {
   type SignInSession,
 } from "@/api/security";
 import { PageHeader } from "@/components/PageHeader";
-import { SettingsNav } from "@/pages/SettingsNav";
+import { SettingsNav } from "@/components/layout/SettingsNav";
 import { usePageCommands } from "@/commands/CommandContext";
 import { errorText } from "@/lib/errors";
 import { formatNumber } from "@/lib/formats";

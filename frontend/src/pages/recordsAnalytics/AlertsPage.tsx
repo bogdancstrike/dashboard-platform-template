@@ -3,19 +3,19 @@
  * and status — and the history of everything they flagged.
  * `?tab=history` switches to the feed; `?watch=new` opens the editor.
  */
-import "@/styles/analytics.css";
+import "@/styles/records-analytics.css";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Button, Input, Pagination, Skeleton } from "antd";
 import dayjs from "dayjs";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { useUrlOverlay } from "@/app/useUrlOverlay";
+import { useUrlOverlay } from "@/hooks/useUrlOverlay";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useAuth } from "@/auth/AuthProvider";
 import { alertsApi, type Anomaly, type MetricWatch } from "@/api/recordsAnalytics";
-import { Kpi, Sparkline } from "@/components/analytics/parts";
-import { WatchForm } from "@/components/analytics/WatchForm";
+import { Kpi, Sparkline } from "@/components/recordsAnalytics/parts";
+import { WatchForm } from "@/components/recordsAnalytics/WatchForm";
 import { FailureAlert } from "@/components/FailureAlert";
 import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";

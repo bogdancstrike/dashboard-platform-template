@@ -3,9 +3,9 @@ import { http, HttpResponse } from "msw";
 import { Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { CustomerHealthPanel } from "@/components/analytics/CustomerHealthPanel";
-import { displayValue, VersionHistory, VersionHistoryButton } from "@/components/analytics/VersionHistory";
-import { BandPill, Delta, Sparkline } from "@/components/analytics/parts";
+import { CustomerHealthPanel } from "@/components/recordsAnalytics/CustomerHealthPanel";
+import { displayValue, VersionHistory, VersionHistoryButton } from "@/components/recordsAnalytics/VersionHistory";
+import { BandPill, Delta, Sparkline } from "@/components/recordsAnalytics/parts";
 import { ra, resetRecordsAnalytics } from "@/test/handlers/recordsAnalytics";
 import { renderWithProviders } from "@/test/render";
 import { server } from "@/test/server";

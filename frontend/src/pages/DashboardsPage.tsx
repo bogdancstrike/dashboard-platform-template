@@ -82,7 +82,7 @@ import { CreateDashboardWizard } from "@/components/dashboards/CreateDashboardWi
 import { WidgetModal } from "@/components/dashboards/WidgetModal";
 import { DashboardCard } from "@/components/dashboards/DashboardCard";
 import { ShareDrawer } from "@/components/dashboards/ShareDrawer";
-import { PublishButton } from "@/components/analytics/PublicLinksDrawer";
+import { PublishButton } from "@/components/recordsAnalytics/PublicLinksDrawer";
 import { WidgetCard, type WidgetMoves } from "@/components/dashboards/WidgetCard";
 import {
   WidgetGrid,

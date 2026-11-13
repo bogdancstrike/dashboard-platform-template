@@ -13,7 +13,7 @@ import {
   slaApi, target, type BusinessCalendar, type Escalation, type Priority, type SlaCatalogue, type SlaPolicy,
 } from "@/api/sla";
 import { URL_OVERLAY } from "@/app/history";
-import { useUrlOverlay } from "@/app/useUrlOverlay";
+import { useUrlOverlay } from "@/hooks/useUrlOverlay";
 import { usePageCommands } from "@/commands/CommandContext";
 import { TdIcon } from "@/components/icons/TdIcon";
 import { NxIcon } from "@/components/NxIcon";
