@@ -1,7 +1,4 @@
 [
-  "src/api/docs.ts",
-  "src/api/planning.ts",
-  "src/api/recordsAnalytics.ts",
   "src/components/CommandPalette.tsx",
   "src/components/ProblemPage.tsx",
   "src/components/announcements/AnnouncementEditor.tsx",
