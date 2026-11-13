@@ -418,7 +418,7 @@ export default function FilesPage() {
         }
       }
     };
-    walk(nodes as Array<{ key?: unknown; children?: unknown[] }>);
+    walk(nodes);
     return out;
   }, [nodes]);
   /** `null` until the reader folds something: everything open, as before. */
