@@ -75,7 +75,7 @@ export const UNGUARDED_DIALOGS: readonly GuardedLayer[] = [
     because: "The repeat dialog is one rule picked from presets with a preview of the next dates; the subtask and checklist inputs save on Enter, so nothing waits in memory.",
   },
   {
-    module: "pages/DocsPage.tsx",
+    module: "pages/DocsPage/NewSpaceModal.tsx",
     what: "space",
     guarded: false,
     because: "A new space is a name, a key and who can see it — and the key is derived from the name, so closing loses at most one line of typing.",

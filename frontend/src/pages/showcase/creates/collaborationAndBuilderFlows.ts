@@ -79,7 +79,7 @@ export const COLLABORATION_AND_BUILDER_FLOWS: readonly CreateFlow[] = [
     shape: "modal",
     where: "docs",
     testId: "new-space",
-    opens: "pages/DocsPage.tsx",
+    opens: "pages/DocsPage/NewSpaceModal.tsx",
     because:
       "A name, a key and who can see it. Short enough for a dialog, and the tree it adds to is the page the dialog closes onto.",
   },
