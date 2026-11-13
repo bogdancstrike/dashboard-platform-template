@@ -673,3 +673,21 @@ body.nx-dragging, body.nx-dragging * { cursor: grabbing !important; user-select:
 .nx-cal-side:has(.nx-cal-mini-nav) .nx-cal-side-head { width: auto; max-width: calc(100% - 84px); }
 .nx-cal-side:has(.nx-cal-mini-nav) .nx-cal-side-head h2 { flex: 0 1 auto; }
 .nx-cal-side .nx-cal-mini-nav { margin-right: 0; }
+
+/* Tablet: the aside drops under the calendar, so the layout is two rows in a
+   pane-filling box — and the calendar's row was squeezed to whatever the
+   aside left, one week tall (audit A). Below desktop the layout takes its
+   content's height and the page scrolls instead. */
+.nx-app--tablet .nx-cal-layout.nu-fill { flex: none !important; height: auto !important; min-height: 0; }
+.nx-app--tablet .nx-cal-layout > .ant-card { flex: none; }
+.nx-app--tablet .nx-cal-layout > .ant-card > .ant-card-body { flex: none; overflow: visible; }
+
+/* The icon strip (1101–1280px): its headings showed as "FOLD" and "LABE…"
+   because the glass rules above out-rank index.css's hiding (audit A). In a
+   56px rail the icons are the whole story. */
+@media (min-width: 1101px) and (max-width: 1280px) {
+  .nu-mail .nu-mailrail-headrow,
+  .nu-mail .nu-mailrail-heading,
+  .nu-mail .nu-mailrail-heading.ant-typography { display: none !important; }
+  .nu-mail .nu-mailrail-row { padding: 0 !important; justify-content: center; }
+}
