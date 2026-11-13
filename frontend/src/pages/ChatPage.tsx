@@ -385,7 +385,7 @@ function ChannelHeader({
         )}
         {channel.is_member && !direct && (
           <Tooltip title={channel.muted ? "Unmute" : "Mute"}>
-            <Button type="text" icon={<BellOutlined />} aria-label={channel.muted ? "Unmute" : "Mute"} onClick={onMute} />
+            <Button type="text" className="nx-co-hide-phone" icon={<BellOutlined />} aria-label={channel.muted ? "Unmute" : "Mute"} onClick={onMute} />
           </Tooltip>
         )}
         {channel.can_manage && (
@@ -399,7 +399,7 @@ function ChannelHeader({
           </Button>
         )}
         {!direct && channel.is_member && (
-          <Button size="small" onClick={onLeave} data-testid="leave-channel">
+          <Button size="small" className="nx-co-hide-phone" onClick={onLeave} data-testid="leave-channel">
             Leave
           </Button>
         )}

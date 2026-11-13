@@ -104,7 +104,7 @@
 .nx-co-msg:hover { background: rgba(var(--nu-ink-rgb), .035); }
 .nx-co-msg.is-compact { padding-top: 1px; padding-bottom: 1px; }
 .nx-co-msg.is-highlight { background: var(--nu-tint); }
-.nx-co-msg-gutter { flex: none; width: 34px; display: flex; justify-content: center; }
+.nx-co-msg-gutter { flex: none; width: 34px; display: flex; justify-content: center; align-items: flex-start; }
 .nx-co-msg-clock { visibility: hidden; font-size: 10.5px; color: var(--nu-text-tertiary); padding-top: 4px; }
 .nx-co-msg:hover .nx-co-msg-clock { visibility: visible; }
 .nx-co-msg-body { flex: 1; min-width: 0; }
@@ -212,3 +212,8 @@
 .nx-co-backlinks li { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .nx-co-backlinks a { display: inline-flex; gap: 6px; font-weight: 600; color: var(--nu-text); }
 .nx-co-backlinks a:hover { color: var(--nu-accent); }
+
+/* A phone's header keeps the name readable: mute and leave live on a desk. */
+.nx-app--phone .nx-co-hide-phone { display: none; }
+/* Clear of the assistant's floating button in the corner. */
+.nx-app--phone .nx-co-composer { padding-right: 58px; }
