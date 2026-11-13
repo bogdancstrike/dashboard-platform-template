@@ -164,7 +164,7 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
     shape: "modal",
     where: "admin/flags",
     testId: "new-flag",
-    opens: "pages/admin/FlagsPage.tsx",
+    opens: "pages/admin/FlagsPage/NewFlagModal.tsx",
     because: "A key, a description and whether it is on. Small, and read beside the flags that already exist.",
   },
   {

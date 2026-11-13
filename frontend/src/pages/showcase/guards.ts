@@ -134,7 +134,7 @@ export const LAYERS: readonly GuardedLayer[] = [
     because: "A name, the scopes it may use and a rate limit — and the scopes are chosen from a list the reader has to read.",
   },
   {
-    module: "pages/admin/FlagsPage.tsx",
+    module: "pages/admin/FlagsPage/NewFlagModal.tsx",
     what: "flag",
     guarded: true,
     because: "A key, a name and a description of what the flag turns on, which is prose somebody thought about.",
