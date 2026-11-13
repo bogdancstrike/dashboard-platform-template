@@ -11,6 +11,8 @@
  * deterministic, extractive answer comes back and no tokens are spent.
  * Serial, and the collection it makes is removed at the end.
  */
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -85,10 +87,14 @@ test("a file too large, or of a kind that cannot be read, is refused before it i
   page.on("request", (request) => {
     if (request.method() === "POST" && request.url().endsWith("/platform/api/files")) uploads.push(request.url());
   });
-  await page.locator('input[type="file"]').setInputFiles([
-    { name: "too-big.pdf", mimeType: "application/pdf", buffer: Buffer.alloc(51 * 1024 * 1024, 32) },
-    { name: "program.zip", mimeType: "application/zip", buffer: Buffer.from("PK") },
-  ]);
+  // Real files on disk: Playwright refuses in-memory buffers over 50 MB.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nucleus-e2e-"));
+  const big = path.join(dir, "too-big.pdf");
+  fs.writeFileSync(big, Buffer.alloc(51 * 1024 * 1024, 32));
+  const zip = path.join(dir, "program.zip");
+  fs.writeFileSync(zip, "PK");
+  await page.locator('input[type="file"]').setInputFiles([big, zip]);
+  fs.rmSync(dir, { recursive: true, force: true });
   const items = page.getByTestId("upload-item");
   await expect(items).toHaveCount(2);
   await expect(items.filter({ hasText: "too-big.pdf" })).toContainText("over the 50 MB");
@@ -126,8 +132,30 @@ test("a blocked presigned PUT falls back to the API and still uploads", async ({
   await expect(page.getByTestId("document-row")).toHaveCount(before + 1, { timeout: 30_000 });
 });
 
-test.afterAll(async ({ browser }) => {
-  const page = await browser.newPage({ storageState: ".auth/admin.json" });
+test("the assistant's Data mode answers from the collection, citing file and page", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.route("**/platform/api/assistant/**", (route) =>
+    route.continue({ headers: { ...route.request().headers(), "x-nucleus-llm": "fake" } }),
+  );
+  await page.goto("/assistant");
+  await page.getByTestId("assistant-mode").getByText("Data").click();
+  await page.getByTestId("assistant-sources").click();
+  await page.getByTestId("assistant-sources-panel").getByText(NAME).click();
+  await page.getByTestId("assistant-sources-panel").getByText("My records").click();
+  await expect(page.getByTestId("assistant-sources")).toContainText(NAME);
+  await page.keyboard.press("Escape");
+  await page.getByTestId("assistant-input").fill("How often must every vehicle be inspected, according to the fleet policy?");
+  await page.getByTestId("assistant-input").press("Enter");
+  const cites = page.getByTestId("assistant-citations").last();
+  await expect(cites).toBeVisible({ timeout: 90_000 });
+  const passage = cites.getByRole("link", { name: /\[D\d+\]/ }).first();
+  await expect(passage).toBeVisible();
+  await expect(passage).toHaveAttribute("href", /\/ai\/documents\?collection=.+&passage=/);
+});
+
+test.afterAll(async ({ browser }, testInfo) => {
+  // A page made here does not inherit the project's options, so say them.
+  const page = await browser.newPage({ storageState: ".auth/admin.json", baseURL: testInfo.project.use.baseURL });
   await page.goto("/ai/documents");
   const row = page.getByTestId("collection-list").getByText(NAME);
   if ((await row.count()) === 0) return;

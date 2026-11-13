@@ -113,7 +113,10 @@ export function SourcePicker({
                   data-testid="source-collection"
                 >
                   <span className="nx-ai-sources-dot" style={{ background: collection.color }} />
-                  {collection.name} <Text type="secondary">· {collection.counts.ready} files</Text>
+                  {collection.name}{" "}
+                  <Text type="secondary">
+                    · {collection.counts.ready} file{collection.counts.ready === 1 ? "" : "s"}
+                  </Text>
                 </Checkbox>
               </div>
               {isOpen && (
