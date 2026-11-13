@@ -9,8 +9,8 @@
 import "@/styles/analytics.css";
 
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Button, Skeleton } from "antd";
-import { useMemo } from "react";
+import { Alert, App, Button, Skeleton } from "antd";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { useSmartBack } from "@/app/history";
@@ -49,6 +49,32 @@ export function gridColumns(resource: ExplorerResource): GridColumn[] {
 export default function RecordGridPage({ resourceKey }: { resourceKey: string }) {
   const back = useSmartBack();
   const navigate = useNavigate();
+  const { modal } = App.useApp();
+  // Edits waiting to be saved. "Back to the list" used to leave silently and
+  // drop them; now the page's own exits ask, and a reload or a closed tab gets
+  // the browser's own warning.
+  const [pendingCells, setPendingCells] = useState(0);
+  const onPendingChange = useCallback((cells: number) => setPendingCells(cells), []);
+  useEffect(() => {
+    if (!pendingCells) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [pendingCells]);
+  const leave = (go: () => void) => {
+    if (!pendingCells) return go();
+    modal.confirm({
+      title: `Leave without saving ${pendingCells} change${pendingCells === 1 ? "" : "s"}?`,
+      content: "The edited cells have not been saved. Leaving discards them.",
+      okText: "Leave and discard",
+      okButtonProps: { danger: true },
+      cancelText: "Keep editing",
+      onOk: go,
+    });
+  };
   const [params] = useSearchParams();
   const catalogue = useQuery({ queryKey: ["explorer-catalogue"], queryFn: ({ signal }) => explorerApi.catalogue(signal), staleTime: 60_000 });
   const resource = catalogue.data?.items.find((item) => item.key === resourceKey);
@@ -97,8 +123,8 @@ export default function RecordGridPage({ resourceKey }: { resourceKey: string })
       <PageHeader
         title={<>{resource.label} <em>grid</em></>}
         subtitle="Edit many records at once — paste a block from Excel or a CSV, fill down, undo, then save in one go."
-        onBack={() => back(`${listPath}${query ? `?${query}` : ""}`)}
-        actions={<Button onClick={() => navigate(`${listPath}${query ? `?${query}` : ""}`)}>Back to the list</Button>}
+        onBack={() => leave(() => back(`${listPath}${query ? `?${query}` : ""}`))}
+        actions={<Button onClick={() => leave(() => navigate(`${listPath}${query ? `?${query}` : ""}`))}>Back to the list</Button>}
       />
       {!resource.can_edit && <Alert type="info" showIcon style={{ marginBottom: 12 }} message="Your role can read these records but not edit them — the grid is read-only." />}
       {rows.data && rows.data.total > CAP && (
@@ -116,6 +142,7 @@ export default function RecordGridPage({ resourceKey }: { resourceKey: string })
           rows={rows.data.items}
           titleField={resource.title_field}
           canEdit={resource.can_edit}
+          onPendingChange={onPendingChange}
         />
       )}
     </div>

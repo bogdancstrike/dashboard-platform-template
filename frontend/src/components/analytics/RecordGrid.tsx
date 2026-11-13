@@ -78,6 +78,7 @@ export function RecordGrid({
   canEdit,
   height,
   onSaved,
+  onPendingChange,
 }: {
   resourceType: string;
   columns: GridColumn[];
@@ -86,6 +87,8 @@ export function RecordGrid({
   canEdit: boolean;
   height?: number;
   onSaved?: () => void;
+  /** Told how many edited cells are waiting, so the page can guard leaving. */
+  onPendingChange?: (cells: number) => void;
 }) {
   const { message } = App.useApp();
   const [rows, setRows] = useState<GridRow[]>(initialRows);
@@ -112,6 +115,7 @@ export function RecordGrid({
   const totalWidth = ROWHEAD + columns.reduce((sum, c) => sum + widthOf(c), 0);
   const range = rangeOf(anchor, focus);
   const tally = counts(pending);
+  useEffect(() => onPendingChange?.(tally.cells), [tally.cells, onPendingChange]);
 
   const valueAt = useCallback(
     (row: GridRow, column: GridColumn) => {

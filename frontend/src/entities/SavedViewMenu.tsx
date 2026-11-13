@@ -246,7 +246,7 @@ function SavedViewMenuInner({ view }: { view: EntityView }) {
 
   return (
     <>
-      <Dropdown menu={{ items: menu, onClick }} trigger={["click"]}>
+      <Dropdown menu={{ items: menu, onClick }} trigger={["click"]} rootClassName="nu-views-menu">
         <Button
           icon={<DownOutlined />}
           iconPosition="end"

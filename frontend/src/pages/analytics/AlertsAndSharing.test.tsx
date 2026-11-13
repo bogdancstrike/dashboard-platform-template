@@ -191,6 +191,35 @@ describe("RecordGridPage", () => {
     expect(screen.getAllByRole("columnheader").length).toBeGreaterThan(2);
   });
 
+  it("asks before leaving with edits that are not saved, and leaves quietly with none", async () => {
+    renderWithProviders(
+      <Routes>
+        <Route path="/tasks/grid" element={<RecordGridPage resourceKey="task" />} />
+        <Route path="/tasks" element={<p>the list</p>} />
+      </Routes>,
+      { route: "/tasks/grid" },
+    );
+    const grid = await screen.findByTestId("record-grid");
+    const first = () => document.querySelector('[data-cell="0:0"]') as HTMLElement;
+    await waitFor(() => expect(first()).toBeTruthy());
+    fireEvent.mouseDown(first());
+    fireEvent.keyDown(grid, { key: "Z" });
+    const input = within(first()).getByRole("textbox");
+    fireEvent.change(input, { target: { value: "Zeta" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.getByTestId("grid-pending")).toHaveTextContent("1 pending");
+
+    fireEvent.click(screen.getByRole("button", { name: "Back to the list" }));
+    expect((await screen.findAllByText("Leave without saving 1 change?")).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
+    await waitFor(() => expect(screen.queryAllByText("Leave without saving 1 change?")).toHaveLength(0));
+    expect(screen.getByTestId("record-grid")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Back to the list" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Leave and discard" }));
+    expect(await screen.findByText("the list")).toBeInTheDocument();
+  });
+
   it("refuses an unknown dataset", async () => {
     renderWithProviders(<RecordGridPage resourceKey="planet" />);
     expect(await screen.findByText("This dataset cannot be edited as a grid")).toBeInTheDocument();

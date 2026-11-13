@@ -217,6 +217,7 @@ export async function probe(page) {
       const s = getComputedStyle(el);
       if (!/(hidden|clip)/.test(s.overflowX) && !/(hidden|clip)/.test(s.overflow)) continue;
       if (s.textOverflow === "ellipsis" || s.webkitLineClamp !== "none") continue;
+      if (el.clientWidth <= 1 || el.clientHeight <= 1) continue; // visually-hidden label, on purpose
       if (el.scrollWidth > el.clientWidth + 2 && visible(el)) out.clipped.push(`${describe(el)} ${el.scrollWidth}>${el.clientWidth}`);
       else if (el.scrollHeight > el.clientHeight + 3 && s.whiteSpace !== "nowrap" && visible(el) && el.clientHeight > 0 && el.clientHeight < 80)
         out.clipped.push(`${describe(el)} h ${el.scrollHeight}>${el.clientHeight}`);
