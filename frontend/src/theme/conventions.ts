@@ -141,7 +141,7 @@ export const DENSE_BY_CONSTRUCTION: Record<string, string> = {
     "A control inside a search field's own affix.",
   "components/files/FilePreview.tsx":
     "Actions inside a preview pane's own toolbar.",
-  "components/kanban/LaneColumn.tsx":
+  "components/kanban/LaneColumn/LaneHeader.tsx":
     "A lane header occupies the space a card's title needs, and the board is read by scanning columns.",
   "components/notifications/NotificationBell.tsx":
     "A popover list of notifications, each one row.",

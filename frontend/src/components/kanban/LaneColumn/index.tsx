@@ -27,27 +27,17 @@
  * landed was to drop it.
  */
 
-import {
-  Button,
-  Dropdown,
-  Input,
-  InputNumber,
-  Modal,
-  Select,
-  Space,
-  Tag,
-  Tooltip,
-  Typography,
-} from "antd";
-import { MoreOutlined, PlusOutlined } from "@ant-design/icons";
+import { Input } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 import { useState } from "react";
 
 import type { KanbanLane } from "@/api/kanban";
 import { DropGap, type useBoardDrag } from "@/components/kanban/useBoardDrag";
 
-import { KanbanCardTile } from "./KanbanCardTile";
+import { KanbanCardTile } from "../KanbanCardTile";
 
-const { Text } = Typography;
+import { LaneDialogs } from "./LaneDialogs";
+import { LaneHeader } from "./LaneHeader";
 
 export interface LaneColumnProps {
   lane: KanbanLane;
@@ -122,90 +112,7 @@ export function LaneColumn({
       aria-label={lane.name}
       data-testid={`lane-${lane.id}`}
     >
-      <header className="nu-lane-col-head">
-        <span className="nu-lane-col-name">
-          <i
-            aria-hidden
-            className={`nx-rec-klane-dot${lane.is_done ? " is-done" : lane.over_limit ? " is-over" : ""}`}
-          />
-          <Text strong>{lane.name}</Text>
-          {lane.is_done && (
-            <Tooltip title="Arriving here marks a card finished">
-              <Tag bordered={false} color="success">
-                done
-              </Tag>
-            </Tooltip>
-          )}
-        </span>
-
-        <Space size={4}>
-          <Tooltip
-            title={
-              lane.wip_limit === null
-                ? `${lane.total} cards match`
-                : `${lane.total} of a limit of ${lane.wip_limit}`
-            }
-          >
-            {/* The server's count over the whole match, not the cards drawn. */}
-            <Tag
-              bordered={false}
-              color={lane.over_limit ? "warning" : undefined}
-              className="nu-lane-col-count"
-            >
-              {lane.wip_limit === null ? lane.total : `${lane.total}/${lane.wip_limit}`}
-            </Tag>
-          </Tooltip>
-
-          {canEdit && (
-            <Dropdown
-              trigger={["click"]}
-              menu={{
-                items: [
-                  { key: "add", icon: <PlusOutlined />, label: "Add a card" },
-                  { key: "rename", label: "Rename this lane" },
-                  {
-                    key: "limit",
-                    label:
-                      lane.wip_limit === null
-                        ? "Set a work-in-progress limit"
-                        : "Change the limit",
-                  },
-                  {
-                    key: "done",
-                    label: lane.is_done ? "No longer the done lane" : "Make this the done lane",
-                  },
-                  {
-                    key: "remove",
-                    danger: true,
-                    // Says what happens to the work, because that is the
-                    // question somebody is actually asking.
-                    // "1 card moves" and "2 cards move": the verb agrees
-                    // with the noun, which the first version did not.
-                    label:
-                      lane.total > 0
-                        ? `Remove — ${lane.total === 1 ? "1 card moves" : `${lane.total} cards move`}`
-                        : "Remove this lane",
-                    disabled: others.length === 0,
-                  },
-                ],
-                onClick: ({ key }) => {
-                  if (key === "add") setAdding(true);
-                  else if (key === "done") onChange({ is_done: !lane.is_done });
-                  else openDialog(key as "rename" | "limit" | "remove");
-                },
-              }}
-            >
-              <Button
-                type="text"
-                size="small"
-                icon={<MoreOutlined />}
-                aria-label={`Actions for ${lane.name}`}
-                data-testid={`lane-actions-${lane.id}`}
-              />
-            </Dropdown>
-          )}
-        </Space>
-      </header>
+      <LaneHeader lane={lane} canEdit={canEdit} others={others} onAdd={() => setAdding(true)} onChange={onChange} onDialog={openDialog} />
 
       {lane.over_limit && (
         <p className="nu-lane-col-warning">
@@ -268,79 +175,20 @@ export function LaneColumn({
           </button>
         ))}
 
-      <Modal
-        open={dialog === "rename"}
-        title={`Rename ${lane.name}`}
-        okText="Rename"
-        okButtonProps={{ disabled: !name.trim() }}
-        onCancel={() => setDialog(null)}
-        onOk={() => {
-          onChange({ name: name.trim() });
-          setDialog(null);
-        }}
-      >
-        <Input
-          autoFocus
-          value={name}
-          aria-label="Lane name"
-          onChange={(event) => setName(event.target.value)}
-        />
-      </Modal>
-
-      <Modal
-        open={dialog === "limit"}
-        title={`Work-in-progress limit for ${lane.name}`}
-        okText="Save"
-        onCancel={() => setDialog(null)}
-        onOk={() => {
-          onChange({ wip_limit: limit && limit > 0 ? limit : null });
-          setDialog(null);
-        }}
-      >
-        <Space direction="vertical" size={8} style={{ width: "100%" }}>
-          <InputNumber
-            min={1}
-            value={limit ?? undefined}
-            placeholder="No limit"
-            aria-label="Work-in-progress limit"
-            style={{ width: "100%" }}
-            onChange={(value) => setLimit(value ?? null)}
-          />
-          <Text type="secondary">
-            A limit warns when the lane goes over it. It never stops a card moving — a board
-            that argues gets worked around.
-          </Text>
-        </Space>
-      </Modal>
-
-      <Modal
-        open={dialog === "remove"}
-        title={`Remove ${lane.name}?`}
-        okText="Remove the lane"
-        okButtonProps={{ danger: true }}
-        onCancel={() => setDialog(null)}
-        onOk={() => {
-          onRemove(destination || undefined);
-          setDialog(null);
-        }}
-      >
-        <Space direction="vertical" size={8} style={{ width: "100%" }}>
-          <Text>
-            {lane.total > 0
-              ? `${lane.total} card${lane.total === 1 ? "" : "s"} will move. Nothing is deleted.`
-              : "The lane is empty."}
-          </Text>
-          {lane.total > 0 && (
-            <Select
-              aria-label="Move the cards to"
-              style={{ width: "100%" }}
-              value={destination || others[0]?.id}
-              onChange={setDestination}
-              options={others.map((item) => ({ value: item.id, label: item.name }))}
-            />
-          )}
-        </Space>
-      </Modal>
+      <LaneDialogs
+        lane={lane}
+        others={others}
+        dialog={dialog}
+        onClose={() => setDialog(null)}
+        name={name}
+        onName={setName}
+        limit={limit}
+        onLimit={setLimit}
+        destination={destination}
+        onDestination={setDestination}
+        onChange={onChange}
+        onRemove={onRemove}
+      />
     </section>
   );
 }
