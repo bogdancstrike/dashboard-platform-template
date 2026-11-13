@@ -11,8 +11,9 @@ import { Link } from "react-router-dom";
 import { onboardingApi, type Checklist } from "@/api/onboarding";
 import { NxIcon } from "@/components/NxIcon";
 import "@/styles/onboarding.css";
+import { FEATURES, withFeature } from "@/settings/features";
 
-export function OnboardingCard() {
+function OnboardingCardInner() {
   const queryClient = useQueryClient();
   const checklist = useQuery({ queryKey: ["onboarding"], queryFn: ({ signal }) => onboardingApi.checklist(signal) });
   const dismiss = useMutation({
@@ -56,3 +57,6 @@ export function OnboardingCard() {
     </Card>
   );
 }
+
+/** Rendered only while onboarding is on (§27). */
+export const OnboardingCard = withFeature(FEATURES.onboarding, OnboardingCardInner);

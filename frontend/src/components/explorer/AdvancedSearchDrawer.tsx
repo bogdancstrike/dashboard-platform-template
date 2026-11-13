@@ -44,7 +44,8 @@ export interface AdvancedSearchDrawerProps {
   /** Run the draft: it becomes the page's question. */
   onSearch: (tree: QueryNode | null) => void;
   /** Save the draft under a name, without having to run it first. */
-  onSave: (tree: QueryNode | null) => void;
+  /** Absent while saved views are switched off (§27). */
+  onSave?: (tree: QueryNode | null) => void;
   /** What the dataset is called and how big it is, for the header. */
   datasetLabel?: string;
   recordCount?: number;
@@ -283,7 +284,7 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, record
             </Button>
           </Tooltip>
           <Tooltip title="Save this condition under a name, without running it first">
-            <Button onClick={() => onSave(draft)}>Save as…</Button>
+            {onSave && <Button onClick={() => onSave(draft)}>Save as…</Button>}
           </Tooltip>
           <Button onClick={onClose}>Cancel</Button>
           <Tooltip title="Run this condition (⌘/Ctrl + Enter). It becomes the question the page is asking.">

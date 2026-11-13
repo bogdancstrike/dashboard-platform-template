@@ -8,6 +8,7 @@ import { slaApi, target, type Clock, type TicketSla } from "@/api/sla";
 import { useAuth } from "@/auth/AuthProvider";
 import { duration } from "@/entities/sla";
 import { absoluteTime } from "@/lib/time";
+import { FEATURES, withFeature } from "@/settings/features";
 
 const { Text } = Typography;
 
@@ -55,7 +56,7 @@ function ClockRow({ label, clock, paused }: { label: string; clock: Clock | null
  * Which SLA policy a ticket is measured against, its targets for this
  * priority, and the time left counted in that policy's business hours.
  */
-export function TicketSlaCard({ ticketId }: { ticketId: string }) {
+function TicketSlaCardInner({ ticketId }: { ticketId: string }) {
   const auth = useAuth();
   const sla = useTicketSla(ticketId);
   const data: TicketSla | undefined = sla.data;
@@ -115,3 +116,6 @@ export function TicketSlaCard({ ticketId }: { ticketId: string }) {
     </Card>
   );
 }
+
+/** Rendered only while its feature flag is on (§27). */
+export const TicketSlaCard = withFeature(FEATURES.slaPolicies, TicketSlaCardInner);

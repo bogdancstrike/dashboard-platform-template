@@ -1,0 +1,57 @@
+/* Feature flags (/admin/flags) — grouped tables, the blast-radius list, history. */
+
+.nx-ff-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nx-ff-group .ant-card-head-title {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.nx-ff-needs {
+  color: var(--nu-text-secondary);
+  background: rgba(var(--nu-ink-rgb), 0.05);
+}
+
+.nx-ff-controls {
+  display: grid;
+  gap: 12px;
+}
+
+.nx-ff-controls-section {
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: rgba(var(--nu-ink-rgb), 0.04);
+}
+
+.nx-ff-controls-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--nu-text-secondary);
+  margin-bottom: 6px;
+}
+
+.nx-ff-controls ul {
+  margin: 0;
+  padding-inline-start: 18px;
+  color: var(--nu-text);
+}
+
+.nx-ff-controls li {
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.nx-ff-history {
+  display: grid;
+  gap: 2px;
+}
+
+.nx-app--phone .nx-ff-group .ant-card-body {
+  padding: 6px;
+}

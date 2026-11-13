@@ -6,13 +6,14 @@ import { insightsApi } from "@/api/insights";
 import { EmptyState } from "@/components/EmptyState";
 import { InsightView } from "./InsightView";
 import "@/styles/insights.css";
+import { FEATURES, withFeature } from "@/settings/features";
 
 /**
  * A saved insight on a dashboard (§43): the page as composed, with its numbers
  * re-read for this viewer each time the dashboard is drawn — never the
  * owner's stored copy, which may hold rows this viewer may not see.
  */
-export function InsightWidgetBody({ id }: { id: string }) {
+function InsightWidgetBodyInner({ id }: { id: string }) {
   const insight = useQuery({
     queryKey: ["insight-widget", id],
     queryFn: ({ signal }) => insightsApi.get(id, true, signal),
@@ -32,3 +33,6 @@ export function InsightWidgetBody({ id }: { id: string }) {
     </div>
   );
 }
+
+/** Rendered only while its feature flag is on (§27). */
+export const InsightWidgetBody = withFeature(FEATURES.aiInsights, InsightWidgetBodyInner);

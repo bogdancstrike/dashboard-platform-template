@@ -20,6 +20,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { commentsApi, type CommentThread, type ListOptions } from "@/api/comments";
 import { useLiveEvents } from "@/live/LiveProvider";
+import { FEATURES, useFeature } from "@/settings/features";
 
 export interface Typist {
   id: string;
@@ -50,6 +51,9 @@ export function useConversation({
   markRead?: boolean;
 }) {
   const queryClient = useQueryClient();
+  // Read state, typing and reactions are the chat feature's (§27); a record
+  // thread without it is plain comments.
+  const chatOn = useFeature(FEATURES.chat);
   const [limit, setLimit] = useState(WINDOW);
   const [typists, setTypists] = useState<Record<string, Typist & { until: number }>>({});
   const opened = useRef<string | null | undefined>(undefined);
@@ -86,11 +90,11 @@ export function useConversation({
   });
   const newest = thread.data?.items[thread.data.items.length - 1]?.created_at;
   useEffect(() => {
-    if (!markRead || !resourceId || !thread.data || parentId) return;
+    if (!chatOn || !markRead || !resourceId || !thread.data || parentId) return;
     read.mutate();
     // Once per conversation and once per newest line — not per render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resourceType, resourceId, newest, markRead, Boolean(thread.data)]);
+  }, [resourceType, resourceId, newest, markRead, chatOn, Boolean(thread.data)]);
 
   useLiveEvents((message) => {
     if (message["resource_type"] !== resourceType || message["resource_id"] !== resourceId) return;
@@ -129,10 +133,10 @@ export function useConversation({
   const lastTyped = useRef(0);
   const typing = useCallback(() => {
     const moment = Date.now();
-    if (moment - lastTyped.current < TYPING_EVERY_MS) return;
+    if (!chatOn || moment - lastTyped.current < TYPING_EVERY_MS) return;
     lastTyped.current = moment;
     void commentsApi.typing(resourceType, resourceId).catch(() => undefined);
-  }, [resourceType, resourceId]);
+  }, [resourceType, resourceId, chatOn]);
 
   const send = useMutation({
     mutationFn: (input: { body: string; parent_id?: string; mention_ids?: string[]; attachment_ids?: string[] }) =>
@@ -176,8 +180,8 @@ export function useConversation({
     items: (thread.data?.items ?? []),
     canComment: thread.data?.can_comment ?? false,
     hasMore: thread.data?.has_more ?? false,
-    reads: thread.data?.reads ?? [],
-    reactions: thread.data?.reactions ?? [],
+    reads: chatOn ? (thread.data?.reads ?? []) : [],
+    reactions: chatOn ? (thread.data?.reactions ?? []) : [],
     openedAt: opened.current ?? null,
     loadOlder,
     typing,

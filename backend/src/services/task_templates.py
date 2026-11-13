@@ -562,8 +562,14 @@ def run_scheduler(session, *, principal=None, codes: tuple[str, ...] | None = No
     started = now()
     jobs = ensure_jobs(session)
     results: dict[str, Any] = {}
+    from src.core import features
+
     for code, scheduled in jobs.items():
         if codes and code not in codes:
+            continue
+        if not features.job_allowed(code):
+            # Switched off (§27): the job is skipped, not failed, and runs
+            # again on its next tick once the flag is back on.
             continue
         name, _cron, kind, period = JOBS[code]
         clock = now()

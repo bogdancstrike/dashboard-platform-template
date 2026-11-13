@@ -283,9 +283,27 @@ def flags(session, args, *, principal) -> dict[str, Any]:
     elif state == "OFF":
         statement = statement.where(FeatureFlag.enabled.is_(False))
 
+    area = str((args or {}).get("area") or "").strip().lower()
+    term = str((args or {}).get("q") or "").strip().lower()
+
+    from src.core import features
+    from src.core.feature_catalogue import AREAS, FEATURES_BY_KEY
+
+    resolved = features.enabled_map(principal)
     rows = session.scalars(statement).all()
+    if area:
+        rows = [
+            row for row in rows
+            if (FEATURES_BY_KEY[row.key].area if row.key in FEATURES_BY_KEY else "custom") == area
+        ]
+    if term:
+        rows = [
+            row for row in rows
+            if term in row.key.lower() or term in row.name.lower() or term in (row.description or "").lower()
+        ]
     return {
-        "items": [_flag(row, principal) for row in rows],
+        "items": [_flag(row, principal, on_for_me=resolved.get(row.key)) for row in rows],
+        "areas": [{"key": key, "label": label} for key, label in AREAS] + [{"key": "custom", "label": "Custom"}],
         "total": len(rows),
         "counts": {
             "total": len(rows),
@@ -331,6 +349,13 @@ def update_flag(session, key: Any, payload: dict[str, Any], *, principal):
         row.target_user_ids = [
             str(parse_uuid(item, field="target_user_ids"))
             for item in (data["target_user_ids"] or [])
+        ] or None
+    if "target_group_ids" in data:
+        row.target_group_ids = _strings(data["target_group_ids"], "target_group_ids")
+    if "target_organization_ids" in data:
+        row.target_organization_ids = [
+            str(parse_uuid(item, field="target_organization_ids"))
+            for item in (data["target_organization_ids"] or [])
         ] or None
     if "description" in data:
         row.description = str(data["description"] or "").strip()[:2000] or None
@@ -434,6 +459,91 @@ def remove_flag(session, key: Any, *, principal) -> dict[str, Any]:
     return {"deleted": True, "key": row.key}
 
 
+def flag_history(session, key: Any, args, *, principal) -> dict[str, Any]:
+    """Every recorded change to one flag, newest first — who, when, from what to what."""
+    from src.models.platform import AuditLog
+
+    principal.require(FLAGS_PERMISSION)
+    row = session.scalar(select(FeatureFlag).where(FeatureFlag.key == str(key or "")))
+    if row is None:
+        raise NotFoundError("That flag does not exist.", details={"key": str(key or "")})
+    try:
+        limit = max(1, min(int((args or {}).get("limit") or 50), 200))
+    except (TypeError, ValueError):
+        limit = 50
+    entries = session.scalars(
+        select(AuditLog)
+        .where(AuditLog.resource_type == "feature_flag", AuditLog.resource_id == str(row.id))
+        .order_by(AuditLog.occurred_at.desc())
+        .limit(limit)
+    ).all()
+    return {
+        "key": row.key,
+        "items": [
+            {
+                "id": str(entry.id),
+                "at": iso(entry.occurred_at),
+                "actor": entry.actor_label,
+                "actor_id": str(entry.actor_id) if entry.actor_id else None,
+                "message": entry.message,
+                "before": entry.state_before,
+                "after": entry.state_after,
+                "changed_fields": list(entry.changed_fields or []),
+            }
+            for entry in entries
+        ],
+    }
+
+
+def preview(session, args, *, principal) -> dict[str, Any]:
+    """What a role (optionally one person, group or organization) would see.
+
+    Evaluated with the same rule `/api/me` uses, against a stand-in reader.
+    Percentage rollouts depend on *who* the person is, so without one they are
+    reported in `depends_on_person` rather than guessed.
+    """
+    from types import SimpleNamespace
+
+    from src.core import features
+    from src.models.identity import Role, User
+
+    principal.require(FLAGS_PERMISSION)
+    data = args or {}
+    role_code = str(data.get("role") or "").strip().upper() or None
+    user_id = None
+    organization_id = str(data.get("organization_id") or "").strip() or None
+    groups = tuple(item for item in str(data.get("group") or "").split(",") if item.strip())
+    if data.get("user_id"):
+        user = session.get(User, parse_uuid(data["user_id"], field="user_id"))
+        if user is None:
+            raise NotFoundError("That person does not exist.")
+        user_id = user.id
+        organization_id = organization_id or (str(user.organization_id) if user.organization_id else None)
+        if role_code is None and user.role_id:
+            role = session.get(Role, user.role_id)
+            role_code = role.code if role else None
+        groups = groups + tuple(group.name for group in user.groups)
+    if role_code is None:
+        raise ValidationError("Preview needs a role or a person.")
+    reader = SimpleNamespace(
+        user_id=user_id, role_code=role_code, groups=groups, organization_id=organization_id
+    )
+    states = features.snapshot()
+    resolved = features.enabled_map(reader, states)
+    depends = sorted(
+        key for key, state in states.items()
+        if user_id is None and state.enabled and 0 < state.rollout_percentage < 100
+        and not resolved.get(key)
+    )
+    return {
+        "role": role_code,
+        "user_id": str(user_id) if user_id else None,
+        "features": resolved,
+        "off": sorted(key for key, value in resolved.items() if not value),
+        "depends_on_person": depends,
+    }
+
+
 def enabled_for(session, principal) -> dict[str, bool]:
     """Every flag the platform *has*, and whether it is on for this reader.
 
@@ -454,34 +564,73 @@ def enabled_for(session, principal) -> dict[str, bool]:
     it in the browser is how "it says it is on and I do not have it" becomes
     unanswerable.
     """
-    rows = session.scalars(select(FeatureFlag)).all()
-    return {
-        row.key: is_on(row, user_id=principal.user_id, role_code=principal.role_code)
-        for row in sorted(rows, key=lambda item: item.key)
-    }
+    from src.core import features
+
+    del session  # read through the shared, cached snapshot instead
+    return features.enabled_map(principal)
 
 
-def is_on(row: FeatureFlag, *, user_id: UUID | None, role_code: str | None) -> bool:
-    """Whether one flag is on for one person.
+def is_on(
+    row: FeatureFlag,
+    *,
+    user_id: UUID | None,
+    role_code: str | None,
+    groups: tuple[str, ...] | list[str] = (),
+    organization_id: UUID | str | None = None,
+) -> bool:
+    """Whether one flag *row* is on for one person — see `evaluate`."""
+    return evaluate(
+        enabled=bool(row.enabled),
+        key=row.key,
+        rollout=int(row.rollout_percentage or 0),
+        user_ids=row.target_user_ids or (),
+        roles=row.target_roles or (),
+        group_ids=getattr(row, "target_group_ids", None) or (),
+        organization_ids=getattr(row, "target_organization_ids", None) or (),
+        user_id=user_id,
+        role_code=role_code,
+        groups=groups,
+        organization_id=organization_id,
+    )
 
-    The whole rollout rule, in one place. Read in this order because that is
-    the order that makes a flag usable: off means off for everybody; a named
-    person always has it (that is what naming them is for); then a role; then
-    the percentage.
+
+def evaluate(
+    *,
+    enabled: bool,
+    key: str,
+    rollout: int,
+    user_ids=(),
+    roles=(),
+    group_ids=(),
+    organization_ids=(),
+    user_id=None,
+    role_code: str | None = None,
+    groups=(),
+    organization_id=None,
+) -> bool:
+    """The whole rollout rule, in one place.
+
+    Read in this order because that is the order that makes a flag usable:
+    off means off for everybody; a named person, role, group or organization
+    always has it (that is what naming them is for); then the percentage.
 
     The percentage is a **stable hash of the flag key and the user id**, not a
     random draw. A flag that flickered on and off between requests would be
     worse than no flag: the feature would half-appear, and every bug report
     about it would be unreproducible.
     """
-    if not row.enabled:
+    if not enabled:
         return False
-    if user_id is not None and str(user_id) in (row.target_user_ids or []):
+    if user_id is not None and str(user_id) in set(user_ids or ()):
         return True
-    if role_code and role_code in (row.target_roles or []):
+    if role_code and role_code in set(roles or ()):
+        return True
+    if groups and set(group_ids or ()) & {str(group) for group in groups}:
+        return True
+    if organization_id is not None and str(organization_id) in set(organization_ids or ()):
         return True
 
-    percentage = int(row.rollout_percentage or 0)
+    percentage = int(rollout or 0)
     if percentage >= 100:
         return True
     if percentage <= 0:
@@ -491,13 +640,24 @@ def is_on(row: FeatureFlag, *, user_id: UUID | None, role_code: str | None) -> b
         return False
     if user_id is None:
         return False
-    digest = hashlib.sha256(f"{row.key}:{user_id}".encode()).hexdigest()
+    digest = hashlib.sha256(f"{key}:{user_id}".encode()).hexdigest()
     return int(digest[:8], 16) % 100 < percentage
 
 
-def _flag(row: FeatureFlag, principal) -> dict[str, Any]:
+def _flag(row: FeatureFlag, principal, *, on_for_me: bool | None = None) -> dict[str, Any]:
+    from src.core.feature_catalogue import FEATURES_BY_KEY
+
     user_id = getattr(principal, "user_id", None)
     role_code = getattr(principal, "role_code", None)
+    feature = FEATURES_BY_KEY.get(row.key)
+    if on_for_me is None:
+        on_for_me = is_on(
+            row,
+            user_id=user_id,
+            role_code=role_code,
+            groups=tuple(getattr(principal, "groups", ()) or ()),
+            organization_id=getattr(principal, "organization_id", None),
+        )
     return {
         "key": row.key,
         "name": row.name,
@@ -508,15 +668,46 @@ def _flag(row: FeatureFlag, principal) -> dict[str, Any]:
         "rollout_percentage": int(row.rollout_percentage or 0),
         "target_roles": list(row.target_roles or []),
         "target_user_ids": list(row.target_user_ids or []),
+        "target_group_ids": list(row.target_group_ids or []),
+        "target_organization_ids": list(row.target_organization_ids or []),
         "experimental": bool(row.experimental),
         "last_toggled_at": iso(row.last_toggled_at),
         "updated_at": iso(row.updated_at),
         # The answer to "it is enabled but I do not have it" — computed by the
         # same function the API would use to gate anything.
-        "on_for_me": is_on(row, user_id=user_id, role_code=role_code),
+        "on_for_me": on_for_me,
         # And whether that is *because* of the percentage, so the number on
         # screen explains the answer beside it rather than contradicting it.
         "partial": bool(row.enabled and 0 < int(row.rollout_percentage or 0) < 100),
+        # What the catalogue says about it: where it lives, what it needs and
+        # what it controls. A flag the catalogue does not know is an
+        # installation's own, and controls only what reads it.
+        "area": feature.area if feature else "custom",
+        "requires": list(feature.requires) if feature else [],
+        "default_on": feature.default_on if feature else False,
+        "in_catalogue": feature is not None,
+        "controls": _controls(row.key),
+    }
+
+
+def _controls(key: str) -> dict[str, Any]:
+    from src.core import features
+    from src.core.feature_catalogue import FEATURES, FEATURES_BY_KEY
+
+    feature = FEATURES_BY_KEY.get(key)
+    if feature is None:
+        return {"routes": [], "nav": [], "components": [], "endpoints": [], "jobs": [], "live": [],
+                "payload_rules": [], "dependents": []}
+    return {
+        "routes": list(feature.routes),
+        "nav": list(feature.nav),
+        "components": list(feature.components),
+        "endpoints": features.endpoints_of(key),
+        "jobs": list(feature.jobs),
+        "live": list(feature.live),
+        "payload_rules": list(feature.payload_rules),
+        # Turning a parent off takes these with it.
+        "dependents": [other.key for other in FEATURES if key in other.requires],
     }
 
 
@@ -526,8 +717,18 @@ def _flag_state(row: FeatureFlag) -> dict[str, Any]:
         "rollout_percentage": int(row.rollout_percentage or 0),
         "target_roles": list(row.target_roles or []),
         "target_user_ids": list(row.target_user_ids or []),
+        "target_group_ids": list(row.target_group_ids or []),
+        "target_organization_ids": list(row.target_organization_ids or []),
         "stage": row.stage,
     }
+
+
+def _strings(raw: Any, field: str) -> list[str] | None:
+    if raw in (None, [], ""):
+        return None
+    if not isinstance(raw, list):
+        raise ValidationError(f"{field} must be a list")
+    return sorted({str(item).strip()[:64] for item in raw if str(item).strip()}) or None
 
 
 def _codes(raw: Any, field: str) -> list[str] | None:

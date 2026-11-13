@@ -17,6 +17,7 @@ import { NxIcon } from "@/components/NxIcon";
 import { errorText } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
+import { FEATURES, withFeature } from "@/settings/features";
 
 export function shareUrl(link: Pick<DashboardLink, "path">): string {
   return `${window.location.origin}${link.path}`;
@@ -35,7 +36,7 @@ interface Values {
 }
 
 /** The button and drawer, for a dashboard page's header. */
-export function PublishButton({ dashboardId }: { dashboardId: string }) {
+function PublishButtonInner({ dashboardId }: { dashboardId: string }) {
   const overlay = useUrlOverlay("publish");
   return (
     <>
@@ -175,3 +176,6 @@ export function PublicLinksDrawer({ dashboardId, open, onClose }: { dashboardId:
     </Drawer>
   );
 }
+
+/** Rendered only while its feature flag is on (§27). */
+export const PublishButton = withFeature(FEATURES.publicDashboards, PublishButtonInner);

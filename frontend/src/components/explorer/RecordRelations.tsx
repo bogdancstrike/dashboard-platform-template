@@ -36,10 +36,11 @@ import { useSticky } from "@/hooks/useSticky";
 import { EmptyState } from "@/components/EmptyState";
 
 import { RecordReadError } from "./RecordReadError";
+import { FEATURES, withFeature } from "@/settings/features";
 
 const { Text, Title } = Typography;
 
-export function RecordRelations({
+function RecordRelationsInner({
   resourceType,
   recordId,
 }: {
@@ -144,3 +145,6 @@ export function RecordRelations({
     </div>
   );
 }
+
+/** Rendered only while its feature flag is on (§27). */
+export const RecordRelations = withFeature(FEATURES.relationships, RecordRelationsInner);

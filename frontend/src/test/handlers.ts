@@ -24,6 +24,7 @@ import { planningHandlers } from "@/test/handlers/planning";
 import { canvasCatalogueExtras, workflowHandlers } from "@/test/handlers/workflows";
 import { onboardingHandlers } from "@/test/handlers/onboarding";
 import { developerHandlers } from "@/test/handlers/developers";
+import { flagHandlers } from "@/test/handlers/flags";
 import { recordsAnalyticsHandlers } from "@/test/handlers/recordsAnalytics";
 
 export const appMeta = {
@@ -2679,7 +2680,18 @@ function seedFlags(): void {
     // on for this reader.
     flag({
       key: "csv-import", name: "CSV import wizard", enabled: true,
-      rollout_percentage: 10, partial: true, on_for_me: false,
+      rollout_percentage: 10, partial: true, on_for_me: false, area: "data",
+    }),
+    // A catalogue flag that gates things, so turning it off is confirmed
+    // with what disappears (§27).
+    flag({
+      key: "time-tracking", name: "Time tracking", enabled: true, rollout_percentage: 100,
+      on_for_me: true, area: "work", in_catalogue: true, default_on: true,
+      controls: {
+        routes: ["/time"], nav: ["/time"], components: ["Timer pill in the header"],
+        endpoints: [{ methods: ["GET", "POST"], url: "/api/time/timer" }],
+        jobs: [], live: [], payload_rules: [], dependents: [],
+      },
     }),
     flag({ key: "ai-summaries", name: "AI record summaries", enabled: false, experimental: true }),
   );
@@ -3897,6 +3909,7 @@ export const handlers = [
   ...workflowHandlers,
   ...onboardingHandlers,
   ...developerHandlers,
+  ...flagHandlers,
   http.get("/platform/admin/integrations/catalogue", ({ request }) => {
     const states = ["NOT_CONFIGURED", "DISCONNECTED", "CONNECTED", "ERROR"];
     return echo(request, {
@@ -4700,6 +4713,7 @@ export const handlers = [
         experimental: flagRows.filter((item) => item["experimental"]).length,
       },
       stages: ["BETA", "GA"],
+      areas: [{ key: "work", label: "Work" }, { key: "data", label: "Data" }, { key: "platform", label: "Platform" }, { key: "custom", label: "Custom" }],
     });
   }),
   http.post("/platform/admin/flags", async ({ request }) => {

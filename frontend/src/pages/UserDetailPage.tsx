@@ -43,6 +43,7 @@ import { useImpersonation } from "@/auth/ImpersonationProvider";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { PersonAvatar } from "@/components/PersonAvatar";
+import { FEATURES, useFeature } from "@/settings/features";
 
 const { Text } = Typography;
 
@@ -63,6 +64,7 @@ export default function UserDetailPage() {
   const { message } = AntApp.useApp();
   const [params, setParams] = useSearchParams();
   const impersonation = useImpersonation();
+  const impersonationOn = useFeature(FEATURES.impersonation);
   const tab = params.get("tab") ?? "access";
 
   const person = useQuery({
@@ -190,7 +192,7 @@ export default function UserDetailPage() {
         }
         actions={
           <>
-            {user.can_impersonate ? (
+            {!impersonationOn ? null : user.can_impersonate ? (
               <Popconfirm
                 title={`Act as ${user.full_name}?`}
                 description="You will see the platform exactly as they do. Every action is audited under both names."

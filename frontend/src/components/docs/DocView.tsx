@@ -51,6 +51,7 @@ import { BlockView } from "./BlockView";
 import { DOC_BLOCK_ORDER, DOC_BLOCKS, newDocBlock, recordPath, RECORD_LABELS } from "./blocks";
 import { HistoryDrawer } from "./HistoryDrawer";
 import { RecordPicker } from "./RecordPicker";
+import { FEATURES, useFeature } from "@/settings/features";
 
 const { Text } = Typography;
 const SAVE_AFTER_MS = 1000;
@@ -189,6 +190,7 @@ export function DocView({ pageId, onDeleted }: { pageId: string; onDeleted: (spa
     },
     onError: (error) => message.error(error instanceof ApiError ? error.message : "That link was not saved."),
   });
+  const summariesOn = useFeature(FEATURES.aiSummaries);
   const summarise = useMutation({
     mutationFn: () => docsApi.summarise(pageId),
     onSuccess: (result) => setSummary(result.summary),
@@ -276,9 +278,11 @@ export function DocView({ pageId, onDeleted }: { pageId: string; onDeleted: (spa
               <Tooltip title="History">
                 <Button icon={<HistoryOutlined />} aria-label="History" onClick={() => history.open("1")} data-testid="open-history" />
               </Tooltip>
-              <Tooltip title="Summarise with AI">
-                <Button icon={<RobotOutlined />} aria-label="Summarise" loading={summarise.isPending} onClick={() => summarise.mutate()} />
-              </Tooltip>
+              {summariesOn && (
+                <Tooltip title="Summarise with AI">
+                  <Button icon={<RobotOutlined />} aria-label="Summarise" loading={summarise.isPending} onClick={() => summarise.mutate()} />
+                </Tooltip>
+              )}
               {data.can_edit && (
                 <Tooltip title="Delete page">
                   <Button

@@ -21,6 +21,7 @@ import { useCommands } from "@/commands/CommandContext";
 import { AstIcon } from "./AstIcon";
 import { Markdown } from "./Markdown";
 import "@/styles/assistant.css";
+import { FEATURES, withFeature } from "@/settings/features";
 
 const MAX_CONTROLS = 80;
 
@@ -51,7 +52,7 @@ export function highlight(id: string): boolean {
   return true;
 }
 
-export function PageAsk({ stops, onDone }: { stops: TourStop[] | undefined; onDone?: () => void }) {
+function PageAskInner({ stops, onDone }: { stops: TourStop[] | undefined; onDone?: () => void }) {
   const location = useLocation();
   const { commands } = useCommands();
   const { modal } = App.useApp();
@@ -142,3 +143,6 @@ export function PageAsk({ stops, onDone }: { stops: TourStop[] | undefined; onDo
     </div>
   );
 }
+
+/** Rendered only while its feature flag is on (§27). */
+export const PageAsk = withFeature(FEATURES.aiPageHelp, PageAskInner);

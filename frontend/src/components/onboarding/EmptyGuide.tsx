@@ -13,6 +13,7 @@ import { ApiError } from "@/api/client";
 import { onboardingApi } from "@/api/onboarding";
 import { useAuth } from "@/auth/AuthProvider";
 import "@/styles/onboarding.css";
+import { FEATURES, withFeature } from "@/settings/features";
 
 /** Per area: what the page is for, and where its first record is made. */
 export const GUIDES: Record<string, { purpose: string; first: string; to?: string; sample?: string }> = {
@@ -25,7 +26,7 @@ export const GUIDES: Record<string, { purpose: string; first: string; to?: strin
   workflow: { purpose: "Workflows act on records for you — notify, assign, raise a task, call a webhook.", first: "Draw one on the canvas, or write one step by step.", to: "/workflows" },
 };
 
-export function EmptyGuide({ area }: { area: string }) {
+function EmptyGuideInner({ area }: { area: string }) {
   const guide = GUIDES[area];
   const { can } = useAuth();
   const queryClient = useQueryClient();
@@ -55,3 +56,6 @@ export function EmptyGuide({ area }: { area: string }) {
     </div>
   );
 }
+
+/** Rendered only while onboarding is on (§27). */
+export const EmptyGuide = withFeature(FEATURES.onboarding, EmptyGuideInner);

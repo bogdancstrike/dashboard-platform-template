@@ -24,6 +24,7 @@ import { useAuth } from "@/auth/AuthProvider";
 
 import { AstIcon } from "./AstIcon";
 import "@/styles/assistant.css";
+import { FEATURES, withFeature } from "@/settings/features";
 
 const PENDING = "nucleus.assistant.pendingFilter";
 
@@ -74,7 +75,7 @@ function SuggestionNote({ suggestion }: { suggestion: FilterSuggestion }) {
   );
 }
 
-export function DescribeFilters({
+function DescribeFiltersInner({
   resourceType,
   currentTree,
   onLoad,
@@ -214,3 +215,6 @@ export function AskData({
     </Popover>
   );
 }
+
+/** Rendered only while its feature flag is on (§27). */
+export const DescribeFilters = withFeature(FEATURES.aiFilters, DescribeFiltersInner);

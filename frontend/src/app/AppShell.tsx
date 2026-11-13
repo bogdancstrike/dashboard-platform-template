@@ -22,7 +22,7 @@ import { landingPath } from "@/pages/PreferencesPage";
 import { usePreferences } from "@/settings/PreferencesProvider";
 import { useAppearance } from "@/theme/AppearanceProvider";
 import { DENSITY_LABEL, type Density } from "@/theme/tokens";
-import { useFeatures, type FeatureKey } from "@/settings/features";
+import { FEATURES, flagForPath, navItemFlag, useFeatureSync, useFeatures, type FeatureKey } from "@/settings/features";
 import { PageTour } from "@/app/PageTour";
 import { OverlayHistory, useScrollMemory } from "@/app/history";
 import { NAV_GROUPS, NAV_ITEMS, selectedKeyFor, trailFor, type NavGroup } from "./navigation";
@@ -85,6 +85,10 @@ export function AppShell() {
   const { preferences, save: savePreference } = usePreferences();
   const { setOpen: openPalette } = useCommands();
   const live = useLive();
+  // Flag changes reach this tab without a reload (§27).
+  useFeatureSync();
+  const paletteOn = features(FEATURES.commandPalette);
+  const darkModeOn = features(FEATURES.darkMode);
 
   // Before the first measurement every breakpoint is undefined; treat that as
   // the desktop so the first paint is not a phone layout on a laptop.
@@ -168,7 +172,11 @@ export function AppShell() {
         ...group,
         items: group.items
           .filter((item) => auth.can(item.permission))
-          .filter((item) => !item.flag || features(item.flag as FeatureKey)),
+          // An item is behind its own flag, or the flag of the route it opens.
+          .filter((item) => {
+            const flag = navItemFlag(item);
+            return !flag || features(flag);
+          }),
       })).filter((group) => group.items.length > 0),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [auth.can, auth.profile?.features],
@@ -179,8 +187,10 @@ export function AppShell() {
   const activeItem = NAV_ITEMS.find((item) => item.key === selected);
   const forbidden =
     !auth.loading && Boolean(activeItem?.permission) && !auth.can(activeItem?.permission);
-  const switchedOff =
-    !auth.loading && Boolean(activeItem?.flag) && !features(activeItem?.flag as FeatureKey);
+  // Any route a flag governs — not only menu entries: `/tasks/grid`,
+  // `/workflows/:id/canvas` and `/assistant/:id` are reached by address too.
+  const routeFlag = flagForPath(location.pathname) ?? (activeItem?.flag as FeatureKey | undefined);
+  const switchedOff = !auth.loading && Boolean(routeFlag) && !features(routeFlag as FeatureKey);
 
   // Keep the current item in view when the sidebar first renders.
   const navRef = useRef<HTMLDivElement>(null);
@@ -220,7 +230,7 @@ export function AppShell() {
       { key: "profile", icon: <NxIcon name="user" size={16} />, label: "Your profile", onClick: () => navigate("/profile") },
       { key: "preferences", icon: <NxIcon name="sliders" size={16} />, label: "Preferences", onClick: () => navigate("/settings/preferences") },
       { key: "security", icon: <NxIcon name="shield" size={16} />, label: "Security", onClick: () => navigate("/settings/security") },
-      {
+      darkModeOn && {
         key: "appearance",
         icon: <NxIcon name={mode === "dark" ? "sun" : "moon"} size={16} />,
         label: `Appearance: ${appearance}`,
@@ -254,7 +264,7 @@ export function AppShell() {
       },
       { type: "divider" as const },
       { key: "signout", icon: <NxIcon name="logout" size={16} />, label: "Sign out", onClick: () => void auth.signOut() },
-    ],
+    ].filter(<T,>(item: T | false): item is T => item !== false),
   };
 
   const avatar = (size: number) => (
@@ -410,18 +420,20 @@ export function AppShell() {
             </button>
           </div>
           <div className="nx-side-search">
-            <Tooltip title={folded ? `Search or jump to… (${chord})` : undefined} placement="right">
-              <button
-                type="button"
-                className="nx-omni"
-                onClick={() => openPalette(true)}
-                aria-label={`Open the command palette (${chord})`}
-              >
-                <NxIcon name="search" size={16} stroke={2} />
-                <span>Search or jump to…</span>
-                <kbd>{chord}</kbd>
-              </button>
-            </Tooltip>
+            {paletteOn && (
+              <Tooltip title={folded ? `Search or jump to… (${chord})` : undefined} placement="right">
+                <button
+                  type="button"
+                  className="nx-omni"
+                  onClick={() => openPalette(true)}
+                  aria-label={`Open the command palette (${chord})`}
+                >
+                  <NxIcon name="search" size={16} stroke={2} />
+                  <span>Search or jump to…</span>
+                  <kbd>{chord}</kbd>
+                </button>
+              </Tooltip>
+            )}
             <CollapseAllToggle allCollapsed={allGroupsClosed} onToggle={setAllGroups} label="groups" />
           </div>
           {/* Held invisible until the profile says which pages this reader
@@ -469,8 +481,8 @@ export function AppShell() {
         {isPc && (
           <header className="nx-top nx-glass">
             {crumbs}
-            {liveChip}
-            {themeButton}
+            {features(FEATURES.liveUpdates) && liveChip}
+            {darkModeOn && themeButton}
             <TimerPill />
             <NotificationBell />
             <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
@@ -489,15 +501,17 @@ export function AppShell() {
           <>
             <header className="nx-top nx-glass">
               {crumbs}
-              <button
-                type="button"
-                className="nx-iconbtn nx-iconbtn--lg"
-                aria-label="Open the command palette"
-                onClick={() => openPalette(true)}
-              >
-                <NxIcon name="search" stroke={2} />
-              </button>
-              {themeButton}
+              {paletteOn && (
+                <button
+                  type="button"
+                  className="nx-iconbtn nx-iconbtn--lg"
+                  aria-label="Open the command palette"
+                  onClick={() => openPalette(true)}
+                >
+                  <NxIcon name="search" stroke={2} />
+                </button>
+              )}
+              {darkModeOn && themeButton}
               <TimerPill />
               <NotificationBell />
             </header>
@@ -527,14 +541,16 @@ export function AppShell() {
               {activeItem?.label ?? trail[trail.length - 1]?.label ?? "Nucleus"}
             </span>
             <TimerPill />
-            <button
-              type="button"
-              className="nx-iconbtn nx-iconbtn--lg"
-              aria-label="Open the command palette"
-              onClick={() => openPalette(true)}
-            >
-              <NxIcon name="search" stroke={2} />
-            </button>
+            {paletteOn && (
+              <button
+                type="button"
+                className="nx-iconbtn nx-iconbtn--lg"
+                aria-label="Open the command palette"
+                onClick={() => openPalette(true)}
+              >
+                <NxIcon name="search" stroke={2} />
+              </button>
+            )}
             <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
               <button className="nx-rail-me" type="button" aria-label="Open profile menu">
                 {avatar(44)}
@@ -634,7 +650,7 @@ export function AppShell() {
         </div>
       )}
 
-      <CommandPalette />
+      {paletteOn && <CommandPalette />}
       <OverlayHistory />
     </div>
   );

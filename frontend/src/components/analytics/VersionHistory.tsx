@@ -26,6 +26,7 @@ import { errorText } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { asText } from "@/lib/text";
 import { EmptyState } from "@/components/EmptyState";
+import { FEATURES, withFeature } from "@/settings/features";
 
 export function displayValue(
   field: VersionField,
@@ -54,7 +55,7 @@ const ACTION_LABEL: Record<string, string> = {
   BULK_UPDATE: "Bulk edit",
 };
 
-export function VersionHistory({
+function VersionHistoryInner({
   resourceType,
   recordId,
   narrow = false,
@@ -276,7 +277,7 @@ export function VersionHistory({
 }
 
 /** A button that opens the history as a URL-driven drawer (`?versions=1`). */
-export function VersionHistoryButton({ resourceType, recordId }: { resourceType: string; recordId: string }) {
+function VersionHistoryButtonInner({ resourceType, recordId }: { resourceType: string; recordId: string }) {
   const overlay = useUrlOverlay("versions");
   return (
     <>
@@ -296,3 +297,9 @@ export function VersionHistoryButton({ resourceType, recordId }: { resourceType:
     </>
   );
 }
+
+/** Rendered only while its feature flag is on (§27). */
+export const VersionHistory = withFeature(FEATURES.versionHistory, VersionHistoryInner);
+
+/** Rendered only while its feature flag is on (§27). */
+export const VersionHistoryButton = withFeature(FEATURES.versionHistory, VersionHistoryButtonInner);

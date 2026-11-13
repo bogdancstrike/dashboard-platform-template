@@ -230,6 +230,8 @@ class FeatureFlag(Base, TimestampMixin):
     target_user_ids: Mapped[list[str] | None] = mapped_column(ARRAY(String(64)))
     target_group_ids: Mapped[list[str] | None] = mapped_column(ARRAY(String(64)))
     target_roles: Mapped[list[str] | None] = mapped_column(ARRAY(String(48)))
+    #: Organizations that always have the flag (§27 targeting).
+    target_organization_ids: Mapped[list[str] | None] = mapped_column(ARRAY(String(64)))
     owner_id: Mapped[UUID | None] = fk("users.id")
     updated_by_id: Mapped[UUID | None] = fk("users.id")
     last_toggled_at: Mapped[Any | None] = mapped_column(DateTime(timezone=True))

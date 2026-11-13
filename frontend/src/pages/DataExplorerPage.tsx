@@ -78,6 +78,7 @@ export default function DataExplorerPage() {
   /** Two features of this page live behind flags (§27). */
   const advancedSearch = useFeature(FEATURES.advancedSearch);
   const bulkAllowed = useFeature(FEATURES.bulkOperations);
+  const savedOn = useFeature(FEATURES.savedViews);
   const [saveOpen, setSaveOpen] = useState(false);
   // "Save as…" inside the advanced editor names the draft condition, which
   // by definition has not been run yet, so the modal is handed that tree
@@ -263,7 +264,7 @@ export default function DataExplorerPage() {
     queryKey: ["explorer", "saved-link", savedInUrl],
     queryFn: ({ signal }) => explorerApi.openSaved(savedInUrl, signal),
     // Also fetched once the question is on screen, for its name in the title.
-    enabled: Boolean(savedInUrl),
+    enabled: Boolean(savedInUrl) && savedOn,
   });
 
   useEffect(() => {
@@ -343,13 +344,15 @@ export default function DataExplorerPage() {
         setSaveOpen(true);
       },
     },
-    {
-      id: "explore.saved",
-      label: "Open the saved searches",
-      icon: <FolderOpenOutlined />,
-      keywords: "saved views panel mine shared",
-      run: () => openPanel({ panel: "saved" }),
-    },
+    ...(savedOn
+      ? [{
+          id: "explore.saved",
+          label: "Open the saved searches",
+          icon: <FolderOpenOutlined />,
+          keywords: "saved views panel mine shared",
+          run: () => openPanel({ panel: "saved" }),
+        }]
+      : []),
     ...VIEW_OPTIONS.filter((option) => option.value !== view).map((option) => ({
       id: `explore.view.${option.value}`,
       label: `Read as ${option.label.toLowerCase()}`,
@@ -414,9 +417,11 @@ export default function DataExplorerPage() {
       }
       actions={
         <>
-          <Button icon={<NxIcon name="heart" size={15} />} onClick={() => openPanel({ panel: "saved" })}>
-            Saved searches
-          </Button>
+          {savedOn && (
+            <Button icon={<NxIcon name="heart" size={15} />} onClick={() => openPanel({ panel: "saved" })}>
+              Saved searches
+            </Button>
+          )}
           {mode === "results" || !advancedSearch ? (
             <Button
               type="primary"
@@ -682,13 +687,17 @@ export default function DataExplorerPage() {
           recordCount={resource.record_count}
           resources={resources}
           onChooseResource={chooseResource}
-          onOpenSaved={() => openPanel({ panel: "saved", from: "rules" })}
+          {...(savedOn ? { onOpenSaved: () => openPanel({ panel: "saved", from: "rules" }) } : {})}
           onClose={closeRules}
           onSearch={(next) => set({ tree: next ? JSON.stringify(next) : null, page: null, panel: null })}
-          onSave={(next) => {
-            setDraftToSave(next);
-            setSaveOpen(true);
-          }}
+          {...(savedOn
+            ? {
+                onSave: (next: QueryNode | null) => {
+                  setDraftToSave(next);
+                  setSaveOpen(true);
+                },
+              }
+            : {})}
         />
       )}
 
@@ -702,7 +711,7 @@ export default function DataExplorerPage() {
       />
 
       <SavedSearchDrawer
-        open={savedOpen}
+        open={savedOpen && savedOn}
         resourceType={resource?.key ?? ""}
         onClose={() => closePanel({ panel: null, from: null })}
         {...(params.get("from") === "rules"
@@ -714,7 +723,7 @@ export default function DataExplorerPage() {
           setSaveOpen(true);
         }}
       />
-      {saveValue && (
+      {saveValue && savedOn && (
         <SavedSearchForm
           open={saveOpen}
           value={editing ? savedQuestion(editing) : saveValue}

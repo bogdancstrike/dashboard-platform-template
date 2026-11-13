@@ -241,6 +241,11 @@ def _webhook(session, *, rule: AlertRule, match: Match, config: dict[str, Any], 
     The URL is validated when the rule is *saved* as well, so a rule cannot sit
     in the table carrying a target the engine will refuse.
     """
+    from src.core import features
+
+    if not features.job_allowed("automation.webhook-action"):
+        # Recorded as the action's outcome, so the run says why nothing was sent.
+        return "skipped: webhooks are switched off"
     url = _webhook_url(config.get("url"))
     payload = json.dumps(
         {

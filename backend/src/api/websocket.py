@@ -67,7 +67,15 @@ def register(app, sock) -> None:
             ws.send(json.dumps({"type": "error", "error": "unauthorized", "message": str(exc)[:200]}))
             return
 
-        live.subscribe(principal.user_id, ws)
+        from src.core import features
+
+        if not features.is_enabled("live-updates", principal):
+            # Switched off (§27): refused with the same envelope the API uses,
+            # and the client falls back to polling.
+            ws.send(json.dumps({"type": "error", "error": "feature_disabled", "feature": "live-updates"}))
+            return
+        gated = features.GatedSocket(ws, principal)
+        live.subscribe(principal.user_id, gated)
         presence.connected(principal.user_id)
         log.debug(f"live: {principal.username} connected ({live.connection_count()} open)")
 
@@ -90,12 +98,12 @@ def register(app, sock) -> None:
                 if message is None:
                     ws.send(json.dumps({"type": "ping", "at": iso(now())}))
                     continue
-                if isinstance(message, str):
+                if isinstance(message, str) and gated.accepts_frame(message):
                     presence.client_frame(principal.user_id, message)
         except Exception as exc:
             log.debug(f"live: connection closed for {principal.username}: {exc}")
         finally:
-            live.unsubscribe(principal.user_id, ws)
+            live.unsubscribe(principal.user_id, gated)
             presence.disconnected(principal.user_id)
 
     log.info(f"live: websocket mounted at {route}", "cyan")

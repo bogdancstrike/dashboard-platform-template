@@ -63,6 +63,10 @@ export interface FeatureFlag {
   rollout_percentage: number;
   target_roles: string[];
   target_user_ids: string[];
+  /** Groups (ids or names) that always have it (§27). */
+  target_group_ids?: string[];
+  /** Organizations that always have it. */
+  target_organization_ids?: string[];
   experimental: boolean;
   last_toggled_at: string | null;
   updated_at: string | null;
@@ -74,6 +78,46 @@ export interface FeatureFlag {
   on_for_me: boolean;
   /** Enabled, and between 1 and 99 per cent — so the number explains the row. */
   partial: boolean;
+  /** The catalogue's area for it, or `custom` for an installation's own flag. */
+  area?: string;
+  /** Parent flags: off when any of these is off. */
+  requires?: string[];
+  default_on?: boolean;
+  in_catalogue?: boolean;
+  /** What switching it off takes away — from the server's catalogue. */
+  controls?: FlagControls;
+}
+
+export interface FlagControls {
+  routes: string[];
+  nav: string[];
+  components: string[];
+  endpoints: { methods: string[]; url: string }[];
+  jobs: string[];
+  live: string[];
+  payload_rules: string[];
+  /** Flags that require this one, and so go off with it. */
+  dependents: string[];
+}
+
+export interface FlagHistoryEntry {
+  id: string;
+  at: string | null;
+  actor: string | null;
+  actor_id: string | null;
+  message: string | null;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
+  changed_fields: string[];
+}
+
+export interface FlagPreview {
+  role: string;
+  user_id: string | null;
+  features: Record<string, boolean>;
+  off: string[];
+  /** Percentage rollouts whose answer depends on which person it is. */
+  depends_on_person: string[];
 }
 
 export interface FlagsPage {
@@ -81,6 +125,7 @@ export interface FlagsPage {
   total: number;
   counts: { total: number; on: number; partial: number; experimental: number };
   stages: string[];
+  areas?: { key: string; label: string }[];
 }
 
 export const settingsApi = {
@@ -91,8 +136,13 @@ export const settingsApi = {
     api.put<Setting>(`/admin/settings/${key}`, { value }),
   reset: (key: string) => api.put<Setting>(`/admin/settings/${key}`, { reset: true }),
 
-  flags: (params: { stage?: string; state?: string } = {}, signal?: AbortSignal) =>
+  flags: (params: { stage?: string; state?: string; q?: string; area?: string } = {}, signal?: AbortSignal) =>
     api.get<FlagsPage>("/admin/flags", { params, signal }),
+  flagHistory: (key: string, signal?: AbortSignal) =>
+    api.get<{ key: string; items: FlagHistoryEntry[] }>(`/admin/flags/${key}/history`, { signal }),
+  /** What a role (or one person) would have. */
+  flagPreview: (params: { role?: string; user_id?: string }, signal?: AbortSignal) =>
+    api.get<FlagPreview>("/admin/flags/preview", { params, signal }),
   updateFlag: (
     key: string,
     body: Partial<{
@@ -100,6 +150,8 @@ export const settingsApi = {
       rollout_percentage: number;
       target_roles: string[];
       target_user_ids: string[];
+      target_group_ids: string[];
+      target_organization_ids: string[];
       description: string;
       stage: string;
       experimental: boolean;

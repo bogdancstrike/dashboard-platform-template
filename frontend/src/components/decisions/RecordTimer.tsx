@@ -12,6 +12,7 @@ import { EntryModal } from "./EntryModal";
 import { TdIcon } from "./TdIcon";
 import { useTimer } from "./useTimer";
 import { EmptyState } from "@/components/EmptyState";
+import { FEATURES, withFeature } from "@/settings/features";
 
 const { Text } = Typography;
 
@@ -20,7 +21,7 @@ const { Text } = Typography;
  * the clock; running elsewhere, starting here switches (the other is stopped
  * and logged — one timer per person).
  */
-export function RecordTimerButton({
+function RecordTimerButtonInner({
   subjectType,
   subjectId,
   label,
@@ -63,7 +64,7 @@ export function RecordTimerButton({
 }
 
 /** The time logged on this record: the total, mine, and the latest entries. */
-export function RecordTimeCard({ subjectType, subjectId }: { subjectType: SubjectType; subjectId: string }) {
+function RecordTimeCardInner({ subjectType, subjectId }: { subjectType: SubjectType; subjectId: string }) {
   const timer = useTimer();
   const logged = useQuery({
     queryKey: ["time", "on", subjectType, subjectId],
@@ -101,3 +102,9 @@ export function RecordTimeCard({ subjectType, subjectId }: { subjectType: Subjec
     </Card>
   );
 }
+
+/** Rendered only while its feature flag is on (§27). */
+export const RecordTimerButton = withFeature(FEATURES.timeTracking, RecordTimerButtonInner);
+
+/** Rendered only while its feature flag is on (§27). */
+export const RecordTimeCard = withFeature(FEATURES.timeTracking, RecordTimeCardInner);

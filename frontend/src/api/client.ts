@@ -23,6 +23,8 @@ export interface ApiErrorBody {
   error: string;
   message: string;
   details?: Record<string, unknown>;
+  /** Set on `feature_disabled`: the flag that refused the call (§27). */
+  feature?: string;
 }
 
 export class ApiError extends Error {
@@ -36,8 +38,19 @@ export class ApiError extends Error {
     this.name = "ApiError";
     this.status = status;
     this.code = body.error || "error";
-    this.details = body.details ?? {};
+    this.details = body.feature ? { feature: body.feature, ...(body.details ?? {}) } : (body.details ?? {});
     this.correlationId = correlationId;
+  }
+
+  /** The feature is switched off for this caller (§27) — not a permission. */
+  get isFeatureDisabled(): boolean {
+    return this.code === "feature_disabled";
+  }
+
+  /** Which flag refused the call, when one did. */
+  get feature(): string | undefined {
+    const key = this.details["feature"];
+    return typeof key === "string" ? key : undefined;
   }
 
   /** No credential at all — the app should send the caller back to sign in. */
@@ -68,6 +81,13 @@ export interface RequestOptions {
   body?: unknown;
   signal?: AbortSignal;
   headers?: Record<string, string>;
+}
+
+/** Called when any request is refused as `feature_disabled` (§27). */
+let onFeatureDisabled: ((feature: string | undefined) => void) | null = null;
+
+export function setFeatureDisabledHandler(handler: ((feature: string | undefined) => void) | null): void {
+  onFeatureDisabled = handler;
 }
 
 /** Supplies a fresh bearer token. Set once, when auth initialises. */
@@ -194,7 +214,9 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   if (!response.ok) {
     lastFailure = echoed;
     if (response.status === 401) onUnauthorized?.();
-    throw new ApiError(response.status, asErrorBody(parsed, response.status), echoed);
+    const failure = new ApiError(response.status, asErrorBody(parsed, response.status), echoed);
+    if (failure.isFeatureDisabled) onFeatureDisabled?.(failure.feature);
+    throw failure;
   }
 
   return parsed as T;

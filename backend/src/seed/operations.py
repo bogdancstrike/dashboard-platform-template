@@ -179,35 +179,30 @@ def _feature_flags(world: World) -> None:
     rng = world.rng.derive("flags")
     admins = [u for u in world.users if u.id in {p.id for p in world.personas.values()}]
 
-    for key, name, description, stage, experimental in catalog.FEATURE_FLAGS:
-        # A flag that *hides something shipped* is on, at a hundred per cent.
-        # A rollout percentage is how a team ships something gradually, and
-        # applying one to a finished feature means a dice roll decides whether
-        # a page exists — which is exactly what happened to `/dashboards` (§27).
-        gates_navigation = key in catalog.NAVIGATION_FLAGS
-        enabled = gates_navigation or stage == "GA" or (stage == "BETA" and rng.chance(0.6))
-        rollout = (
-            100 if gates_navigation or stage == "GA" else rng.pick((0, 5, 10, 25, 50, 75))
-        )
+    from src.core.feature_catalogue import FEATURES
+
+    # Every flag is seeded at its catalogue default — on at a hundred per cent
+    # for a shipped feature. A rollout percentage is how a team ships
+    # something gradually, and applying one at random to a finished feature
+    # means a dice roll decides whether a page exists — which is exactly what
+    # happened to `/dashboards` (§27).
+    for feature in FEATURES:
         world.feature_flags.append(
             FeatureFlag(
                 id=rng.uuid(),
-                key=key,
-                name=name,
-                description=description,
-                enabled=enabled,
-                environment=rng.pick(("production", "production", "staging")),
-                stage=stage,
-                rollout_percentage=rollout,
-                target_user_ids=(
-                    [str(u.id) for u in rng.sample(world.users, rng.integer(1, 4))]
-                    if stage == "ALPHA" and not gates_navigation and world.users else None
-                ),
-                target_roles=["ADMINISTRATOR"] if stage == "ALPHA" else None,
+                key=feature.key,
+                name=feature.name,
+                description=feature.description,
+                enabled=feature.default_on,
+                environment="production",
+                stage=feature.stage,
+                rollout_percentage=feature.default_rollout,
+                target_user_ids=None,
+                target_roles=None,
                 owner_id=rng.pick(admins).id if admins else None,
                 updated_by_id=rng.pick(admins).id if admins else None,
                 last_toggled_at=rng.maybe(rng.recent(days=60), 0.7),
-                experimental=experimental,
+                experimental=feature.experimental,
                 created_at=rng.ago(days_min=30, days_max=600),
             )
         )

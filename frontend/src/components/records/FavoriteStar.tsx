@@ -34,6 +34,7 @@ import type { MouseEvent } from "react";
 
 import { ApiError } from "@/api/client";
 import { favoritesApi, type BookmarkList } from "@/api/favorites";
+import { FEATURES, withFeature } from "@/settings/features";
 
 /** What the whole page needs to know about what this reader has starred. */
 export function useFavorites() {
@@ -59,7 +60,7 @@ export function useFavorites() {
   };
 }
 
-export function FavoriteStar({
+function FavoriteStarInner({
   resourceType,
   recordId,
   label,
@@ -155,3 +156,6 @@ export function FavoriteStar({
     </Tooltip>
   );
 }
+
+/** Rendered only while its feature flag is on (§27). */
+export const FavoriteStar = withFeature(FEATURES.favorites, FavoriteStarInner);

@@ -13,10 +13,11 @@ import { docsApi } from "@/api/docs";
 import { CoIcon } from "@/components/collab/icons";
 import { relativeTime } from "@/lib/time";
 import "@/styles/docs.css";
+import { FEATURES, withFeature } from "@/settings/features";
 
 const { Text } = Typography;
 
-export function MeetingNotes({ eventId }: { eventId: string }) {
+function MeetingNotesInner({ eventId }: { eventId: string }) {
   const { message } = AntApp.useApp();
   const navigate = useNavigate();
   const notes = useQuery({
@@ -69,3 +70,6 @@ export function MeetingNotes({ eventId }: { eventId: string }) {
     </div>
   );
 }
+
+/** Rendered only while its feature flag is on (§27). */
+export const MeetingNotes = withFeature(FEATURES.meetingNotes, MeetingNotesInner);

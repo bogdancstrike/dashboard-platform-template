@@ -116,6 +116,14 @@ export function useAuth(): AuthContextValue {
   return value;
 }
 
+/**
+ * The auth context, or null outside an `AuthProvider` — for readers that have
+ * a sensible answer without one (feature flags read as ungated, §27).
+ */
+export function useOptionalAuth(): AuthContextValue | null {
+  return useContext(AuthContext);
+}
+
 export function usePermission(permission: string): boolean {
   return useAuth().can(permission);
 }

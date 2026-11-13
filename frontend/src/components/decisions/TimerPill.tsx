@@ -10,6 +10,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { SubjectPicker, parseSubjectKey } from "./SubjectPicker";
 import { TdIcon } from "./TdIcon";
 import { useTimer } from "./useTimer";
+import { FEATURES, withFeature } from "@/settings/features";
 
 const { Text } = Typography;
 
@@ -18,7 +19,7 @@ const { Text } = Typography;
  * or stop one without going to the timesheet. One running timer per person,
  * held by the server — so it survives a reload and agrees across tabs.
  */
-export function TimerPill() {
+function TimerPillInner() {
   const timer = useTimer();
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
@@ -138,3 +139,6 @@ export function TimerPill() {
     </Popover>
   );
 }
+
+/** Rendered only while its feature flag is on (§27). */
+export const TimerPill = withFeature(FEATURES.timeTracking, TimerPillInner);

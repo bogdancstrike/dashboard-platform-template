@@ -29,6 +29,7 @@ import { NxIcon } from "@/components/NxIcon";
 import { useLocation } from "react-router-dom";
 
 import { useAuth } from "@/auth/AuthProvider";
+import { FEATURES, useFeature } from "@/settings/features";
 import { PageAsk } from "@/components/assistant/PageAsk";
 
 import { tourFor } from "./tours";
@@ -39,7 +40,9 @@ export function PageTour({ variant = "circle" }: { variant?: "circle" | "side" |
   // The help panel (§46): the tour, and a question about this page. Without
   // the assistant the button opens the tour directly, as it always did.
   const [panel, setPanel] = useState(false);
-  const canAsk = useAuth().can("ai.use");
+  // The question half is the AI page-help feature (§27); the tour is not.
+  const pageHelpOn = useFeature(FEATURES.aiPageHelp);
+  const canAsk = useAuth().can("ai.use") && pageHelpOn;
   const stops = tourFor(location.pathname);
 
   /**

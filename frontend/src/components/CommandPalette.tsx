@@ -13,6 +13,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { searchApi, type GlobalHit } from "@/api/search";
+import { FEATURES, navItemFlag, useFeatures } from "@/settings/features";
 import { NAV_GROUPS, NAV_ITEMS, selectedKeyFor } from "@/app/navigation";
 import { useAuth } from "@/auth/AuthProvider";
 import { useCommands, type PageCommand } from "@/commands/CommandContext";
@@ -70,6 +71,7 @@ export function CommandPalette() {
   const location = useLocation();
   const { appearance, mode, density, setAppearance, setDensity } = useAppearance();
   const { can } = useAuth();
+  const features = useFeatures();
   const [query, setQuery] = useState("");
 
   // A palette that reopens showing the last search is a palette that answers
@@ -95,7 +97,7 @@ export function CommandPalette() {
   const hits = useQuery({
     queryKey: ["palette-search", term],
     queryFn: ({ signal }) => searchApi.global(term, signal),
-    enabled: open && term.length >= MIN_RECORD_TERM,
+    enabled: open && term.length >= MIN_RECORD_TERM && features(FEATURES.globalSearch),
     placeholderData: (previous) => previous,
     staleTime: 15_000,
   });
@@ -186,7 +188,14 @@ export function CommandPalette() {
             (cmdk keeps DOM order between equal scores; audit A). */}
         <Command.Group heading="General">
           {NAV_GROUPS.flatMap((group) =>
-            group.items.filter((item) => can(item.permission)).map((item) => (
+            group.items
+              .filter((item) => can(item.permission))
+              .filter((item) => {
+                // Switched-off features are not offered (§27).
+                const flag = navItemFlag(item);
+                return !flag || features(flag);
+              })
+              .map((item) => (
               <Command.Item
                 key={item.key}
                 value={`nav:${item.key}:${group.label} ${item.label}`}
@@ -226,21 +235,25 @@ export function CommandPalette() {
         )}
 
         <Command.Group heading="Quick views">
-          <Command.Item
-            value="view:saved-searches"
-            onSelect={() => close(() => navigate("/explore?panel=saved"))}
-          >
-            <span className="nu-cmdk-icon">
-              <SearchOutlined />
-            </span>
-            <span className="nu-cmdk-label">All saved searches</span>
-          </Command.Item>
-          <Command.Item value="view:favorites" onSelect={() => close(() => navigate("/favorites"))}>
-            <span className="nu-cmdk-icon">
-              <SearchOutlined />
-            </span>
-            <span className="nu-cmdk-label">Favorites</span>
-          </Command.Item>
+          {features(FEATURES.savedViews) && (
+            <Command.Item
+              value="view:saved-searches"
+              onSelect={() => close(() => navigate("/explore?panel=saved"))}
+            >
+              <span className="nu-cmdk-icon">
+                <SearchOutlined />
+              </span>
+              <span className="nu-cmdk-label">All saved searches</span>
+            </Command.Item>
+          )}
+          {features(FEATURES.favorites) && (
+            <Command.Item value="view:favorites" onSelect={() => close(() => navigate("/favorites"))}>
+              <span className="nu-cmdk-icon">
+                <SearchOutlined />
+              </span>
+              <span className="nu-cmdk-label">Favorites</span>
+            </Command.Item>
+          )}
         </Command.Group>
 
         <Command.Group heading="Settings">

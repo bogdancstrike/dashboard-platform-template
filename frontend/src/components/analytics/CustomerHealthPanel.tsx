@@ -14,8 +14,9 @@ import { relativeTime } from "@/lib/time";
 
 import { BandPill, Delta, meterTone, ScoreRing } from "./parts";
 import { TrendChart } from "./TrendChart";
+import { FEATURES, withFeature } from "@/settings/features";
 
-export function CustomerHealthPanel({ customerId }: { customerId: string }) {
+function CustomerHealthPanelInner({ customerId }: { customerId: string }) {
   const [days, setDays] = useState(90);
   const health = useQuery({
     queryKey: ["customer-health", customerId, days],
@@ -125,3 +126,6 @@ function Signal({ component }: { component: HealthComponent }) {
     </article>
   );
 }
+
+/** Rendered only while its feature flag is on (§27). */
+export const CustomerHealthPanel = withFeature(FEATURES.customerHealth, CustomerHealthPanelInner);

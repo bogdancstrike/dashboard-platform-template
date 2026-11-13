@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 
 import { docsApi } from "@/api/docs";
 import { relativeTime } from "@/lib/time";
+import { FEATURES, withFeature } from "@/settings/features";
 
 const SOURCE: Record<string, string> = {
   MANUAL: "linked",
@@ -16,7 +17,7 @@ const SOURCE: Record<string, string> = {
   ACTION: "action item",
 };
 
-export function RecordBacklinks({ resourceType, resourceId }: { resourceType: string; resourceId: string }) {
+function RecordBacklinksInner({ resourceType, resourceId }: { resourceType: string; resourceId: string }) {
   const links = useQuery({
     queryKey: ["doc-backlinks", resourceType, resourceId],
     queryFn: ({ signal }) => docsApi.backlinks(resourceType, resourceId, signal),
@@ -45,3 +46,6 @@ export function RecordBacklinks({ resourceType, resourceId }: { resourceType: st
     </section>
   );
 }
+
+/** Rendered only while its feature flag is on (§27). */
+export const RecordBacklinks = withFeature(FEATURES.docs, RecordBacklinksInner);

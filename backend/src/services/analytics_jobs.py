@@ -112,6 +112,10 @@ def catch_up(session) -> bool:
             ScheduledTask.next_run_at <= now(),
         )
     ).all()
+    from src.core import features
+
+    # A job whose feature is switched off is not started (§27).
+    overdue = [code for code in overdue if features.job_allowed(code)]
     if not overdue:
         return False
     codes = tuple(overdue)

@@ -34,6 +34,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { SavedViewMenu } from "@/entities/SavedViewMenu";
 import type { EntityView } from "@/entities/useEntityView";
+import { FEATURES, useFeature } from "@/settings/features";
 
 /** Title, live count, export and the escape hatch to the Data Explorer. */
 export function EntityHeader({
@@ -49,6 +50,7 @@ export function EntityHeader({
 }) {
   const { message } = AntApp.useApp();
   const navigate = useNavigate();
+  const gridOn = useFeature(FEATURES.spreadsheetGrid);
   const { resource, rows, request, filterCount, clearFilters } = view;
 
   return (
@@ -99,7 +101,7 @@ export function EntityHeader({
             Ask a wider question
           </Button>
           {/* Records & analytics (§18): the same list as a spreadsheet. */}
-          {resource && (
+          {resource && gridOn && (
             <Button
               data-testid="open-grid"
               // An icon, because a phone shows the toolbar as icons only: with

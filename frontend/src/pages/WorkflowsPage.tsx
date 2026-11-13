@@ -64,6 +64,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { FEATURES, useFeature } from "@/settings/features";
 
 /** The address keys that are places rather than adjustments (§history). */
 const PLACES = new Set(["rule"]);
@@ -182,13 +183,16 @@ export default function WorkflowsPage() {
       message.error(error instanceof ApiError ? error.message : "The canvas could not be opened."),
   });
 
+  const canvasOn = useFeature(FEATURES.workflowCanvas);
   usePageCommands("workflows", [
-    {
-      id: "workflows.canvas",
-      label: "Build a workflow on the canvas",
-      keywords: "visual node graph flow builder branch",
-      run: () => build.mutate(),
-    },
+    ...(canvasOn
+      ? [{
+          id: "workflows.canvas",
+          label: "Build a workflow on the canvas",
+          keywords: "visual node graph flow builder branch",
+          run: () => build.mutate(),
+        }]
+      : []),
     {
       id: "workflows.new",
       label: "Write an automation",
@@ -371,12 +375,14 @@ export default function WorkflowsPage() {
           trigger={["click"]}
           menu={{
             items: [
-              {
-                key: "canvas",
-                icon: <NxIcon name="flow" size={14} />,
-                label: "Open on canvas",
-                onClick: () => navigate(`/workflows/${row.id}/canvas`),
-              },
+              ...(canvasOn
+                ? [{
+                    key: "canvas",
+                    icon: <NxIcon name="flow" size={14} />,
+                    label: "Open on canvas",
+                    onClick: () => navigate(`/workflows/${row.id}/canvas`),
+                  }]
+                : []),
               {
                 key: "dry",
                 icon: <PlayCircleOutlined />,
@@ -426,14 +432,16 @@ export default function WorkflowsPage() {
         }
         actions={
           <>
-            <Button
-              icon={<NxIcon name="flow" size={16} />}
-              onClick={() => build.mutate()}
-              loading={build.isPending}
-              data-testid="build-on-canvas"
-            >
-              Build on canvas
-            </Button>
+            {canvasOn && (
+              <Button
+                icon={<NxIcon name="flow" size={16} />}
+                onClick={() => build.mutate()}
+                loading={build.isPending}
+                data-testid="build-on-canvas"
+              >
+                Build on canvas
+              </Button>
+            )}
             <Button
               type="primary"
               icon={<PlusOutlined />}

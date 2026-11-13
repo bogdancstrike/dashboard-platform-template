@@ -71,6 +71,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
+import { FEATURES, useFeature } from "@/settings/features";
 
 const { Text } = Typography;
 
@@ -130,6 +131,7 @@ export default function LogsPage() {
   const opened = overlay.value;
   const setOpened = (id: string | null) => (id ? overlay.open(id) : overlay.close());
   const [live, setLive] = useState(false);
+  const tailOn = useFeature(FEATURES.liveLogStream);
   // The tail's own rows, newest first, kept outside react-query: they are an
   // append-only stream rather than the answer to a question, and putting them
   // in the cache would make every poll a re-render of the whole page.
@@ -250,12 +252,14 @@ export default function LogsPage() {
       keywords: "logs errors critical failures",
       run: () => set({ min_level: "ERROR" }),
     },
-    {
-      id: "logs.live",
-      label: "Follow the log live",
-      keywords: "logs tail follow live stream",
-      run: () => setLive(true),
-    },
+    ...(tailOn
+      ? [{
+          id: "logs.live",
+          label: "Follow the log live",
+          keywords: "logs tail follow live stream",
+          run: () => setLive(true),
+        }]
+      : []),
     {
       id: "logs.warnings",
       label: "Show warnings and worse",
@@ -392,6 +396,7 @@ export default function LogsPage() {
                 type={live ? "primary" : "default"}
                 onClick={() => setLive((current) => !current)}
                 data-testid="toggle-live"
+                hidden={!tailOn}
               >
                 {live ? "Pause" : "Live"}
               </Button>

@@ -1,3 +1,4 @@
+import { FEATURES, useFeature } from "@/settings/features";
 import {
   createContext,
   useCallback,
@@ -95,7 +96,10 @@ export function CommandProvider({ children }: { children: ReactNode }) {
    * an open modal or drawer: while a layer owns the keyboard, a global
    * shortcut is a surprise.
    */
+  // Switched off (§27): the chord and `/` are left to the browser.
+  const paletteOn = useFeature(FEATURES.commandPalette);
   useEffect(() => {
+    if (!paletteOn) return undefined;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
@@ -109,7 +113,7 @@ export function CommandProvider({ children }: { children: ReactNode }) {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [paletteOn]);
 
   const commands = useMemo(() => Object.values(bySource).flat(), [bySource]);
 

@@ -56,6 +56,8 @@ import { asText } from "@/lib/text";
 import { relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
 import { InsightWidgetBody } from "@/components/insights/InsightWidgetBody";
+import { useFeatures } from "@/settings/features";
+import { kindFlag } from "./kinds";
 
 const { Text } = Typography;
 
@@ -149,11 +151,19 @@ export function WidgetBody({
   catalogue: AnalysisCatalogue | undefined;
   resources: ExplorerResource[];
 }) {
+  const features = useFeatures();
   const config = widget.config;
   const entity = config.entity ?? "";
   const dataset = catalogue?.datasets.find((item) => item.key === entity);
   const resource = resources.find((item) => item.key === entity);
   const effectivePeriod = config.period ?? period;
+
+  // A widget whose feature has been switched off stays on the dashboard —
+  // the layout is the owner's — and says why it is empty (§27).
+  const flag = kindFlag(widget.kind);
+  if (flag && !features(flag)) {
+    return <EmptyState compact title="This widget's feature is switched off." />;
+  }
 
   if (widget.kind === "ALERTS") return <AlertsBody />;
   if (widget.kind === "ACTIVITY") return <ActivityBody />;

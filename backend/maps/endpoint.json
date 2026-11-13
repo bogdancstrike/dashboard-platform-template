@@ -3827,6 +3827,34 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "admin_flag_history",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/flags/<string:key>/history",
+      "description": "Every recorded change to one flag: who, when, from what to what.",
+      "exec_method": {
+        "module_name": "src.api.settings",
+        "method_name": "flag_history"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "admin_flag_preview",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/admin/flags/preview",
+      "description": "Which features a role, person, group or organization would have.",
+      "exec_method": {
+        "module_name": "src.api.settings",
+        "method_name": "flag_preview"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "log_catalogue",
       "model_name": "Empty",
       "request_method": [

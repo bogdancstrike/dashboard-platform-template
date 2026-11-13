@@ -24,6 +24,7 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 
 import { FORM_STATUS_TONE } from "./FormsPage";
 import { EmptyState } from "@/components/EmptyState";
+import { FEATURES, useFeature } from "@/settings/features";
 
 const { Text } = Typography;
 
@@ -80,6 +81,7 @@ export function moved<T>(list: T[], from: number, to: number): T[] {
  * they are told — and read what came in.
  */
 export default function FormDesignerPage() {
+  const publicFormsOn = useFeature(FEATURES.publicForms);
   const { id = "new" } = useParams();
   const creating = id === "new";
   const navigate = useNavigate();
@@ -154,7 +156,7 @@ export default function FormDesignerPage() {
         subtitle={creating ? "Not saved yet" : `${draft.submission_count} submissions · ${draft.public_path} · updated ${relativeTime(draft.updated_at)}`}
         actions={canManage ? (
           <Space wrap>
-            {!creating && draft.status === "PUBLISHED" && (
+            {!creating && draft.status === "PUBLISHED" && publicFormsOn && (
               <Tooltip title="Copy the public address">
                 <Button icon={<TdIcon name="copy" />} onClick={() => void navigator.clipboard?.writeText(`${window.location.origin}${draft.public_path}`).then(() => message.success("Address copied"))}>
                   Copy link

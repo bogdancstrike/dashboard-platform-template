@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { ApiError } from "@/api/client";
 import { errorText } from "@/lib/errors";
+import { FEATURES, withFeature } from "@/settings/features";
 
 /**
  * "Export" on any list (§30).
@@ -35,7 +36,7 @@ const FORMATS: { key: ExportFormat; label: string }[] = [
   { key: "json", label: "JSON — for another system" },
 ];
 
-export function ExportButton({
+function ExportButtonInner({
   onExport,
   onQueue,
   disabled,
@@ -111,3 +112,6 @@ export function ExportButton({
     </Dropdown>
   );
 }
+
+/** Rendered only while its feature flag is on (§27). */
+export const ExportButton = withFeature(FEATURES.exports, ExportButtonInner);

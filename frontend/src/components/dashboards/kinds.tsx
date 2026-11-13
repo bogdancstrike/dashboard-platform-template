@@ -51,6 +51,7 @@ import type { ReactNode } from "react";
 
 import type { WidgetKind } from "@/api/dashboards";
 import { SEMANTIC, SERIES } from "@/theme/tokens";
+import { FEATURES, flagForPath, type FeatureKey } from "@/settings/features";
 
 /** The families a reader browses, in the order they are offered. */
 export const KIND_FAMILIES = ["number", "chart", "records", "module", "saved"] as const;
@@ -388,6 +389,18 @@ export const KIND_ORDER: WidgetKind[] = [
   "SEARCH",
   "INSIGHT",
 ];
+
+/**
+ * The feature flag a kind belongs to (§27): the flag of the page it opens,
+ * and saved searches for the SEARCH kind (its page is the explorer, which no
+ * flag governs). A kind whose flag is off is not offered, and a widget of
+ * that kind already on a dashboard says so instead of failing.
+ */
+export function kindFlag(kind: WidgetKind): FeatureKey | undefined {
+  if (kind === "SEARCH") return FEATURES.savedViews;
+  const page = KINDS[kind].page;
+  return page ? flagForPath(page) : undefined;
+}
 
 /** The kinds of one family, in browsing order. */
 export function kindsOf(family: KindFamily, available: WidgetKind[]): WidgetKind[] {

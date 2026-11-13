@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { approvalsApi } from "@/api/approvals";
 import { metaApi, type PermissionCatalogue } from "@/api/meta";
 import { errorText } from "@/lib/errors";
+import { FEATURES, withFeature } from "@/settings/features";
 
 const { Text } = Typography;
 
@@ -16,7 +17,7 @@ const { Text } = Typography;
  * or by label ("View audit logs", from an API refusal); both are resolved
  * against the catalogue so the request always carries the code.
  */
-export function AskForAccess({ missing }: { missing: string[] }) {
+function AskForAccessInner({ missing }: { missing: string[] }) {
   const { message } = App.useApp();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -100,3 +101,6 @@ export function AskForAccess({ missing }: { missing: string[] }) {
     </>
   );
 }
+
+/** Rendered only while approvals are on (§27). */
+export const AskForAccess = withFeature(FEATURES.approvals, AskForAccessInner);

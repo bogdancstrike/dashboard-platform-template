@@ -480,33 +480,17 @@ SCHEDULED_TASKS: tuple[tuple[str, str, str, str], ...] = (
 #:
 #: `frontend/src/settings/features.ts` names the same keys; a flag added here
 #: and gated there without being listed here is caught by `test_settings.py`.
-NAVIGATION_FLAGS: frozenset[str] = frozenset({
-    "advanced-search",
-    "bulk-operations",
-    "command-palette",
-    "csv-import",
-    "dashboard-builder",
-    "kanban-board",
-    "report-scheduling",
-    "saved-views",
-})
+#:
+#: Since the feature catalogue (`core/feature_catalogue.py`) every shipped
+#: feature defaults on, so this is every flag whose catalogue default is on.
+from src.core.feature_catalogue import FEATURES as _CATALOGUE  # noqa: E402
 
-#: (key, name, description, stage, experimental)
-FEATURE_FLAGS: tuple[tuple[str, str, str, str, bool], ...] = (
-    ("advanced-search", "Advanced search builder", "Nested condition builder on list pages.", "GA", False),
-    ("dashboard-builder", "Dashboard builder", "Let users compose their own dashboards.", "BETA", False),
-    ("dark-mode", "Dark mode", "Dark colour scheme across the application.", "GA", False),
-    ("bulk-operations", "Bulk operations", "Multi-select actions on list pages.", "GA", False),
-    ("csv-import", "CSV import wizard", "Guided import with column mapping.", "BETA", False),
-    ("saved-views", "Saved views", "Persist filters, columns and density per user.", "GA", False),
-    ("command-palette", "Command palette", "Keyboard-driven navigation.", "BETA", False),
-    ("live-log-stream", "Live log stream", "Tail system logs in the browser.", "ALPHA", True),
-    ("ai-summaries", "AI record summaries", "Generated summaries on detail pages.", "ALPHA", True),
-    ("kanban-board", "Kanban board", "Drag-and-drop task board.", "GA", False),
-    ("impersonation", "User impersonation", "Administrators may act as another user.", "BETA", False),
-    ("webhooks", "Outbound webhooks", "Publish domain events to external systems.", "ALPHA", True),
-    ("report-scheduling", "Scheduled reports", "Email a report on a cron schedule.", "BETA", False),
-    ("mobile-layout", "Mobile layout", "Responsive layout below 768px.", "GA", False),
+NAVIGATION_FLAGS: frozenset[str] = frozenset(f.key for f in _CATALOGUE if f.default_on)
+
+#: (key, name, description, stage, experimental) — derived from the catalogue,
+#: which is the single source of truth for what flags exist.
+FEATURE_FLAGS: tuple[tuple[str, str, str, str, bool], ...] = tuple(
+    (f.key, f.name, f.description, f.stage, f.experimental) for f in _CATALOGUE
 )
 
 #: (key, name, provider, category, icon). The categories are asserted against

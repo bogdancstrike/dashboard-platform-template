@@ -20,10 +20,11 @@ import { relativeTime } from "@/lib/time";
 
 import { AstIcon } from "./AstIcon";
 import "@/styles/assistant.css";
+import { FEATURES, withFeature } from "@/settings/features";
 
 const URGENCY = { high: "Now", medium: "Today", low: "When you can" } as const;
 
-export function DailyBrief() {
+function DailyBriefInner() {
   const { can } = useAuth();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
@@ -107,3 +108,6 @@ export function DailyBrief() {
     </Card>
   );
 }
+
+/** Rendered only while its feature flag is on (§27). */
+export const DailyBrief = withFeature(FEATURES.aiDailyBrief, DailyBriefInner);

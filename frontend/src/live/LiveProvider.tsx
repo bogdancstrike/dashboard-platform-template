@@ -310,6 +310,13 @@ export function LiveProvider({ children }: { children: ReactNode }) {
           }
           return;
         }
+        if (event.data.includes('"feature_disabled"')) {
+          // Live updates are switched off (§27): poll, and ask again only at
+          // the longest backoff rather than hammering a refusal.
+          attemptRef.current = BACKOFF.length;
+          setStatus("polling");
+          return;
+        }
         onMessage(event.data);
       };
 

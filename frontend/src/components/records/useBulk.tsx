@@ -9,6 +9,7 @@ import type { ExplorerRequest, ExplorerResource } from "@/api/explorer";
 import { BulkDialog, settableFields } from "@/components/records/BulkDialog";
 import { formatNumber } from "@/lib/formats";
 import { refreshRecordViews } from "@/lib/refresh";
+import { FEATURES, useFeature } from "@/settings/features";
 
 /**
  * The most records a comparison may hold — `compare.MAX_RECORDS` on the server.
@@ -47,12 +48,14 @@ const { Text } = Typography;
  */
 
 export interface Bulk {
-  /** Spread onto an AntD `<Table rowSelection={…}>`. */
-  rowSelection: {
-    selectedRowKeys: string[];
-    onChange: (keys: React.Key[]) => void;
-    preserveSelectedRowKeys: true;
-  };
+  /** Spread onto an AntD `<Table rowSelection={…}>`. Absent while bulk operations are switched off (§27). */
+  rowSelection:
+    | {
+        selectedRowKeys: string[];
+        onChange: (keys: React.Key[]) => void;
+        preserveSelectedRowKeys: true;
+      }
+    | undefined;
   /** The bar, rendered by the page wherever it belongs. Null when nothing is selected. */
   bar: ReactNode;
   /** Rendered once per page. */
@@ -75,6 +78,7 @@ export function useBulk(
   const { message } = AntApp.useApp();
   const queryClient = useQueryClient();
 
+  const bulkOn = useFeature(FEATURES.bulkOperations);
   const [ticked, setTicked] = useState<string[]>([]);
   const [allMatching, setAllMatching] = useState(false);
   const [excluded, setExcluded] = useState<string[]>([]);
@@ -228,8 +232,8 @@ export function useBulk(
   })();
 
   return {
-    rowSelection,
-    bar,
+    rowSelection: bulkOn ? rowSelection : undefined,
+    bar: bulkOn ? bar : null,
     count,
     clear,
     dialog: (

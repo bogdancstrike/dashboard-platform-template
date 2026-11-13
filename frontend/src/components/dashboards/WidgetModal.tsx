@@ -48,10 +48,11 @@ import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { URL_OVERLAY } from "@/app/history";
 import { EmptyState } from "@/components/EmptyState";
 
-import { FAMILY_LABELS, KINDS, KIND_FAMILIES, kindsOf, type KindSpec } from "./kinds";
+import { FAMILY_LABELS, KINDS, KIND_FAMILIES, kindFlag, kindsOf, type KindSpec } from "./kinds";
 import { WidgetBody } from "./WidgetBody";
 import { WidgetCard, type WidgetMoves } from "./WidgetCard";
 import { PREVIEW_SIZES, ROW_HEIGHT } from "./WidgetGrid";
+import { useFeatures } from "@/settings/features";
 
 const { Text, Paragraph } = Typography;
 
@@ -101,6 +102,12 @@ export function WidgetModal({
   onClose: () => void;
   onSave: (input: WidgetInput) => void;
 }) {
+  // Kinds whose feature is switched off are not offered (§27).
+  const features = useFeatures();
+  const offeredKinds = kinds.filter((item) => {
+    const flag = kindFlag(item);
+    return !flag || features(flag);
+  });
   const [form] = Form.useForm();
   const [kind, setKind] = useState<WidgetKind>(widget?.kind ?? "KPI");
   /**
@@ -273,7 +280,7 @@ export function WidgetModal({
       {picking ? (
         <div className="nx-ov-kindgrid" data-testid="widget-kind-tiles">
           {KIND_FAMILIES.map((family) => {
-            const offered = kindsOf(family, kinds);
+            const offered = kindsOf(family, offeredKinds);
             if (offered.length === 0) return null;
             return (
               <section key={family} className="nx-ov-kindgrid-family">
@@ -360,7 +367,7 @@ export function WidgetModal({
             data-testid="widget-kind"
             options={KIND_FAMILIES.map((family) => ({
               label: FAMILY_LABELS[family].label,
-              options: kindsOf(family, kinds).map((item) => ({
+              options: kindsOf(family, offeredKinds).map((item) => ({
                 value: item,
                 label: KINDS[item].label,
                 spec: KINDS[item],

@@ -1326,6 +1326,11 @@ def on_record_write(session, resource, row, changed: set[str], *, created: bool,
     """
     if _ACTIVE.get():
         return 0
+    from src.core import features
+
+    # Workflows switched off (§27) react to nothing.
+    if not features.job_allowed("automation.record-triggers"):
+        return 0
     try:
         candidates = session.execute(
             select(AlertRule, AutomationGraph)
@@ -1490,6 +1495,10 @@ def register_provider() -> None:
 
 def run_due(session, *, principal=None) -> dict[str, int]:
     """The scheduler's pass: scheduled workflows that are due, and delays that are over."""
+    from src.core import features
+
+    if not features.job_allowed("automation.scheduler"):
+        return {"scheduled": 0, "resumed": 0}
     moment = now()
     ran = resumed = 0
     rows = session.execute(

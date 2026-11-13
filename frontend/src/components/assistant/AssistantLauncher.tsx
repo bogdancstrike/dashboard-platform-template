@@ -18,6 +18,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 
 import { AssistantChat } from "./AssistantChat";
 import { AstIcon } from "./AstIcon";
+import { FEATURES, withFeature } from "@/settings/features";
 
 const KEY = "nucleus.assistant.panel";
 
@@ -38,7 +39,7 @@ function remember(id: string | null) {
   }
 }
 
-export function AssistantLauncher() {
+function AssistantLauncherInner() {
   const { can } = useAuth();
   const location = useLocation();
   const [open, setOpen] = useState(false);
@@ -117,3 +118,6 @@ export function AssistantLauncher() {
     </>
   );
 }
+
+/** Rendered only while its feature flag is on (§27). */
+export const AssistantLauncher = withFeature(FEATURES.aiAssistant, AssistantLauncherInner);

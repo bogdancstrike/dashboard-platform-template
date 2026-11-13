@@ -76,6 +76,11 @@ def create_application() -> Flask:
     # they assign — and before the error handlers, so a request that fails
     # inside one still reaches `teardown_request` with a level of ERROR.
     install_request_log(app)
+    # After the request log, so a refused call is still a logged one; the
+    # gate raises `feature_disabled`, which the error handlers below render.
+    from src.core.features import install as install_feature_gate
+
+    install_feature_gate(app)
     _install_websocket(app)
     install_restx_error_handlers(handles.api)
     install_flask_error_handlers(app)

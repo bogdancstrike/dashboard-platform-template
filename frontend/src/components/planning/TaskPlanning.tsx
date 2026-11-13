@@ -47,6 +47,7 @@ import { relativeTime } from "@/lib/time";
 import { KindBadge, Points } from "./PlanItem";
 import { PlanIcon } from "./planIcons";
 import { shortDate } from "./gantt";
+import { FEATURES, useFeature, useFeatures, withFeature } from "@/settings/features";
 
 // Stored on the task as `cover_color` and seeded with these exact strings, so
 // they are data the server keeps rather than styling. palette-exempt
@@ -80,14 +81,20 @@ export function TaskPlanningSide({ id, page }: { id: string; page: RecordPage })
   const refresh = useRefresh(id);
   const canEdit = Boolean(page.record?.can_edit);
   const [repeating, setRepeating] = useState(false);
+  // Sprints and epics, and repeating, are features of their own (§27).
+  const features = useFeatures();
+  const sprintsOn = features(FEATURES.sprints);
+  const recurringOn = features(FEATURES.recurringTasks);
   const projectId = asText(page.value("project_id"));
   const epics = useQuery({
     queryKey: ["epics", projectId],
     queryFn: ({ signal }) => planningApi.epics({ project_id: projectId || undefined }, signal),
+    enabled: sprintsOn,
   });
   const sprints = useQuery({
     queryKey: ["sprints", projectId],
     queryFn: ({ signal }) => planningApi.sprints({ project_id: projectId || undefined }, signal),
+    enabled: sprintsOn,
   });
 
   const watch = useMutation({
@@ -142,7 +149,7 @@ export function TaskPlanningSide({ id, page }: { id: string; page: RecordPage })
         </div>
       </div>
 
-      {!isEpic && (
+      {!isEpic && sprintsOn && (
         <>
           <div className="nx-pl-section-label">Epic</div>
           <Select
@@ -161,21 +168,25 @@ export function TaskPlanningSide({ id, page }: { id: string; page: RecordPage })
         </>
       )}
 
-      <div className="nx-pl-section-label">Sprint</div>
-      <Select
-        allowClear
-        aria-label="Sprint"
-        placeholder="Backlog"
-        style={{ width: "100%" }}
-        disabled={!data?.can_manage}
-        value={data?.sprint?.id}
-        onChange={(next: string | undefined) => plan.mutate(next ?? null)}
-        options={[
-          ...(sprints.data?.items ?? [])
-            .filter((sprint) => sprint.state !== "COMPLETED" || sprint.id === data?.sprint?.id)
-            .map((sprint) => ({ value: sprint.id, label: `${sprint.name}${sprint.state === "ACTIVE" ? " (running)" : ""}` })),
-        ]}
-      />
+      {sprintsOn && (
+        <>
+          <div className="nx-pl-section-label">Sprint</div>
+          <Select
+            allowClear
+            aria-label="Sprint"
+            placeholder="Backlog"
+            style={{ width: "100%" }}
+            disabled={!data?.can_manage}
+            value={data?.sprint?.id}
+            onChange={(next: string | undefined) => plan.mutate(next ?? null)}
+            options={[
+              ...(sprints.data?.items ?? [])
+                .filter((sprint) => sprint.state !== "COMPLETED" || sprint.id === data?.sprint?.id)
+                .map((sprint) => ({ value: sprint.id, label: `${sprint.name}${sprint.state === "ACTIVE" ? " (running)" : ""}` })),
+            ]}
+          />
+        </>
+      )}
 
       <div className="nx-pl-section-label">Flag</div>
       <Space direction="vertical" style={{ width: "100%" }} size={6}>
@@ -249,8 +260,8 @@ export function TaskPlanningSide({ id, page }: { id: string; page: RecordPage })
         </Button>
       </div>
 
-      <div className="nx-pl-section-label">Repeat</div>
-      <Space wrap>
+      {recurringOn && <div className="nx-pl-section-label">Repeat</div>}
+      <Space wrap hidden={!recurringOn}>
         <span data-testid="task-recurrence">{data?.recurrence ? data.recurrence.summary : "Does not repeat"}</span>
         {data?.can_manage && (
           <Button icon={<PlanIcon name="repeat" />} onClick={() => setRepeating(true)} data-testid="task-repeat">
@@ -258,7 +269,7 @@ export function TaskPlanningSide({ id, page }: { id: string; page: RecordPage })
           </Button>
         )}
       </Space>
-      {data?.recurrence?.next_run_at && (
+      {recurringOn && data?.recurrence?.next_run_at && (
         <Typography.Text type="secondary" style={{ display: "block", fontSize: 12, marginTop: 4 }}>
           Next copy {relativeTime(data.recurrence.next_run_at)} · {data.recurrence.occurrences} made so far
         </Typography.Text>
@@ -275,7 +286,7 @@ export function TaskPlanningSide({ id, page }: { id: string; page: RecordPage })
 }
 
 /** How a task repeats: daily, weekly on chosen days, monthly, or every N days/weeks. */
-export function RecurrenceModal({
+function RecurrenceModalInner({
   open,
   id,
   current,
@@ -423,6 +434,7 @@ export function TaskRelations({ id, page }: { id: string; page: RecordPage }) {
   const [waitOn, setWaitOn] = useState<string | undefined>();
   const canEdit = Boolean(page.record?.can_edit);
   const data = planning.data;
+  const timelineOn = useFeature(FEATURES.timeline);
 
   const addSubtask = useMutation({
     mutationFn: (text: string) =>
@@ -513,6 +525,7 @@ export function TaskRelations({ id, page }: { id: string; page: RecordPage }) {
           </Space.Compact>
         )}
       </Card>
+      {timelineOn && (
       <Card size="small" className="nu-block" title="Dependencies" data-testid="task-dependencies">
         <div className="nx-pl-section-label" style={{ marginTop: 0 }}>
           Waits on
@@ -539,6 +552,7 @@ export function TaskRelations({ id, page }: { id: string; page: RecordPage }) {
           </Space.Compact>
         ) : null}
       </Card>
+      )}
     </>
   );
 }
@@ -627,7 +641,7 @@ export function ReorderableChecklist({
 }
 
 /** "Save as template" — the task's title, checklist, estimate and labels, for next time. */
-export function SaveAsTemplateButton({ id, title, disabled }: { id: string; title: string; disabled?: boolean }) {
+function SaveAsTemplateButtonInner({ id, title, disabled }: { id: string; title: string; disabled?: boolean }) {
   const { message } = AntApp.useApp();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -660,3 +674,9 @@ export function SaveAsTemplateButton({ id, title, disabled }: { id: string; titl
 }
 
 export type { Planning };
+
+/** Rendered only while its feature flag is on (§27). */
+export const RecurrenceModal = withFeature(FEATURES.recurringTasks, RecurrenceModalInner);
+
+/** Rendered only while its feature flag is on (§27). */
+export const SaveAsTemplateButton = withFeature(FEATURES.recurringTasks, SaveAsTemplateButtonInner);

@@ -1,91 +1,280 @@
 /**
  * Feature flags, read (§27).
  *
- * There was a whole flag system — rollout percentages, target roles, named
- * users, a stable hash so a flag cannot flicker — an administration screen to
- * manage it, and **nothing anywhere that read a flag**. Toggling one changed
- * no navigation and no page, which makes the screen a set of switches wired to
- * nothing and the audit trail behind it a record of nothing happening.
+ * The catalogue of flags lives on the server (`backend/src/core/
+ * feature_catalogue.py`): it seeds the rows, gates the API, the background
+ * jobs and the live channel, and tells the administration screen what each
+ * flag takes away. This file names the same keys and the same routes, and
+ * `backend/tests/test_feature_flags.py` fails when the two disagree.
  *
- * Three decisions.
+ * Four decisions.
  *
  * **The answer comes from the server, with the profile.** `/api/me` publishes
- * the keys that are on for *this* reader, computed by the same function the
- * flags screen reports `on_for_me` with. The rollout rule is not reimplemented
+ * a map of every flag and whether it is on for *this* reader, computed by the
+ * same function the API gates with. The rollout rule is never reimplemented
  * here — a browser that decided its own percentage would disagree with the
- * screen that explains it, and "it says it is on and I do not have it" would
- * be unanswerable.
+ * API that refuses the call.
  *
  * **A flag gates a feature, never a permission.** Turning `bulk-operations`
  * off takes the tick boxes away; it does not make somebody unable to delete a
- * record they may delete. Anything that gates *access* belongs in the role.
- * And the flags screen itself is never gated, or an administrator could
- * switch off their own way back.
+ * record they may delete. And the flags screen itself is never gated, or an
+ * administrator could switch off their own way back.
  *
- * **An unknown key is off.** A page asking for a flag nobody has declared
- * gets `false`, which fails in the direction that cannot surprise anybody:
- * the new thing stays hidden until somebody turns it on.
+ * **A flag nobody has created gates nothing.** The profile publishes a map, so
+ * an absent key reads as *ungated* rather than off — a page gated on a flag
+ * that does not exist yet must not vanish. While the profile loads the answer
+ * is the same, so half the navigation does not blink out for a frame.
+ *
+ * **Changes apply live.** `useFeatureSync` (mounted once by the shell)
+ * refetches the profile when the server announces a flag change on the live
+ * channel, when an API call comes back `feature_disabled`, on focus, and on a
+ * poll while the live channel is down.
  */
 
-import { useAuth } from "@/auth/AuthProvider";
+import { createElement, Fragment, useEffect, type ComponentType, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+
+import { setFeatureDisabledHandler } from "@/api/client";
+import { useOptionalAuth } from "@/auth/AuthProvider";
+import { useLive, useLiveEvents } from "@/live/LiveProvider";
 
 /**
- * The flags this product actually reads, and what each one covers.
+ * Every flag the product reads, by the name the code uses for it.
  *
- * Declared rather than left as strings scattered through the pages, for the
- * same reason the widget kinds are: this is the list somebody consults when
- * they want to know whether a flag *does* anything, and a key typed at one
- * call site is a key nobody can find again.
+ * Declared rather than typed as strings at call sites: this is the list
+ * somebody consults to find out whether a flag *does* anything.
  */
 export const FEATURES = {
-  /** The nested condition builder behind `/explore`'s Advanced button. */
-  advancedSearch: "advanced-search",
-  /** `/dashboards` — composing your own layouts. */
+  // Overview
   dashboardBuilder: "dashboard-builder",
-  /** Tick boxes and the bulk bar on every list. */
-  bulkOperations: "bulk-operations",
-  /** The ⌘K palette. */
-  commandPalette: "command-palette",
-  /** `/kanban` — the drag-and-drop board. */
-  kanbanBoard: "kanban-board",
-  /** `/import` — the guided CSV import. */
-  csvImport: "csv-import",
-  /** Saved views on a list. */
+  approvals: "approvals",
+  onboarding: "onboarding",
+  // AI
+  ai: "ai",
+  aiAssistant: "ai-assistant",
+  aiPageHelp: "ai-page-help",
+  aiDailyBrief: "ai-daily-brief",
+  aiFilters: "ai-filters",
+  aiInsights: "ai-insights",
+  aiDocuments: "ai-documents",
+  aiSummaries: "ai-summaries",
+  // Find
+  advancedSearch: "advanced-search",
   savedViews: "saved-views",
-  /** A cron string on a saved report. */
+  globalSearch: "global-search",
+  relationships: "relationships",
+  catalog: "catalog",
+  favorites: "favorites",
+  // Analyse
+  analytics: "analytics",
+  reports: "reports",
+  reportBuilder: "report-builder",
   reportScheduling: "report-scheduling",
+  chartBuilder: "chart-builder",
+  maps: "maps",
+  anomalyAlerts: "anomaly-alerts",
+  publicDashboards: "public-dashboards",
+  // Work
+  kanbanBoard: "kanban-board",
+  timeline: "timeline",
+  sprints: "sprints",
+  recurringTasks: "recurring-tasks",
+  workflows: "workflows",
+  workflowCanvas: "workflow-canvas",
+  webhooks: "webhooks",
+  calendar: "calendar",
+  mail: "mail",
+  files: "files",
+  timeTracking: "time-tracking",
+  // Collaboration
+  chat: "chat",
+  docs: "docs",
+  meetingNotes: "meeting-notes",
+  // Records
+  customerHealth: "customer-health",
+  contracts: "contracts",
+  versionHistory: "version-history",
+  spreadsheetGrid: "spreadsheet-grid",
+  slaPolicies: "sla-policies",
+  forms: "forms",
+  publicForms: "public-forms",
+  // Data
+  csvImport: "csv-import",
+  exports: "exports",
+  bulkOperations: "bulk-operations",
+  // Platform
+  commandPalette: "command-palette",
+  liveUpdates: "live-updates",
+  impersonation: "impersonation",
+  liveLogStream: "live-log-stream",
+  darkMode: "dark-mode",
+  // Developers
+  developerPortal: "developer-portal",
 } as const;
 
 export type FeatureKey = (typeof FEATURES)[keyof typeof FEATURES];
 
 /**
- * Whether one feature is on for the signed-in reader.
- *
- * **A flag nobody has created cannot hide anything.** The first version of
- * this asked "is the key in the list of enabled flags", so an unknown key read
- * as *off* — and the consequence was not hypothetical: the seed gave
- * `dashboard-builder` a five-per-cent rollout, `/dashboards` vanished from the
- * navigation of every demo persona, and a complete page looked deleted. A
- * feature with no flag is not a feature somebody switched off; it is one
- * nothing is gating.
- *
- * So the profile publishes a *map* of every flag the platform has, and an
- * absent key means ungated. The two cases the browser must not confuse are now
- * distinguishable, which they were not when it held only a list.
- *
- * While the profile is still loading there is no map, and the answer is the
- * same: ungated. A control that appears and then vanishes as the profile lands
- * is worse than one that appears a moment late — and hiding half the
- * navigation for that moment is worse than either.
+ * Routes a flag takes away: the shell answers them with the switched-off page.
+ * Same paths as the server catalogue's `routes`, as React Router spells them.
  */
-export function useFeature(key: FeatureKey): boolean {
-  const { profile } = useAuth();
-  return profile?.features?.[key] ?? true;
+export const ROUTE_FLAGS: Record<string, FeatureKey> = {
+  "/dashboards": "dashboard-builder",
+  "/dashboards/:id": "dashboard-builder",
+  "/approvals": "approvals",
+  "/onboarding": "onboarding",
+  "/assistant": "ai-assistant",
+  "/assistant/:conversationId": "ai-assistant",
+  "/ai/insights": "ai-insights",
+  "/ai/documents": "ai-documents",
+  "/search/saved": "saved-views",
+  "/search/saved/:searchId": "saved-views",
+  "/find/global": "global-search",
+  "/find/relationships": "relationships",
+  "/find/catalog": "catalog",
+  "/favorites": "favorites",
+  "/analytics": "analytics",
+  "/reports": "reports",
+  "/reports/builder": "report-builder",
+  "/charts/builder": "chart-builder",
+  "/maps": "maps",
+  "/alerts": "anomaly-alerts",
+  "/alerts/:id": "anomaly-alerts",
+  "/kanban": "kanban-board",
+  "/timeline": "timeline",
+  "/sprints": "sprints",
+  "/workflows": "workflows",
+  "/workflows/:ruleId/canvas": "workflow-canvas",
+  "/calendar": "calendar",
+  "/mail": "mail",
+  "/files": "files",
+  "/time": "time-tracking",
+  "/chat": "chat",
+  "/chat/:channelId": "chat",
+  "/docs": "docs",
+  "/docs/:pageId": "docs",
+  "/customers/health": "customer-health",
+  "/contracts": "contracts",
+  "/contracts/:id": "contracts",
+  "/tasks/grid": "spreadsheet-grid",
+  "/projects/grid": "spreadsheet-grid",
+  "/tickets/grid": "spreadsheet-grid",
+  "/customers/grid": "spreadsheet-grid",
+  "/orders/grid": "spreadsheet-grid",
+  "/devices/grid": "spreadsheet-grid",
+  "/admin/sla": "sla-policies",
+  "/admin/forms": "forms",
+  "/admin/forms/:id": "forms",
+  "/import": "csv-import",
+  "/exports": "exports",
+  "/developers": "developer-portal",
+  "/developers/:tab": "developer-portal",
+};
+
+/** Parents: a child is only on when its parent is (mirrors the catalogue). */
+const PARENTS: Partial<Record<FeatureKey, FeatureKey[]>> = {
+  "ai-assistant": ["ai"],
+  "ai-page-help": ["ai"],
+  "ai-daily-brief": ["ai"],
+  "ai-filters": ["ai"],
+  "ai-insights": ["ai"],
+  "ai-documents": ["ai"],
+  "ai-summaries": ["ai"],
+  "report-scheduling": ["reports"],
+  "public-dashboards": ["dashboard-builder"],
+  "workflow-canvas": ["workflows"],
+  webhooks: ["workflows"],
+  "meeting-notes": ["docs"],
+  "public-forms": ["forms"],
+};
+
+const ROUTE_PATTERNS = Object.entries(ROUTE_FLAGS).map(([route, key]) => ({
+  key,
+  test: new RegExp(`^${route.replace(/:[A-Za-z]+/g, "[^/]+")}/?$`),
+  // Static paths outrank parameterised ones: `/customers/health` is not a
+  // customer called "health".
+  weight: route.split("/").filter((part) => part && !part.startsWith(":")).length * 10 - (route.match(/:/g)?.length ?? 0),
+}));
+
+/** The flag a path is behind, or undefined when no flag governs it. */
+export function flagForPath(pathname: string): FeatureKey | undefined {
+  let best: { key: FeatureKey; weight: number } | undefined;
+  for (const pattern of ROUTE_PATTERNS) {
+    if (pattern.test.test(pathname) && (!best || pattern.weight > best.weight)) best = pattern;
+  }
+  return best?.key;
 }
 
-/** Several at once, for a page that gates more than one thing. */
+/** The flag a navigation item is behind: its own, or its route's. */
+export function navItemFlag(item: { key: string; flag?: string }): FeatureKey | undefined {
+  return (item.flag as FeatureKey | undefined) ?? flagForPath(item.key);
+}
+
+/** Whether `key` is on in a feature map — ungated when absent, parents count. */
+export function featureOn(flags: Record<string, boolean> | undefined, key: FeatureKey): boolean {
+  if (!flags) return true;
+  if (flags[key] === false) return false;
+  return (PARENTS[key] ?? []).every((parent) => featureOn(flags, parent));
+}
+
+/** Whether one feature is on for the signed-in reader. */
+export function useFeature(key: FeatureKey): boolean {
+  // Outside an AuthProvider (a component rendered on its own) nothing is gated.
+  const profile = useOptionalAuth()?.profile;
+  return featureOn(profile?.features, key);
+}
+
+/** Several at once, for a component that gates more than one thing. */
 export function useFeatures(): (key: FeatureKey) => boolean {
-  const { profile } = useAuth();
-  const flags = profile?.features;
-  return (key: FeatureKey) => flags?.[key] ?? true;
+  const flags = useOptionalAuth()?.profile?.features;
+  return (key: FeatureKey) => featureOn(flags, key);
+}
+
+/** Render `children` only while `flag` is on (and `fallback` otherwise). */
+export function Feature({ flag, children, fallback = null }: { flag: FeatureKey; children: ReactNode; fallback?: ReactNode }) {
+  return createElement(Fragment, null, useFeature(flag) ? children : fallback);
+}
+
+/**
+ * The same component, rendered only while `flag` is on.
+ *
+ * A wrapper rather than an early `return null` inside the component, so the
+ * component's own hooks are never skipped when a flag flips mid-session.
+ */
+export function withFeature<P extends object>(flag: FeatureKey, Component: ComponentType<P>): ComponentType<P> {
+  function Gated(props: P) {
+    return useFeature(flag) ? createElement(Component, props) : null;
+  }
+  Gated.displayName = `withFeature(${flag})(${Component.displayName ?? (Component.name || "Component")})`;
+  return Gated;
+}
+
+/** How often the profile is refetched while the live channel is down. */
+export const FEATURE_POLL_MS = 60_000;
+
+/**
+ * Keep the feature map current without a reload. Mounted once, by the shell.
+ */
+export function useFeatureSync(): void {
+  const queryClient = useQueryClient();
+  const live = useLive();
+  const refetch = () => void queryClient.invalidateQueries({ queryKey: ["me"] });
+
+  useLiveEvents((message) => {
+    if (message.type === "features.changed") refetch();
+  });
+
+  useEffect(() => {
+    // A call refused as switched off means the map this tab holds is stale.
+    setFeatureDisabledHandler(refetch);
+    return () => setFeatureDisabledHandler(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryClient]);
+
+  useEffect(() => {
+    if (!live.shouldPoll) return undefined;
+    const timer = window.setInterval(refetch, FEATURE_POLL_MS);
+    return () => window.clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live.shouldPoll, queryClient]);
 }

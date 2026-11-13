@@ -44,6 +44,7 @@ import { useNavigate } from "react-router-dom";
 import { explorerApi, type SaveSearchInput, type SavedSearch } from "@/api/explorer";
 import { SavedSearchForm } from "@/components/explorer/SavedSearchForm";
 import { fitsAList, type EntityView } from "@/entities/useEntityView";
+import { FEATURES, withFeature } from "@/settings/features";
 
 const { Text } = Typography;
 
@@ -98,7 +99,7 @@ export function describeSnapshot(view: EntityView): string {
   return parts.join(" · ");
 }
 
-export function SavedViewMenu({ view }: { view: EntityView }) {
+function SavedViewMenuInner({ view }: { view: EntityView }) {
   const { message } = AntApp.useApp();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -244,3 +245,6 @@ export function SavedViewMenu({ view }: { view: EntityView }) {
     </>
   );
 }
+
+/** Rendered only while its feature flag is on (§27). */
+export const SavedViewMenu = withFeature(FEATURES.savedViews, SavedViewMenuInner);

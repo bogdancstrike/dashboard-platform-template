@@ -43,7 +43,9 @@ def flags(app=None, operation: str = "", request=None, **_: Any):
     principal = me()
     if request is not None and request.method == "POST":
         with session_scope() as session:
-            return service.create_flag(session, json_body(), principal=principal), 201
+            answer = service.create_flag(session, json_body(), principal=principal)
+        _flags_changed([answer["key"]])
+        return answer, 201
 
     args = request.args.to_dict() if request is not None else {}
     with session_scope() as session:
@@ -57,5 +59,45 @@ def flag(app=None, operation: str = "", request=None, key: str = "", **kwargs: A
     identifier = key or str(kwargs.get("key") or "")
     with session_scope() as session:
         if request is not None and request.method == "DELETE":
-            return service.remove_flag(session, identifier, principal=principal), 200
-        return service.update_flag(session, identifier, json_body(), principal=principal), 200
+            answer = service.remove_flag(session, identifier, principal=principal)
+        else:
+            answer = service.update_flag(session, identifier, json_body(), principal=principal)
+    # After the commit, never inside it: a worker that re-read the flags
+    # between the bump and the commit would cache the old state under the
+    # new generation.
+    _flags_changed([identifier])
+    return answer, 200
+
+
+@requires("flags.manage")
+def flag_history(app=None, operation: str = "", request=None, key: str = "", **kwargs: Any):
+    """Every recorded change to one flag."""
+    identifier = key or str(kwargs.get("key") or "")
+    args = request.args.to_dict() if request is not None else {}
+    with session_scope() as session:
+        return service.flag_history(session, identifier, args, principal=me()), 200
+
+
+@requires("flags.manage")
+def flag_preview(app=None, operation: str = "", request=None, **_: Any):
+    """What a role, person, group or organization would see."""
+    args = request.args.to_dict() if request is not None else {}
+    with session_scope() as session:
+        return service.preview(session, args, principal=me()), 200
+
+
+def _flags_changed(keys: list[str]) -> None:
+    """Invalidate every worker's flag cache and tell every open client.
+
+    The live message carries no state — each client refetches its own
+    `/api/me`, because what a flag means *for a reader* is computed per
+    reader. Clients without the live channel pick it up on their poll.
+    """
+    from src.core import features
+    from src.services import live
+
+    features.invalidate()
+    try:
+        live.publish_to_all({"type": "features.changed", "keys": keys})
+    except Exception:  # pragma: no cover - delivery is best-effort
+        pass

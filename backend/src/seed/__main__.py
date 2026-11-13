@@ -20,7 +20,8 @@
     python -m src.seed --sync-jobs       # give every job status at least one job
     python -m src.seed --sync-org        # make each department's headcount agree with its people
     python -m src.seed --sync-health     # give every service a month of history to draw
-    python -m src.seed --sync-flags      # turn on every flag that hides something shipped
+    python -m src.seed --sync-flags      # create catalogue flags, reset untouched ones to default
+    python -m src.seed --reset-flags     # every catalogue flag back to its seeded default
     python -m src.seed --sync-activity   # give each organization a feed it can filter
     python -m src.seed --sync-preferences # fill in preference keys an account predates
     python -m src.seed --sync-approvals  # change rules and a queue of approval requests
@@ -116,8 +117,12 @@ def _parser() -> argparse.ArgumentParser:
         help="recount each department's headcount from the people actually in it",
     )
     parser.add_argument(
+        "--reset-flags", action="store_true",
+        help="put every catalogue feature flag back at its seeded default, decisions included",
+    )
+    parser.add_argument(
         "--sync-flags", action="store_true",
-        help="turn on every feature flag that gates a shipped page, at a full rollout",
+        help="create every catalogue feature flag, relabel them, reset never-touched ones to their default",
     )
     parser.add_argument(
         "--sync-activity", action="store_true",
@@ -460,17 +465,17 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
 
-    if args.sync_flags:
+    if args.sync_flags or args.reset_flags:
         # A rollout percentage is how a team ships something gradually, and the
         # seed was applying one to finished features — so `/dashboards` was
         # missing from the navigation of every demo persona (§27). Only ever
         # turns one *on*: somebody who switched a flag off made a decision.
         with session_scope() as session:
-            result = runner.sync_flags(session)
+            result = runner.sync_flags(session, reset=args.reset_flags)
         print(
-            f"{result['repaired']} of {result['checked']} navigation flags turned on"
-            if result["repaired"]
-            else "every navigation flag is already on"
+            f"flags: {result['created']} created, {result['reset']} reset to default, "
+            f"{result['relabelled']} relabelled, {result['removed']} retired "
+            f"({result['checked']} in the catalogue)"
         )
         return 0
 

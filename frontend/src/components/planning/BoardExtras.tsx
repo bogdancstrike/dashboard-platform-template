@@ -21,6 +21,7 @@ import { refreshRecordViews } from "@/lib/refresh";
 
 import { Points } from "./PlanItem";
 import { projectOptions, useProjects } from "./useProjects";
+import { FEATURES, withFeature } from "@/settings/features";
 
 export type Swimlane = "none" | "assignee" | "priority" | "epic";
 
@@ -241,7 +242,7 @@ export function QuickCreate({ status, extra, onCreated }: { status: string; extr
 }
 
 /** Pick a template, name the copy, choose the project — and the task exists. */
-export function TemplatePicker({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (id: string) => void }) {
+function TemplatePickerInner({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (id: string) => void }) {
   const { message } = AntApp.useApp();
   const queryClient = useQueryClient();
   const projects = useProjects();
@@ -404,3 +405,6 @@ export function usePeopleNames(enabled: boolean) {
     },
   });
 }
+
+/** Rendered only while its feature flag is on (§27). */
+export const TemplatePicker = withFeature(FEATURES.recurringTasks, TemplatePickerInner);

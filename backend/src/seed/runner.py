@@ -958,43 +958,93 @@ def _headcount_drift(session) -> list[str]:
     return problems
 
 
-def sync_flags(session) -> dict[str, int]:
-    """Turn on every flag that hides something shipped (§27).
+def sync_flags(session, *, reset: bool = False) -> dict[str, int]:
+    """Bring the flag rows in line with the feature catalogue (§27).
 
-    The eighth repair, and the one that exists because of a real regression: a
-    rollout percentage is how a team ships something *gradually*, and the seed
-    was applying one to finished features. `dashboard-builder` came out
-    disabled at five per cent, so `/dashboards` — a complete, tested page —
-    was absent from the navigation of every demo persona, and `/import` was
-    there for one in ten.
+    The catalogue (`core/feature_catalogue.py`) is the single source of truth
+    for which flags exist. Additive and respectful of decisions, so it is safe
+    on a live database:
 
-    An *edit*, like `sync_org` and `sync_health`, and safe for the same reason
-    with one addition: it only ever turns a navigation flag **on**. Somebody
-    who has deliberately switched one off has made a decision, and a repair
-    that overruled it would be worse than the bug — so a flag that is already
-    enabled at a hundred per cent is left exactly as it is.
+    * a catalogue flag with no row is **created** at its default (on, 100 %);
+    * every catalogue row gets the catalogue's name, description and stage —
+      the labels are the catalogue's, the *state* is the administrator's;
+    * a row whose state nobody has ever changed by hand (no `FLAG_CHANGE` in
+      the audit trail) and that disagrees with its default is **reset** to it —
+      that is the old seed's dice roll (`impersonation` at 75 % and off), not a
+      decision;
+    * a flag somebody *has* toggled is left exactly as it is;
+    * retired flags (`RETIRED`), which gate nothing any more, are removed.
+
+    `reset=True` (`--reset-flags`) puts *every* catalogue flag back at its
+    seeded default, decisions included — what a test run or a crawl that
+    toggled switches on the live stack is undone with.
     """
-    from src.models.platform import FeatureFlag
-    from src.seed import catalog
+    from src.core import features as feature_gate
+    from src.core.feature_catalogue import FEATURES, RETIRED
+    from src.models.platform import AuditLog, FeatureFlag
 
-    rows = session.scalars(
-        select(FeatureFlag).where(FeatureFlag.key.in_(sorted(catalog.NAVIGATION_FLAGS)))
-    ).all()
-    repaired = 0
-    for row in rows:
-        # A partial rollout on a shipped feature is the bug; a deliberate
-        # `enabled=False` is a decision. Both end up hiding the page, so this
-        # cannot tell them apart — and it repairs the rollout either way while
-        # leaving the switch itself alone when somebody has turned it off.
-        if row.enabled and int(row.rollout_percentage or 0) >= 100:
+    rows = {row.key: row for row in session.scalars(select(FeatureFlag)).all()}
+    touched = {
+        str(value)
+        for value in session.scalars(
+            select(AuditLog.resource_id).where(
+                AuditLog.resource_type == "feature_flag", AuditLog.action == "FLAG_CHANGE"
+            )
+        ).all()
+    }
+    created = relabelled = restored = removed = 0
+    for feature in FEATURES:
+        row = rows.get(feature.key)
+        if row is None:
+            session.add(
+                FeatureFlag(
+                    key=feature.key,
+                    name=feature.name,
+                    description=feature.description,
+                    enabled=feature.default_on,
+                    environment="production",
+                    stage=feature.stage,
+                    rollout_percentage=feature.default_rollout,
+                    experimental=feature.experimental,
+                )
+            )
+            created += 1
             continue
-        row.rollout_percentage = 100
-        row.target_user_ids = None
-        row.target_roles = None
-        if not row.enabled:
-            row.enabled = True
-        repaired += 1
-    return {"repaired": repaired, "checked": len(rows)}
+        if (row.name, row.description, row.stage, bool(row.experimental)) != (
+            feature.name, feature.description, feature.stage, feature.experimental
+        ):
+            row.name, row.description = feature.name, feature.description
+            row.stage, row.experimental = feature.stage, feature.experimental
+            relabelled += 1
+        at_default = (
+            bool(row.enabled) == feature.default_on
+            and int(row.rollout_percentage or 0) == feature.default_rollout
+            and not row.target_user_ids and not row.target_roles
+        )
+        if not at_default and (reset or str(row.id) not in touched):
+            row.enabled = feature.default_on
+            row.rollout_percentage = feature.default_rollout
+            row.target_user_ids = None
+            row.target_roles = None
+            row.target_group_ids = None
+            row.target_organization_ids = None
+            restored += 1
+    for key in RETIRED:
+        row = rows.get(key)
+        if row is not None:
+            session.delete(row)
+            removed += 1
+    session.flush()
+    feature_gate.invalidate()
+    return {
+        "created": created,
+        "relabelled": relabelled,
+        "reset": restored,
+        "removed": removed,
+        "checked": len(FEATURES),
+        # Kept for the CLI message and older callers.
+        "repaired": created + restored,
+    }
 
 
 def sync_preferences(session) -> dict[str, int]:

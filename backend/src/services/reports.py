@@ -310,6 +310,13 @@ def _validated(
         out["order"] = order
     if "schedule" in payload:
         out["schedule"] = str(payload["schedule"] or "").strip() or None
+        if out["schedule"]:
+            # Setting a schedule is the scheduled-reports feature (§27);
+            # clearing one is always allowed, so a switched-off feature can
+            # still be wound down.
+            from src.core import features
+
+            features.require("report-scheduling", principal)
     # `is_favorite` is deliberately *not* here: it is no longer a column this
     # writes. See `_apply_favorite`, which puts it in the one store (§38).
 

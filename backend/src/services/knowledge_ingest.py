@@ -426,7 +426,12 @@ def start(document_id: Any) -> str:
 
 def run(document_id: Any) -> None:
     """Read one document. Owns its sessions and records every outcome."""
+    from src.core import features
     from src.models.knowledge import KnowledgeDocument
+
+    if not features.job_allowed("knowledge.ingest"):
+        # Left queued: it is read when the feature is switched back on.
+        return
     from src.models.platform import BackgroundJob
 
     started = now()
