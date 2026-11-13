@@ -225,7 +225,7 @@ export function Gantt({
 
   return (
     <div className={`nx-pl-gantt${compact ? " is-compact" : ""}`} style={style} data-testid="gantt">
-      <div className="nx-pl-gantt-scroll nx-scroll" ref={scroller} data-drag-scroll>
+      <div className="nx-pl-gantt-scroll" ref={scroller} data-drag-scroll>
         <div className="nx-pl-gantt-inner" style={{ width: labelWidth + width }}>
           <div className="nx-pl-gantt-head">
             <div className="nx-pl-gantt-corner">Work</div>
