@@ -255,7 +255,7 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
     shape: "page",
     where: "reports/builder",
     testId: "new-document",
-    opens: "pages/ReportBuilderPage.tsx",
+    opens: "pages/ReportBuilderPage/index.tsx",
     because:
       "Nothing to ask up front: a document arrives holding a heading and a paragraph, and everything about it — its name, its paper, what it holds — is changed in the composer with the page visible. A dialog demanding a title before the first block would be a form standing between somebody and the thing they came to make.",
   },
@@ -407,7 +407,7 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
     shape: "page",
     where: "reports/builder",
     testId: "new-report",
-    opens: "pages/ReportBuilderPage.tsx",
+    opens: "pages/ReportBuilderPage/index.tsx",
     because:
       "Composing the question is the work, the answer is previewed live beside it, and the draft lives in the URL so a half-built report can be sent to somebody.",
   },

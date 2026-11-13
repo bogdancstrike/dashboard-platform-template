@@ -44,7 +44,6 @@
   "src/pages/MailPage.tsx",
   "src/pages/ProfilePage.tsx",
   "src/pages/RelationshipExplorerPage.tsx",
-  "src/pages/ReportBuilderPage.tsx",
   "src/pages/RolesPage.tsx",
   "src/pages/SystemPage.tsx",
   "src/pages/UserDetailPage.tsx",

@@ -20,9 +20,9 @@
  * goes; the builder reads the register at the moment somebody presses Export.
  */
 
-import { BLOCK_PREVIEWS, type BlockPreviewProps } from "./blocks/registry";
+import { BLOCK_PREVIEWS, type BlockPreviewProps } from "./previews/registry";
 
-export type { Capturable } from "./blocks/shared";
+export type { Capturable } from "./previews/shared";
 
 /** One block as it will appear on paper, drawn by its kind's entry in the registry. */
 export function BlockPreview(props: BlockPreviewProps) {

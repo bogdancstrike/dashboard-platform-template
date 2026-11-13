@@ -104,10 +104,16 @@ export const LAYERS: readonly GuardedLayer[] = [
     because: "The settings drawer holds the dashboard's own name, what it is for, its audience and whether it is home — six answers, and the drawer closes on a click outside it.",
   },
   {
-    module: "pages/ReportBuilderPage.tsx",
+    module: "pages/ReportBuilderPage/parts/SettingsDialog.tsx",
     what: "document",
     guarded: false,
     because: "The composer's own dialog holds two fields — a name and a sentence about what the document is for — and the *document* is guarded by something better than a prompt: an explicit Save, an unsaved badge in the header, and a draft that is never silently discarded because closing the dialog does not close the document.",
+  },
+  {
+    module: "pages/ReportBuilderPage/parts/ComposeDialog.tsx",
+    what: "composed draft",
+    guarded: false,
+    because: "Two choices — which dataset and over what period — asked before anything is written; reopening it costs two clicks, and what it composes is an ordinary document that is saved explicitly and guarded there.",
   },
   {
     module: "components/profile/EditProfileDrawer.tsx",
