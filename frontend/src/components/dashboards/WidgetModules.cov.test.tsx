@@ -19,7 +19,7 @@ import {
   RelationshipsBody,
   TasksBody,
   type ModuleBodyProps,
-} from "./WidgetModules";
+} from "./widgets/modules";
 
 /**
  * The module widgets (§45): a window onto a page, answered by that page's own

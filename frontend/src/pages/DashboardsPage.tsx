@@ -84,13 +84,9 @@ import { DashboardCard } from "@/components/dashboards/DashboardCard";
 import { ShareDrawer } from "@/components/dashboards/ShareDrawer";
 import { PublishButton } from "@/components/recordsAnalytics/PublicLinksDrawer";
 import { WidgetCard, type WidgetMoves } from "@/components/dashboards/WidgetCard";
-import {
-  WidgetGrid,
-  autoArranged,
-  compacted,
-  minimumFor,
-  MAX_ROWS,
-} from "@/components/dashboards/WidgetGrid";
+import { WidgetGrid } from "@/components/dashboards/WidgetGrid";
+import { autoArranged, compacted } from "@/components/dashboards/grid/arrange";
+import { MAX_ROWS, minimumFor } from "@/components/dashboards/grid/sizes";
 import { usePageCommands } from "@/commands/CommandContext";
 import { asText } from "@/lib/text";
 import { relativeTime } from "@/lib/time";

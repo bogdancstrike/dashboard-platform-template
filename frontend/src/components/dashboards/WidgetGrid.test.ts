@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { compacted } from "@/components/dashboards/WidgetGrid";
+import { compacted } from "@/components/dashboards/grid/arrange";
 import type { DashboardWidget } from "@/api/dashboards";
 
 function widget(

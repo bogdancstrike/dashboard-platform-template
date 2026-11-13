@@ -20,41 +20,19 @@
  */
 
 import { useMutation } from "@tanstack/react-query";
-import {
-  Alert,
-  Button,
-  Form,
-  Input,
-  Modal,
-  Segmented,
-  Space,
-  Steps,
-  Typography,
-} from "antd";
+import { Alert, Button, Form, Modal, Space, Steps, Typography } from "antd";
 import { useState } from "react";
 
 import { ApiError } from "@/api/client";
-import { EdgeTag } from "@/components/EdgeTag";
-import {
-  dashboardsApi,
-  type DashboardScope,
-  type SavedDashboard,
-  type WidgetKind,
-} from "@/api/dashboards";
-import { MemberPicker } from "@/components/PeoplePicker";
+import { dashboardsApi, type SavedDashboard, type WidgetKind } from "@/api/dashboards";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 
-import { KINDS } from "./kinds";
+import { DetailsStep, type Details } from "./wizard/DetailsStep";
+import { ReviewStep } from "./wizard/ReviewStep";
 import { WidgetKindPicker } from "./WidgetKindPicker";
 
 const { Text } = Typography;
 
-interface Details {
-  name: string;
-  description?: string;
-  scope: DashboardScope;
-  member_ids?: string[];
-}
 
 export function CreateDashboardWizard({
   open,
@@ -178,47 +156,7 @@ export function CreateDashboardWizard({
       )}
 
       {step === 0 && (
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={details}
-          onValuesChange={touch}
-          data-testid="wizard-details"
-        >
-          <Form.Item
-            name="name"
-            label="Name"
-            rules={[{ required: true, message: "Give it a name people will recognise" }]}
-          >
-            <Input placeholder="Support desk" autoFocus maxLength={80} />
-          </Form.Item>
-          <Form.Item name="description" label="What it is for">
-            <Input.TextArea rows={2} maxLength={240} placeholder="Optional" />
-          </Form.Item>
-          <Form.Item name="scope" label="Who can see it">
-            <Segmented
-              options={[
-                { value: "PRIVATE", label: "Only me" },
-                { value: "SHARED", label: "Named people", disabled: !canShare },
-                { value: "PUBLIC", label: "Everyone", disabled: !canShare },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item
-            noStyle
-            shouldUpdate={(before: { scope?: string }, after: { scope?: string }) =>
-              before.scope !== after.scope
-            }
-          >
-            {({ getFieldValue }) =>
-              (getFieldValue("scope") as string) === "SHARED" ? (
-                <Form.Item name="member_ids" label="Shared with">
-                  <MemberPicker placeholder="Search colleagues" />
-                </Form.Item>
-              ) : null
-            }
-          </Form.Item>
-        </Form>
+        <DetailsStep form={form} initialValues={details} canShare={canShare} touch={touch} />
       )}
 
       {step === 1 && (
@@ -241,37 +179,7 @@ export function CreateDashboardWizard({
         </>
       )}
 
-      {step === 2 && (
-        <div data-testid="wizard-review">
-          <Text strong>{details.name}</Text>
-          {details.description && (
-            <Text type="secondary" style={{ display: "block" }}>
-              {details.description}
-            </Text>
-          )}
-          <Text type="secondary" style={{ display: "block", marginTop: 4 }}>
-            {details.scope === "PRIVATE"
-              ? "Only you will see it"
-              : details.scope === "PUBLIC"
-                ? "Everyone signed in will see it"
-                : "Shared with the people you named"}
-          </Text>
-
-          {/* The widgets in the order they will be laid out — the thing the
-              reader has been choosing and has not yet seen. */}
-          <Space size={[6, 6]} wrap className="nu-block">
-            {kinds.map((kind, index) => (
-              <EdgeTag key={`${kind}-${index}`} color={KINDS[kind].colour}>
-                {KINDS[kind].label}
-              </EdgeTag>
-            ))}
-          </Space>
-          <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
-            {kinds.length} {kinds.length === 1 ? "widget" : "widgets"}, laid out left to right.
-            Nothing is filled in yet — each one opens its own settings on the grid.
-          </Text>
-        </div>
-      )}
+      {step === 2 && <ReviewStep details={details} kinds={kinds} />}
     </Modal>
   );
 }

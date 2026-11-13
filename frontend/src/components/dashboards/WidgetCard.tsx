@@ -38,7 +38,7 @@ import type { KeyboardEvent, ReactNode } from "react";
 import type { DashboardWidget } from "@/api/dashboards";
 
 import { KINDS } from "./kinds";
-import { SIZE_PRESETS } from "./WidgetGrid";
+import { SIZE_PRESETS } from "./grid/sizes";
 
 const { Text } = Typography;
 
