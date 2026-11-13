@@ -56,13 +56,6 @@ class ConflictError(ApiError):
     status_code = 409
 
 
-class UnprocessableError(ApiError):
-    """Shape is right, meaning is wrong — e.g. a wizard step that fails a rule."""
-
-    code = "unprocessable"
-    status_code = 422
-
-
 class RateLimitedError(ApiError):
     code = "rate_limited"
     status_code = 429

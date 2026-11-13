@@ -8,7 +8,7 @@ says which field, never a 500 or a silently different event.
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime
 
 import pytest
 
@@ -164,8 +164,3 @@ def test_a_monthly_series_crosses_the_year_and_stops_at_its_horizon():
     assert [m.month for m in moments] == [11, 12, 1, 3]  # no 30 February
     every_five = list(service._series(start, "MONTHLY", 5, (), datetime(2029, 1, 1, tzinfo=UTC)))
     assert [(m.year, m.month) for m in every_five] == [(2027, 11), (2028, 4), (2028, 9)]
-
-
-def test_a_day_is_bounded_in_utc():
-    start, end = service.day_bounds(date(2027, 3, 1))
-    assert start == datetime(2027, 3, 1, tzinfo=UTC) and end - start == timedelta(days=1)

@@ -25,7 +25,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from sqlalchemy import func, select
-from sqlalchemy.inspection import inspect as sa_inspect
 
 from src.core.clock import iso
 from src.core.errors import NotFoundError, ValidationError
@@ -370,11 +369,6 @@ def _node(row, linkable: Linkable) -> dict[str, Any]:
         "explorable": linkable.resource_key is not None,
         "updated_at": iso(getattr(row, "updated_at", None)),
     }
-
-
-def entity_of(model) -> str:
-    """The public name of a model's table, for tests and for logging."""
-    return sa_inspect(model).local_table.name
 
 
 # ── the record network, clustered ────────────────────────────────────────

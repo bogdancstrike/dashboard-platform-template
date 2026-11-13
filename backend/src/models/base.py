@@ -17,7 +17,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Index, MetaData, String, func, text
+from sqlalchemy import DateTime, ForeignKey, MetaData, func, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PgUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -90,20 +90,3 @@ class MetadataMixin:
     migration; `core/query.py` can still filter it as text (§4)."""
 
     metadata_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
-
-
-class OwnedMixin:
-    """Ownership and organizational scope — the columns every list page filters
-    by and every permission check will eventually want."""
-
-    owner_id: Mapped[UUID | None] = fk("users.id")
-    organization_id: Mapped[UUID | None] = fk("organizations.id")
-
-
-def short_text(length: int = 255, **kwargs) -> Mapped[str]:
-    return mapped_column(String(length), **kwargs)
-
-
-def gin_index(name: str, column) -> Index:
-    """Trigram-free GIN over a JSONB column, for metadata containment queries."""
-    return Index(name, column, postgresql_using="gin")

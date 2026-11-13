@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import calendar as calendar_module
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta
+from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -884,13 +884,3 @@ def _list(items: list[str]) -> str:
     if len(items) <= 1:
         return "".join(items)
     return f"{', '.join(items[:-1])} and {items[-1]}"
-
-
-def day_bounds(when: date) -> tuple[datetime, datetime]:
-    """Midnight to midnight, for callers that want one day.
-
-    Exported because the tests and any future scheduler both want it, and two
-    versions of "what counts as a day" is one too many.
-    """
-    start = datetime.combine(when, time.min, tzinfo=now().tzinfo)
-    return start, start + timedelta(days=1)

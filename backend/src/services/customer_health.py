@@ -753,13 +753,3 @@ def portfolio(session, args, *, principal) -> dict[str, Any]:
         "thresholds": _merged(DEFAULT_THRESHOLDS, model.thresholds or {})["bands"],
         "can_configure": principal.can(CONFIGURE),
     }
-
-
-# ── the scheduled job ────────────────────────────────────────────────────
-
-
-def run_job(session, *, principal=None) -> dict[str, Any]:
-    """The daily recompute, recorded as a background job like any other."""
-    from src.services import analytics_jobs
-
-    return analytics_jobs.run(session, JOB_CODE, principal=principal)
