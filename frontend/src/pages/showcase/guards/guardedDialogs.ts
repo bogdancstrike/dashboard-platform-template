@@ -9,7 +9,7 @@ export const GUARDED_DIALOGS: readonly GuardedLayer[] = [
     because: "A record's writable fields, typed. This was the first guard in the platform and the reason the hook exists.",
   },
   {
-    module: "components/mail/Composer.tsx",
+    module: "components/mail/Composer/index.tsx",
     what: "message",
     guarded: true,
     because: "An email half-written is the clearest case there is: a click outside the dialog would throw away prose.",

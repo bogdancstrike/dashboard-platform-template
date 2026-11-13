@@ -9,7 +9,6 @@
   "src/components/docs/BlockView.tsx",
   "src/components/docs/DocView.tsx",
   "src/components/graph/ForceGraph.tsx",
-  "src/components/mail/Composer.tsx",
   "src/components/relationships/ConnectionMapView.tsx",
   "src/components/relationships/NetworkView.tsx",
   "src/pages/ChatPage.tsx",
@@ -19,6 +18,5 @@
   "src/pages/FavoritesPage.tsx",
   "src/pages/FilesPage.tsx",
   "src/pages/GlobalSearchPage.tsx",
-  "src/pages/MailPage.tsx",
   "src/pages/RelationshipExplorerPage.tsx"
 ]
