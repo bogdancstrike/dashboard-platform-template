@@ -148,7 +148,7 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
     shape: "modal",
     where: "admin/organizations",
     testId: "new-department",
-    opens: "pages/admin/OrganizationsPage.tsx",
+    opens: "pages/admin/OrganizationsPage/NewDepartmentModal.tsx",
     because: "A name, a parent and a manager: three fields that fit, on a page whose tree is the context for choosing the parent.",
   },
   {
@@ -219,11 +219,11 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
   },
   {
     what: "An API client",
-    shape: "drawer",
+    shape: "modal",
     where: "admin/api-clients",
     testId: "new-client",
-    opens: "pages/admin/ApiClientsPage.tsx",
-    because: "A name, scopes and an expiry. The secret it produces is shown once, in a modal, which is a different question.",
+    opens: "pages/admin/ApiClientsPage/NewClientModal.tsx",
+    because: "A name, scopes and two limits fit one dialog; the secret it produces is shown once, in a second modal that asks before it closes.",
   },
   {
     what: "A group",

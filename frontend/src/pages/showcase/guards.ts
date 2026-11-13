@@ -128,7 +128,7 @@ export const LAYERS: readonly GuardedLayer[] = [
     because: "A name, a kind and a description. The detail drawer beside it is unguarded on purpose — see below.",
   },
   {
-    module: "pages/admin/ApiClientsPage.tsx",
+    module: "pages/admin/ApiClientsPage/NewClientModal.tsx",
     what: "client",
     guarded: true,
     because: "A name, the scopes it may use and a rate limit — and the scopes are chosen from a list the reader has to read.",
@@ -140,7 +140,7 @@ export const LAYERS: readonly GuardedLayer[] = [
     because: "A key, a name and a description of what the flag turns on, which is prose somebody thought about.",
   },
   {
-    module: "pages/admin/OrganizationsPage.tsx",
+    module: "pages/admin/OrganizationsPage/NewDepartmentModal.tsx",
     what: "department",
     guarded: true,
     because: "A name, a code, a parent and a manager, chosen against a tree the reader had to navigate.",
