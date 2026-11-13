@@ -115,8 +115,10 @@ export const DENSE_BY_CONSTRUCTION: Record<string, string> = {
     "A banner is one line tall and spans the page.",
   "components/audit/AuditTimeline.tsx":
     "One control per timeline entry, repeated down the trail.",
-  "components/automations/ActionListEditor.tsx":
+  "components/automations/ActionListEditor/ActionCard.tsx":
     "Rows of one action each, each with its own controls.",
+  "components/automations/ActionListEditor/index.tsx":
+    "One add button per action kind, in a row under the list of actions.",
   "components/comments/CommentThread.tsx":
     "Reply and edit under each comment, repeated down a thread.",
   "components/collab/MessageItem.tsx":
