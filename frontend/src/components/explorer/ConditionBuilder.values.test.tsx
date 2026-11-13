@@ -19,7 +19,7 @@ import type { QueryNode } from "./queryTree";
  * question the server answers wrongly without complaint.
  */
 const field = (name: string, label: string, kind: ExplorerField["kind"], choices: string[] = []): ExplorerField =>
-  ({ name, label, kind, sortable: true, filterable: true, searchable: false, facet: false, operators: ["eq", "ne", "gt", "lt", "between", "in", "not_in", "empty"], choices }) as ExplorerField;
+  ({ name, label, kind, sortable: true, filterable: true, searchable: false, facet: false, operators: ["eq", "ne", "gt", "lt", "between", "in", "not_in", "empty"], choices });
 
 const FIELDS: ExplorerField[] = [
   field("status", "Status", "enum", ["NEW", "IN_PROGRESS", "DONE"]),

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AutomationCatalogue, AutomationRule } from "@/api/automations";
+import type { AutomationRule } from "@/api/automations";
 import { AutomationWizard, stepProblem } from "@/components/automations/AutomationWizard";
 import { blankAction } from "@/components/automations/ActionListEditor";
 import type { QueryNode } from "@/components/explorer/queryTree";
@@ -23,7 +23,7 @@ const RULE: QueryNode = {
   type: "group",
   id: "root",
   children1: { r1: { type: "rule", id: "r1", properties: { field: "status", operator: "equal", value: ["OPEN"] } } },
-} as unknown as QueryNode;
+};
 
 vi.mock("@/components/explorer/AdvancedQueryBuilder", () => ({
   AdvancedQueryBuilder: ({ onChange }: { onChange: (tree: QueryNode) => void }) => (
@@ -47,7 +47,7 @@ const CATALOGUE = {
   severities: ["INFO", "WARNING", "CRITICAL"],
   priorities: ["LOW", "NORMAL", "HIGH"],
   limits: { max_matches: 500, max_fires: 50, max_rules: 200 },
-} as unknown as AutomationCatalogue;
+};
 
 function open() {
   const onClose = vi.fn();
