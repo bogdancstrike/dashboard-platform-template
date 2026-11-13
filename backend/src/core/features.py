@@ -34,6 +34,8 @@ staleness rather than a database read per call.
 
 from __future__ import annotations
 
+import functools
+import hashlib
 import threading
 import time
 from dataclasses import dataclass
@@ -64,6 +66,22 @@ class FeatureDisabledError(ApiError):
 # ── Endpoint ownership ───────────────────────────────────────────────────
 
 
+def _endpoint_entries() -> list[dict[str, Any]]:
+    """The endpoints of `maps/endpoint.json`, read here rather than through
+    `src.api.endpoint_map` because the core layer may not depend on the API
+    layer (tests/test_layering.py). Same file, same document."""
+    return list(_load_map()["endpoints"])
+
+
+@functools.lru_cache(maxsize=1)
+def _load_map() -> dict[str, Any]:
+    import json
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[2] / "maps" / "endpoint.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def _score(pattern: str, url: str) -> int | None:
     """How specifically `pattern` claims `url`, or None when it does not."""
     if pattern.endswith("*"):
@@ -92,21 +110,14 @@ def owner_of(url: str) -> tuple[str | None, bool]:
 
 def endpoint_owners() -> dict[str, str | None]:
     """`api_url` → owning flag (None for core) for every endpoint in the map."""
-    from src.api import endpoint_map
-
-    return {
-        entry["api_url"]: owner_of(entry["api_url"])[0]
-        for entry in endpoint_map.load()["endpoints"]
-    }
+    return {entry["api_url"]: owner_of(entry["api_url"])[0] for entry in _endpoint_entries()}
 
 
 def endpoints_of(key: str) -> list[dict[str, Any]]:
     """The endpoints one flag owns, as `METHOD /url` rows for the admin screen."""
-    from src.api import endpoint_map
-
     return [
         {"methods": [m.upper() for m in entry["request_method"]], "url": entry["api_url"]}
-        for entry in endpoint_map.load()["endpoints"]
+        for entry in _endpoint_entries()
         if owner_of(entry["api_url"])[0] == key
     ]
 
@@ -210,6 +221,58 @@ def _group_ids(user_id) -> tuple[str, ...]:
     return tuple(value for row in rows for value in row)
 
 
+
+def evaluate(
+    *,
+    enabled: bool,
+    key: str,
+    rollout: int,
+    user_ids=(),
+    roles=(),
+    group_ids=(),
+    organization_ids=(),
+    user_id=None,
+    role_code: str | None = None,
+    groups=(),
+    organization_id=None,
+) -> bool:
+    """The whole rollout rule, in one place (the flags screen, `/api/me` and
+    the gate all call it).
+
+    Read in this order because that is the order that makes a flag usable:
+    off means off for everybody; a named person, role, group or organization
+    always has it (that is what naming them is for); then the percentage.
+
+    The percentage is a **stable hash of the flag key and the user id**, not a
+    random draw. A flag that flickered on and off between requests would be
+    worse than no flag: the feature would half-appear, and every bug report
+    about it would be unreproducible.
+    """
+    if not enabled:
+        return False
+    if user_id is not None and str(user_id) in set(user_ids or ()):
+        return True
+    if role_code and role_code in set(roles or ()):
+        return True
+    if groups and set(group_ids or ()) & {str(group) for group in groups}:
+        return True
+    if organization_id is not None and str(organization_id) in set(organization_ids or ()):
+        return True
+
+    percentage = int(rollout or 0)
+    if percentage >= 100:
+        return True
+    if percentage <= 0:
+        # Enabled with no rollout and no targets means "on for the people it
+        # names", which is nobody — and a flag that claimed to be on for
+        # everybody at nought per cent would make the number meaningless.
+        return False
+    if user_id is None:
+        return False
+    digest = hashlib.sha256(f"{key}:{user_id}".encode()).hexdigest()
+    return int(digest[:8], 16) % 100 < percentage
+
+
 def state_on(
     state: FlagState | None,
     *,
@@ -219,8 +282,6 @@ def state_on(
     organization_id=None,
 ) -> bool:
     """The rollout rule for one flag and one reader — see `services.settings.is_on`."""
-    from src.services.settings import evaluate
-
     if state is None:
         # A key the platform has no row for gates nothing.
         return True
@@ -326,9 +387,7 @@ def install(app) -> None:
     """Refuse requests to switched-off features, in one place."""
     from flask import g, request
 
-    from src.api import endpoint_map
-
-    for entry in endpoint_map.load()["endpoints"]:
+    for entry in _endpoint_entries():
         key = owner_of(entry["api_url"])[0]
         if key:
             rule = f"/{entry['namespace']}{entry['api_url']}"

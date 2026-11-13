@@ -26,7 +26,6 @@ the API.
 
 from __future__ import annotations
 
-import hashlib
 from typing import Any
 from uuid import UUID
 
@@ -594,54 +593,9 @@ def is_on(
     )
 
 
-def evaluate(
-    *,
-    enabled: bool,
-    key: str,
-    rollout: int,
-    user_ids=(),
-    roles=(),
-    group_ids=(),
-    organization_ids=(),
-    user_id=None,
-    role_code: str | None = None,
-    groups=(),
-    organization_id=None,
-) -> bool:
-    """The whole rollout rule, in one place.
-
-    Read in this order because that is the order that makes a flag usable:
-    off means off for everybody; a named person, role, group or organization
-    always has it (that is what naming them is for); then the percentage.
-
-    The percentage is a **stable hash of the flag key and the user id**, not a
-    random draw. A flag that flickered on and off between requests would be
-    worse than no flag: the feature would half-appear, and every bug report
-    about it would be unreproducible.
-    """
-    if not enabled:
-        return False
-    if user_id is not None and str(user_id) in set(user_ids or ()):
-        return True
-    if role_code and role_code in set(roles or ()):
-        return True
-    if groups and set(group_ids or ()) & {str(group) for group in groups}:
-        return True
-    if organization_id is not None and str(organization_id) in set(organization_ids or ()):
-        return True
-
-    percentage = int(rollout or 0)
-    if percentage >= 100:
-        return True
-    if percentage <= 0:
-        # Enabled with no rollout and no targets means "on for the people it
-        # names", which is nobody — and a flag that claimed to be on for
-        # everybody at nought per cent would make the number meaningless.
-        return False
-    if user_id is None:
-        return False
-    digest = hashlib.sha256(f"{key}:{user_id}".encode()).hexdigest()
-    return int(digest[:8], 16) % 100 < percentage
+# The rule itself lives in the core layer, where the request gate needs it;
+# re-exported here so "is it on for me" still has one implementation.
+from src.core.features import evaluate  # noqa: E402
 
 
 def _flag(row: FeatureFlag, principal, *, on_for_me: bool | None = None) -> dict[str, Any]:
