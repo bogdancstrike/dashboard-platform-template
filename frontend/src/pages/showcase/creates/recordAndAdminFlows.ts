@@ -6,7 +6,7 @@ export const RECORD_AND_ADMIN_FLOWS: readonly CreateFlow[] = [
     what: "A card on a board",
     shape: "in place",
     where: "kanban",
-    opens: "components/kanban/LaneColumn.tsx",
+    opens: "components/kanban/LaneColumn/index.tsx",
     because:
       "A card is a title in a lane. Everything else about it — assignee, due date, checklist — is edited afterwards in the card's own drawer, and asking for it up front would make adding a card slower than the work it describes.",
   },
@@ -14,7 +14,7 @@ export const RECORD_AND_ADMIN_FLOWS: readonly CreateFlow[] = [
     what: "A checklist step, and a comment",
     shape: "in place",
     where: "tasks",
-    opens: "components/planning/TaskPlanning.tsx",
+    opens: "components/planning/TaskPlanning/ReorderableChecklist.tsx",
     because:
       "Both are a line of text in a list that is already on screen. A dialog for a to-do item is a dialog for something the reader will type six of.",
   },

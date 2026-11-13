@@ -69,7 +69,7 @@ export const UNGUARDED_DIALOGS: readonly GuardedLayer[] = [
     because: "A name, a goal and two dates, or the choice of where unfinished work goes. Short enough that asking before closing would be the bigger interruption.",
   },
   {
-    module: "components/planning/TaskPlanning.tsx",
+    module: "components/planning/TaskPlanning/RecurrenceModal.tsx",
     what: "repeat rule",
     guarded: false,
     because: "The repeat dialog is one rule picked from presets with a preview of the next dates; the subtask and checklist inputs save on Enter, so nothing waits in memory.",
