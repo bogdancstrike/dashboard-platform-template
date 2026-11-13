@@ -96,9 +96,15 @@ export default function GlobalSearchPage() {
     },
   ]);
 
-  /** Where a hit lives: the explorer, narrowed to that one record. */
+  /**
+   * Where a hit lives: its own record page when the dataset has one (the
+   * server publishes the path for exactly this), else the explorer narrowed to
+   * that one record. Opening a customer used to land on a one-row explorer
+   * table, a click away from the customer.
+   */
   const open = (hit: GlobalHit) => {
-    navigate(`/explore?resource=${hit.resource_type}&f.id=${hit.id}`);
+    const path = results.data?.groups.find((group) => group.resource_type === hit.resource_type)?.path;
+    navigate(path ? `${path}/${hit.id}` : `/explore?resource=${hit.resource_type}&f.id=${hit.id}`);
   };
 
   const onKeyDown = (event: React.KeyboardEvent) => {

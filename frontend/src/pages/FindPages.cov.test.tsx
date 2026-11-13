@@ -72,7 +72,8 @@ describe("global search", () => {
       await user.keyboard("{ArrowDown}{ArrowUp}{ArrowUp}");
     }
     await user.keyboard("{Enter}");
-    await waitFor(() => expect(where()).toMatch(/^\/explore\?resource=.+&f\.id=/));
+    // The record's own page, at the path its dataset publishes.
+    await waitFor(() => expect(where()).toMatch(/^\/[a-z]+s\/[\w-]+$/));
   });
 
   it("opens a hit by clicking it, and a dataset in the explorer", async () => {
@@ -81,7 +82,23 @@ describe("global search", () => {
     renderAt("/find/global?q=northwind", <GlobalSearchPage />, "/find/global");
     const [first] = await screen.findAllByTestId("global-hit");
     await user.click(first!);
-    await waitFor(() => expect(where()).toMatch(/f\.id=/));
+    await waitFor(() => expect(where()).toBe("/tasks/task-1"));
+  });
+
+  it("falls back to the explorer for a dataset without a page of its own", async () => {
+    server.use(
+      http.get("/platform/api/search/global", () =>
+        HttpResponse.json({
+          ...globalHits,
+          groups: globalHits.groups.map((group) => ({ ...group, path: "" })),
+        }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderAt("/find/global?q=northwind", <GlobalSearchPage />, "/find/global");
+    const [first] = await screen.findAllByTestId("global-hit");
+    await user.click(first!);
+    await waitFor(() => expect(where()).toMatch(/^\/explore\?resource=task&f\.id=task-1/));
   });
 
   it("offers the explorer for a whole dataset", async () => {

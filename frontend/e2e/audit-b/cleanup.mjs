@@ -32,6 +32,8 @@ const lists = [
   ["/admin/groups?page_size=200", (x) => x.name, (x) => `/admin/groups/${x.id}`],
   ["/tags", (x) => x.name, (x) => `/tags/${x.id}`],
   ["/admin/flags", (x) => x.key ?? x.name, (x) => `/admin/flags/${x.key}`],
+  // A discarded import is kept as a record of the attempt; a second DELETE removes it.
+  ["/imports?page_size=100", (x) => x.file_name ?? x.filename ?? x.name, (x) => `/imports/${x.id}`],
   ["/api/saved-searches?page_size=200", (x) => x.name, (x) => `/api/saved-searches/${x.id}`],
   ["/admin/api-clients?page_size=200", (x) => x.name, (x) => `/admin/api-clients/${x.id}`],
 ];

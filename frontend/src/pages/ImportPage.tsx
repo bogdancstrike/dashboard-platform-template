@@ -148,7 +148,7 @@ export function outcome(run: ImportRun): string {
       run.invalid_rows,
     )} to fix`;
   }
-  return `${formatNumber(run.valid_rows)} rows ready to import`;
+  return `${formatNumber(run.valid_rows)} ${run.valid_rows === 1 ? "row" : "rows"} ready to import`;
 }
 
 /**
@@ -263,7 +263,9 @@ export default function ImportPage() {
       await refresh();
       message.success(
         answer.valid_rows
-          ? `${formatNumber(answer.valid_rows)} rows are ready`
+          ? answer.valid_rows === 1
+            ? "1 row is ready"
+            : `${formatNumber(answer.valid_rows)} rows are ready`
           : "Nothing in this file can be imported yet",
       );
     },

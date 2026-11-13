@@ -58,9 +58,9 @@ test.describe("global search", () => {
 
     await box.press("Enter");
 
-    // Opened as itself, in the explorer, filtered to that one record.
-    await expect(page).toHaveURL(/\/explore\?resource=\w+&f\.id=/);
-    await expect(page.getByRole("cell", { name: chosen, exact: true })).toBeVisible();
+    // Opened as itself: the record's own page, which names it in the header.
+    await expect(page).toHaveURL(/\/[a-z]+\/[0-9a-f-]{36}$/);
+    await expect(page.locator("#nu-main")).toContainText(chosen);
   });
 
   test("says plainly when nothing matches", async ({ page }) => {
