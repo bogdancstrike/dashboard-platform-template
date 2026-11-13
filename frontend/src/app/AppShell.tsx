@@ -157,6 +157,8 @@ export function AppShell() {
     unread: counts.data?.unread,
     // The approvals inbox rides on the same poll (Time & decisions).
     pending_approvals: (counts.data as { pending_approvals?: number } | undefined)?.pending_approvals,
+    // Unread chat across channels and direct messages (Collaboration).
+    chat_unread: (counts.data as { chat_unread?: number } | undefined)?.chat_unread,
   };
 
   /** The navigation this reader can actually use. */
