@@ -205,7 +205,7 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
     shape: "drawer",
     where: "exports",
     testId: "new-export",
-    opens: "pages/ExportsPage.tsx",
+    opens: "pages/ExportsPage/NewExportDrawer.tsx",
     because: "Dataset, format, columns and the filters to apply — one object's fields, and the list of previous exports stays in view.",
   },
   {

@@ -164,7 +164,7 @@ export const LAYERS: readonly GuardedLayer[] = [
     because: "The selection — the expensive part — lives on the page behind it and survives the close. What the dialog holds is one field and one value, and it shows a preview before anything is applied (§75).",
   },
   {
-    module: "pages/ExportsPage.tsx",
+    module: "pages/ExportsPage/NewExportDrawer.tsx",
     what: "export",
     guarded: false,
     because: "The dataset, format, columns and filters live on the page, so closing the drawer and reopening it shows exactly the same choices. There is nothing to lose, and asking would be theatre.",
