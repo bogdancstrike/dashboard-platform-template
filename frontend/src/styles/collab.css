@@ -217,3 +217,8 @@
 .nx-app--phone .nx-co-hide-phone { display: none; }
 /* Clear of the assistant's floating button in the corner. */
 .nx-app--phone .nx-co-composer { padding-right: 58px; }
+
+/* The spaces arrive a beat after the page; their row is held while it is
+   empty so "Recently updated" does not jump under the reader (CLS, audit A). */
+.nx-dc-spaces:empty { min-height: 150px; }
+.nx-app--phone .nx-dc-spaces:empty { min-height: 300px; }

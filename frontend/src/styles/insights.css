@@ -478,3 +478,9 @@
   font-size: 12px;
   align-self: flex-end;
 }
+
+/* The suggestions arrive with the gallery's list; until then their room is
+   held, so the saved insights below do not jump down by a phone's worth of
+   chips (CLS 0.19, audit A). */
+.nx-in-chips.is-loading { min-height: 96px; }
+.nx-app--phone .nx-in-chips.is-loading { min-height: 330px; }
