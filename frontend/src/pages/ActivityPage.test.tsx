@@ -3,7 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { Route, Routes, useLocation } from "react-router-dom";
 
-import ActivityPage, { summarise } from "@/pages/ActivityPage";
+import ActivityPage from "@/pages/ActivityPage";
+import { summarise } from "@/pages/ActivityPage/model";
 import { CommandProvider } from "@/commands/CommandContext";
 import { renderWithProviders } from "@/test/render";
 
