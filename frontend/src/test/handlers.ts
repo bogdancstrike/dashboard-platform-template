@@ -19,6 +19,7 @@ import { assistantHandlers } from "@/test/handlers/assistant";
 import { collabHandlers } from "@/test/handlers/collab";
 import { insightsHandlers } from "@/test/handlers/insights";
 import { knowledgeHandlers } from "@/test/handlers/knowledge";
+import { decisionHandlers } from "@/test/handlers/decisions";
 import { planningHandlers } from "@/test/handlers/planning";
 
 export const appMeta = {
@@ -3885,6 +3886,7 @@ export const handlers = [
   ...collabHandlers,
   ...assistantHandlers,
   ...knowledgeHandlers,
+  ...decisionHandlers,
   ...planningHandlers,
   ...insightsHandlers,
   http.get("/platform/admin/integrations/catalogue", ({ request }) => {

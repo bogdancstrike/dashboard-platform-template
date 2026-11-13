@@ -624,6 +624,29 @@ export const TOURS: Record<string, TourStop[]> = {
     },
   ],
 
+  // Time & decisions
+  "/time": [
+    { title: "Where your hours went", description: "A timer, a typed duration or a cell in the week grid all end as minutes on one row — so every total on this page is the same sum." },
+    { target: "week-grid", title: "Type straight into the week", description: "1.5, 1:30 or 90m. Time a timer recorded stays as it was; a cell only adds or removes the difference." },
+    { target: "week-submit", title: "Submit the week", description: "It goes to your manager's approvals inbox and locks until it is approved or sent back with a reason." },
+    { target: "week-total", title: "By person, project, customer", description: "The same entries, grouped — and exported as CSV or Excel under exactly the filters on screen." },
+  ],
+  "/approvals": [
+    { title: "One queue for every decision", description: "Timesheets, access requests, edits a rule held back, reports somebody wants to publish — whatever you may decide, and nothing you may not." },
+    { target: "approvals-list", title: "Age and promise", description: "Each request has an answer-by time; overdue ones say so in red rather than waiting to be noticed." },
+    { target: "approvals-bulk-approve", title: "Many at once", description: "Select several and approve or reject them with one comment; any that cannot be decided say why, and the rest go through." },
+  ],
+  "/admin/sla": [
+    { title: "What a ticket is promised", description: "The first active policy that matches a ticket sets its clock. Saving any policy recomputes every ticket's deadline." },
+    { target: "sla-policy", title: "Targets in business hours", description: "Per priority: when it must be answered and when resolved, counted in the policy's calendar — with pauses while waiting on the customer." },
+    { target: "sla-new", title: "Add a policy", description: "Put the narrow ones first: a policy for one strategic customer above the catch-all." },
+  ],
+  "/admin/forms": [
+    { title: "Forms that become records", description: "Public or internal intake forms. Each answer is kept, and becomes a ticket, task or customer through the same rules a person's edit does." },
+    { target: "form-row", title: "How each one is doing", description: "Answers this week, and the ones that did not become records — kept with the reason, ready to retry." },
+    { target: "forms-new", title: "Design one", description: "Drag fields in, map each onto the record it creates, publish — and share the address." },
+  ],
+
   "/exports": [
     {
       title: "Taking rows out of the platform",

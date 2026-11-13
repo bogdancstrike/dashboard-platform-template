@@ -188,7 +188,12 @@ def test_waiting_on_the_customer_pauses_the_clock_and_escalations_fire_once(clie
     client.put(f"{SLA}/policies/order", json={"ids": [made["id"]] + [i for i in ids if i != made["id"]]},
                headers=as_("admin"))
 
+    from src.models.sla import SlaPolicy
+
     with session_scope() as session:
+        # In force for a day, so a two-minute target is long gone.
+        session.get(SlaPolicy, made["id"]).created_at = sla.now() - timedelta(days=1)
+        session.flush()
         ticket = session.get(Ticket, ticket_id)
         original = (ticket.status, ticket.priority)
         state = sla.compute(session, ticket)

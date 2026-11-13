@@ -50,6 +50,7 @@ import { useSmartBack } from "@/app/history";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
 import { CommentThread } from "@/components/comments/CommentThread";
 import { PageHeader } from "@/components/PageHeader";
+import { RecordTimeCard, RecordTimerButton } from "@/components/decisions/RecordTimer";
 import { TagPicker } from "@/components/records/TagPicker";
 import { PeoplePicker } from "@/components/PeoplePicker";
 import { useRecordPage } from "@/components/records/useRecordPage";
@@ -134,6 +135,7 @@ export default function TaskDetailPage() {
         tag={<StatusTag status={task.status} data-testid="record-status" />}
         actions={
           <>
+            <RecordTimerButton subjectType="task" subjectId={id} label={`${task.subtitle ?? ""} · ${task.title}`} />
             <Tooltip title={task.can_edit ? "" : "Your role does not include records.update"}>
               <Button
                 type="primary"
@@ -215,6 +217,7 @@ export default function TaskDetailPage() {
         </Col>
 
         <Col xs={24} xl={8}>
+          <RecordTimeCard subjectType="task" subjectId={id} />
           <Card size="small" title="Details" data-testid="task-side">
             <Space direction="vertical" size={12} style={{ width: "100%" }}>
               <Field label="Status">

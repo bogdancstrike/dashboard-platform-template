@@ -27,6 +27,12 @@ const SprintsPage = lazy(() => import("@/pages/work/SprintsPage"));
 const WorkflowsPage = lazy(() => import("@/pages/WorkflowsPage"));
 const CalendarPage = lazy(() => import("@/pages/CalendarPage"));
 const MailPage = lazy(() => import("@/pages/MailPage"));
+// Time & decisions
+const TimePage = lazy(() => import("@/pages/decisions/TimePage"));
+const ApprovalsPage = lazy(() => import("@/pages/decisions/ApprovalsPage"));
+const SlaPoliciesPage = lazy(() => import("@/pages/decisions/SlaPoliciesPage"));
+const FormsPage = lazy(() => import("@/pages/decisions/FormsPage"));
+const FormDesignerPage = lazy(() => import("@/pages/decisions/FormDesignerPage"));
 const ChatPage = lazy(() => import("@/pages/ChatPage"));
 const DocsPage = lazy(() => import("@/pages/DocsPage"));
 const HomePage = lazy(() => import("@/pages/HomePage"));
@@ -620,6 +626,48 @@ export default function App() {
           element={
             <Suspense fallback={<Loading />}>
               <SystemSettingsPage />
+            </Suspense>
+          }
+        />
+
+        {/* Time & decisions */}
+        <Route
+          path="time"
+          element={
+            <Suspense fallback={<Loading />}>
+              <TimePage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="approvals"
+          element={
+            <Suspense fallback={<Loading />}>
+              <ApprovalsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="admin/sla"
+          element={
+            <Suspense fallback={<Loading />}>
+              <SlaPoliciesPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="admin/forms"
+          element={
+            <Suspense fallback={<Loading />}>
+              <FormsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="admin/forms/:id"
+          element={
+            <Suspense fallback={<Loading />}>
+              <FormDesignerPage />
             </Suspense>
           }
         />

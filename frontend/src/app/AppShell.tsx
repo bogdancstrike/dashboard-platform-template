@@ -13,6 +13,7 @@ import { useImpersonation } from "@/auth/ImpersonationProvider";
 import { CommandPalette } from "@/components/CommandPalette";
 import { useCommands } from "@/commands/CommandContext";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { TimerPill } from "@/components/decisions/TimerPill";
 import { NxIcon, NxLogo } from "@/components/NxIcon";
 import { CollapseAllToggle } from "@/components/CollapseAllToggle";
 import { STORAGE_KEYS } from "@/config";
@@ -152,7 +153,11 @@ export function AppShell() {
     queryFn: ({ signal }) => notificationsApi.counts(signal),
     refetchInterval: badgePoll,
   });
-  const counters: Record<string, number | undefined> = { unread: counts.data?.unread };
+  const counters: Record<string, number | undefined> = {
+    unread: counts.data?.unread,
+    // The approvals inbox rides on the same poll (Time & decisions).
+    pending_approvals: (counts.data as { pending_approvals?: number } | undefined)?.pending_approvals,
+  };
 
   /** The navigation this reader can actually use. */
   const groups: NavGroup[] = useMemo(
@@ -457,6 +462,7 @@ export function AppShell() {
             {crumbs}
             {liveChip}
             {themeButton}
+            <TimerPill />
             <NotificationBell />
             <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
               <button className="nx-user" type="button" aria-label="Open profile menu">
@@ -483,6 +489,7 @@ export function AppShell() {
                 <NxIcon name="search" stroke={2} />
               </button>
               {themeButton}
+              <TimerPill />
               <NotificationBell />
             </header>
             {currentGroup && (
@@ -510,6 +517,7 @@ export function AppShell() {
             <span className="nx-phone-title">
               {activeItem?.label ?? trail[trail.length - 1]?.label ?? "Nucleus"}
             </span>
+            <TimerPill />
             <button
               type="button"
               className="nx-iconbtn nx-iconbtn--lg"

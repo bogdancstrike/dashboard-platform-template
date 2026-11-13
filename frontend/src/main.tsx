@@ -114,4 +114,14 @@ async function start() {
   );
 }
 
-void start().catch((error: unknown) => root.render(<Boot error={error} />));
+// A public intake form (`/f/<slug>`) is answered by people with no account, so
+// it is mounted before — and instead of — the sign-in (Time & decisions).
+if (window.location.pathname.startsWith("/f/")) {
+  void import("@/pages/decisions/publicEntry").then(({ mountPublicForm, publicFormSlug }) => {
+    const slug = publicFormSlug(window.location.pathname);
+    if (slug) mountPublicForm(root, slug);
+    else void start().catch((error: unknown) => root.render(<Boot error={error} />));
+  });
+} else {
+  void start().catch((error: unknown) => root.render(<Boot error={error} />));
+}

@@ -841,7 +841,8 @@ def on_subject(session, args, *, principal) -> dict[str, Any]:
     mine = session.scalar(select(func.coalesce(func.sum(TimeEntry.minutes), 0)).where(
         *clauses, TimeEntry.user_id == principal.user_id)) or 0
     latest = session.scalars(select(TimeEntry).where(*clauses)
-                             .order_by(TimeEntry.created_at.desc()).limit(5)).unique().all()
+                             .order_by(TimeEntry.work_date.desc(), TimeEntry.ended_at.desc().nullsfirst(),
+                                       TimeEntry.created_at.desc()).limit(5)).unique().all()
     return {"total_minutes": int(total), "my_minutes": int(mine),
             "entries": [serialize(entry) for entry in latest]}
 

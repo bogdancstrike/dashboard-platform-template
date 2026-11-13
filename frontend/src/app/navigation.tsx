@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { CoIcon } from "@/components/collab/icons";
 import { NxIcon, type NxIconName } from "@/components/NxIcon";
+import { TdIcon } from "@/components/decisions/TdIcon";
 import { PlanIcon } from "@/components/planning/planIcons";
 import { AstIcon } from "@/components/assistant/AstIcon";
 import { KnIcon } from "@/components/knowledge/KnIcon";
@@ -68,6 +69,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { key: "/dashboards", label: "My dashboards", icon: <NxIcon name="layout" />, permission: "dashboards.manage", flag: "dashboard-builder" },
       { key: "/activity", label: "Activity", icon: <NxIcon name="activity" /> },
       { key: "/notifications", label: "Notifications", icon: <NxIcon name="bell" />, badge: "unread" },
+      // Everything waiting on a decision — timesheets, access, held edits, reports.
+      { key: "/approvals", label: "Approvals", icon: <TdIcon name="stamp" />, badge: "pending_approvals" },
       { key: "/announcements", label: "Announcements", icon: <NxIcon name="megaphone" /> },
     ],
   },
@@ -133,6 +136,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { key: "/calendar", label: "Calendar", icon: <NxIcon name="calendar" />, permission: "calendar.view" },
       { key: "/mail", label: "Mail", icon: <NxIcon name="mail" />, permission: "mail.access", badge: "unread_mail" },
       { key: "/files", label: "Files", icon: <NxIcon name="folder" />, permission: "files.view" },
+      { key: "/time", label: "Time & timesheets", icon: <TdIcon name="clock" />, permission: "time.track" },
       { key: "/chat", label: "Chat", icon: <CoIcon name="chat" />, permission: "chat.use", badge: "chat_unread" },
       { key: "/docs", label: "Docs", icon: <CoIcon name="docs" />, permission: "docs.view" },
     ],
@@ -172,6 +176,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { key: "/admin/integrations", label: "Integrations", icon: <NxIcon name="plug" />, permission: "integrations.manage" },
       { key: "/admin/flags", label: "Feature flags", icon: <NxIcon name="flask" />, permission: "flags.manage" },
       { key: "/admin/settings", label: "Settings", icon: <NxIcon name="gear" />, permission: "settings.manage" },
+      { key: "/admin/sla", label: "SLA policies", icon: <TdIcon name="hourglass" />, permission: "sla.manage" },
     ],
   },
   {
@@ -196,6 +201,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { key: "/admin/tags", label: "Tags", icon: <NxIcon name="tag" />, permission: "records.view" },
       { key: "/import", label: "Import", icon: <NxIcon name="import" />, permission: "records.import", flag: "csv-import" },
       { key: "/exports", label: "Exports", icon: <NxIcon name="export" />, permission: "records.export" },
+      // Intake forms create records, so they sit with the other ways data arrives.
+      { key: "/admin/forms", label: "Forms", icon: <TdIcon name="form" />, permission: "records.view" },
     ],
   },
   {

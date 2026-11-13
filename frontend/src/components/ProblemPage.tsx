@@ -4,6 +4,7 @@ import { CopyOutlined } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
+import { AskForAccess } from "@/components/decisions/AskForAccess";
 
 /**
  * One surface for every way the platform can fail to show a page (§34).
@@ -272,6 +273,9 @@ export function ProblemPage({
             standalone={standalone}
             type={problem.retryable && onRetry ? "default" : "primary"}
           />
+          {/* Time & decisions: a refusal you can answer — the request goes to
+              the approvals inbox of the people who grant permissions. */}
+          {kind === "forbidden" && !standalone && missing.length > 0 && <AskForAccess missing={missing} />}
           {(kind === "session_expired" || kind === "unauthorized") && (
             <Tooltip title="Asks the sign-in page for your details again">
               <Button

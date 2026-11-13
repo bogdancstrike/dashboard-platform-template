@@ -58,6 +58,8 @@ import { useRecordPage } from "@/components/records/useRecordPage";
 import { humanStatus, StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { duration, slaStanding } from "@/entities/sla";
+import { RecordTimeCard, RecordTimerButton } from "@/components/decisions/RecordTimer";
+import { TicketSlaCard, useTicketSla } from "@/components/decisions/TicketSlaCard";
 import { absoluteTime, parseInstant, relativeTime } from "@/lib/time";
 import { asText } from "@/lib/text";
 import { EmptyState } from "@/components/EmptyState";
@@ -141,10 +143,18 @@ export default function TicketConsolePage() {
     },
   ]);
 
+  // The policy's answer, when one covers the ticket: time left in its
+  // business hours rather than on the wall clock (Time & decisions).
+  const policySla = useTicketSla(id);
+
   if (page.fallback) return page.fallback;
 
   const ticket = page.record!;
+  const resolutionClock = policySla.data?.resolution;
   const sla = slaStanding({
+    businessMinutesLeft: resolutionClock && !resolutionClock.done_at ? resolutionClock.business_minutes_left : null,
+    paused: policySla.data?.paused ?? false,
+    policyName: policySla.data?.policy?.name ?? null,
     createdAt: ticket.created_at,
     dueAt: asText(page.value("due_at")) || null,
     firstResponseAt: asText(page.value("first_response_at")) || null,
@@ -187,6 +197,7 @@ export default function TicketConsolePage() {
         tag={<StatusTag status={ticket.status} data-testid="record-status" />}
         actions={
           <>
+            <RecordTimerButton subjectType="ticket" subjectId={id} label={`${ticket.subtitle ?? ""} · ${ticket.title}`} />
             <Tooltip title={ticket.can_edit ? "" : "Your role does not include records.update"}>
               <Button
                 type="primary"
@@ -298,7 +309,9 @@ export default function TicketConsolePage() {
         </Col>
 
         <Col xs={24} xl={8}>
-          <Card size="small" title="Triage" data-testid="ticket-triage">
+          <TicketSlaCard ticketId={id} />
+          <RecordTimeCard subjectType="ticket" subjectId={id} />
+          <Card size="small" title="Triage" data-testid="ticket-triage" className="nu-block">
             <Space direction="vertical" size={12} style={{ width: "100%" }}>
               <Field label="Status">
                 <Select

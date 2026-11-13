@@ -25,6 +25,14 @@ export interface TicketFacts {
   resolvedAt: string | null;
   resolutionMinutes: number | null;
   breached: boolean;
+  /**
+   * From the ticket's SLA policy, when one applies (Time & decisions): the
+   * time left counted in its business hours, whether the clock is paused, and
+   * the policy's name. Absent, the deadline is read as wall-clock time.
+   */
+  businessMinutesLeft?: number | null;
+  paused?: boolean;
+  policyName?: string | null;
 }
 
 export interface SlaStanding {
@@ -51,7 +59,10 @@ export function slaStanding(facts: TicketFacts, now: Date = new Date()): SlaStan
   const resolved = instant(facts.resolvedAt);
   const responded = instant(facts.firstResponseAt);
 
-  const minutesLeft = due === null ? null : Math.round((due - now.valueOf()) / 60_000);
+  const wallClock = due === null ? null : Math.round((due - now.valueOf()) / 60_000);
+  const business = facts.businessMinutesLeft ?? null;
+  const minutesLeft = business ?? wallClock;
+  const policy = facts.policyName ? ` ${facts.policyName}.` : "";
   const responseMinutes = elapsedMinutes(created, responded);
   const resolutionMinutes =
     facts.resolutionMinutes ?? elapsedMinutes(created, resolved);
@@ -76,6 +87,17 @@ export function slaStanding(facts: TicketFacts, now: Date = new Date()): SlaStan
   const answered = responseMinutes === null
     ? "Nobody has answered it yet."
     : `First answered after ${duration(responseMinutes)}.`;
+
+  if (facts.paused && !facts.breached) {
+    return {
+      tone: "info",
+      headline: "Clock paused",
+      detail: `Waiting on the customer — the deadline moves while it waits.${policy} ${answered}`.trim(),
+      minutesLeft,
+      responseMinutes,
+      resolutionMinutes: null,
+    };
+  }
 
   if (facts.breached || (minutesLeft !== null && minutesLeft < 0)) {
     return {
@@ -103,8 +125,8 @@ export function slaStanding(facts: TicketFacts, now: Date = new Date()): SlaStan
 
   return {
     tone: minutesLeft <= SOON_MINUTES ? "warning" : "info",
-    headline: `Due in ${duration(minutesLeft)}`,
-    detail: answered,
+    headline: `Due in ${duration(minutesLeft)}${business !== null ? " of business hours" : ""}`,
+    detail: `${answered}${policy}`,
     minutesLeft,
     responseMinutes,
     resolutionMinutes: null,

@@ -368,6 +368,11 @@ def populate_sla(session) -> dict[str, int]:
                            "LOW": {"first_response": 960, "resolution": 9600}},
                   pause_statuses=["WAITING_CUSTOMER"], escalations=steps[:2]),
     ]
+    # In force for a while already, so the demo shows a desk with a history:
+    # some tickets met, some at risk, some late — rather than every ticket
+    # raised before today counted against a promise made today.
+    for offset, policy in zip((12, 9, 6), policies):
+        policy.created_at = now() - timedelta(days=offset)
     session.add_all(policies)
     session.flush()
     result = sla.recompute_all(session)

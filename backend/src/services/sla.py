@@ -192,7 +192,7 @@ def compute(session, ticket, *, moment: datetime | None = None, policies=None, s
         state.paused_since = None
 
     target = _target(policy, ticket.priority)
-    created = ticket.created_at or moment
+    created = clock_start(ticket, policy, moment)
     state.first_response_due_at = (
         add_business_minutes(calendar, created, target["first_response"])
         if "first_response" in target else None
@@ -217,6 +217,19 @@ def compute(session, ticket, *, moment: datetime | None = None, policies=None, s
     if sweep and policy is not None and ticket.status not in CLOSED:
         _escalate(session, ticket, state, policy, moment)
     return state
+
+
+def clock_start(ticket, policy: SlaPolicy | None, moment: datetime | None = None) -> datetime:
+    """When the clock started: the ticket's arrival, or the policy's, if later.
+
+    A policy is a promise made from the day it exists. Measuring a ticket
+    raised a quarter ago against a target written this morning would report
+    every old ticket as breached on the day the policy was introduced, which
+    is a statement about the policy rather than about the service.
+    """
+    created = ticket.created_at or moment or now()
+    since = getattr(policy, "created_at", None) if policy is not None else None
+    return max(created, since) if since else created
 
 
 #: Changes that move a ticket's clock.
@@ -250,7 +263,7 @@ def _percent(state: TicketSla, policy: SlaPolicy, ticket, moment: datetime) -> f
     target = _target(policy, ticket.priority).get("resolution")
     if not target:
         return None
-    spent = business_minutes_between(policy.calendar, ticket.created_at, moment) - (state.paused_minutes or 0)
+    spent = business_minutes_between(policy.calendar, clock_start(ticket, policy, moment), moment) - (state.paused_minutes or 0)
     if state.paused_since is not None:
         spent -= business_minutes_between(policy.calendar, state.paused_since, moment)
     return max(0.0, spent * 100.0 / target)
