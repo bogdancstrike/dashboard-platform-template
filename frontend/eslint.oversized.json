@@ -4,7 +4,6 @@
   "src/api/recordsAnalytics.ts",
   "src/components/CommandPalette.tsx",
   "src/components/ProblemPage.tsx",
-  "src/components/analysis/QuestionBar.tsx",
   "src/components/announcements/AnnouncementEditor.tsx",
   "src/components/assistant/AssistantChat.tsx",
   "src/components/automations/ActionListEditor.tsx",

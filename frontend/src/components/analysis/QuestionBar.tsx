@@ -31,22 +31,13 @@
  * would reject and a field added to a dataset appears here with no change.
  */
 
-import { Select, Space, Tooltip, Typography } from "antd";
+import { Select } from "antd";
 
 import type { AnalysisCatalogue } from "@/api/analysis";
 import { DRAFT_KEYS, type AnalysisDraft } from "@/entities/analysisDraft";
 
-const { Text } = Typography;
-
-/** What each control is *for*, said on hover rather than permanently. */
-const GUIDANCE = {
-  resource: "Which records the question is asked of.",
-  group: "The first axis. A date is read in the bucket beside it.",
-  stack: "A second grouping — a stack, a nest, a heatmap's columns.",
-  measure: "What is counted or added up for each group.",
-  measure2: "A second measure. A scatter reads it as the vertical axis.",
-  period: "How far back to look. Filters the rows, not the groups.",
-} as const;
+import { MeasurePart, SecondMeasurePart } from "./MeasureParts";
+import { GUIDANCE, Part } from "./QuestionPart";
 
 export interface QuestionBarProps {
   catalogue: AnalysisCatalogue | undefined;
@@ -153,74 +144,14 @@ export function QuestionBar({
         />
       </Part>
 
-      <Part label="Measure" hint={GUIDANCE.measure}>
-        <Select
-          aria-label="Aggregation"
-          className="nu-question-select nu-question-select--narrow"
-          popupMatchSelectWidth={false}
-          value={draft.aggregation}
-          onChange={(next: string) =>
-            onChange({
-              [DRAFT_KEYS.aggregation]: next,
-              // `count` measures rows and names no column, so the column that
-              // was chosen for a `sum` must not survive into it.
-              [DRAFT_KEYS.measure]: next === "count" ? null : draft.measure,
-            })
-          }
-          options={(catalogue?.aggregations ?? []).map((item) => ({
-            value: item.key,
-            label: item.label,
-          }))}
-        />
-        {draft.aggregation !== "count" && (
-          <Select
-            aria-label="Measured column"
-            className="nu-question-select"
-            showSearch
-            optionFilterProp="label"
-            popupMatchSelectWidth={false}
-            placeholder="Pick a column"
-            value={draft.measure || undefined}
-            onChange={(next: string) => onChange({ [DRAFT_KEYS.measure]: next })}
-            options={columns.map((item) => ({ value: item.name, label: item.label }))}
-          />
-        )}
-      </Part>
-
+      <MeasurePart catalogue={catalogue} draft={draft} onChange={onChange} columns={columns} />
       {withSecondMeasure && (
-        <Part label="Compare against" hint={GUIDANCE.measure2}>
-          <Select
-            aria-label="Second aggregation"
-            className="nu-question-select nu-question-select--narrow"
-            allowClear
-            popupMatchSelectWidth={false}
-            placeholder="Nothing"
-            value={draft.aggregation2 || undefined}
-            onChange={(next: string | undefined) =>
-              onChange({
-                [DRAFT_KEYS.aggregation2]: next ?? null,
-                [DRAFT_KEYS.measure2]: next && next !== "count" ? draft.measure2 : null,
-              })
-            }
-            options={(catalogue?.aggregations ?? []).map((item) => ({
-              value: item.key,
-              label: item.label,
-            }))}
-          />
-          {Boolean(draft.aggregation2) && draft.aggregation2 !== "count" && (
-            <Select
-              aria-label="Second measured column"
-              className="nu-question-select"
-              showSearch
-              optionFilterProp="label"
-              popupMatchSelectWidth={false}
-              placeholder="Pick a column"
-              value={draft.measure2 || undefined}
-              onChange={(next: string) => onChange({ [DRAFT_KEYS.measure2]: next })}
-              options={columns.map((item) => ({ value: item.name, label: item.label }))}
-            />
-          )}
-        </Part>
+        <SecondMeasurePart
+          catalogue={catalogue}
+          draft={draft}
+          onChange={onChange}
+          columns={columns}
+        />
       )}
 
       <Part label="Time range" hint={GUIDANCE.period}>
@@ -239,34 +170,6 @@ export function QuestionBar({
           ]}
         />
       </Part>
-    </div>
-  );
-}
-
-/**
- * One clause of the sentence: the word, then the control.
- *
- * The word is a `label` for what follows rather than a heading above it, which
- * is what makes the bar one row tall instead of three. The hint is the label's
- * tooltip, so it is available and costs nothing when it is not wanted.
- */
-function Part({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="nu-question-part">
-      <Tooltip title={hint}>
-        <Text type="secondary" className="nu-question-label">
-          {label}
-        </Text>
-      </Tooltip>
-      <Space.Compact>{children}</Space.Compact>
     </div>
   );
 }
