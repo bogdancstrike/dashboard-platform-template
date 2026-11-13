@@ -71,7 +71,9 @@ export function shippedSources(extension?: RegExp): ShippedSource[] {
  */
 export function pageSources(): ShippedSource[] {
   return shippedFiles(/\.tsx$/, join(SRC, "pages"))
-    .filter((path) => /Page\.tsx$/.test(path) || /Page[\\/]index\.tsx$/.test(path))
+    // A page module is named `XPage.tsx`, capitalised: a split page's own hook
+    // (`XPage/useXPage.tsx`) ends the same way and is part of its page, not one.
+    .filter((path) => /[\\/][A-Z]\w*Page\.tsx$/.test(path) || /Page[\\/]index\.tsx$/.test(path))
     .map((path) => ({ path, name: relative(SRC, path), source: withOwnModules(path) }));
 }
 

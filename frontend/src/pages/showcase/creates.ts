@@ -415,7 +415,7 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
     what: "A chart",
     shape: "page",
     where: "charts/builder",
-    opens: "pages/ChartBuilderPage.tsx",
+    opens: "pages/ChartBuilderPage/index.tsx",
     because:
       "The same reason, picture first: fourteen live thumbnails of the reader's own numbers is a gallery, and a gallery does not fit in a drawer.",
   },
