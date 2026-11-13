@@ -534,7 +534,10 @@ export default function MailPage() {
                       icon={reading.unread_count > 0 ? <MailOutlined /> : <MailFilled />}
                       onClick={() =>
                         mailApi
-                          .updateThread(reading.id, { is_read: reading.unread_count === 0 })
+                          // Unread messages in it: this press reads them. None:
+                          // it marks the thread unread. (It sent the opposite,
+                          // so "Mark as unread" re-marked a read thread read.)
+                          .updateThread(reading.id, { is_read: reading.unread_count > 0 })
                           .then(refresh)
                           .catch(() => message.error("That change was refused."))
                       }
