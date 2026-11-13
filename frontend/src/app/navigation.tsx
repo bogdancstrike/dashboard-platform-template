@@ -65,6 +65,7 @@ export const NAV_GROUPS: NavGroup[] = [
       // preference lands: a navigation whose first item is not the default
       // landing page is a navigation that disagrees with the logo.
       { key: "/home", label: "Home", icon: <NxIcon name="home" /> },
+      { key: "/onboarding", label: "Getting started", icon: <NxIcon name="check" /> },
       { key: "/dashboard", label: "Dashboard", icon: <NxIcon name="gauge" /> },
       { key: "/dashboards", label: "My dashboards", icon: <NxIcon name="layout" />, permission: "dashboards.manage", flag: "dashboard-builder" },
       { key: "/activity", label: "Activity", icon: <NxIcon name="activity" /> },

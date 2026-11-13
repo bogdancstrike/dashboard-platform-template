@@ -343,7 +343,7 @@ export function EntityEmpty({
     view.filterCount > 0 ? (
       <NoResults filterCount={view.filterCount} onClear={view.clearFilters} />
     ) : (
-      <EmptyState title={title} hint={hint} action={action} />
+      <EmptyState title={title} hint={hint} action={action} guide={view.resource?.key} />
     );
 
   return card ? (

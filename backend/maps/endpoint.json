@@ -2845,6 +2845,77 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "onboarding_checklist",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/onboarding",
+      "description": "This person's onboarding checklist for their role, with progress.",
+      "exec_method": {
+        "module_name": "src.api.onboarding",
+        "method_name": "checklist"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "onboarding_dismiss",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/onboarding/dismiss",
+      "description": "Hide or bring back the onboarding card on Home.",
+      "exec_method": {
+        "module_name": "src.api.onboarding",
+        "method_name": "dismiss"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "onboarding_samples",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/onboarding/samples",
+      "description": "Which areas have sample data loaded.",
+      "exec_method": {
+        "module_name": "src.api.onboarding",
+        "method_name": "samples"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "onboarding_sample",
+      "model_name": "Empty",
+      "request_method": [
+        "POST",
+        "DELETE"
+      ],
+      "api_url": "/api/onboarding/samples/<string:area>",
+      "description": "Load a tagged sample dataset for an area, or remove exactly what was loaded.",
+      "exec_method": {
+        "module_name": "src.api.onboarding",
+        "method_name": "sample"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "onboarding_step",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/onboarding/steps/<string:step_key>",
+      "description": "Mark an onboarding step done or skipped, or back to to-do.",
+      "exec_method": {
+        "module_name": "src.api.onboarding",
+        "method_name": "step"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "profile_mine",
       "model_name": "Empty",
       "request_method": [

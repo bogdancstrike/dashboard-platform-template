@@ -448,6 +448,7 @@ export default function WorkflowsPage() {
 
       {rows.length === 0 && !state ? (
         <EmptyState
+          guide="workflow"
           title="Nothing is watching anything yet"
           hint="An automation is one sentence: when records look like this, notify somebody, raise a task, or call a webhook. It is created paused, and rehearsed before it fires."
           action={

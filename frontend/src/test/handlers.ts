@@ -22,6 +22,7 @@ import { knowledgeHandlers } from "@/test/handlers/knowledge";
 import { decisionHandlers } from "@/test/handlers/decisions";
 import { planningHandlers } from "@/test/handlers/planning";
 import { canvasCatalogueExtras, workflowHandlers } from "@/test/handlers/workflows";
+import { onboardingHandlers } from "@/test/handlers/onboarding";
 import { developerHandlers } from "@/test/handlers/developers";
 import { recordsAnalyticsHandlers } from "@/test/handlers/recordsAnalytics";
 
@@ -3894,6 +3895,7 @@ export const handlers = [
   ...insightsHandlers,
   ...planningHandlers,
   ...workflowHandlers,
+  ...onboardingHandlers,
   ...developerHandlers,
   http.get("/platform/admin/integrations/catalogue", ({ request }) => {
     const states = ["NOT_CONFIGURED", "DISCONNECTED", "CONNECTED", "ERROR"];

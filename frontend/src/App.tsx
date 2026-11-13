@@ -26,6 +26,7 @@ const TimelinePage = lazy(() => import("@/pages/work/TimelinePage"));
 const SprintsPage = lazy(() => import("@/pages/work/SprintsPage"));
 const WorkflowsPage = lazy(() => import("@/pages/WorkflowsPage"));
 const WorkflowCanvasPage = lazy(() => import("@/pages/WorkflowCanvasPage"));
+const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
 const DevelopersPage = lazy(() => import("@/pages/DevelopersPage"));
 const CalendarPage = lazy(() => import("@/pages/CalendarPage"));
 const MailPage = lazy(() => import("@/pages/MailPage"));
@@ -415,6 +416,14 @@ export default function App() {
           element={
             <Suspense fallback={<Loading />}>
               <DevelopersPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="onboarding"
+          element={
+            <Suspense fallback={<Loading />}>
+              <OnboardingPage />
             </Suspense>
           }
         />

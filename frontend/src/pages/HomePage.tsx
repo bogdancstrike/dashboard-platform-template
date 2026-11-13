@@ -86,6 +86,7 @@ import { PersonAvatar } from "@/components/PersonAvatar";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { DailyBrief } from "@/components/assistant/DailyBrief";
+import { OnboardingCard } from "@/components/onboarding/OnboardingCard";
 import { NxIcon } from "@/components/NxIcon";
 
 const { Paragraph, Text, Title } = Typography;
@@ -541,6 +542,9 @@ export default function HomePage() {
 
       {/* The AI brief (§45): the same waiting work, ranked and explained. */}
       <DailyBrief />
+
+      {/* Getting started (§38): this person's checklist, until dismissed. */}
+      <OnboardingCard />
 
       {/* A wide column and a rail. What is *yours* — today, your work, what
           happened — reads left to right and gets the width; what is the

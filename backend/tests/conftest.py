@@ -119,6 +119,8 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     "AnnouncementReceipt", "Announcement",
     # Workflow graphs (§49): every one points at its rule, a wait at a run.
     "AutomationWait", "AutomationVersion", "AutomationGraph",
+    # Onboarding (§38): progress points at a person; sample tags at nothing.
+    "OnboardingStep", "SampleRecord",
     "AlertRuleFire", "AlertRuleRun", "AlertRule",
     "BoardCard", "BoardLane", "Board",
     "DashboardWidget", "Dashboard",

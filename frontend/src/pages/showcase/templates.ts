@@ -374,7 +374,7 @@ export const LAYOUTS: PageLayout[] = [
     ],
     pieces: ["A card per destination", "Permission-aware links"],
     url: "Nothing: an index is the start of a journey rather than a place in one.",
-    routes: ["admin", "showcase/components", "showcase/templates"],
+    routes: ["admin", "showcase/components", "showcase/templates", "onboarding"],
   },
   {
     key: "problem",

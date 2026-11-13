@@ -1,0 +1,49 @@
+/* Onboarding (§38) — prefix nx-ob-. */
+
+.nx-ob-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 14px; align-items: start; }
+.nx-ob-progress-title { display: flex; align-items: center; gap: 12px; font-weight: 400; }
+.nx-ob-bar { flex: 1; margin: 0 !important; min-width: 120px; }
+.nx-ob-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.nx-ob-step { display: flex; gap: 14px; align-items: center; padding: 12px; border-radius: 18px; }
+.nx-ob-step:hover { background: rgba(var(--nu-ink-rgb), .035); }
+.nx-ob-step-mark { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  font-weight: 700; font-size: 13px; background: rgba(var(--nu-ink-rgb), .07); color: var(--nu-text-secondary); }
+.nx-ob-step--done .nx-ob-step-mark { background: var(--nu-ok-bg); color: var(--nu-ok); }
+.nx-ob-step--skipped .nx-ob-step-mark { background: rgba(var(--nu-ink-rgb), .04); color: var(--nu-text-tertiary); }
+.nx-ob-step-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.nx-ob-step-text strong { font-weight: 650; color: var(--nu-text); }
+.nx-ob-step--done .nx-ob-step-text strong, .nx-ob-step--skipped .nx-ob-step-text strong { color: var(--nu-text-secondary); }
+.nx-ob-step-text span { font-size: 13px; color: var(--nu-text-secondary); }
+.nx-ob-step-text small { font-size: 12px; color: var(--nu-text-tertiary); }
+.nx-ob-step-actions { flex: none; justify-content: flex-end; }
+.nx-ob-hint { display: block; font-size: 13px; margin-bottom: 10px; }
+.nx-ob-areas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.nx-ob-areas li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 6px;
+  border-bottom: 1px solid rgba(var(--nu-ink-rgb), .06); }
+.nx-ob-area-name { display: inline-flex; gap: 8px; align-items: center; font-weight: 600; }
+
+/* the Home card */
+.nx-ob-card-title { display: inline-flex; gap: 8px; align-items: center; }
+.nx-ob-card-body { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+.nx-ob-card-progress { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; color: var(--nu-text-secondary); }
+.nx-ob-card-steps { flex: 1; min-width: 220px; list-style: none; margin: 0; padding: 0; display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.nx-ob-card-steps a { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 16px;
+  background: rgba(var(--nu-ink-rgb), .04); color: inherit; height: 100%; }
+.nx-ob-card-steps a:hover { background: var(--nu-tint); }
+.nx-ob-card-steps strong { font-weight: 650; color: var(--nu-text); font-size: 13.5px; }
+.nx-ob-card-steps span { font-size: 12.5px; color: var(--nu-text-secondary); }
+.nx-ob-card-all { font-weight: 600; white-space: nowrap; }
+
+/* empty-state guide */
+.nx-ob-guide { margin: 12px auto 0; max-width: 520px; text-align: center; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.nx-ob-guide p { margin: 0; font-size: 13px; color: var(--nu-text-secondary); }
+.nx-ob-guide-purpose { color: var(--nu-text) !important; }
+.nx-ob-guide-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+.nx-ob-guide-link { font-size: 12.5px; }
+
+@media (max-width: 1100px) { .nx-ob-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) {
+  .nx-ob-step { flex-wrap: wrap; }
+  .nx-ob-step-actions { width: 100%; padding-left: 44px; justify-content: flex-start; }
+}

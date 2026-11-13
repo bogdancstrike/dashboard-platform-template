@@ -53,4 +53,6 @@ from src.models.automation_graphs import AutomationGraph, AutomationVersion, Aut
 
 from src.models.developers import ApiExample  # noqa: F401
 
+from src.models.onboarding import OnboardingStep, SampleRecord  # noqa: F401
+
 __all__ = ["Base"]

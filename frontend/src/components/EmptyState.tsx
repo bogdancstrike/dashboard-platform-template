@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { Button, Typography } from "antd";
 import { InboxOutlined } from "@ant-design/icons";
 
+import { EmptyGuide } from "@/components/onboarding/EmptyGuide";
+
 /**
  * The state a data view spends more time in than anyone expects (§34).
  *
@@ -16,22 +18,30 @@ export function EmptyState({
   icon,
   action,
   compact = false,
+  guide,
 }: {
   title?: ReactNode;
   hint?: ReactNode;
   icon?: ReactNode;
   action?: ReactNode;
   compact?: boolean;
+  /** A dataset or area whose getting-started guide to show beneath (§38). */
+  guide?: string;
 }) {
   return (
     // One test id for both states, because a test asking "which of the two is
     // this" should read the words a person reads rather than a class name.
+    <>
     <div className={`nu-empty${compact ? " nu-empty--compact" : ""}`} data-testid="empty-state">
       <div className="nu-empty-icon">{icon ?? <InboxOutlined />}</div>
       <Typography.Text strong>{title}</Typography.Text>
       {hint && <div className="nu-empty-hint">{hint}</div>}
       {action && <div className="nu-empty-action">{action}</div>}
     </div>
+    {/* Beside the empty state rather than in it: the state names the one
+        action that makes the first record; the guide is context (§38). */}
+    {guide && !compact && <EmptyGuide area={guide} />}
+    </>
   );
 }
 

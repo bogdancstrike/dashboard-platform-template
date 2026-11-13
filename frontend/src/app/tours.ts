@@ -46,6 +46,25 @@ export interface TourStop {
 
 /** Every page with something worth explaining, keyed by its route. */
 export const TOURS: Record<string, TourStop[]> = {
+  "/onboarding": [
+    {
+      title: "What to do first, for your role",
+      description:
+        "The steps differ by role — an administrator invites people and connects systems, a manager builds a dashboard and a board — and most tick themselves off when you actually do the thing.",
+    },
+    {
+      target: "onboarding-steps",
+      title: "Each step goes straight there",
+      description:
+        "Open takes you to the page where the step is done. Mark done or Skip when it does not apply; progress is kept per person.",
+    },
+    {
+      target: "sample-data",
+      title: "Sample data you can take back",
+      description:
+        "Administrators can load a tagged sample dataset per area to explore an empty module, and remove exactly what was loaded — nothing else is touched.",
+    },
+  ],
   "/developers": [
     {
       title: "The API, read from the platform itself",
