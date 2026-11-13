@@ -1,7 +1,7 @@
 """Lazy package facades (PEP 562).
 
 A package split into submodules keeps one public import path —
-`from src.services.automation import workflows; workflows.create(...)` — without
+`workflows.create(...)` after importing the `workflows` package — without
 its `__init__` importing every submodule. Eager re-exports turn two packages
 that use each other's submodules into an import cycle at package level even
 when the modules themselves form a tree; resolving a name on first use does not.
