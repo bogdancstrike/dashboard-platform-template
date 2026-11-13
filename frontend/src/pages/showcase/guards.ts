@@ -122,7 +122,7 @@ export const LAYERS: readonly GuardedLayer[] = [
     because: "A widget's question is a kind, a dataset, a grouping, a measure and a period, chosen against a live preview — and a modal closes on Esc and on a click outside it.",
   },
   {
-    module: "pages/admin/GroupsPage.tsx",
+    module: "pages/admin/GroupsPage/NewGroupModal.tsx",
     what: "group",
     guarded: true,
     because: "A name, a kind and a description. The detail drawer beside it is unguarded on purpose — see below.",
@@ -146,7 +146,7 @@ export const LAYERS: readonly GuardedLayer[] = [
     because: "A name, a code, a parent and a manager, chosen against a tree the reader had to navigate.",
   },
   {
-    module: "pages/admin/TagsPage.tsx",
+    module: "pages/admin/TagsPage/TagForm.tsx",
     what: "tag",
     guarded: true,
     because: "A word, a category and a colour — small, but the colour is a choice made by looking at the others.",

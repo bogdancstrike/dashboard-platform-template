@@ -140,7 +140,7 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
     shape: "modal",
     where: "admin/tags",
     testId: "tag-new",
-    opens: "pages/admin/TagsPage.tsx",
+    opens: "pages/admin/TagsPage/TagForm.tsx",
     because: "A word and a colour. The vocabulary behind it is the page the modal sits on, and covering it costs nothing.",
   },
   {
@@ -227,11 +227,11 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
   },
   {
     what: "A group",
-    shape: "drawer",
+    shape: "modal",
     where: "admin/groups",
     testId: "new-group",
-    opens: "pages/admin/GroupsPage.tsx",
-    because: "A name, a description and the people in it — a picker that needs room.",
+    opens: "pages/admin/GroupsPage/NewGroupModal.tsx",
+    because: "A name, a kind and a description; the people and the grants come after, in the drawer it opens into.",
   },
   {
     what: "A dashboard widget",
