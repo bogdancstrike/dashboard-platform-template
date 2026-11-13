@@ -32,6 +32,7 @@ from sqlalchemy import select
 
 from src.config import Config
 from tests.conftest import persona_claims
+from tests.patching import patch_package
 
 PREFIX = Config.API_PREFIX
 TASKS = f"{PREFIX}/api/records/task"
@@ -396,7 +397,7 @@ def test_a_selection_over_the_cap_is_refused_with_the_number_in_it(client, monke
     from src.services.records import bulk
 
     headers = _authenticate(monkeypatch)
-    monkeypatch.setattr(bulk, "MAX_ROWS", 2)
+    patch_package(monkeypatch, bulk, "MAX_ROWS", 2)
 
     # Scoped to this test's own three rows, like every other query here. An
     # unfiltered `{}` would express the same assertion and would also be one

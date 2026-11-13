@@ -20,9 +20,11 @@ from uuid import uuid4
 import pytest
 
 from src.config import Config
+from src.core import cache
 from src.core.clock import now
 from src.services.analytics import dashboard_links as service
 from tests.conftest import persona_claims
+from tests.patching import patch_package
 
 PREFIX = Config.API_PREFIX
 PUBLIC = f"{PREFIX}/public/dashboards"
@@ -39,7 +41,7 @@ def _auth(monkeypatch, username: str = "admin", role: str = "administrator") -> 
 @pytest.fixture(autouse=True)
 def _fresh_limits(monkeypatch):
     service._local_counts.clear()
-    monkeypatch.setattr(service.cache, "incr", lambda *_a, **_k: 0)
+    monkeypatch.setattr(cache, "incr", lambda *_a, **_k: 0)
 
 
 @pytest.fixture()
@@ -203,12 +205,12 @@ def test_only_the_owner_with_publish_may_publish(client, monkeypatch, headers, d
 
 def test_both_doors_are_rate_limited(client, headers, dashboard, monkeypatch):
     link = _link(client, headers, dashboard, password="opensesame")
-    monkeypatch.setattr(service, "UNLOCK_LIMIT", 2)
+    patch_package(monkeypatch, service, "UNLOCK_LIMIT", 2)
     for _ in range(2):
         client.post(f"{PUBLIC}/{link['token']}/unlock", json={"password": "wrong"})
     limited = client.post(f"{PUBLIC}/{link['token']}/unlock", json={"password": "opensesame"})
     assert limited.status_code == 429
-    monkeypatch.setattr(service, "VIEW_LIMIT", 1)
+    patch_package(monkeypatch, service, "VIEW_LIMIT", 1)
     client.get(f"{PUBLIC}/{link['token']}", headers={"X-Forwarded-For": "203.0.113.9"})
     assert client.get(f"{PUBLIC}/{link['token']}", headers={"X-Forwarded-For": "203.0.113.9"}).status_code == 429
     assert client.get(f"{PUBLIC}/{link['token']}", headers={"X-Forwarded-For": "203.0.113.10"}).status_code == 200
@@ -260,7 +262,7 @@ def test_an_owner_who_left_takes_the_link_with_them(client, headers, dashboard, 
     def gone(*_a, **_k):
         raise service._gone("The owner of this dashboard no longer has an account.", "owner_gone")
 
-    monkeypatch.setattr(service, "_owner_principal", gone)
+    patch_package(monkeypatch, service, "_owner_principal", gone)
     response = client.get(f"{PUBLIC}/{link['token']}/view")
     assert response.status_code == 410
     assert response.get_json()["details"]["reason"] == "owner_gone"

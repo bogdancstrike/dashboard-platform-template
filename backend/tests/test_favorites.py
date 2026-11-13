@@ -34,6 +34,7 @@ from src.config import Config
 from src.core.db import session_scope
 from src.services.records import favorites as service
 from tests.conftest import persona_claims
+from tests.patching import patch_package
 
 pytestmark = pytest.mark.database
 
@@ -377,7 +378,7 @@ def test_arranging_a_stale_list_is_refused_rather_than_half_applied(client, monk
 
 
 def test_only_so_many_bookmarks(client, monkeypatch):
-    monkeypatch.setattr(service, "MAX_FAVORITES", 1)
+    patch_package(monkeypatch, service, "MAX_FAVORITES", 1)
     headers = _authenticate(monkeypatch)
 
     listing = _mine(client, headers)
@@ -441,7 +442,7 @@ def test_a_visit_is_recorded_and_counted_rather_than_appended(client, monkeypatc
 
 
 def test_the_recents_list_is_trimmed(client, monkeypatch):
-    monkeypatch.setattr(service, "MAX_RECENTS", 3)
+    patch_package(monkeypatch, service, "MAX_RECENTS", 3)
     headers = _authenticate(monkeypatch)
 
     for index in range(5):

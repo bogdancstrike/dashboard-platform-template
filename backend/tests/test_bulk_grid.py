@@ -16,6 +16,7 @@ import pytest
 
 from src.config import Config
 from tests.conftest import persona_claims
+from tests.patching import patch_package
 
 PREFIX = Config.API_PREFIX
 TASKS = f"{PREFIX}/api/records/task"
@@ -98,7 +99,7 @@ def test_a_malformed_save_is_refused(client, headers, payload):
 def test_more_than_the_cap_is_refused(client, headers, monkeypatch):
     from src.services.records import bulk
 
-    monkeypatch.setattr(bulk, "MAX_ROWS", 1)
+    patch_package(monkeypatch, bulk, "MAX_ROWS", 1)
     response = client.post(BULK, json={"rows": [
         {"id": str(uuid4()), "changes": {}}, {"id": str(uuid4()), "changes": {}}]}, headers=headers)
     assert response.status_code == 400

@@ -16,7 +16,8 @@ from dataclasses import replace
 
 import pytest
 
-from src.core import llm
+from src.core import clock, llm
+from src.core import rules as core_rules
 from src.core.errors import ValidationError
 from src.services.ai import filters as f
 from src.services.records.explorer import resources
@@ -51,7 +52,7 @@ def test_odd_tree_shapes_are_folded_into_one_valid_query(app):
     admin = principal(app, "admin")
     task = resources()["task"]
     deep = _rule("status", "eq", ["NEW"])
-    for _ in range(f.MAX_DEPTH + 2):
+    for _ in range(core_rules.MAX_DEPTH + 2):
         deep = {"type": "group", "children1": [deep]}
     tree = {
         "conjunction": "ANY",                                  # a spelling of OR
@@ -85,7 +86,7 @@ def test_a_reference_into_a_dataset_the_reader_cannot_see_is_ignored(app):
     narrowed = replace(admin, permissions=frozenset(p for p in admin.permissions if p != project_permission))
     with session_scope() as session:
         assert f.coerce_values(session, task.fields.by_name["project_id"], "eq", ["Anything"],
-                               principal=narrowed, today=f.now()) is None
+                               principal=narrowed, today=clock.now()) is None
         session.rollback()
 
 
@@ -94,7 +95,7 @@ def test_a_tree_with_too_many_rules_is_refused(app):
 
     admin = principal(app, "admin")
     task = resources()["task"]
-    tree = {"type": "group", "children1": {str(i): _rule("status", "eq", ["NEW"]) for i in range(f.MAX_RULES + 1)}}
+    tree = {"type": "group", "children1": {str(i): _rule("status", "eq", ["NEW"]) for i in range(core_rules.MAX_RULES + 1)}}
     with session_scope() as session:
         with pytest.raises(ValidationError, match="at most"):
             f.normalise(tree, task, session=session, principal=admin)

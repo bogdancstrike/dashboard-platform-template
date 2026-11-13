@@ -9,6 +9,7 @@ than to an error.
 from __future__ import annotations
 
 import json
+import time
 
 import pytest
 
@@ -120,7 +121,7 @@ def test_only_the_heartbeat_and_a_status_are_accepted_from_the_socket(store, bro
 def test_a_lapsed_local_status_reads_as_offline(monkeypatch, broadcasts):
     monkeypatch.setattr("src.core.cache.client", lambda: None)
     presence.set_status("u1", "online")
-    monkeypatch.setattr(presence.time, "monotonic", lambda: 10**12)
+    monkeypatch.setattr(time, "monotonic", lambda: 10**12)
     assert presence.status_of(["u1"]) == {"u1": "offline"}
     assert presence.everyone() == {}
 

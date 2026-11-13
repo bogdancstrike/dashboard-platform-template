@@ -213,7 +213,7 @@ def test_the_streaming_ceiling_the_estimate_reports_is_the_one_that_is_enforced(
 ):
     # The number a page prints and the number the API refuses at have to be the
     # same number, or the page is lying about the product's own limits.
-    monkeypatch.setattr(writer, "MAX_ROWS", 3)
+    patch_package(monkeypatch, writer, "MAX_ROWS", 3)
     headers = _authenticate(monkeypatch)
     body = client.post(
         f"{EXPORTS}/estimate", json={"resource_type": RESOURCE, "format": "csv"}, headers=headers

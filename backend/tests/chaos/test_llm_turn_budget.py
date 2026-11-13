@@ -10,6 +10,7 @@ call still fits, and a turn that runs out returns what it has with a note.
 from __future__ import annotations
 
 import json
+import time
 
 import pytest
 
@@ -71,7 +72,7 @@ def test_a_real_model_turn_stops_when_another_call_would_not_fit(client, monkeyp
     from src.services.ai import assistant as service
 
     clock = _Clock()
-    monkeypatch.setattr(service.time, "monotonic", clock)
+    monkeypatch.setattr(time, "monotonic", clock)
     monkeypatch.setattr(Config, "LLM_MAX_SECONDS", 3.0)
     monkeypatch.setattr(Config, "LLM_TURN_MAX_SECONDS", 7.0)
     fake = _looping_client(clock, 2.5, fake=False)
@@ -94,7 +95,7 @@ def test_a_fake_model_turn_only_stops_when_the_budget_is_spent(client, monkeypat
     from src.services.ai import assistant as service
 
     clock = _Clock()
-    monkeypatch.setattr(service.time, "monotonic", clock)
+    monkeypatch.setattr(time, "monotonic", clock)
     monkeypatch.setattr(Config, "LLM_TURN_MAX_SECONDS", 3.0)
     fake = _looping_client(clock, 1.0, fake=True)
     h = _auth(monkeypatch)
