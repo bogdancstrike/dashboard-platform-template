@@ -77,6 +77,18 @@ PUBLIC: dict[str, str] = {
         "a published intake form is answered by people who have no account — "
         "an INTERNAL one still refuses them, inside the handler"
     ),
+    "/platform/public/dashboards/<string:token>": (
+        "whether a public dashboard link needs a password — read by a page that "
+        "has no account; the token in the path is the credential"
+    ),
+    "/platform/public/dashboards/<string:token>/view": (
+        "the published dashboard itself, read-only and rate-limited; a password "
+        "link refuses it without a grant from /unlock"
+    ),
+    "/platform/public/dashboards/<string:token>/unlock": (
+        "exchanges a link's password for a short-lived signed grant; "
+        "rate-limited per address"
+    ),
     "/platform/public/forms/<string:slug>/submit": (
         "the same form's answer; rate-limited per address and guarded by a "
         "signed challenge and a honeypot rather than a token"

@@ -125,6 +125,16 @@ PERMISSION_GROUPS: dict[str, list[tuple[str, str]]] = {
         ("sla.manage", "Edit SLA policies and business calendars"),
         ("forms.manage", "Build and publish intake forms"),
     ],
+    # Records & analytics (§12, §13, §17, §22, §25). Reading health scores,
+    # contracts and alerts is `records.view`; changing what drives them, and
+    # putting a dashboard on the open internet, are grants of their own.
+    "Records & analytics": [
+        ("contracts.manage", "Create, edit and move contracts and renewals"),
+        ("health.configure", "Change the customer health model"),
+        ("alerts.manage", "Create and silence metric anomaly watches"),
+        ("dashboards.publish", "Publish dashboards as public or embeddable links"),
+        ("records.restore", "Restore earlier versions of records"),
+    ],
 }
 
 ALL_PERMISSIONS: tuple[str, ...] = tuple(
@@ -155,6 +165,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
         "rank": 80,
         "color": "#7c3aed",
         "permissions": [
+            "contracts.manage", "health.configure", "alerts.manage", "dashboards.publish", "records.restore",
             "chat.use", "docs.view", "docs.edit",
             "records.view", "records.create", "records.update", "records.export",
             "records.comment", "records.import", "records.bulk", "tags.manage",
@@ -174,6 +185,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
         "rank": 60,
         "color": "#0891b2",
         "permissions": [
+            "contracts.manage", "records.restore",
             "chat.use", "docs.view", "docs.edit",
             "records.view", "records.create", "records.update", "records.export",
             "records.comment",
@@ -191,6 +203,7 @@ ROLE_DEFAULTS: dict[str, dict[str, Any]] = {
         "rank": 50,
         "color": "#16a34a",
         "permissions": [
+            "alerts.manage", "dashboards.publish",
             "chat.use", "docs.view", "docs.edit",
             "records.view", "records.export",
             "users.view", "audit.view", "health.view", "jobs.view",

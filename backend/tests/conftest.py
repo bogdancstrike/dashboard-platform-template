@@ -101,6 +101,10 @@ def _skip_without_database(request, has_database):
 #: `file_objects` wrong, which turned every database test's teardown into an
 #: error.
 TEST_OWNED_MODELS: tuple[str, ...] = (
+    # Records & analytics (§12–25): an anomaly points at its watch, a link at
+    # its dashboard, a contract at its customer and folder, a score at its
+    # customer — all before the tables they name.
+    "MetricAnomaly", "MetricWatch", "DashboardLink", "Contract", "CustomerHealth",
     # Time & decisions. A timesheet points at its approval request, a ticket's
     # SLA state at its policy and a policy at its calendar, a submission at its
     # form — children first, and all before the records they mention.

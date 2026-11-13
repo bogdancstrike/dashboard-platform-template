@@ -36,6 +36,7 @@ from src.seed import assistant as assistant_seed
 from src.seed import insights as insights_seed
 from src.seed import knowledge as knowledge_seed
 from src.seed import planning as planning_seed
+from src.seed import records_analytics as analytics_seed
 from src.seed import collab as collab_seed
 from src.seed.support import Rng
 from src.seed.world import SCALES, Scale, World
@@ -592,6 +593,7 @@ def run(
     knowledge_seed.seed_safely(session)  # Ask your documents (§44)
     insights_seed.seed_safely(session)  # Insights (§43)
     planning_seed.populate(session)  # sprints, epics, dependencies, templates (§18)
+    analytics_seed.seed_safely(session)  # health, contracts, versions, alerts, links (§12–25)
     collab_seed.seed(session)  # chat, the wiki and meeting notes (§47–49)
     decisions_seed.populate(session)  # SLA policies, approvals, time, intake forms
     written = time.perf_counter()

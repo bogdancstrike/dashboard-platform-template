@@ -32,6 +32,7 @@
     python -m src.seed --sync-knowledge  # add the seeded document collections that are missing
     python -m src.seed --sync-insights   # add the seeded insights (and the dashboard widget) that are missing
     python -m src.seed --sync-planning   # sprints, epics, a timeline and templates for the work queue
+    python -m src.seed --sync-analytics  # customer health, contracts, version histories, alerts, public links
     python -m src.seed --dry-run          # build in memory, write nothing
 
 It refuses to seed a database that already has data unless `--reset` or
@@ -149,6 +150,11 @@ def _parser() -> argparse.ArgumentParser:
         help="add the seeded AI assistant conversations that are missing, and exit",
     )
     parser.add_argument(
+        "--sync-analytics", action="store_true",
+        help="add customer health history, contracts, record version histories, metric watches and "
+        "public dashboard links, and exit",
+    )
+    parser.add_argument(
         "--sync-planning", action="store_true",
         help="add sprints with history, epics, dependencies, templates and recurring tasks, and exit",
     )
@@ -210,6 +216,16 @@ def main(argv: list[str] | None = None) -> int:
             if stamped:
                 print(f"recorded schema revision {stamped}")
         return 1 if blocked else 0
+
+    if args.sync_analytics:
+        # Records & analytics (§12, §13, §17, §22, §25) for a database seeded
+        # before them: idempotent — each part adds only what is missing.
+        from src.seed import records_analytics
+
+        with session_scope() as session:
+            result = records_analytics.populate(session)
+        print(", ".join(f"{count} {name.replace('_', ' ')}" for name, count in result.items()))
+        return 0
 
     if args.sync_planning:
         # Work planning (§18) for a database seeded before it existed:

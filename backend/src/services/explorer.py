@@ -214,6 +214,7 @@ def _common(model) -> tuple[Field, ...]:
 def _resources() -> dict[str, Resource]:
     """Build lazily so importing this module does not pull every model at boot."""
     from src.models.business import Customer, Device, Order, Project, Task, Ticket
+    import src.models.records_analytics  # noqa: F401  (Customer.health_score / health_band)
 
     return {
         "task": Resource(
@@ -444,6 +445,12 @@ def _resources() -> dict[str, Resource]:
                 Field("satisfaction", Customer.satisfaction, kind="number"),
                 Field("last_contact_at", Customer.last_contact_at, kind="datetime"),
                 Field("account_manager_id", Customer.account_manager_id, kind="uuid", label="Account manager ID"),
+                # Customer health (§12): the current score and band, carried on
+                # the row by `models/records_analytics` — so the list filters,
+                # sorts and facets by health like any other column.
+                Field("health_score", Customer.health_score, kind="number", label="Health score"),
+                Field("health_band", Customer.health_band, kind="enum", facet=True,
+                      choices=("HEALTHY", "AT_RISK", "CRITICAL"), label="Health"),
                 *_common(Customer),
             ),
             ("code", "name", "status", "segment", "industry", "lifetime_value", "last_contact_at"),

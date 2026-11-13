@@ -45,5 +45,9 @@ from src.models.approvals import ApprovalRequest, ChangeRule  # noqa: F401
 from src.models.timekeeping import TimeEntry, Timesheet  # noqa: F401
 from src.models.sla import BusinessCalendar, SlaPolicy, TicketSla  # noqa: F401
 from src.models.forms import FormSubmission, IntakeForm  # noqa: F401
+from src.models.records_analytics import (  # noqa: F401
+    Contract, CustomerHealth, CustomerHealthSnapshot, DashboardLink, HealthModel,
+    MetricAnomaly, MetricWatch,
+)
 
 __all__ = ["Base"]

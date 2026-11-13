@@ -1523,6 +1523,436 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "alerts_anomalies",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/alerts/anomalies",
+      "description": "Anomaly alert history across metric watches.",
+      "exec_method": {
+        "module_name": "src.api.metric_watches",
+        "method_name": "anomalies"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "alerts_anomaly",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/alerts/anomalies/<uuid:anomaly_id>",
+      "description": "One flagged point with the window it was judged against.",
+      "exec_method": {
+        "module_name": "src.api.metric_watches",
+        "method_name": "anomaly"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "alerts_anomaly_acknowledge",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/alerts/anomalies/<uuid:anomaly_id>/acknowledge",
+      "description": "Mark an anomaly alert as seen.",
+      "exec_method": {
+        "module_name": "src.api.metric_watches",
+        "method_name": "acknowledge"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "alerts_catalogue",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/alerts/catalogue",
+      "description": "Datasets, measures, dates and methods a metric watch may use.",
+      "exec_method": {
+        "module_name": "src.api.metric_watches",
+        "method_name": "catalogue"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "alerts_preview",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/alerts/preview",
+      "description": "What a draft watch would see and flag, without saving it.",
+      "exec_method": {
+        "module_name": "src.api.metric_watches",
+        "method_name": "preview"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "alerts_run",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/alerts/run",
+      "description": "Evaluate every metric watch now, recorded as a job.",
+      "exec_method": {
+        "module_name": "src.api.metric_watches",
+        "method_name": "run_all"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "alerts_watches",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/alerts/watches",
+      "description": "Metric watches, or a new one.",
+      "exec_method": {
+        "module_name": "src.api.metric_watches",
+        "method_name": "watches"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "alerts_watch",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/alerts/watches/<uuid:watch_id>",
+      "description": "One metric watch, or a change to it.",
+      "exec_method": {
+        "module_name": "src.api.metric_watches",
+        "method_name": "watch"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "alerts_watch_chart",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/alerts/watches/<uuid:watch_id>/chart",
+      "description": "A watched series with its expected band and flagged points.",
+      "exec_method": {
+        "module_name": "src.api.metric_watches",
+        "method_name": "chart"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "alerts_watch_evaluate",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/alerts/watches/<uuid:watch_id>/evaluate",
+      "description": "Judge a watch's latest points now.",
+      "exec_method": {
+        "module_name": "src.api.metric_watches",
+        "method_name": "evaluate"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "alerts_watch_silence",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/alerts/watches/<uuid:watch_id>/silence",
+      "description": "Snooze, mute or unsilence a metric watch.",
+      "exec_method": {
+        "module_name": "src.api.metric_watches",
+        "method_name": "silence"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "contracts_collection",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/contracts",
+      "description": "Contracts, or a new one.",
+      "exec_method": {
+        "module_name": "src.api.contracts",
+        "method_name": "collection"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "contracts_board",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/contracts/board",
+      "description": "The renewals pipeline, one column per stage.",
+      "exec_method": {
+        "module_name": "src.api.contracts",
+        "method_name": "board"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "contracts_calendar",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/contracts/calendar",
+      "description": "Contract end dates and notice deadlines in a month.",
+      "exec_method": {
+        "module_name": "src.api.contracts",
+        "method_name": "calendar"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "contracts_forecast",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/contracts/forecast",
+      "description": "Renewal ARR by quarter: pipeline, weighted, committed, renewed, churned.",
+      "exec_method": {
+        "module_name": "src.api.contracts",
+        "method_name": "forecast"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "contracts_item",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/contracts/<uuid:contract_id>",
+      "description": "One contract, or a change to it.",
+      "exec_method": {
+        "module_name": "src.api.contracts",
+        "method_name": "item"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "contracts_files",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/contracts/<uuid:contract_id>/files",
+      "description": "A contract's documents, or its folder made ready for an upload.",
+      "exec_method": {
+        "module_name": "src.api.contracts",
+        "method_name": "files"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "contracts_move",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/contracts/<uuid:contract_id>/move",
+      "description": "Move a contract to a pipeline stage and a place in it.",
+      "exec_method": {
+        "module_name": "src.api.contracts",
+        "method_name": "move"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "customer_health_portfolio",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/customer-health",
+      "description": "Customer health across the book: distribution, movers, drops, a filtered list.",
+      "exec_method": {
+        "module_name": "src.api.customer_health",
+        "method_name": "portfolio"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "customer_health_customer",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/customer-health/customers/<uuid:customer_id>",
+      "description": "One customer's health score, band, breakdown and trend.",
+      "exec_method": {
+        "module_name": "src.api.customer_health",
+        "method_name": "customer"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "customer_health_model",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT"
+      ],
+      "api_url": "/api/customer-health/model",
+      "description": "The health model's weights and thresholds, or a change to them.",
+      "exec_method": {
+        "module_name": "src.api.customer_health",
+        "method_name": "model"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "customer_health_recompute",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/customer-health/recompute",
+      "description": "Score every customer now and snapshot today.",
+      "exec_method": {
+        "module_name": "src.api.customer_health",
+        "method_name": "recompute"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "dashboard_links",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "POST"
+      ],
+      "api_url": "/api/dashboards/<uuid:dashboard_id>/links",
+      "description": "A dashboard's public links, or a new one.",
+      "exec_method": {
+        "module_name": "src.api.dashboard_links",
+        "method_name": "links"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "dashboard_link",
+      "model_name": "Empty",
+      "request_method": [
+        "PUT",
+        "DELETE"
+      ],
+      "api_url": "/api/dashboards/<uuid:dashboard_id>/links/<uuid:link_id>",
+      "description": "Change or revoke one public dashboard link.",
+      "exec_method": {
+        "module_name": "src.api.dashboard_links",
+        "method_name": "link"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "record_versions",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/records/<string:resource_type>/<uuid:record_id>/versions",
+      "description": "Every version of a record, or the one in force at a date.",
+      "exec_method": {
+        "module_name": "src.api.record_versions",
+        "method_name": "versions"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "record_versions_compare",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/records/<string:resource_type>/<uuid:record_id>/versions/compare",
+      "description": "Two versions of a record side by side.",
+      "exec_method": {
+        "module_name": "src.api.record_versions",
+        "method_name": "compare"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "record_versions_restore",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/records/<string:resource_type>/<uuid:record_id>/versions/restore",
+      "description": "Restore a whole version of a record, or chosen fields of it.",
+      "exec_method": {
+        "module_name": "src.api.record_versions",
+        "method_name": "restore"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "public_dashboard_meta",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/public/dashboards/<string:token>",
+      "description": "Whether a public dashboard link needs a password.",
+      "exec_method": {
+        "module_name": "src.api.dashboard_links",
+        "method_name": "public_meta"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "public_dashboard_unlock",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/public/dashboards/<string:token>/unlock",
+      "description": "Exchange a public dashboard's password for a short-lived grant.",
+      "exec_method": {
+        "module_name": "src.api.dashboard_links",
+        "method_name": "public_unlock"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "public_dashboard_view",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/public/dashboards/<string:token>/view",
+      "description": "A public dashboard, read-only, every widget answered on the server.",
+      "exec_method": {
+        "module_name": "src.api.dashboard_links",
+        "method_name": "public_view"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "announcements_collection",
       "model_name": "Empty",
       "request_method": [
