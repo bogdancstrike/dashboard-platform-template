@@ -203,6 +203,7 @@ body { color: var(--nu-text); font-feature-settings: "cv11", "ss01"; }
   transition: width 0.45s var(--nx-ease), padding 0.45s var(--nx-ease);
 }
 .nx-side-menu { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.nx-side-menu.is-pending { visibility: hidden; }
 .nx-brandrow { display: flex; align-items: center; gap: 6px; padding: 0 0 6px 10px; transition: padding 0.45s var(--nx-ease), gap 0.45s var(--nx-ease); }
 .nx-brand { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; color: var(--nu-text); text-decoration: none; }
 .nx-brand:hover { color: var(--nu-text); }

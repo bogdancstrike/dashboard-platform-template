@@ -166,7 +166,7 @@ describe("on a desktop", () => {
     const user = userEvent.setup();
     renderShell("/dashboard");
     const menu = await screen.findByRole("menu", { name: "Pages" });
-    const [head] = within(menu).getAllByRole("button");
+    const [head] = within(menu).getAllByRole("menuitem").filter((item) => item.hasAttribute("aria-expanded"));
     expect(head).toHaveAttribute("aria-expanded", "true");
     await user.click(head!);
     expect(head).toHaveAttribute("aria-expanded", "false");

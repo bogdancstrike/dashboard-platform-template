@@ -149,7 +149,7 @@ export default function DashboardPage() {
   const [kpiRef, kpiWidth] = useWidth();
   // At most four across on a laptop, more only when the screen is very wide.
   const kpiColumns = kpiWidth
-    ? balancedColumns(kpiWidth, data?.kpis.length ?? 8, 260, kpiWidth >= 2000 ? 6 : 4)
+    ? balancedColumns(kpiWidth, data?.kpis.length ?? 12, 260, kpiWidth >= 2000 ? 6 : 4)
     : 4;
   const [chartRef, chartWidth] = useWidth();
   const chartColumns = chartWidth >= 2000 ? 3 : chartWidth >= 820 ? 2 : 1;
@@ -321,8 +321,11 @@ export default function DashboardPage() {
         style={{ gridTemplateColumns: `repeat(${kpiColumns}, minmax(0, 1fr))` }}
       >
         {isLoading
-          ? Array.from({ length: 8 }).map((_, index) => (
-              <Card className="nu-statcard" key={index}>
+          ? // As many placeholders as the dashboard usually has, each the
+            // height a tile settles at, so the grid does not reflow under the
+            // reader when the numbers arrive (audit A, CLS).
+            Array.from({ length: 12 }).map((_, index) => (
+              <Card className="nu-statcard" key={index} style={{ minHeight: 105 }}>
                 <Skeleton active paragraph={{ rows: 1 }} />
               </Card>
             ))

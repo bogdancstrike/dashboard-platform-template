@@ -424,7 +424,11 @@ export function AppShell() {
             </Tooltip>
             <CollapseAllToggle allCollapsed={allGroupsClosed} onToggle={setAllGroups} label="groups" />
           </div>
-          <div role="menu" aria-label="Pages" className="nx-side-menu">
+          {/* Held invisible until the profile says which pages this reader
+              has: drawn early, the groups re-flowed as permissions and
+              feature flags arrived — a 0.11 layout shift on every page load
+              (audit A). Invisible content that appears is not a shift. */}
+          <div role="menu" aria-label="Pages" className={`nx-side-menu${auth.profile ? "" : " is-pending"}`}>
             {navList}
           </div>
           <PageTour variant="side" />
