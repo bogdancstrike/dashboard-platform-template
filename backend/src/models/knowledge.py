@@ -27,7 +27,7 @@ from src.models.vector import Vector
 from src.models.base import Base, SoftDeleteMixin, TimestampMixin, fk, uuid_pk
 
 #: Where one document's ingest stands, in the order it moves.
-DOCUMENT_STATUSES = ("QUEUED", "PARSING", "EMBEDDING", "READY", "FAILED")
+DOCUMENT_STATUSES = ("QUEUED", "PARSING", "CHUNKING", "EMBEDDING", "READY", "FAILED")
 
 
 class KnowledgeCollection(Base, TimestampMixin, SoftDeleteMixin):

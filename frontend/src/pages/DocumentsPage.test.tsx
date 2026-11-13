@@ -8,7 +8,7 @@ import { Grid } from "antd";
 import DocumentsPage from "@/pages/DocumentsPage";
 import { CommandProvider } from "@/commands/CommandContext";
 import { failureText, isReading } from "@/api/knowledge";
-import { knowledgeFlags, knowledgeState, resetKnowledge } from "@/test/handlers/knowledge";
+import { knowledgeDocument, knowledgeFlags, knowledgeState, resetKnowledge } from "@/test/handlers/knowledge";
 import { resetFiles } from "@/test/handlers";
 import { renderWithProviders } from "@/test/render";
 import { server } from "@/test/server";
@@ -234,5 +234,110 @@ describe("knowledge helpers", () => {
     expect(failureText("FILE_ENCRYPTED", null)).toMatch(/encrypted/);
     expect(failureText("SOMETHING", "raw")).toBe("raw");
     expect(failureText(null, null)).toMatch(/could not be read/);
+  });
+});
+
+describe("collection uploads and files", () => {
+  function controllableXhr() {
+    const pending: { fire: (kind: string) => void }[] = [];
+    class FakeXhr {
+      status = 200;
+      responseText = "";
+      upload = { addEventListener: () => {} };
+      private handlers: Record<string, (() => void)[]> = {};
+      open() {}
+      setRequestHeader() {}
+      addEventListener(kind: string, handler: () => void) {
+        this.handlers[kind] = [...(this.handlers[kind] ?? []), handler];
+      }
+      abort() {
+        for (const handler of this.handlers["abort"] ?? []) handler();
+      }
+      send() {
+        pending.push({ fire: (kind) => { for (const handler of this.handlers[kind] ?? []) handler(); } });
+      }
+    }
+    vi.stubGlobal("XMLHttpRequest", FakeXhr);
+    return pending;
+  }
+
+  it("refuses an unsupported or oversized file with the reason, before sending it", async () => {
+    render("/ai/documents?collection=kc-1&tab=documents");
+    await screen.findAllByTestId("document-row");
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    const zip = new File(["PK"], "archive.zip");
+    const huge = new File(["x"], "huge.pdf");
+    Object.defineProperty(huge, "size", { value: 60 * 1024 * 1024 });
+    const empty = new File([], "empty.md");
+    fireEvent.change(input, { target: { files: [zip, huge, empty] } });
+    const items = await screen.findAllByTestId("upload-item");
+    expect(items.map((item) => item.getAttribute("data-state"))).toEqual(["refused", "refused", "refused"]);
+    expect(items[0]).toHaveTextContent(".zip file cannot be read");
+    expect(items[1]).toHaveTextContent("over the 50 MB");
+    expect(items[2]).toHaveTextContent("empty");
+    await userEvent.click(screen.getByRole("button", { name: "Dismiss archive.zip" }));
+    expect(screen.getAllByTestId("upload-item")).toHaveLength(2);
+  });
+
+  it("shows each upload's progress, cancels one and retries it", async () => {
+    const pending = controllableXhr();
+    render("/ai/documents?collection=kc-1&tab=documents");
+    await screen.findAllByTestId("document-row");
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    fireEvent.change(input, { target: { files: [new File(["%PDF"], "slow.pdf")] } });
+    await waitFor(() => expect(pending).toHaveLength(1));
+    expect(screen.getByTestId("upload-item")).toHaveAttribute("data-state", "uploading");
+    await userEvent.click(screen.getByTestId("upload-cancel"));
+    expect(await screen.findByTestId("upload-message")).toHaveTextContent("Cancelled");
+    await userEvent.click(screen.getByTestId("upload-retry"));
+    await waitFor(() => expect(pending).toHaveLength(2));
+    pending[1]!.fire("load");
+    await waitFor(() => expect(knowledgeState.collections[0]!.documents).toHaveLength(4));
+    vi.unstubAllGlobals();
+  });
+
+  it("says why an upload failed and offers a retry", async () => {
+    const pending = controllableXhr();
+    render("/ai/documents?collection=kc-1&tab=documents");
+    await screen.findAllByTestId("document-row");
+    fireEvent.change(document.querySelector<HTMLInputElement>('input[type="file"]')!, {
+      target: { files: [new File(["%PDF"], "down.pdf")] },
+    });
+    await waitFor(() => expect(pending).toHaveLength(1));
+    pending[0]!.fire("error");
+    await waitFor(() => expect(pending).toHaveLength(2)); // the same-origin fallback
+    pending[1]!.fire("error");
+    expect(await screen.findByTestId("upload-message")).toHaveTextContent("could not reach storage");
+    expect(screen.getByTestId("upload-retry")).toBeInTheDocument();
+    vi.unstubAllGlobals();
+  });
+
+  it("shows the reading's stages, finds a document by name, and renames one", async () => {
+    knowledgeState.collections[0]!.documents.push(
+      knowledgeDocument({ id: "kd-4", name: "Contract.docx", status: "CHUNKING" }),
+      knowledgeDocument({ id: "kd-5", name: "Notes.txt" }),
+    );
+    render("/ai/documents?collection=kc-1&tab=documents");
+    const steps = await screen.findByTestId("document-steps");
+    expect(within(steps).getByText("Splitting")).toHaveClass("is-now");
+    expect(within(steps).getByText("Reading")).toHaveClass("is-done");
+    await userEvent.type(screen.getByPlaceholderText("Find a document"), "contract");
+    expect(screen.getAllByTestId("document-row")).toHaveLength(1);
+    await userEvent.clear(screen.getByPlaceholderText("Find a document"));
+    await userEvent.type(screen.getByPlaceholderText("Find a document"), "zzz");
+    expect(screen.getByText("No document is called that.")).toBeInTheDocument();
+    await userEvent.clear(screen.getByPlaceholderText("Find a document"));
+    await userEvent.click(screen.getByRole("button", { name: "Rename Notes.txt" }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.clear(within(dialog).getByRole("textbox"));
+    await userEvent.type(within(dialog).getByRole("textbox"), "Meeting notes.txt");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Rename" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("opens an empty collection on a big drop zone", async () => {
+    knowledgeState.collections[0]!.documents = [];
+    render("/ai/documents?collection=kc-1&tab=documents");
+    expect(await screen.findByText("Drop the files people ask about")).toBeInTheDocument();
   });
 });

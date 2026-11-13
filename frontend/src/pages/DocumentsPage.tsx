@@ -320,6 +320,7 @@ export default function DocumentsPage() {
                 <DocumentsPanel
                   collection={collection}
                   supported={list.data?.supported_extensions ?? []}
+                  maxBytes={list.data?.max_document_bytes}
                   onPreview={openDocument}
                 />
               )}

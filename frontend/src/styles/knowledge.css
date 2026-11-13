@@ -583,3 +583,86 @@
 .nx-kn-pdf {
   width: 100%;
 }
+
+/* ── the upload tray, the empty drop zone and the reading's steps ────── */
+.nx-kn-drop.is-empty.ant-upload-wrapper .ant-upload-drag {
+  padding: 36px 12px;
+  border-width: 2px;
+}
+.nx-kn-drop.is-empty .nx-kn-drop-inner {
+  flex-direction: column;
+  text-align: center;
+  gap: 12px;
+}
+.nx-kn-drop.is-empty .nx-kn-drop-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+}
+.nx-kn-drop.is-empty .nx-kn-drop-title {
+  font-size: 17px;
+}
+.nx-kn-tray {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nx-kn-tray-item {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: var(--nu-raised);
+  border: 1px dashed var(--nu-glass-border);
+}
+.nx-kn-tray-item.is-error,
+.nx-kn-tray-item.is-refused {
+  border-color: var(--nu-bad-fill);
+  background: var(--nu-bad-bg);
+}
+.nx-kn-tray-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.nx-kn-tray-main .ant-progress {
+  margin: 0;
+}
+.nx-kn-docsearch {
+  max-width: 320px;
+}
+.nx-kn-steps {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  font-size: 11px;
+}
+.nx-kn-steps li {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(var(--nu-ink-rgb), 0.05);
+  color: var(--nu-text-tertiary);
+}
+.nx-kn-steps li.is-done {
+  background: var(--nu-tint);
+  color: var(--nu-accent-ink);
+}
+.nx-kn-steps li.is-now {
+  background: var(--nu-accent);
+  color: var(--nu-on-accent);
+  animation: nxKnPulse 1.4s ease-in-out infinite;
+}
+.is-phone .nx-kn-tray-item {
+  grid-template-columns: 36px minmax(0, 1fr);
+}
+.is-phone .nx-kn-tray-item .nx-kn-doc-actions {
+  grid-column: 2;
+}

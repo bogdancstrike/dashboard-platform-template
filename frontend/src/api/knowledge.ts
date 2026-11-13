@@ -5,7 +5,7 @@ import { api } from "./client";
  * stands, and questions answered with numbered citations.
  */
 
-export type DocumentStatus = "QUEUED" | "PARSING" | "EMBEDDING" | "READY" | "FAILED";
+export type DocumentStatus = "QUEUED" | "PARSING" | "CHUNKING" | "EMBEDDING" | "READY" | "FAILED";
 export type CollectionScope = "PRIVATE" | "SHARED" | "PUBLIC";
 
 /** Where on its page a passage sits, 0..1 from the top-left corner. */
@@ -78,6 +78,8 @@ export interface CollectionList {
   total: number;
   can_create: boolean;
   supported_extensions: string[];
+  /** The largest file the converter reads. */
+  max_document_bytes?: number;
 }
 
 export interface Citation {
@@ -172,7 +174,7 @@ export const knowledgeApi = {
 
 /** Whether a document is still being read (and the page should keep polling). */
 export function isReading(document: Pick<KnowledgeDocument, "status" | "stalled">): boolean {
-  return ["QUEUED", "PARSING", "EMBEDDING"].includes(document.status) && !document.stalled;
+  return ["QUEUED", "PARSING", "CHUNKING", "EMBEDDING"].includes(document.status) && !document.stalled;
 }
 
 /** Plain words for what went wrong with a document, by the converter's code. */

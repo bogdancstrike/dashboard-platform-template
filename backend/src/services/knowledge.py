@@ -60,6 +60,8 @@ HISTORY_TURNS = 3
 MAX_QUESTION = 2000
 #: Documents one request may add.
 MAX_ADD = 50
+#: The largest file the converter reads (its own limit is 50 MB).
+MAX_DOCUMENT_BYTES = 50 * 1024 * 1024
 #: A document QUEUED or PARSING for longer than this is stalled, not busy.
 STALL_MINUTES = 15
 COLORS = ("#2457D6", "#0E9F6E", "#C2410C", "#7C3AED", "#DB2777", "#0891B2", "#CA8A04")
@@ -184,6 +186,7 @@ def listing(session, args: dict[str, Any], *, principal) -> dict[str, Any]:
         "total": len(rows),
         "can_create": principal.can(MANAGE_PERMISSION),
         "supported_extensions": sorted(ingest.SUPPORTED_EXTENSIONS),
+        "max_document_bytes": MAX_DOCUMENT_BYTES,
     }
 
 
@@ -310,7 +313,7 @@ def _folder_for(session, name: str, principal):
 
 
 def _stalled(row) -> bool:
-    if row.status not in ("QUEUED", "PARSING", "EMBEDDING"):
+    if row.status not in ("QUEUED", "PARSING", "CHUNKING", "EMBEDDING"):
         return False
     since = row.started_at or row.created_at
     return since is not None and (now() - since).total_seconds() > STALL_MINUTES * 60
@@ -384,6 +387,12 @@ def add_documents(session, ident: Any, payload: dict[str, Any], *, principal) ->
     unready = [f.name for f in files.values() if f.status != "READY"]
     if unready:
         raise ConflictError("Those files are still uploading.", details={"files": unready})
+    too_large = [f.name for f in files.values() if (f.size_bytes or 0) > MAX_DOCUMENT_BYTES]
+    if too_large:
+        raise ValidationError(
+            "Those files are larger than the 50 MB a document may be.",
+            details={"files": too_large, "maximum": MAX_DOCUMENT_BYTES},
+        )
     unsupported = [f.name for f in files.values()
                    if storage_extension(f.name) not in ingest.SUPPORTED_EXTENSIONS]
     if unsupported:
@@ -457,7 +466,7 @@ def reprocess(session, ident: Any, document_id: Any, *, principal) -> dict[str, 
     principal.require(USE_PERMISSION, MANAGE_PERMISSION)
     collection = _owned(session, ident, principal)
     row = _document(session, collection, document_id)
-    if row.status in ("QUEUED", "PARSING", "EMBEDDING") and not _stalled(row):
+    if row.status in ("QUEUED", "PARSING", "CHUNKING", "EMBEDDING") and not _stalled(row):
         raise ConflictError("That document is being read right now.", details={"status": row.status})
     ingest.queue(session, row, principal=principal)
     session.flush()
@@ -834,7 +843,7 @@ def overview(session, *, principal) -> dict[str, Any]:
                            .where(KnowledgeQuestion.user_id == principal.user_id)) or 0
     pending = session.scalar(select(func.count()).select_from(KnowledgeDocument).where(
         KnowledgeDocument.collection_id.in_(ids) if ids else literal(False),
-        KnowledgeDocument.status.in_(("QUEUED", "PARSING", "EMBEDDING")))) or 0
+        KnowledgeDocument.status.in_(("QUEUED", "PARSING", "CHUNKING", "EMBEDDING")))) or 0
     return {
         "collections": len(ids),
         "documents": sum(c["documents"] for c in counts.values()),

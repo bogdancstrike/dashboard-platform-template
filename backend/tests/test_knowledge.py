@@ -368,3 +368,29 @@ def test_the_vector_type_round_trips():
     assert column.get_col_spec() == "vector"
     assert column.bind_processor(None)([1]) == "[1.0]"
     assert column.result_processor(None, None)("[3]") == [3.0]
+
+
+@pytest.mark.database
+def test_a_document_over_the_converter_limit_is_refused(client, monkeypatch, fake_ai):
+    from src.core.db import session_scope
+    from src.models.content import FileObject
+
+    headers = _as(monkeypatch)
+    collection = _collection(client, headers)
+    big = _file("huge.pdf", b"%PDF")
+    with session_scope() as session:
+        session.get(FileObject, big).size_bytes = 60 * 1024 * 1024
+    refused = client.post(f"{API}/collections/{collection['id']}/documents", json={"file_ids": [big]}, headers=headers)
+    assert refused.status_code == 400 and "50 MB" in refused.get_json()["message"]
+    assert client.get(f"{API}/collections", headers=headers).get_json()["max_document_bytes"] == 50 * 1024 * 1024
+
+
+def test_job_references_need_no_sequence():
+    """Concurrent adds raced on MAX(reference); the reference is now derived."""
+    from types import SimpleNamespace
+    from uuid import uuid4
+
+    document = SimpleNamespace(id=uuid4())
+    first, second = ingest._reference(document), ingest._reference(document)
+    assert first.startswith(f"ING-{document.id.hex[:12].upper()}-") and first != second
+    assert len(first) <= 32

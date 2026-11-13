@@ -320,11 +320,11 @@ def embed_query(text: str) -> list[float] | None:
 # ── store and run ────────────────────────────────────────────────────────
 
 
-def store(session, document, parsed: Parsed) -> dict[str, Any]:
+def store(session, document, parsed: Parsed, passages: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Replace a document's passages with these, embedded where possible."""
     from src.models.knowledge import KnowledgeChunk
 
-    passages = chunk(parsed.sections)
+    passages = chunk(parsed.sections) if passages is None else passages
     vectors, reason = embed([_embedding_text(p) for p in passages[:MAX_EMBEDDED]])
     warnings = list(dict.fromkeys(parsed.warnings))
     if reason:
@@ -380,7 +380,7 @@ def queue(session, document, *, principal=None) -> None:
 
     file = document.file
     job = BackgroundJob(
-        reference=_reference(session),
+        reference=_reference(document),
         name=f"Read {file.name if file else 'document'}"[:200],
         kind=JOB_KIND,
         queue=JOB_QUEUE,
@@ -407,21 +407,17 @@ def queue(session, document, *, principal=None) -> None:
     session.flush()
 
 
-def _reference(session) -> str:
-    from sqlalchemy import func
+def _reference(document) -> str:
+    """`ING-<document>-<n>`: unique without asking the table.
 
-    from src.core.naming import identifier, sequence_of
-    from src.models.platform import BackgroundJob
+    A sequence read from `MAX(reference)` raced when several files of one drop
+    were added at the same moment — two requests read the same maximum and the
+    second insert hit the unique index. The document id is already unique; a
+    short random tail keeps each reprocess its own job.
+    """
+    from uuid import uuid4
 
-    latest = session.scalar(
-        select(func.max(BackgroundJob.reference)).where(BackgroundJob.reference.like("ING-%"))
-    )
-    number = sequence_of(latest, prefix="ING") + 1
-    candidate = identifier("ING", number, width=6)
-    while session.scalar(select(BackgroundJob.id).where(BackgroundJob.reference == candidate)):
-        number += 1
-        candidate = identifier("ING", number, width=6)
-    return candidate
+    return f"ING-{document.id.hex[:12].upper()}-{uuid4().hex[:4].upper()}"
 
 
 def start(document_id: Any) -> str:
@@ -459,7 +455,14 @@ def run(document_id: Any) -> None:
         parsed = parse(data, name)
         with session_scope() as session:
             document = session.get(KnowledgeDocument, document_id)
+            document.status = "CHUNKING"
+            if parsed.pages:
+                document.pages = parsed.pages
+        passages = chunk(parsed.sections)
+        with session_scope() as session:
+            document = session.get(KnowledgeDocument, document_id)
             document.status = "EMBEDDING"
+            document.chunk_count = len(passages)
             job = session.get(BackgroundJob, document.job_id) if document.job_id else None
             if job is not None:
                 job.progress = 50
@@ -469,7 +472,7 @@ def run(document_id: Any) -> None:
                 )]
         with session_scope() as session:
             document = session.get(KnowledgeDocument, document_id)
-            outcome = store(session, document, parsed)
+            outcome = store(session, document, parsed, passages)
             finished = now()
             document.status = "READY"
             document.ingested_at = finished
