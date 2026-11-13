@@ -282,7 +282,12 @@ services:
     environment:
       <<: *backend-env
       SERVICE_NAME: "nucleus-api"
-      WEB_CONCURRENCY: "${WEB_CONCURRENCY:-2}"
+      # Four workers with small pools: measured at 1000 concurrent users
+      # (docs/testing/performance.md, run C) — p95 1.1 s against 8.3 s with two
+      # workers and the default 10+20 pool, at fewer total connections.
+      WEB_CONCURRENCY: "${WEB_CONCURRENCY:-4}"
+      DB_POOL_SIZE: "${DB_POOL_SIZE:-5}"
+      DB_MAX_OVERFLOW: "${DB_MAX_OVERFLOW:-5}"
     volumes:
       - storage-data:/app/backend/var/storage
     healthcheck:
