@@ -8,7 +8,7 @@
 //   node e2e/audit-b/interact.mjs [--device pc] [--theme light] [--only /admin] [--max 40]
 import fs from "node:fs";
 import path from "node:path";
-import { BASE, OUT, SHOTS, axe, context, launch, probe, settle, slug, watch, ensureLogin } from "./lib.mjs";
+import { BASE, OUT, SHOTS, axe, blocked, context, launch, probe, settle, slug, watch, ensureLogin } from "./lib.mjs";
 import { ROUTES, resolveIds } from "./routes.mjs";
 
 const args = process.argv.slice(2);
@@ -24,7 +24,7 @@ const max = Number(opt("max", "45"));
 const conc = Number(opt("conc", "3"));
 
 const MUTATING =
-  /\b(delete|remove|revoke|disable|deactivate|reset|sign ?out|log ?out|impersonat|rotate|purge|archive|restore|run now|retry|kill|terminate|approve|reject|send|publish|submit|save|apply|import|upload|merge|unlink|leave|suspend|lock|unlock|regenerate|clear all|mark all|block|enable|start|stop|pause|resume|end session|end all|discard|post|reply|duplicate|copy link|share|follow|unfollow|invite|add|test)\b/i;
+  /\b(delete|remove|revoke|disable|deactivate|reset|sign ?out|log ?out|impersonat|rotate|purge|archive|restore|run now|retry|kill|terminate|approve|reject|send|publish|submit|save|apply|import|upload|merge|unlink|leave|suspend|lock|unlock|regenerate|clear all|mark all|block|enable|start|stop|pause|resume|end session|end all|discard|post|reply|duplicate|copy link|share|follow|unfollow|invite|add|test|turn on|turn off|switch|toggle|rollout|connect|disconnect|rotate|revoke|impersonat)\b/i;
 
 const OVERLAYS = {
   modal: ".ant-modal-wrap:not([style*='display: none']) .ant-modal",
@@ -64,7 +64,7 @@ async function crawl(ctx, route) {
   await load();
   // Labels of every candidate, read once; each is re-found by index on a fresh state.
   const SEL =
-    "#nu-main button:not([disabled]), #nu-main [role=tab], #nu-main .ant-segmented-item:not(.ant-segmented-item-selected), #nu-main .ant-select:not(.ant-select-disabled) .ant-select-selector, #nu-main .ant-picker:not(.ant-picker-disabled), #nu-main [role=button]:not(button), #nu-main .ant-dropdown-trigger, #nu-main a[href^='#']";
+    "#nu-main button:not([disabled]):not([role=switch]):not(.ant-switch), #nu-main [role=tab], #nu-main .ant-segmented-item:not(.ant-segmented-item-selected), #nu-main .ant-select:not(.ant-select-disabled) .ant-select-selector, #nu-main .ant-picker:not(.ant-picker-disabled), #nu-main [role=button]:not(button), #nu-main .ant-dropdown-trigger, #nu-main a[href^='#']";
   const labelOf = (el) =>
     (el.getAttribute("aria-label") || el.getAttribute("title") || el.innerText || el.getAttribute("data-testid") || "").trim().replace(/\s+/g, " ").slice(0, 50);
   const labels = await page.$$eval(SEL, (els, fn) => els.map((el) => {
@@ -163,5 +163,6 @@ async function worker() {
 await Promise.all(Array.from({ length: conc }, worker));
 await browser.close();
 const file = path.join(OUT, `interact-${persona}-${device}-${theme}${only ? "-" + slug(only) : ""}.json`);
-fs.writeFileSync(file, JSON.stringify(findings, null, 1));
+fs.writeFileSync(file, JSON.stringify({ findings, blocked }, null, 1));
+if (blocked.length) console.log("writes blocked by the platform-state guard:", blocked);
 console.log("wrote", file);

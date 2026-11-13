@@ -98,6 +98,7 @@ export async function context(browser, { persona = "admin", device = "pc", theme
       await route.fulfill({ response: res, headers: { ...res.headers(), ...cors } });
     });
   }
+  await guardPlatformState(ctx);
   // The app syncs the local theme/density back to the account with PUT /me.
   // An audit must never change the shared persona, so writes to /me are
   // answered here (echoing the body) and never reach the API; the theme is
@@ -138,6 +139,62 @@ export async function context(browser, { persona = "admin", device = "pc", theme
     route.request().method() === "GET" ? route.continue() : route.fulfill({ status: 200, json: {} }),
   );
   return ctx;
+}
+
+/**
+ * The shared live stack's global state is off limits. An early crawl clicked
+ * every feature-flag and integration switch (they are <button role=switch>)
+ * and turned features off for everyone. Every non-GET to platform-wide state
+ * is answered here and never reaches the API — except creating a row named
+ * "zzaudit…" and then changing/deleting that same row, which is how the flows
+ * test the dialogs end to end on throwaway data.
+ */
+export const DENY = [
+  /\/platform\/admin\/(flags|settings|roles|integrations|impersonat|jobs|sla)/,
+  /\/platform\/admin\/users\//,
+  /\/platform\/admin\/api-(clients|credentials)\/.+\/(rotate|revoke|credentials)/,
+  /\/platform\/admin\/api-credentials\//,
+  /\/platform\/api\/(settings|flags|roles|sla|integrations|impersonat)/,
+  /\/platform\/api\/announcements.*\/publish/,
+  /\/platform\/api\/forms\/[^/]+\/publish/,
+  /\/platform\/api\/forms\/[^/]+$/,
+  /\/platform\/api\/onboarding/,
+  /\/platform\/(api\/)?jobs\/.+\/(retry|purge|cancel)/,
+  /\/platform\/api\/admin\//,
+];
+export const blocked = [];
+const created = new Set();
+
+export async function guardPlatformState(ctx) {
+  await ctx.route("**/platform/**", async (route) => {
+    const req = route.request();
+    const method = req.method();
+    const url = req.url();
+    if (method === "GET" || method === "HEAD" || method === "OPTIONS" || !DENY.some((re) => re.test(url))) {
+      return route.fallback();
+    }
+    const body = req.postData() ?? "";
+    const ours = /zzaudit/i.test(body) && method === "POST";
+    const mine = [...created].some((id) => url.includes(id));
+    if (ours || mine) {
+      const res = await route.fetch().catch(() => null);
+      if (!res) return route.abort().catch(() => undefined);
+      if (ours) {
+        const json = await res.json().catch(() => null);
+        const id = json?.id ?? json?.key ?? json?.client?.id;
+        if (id) created.add(String(id));
+      }
+      return route.fulfill({ response: res });
+    }
+    blocked.push(`${method} ${url.replace(/^https?:\/\/[^/]+/, "")}`);
+    let echo = {};
+    try {
+      echo = req.postDataJSON() ?? {};
+    } catch {
+      /* not JSON */
+    }
+    return route.fulfill({ status: 200, json: echo });
+  });
 }
 
 /** Console errors/warnings, page errors, failed and >=400 requests, per page. */

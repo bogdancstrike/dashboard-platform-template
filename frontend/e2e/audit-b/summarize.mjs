@@ -3,7 +3,8 @@
 import fs from "node:fs";
 
 const [file, , kind = "all"] = process.argv.slice(2);
-const data = JSON.parse(fs.readFileSync(file, "utf8"));
+const raw = JSON.parse(fs.readFileSync(file, "utf8"));
+const data = Array.isArray(raw) ? raw : raw.findings;
 const by = {};
 const add = (route, key, msg) => {
   by[route] ??= {};

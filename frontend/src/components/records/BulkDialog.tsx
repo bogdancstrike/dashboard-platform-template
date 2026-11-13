@@ -169,6 +169,9 @@ export function BulkDialog({
                   }}
                   options={fields.map((item) => ({ value: item.name, label: item.label }))}
                   placeholder="Which field"
+                  // A Form.Item with no name does not tie its label to the
+                  // control, so the select carries its own (axe label).
+                  aria-label="Field"
                   data-testid="bulk-field"
                 />
               </Form.Item>
@@ -180,6 +183,7 @@ export function BulkDialog({
                     (choice) => ({ value: choice, label: humanStatus(choice) }),
                   )}
                   placeholder="Set it to"
+                  aria-label="New value"
                   disabled={!field}
                   data-testid="bulk-value"
                 />

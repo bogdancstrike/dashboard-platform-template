@@ -168,7 +168,7 @@ if (only.includes("records")) {
 if (only.includes("bulk")) {
   await flow("bulk", async (page, note) => {
     await go(page, "/tickets");
-    const boxes = page.locator(".ant-table-tbody .ant-checkbox-wrapper");
+    const boxes = page.locator(".ant-table-tbody tr.ant-table-row .ant-checkbox-wrapper");
     if (!(await boxes.count())) {
       note("no row checkboxes — bulk-operations is switched off for this reader");
       return;
@@ -179,7 +179,8 @@ if (only.includes("bulk")) {
     note(`bulk bar: ${await page.getByTestId("bulk-count").innerText()}`);
     await shot(page, "bulk-bar");
     await page.getByTestId("bulk-update").click();
-    await page.getByTestId("bulk-dialog").waitFor();
+    const dialog = page.locator(".nx-rec-bulkmodal .ant-modal-content").filter({ visible: true });
+    await dialog.waitFor();
     await page.waitForTimeout(400);
     // Choose a value so the preview runs.
     const value = page.getByTestId("bulk-value");
@@ -195,7 +196,7 @@ if (only.includes("bulk")) {
     if (ax.length) note(`axe in bulk dialog: ${ax.map((v) => v.id).join(", ")}`);
     await page.keyboard.press("Escape");
     await page.waitForTimeout(600);
-    note(`dialog closed by Escape: ${!(await page.getByTestId("bulk-dialog").isVisible().catch(() => false))}`);
+    note(`dialog closed by Escape: ${!(await dialog.isVisible().catch(() => false))}`);
     await page.getByTestId("bulk-compare").click();
     await page.waitForURL(/\/compare/);
     await settle(page, 800);
@@ -206,7 +207,7 @@ if (only.includes("bulk")) {
     const clear = page.getByTestId("bulk-clear");
     if (await clear.isVisible().catch(() => false)) await clear.click();
     // Select all on the page, then the over-limit / filter selection.
-    const all = page.locator(".ant-table-thead .ant-checkbox-wrapper").first();
+    const all = page.locator(".ant-table-thead tr:not(.ant-table-measure-row) .ant-checkbox-wrapper").first();
     await all.click();
     await page.waitForTimeout(300);
     await shot(page, "bulk-select-page");
@@ -278,10 +279,19 @@ if (only.includes("explorer")) {
     const d = drawer(page);
     await d.waitFor();
     await shot(page, "explorer-rules-drawer");
-    const addRule = d.getByRole("button", { name: /Add rule|rule/i }).first();
-    if (await addRule.count()) await addRule.click();
-    const addGroup = d.getByRole("button", { name: /Add group|group/i }).first();
-    if (await addGroup.count()) await addGroup.click();
+    await d.getByRole("button", { name: /add a condition/i }).first().click();
+    await page.waitForTimeout(300);
+    await d.getByRole("button", { name: /add a group/i }).first().click();
+    await page.waitForTimeout(300);
+    // A condition inside the new group: the nested case.
+    const inner = d.locator(".group .group").first();
+    if (await inner.count()) await inner.getByRole("button", { name: /add a condition/i }).first().click().catch(() => undefined);
+    // Describe-what-you-want: the AI filter box (no Build without text).
+    const describe = d.locator("input[placeholder*='critical tickets']").first();
+    if (await describe.count()) {
+      await describe.fill("open critical tickets created this month");
+      await shot(page, "explorer-describe-filled");
+    }
     await page.waitForTimeout(500);
     note(`rules: ${await d.locator(".rule").count()} groups: ${await d.locator(".group").count()}`);
     await shot(page, "explorer-rules-nested");
