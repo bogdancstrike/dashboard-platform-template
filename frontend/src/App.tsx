@@ -27,6 +27,8 @@ const SprintsPage = lazy(() => import("@/pages/work/SprintsPage"));
 const WorkflowsPage = lazy(() => import("@/pages/WorkflowsPage"));
 const CalendarPage = lazy(() => import("@/pages/CalendarPage"));
 const MailPage = lazy(() => import("@/pages/MailPage"));
+const ChatPage = lazy(() => import("@/pages/ChatPage"));
+const DocsPage = lazy(() => import("@/pages/DocsPage"));
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const DocumentsPage = lazy(() => import("@/pages/DocumentsPage"));
 const InsightsPage = lazy(() => import("@/pages/InsightsPage"));
@@ -278,6 +280,38 @@ export default function App() {
           element={
             <Suspense fallback={<Loading />}>
               <FilesPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="chat"
+          element={
+            <Suspense fallback={<Loading />}>
+              <ChatPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="chat/:channelId"
+          element={
+            <Suspense fallback={<Loading />}>
+              <ChatPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="docs"
+          element={
+            <Suspense fallback={<Loading />}>
+              <DocsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="docs/:pageId"
+          element={
+            <Suspense fallback={<Loading />}>
+              <DocsPage />
             </Suspense>
           }
         />

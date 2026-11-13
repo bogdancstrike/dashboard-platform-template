@@ -16,6 +16,7 @@ import type { ExplorerCatalogue, ExplorerField, FieldKind } from "@/api/explorer
 import { asText } from "@/lib/text";
 import { CORRELATION_HEADER } from "@/config";
 import { assistantHandlers } from "@/test/handlers/assistant";
+import { collabHandlers } from "@/test/handlers/collab";
 import { insightsHandlers } from "@/test/handlers/insights";
 import { knowledgeHandlers } from "@/test/handlers/knowledge";
 import { planningHandlers } from "@/test/handlers/planning";
@@ -3881,6 +3882,7 @@ function recentList(): Record<string, unknown> {
 }
 
 export const handlers = [
+  ...collabHandlers,
   ...assistantHandlers,
   ...knowledgeHandlers,
   ...planningHandlers,

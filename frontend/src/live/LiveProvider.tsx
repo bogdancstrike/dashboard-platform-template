@@ -38,19 +38,38 @@ import { usePreferences } from "@/settings/PreferencesProvider";
  */
 export type LiveStatus = "connecting" | "live" | "polling";
 
+/** Any message the server sent: a notification, or a hint (§47). */
+export interface LiveMessage {
+  type?: string;
+  [key: string]: unknown;
+}
+
+type LiveListener = (message: LiveMessage) => void;
+
 interface LiveContextValue {
   status: LiveStatus;
   /** True while the socket is not carrying updates, so callers must poll. */
   shouldPoll: boolean;
   /** How many messages this session has delivered — diagnostics and tests. */
   received: number;
+  /**
+   * Hear every message on the channel — chat's new lines, reactions, typing
+   * and presence ride the same socket as notifications. Returns the
+   * unsubscribe. A listener gets the parsed message and decides for itself
+   * whether it is one it cares about.
+   */
+  subscribe: (listener: LiveListener) => () => void;
 }
 
 const LiveContext = createContext<LiveContextValue>({
   status: "polling",
   shouldPoll: true,
   received: 0,
+  subscribe: () => () => undefined,
 });
+
+/** How long without a key, a click or a scroll before somebody is "away". */
+const IDLE_MS = 5 * 60_000;
 
 /** Reconnect delays, in milliseconds. The last one repeats. */
 const BACKOFF = [1_000, 2_000, 5_000, 10_000, 30_000];
@@ -105,6 +124,13 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   popups.current = preferences.notifications;
 
   const socketRef = useRef<WebSocket | null>(null);
+  const listeners = useRef<Set<LiveListener>>(new Set());
+  const subscribe = useCallback((listener: LiveListener) => {
+    listeners.current.add(listener);
+    return () => {
+      listeners.current.delete(listener);
+    };
+  }, []);
   const attemptRef = useRef(0);
   const timerRef = useRef<number | undefined>(undefined);
   const watchdogRef = useRef<number | undefined>(undefined);
@@ -117,6 +143,13 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         payload = JSON.parse(raw) as { type?: string; data?: Notification };
       } catch {
         return;
+      }
+      for (const listener of listeners.current) {
+        try {
+          listener(payload);
+        } catch {
+          /* one listener's bug is not every listener's */
+        }
       }
       if (payload.type !== "notification" || !payload.data) return;
 
@@ -258,6 +291,10 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         attemptRef.current = 0;
         setStatus("live");
         resetWatchdog();
+        // The server marks a new socket online; a tab opened (or reconnected)
+        // in the background says at once that nobody is looking at it.
+        reported = "online";
+        if (document.hidden) reportPresence("away");
         // A reconnect may have missed a message, so the first thing a fresh
         // socket does is ask for the truth rather than assume it is current.
         void queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -292,9 +329,42 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       };
     };
 
+    /**
+     * Presence (§47): away when the tab is hidden or nobody has touched it
+     * for a while, online again at the next sign of life. Sent on the socket
+     * — the one frame besides the heartbeat the server accepts — and only on
+     * a change, so moving the mouse is not a message per pixel.
+     */
+    let reported: "online" | "away" = "online";
+    let idleTimer: number | undefined;
+    const reportPresence = (status: "online" | "away") => {
+      if (status === reported) return;
+      reported = status;
+      try {
+        if (socketRef.current?.readyState === 1) {
+          socketRef.current.send(JSON.stringify({ type: "presence", status }));
+        }
+      } catch {
+        /* closing; the server will mark this socket gone on its own */
+      }
+    };
+    const active = () => {
+      window.clearTimeout(idleTimer);
+      idleTimer = window.setTimeout(() => reportPresence("away"), IDLE_MS);
+      if (!document.hidden) reportPresence("online");
+    };
+    const visibility = () => (document.hidden ? reportPresence("away") : active());
+    const activity = ["keydown", "pointerdown", "wheel", "touchstart"] as const;
+    document.addEventListener("visibilitychange", visibility);
+    for (const name of activity) window.addEventListener(name, active, { passive: true });
+    active();
+
     void connect();
 
     return () => {
+      document.removeEventListener("visibilitychange", visibility);
+      for (const name of activity) window.removeEventListener(name, active);
+      window.clearTimeout(idleTimer);
       alive.current = false;
       closedByUs.current = true;
       clearTimers();
@@ -304,8 +374,8 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   }, [onMessage, queryClient]);
 
   const value = useMemo<LiveContextValue>(
-    () => ({ status, shouldPoll: status !== "live", received }),
-    [status, received],
+    () => ({ status, shouldPoll: status !== "live", received, subscribe }),
+    [status, received, subscribe],
   );
 
   return <LiveContext.Provider value={value}>{children}</LiveContext.Provider>;
@@ -313,6 +383,19 @@ export function LiveProvider({ children }: { children: ReactNode }) {
 
 export function useLive(): LiveContextValue {
   return useContext(LiveContext);
+}
+
+/**
+ * Run `handler` for every live message, for as long as the caller is mounted.
+ *
+ * The handler is read through a ref, so an inline arrow does not resubscribe
+ * on every render — and a message arriving mid-render reaches the newest one.
+ */
+export function useLiveEvents(handler: (message: LiveMessage) => void): void {
+  const { subscribe } = useContext(LiveContext);
+  const current = useRef(handler);
+  current.current = handler;
+  useEffect(() => subscribe((message) => current.current(message)), [subscribe]);
 }
 
 /**

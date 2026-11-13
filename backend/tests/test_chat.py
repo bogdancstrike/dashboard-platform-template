@@ -152,6 +152,8 @@ def test_posting_in_a_public_channel_joins_it_and_counts_as_unread_for_the_other
     assert row["mentions"] == 1
     assert row["last_message"]["body"].startswith("@Mara Manager")
     assert for_manager["unread_total"] >= 2
+    counts = client.get(f"{PREFIX}/notifications/counts", headers=people["manager"]).get_json()
+    assert counts["chat_unread"] >= 2, "the Chat menu badge rides on the notification poll"
 
     # The author has read everything up to their own line — the operator's
     # earlier one included.

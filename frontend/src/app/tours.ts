@@ -46,6 +46,56 @@ export interface TourStop {
 
 /** Every page with something worth explaining, keyed by its route. */
 export const TOURS: Record<string, TourStop[]> = {
+  "/chat": [
+    {
+      title: "Talk where the work is",
+      description:
+        "Channels for topics, direct messages for people, and every record's own thread — one set of rules for all of them, so a mention, a reaction or a file behaves the same in #engineering as on a ticket.",
+    },
+    {
+      target: "chat-rail",
+      title: "Unread is counted by the server",
+      description:
+        "The number beside a channel is how many lines other people wrote after you last read it, counted in the database from your read marker — so your laptop and your phone agree, and opening a channel on one clears it on the other.",
+    },
+    {
+      target: "chat-search",
+      title: "Search reaches only what you may read",
+      description:
+        "Searching looks through every public channel and the private ones you are in. A private room you are not in is not found at all — not even its name — because saying it exists is already telling.",
+    },
+    {
+      target: "chat-composer",
+      title: "Mentions notify, files travel with the message",
+      description:
+        "Type @ and a few letters to pick a colleague from the directory: they get a notification that opens this conversation. Files upload straight to storage before the message is sent, so nobody receives a link that does not work yet.",
+    },
+  ],
+  "/docs": [
+    {
+      title: "The team's written memory",
+      description:
+        "Spaces hold a tree of pages; a page is a list of blocks, the same kind the report builder composes, so a live chart of tickets sits beside the paragraph that explains it. Every save is kept, and any version can be restored.",
+    },
+    {
+      target: "docs-tree",
+      title: "Drag to reorder or nest",
+      description:
+        "Drop a page between two others to reorder it, or onto a page to put it underneath. The tree refuses a drop that would put a page inside itself, which would otherwise lose a whole branch from view.",
+    },
+    {
+      target: "docs-search",
+      title: "Search reads the whole page",
+      description:
+        "Titles first, then the words inside every block — headings, lists, tables and checklists included. Meeting notes are pages too, so what was decided last Tuesday is one search away.",
+    },
+    {
+      target: "new-page",
+      title: "Start from a template",
+      description:
+        "Meeting notes, runbooks, specs and retrospectives each start with the sections people forget. Action items in meeting notes become real tasks with one click, and their status follows the task.",
+    },
+  ],
   "/home": [
     {
       title: "What is waiting for you",

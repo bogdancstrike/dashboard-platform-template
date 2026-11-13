@@ -45,6 +45,7 @@ import { CommentThread } from "@/components/comments/CommentThread";
 import { clock } from "@/components/calendar/MonthGrid";
 import { ResponseButtons } from "@/components/calendar/ResponseButtons";
 import { PersonAvatar } from "@/components/PersonAvatar";
+import { MeetingNotes } from "@/components/docs/MeetingNotes";
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -256,6 +257,9 @@ export function EventDrawer({
               Reminds everybody {detail.reminder_minutes} minutes before.
             </Text>
           )}
+
+          {/* Notes taken in the meeting, and the button that opens them (§49). */}
+          <MeetingNotes eventId={detail.event_id} />
 
           <div>
             <Text strong className="nu-field-label">

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CoIcon } from "@/components/collab/icons";
 import { NxIcon, type NxIconName } from "@/components/NxIcon";
 import { PlanIcon } from "@/components/planning/planIcons";
 import { AstIcon } from "@/components/assistant/AstIcon";
@@ -132,6 +133,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { key: "/calendar", label: "Calendar", icon: <NxIcon name="calendar" />, permission: "calendar.view" },
       { key: "/mail", label: "Mail", icon: <NxIcon name="mail" />, permission: "mail.access", badge: "unread_mail" },
       { key: "/files", label: "Files", icon: <NxIcon name="folder" />, permission: "files.view" },
+      { key: "/chat", label: "Chat", icon: <CoIcon name="chat" />, permission: "chat.use", badge: "chat_unread" },
+      { key: "/docs", label: "Docs", icon: <CoIcon name="docs" />, permission: "docs.view" },
     ],
   },
   {
