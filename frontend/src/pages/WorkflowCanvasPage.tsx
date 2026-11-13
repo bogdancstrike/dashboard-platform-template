@@ -64,6 +64,7 @@ import { addNode, blankData, iconFor, str, summaryOf } from "@/components/workfl
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { relativeTime } from "@/lib/time";
 import "@/styles/workflows.css";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -145,19 +146,19 @@ export default function WorkflowCanvasPage() {
   }, []);
 
   const detail = useQuery({
-    queryKey: ["workflow-graph", ruleId],
+    queryKey: queryKeys.workflowGraph(ruleId),
     queryFn: ({ signal }) => workflowGraphApi.get(ruleId, signal),
     enabled: Boolean(ruleId),
   });
   const catalogue = useQuery({
-    queryKey: ["automation-catalogue"],
+    queryKey: queryKeys.automationCatalogue(),
     queryFn: ({ signal }) => automationsApi.catalogue(signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
   const explorer = useQuery({
-    queryKey: ["explorer-catalogue"],
+    queryKey: queryKeys.explorerCatalogue(),
     queryFn: ({ signal }) => explorerApi.catalogue(signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   // Load once: after that the canvas's own state is the truth, and a save's
@@ -170,7 +171,7 @@ export default function WorkflowCanvasPage() {
   }, [detail.data, graph]);
 
   const accept = useCallback((next: GraphDetail) => {
-    queryClient.setQueryData(["workflow-graph", ruleId], next);
+    queryClient.setQueryData(queryKeys.workflowGraph(ruleId), next);
     setProblems(next.problems);
   }, [queryClient, ruleId]);
 
@@ -211,7 +212,7 @@ export default function WorkflowCanvasPage() {
     },
     onSuccess: (next) => {
       accept(next);
-      void queryClient.invalidateQueries({ queryKey: ["automations"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.automations() });
       message.success(`Published version ${next.version}`);
     },
     onError: (error) => {
@@ -234,21 +235,21 @@ export default function WorkflowCanvasPage() {
 
   const rename = useMutation({
     mutationFn: (name: string) => automationsApi.update(ruleId, { name }),
-    onSuccess: () => { void detail.refetch(); void queryClient.invalidateQueries({ queryKey: ["automations"] }); },
+    onSuccess: () => { void detail.refetch(); void queryClient.invalidateQueries({ queryKey: queryKeys.automations() }); },
   });
 
   const toggle = useMutation({
     mutationFn: (enabled: boolean) => automationsApi.update(ruleId, { enabled }),
     onSuccess: (rule) => {
       void detail.refetch();
-      void queryClient.invalidateQueries({ queryKey: ["automations"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.automations() });
       message.success(rule.enabled ? `${rule.name} is live` : `${rule.name} is paused`);
     },
     onError: (error) => message.error(error instanceof ApiError ? error.message : "That change was refused."),
   });
 
   const samples = useQuery({
-    queryKey: ["workflow-samples", ruleId, sampleSearch],
+    queryKey: queryKeys.workflowSamples(ruleId, sampleSearch),
     queryFn: ({ signal }) => workflowGraphApi.samples(ruleId, sampleSearch, signal),
     enabled: mode === "test",
   });

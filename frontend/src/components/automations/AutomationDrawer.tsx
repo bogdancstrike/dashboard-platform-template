@@ -61,6 +61,7 @@ import { ActionListEditor } from "@/components/automations/ActionListEditor";
 import { RunReport } from "@/components/automations/RunReport";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { URL_OVERLAY } from "@/app/history";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text, Title } = Typography;
 
@@ -91,7 +92,7 @@ export function AutomationDrawer({
   const [latest, setLatest] = useState<AutomationRun | null>(null);
 
   const rule = useQuery({
-    queryKey: ["automation", ruleId],
+    queryKey: queryKeys.automation(ruleId),
     queryFn: ({ signal }) => automationsApi.get(ruleId!, signal),
     enabled: Boolean(ruleId),
   });
@@ -103,9 +104,9 @@ export function AutomationDrawer({
   // advanced search builder is configured from, so the two editors offer
   // exactly the same fields and operators.
   const fields = useQuery({
-    queryKey: ["explorer-catalogue"],
+    queryKey: queryKeys.explorerCatalogue(),
     queryFn: ({ signal }) => explorerApi.catalogue(signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
   const resource = fields.data?.items.find((item) => item.key === detail?.resource_type);
 
@@ -120,7 +121,7 @@ export function AutomationDrawer({
   const write = useMutation({
     mutationFn: (input: AutomationInput) => automationsApi.update(ruleId!, input),
     onSuccess: (updated) => {
-      queryClient.setQueryData(["automation", ruleId], (current: typeof detail) =>
+      queryClient.setQueryData(queryKeys.automation(ruleId), (current: typeof detail) =>
         current ? { ...current, ...updated } : current,
       );
       onChanged();

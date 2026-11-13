@@ -54,6 +54,7 @@ import {
 } from "@/components/automations/ActionListEditor";
 import { RunReport } from "@/components/automations/RunReport";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -141,9 +142,9 @@ export function AutomationWizard({
   const [rehearsal, setRehearsal] = useState<AutomationRun | null>(null);
 
   const fields = useQuery({
-    queryKey: ["explorer-catalogue"],
+    queryKey: queryKeys.explorerCatalogue(),
     queryFn: ({ signal }) => explorerApi.catalogue(signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
     enabled: open,
   });
   const resource = fields.data?.items.find((item) => item.key === details.resource_type);

@@ -15,6 +15,7 @@ import { developersApi, type ApiUsage } from "@/api/developers";
 import { ApiError } from "@/api/client";
 import { relativeTime } from "@/lib/time";
 import { useAppearance } from "@/theme/AppearanceProvider";
+import { queryKeys } from "@/lib/queryKeys";
 
 type Theme = ReturnType<typeof useAppearance>["chartTheme"];
 
@@ -60,11 +61,11 @@ export function ApiUsageView({ client, days, onClient, onDays }: {
 }) {
   const { chartTheme } = useAppearance();
   const usage = useQuery({
-    queryKey: ["api-usage", client, days],
+    queryKey: queryKeys.apiUsage(client, days),
     queryFn: ({ signal }) => developersApi.usage({ client: client || undefined, days }, signal),
   });
   const everyone = useQuery({
-    queryKey: ["api-usage", "", days, "clients"],
+    queryKey: queryKeys.apiUsage("", days, "clients"),
     queryFn: ({ signal }) => developersApi.usage({ days }, signal),
     enabled: Boolean(client),
   });

@@ -65,6 +65,7 @@ import { StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { FEATURES, useFeature } from "@/settings/features";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 /** The address keys that are places rather than adjustments (§history). */
 const PLACES = new Set(["rule"]);
@@ -123,19 +124,19 @@ export default function WorkflowsPage() {
     );
 
   const catalogue = useQuery({
-    queryKey: ["automation-catalogue"],
+    queryKey: queryKeys.automationCatalogue(),
     queryFn: ({ signal }) => automationsApi.catalogue(signal),
-    staleTime: 60_000,
+    staleTime: STALE.minute,
   });
 
   const rules = useQuery({
-    queryKey: ["automations", state],
+    queryKey: queryKeys.automations(state),
     queryFn: ({ signal }) => automationsApi.list({ state }, signal),
   });
 
   const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: ["automations"] });
-    void queryClient.invalidateQueries({ queryKey: ["automation", open] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automations() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automation(open) });
   };
 
   const toggle = useMutation({

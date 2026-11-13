@@ -12,13 +12,14 @@ import { onboardingApi, type Checklist } from "@/api/onboarding";
 import { NxIcon } from "@/components/NxIcon";
 import "@/styles/onboarding.css";
 import { FEATURES, withFeature } from "@/settings/features";
+import { queryKeys } from "@/lib/queryKeys";
 
 function OnboardingCardInner() {
   const queryClient = useQueryClient();
-  const checklist = useQuery({ queryKey: ["onboarding"], queryFn: ({ signal }) => onboardingApi.checklist(signal) });
+  const checklist = useQuery({ queryKey: queryKeys.onboarding(), queryFn: ({ signal }) => onboardingApi.checklist(signal) });
   const dismiss = useMutation({
     mutationFn: () => onboardingApi.dismiss(true),
-    onSuccess: (next) => queryClient.setQueryData<Checklist>(["onboarding"], next),
+    onSuccess: (next) => queryClient.setQueryData<Checklist>(queryKeys.onboarding(), next),
   });
   const data = checklist.data;
   if (!data || data.dismissed || data.progress.percent >= 100) return null;

@@ -31,6 +31,7 @@ function renderShell(route = "/dashboard") {
                       {/* A page behind a feature flag (§27), so the shell has
                           something to refuse when the flag is off. */}
                       <Route path="kanban" element={<div>Kanban content</div>} />
+                      <Route path="onboarding" element={<div>Onboarding content</div>} />
                     </Route>
                   </Routes>
                 </CommandProvider>
@@ -91,6 +92,32 @@ describe("authenticated application shell", () => {
     await user.click(profileTrigger!);
     expect(await screen.findByText("Administrator · Northwind Partners")).toBeInTheDocument();
     expect(screen.queryByText("Guest")).not.toBeInTheDocument();
+  });
+
+  it("offers Getting started from the profile menu, and goes there", async () => {
+    const user = userEvent.setup();
+    renderShell();
+    const [profileTrigger] = await screen.findAllByRole("button", { name: "Open profile menu" });
+    await user.click(profileTrigger!);
+    await user.click(await screen.findByText("Getting started"));
+    expect(await screen.findByText("Onboarding content")).toBeInTheDocument();
+  });
+
+  it("leaves Getting started out of the profile menu when onboarding is switched off", async () => {
+    server.use(
+      http.get("/platform/api/me", ({ request }) =>
+        HttpResponse.json(
+          { ...currentUser, features: { ...currentUser.features, onboarding: false } },
+          { headers: { "X-Correlation-Id": request.headers.get("X-Correlation-Id") ?? "" } },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderShell();
+    const [profileTrigger] = await screen.findAllByRole("button", { name: "Open profile menu" });
+    await user.click(profileTrigger!);
+    expect(await screen.findByText("Administrator · Northwind Partners")).toBeInTheDocument();
+    expect(screen.queryByText("Getting started")).not.toBeInTheDocument();
   });
 
   it("opens with the navigation labelled, whatever the window is (§40)", async () => {

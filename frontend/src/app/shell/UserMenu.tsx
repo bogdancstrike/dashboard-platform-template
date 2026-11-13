@@ -60,6 +60,13 @@ function useUserMenuItems(): MenuProps["items"] {
     { key: "profile", icon: <NxIcon name="user" size={16} />, label: "Your profile", onClick: () => navigate("/profile") },
     { key: "preferences", icon: <NxIcon name="sliders" size={16} />, label: "Preferences", onClick: () => navigate("/settings/preferences") },
     { key: "security", icon: <NxIcon name="shield" size={16} />, label: "Security", onClick: () => navigate("/settings/security") },
+    // The onboarding checklist, reachable from the account as well as the menu.
+    features(FEATURES.onboarding) && {
+      key: "onboarding",
+      icon: <NxIcon name="check" size={16} />,
+      label: "Getting started",
+      onClick: () => navigate("/onboarding"),
+    },
     features(FEATURES.darkMode) && {
       key: "appearance",
       icon: <NxIcon name={mode === "dark" ? "sun" : "moon"} size={16} />,

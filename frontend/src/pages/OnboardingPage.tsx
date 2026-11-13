@@ -19,6 +19,7 @@ import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
 import { relativeTime } from "@/lib/time";
 import "@/styles/onboarding.css";
+import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
@@ -27,11 +28,11 @@ const ROLE = { ADMINISTRATOR: "administrator", MANAGER: "manager", OPERATOR: "op
 export default function OnboardingPage() {
   const queryClient = useQueryClient();
   const { message, modal } = AntApp.useApp();
-  const checklist = useQuery({ queryKey: ["onboarding"], queryFn: ({ signal }) => onboardingApi.checklist(signal) });
+  const checklist = useQuery({ queryKey: queryKeys.onboarding(), queryFn: ({ signal }) => onboardingApi.checklist(signal) });
   const canSamples = checklist.data?.can_load_samples ?? false;
-  const samples = useQuery({ queryKey: ["onboarding-samples"], queryFn: ({ signal }) => onboardingApi.samples(signal), enabled: canSamples });
+  const samples = useQuery({ queryKey: queryKeys.onboardingSamples(), queryFn: ({ signal }) => onboardingApi.samples(signal), enabled: canSamples });
 
-  const accept = (next: Checklist) => queryClient.setQueryData<Checklist>(["onboarding"], next);
+  const accept = (next: Checklist) => queryClient.setQueryData<Checklist>(queryKeys.onboarding(), next);
   const answer = useMutation({
     mutationFn: ({ key, state }: { key: string; state: "done" | "skipped" | "todo" }) => onboardingApi.answer(key, state),
     onSuccess: accept,
@@ -42,8 +43,8 @@ export default function OnboardingPage() {
     mutationFn: async ({ area, load }: { area: string; load: boolean }): Promise<{ areas: SampleArea[]; created?: number }> =>
       load ? onboardingApi.load(area) : onboardingApi.remove(area),
     onSuccess: (answer, { load }) => {
-      queryClient.setQueryData(["onboarding-samples"], { areas: answer.areas });
-      void queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "onboarding-samples" });
+      queryClient.setQueryData(queryKeys.onboardingSamples(), { areas: answer.areas });
+      void queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== queryKeys.onboardingSamples()[0] });
       message.success(load ? `Loaded ${answer.created ?? 0} sample records` : "Sample data removed");
     },
     onError: (error) => message.error(error instanceof ApiError ? error.message : "That could not be done."),

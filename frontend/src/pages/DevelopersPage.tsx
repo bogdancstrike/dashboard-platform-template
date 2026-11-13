@@ -25,6 +25,7 @@ import { SDK_CLIENTS } from "@/components/developers/snippets";
 import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
 import "@/styles/developers.css";
+import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Paragraph, Text } = Typography;
 
@@ -43,9 +44,9 @@ export default function DevelopersPage() {
   const navigate = useNavigate();
   const { can } = useAuth();
   const reference = useQuery({
-    queryKey: ["developer-reference"],
+    queryKey: queryKeys.developerReference(),
     queryFn: ({ signal }) => developersApi.reference(signal),
-    staleTime: 5 * 60_000,
+    staleTime: STALE.long,
   });
 
   const tabs = DEVELOPER_TABS.filter((item) => !("permission" in item) || can(item.permission));
