@@ -159,7 +159,14 @@ export function SavedSearchForm({
       okText={editing ? "Save changes" : "Save search"}
       confirmLoading={save.isPending}
       onCancel={requestClose}
-      onOk={() => form.validateFields().then((values) => save.mutate(values))}
+      onOk={() =>
+        form
+          .validateFields()
+          .then((values) => save.mutate(values))
+          // The missing name is shown on the field; without this the
+          // rejection also surfaced as an unhandled error.
+          .catch(() => undefined)
+      }
       destroyOnHidden
     >
       <Form

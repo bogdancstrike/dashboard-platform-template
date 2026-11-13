@@ -196,7 +196,10 @@ export function AutomationWizard({
 
   const advance = async () => {
     if (step === 0) {
-      const values = await form.validateFields();
+      // A missing name is shown on the field; the rejection is not an error
+      // anybody needs to hear about twice (it surfaced as an unhandled one).
+      const values = await form.validateFields().catch(() => null);
+      if (!values) return;
       setDetails((current) => ({ ...current, ...values }));
       // A fresh tree for the chosen dataset: a condition carried over from a
       // different one names fields this dataset does not have.

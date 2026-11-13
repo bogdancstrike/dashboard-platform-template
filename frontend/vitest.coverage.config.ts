@@ -34,7 +34,7 @@ export default mergeConfig(
           // Keycloak, which is what the e2e suite exercises.
           "src/main.tsx",
         ],
-        reporter: ["text-summary", "json-summary", "html"],
+        reporter: ["text-summary", "json-summary", "json", "html"],
         reportsDirectory: "coverage",
         thresholds: { lines: 95 },
       },
