@@ -14,12 +14,6 @@ import type { ExplorerPage } from "./useExplorerPage";
 
 const { Text } = Typography;
 
-/**
- * Data Explorer is the canonical composition of platform query primitives.
- * Its entire state is URL-backed, so back/forward, bookmarks and shared links
- * reproduce the same question and presentation for another authorized user.
- */
-
 /** The count, the tools and the rows — in the view the address asks for. */
 export function ResultsPanel({ m }: { m: ExplorerPage }) {
   const { bulk, bulkAllowed, catalogue, groupBy, loadMore, mode, noun, openPanel, requestedResource, resource, results, scanned, scanning, set, settling, total, view } = m;

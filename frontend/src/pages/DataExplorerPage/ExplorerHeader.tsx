@@ -5,12 +5,6 @@ import { PageHeader } from "@/components/PageHeader";
 
 import type { ExplorerPage } from "./useExplorerPage";
 
-/**
- * Data Explorer is the canonical composition of platform query primitives.
- * Its entire state is URL-backed, so back/forward, bookmarks and shared links
- * reproduce the same question and presentation for another authorized user.
- */
-
 /** The title — the saved search's name once one is open — the count, and the save buttons. */
 export function ExplorerHeader({ m }: { m: ExplorerPage }) {
   const { advancedSearch, allRecords, mode, openPanel, request, resource, savedName, savedOn, setSaveOpen, stats, total } = m;

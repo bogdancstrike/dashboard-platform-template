@@ -9,12 +9,6 @@ import { AskData } from "@/components/assistant/DescribeFilters";
 
 import type { ExplorerPage } from "./useExplorerPage";
 
-/**
- * Data Explorer is the canonical composition of platform query primitives.
- * Its entire state is URL-backed, so back/forward, bookmarks and shared links
- * reproduce the same question and presentation for another authorized user.
- */
-
 /** Rules (or the dataset), the search box, Ask, Search — and the "Try" chips on the start screen. */
 export function SearchBar({ m }: { m: ExplorerPage }) {
   const { advancedSearch, catalogue, chooseResource, mode, openPanel, queryText, resource, resources, results, set, setAdvancedOpen, setParams, stats, suggestions, tree } = m;

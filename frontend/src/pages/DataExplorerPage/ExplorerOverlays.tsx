@@ -7,12 +7,6 @@ import { SavedSearchForm } from "@/components/explorer/SavedSearchForm";
 import { savedQuestion } from "./explorerUrl";
 import type { ExplorerPage } from "./useExplorerPage";
 
-/**
- * Data Explorer is the canonical composition of platform query primitives.
- * Its entire state is URL-backed, so back/forward, bookmarks and shared links
- * reproduce the same question and presentation for another authorized user.
- */
-
 /** The drawers and dialogs the address opens: rules, saved searches, a preview, the save form, bulk. */
 export function ExplorerOverlays({ m }: { m: ExplorerPage }) {
   const { advancedOpen, advancedSearch, bulk, chooseResource, closePanel, closeRules, draftToSave, editing, openPanel, openSaved, params, previewId, queryText, request, requestedResource, resource, resources, saveOpen, saveValue, savedOn, savedOpen, set, setDraftToSave, setEditing, setSaveOpen } = m;
