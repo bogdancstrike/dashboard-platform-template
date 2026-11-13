@@ -17,10 +17,25 @@
  * comment saying why rather than a silent exemption.
  */
 
+import { readFileSync } from "node:fs";
+
 import js from "@eslint/js";
 import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
 import typescript from "typescript-eslint";
+
+/**
+ * Files still over the size limit, generated from the tree when the limit was
+ * introduced. Each refactor that brings one under the limit removes it from
+ * the list; the list only ever shrinks, and a new file cannot join it.
+ */
+const OVERSIZED = JSON.parse(readFileSync(new URL("./eslint.oversized.json", import.meta.url), "utf8"));
+
+/** Above the limit on purpose: data tables whose entries are the content. */
+const DATA_TABLES = ["src/app/tours.ts", "src/pages/showcase/docs/registry.ts"];
+
+const TESTS = ["**/*.test.{ts,tsx}", "e2e/**"];
+const LINES = { skipBlankLines: true, skipComments: true };
 
 export default typescript.config(
   // e2e/audit-b/*.mjs: the audit crawler, plain Node outside the TS project.
@@ -80,5 +95,23 @@ export default typescript.config(
       "@typescript-eslint/no-unsafe-argument": "off",
       "@typescript-eslint/no-unnecessary-condition": "off",
     },
+  },
+
+  {
+    // Size: a module does one thing, and one thing fits in 200 lines; a test
+    // file describes one unit's behaviour in 400. Long functions and tangled
+    // branching are flagged as advice where a file is already within bounds.
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: [...TESTS, "src/test/**", ...DATA_TABLES, ...OVERSIZED],
+    rules: {
+      "max-lines": ["error", { max: 200, ...LINES }],
+      "max-lines-per-function": ["warn", { max: 80, ...LINES, IIFEs: true }],
+      complexity: ["warn", 15],
+    },
+  },
+  {
+    files: TESTS,
+    ignores: OVERSIZED,
+    rules: { "max-lines": ["error", { max: 400, ...LINES }] },
   },
 );

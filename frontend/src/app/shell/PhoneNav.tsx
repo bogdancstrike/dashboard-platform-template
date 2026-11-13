@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import type { NavGroup } from "@/app/navigation";
@@ -85,5 +86,25 @@ export function PhoneSheet({ groups, selected, onClose }: {
         ))}
       </div>
     </div>
+  );
+}
+
+/** The phone's navigation: the tab bar, and the sheet its "More" opens. */
+export function PhoneNavigation({ groups, selected, counters }: {
+  groups: NavGroup[];
+  selected: string;
+  counters: NavCounters;
+}) {
+  const { pathname } = useLocation();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  // Going anywhere closes the sheet.
+  useEffect(() => {
+    setSheetOpen(false);
+  }, [pathname]);
+  return (
+    <>
+      <PhoneTabs counters={counters} sheetOpen={sheetOpen} onOpenSheet={() => setSheetOpen(true)} />
+      {sheetOpen && <PhoneSheet groups={groups} selected={selected} onClose={() => setSheetOpen(false)} />}
+    </>
   );
 }

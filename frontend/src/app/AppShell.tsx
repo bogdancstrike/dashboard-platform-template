@@ -1,18 +1,17 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { useRef, type CSSProperties } from "react";
+import { useLocation } from "react-router-dom";
 
-import { ErrorBoundary } from "@/app/ErrorBoundary";
 import { OverlayHistory, useScrollMemory } from "@/app/history";
 import { useAuth } from "@/auth/AuthProvider";
 import { AnnouncementBanner } from "@/components/announcements/AnnouncementBanner";
 import { CommandPalette } from "@/components/CommandPalette";
-import { ProblemPage } from "@/components/ProblemPage";
 import { landingPath } from "@/pages/PreferencesPage";
-import { FEATURES, flagForPath, useFeatureSync, useFeatures, type FeatureKey } from "@/settings/features";
+import { FEATURES, useFeatureSync, useFeatures } from "@/settings/features";
 
 import { NAV_ITEMS, selectedKeyFor, trailFor } from "./navigation";
 import { ImpersonationBar } from "./shell/ImpersonationBar";
-import { PhoneSheet, PhoneTabs } from "./shell/PhoneNav";
+import { PhoneNavigation } from "./shell/PhoneNav";
+import { ShellContent } from "./shell/ShellContent";
 import { ShellHeader } from "./shell/ShellHeader";
 import { Sidebar } from "./shell/Sidebar";
 import { GroupChips, TabletRail } from "./shell/TabletNav";
@@ -49,11 +48,6 @@ export function AppShell() {
   const groups = useNavGroups();
   const counters = useNavCounters();
 
-  const [sheetOpen, setSheetOpen] = useState(false);
-  useEffect(() => {
-    setSheetOpen(false);
-  }, [location.pathname]);
-
   const scrollerRef = useRef<HTMLElement>(null);
   useScrollMemory(scrollerRef);
   const settled = useSettledPage(location.pathname);
@@ -62,34 +56,20 @@ export function AppShell() {
   const currentGroup = groups.find((group) => group.items.some((item) => item.key === selected));
   const trail = trailFor(location.pathname);
   const activeItem = NAV_ITEMS.find((item) => item.key === selected);
-  const forbidden =
-    !auth.loading && Boolean(activeItem?.permission) && !auth.can(activeItem?.permission);
-  // Any route a flag governs — not only menu entries: `/tasks/grid`,
-  // `/workflows/:id/canvas` and `/assistant/:id` are reached by address too.
-  const routeFlag = flagForPath(location.pathname) ?? (activeItem?.flag as FeatureKey | undefined);
-  const switchedOff = !auth.loading && Boolean(routeFlag) && !features(routeFlag as FeatureKey);
   const home = landingPath(auth.profile?.preferences.defaults.landing_page);
-
-  const content = forbidden ? (
-    <ProblemPage kind="forbidden" missing={activeItem?.permission ? [activeItem.permission] : []} />
-  ) : switchedOff ? (
-    <ProblemPage kind="switched_off" />
-  ) : (
-    <ErrorBoundary resetKey={location.pathname}>
-      <Outlet />
-    </ErrorBoundary>
-  );
+  const title = activeItem?.label ?? trail[trail.length - 1]?.label ?? "Nucleus";
+  const isPc = device === "pc";
 
   return (
     <div
-      className={`nx-app nx-app--${device}${folded && device === "pc" ? " nx-app--folded" : ""}`}
+      className={`nx-app nx-app--${device}${folded && isPc ? " nx-app--folded" : ""}`}
       style={{ "--nx-side-w": folded ? "76px" : "248px" } as CSSProperties}
     >
       <a className="nu-skip-link" href="#nu-main">
         Skip to content
       </a>
 
-      {device === "pc" && (
+      {isPc && (
         <Sidebar
           home={home}
           groups={groups}
@@ -108,22 +88,17 @@ export function AppShell() {
           device={device}
           trail={trail}
           home={home}
-          title={activeItem?.label ?? trail[trail.length - 1]?.label ?? "Nucleus"}
+          title={title}
         />
         {device === "tablet" && currentGroup && <GroupChips group={currentGroup} selected={selected} />}
         <ImpersonationBar />
         <AnnouncementBanner />
         <main className={`nx-scroll nu-content${settled ? " nx-settled" : ""}`} id="nu-main" ref={scrollerRef}>
-          {content}
+          <ShellContent activeItem={activeItem} />
         </main>
       </div>
 
-      {device === "phone" && (
-        <PhoneTabs counters={counters} sheetOpen={sheetOpen} onOpenSheet={() => setSheetOpen(true)} />
-      )}
-      {device === "phone" && sheetOpen && (
-        <PhoneSheet groups={groups} selected={selected} onClose={() => setSheetOpen(false)} />
-      )}
+      {device === "phone" && <PhoneNavigation groups={groups} selected={selected} counters={counters} />}
 
       {paletteOn && <CommandPalette />}
       <OverlayHistory />
