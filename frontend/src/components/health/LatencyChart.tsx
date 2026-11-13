@@ -43,16 +43,25 @@ export function LatencyChart({
     const grid = mode === "dark" ? "rgba(243, 231, 210, 0.08)" : "rgba(27, 30, 38, 0.07)";
     const bad = mode === "dark" ? "rgba(233, 119, 111, 0.16)" : "rgba(217, 72, 59, 0.10)";
     const warn = mode === "dark" ? "rgba(227, 174, 106, 0.16)" : "rgba(217, 154, 43, 0.12)";
-    const data = points.map((point) => [new Date(point.at).valueOf(), Math.round(point.latency_ms), point.status]);
+    const data = points.map((point) => [
+      new Date(point.at).valueOf(),
+      Math.round(point.latency_ms),
+      point.status,
+    ]);
     const top = niceCeiling(Math.max(1, ...points.map((point) => point.latency_ms)));
     const spanDays =
       points.length > 1
-        ? (new Date(points[points.length - 1]!.at).valueOf() - new Date(points[0]!.at).valueOf()) / 86_400_000
+        ? (new Date(points[points.length - 1]!.at).valueOf() - new Date(points[0]!.at).valueOf()) /
+          86_400_000
         : 0;
 
     return {
       animation: false,
-      textStyle: { fontFamily: theme.textStyle.fontFamily, fontSize: detailed ? 12 : 11, color: text },
+      textStyle: {
+        fontFamily: theme.textStyle.fontFamily,
+        fontSize: detailed ? 12 : 11,
+        color: text,
+      },
       grid: detailed
         ? { left: 8, right: 16, top: 16, bottom: 8, containLabel: true }
         : { left: 2, right: 4, top: 8, bottom: 2, containLabel: true },
@@ -81,7 +90,8 @@ export function LatencyChart({
           // A day's window reads in clock times; a week or a month in days.
           formatter: (value: number) => {
             const moment = new Date(value);
-            if (spanDays > 2) return detailed ? `${dayName(moment)} ${clock(moment)}` : dayName(moment);
+            if (spanDays > 2)
+              return detailed ? `${dayName(moment)} ${clock(moment)}` : dayName(moment);
             return clock(moment);
           },
         },
@@ -122,7 +132,13 @@ export function LatencyChart({
 
   return (
     <figure className="nx-hl-chart" style={{ margin: 0 }} aria-label={label} role="img">
-      <ReactECharts option={option} style={{ height, width: "100%" }} opts={{ renderer: "canvas" }} notMerge lazyUpdate />
+      <ReactECharts
+        option={option}
+        style={{ height, width: "100%" }}
+        opts={{ renderer: "canvas" }}
+        notMerge
+        lazyUpdate
+      />
     </figure>
   );
 }
