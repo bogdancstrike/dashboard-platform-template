@@ -56,7 +56,7 @@ def _admin(session):
 
 
 def populate(session) -> dict[str, int]:
-    from src.api import endpoint_map
+    from src.core import endpoint_catalog as endpoint_map
     from src.models.developers import ApiExample
     from src.services.developer_portal import infer_schema, sample
 
@@ -84,7 +84,7 @@ def populate(session) -> dict[str, int]:
 
 
 def _usage(session) -> int:
-    from src.api import endpoint_map
+    from src.core import endpoint_catalog as endpoint_map
     from src.models.platform import ApiClient, ApiRequestLog
 
     since = now() - timedelta(days=WINDOW_DAYS)

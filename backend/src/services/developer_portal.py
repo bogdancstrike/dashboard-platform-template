@@ -120,7 +120,7 @@ def _swagger_path(url: str, prefix: str) -> str:
 
 def reference(session, *, principal) -> dict[str, Any]:
     """Every endpoint, grouped, with access, parameters and any captured example."""
-    from src.api import endpoint_map
+    from src.core import endpoint_catalog as endpoint_map
     from src.config import Config
     from src.models.developers import ApiExample
 
@@ -181,7 +181,7 @@ def reference(session, *, principal) -> dict[str, Any]:
 
 
 def _raw_map() -> dict[str, Any]:
-    from src.api import endpoint_map
+    from src.core import endpoint_catalog as endpoint_map
 
     return endpoint_map.load()
 

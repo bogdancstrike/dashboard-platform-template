@@ -477,7 +477,7 @@ def principal_from_request(*, required: bool = True) -> Principal | None:
     if not token and request.headers.get("X-Api-Key"):
         # A machine calling with an API client's key (§25, §31): it acts as
         # the client's owner, holding only what both owner and scopes grant.
-        from src.services.api_keys import principal_for_key
+        from src.core.api_keys import principal_for_key
 
         principal, client_id = principal_for_key(
             request.headers["X-Api-Key"], address=request.remote_addr
