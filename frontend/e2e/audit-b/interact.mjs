@@ -116,8 +116,12 @@ async function crawl(ctx, route) {
       // Dismiss: Escape first; then × ; then back for navigations.
       if (item.opened.length) {
         await page.keyboard.press("Escape");
-        await page.waitForTimeout(500);
-        const still = await openOverlays(page);
+        // Close animations run 200-300ms; poll rather than read once.
+        let still = await openOverlays(page);
+        for (let t = 0; t < 10 && still.length; t++) {
+          await page.waitForTimeout(200);
+          still = await openOverlays(page);
+        }
         if (still.length) {
           item.issues.push(`Escape left open: ${still.join(",")}`);
           await page.locator(".ant-modal-close, .ant-drawer-close").filter({ visible: true }).first().click({ timeout: 1500 }).catch(() => undefined);

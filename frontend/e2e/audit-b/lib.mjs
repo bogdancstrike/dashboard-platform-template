@@ -93,7 +93,8 @@ export async function context(browser, { persona = "admin", device = "pc", theme
       };
       if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
       if (route.request().resourceType() === "document") return route.continue();
-      const res = await route.fetch();
+      const res = await route.fetch().catch(() => null);
+      if (!res) return route.abort().catch(() => undefined);
       await route.fulfill({ response: res, headers: { ...res.headers(), ...cors } });
     });
   }
@@ -111,10 +112,23 @@ export async function context(browser, { persona = "admin", device = "pc", theme
       } catch {
         /* not JSON */
       }
-      return route.fulfill({ status: 200, json: { ...(pinned ?? {}), ...sent } });
+      // The server merges a partial write into the whole; so must the echo,
+      // or the page reads `undefined.landing_page` from its own reply.
+      const base = pinned ?? {};
+      const merged = { ...base, ...sent, user: { ...(base.user ?? {}), ...(sent.user ?? {}) } };
+      merged.preferences = { ...(base.preferences ?? {}) };
+      for (const [k, v] of Object.entries(sent.preferences ?? {}))
+        merged.preferences[k] = v && typeof v === "object" && !Array.isArray(v) ? { ...(merged.preferences[k] ?? {}), ...v } : v;
+      if (!sent.user) delete merged.user;
+      if (!base.user && !sent.user) delete merged.user;
+      pinned = { ...base, preferences: merged.preferences };
+      return route.fulfill({ status: 200, json: sent.user ? { ...base, ...sent.user } : merged });
     }
     if (method !== "GET") return route.continue();
-    const res = await route.fetch();
+    // The stack redeploys under us now and then; a dropped fetch must not
+    // take the whole crawl down with an unhandled rejection.
+    const res = await route.fetch().catch(() => null);
+    if (!res) return route.abort().catch(() => undefined);
     const body = await res.json().catch(() => null);
     if (body?.preferences?.appearance) body.preferences.appearance.theme = theme;
     pinned = body;

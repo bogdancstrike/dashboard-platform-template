@@ -775,3 +775,6 @@ button.nx-fd-qchip { padding: 0 12px 0 10px; }
 /* Audit B: on a phone the favourites lists keep the name and the actions —
    the kind, the date and the visit count squeezed names to a word a line. */
 .nx-app--phone .nx-fd-wide-only { display: none !important; }
+
+/* Audit B: the dataset chooser that stands in for Rules when the rule builder is off. */
+.nx-fd-datasetsel { min-width: 150px; flex: none; }

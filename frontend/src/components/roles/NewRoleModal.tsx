@@ -266,19 +266,19 @@ export function NewRoleModal({
                   </div>
                   <div className="nx-ad-permgrid">
                     {group.permissions.map((permission) => (
-                      <label
+                      // The words inside the checkbox's own label: wrapped in a
+                      // second <label>, the input had no name at all (axe label).
+                      <Checkbox
                         key={permission.code}
                         className={`nx-ad-perm${granted.has(permission.code) ? " is-on" : ""}`}
+                        checked={granted.has(permission.code)}
+                        onChange={(event) => toggle([permission.code], event.target.checked)}
                       >
-                        <Checkbox
-                          checked={granted.has(permission.code)}
-                          onChange={(event) => toggle([permission.code], event.target.checked)}
-                        />
-                        <span>
+                        <span className="nx-ad-perm-text">
                           <b>{permission.label}</b>
                           <code>{permission.code}</code>
                         </span>
-                      </label>
+                      </Checkbox>
                     ))}
                   </div>
                 </div>

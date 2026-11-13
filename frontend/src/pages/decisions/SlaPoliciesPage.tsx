@@ -384,17 +384,17 @@ function EscalationRow({ name, form, onRemove }: { name: number; form: ReturnTyp
   return (
     <Space wrap align="start">
       <Form.Item name={[name, "at_percent"]} rules={[{ required: true }]} style={{ marginBottom: 0 }}>
-        <InputNumber min={1} max={500} suffix="%" style={{ width: 110 }} aria-label="At percent of target" />
+        <InputNumber min={1} max={500} suffix="%" style={{ width: 110 }} aria-label={`Step ${name + 1}: at percent of target`} />
       </Form.Item>
       <Form.Item name={[name, "action"]} style={{ marginBottom: 0 }}>
-        <Select style={{ width: 150 }} options={Object.entries(ACTION_LABEL).map(([value, label]) => ({ value, label }))} />
+        <Select style={{ width: 150 }} aria-label={`Step ${name + 1}: what happens`} options={Object.entries(ACTION_LABEL).map(([value, label]) => ({ value, label }))} />
       </Form.Item>
       {action !== "RAISE_PRIORITY" && (
         <Form.Item name={[name, "target"]} style={{ marginBottom: 0 }}>
-          <Select style={{ width: 190 }} options={[{ value: "assignee", label: "the assignee" }, { value: "manager", label: "the assignee's manager" }]} />
+          <Select style={{ width: 190 }} aria-label={`Step ${name + 1}: who is told`} options={[{ value: "assignee", label: "the assignee" }, { value: "manager", label: "the assignee's manager" }]} />
         </Form.Item>
       )}
-      <Button type="text" aria-label="Remove step" icon={<TdIcon name="x" />} onClick={onRemove} />
+      <Button type="text" aria-label={`Remove step ${name + 1}`} icon={<TdIcon name="x" />} onClick={onRemove} />
     </Space>
   );
 }

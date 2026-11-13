@@ -13,7 +13,7 @@
 import "@/styles/analytics.css";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { App, Button, Checkbox, DatePicker, Drawer, Grid, Modal, Skeleton, Tooltip } from "antd";
+import { App, Button, Checkbox, DatePicker, Drawer, Grid, Skeleton, Tooltip } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 
@@ -67,7 +67,9 @@ function VersionHistoryInner({
   onRestored?: () => void;
 }) {
   const client = useQueryClient();
-  const { message } = App.useApp();
+  // `modal` from the App context, not the static Modal.confirm: the static one
+  // renders outside the theme — default blue, square corners, no dark mode.
+  const { message, modal } = App.useApp();
   const screens = Grid.useBreakpoint();
   const [asOf, setAsOf] = useState<string | null>(null);
   const [a, setA] = useState<number | null>(null);
@@ -129,7 +131,7 @@ function VersionHistoryInner({
     const names = (fields ?? restorable.map((f) => f.name))
       .map((name) => data.fields.find((f) => f.name === name)?.label ?? name)
       .join(", ");
-    Modal.confirm({
+    modal.confirm({
       title: fields ? `Restore ${fields.length === 1 ? names : `${fields.length} fields`} from version ${target.number}?` : `Restore version ${target.number}?`,
       content: (
         <span>

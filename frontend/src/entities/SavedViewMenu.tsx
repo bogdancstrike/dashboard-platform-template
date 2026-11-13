@@ -34,6 +34,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App as AntApp, Button, Dropdown, Tag, Typography, type MenuProps } from "antd";
 import {
   CheckOutlined,
+  DeleteOutlined,
   DownOutlined,
   NodeIndexOutlined,
   PushpinOutlined,
@@ -100,7 +101,7 @@ export function describeSnapshot(view: EntityView): string {
 }
 
 function SavedViewMenuInner({ view }: { view: EntityView }) {
-  const { message } = AntApp.useApp();
+  const { message, modal } = AntApp.useApp();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
@@ -125,6 +126,18 @@ function SavedViewMenuInner({ view }: { view: EntityView }) {
             : `“${saved.name}” is no longer the default`
           : `“${saved.name}” updated`,
       );
+    },
+    onError: (error: Error) => message.error(error.message),
+  });
+
+  // A view somebody saved could be updated and pinned but never taken away
+  // again — the menu filled with experiments nobody could remove (audit B).
+  const remove = useMutation({
+    mutationFn: (chosen: SavedSearch) => explorerApi.deleteSaved(chosen.id).then(() => chosen),
+    onSuccess: async (chosen) => {
+      view.applyView(null);
+      await refresh();
+      message.success(`“${chosen.name}” deleted`);
     },
     onError: (error: Error) => message.error(error.message),
   });
@@ -197,6 +210,7 @@ function SavedViewMenuInner({ view }: { view: EntityView }) {
                   ? "Stop opening with this view"
                   : "Open this list with this view",
               },
+              { key: "delete", icon: <DeleteOutlined />, danger: true, label: `Delete “${applied.name}”…` },
             ]
           : []),
       ],
@@ -214,6 +228,17 @@ function SavedViewMenuInner({ view }: { view: EntityView }) {
     if (key === "overwrite" && applied) {
       return update.mutate({ id: applied.id, body: snapshot });
     }
+    if (key === "delete" && applied) {
+      modal.confirm({
+        title: `Delete “${applied.name}”?`,
+        content: "The view goes for everyone it was shared with. The records it showed are not touched.",
+        okText: "Delete the view",
+        okButtonProps: { danger: true },
+        cancelText: "Keep it",
+        onOk: () => remove.mutateAsync(applied),
+      });
+      return;
+    }
     if (key === "default" && applied) {
       return update.mutate({ id: applied.id, body: { is_default: !applied.is_default } });
     }
@@ -225,7 +250,7 @@ function SavedViewMenuInner({ view }: { view: EntityView }) {
         <Button
           icon={<DownOutlined />}
           iconPosition="end"
-          loading={update.isPending}
+          loading={update.isPending || remove.isPending}
           data-testid="saved-views"
         >
           {applied ? applied.name : items.length ? `Views · ${items.length}` : "Save this view"}

@@ -453,19 +453,37 @@ export default function DataExplorerPage() {
                   starts with "Find [dataset] where …", so the dataset and the
                   conditions on it are chosen in one place, and the label keeps
                   both visible on the page. */}
-              <Button
-                className={`nx-fd-rulesbtn${tree ? " is-on" : ""}`}
-                icon={<NxIcon name="filter" size={15} />}
-                data-testid="open-rules"
-                onClick={() => setAdvancedOpen(true)}
-                aria-label={`Rules, ${stats.rules} ${stats.rules === 1 ? "rule" : "rules"}, on ${resource?.label ?? "this dataset"}`}
-              >
-                Rules
-                {stats.rules > 0 && <span className="nx-fd-rulesn">· {stats.rules}</span>}
-              </Button>
-              <span className="nx-fd-rulesds" data-testid="rules-dataset">
-                {catalogue.isLoading ? "…" : `in ${resource?.label ?? "—"}`}
-              </span>
+              {advancedSearch ? (
+                <>
+                  <Button
+                    className={`nx-fd-rulesbtn${tree ? " is-on" : ""}`}
+                    icon={<NxIcon name="filter" size={15} />}
+                    data-testid="open-rules"
+                    onClick={() => setAdvancedOpen(true)}
+                    aria-label={`Rules, ${stats.rules} ${stats.rules === 1 ? "rule" : "rules"}, on ${resource?.label ?? "this dataset"}`}
+                  >
+                    Rules
+                    {stats.rules > 0 && <span className="nx-fd-rulesn">· {stats.rules}</span>}
+                  </Button>
+                  <span className="nx-fd-rulesds" data-testid="rules-dataset">
+                    {catalogue.isLoading ? "…" : `in ${resource?.label ?? "—"}`}
+                  </span>
+                </>
+              ) : (
+                // With the rule builder switched off, the drawer that chooses
+                // the dataset never opens: Rules was a dead button and the page
+                // was stuck on its first dataset. The plain chooser stands in.
+                <Select
+                  className="nx-fd-datasetsel"
+                  aria-label="Dataset"
+                  data-testid="dataset-select"
+                  value={resource?.key}
+                  loading={catalogue.isLoading}
+                  onChange={chooseResource}
+                  options={resources.map((item) => ({ value: item.key, label: item.label }))}
+                  popupMatchSelectWidth={false}
+                />
+              )}
               {tree && (
                 <button
                   type="button"
@@ -485,11 +503,15 @@ export default function DataExplorerPage() {
                 />
               </div>
               {/* AI (§23): "Ask" — a question becomes rules, reviewed in the Rules drawer. */}
-              <AskData
-                onReview={(key) =>
-                  key === resource?.key ? openPanel({ panel: "rules" }) : setParams(new URLSearchParams({ resource: key, panel: "rules" }))
-                }
-              />
+              {/* Ask hands its answer to the Rules drawer for review, so it
+                  is offered only where that drawer can open. */}
+              {advancedSearch && (
+                <AskData
+                  onReview={(key) =>
+                    key === resource?.key ? openPanel({ panel: "rules" }) : setParams(new URLSearchParams({ resource: key, panel: "rules" }))
+                  }
+                />
+              )}
               <Button type="primary" className="nx-fd-go" icon={<NxIcon name="search" size={15} />} onClick={() => void results.refetch()}>
                 Search
               </Button>

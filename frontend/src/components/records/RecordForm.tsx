@@ -75,6 +75,15 @@ export interface EditableField {
 }
 
 /**
+ * A reference field picks a person or a record, so its label names the thing:
+ * "Account manager", not the column "Account manager ID" — which also leaked
+ * into the placeholder as "Search people for account manager id".
+ */
+export function referenceLabel(label: string, references: string): string {
+  return references ? label.replace(/\s+id$/i, "") : label;
+}
+
+/**
  * The writable fields of a record, merged with the vocabulary the catalogue
  * publishes.
  *
@@ -95,7 +104,7 @@ export function editableFields(
     .filter((field) => field.editable)
     .map((field) => ({
       name: field.name,
-      label: field.label,
+      label: referenceLabel(field.label, field.references ?? declared.get(field.name)?.references ?? ""),
       kind: field.kind,
       choices: declared.get(field.name)?.choices ?? [],
       required: Boolean(field.required),
@@ -112,7 +121,7 @@ export function creatableFields(resource: ExplorerResource | undefined): Editabl
     .filter((field) => field.editable)
     .map((field) => ({
       name: field.name,
-      label: field.label,
+      label: referenceLabel(field.label, field.references ?? ""),
       kind: field.kind,
       choices: field.choices,
       required: Boolean(field.required),
@@ -413,7 +422,9 @@ function FieldControl({
   }
 
   if (field.kind === "bool") {
-    return <Switch checked={Boolean(value)} onChange={(next) => onChange?.(next)} />;
+    // Named like the select above: a bare switch was announced as "switch,
+    // off" with no hint of what it turns on (axe button-name).
+    return <Switch aria-label={field.label} checked={Boolean(value)} onChange={(next) => onChange?.(next)} />;
   }
 
   if (field.kind === "number") {

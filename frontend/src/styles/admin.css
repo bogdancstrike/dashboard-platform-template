@@ -668,3 +668,8 @@ button.nx-ad-card:focus-visible { outline: 2px solid var(--nu-accent); outline-o
 .nx-app--phone .nx-ad-rolehead { max-width: 100%; }
 .nx-app--phone .nx-ad-rolehead .nu-status-tag,
 .nx-app--phone .nx-ad-rolehead .ant-tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }
+
+/* Audit B: the permission tile is the checkbox's own label now. */
+.nx-ad-perm.ant-checkbox-wrapper { margin-inline-start: 0; }
+.nx-ad-perm.ant-checkbox-wrapper > span:last-child { padding-inline: 0; min-width: 0; }
+.nx-ad-perm .nx-ad-perm-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }

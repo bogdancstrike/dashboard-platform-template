@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import DataExplorerPage from "@/pages/DataExplorerPage";
-import { savedDashboards, savedViews } from "@/test/handlers";
+import { currentUser, savedDashboards, savedViews } from "@/test/handlers";
 import { renderWithProviders } from "@/test/render";
 import { server } from "@/test/server";
 
@@ -166,5 +166,21 @@ describe("Data Explorer", () => {
     await user.click(await screen.findByTestId("saved-back"));
     expect(await screen.findByRole("button", { name: "Load a saved search" })).toBeInTheDocument();
     expect(screen.queryByTestId("saved-back")).not.toBeInTheDocument();
+  });
+
+  it("offers a plain dataset chooser, not a dead Rules button, when the rule builder is off", async () => {
+    server.use(
+      http.get("/platform/api/me", () =>
+        HttpResponse.json({ ...currentUser, features: { ...currentUser.features, "advanced-search": false } }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderWithProviders(<DataExplorerPage />, { route: "/explore?resource=task" });
+
+    const chooser = await screen.findByRole("combobox", { name: "Dataset" });
+    expect(screen.queryByTestId("open-rules")).not.toBeInTheDocument();
+    await user.click(chooser);
+    const options = await screen.findAllByRole("option");
+    expect(options.length).toBeGreaterThan(1);
   });
 });

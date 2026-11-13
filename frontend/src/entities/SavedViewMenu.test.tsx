@@ -300,6 +300,25 @@ describe("the menu", () => {
     await waitFor(() => expect(sent).toEqual([{ is_default: true }]));
   });
 
+  it("deletes the applied view after asking, and shows everything again", async () => {
+    const deleted: string[] = [];
+    withViews();
+    server.use(
+      http.delete("/platform/api/saved-searches/:searchId", ({ params }) => {
+        deleted.push(String(params.searchId));
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    render(`/tasks?view=${VIEWS[0]!.id}`);
+    const user = await openMenu();
+
+    await user.click(await screen.findByText("Delete “In progress, mine first”…"));
+    await user.click(await screen.findByRole("button", { name: "Delete the view" }));
+
+    await waitFor(() => expect(deleted).toEqual([VIEWS[0]!.id]));
+    await waitFor(() => expect(screen.getByTestId("address")).not.toHaveTextContent("view="));
+  });
+
   it("offers no editing of somebody else's view", async () => {
     withViews();
     render(`/tasks?view=${VIEWS[3]!.id}`);
@@ -310,6 +329,7 @@ describe("the menu", () => {
     expect(await screen.findByText("Marcus Manager")).toBeInTheDocument();
     expect(screen.queryByText(/^Update /)).not.toBeInTheDocument();
     expect(screen.queryByText("Open this list with this view")).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Delete /)).not.toBeInTheDocument();
     await user.click(screen.getByText("Show everything"));
     await waitFor(() => expect(screen.getByTestId("address")).toHaveTextContent("/tasks"));
     expect(screen.getByTestId("address")).not.toHaveTextContent("view=");
