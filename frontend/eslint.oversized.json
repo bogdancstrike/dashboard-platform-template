@@ -58,7 +58,6 @@
   "src/pages/ProfilePage.tsx",
   "src/pages/RelationshipExplorerPage.tsx",
   "src/pages/ReportBuilderPage.tsx",
-  "src/pages/ReportsPage.tsx",
   "src/pages/RolesPage.tsx",
   "src/pages/SecurityPage.tsx",
   "src/pages/SystemPage.tsx",
