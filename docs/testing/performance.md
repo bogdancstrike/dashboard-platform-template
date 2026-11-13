@@ -53,6 +53,11 @@ kept as a record only).
 | **B** | after | 2 × (10+20) | 196 / 145 | 1.8 s | 8.3 s | 13 s | 0.02 % |
 | **C** | after | **4 × (5+5)** | **358 / 259** | **98 ms** | **1.1 s** | **2.7 s** | **0.00 %** (1 of 62 344) |
 | D (300 users, AI journeys on, fake model) | after | 4 × (5+5) | 118 / 104 | 12 ms | 70 ms | 620 ms | 0.46 %¹ |
+| E (400 users, **the deployed shared API**) | after (deployed) | 2 × (10+20) | 155 / 123 | 29 ms | 610 ms | 1.1 s | 0.04 %² |
+
+² all 8 were the load test being too strict: a new `presence` frame arrived
+before `ready` on the live channel; the locustfile now accepts it. The API log
+showed no worker recycling and no graceful-timeout during E.
 
 ¹ all 57 were kanban moves on cards another test suite deleted mid-run (see
 "shared-database hazard" below); the locustfile now treats a vanished

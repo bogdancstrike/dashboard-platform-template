@@ -464,9 +464,16 @@ class LiveSocketUser(User):
         ws = None
         try:
             ws = websocket.create_connection(url, subprotocols=["bearer", tokens.bearer(self.persona)], timeout=10)
-            first = json.loads(ws.recv())
-            if first.get("type") != "ready":
-                raise RuntimeError(f"unexpected first frame {first.get('type')}")
+            # `ready` comes first today, but other hints (presence) may precede
+            # it; only an `error` frame, or no `ready` within a few, is a failure.
+            for _ in range(5):
+                frame = json.loads(ws.recv())
+                if frame.get("type") == "ready":
+                    break
+                if frame.get("type") == "error":
+                    raise RuntimeError(f"live channel refused: {frame.get('message')}")
+            else:
+                raise RuntimeError("no ready frame")
         except Exception as error:  # noqa: BLE001
             exc = error
         events.request.fire(request_type="WS", name="/live [connect]", response_time=(time.perf_counter() - started) * 1000,
