@@ -11,7 +11,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm.attributes import flag_modified
 
-from src.models import Dashboard, DashboardWidget
+from src.models.personal import Dashboard, DashboardWidget
 from src.services.analysis import known_period
 
 #: What an unreadable period becomes: the dashboard's own default.

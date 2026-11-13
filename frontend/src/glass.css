@@ -728,3 +728,12 @@ html { zoom: var(--nu-zoom, 1); }
 .ant-picker-dropdown .ant-picker-ok .ant-btn,
 .ant-picker-dropdown .ant-picker-footer .ant-btn { border-radius: 8px; height: 28px; padding-inline: 12px; }
 .ant-picker-dropdown .ant-picker-cell .ant-picker-cell-inner { border-radius: 8px; }
+
+/* Live toasts on a phone sat on top of the tab bar (audit A): the bar is 66px
+   tall and floats 20px up, so a bottom-placed toast starts above both. */
+@media (max-width: 767px) {
+  .ant-notification-bottom,
+  .ant-notification-bottomRight,
+  .ant-notification-bottomLeft { bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important; }
+  .ant-notification .ant-notification-notice-wrapper { max-width: calc(100vw - 28px); }
+}
