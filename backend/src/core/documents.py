@@ -245,6 +245,13 @@ def render_pdf(*, title: str, page: dict[str, Any], blocks: Iterable[dict[str, A
                 ratio = image.imageHeight / image.imageWidth if image.imageWidth else 0.5
                 image.drawWidth = available
                 image.drawHeight = available * ratio
+                # And no taller than the frame: a squarish chart on a landscape
+                # page was taller than the page, and ReportLab's answer to
+                # that is a LayoutError — the whole export failed.
+                tallest = document.height * 0.85
+                if image.drawHeight > tallest:
+                    image.drawWidth *= tallest / image.drawHeight
+                    image.drawHeight = tallest
                 story.append(image)
                 if block.get("caption"):
                     story.append(Paragraph(_escape(str(block["caption"])), caption))
