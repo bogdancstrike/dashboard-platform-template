@@ -7,28 +7,26 @@
 import "@/styles/records-analytics.css";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { App, Button, Modal, Progress, Skeleton, Tabs, Upload } from "antd";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { App, Button, Modal, Skeleton, Tabs } from "antd";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { useSmartBack } from "@/app/history";
 import { useUrlOverlay } from "@/hooks/useUrlOverlay";
 import { useAuth } from "@/auth/AuthProvider";
-import { filesApi, putBytes } from "@/api/files";
-import { contractsApi, money, STAGE_LABEL, STAGE_ORDER, type ContractStage } from "@/api/recordsAnalytics";
+import { contractsApi, STAGE_LABEL, STAGE_ORDER, type ContractStage } from "@/api/recordsAnalytics";
 import { ContractForm } from "@/components/recordsAnalytics/ContractForm";
-import { BandPill } from "@/components/recordsAnalytics/parts";
 import { VersionHistory } from "@/components/recordsAnalytics/VersionHistory";
 import { FailureAlert } from "@/components/FailureAlert";
 import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
-import { errorText, errorToast } from "@/lib/errors";
-import { absoluteTime, relativeTime } from "@/lib/time";
-
-import { riskFlag } from "./ContractsPage";
+import { errorToast } from "@/lib/errors";
 import { queryKeys } from "@/lib/queryKeys";
-import { PanelHeader } from "@/components/layout/PanelHeader";
+import { relativeTime } from "@/lib/time";
+
+import { ContractFiles, useContractFiles } from "./ContractFiles";
+import { ContractOverview } from "./ContractOverview";
 
 export default function ContractDetailPage() {
   const { id = "" } = useParams();
@@ -42,11 +40,7 @@ export default function ContractDetailPage() {
   const { can } = useAuth();
 
   const contract = useQuery({ queryKey: queryKeys.contract(id), queryFn: ({ signal }) => contractsApi.get(id, signal), enabled: Boolean(id) });
-  const files = useQuery({
-    queryKey: queryKeys.contract(id, "files"),
-    queryFn: ({ signal }) => contractsApi.files(id, signal),
-    enabled: Boolean(id),
-  });
+  const { files, upload } = useContractFiles(id);
 
   const move = useMutation({
     mutationFn: (stage: ContractStage) => contractsApi.move(id, { stage }),
@@ -91,20 +85,6 @@ export default function ContractDetailPage() {
   const data = contract.data!;
   const canEdit = data.can_edit;
   const position = STAGE_ORDER.indexOf(data.stage);
-
-  const upload = async (file: File) => {
-    try {
-      const { folder_id } = await contractsApi.folder(id);
-      const ticket = await filesApi.beginUpload({ name: file.name, size_bytes: file.size, mime_type: file.type || undefined, folder_id });
-      await putBytes(ticket, file, () => undefined);
-      await filesApi.confirmUpload(ticket.file.id);
-      void message.success(`${file.name} attached.`);
-      void client.invalidateQueries({ queryKey: queryKeys.contract(id, "files") });
-    } catch (error) {
-      void message.error(errorText(error, { action: "upload files" }));
-    }
-    return false;
-  };
 
   return (
     <div data-testid="contract-detail">
@@ -171,64 +151,14 @@ export default function ContractDetailPage() {
             key: "overview",
             label: "Overview",
             children: (
-              <div className="nx-ra-grid nx-ra-grid--2">
-                <section className="nx-ra-panel">
-                  <PanelHeader title="Terms" extra={riskFlag(data)} />
-                  <div className="nx-ra-facts-grid">
-                    <Fact label="Value (ARR)" value={money(data.value, data.currency)} />
-                    <Fact label="Weighted" value={money(data.weighted, data.currency)} />
-                    <Fact label="Probability" value={<Progress percent={data.probability} size="small" aria-label={`Probability ${data.probability}%`} style={{ width: 120, margin: 0 }} />} />
-                    <Fact label="Billing" value={data.billing.toLowerCase()} />
-                    <Fact label="Start" value={data.start_date} />
-                    <Fact label="End" value={`${data.end_date} (${data.days_to_end !== null && data.days_to_end >= 0 ? `in ${data.days_to_end} days` : "ended"})`} />
-                    <Fact label="Term" value={`${data.term_months} months`} />
-                    <Fact label="Notice" value={`${data.notice_days} days — by ${data.notice_by}`} />
-                    <Fact label="Auto-renew" value={data.auto_renew ? "Yes" : "No"} />
-                    <Fact label="Stage since" value={absoluteTime(data.stage_changed_at)} />
-                    {data.churn_reason && <Fact label="Churn reason" value={data.churn_reason} />}
-                  </div>
-                  {data.terms && (<><h3 className="nx-ra-sub" style={{ marginTop: 14 }}>Terms</h3><p style={{ whiteSpace: "pre-wrap", margin: 0 }}>{data.terms}</p></>)}
-                  {data.notes && (<><h3 className="nx-ra-sub" style={{ marginTop: 14 }}>Notes</h3><p style={{ whiteSpace: "pre-wrap", margin: 0 }}>{data.notes}</p></>)}
-                </section>
-                <section className="nx-ra-panel">
-                  <PanelHeader title="Customer health" />
-                  <p style={{ margin: "0 0 10px" }}><BandPill band={data.health_band} score={data.health_score} /></p>
-                  <p className="nx-ra-sub" style={{ margin: 0 }}>
-                    {data.at_risk
-                      ? "The customer's health is low while this renewal is open — it is flagged at risk on the pipeline."
-                      : "Nothing in the customer's health threatens this renewal."}
-                  </p>
-                  <Link to={`/customers/${data.customer.id}?tab=health`}>See why →</Link>
-                </section>
-              </div>
+              <ContractOverview data={data} />
             ),
           },
           {
             key: "files",
             label: "Files",
             children: (
-              <section className="nx-ra-panel" data-testid="contract-files">
-                <PanelHeader title="Documents" extra={files.data?.can_upload && (
-                    <Upload beforeUpload={(file) => upload(file)} showUploadList={false} multiple>
-                      <Button icon={<NxIcon name="import" />}>Attach</Button>
-                    </Upload>
-                  )} />
-                {files.isError ? <FailureAlert error={files.error} /> : !files.data ? <Skeleton active /> : files.data.items.length === 0 ? (
-                  <p className="nx-ra-muted">No documents yet. Signed copies and order forms belong here.</p>
-                ) : (
-                  <ul className="nx-ra-rows">
-                    {files.data.items.map((file) => (
-                      <li key={file.id} className="nx-ra-row" onClick={() => navigate(`/files?folder=${files.data.folder_id}&file=${file.id}`)}>
-                        <NxIcon name="folder" />
-                        <div className="nx-ra-row-main">
-                          <b>{file.name}</b>
-                          <span>{Math.max(1, Math.round(file.size_bytes / 1024))} KB · {file.owner ?? "—"} · {relativeTime(file.created_at)}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
+              <ContractFiles files={files} upload={upload} />
             ),
           },
           {
@@ -245,15 +175,6 @@ export default function ContractDetailPage() {
       {can("contracts.manage") && (
         <ContractForm open={editing.value === "1"} onClose={editing.close} contract={data} />
       )}
-    </div>
-  );
-}
-
-function Fact({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="nx-ra-fact">
-      <span>{label}</span>
-      <b>{value}</b>
     </div>
   );
 }
