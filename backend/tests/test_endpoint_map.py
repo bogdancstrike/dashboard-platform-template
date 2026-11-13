@@ -89,6 +89,10 @@ PUBLIC: dict[str, str] = {
         "exchanges a link's password for a short-lived signed grant; "
         "rate-limited per address"
     ),
+    "/platform/public/automations/hooks/<string:token>": (
+        "a workflow's webhook trigger: the unguessable token in the address is "
+        "the credential, and it only runs the one workflow minted with it"
+    ),
     "/platform/public/forms/<string:slug>/submit": (
         "the same form's answer; rate-limited per address and guarded by a "
         "signed challenge and a honeypot rather than a token"

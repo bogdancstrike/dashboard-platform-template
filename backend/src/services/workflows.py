@@ -112,15 +112,6 @@ class Match:
     row: Any
 
 
-@dataclass
-class Fired:
-    """What one action did to one record."""
-
-    kind: str
-    ok: bool
-    detail: str
-
-
 @dataclass(frozen=True)
 class Action:
     """One kind of thing a rule can do.
@@ -277,6 +268,71 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+def _owner_principal(session, rule: AlertRule):
+    """Who an automation writes records *as*: its author, labelled as the rule.
+
+    Records an automation changes are audited to the person who wrote it —
+    somebody has to answer for "why did this ticket's priority change at three
+    in the morning" — with the rule's name beside them so the ledger says it
+    was the rule and not them at the keyboard.
+    """
+    from src.core.auth import Principal
+
+    owner = rule.owner
+    return Principal(
+        user_id=owner.id if owner else None, subject="", email=owner.email if owner else "",
+        username=f"automation:{rule.id}", full_name=f"{rule.name} (automation)"[:160],
+        role_code="SYSTEM",
+        permissions=frozenset({"records.view", "records.create", "records.update"}),
+    )
+
+
+def _update_field(session, *, rule: AlertRule, match: Match, config: dict[str, Any], **_: Any) -> str:
+    """Set one field on the matched record, through the records API's own rules."""
+    from src.services import record_writes
+
+    resource = resources()[rule.resource_type]
+    name = str(config.get("field") or "")
+    value = config.get("value")
+    if isinstance(value, str):
+        value = _text(value, match, rule)
+    values, problems = record_writes.coerce(session, resource, {name: value}, creating=False)
+    if problems:
+        raise ValidationError(problems[0]["message"])
+    changed = record_writes.apply_values(
+        session, resource, match.row, values, principal=_owner_principal(session, rule)
+    )
+    return f"{name} set" if changed else f"{name} already set"
+
+
+def _assign(session, *, rule: AlertRule, match: Match, config: dict[str, Any], **_: Any) -> str:
+    """Give the matched record to somebody: a named person, or the rule's owner."""
+    from src.services import automation_graph
+
+    resource = resources()[rule.resource_type]
+    name = automation_graph.assignable_field(resource)
+    if name is None:
+        raise ValidationError(f"{resource.label} have nobody to assign.")
+    person = config.get("assignee_id") or (str(rule.owner_id) if rule.owner_id else None)
+    if not person:
+        raise ValidationError("That assignment names nobody.")
+    return _update_field(session, rule=rule, match=match, config={"field": name, "value": person})
+
+
+def _create_record(session, *, rule: AlertRule, match: Match, config: dict[str, Any], **_: Any) -> str:
+    """Create a record in any dataset, its text filled in from the match."""
+    from src.services import record_writes
+
+    values = {
+        key: _text(value, match, rule) if isinstance(value, str) else value
+        for key, value in (config.get("values") or {}).items()
+    }
+    created = record_writes.create(
+        session, config.get("resource_type"), values, principal=_owner_principal(session, rule)
+    )
+    return str(created.get("subtitle") or created.get("title") or created.get("id"))
+
+
 #: The catalogue. Declared here, published by the API, rendered by the editor.
 ACTIONS: dict[str, Action] = {
     action.kind: action
@@ -309,8 +365,32 @@ ACTIONS: dict[str, Action] = {
             needs=("url",),
             run=_webhook,
         ),
+        Action(
+            kind="UPDATE_FIELD",
+            label="Update a field",
+            description="Set one field on the record, validated like a form edit.",
+            needs=("field",),
+            run=_update_field,
+        ),
+        Action(
+            kind="ASSIGN",
+            label="Assign",
+            description="Give the record to a person, or to the workflow's owner.",
+            needs=("assignee",),
+            run=_assign,
+        ),
+        Action(
+            kind="CREATE_RECORD",
+            label="Create a record",
+            description="A new record in any dataset, filled in from this one.",
+            needs=("resource_type",),
+            run=_create_record,
+        ),
     )
 }
+
+#: What the step-by-step form editor can configure. The rest are canvas-only.
+FORM_ACTIONS = ("NOTIFY", "EMAIL", "TASK", "WEBHOOK")
 
 
 def catalogue(session, *, principal) -> dict[str, Any]:
@@ -327,6 +407,7 @@ def catalogue(session, *, principal) -> dict[str, Any]:
     """
     principal.require(PERMISSION)
     from src.models.identity import Role
+    from src.services import automation_graph
 
     roles = session.scalars(select(Role).order_by(Role.rank.desc())).all()
     return {
@@ -344,7 +425,21 @@ def catalogue(session, *, principal) -> dict[str, Any]:
                 "needs": list(action.needs),
             }
             for action in ACTIONS.values()
+            if action.kind in FORM_ACTIONS
         ],
+        # Everything the canvas palette offers: every action, the flow steps
+        # (wait, approval) and the triggers. Separate from `actions` so the
+        # form editor keeps offering only what it can configure.
+        "canvas_actions": [
+            {
+                "kind": action.kind,
+                "label": action.label,
+                "description": action.description,
+                "needs": list(action.needs),
+            }
+            for action in ACTIONS.values()
+        ],
+        **automation_graph.catalogue_extras(session),
         "severities": list(SEVERITIES),
         # The priorities a TASK action may set, from the vocabulary the task
         # table itself uses — so the editor cannot offer one the record
@@ -364,96 +459,17 @@ def catalogue(session, *, principal) -> dict[str, Any]:
 def evaluate(session, rule: AlertRule, *, principal, dry_run: bool) -> dict[str, Any]:
     """Run one rule: select what matches, act on what is not cooling down.
 
-    Returns the run as the page reads it. The run row is written whichever way
-    the evaluation went, including when it failed — "this rule has been broken
-    since Tuesday" is exactly what somebody needs to be able to see.
+    The graph engine (`automation_graph.evaluate`) is the one evaluator: a
+    form-built rule is a straight-line graph, so "run now" on it walks exactly
+    the code a canvas-built workflow walks. Returns the run as the page reads
+    it; the run row is written whichever way the evaluation went.
     """
-    run = AlertRuleRun(
-        rule_id=rule.id,
-        dry_run=dry_run,
-        triggered_by_id=getattr(principal, "user_id", None),
-        started_at=now(),
-    )
-    session.add(run)
+    from src.services import automation_graph
 
-    try:
-        matches, capped = _matches(session, rule, principal=principal)
-    except ValidationError as error:
-        # A condition that no longer compiles — a field renamed out from under
-        # it, say. The run records why rather than the request failing: the
-        # page asking for it is the page that has to show the reason.
-        run.finished_at = now()
-        run.error = str(error)
-        session.flush()
-        return serialize_run(run)
-
-    ledger = _cooldown_ledger(session, rule, [match.id for match in matches])
-    threshold = now() - timedelta(minutes=max(int(rule.cooldown_minutes or 0), 0))
-
-    outcomes: list[dict[str, Any]] = []
-    fired = suppressed = deferred = 0
-
-    for match in matches:
-        entry = ledger.get(match.id)
-        if entry is not None and entry.last_fired_at and entry.last_fired_at > threshold:
-            suppressed += 1
-            if len(outcomes) < SAMPLE_SIZE:
-                outcomes.append(
-                    {
-                        "record": match.label,
-                        "record_id": match.id,
-                        "path": match.path,
-                        "state": "SUPPRESSED",
-                        "since": iso(entry.last_fired_at),
-                        "actions": [],
-                    }
-                )
-            continue
-
-        if fired >= MAX_FIRES:
-            deferred += 1
-            continue
-
-        results = [] if dry_run else _act(session, rule, match)
-        fired += 1
-        if not dry_run:
-            _remember(session, rule, match, entry)
-        if len(outcomes) < SAMPLE_SIZE:
-            outcomes.append(
-                {
-                    "record": match.label,
-                    "record_id": match.id,
-                    "path": match.path,
-                    "state": "WOULD FIRE" if dry_run else "FIRED",
-                    "actions": [
-                        {"kind": item.kind, "ok": item.ok, "detail": item.detail}
-                        for item in results
-                    ],
-                }
-            )
-
-    run.finished_at = now()
-    run.matched = len(matches)
-    run.fired = fired
-    run.suppressed = suppressed
-    run.deferred = deferred
-    run.detail = {
-        "capped": capped,
-        "sample": outcomes,
-        "by_action": _tally(outcomes),
-    }
-
-    if not dry_run:
-        rule.last_match_count = len(matches)
-        if fired:
-            rule.last_triggered_at = run.finished_at
-            rule.trigger_count = int(rule.trigger_count or 0) + fired
-
-    session.flush()
-    return serialize_run(run)
+    return automation_graph.evaluate(session, rule, principal=principal, dry_run=dry_run)
 
 
-def _matches(session, rule: AlertRule, *, principal) -> tuple[list[Match], bool]:
+def _matches(session, rule: AlertRule, *, principal, tree: Any = None) -> tuple[list[Match], bool]:
     """The records this rule's condition selects, capped at `MAX_MATCHES`.
 
     Selected in PostgreSQL through the resource's own declaration, so a rule
@@ -463,7 +479,7 @@ def _matches(session, rule: AlertRule, *, principal) -> tuple[list[Match], bool]
     is the reading that sends the forty messages.
     """
     resource = resource_for(rule.resource_type, principal=principal)
-    predicate = compile_tree(rule.condition_tree, resource.fields)
+    predicate = compile_tree(tree, resource.fields)
     if predicate is None:
         return [], False
 
@@ -483,35 +499,6 @@ def _matches(session, rule: AlertRule, *, principal) -> tuple[list[Match], bool]
         )
         for row in rows[:MAX_MATCHES]
     ], capped
-
-
-def _act(session, rule: AlertRule, match: Match) -> list[Fired]:
-    """Run every action on one match, collecting failures instead of raising.
-
-    A savepoint per action, because one action's half-written row must not
-    travel with the run: an email template that does not exist would otherwise
-    leave a partly-built message in the session and take the notification
-    beside it down on flush.
-    """
-    results: list[Fired] = []
-    for config in rule.actions or []:
-        if not isinstance(config, dict):
-            results.append(Fired("?", False, "not an action"))
-            continue
-        kind = str(config.get("kind") or config.get("type") or "").upper()
-        action = ACTIONS.get(kind)
-        if action is None:
-            results.append(Fired(kind or "?", False, "no such action"))
-            continue
-        savepoint = session.begin_nested()
-        try:
-            detail = action.run(session, rule=rule, match=match, config=config)
-            savepoint.commit()
-            results.append(Fired(kind, True, detail))
-        except Exception as error:  # noqa: BLE001 - recorded, never raised
-            savepoint.rollback()
-            results.append(Fired(kind, False, _reason(error)))
-    return results
 
 
 def _reason(error: Exception) -> str:
@@ -590,8 +577,19 @@ def list_rules(session, args, *, principal) -> dict[str, Any]:
         statement.order_by(AlertRule.enabled.desc(), AlertRule.name.asc())
     ).unique().all()
 
+    from src.models.automation_graphs import AutomationGraph
+    from src.services import automation_graph
+
+    automation_graph.catch_up()
+    graphs = {
+        row.rule_id: row
+        for row in session.scalars(
+            select(AutomationGraph).where(AutomationGraph.rule_id.in_([rule.id for rule in rows]))
+        ).unique().all()
+    } if rows else {}
+
     return {
-        "items": [_serialize(row, principal) for row in rows],
+        "items": [_serialize(row, principal, graph=graphs.get(row.id)) for row in rows],
         "total": len(rows),
         "counts": _counts(session),
         "can_manage": True,
@@ -614,8 +612,11 @@ def _counts(session) -> dict[str, int]:
 def get(session, rule_id: Any, *, principal) -> dict[str, Any]:
     principal.require(PERMISSION)
     rule = _rule(session, rule_id)
-    detail = _serialize(rule, principal)
+    from src.services import automation_graph
+
+    detail = _serialize(rule, principal, graph=automation_graph.ensure(session, rule))
     detail["runs"] = [serialize_run(run) for run in rule.runs[:10]]
+    detail["waiting"] = automation_graph.pending_waits(session, rule.id)
     detail["cooling_down"] = _cooling_down(session, rule)
     return detail
 
@@ -652,10 +653,37 @@ def _cooling_down(session, rule: AlertRule) -> list[dict[str, Any]]:
 
 def create(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
     principal.require(PERMISSION)
-    values = _validated(session, payload, principal=principal, partial=False)
-    rule = AlertRule(owner_id=getattr(principal, "user_id", None), **values)
-    session.add(rule)
-    session.flush()
+    from src.services import automation_graph
+
+    data = payload if isinstance(payload, dict) else {}
+    if data.get("graph") is not None:
+        # Written on the canvas: the graph is the definition, and the columns
+        # the list reads are projected from it when it is installed.
+        graph = automation_graph.normalize(data["graph"])
+        trigger = automation_graph.trigger_of(graph) or {"data": {}}
+        seed = {
+            "name": data.get("name"),
+            "description": data.get("description"),
+            "resource_type": trigger["data"].get("resource_type") or "task",
+            "condition_tree": None,
+            "actions": [{"kind": "TASK"}],
+        }
+        for key in ("severity", "enabled", "cooldown_minutes"):
+            if key in data:
+                seed[key] = data[key]
+        values = _validated(session, seed, principal=principal, partial=False)
+        rule = AlertRule(owner_id=getattr(principal, "user_id", None), **values)
+        if "cooldown_minutes" not in data:
+            rule.cooldown_minutes = 0
+        session.add(rule)
+        session.flush()
+        graph_row = automation_graph.create_with_graph(session, rule, graph, principal=principal)
+    else:
+        values = _validated(session, data, principal=principal, partial=False)
+        rule = AlertRule(owner_id=getattr(principal, "user_id", None), **values)
+        session.add(rule)
+        session.flush()
+        graph_row = automation_graph.ensure(session, rule)
     audit.record(
         session,
         action="automation.create",
@@ -665,7 +693,7 @@ def create(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
         principal=principal,
         after=_audit_state(rule),
     )
-    return _serialize(rule, principal)
+    return _serialize(rule, principal, graph=graph_row)
 
 
 def update(session, rule_id: Any, payload: dict[str, Any], *, principal) -> dict[str, Any]:
@@ -673,9 +701,20 @@ def update(session, rule_id: Any, payload: dict[str, Any], *, principal) -> dict
     rule = _rule(session, rule_id)
     _require_own(rule, principal)
     before = _audit_state(rule)
-    for name, value in _validated(session, payload, principal=principal, partial=True).items():
+    from src.services import automation_graph
+
+    values = _validated(session, payload, principal=principal, partial=True)
+    structural = {"resource_type", "condition_tree", "actions", "schedule"} & set(values)
+    if structural:
+        # The form editor changed what the workflow *is*: refused for a graph
+        # it cannot represent, carried into a new version otherwise — both
+        # editors edit one stored definition.
+        automation_graph.check_form_edit(session, rule)
+    for name, value in values.items():
         setattr(rule, name, value)
     session.flush()
+    if structural:
+        automation_graph.after_form_edit(session, rule, principal=principal)
     audit.record(
         session,
         action="automation.update",
@@ -686,7 +725,7 @@ def update(session, rule_id: Any, payload: dict[str, Any], *, principal) -> dict
         before=before,
         after=_audit_state(rule),
     )
-    return _serialize(rule, principal)
+    return _serialize(rule, principal, graph=automation_graph.ensure(session, rule))
 
 
 def remove(session, rule_id: Any, *, principal) -> dict[str, Any]:
@@ -804,7 +843,7 @@ def _validated(
         values["condition_text"] = describe_tree(tree, spec) or None
 
     if "actions" in data or not partial:
-        values["actions"] = _validated_actions(session, data.get("actions"))
+        values["actions"] = _validated_actions(session, data.get("actions"), resource)
 
     if "severity" in data:
         severity = str(data.get("severity") or "WARNING").upper()
@@ -829,7 +868,7 @@ def _validated(
     return values
 
 
-def _validated_actions(session, raw: Any) -> list[dict[str, Any]]:
+def _validated_actions(session, raw: Any, resource=None) -> list[dict[str, Any]]:
     """The actions, each checked against its own declaration.
 
     A rule with no actions is refused rather than saved: it would evaluate,
@@ -841,34 +880,19 @@ def _validated_actions(session, raw: Any) -> list[dict[str, Any]]:
     if len(raw) > 8:
         raise ValidationError("An automation runs at most 8 actions.")
 
+    from src.services import automation_graph
+
     cleaned: list[dict[str, Any]] = []
     for entry in raw:
         if not isinstance(entry, dict):
             raise ValidationError("each action must be an object")
         kind = str(entry.get("kind") or entry.get("type") or "").strip().upper()
-        action = ACTIONS.get(kind)
-        if action is None:
+        if kind not in FORM_ACTIONS:
             raise ValidationError(
                 f"{kind or '(none)'} is not an action this platform can run.",
-                details={"allowed": sorted(ACTIONS)},
+                details={"allowed": list(FORM_ACTIONS)},
             )
-        config: dict[str, Any] = {"kind": kind}
-
-        if "recipients" in action.needs:
-            config["recipients"] = _recipient_config(entry)
-        if "url" in action.needs:
-            config["url"] = _webhook_url(entry.get("url"))
-
-        for name in ("title", "body", "subject", "template", "priority"):
-            if entry.get(name):
-                config[name] = str(entry[name])[:2000]
-        if entry.get("assignee_id"):
-            config["assignee_id"] = str(parse_uuid(entry["assignee_id"], field="assignee_id"))
-        if config.get("template"):
-            code = config["template"]
-            if session.scalar(select(EmailTemplate.id).where(EmailTemplate.code == code)) is None:
-                raise ValidationError(f"No email template is called {code!r}.")
-        cleaned.append(config)
+        cleaned.append(automation_graph.clean_action(session, entry, resource))
     return cleaned
 
 
@@ -996,10 +1020,19 @@ def _require_own(rule: AlertRule, principal) -> None:
 # ── Serialisation ────────────────────────────────────────────────────────
 
 
-def _serialize(rule: AlertRule, principal) -> dict[str, Any]:
+def _serialize(rule: AlertRule, principal, graph=None) -> dict[str, Any]:
+    from src.services import automation_graph
+
     owner = rule.owner
     resource = resources().get(rule.resource_type)
+    published = graph.published if graph is not None else None
     return {
+        # What starts it, and which version of its graph runs — so the list can
+        # say "Record created" rather than a cron line nobody set.
+        "trigger": automation_graph.describe_trigger(published),
+        "version": int(graph.version or 0) if graph is not None else 0,
+        "has_draft": bool(graph is not None and graph.draft and graph.draft != graph.published),
+        "linear": bool(published is None or automation_graph.linear(published) is not None),
         "id": str(rule.id),
         "name": rule.name,
         "description": rule.description,

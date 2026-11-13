@@ -87,6 +87,9 @@ def providers() -> dict[str, Provider]:
     if not _LOADED:
         _LOADED = True
         from src.services import approval_kinds, timekeeping  # noqa: F401
+        from src.services.automation_graph import register_provider
+
+        register_provider()  # a workflow's "request approval" step (§49)
     return _PROVIDERS
 
 

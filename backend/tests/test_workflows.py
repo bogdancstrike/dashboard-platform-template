@@ -575,9 +575,21 @@ def test_a_broken_condition_is_reported_as_a_failed_run_not_a_failed_request(
 
     from src.models.platform import AlertRule
 
+    from src.models.automation_graphs import AutomationGraph
+
     with session_scope() as session:
         row = session.get(AlertRule, rule["id"])
         row.condition_tree = _condition("field_that_went_away", ("x",))
+        # The graph is the definition the engine runs, so that is where the
+        # rename has to land for the run to notice it.
+        graph = session.scalar(select(AutomationGraph).where(AutomationGraph.rule_id == row.id))
+        published = dict(graph.published)
+        published["nodes"] = [
+            {**node, "data": {"tree": _condition("field_that_went_away", ("x",))}}
+            if node["type"] == "condition" else node
+            for node in published["nodes"]
+        ]
+        graph.published = published
 
     answer = _run(client, headers, rule["id"], dry_run=True)
     assert answer["error"] and "field_that_went_away" in answer["error"]

@@ -117,6 +117,8 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     # `test_cleanup_order_respects_the_foreign_keys`, which caught this list
     # having the first two the wrong way round.
     "AnnouncementReceipt", "Announcement",
+    # Workflow graphs (§49): every one points at its rule, a wait at a run.
+    "AutomationWait", "AutomationVersion", "AutomationGraph",
     "AlertRuleFire", "AlertRuleRun", "AlertRule",
     "BoardCard", "BoardLane", "Board",
     "DashboardWidget", "Dashboard",

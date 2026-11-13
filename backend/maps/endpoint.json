@@ -1925,6 +1925,20 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "automations_hook",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/public/automations/hooks/<string:token>",
+      "description": "Webhook trigger: run the workflow listening at this address for a record.",
+      "exec_method": {
+        "module_name": "src.api.workflows",
+        "method_name": "hook"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "public_dashboard_meta",
       "model_name": "Empty",
       "request_method": [
@@ -3396,6 +3410,49 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "automations_rule_graph",
+      "model_name": "Empty",
+      "request_method": [
+        "GET",
+        "PUT"
+      ],
+      "api_url": "/api/automations/rules/<uuid:rule_id>/graph",
+      "description": "A workflow's canvas: draft, published version, versions and per-node run counts; or save the draft.",
+      "exec_method": {
+        "module_name": "src.api.workflows",
+        "method_name": "graph"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "automations_rule_publish",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/automations/rules/<uuid:rule_id>/publish",
+      "description": "Publish the draft as the next version; refused per node if it cannot run.",
+      "exec_method": {
+        "module_name": "src.api.workflows",
+        "method_name": "publish"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "automations_rule_restore",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/automations/rules/<uuid:rule_id>/restore",
+      "description": "Copy an earlier version into the draft.",
+      "exec_method": {
+        "module_name": "src.api.workflows",
+        "method_name": "restore"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "automations_rule_run",
       "model_name": "Empty",
       "request_method": [
@@ -3420,6 +3477,48 @@
       "exec_method": {
         "module_name": "src.api.workflows",
         "method_name": "runs"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "automations_rule_samples",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/automations/rules/<uuid:rule_id>/samples",
+      "description": "Records from the trigger's dataset to test the workflow with.",
+      "exec_method": {
+        "module_name": "src.api.workflows",
+        "method_name": "samples"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "automations_rule_test",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/automations/rules/<uuid:rule_id>/test",
+      "description": "Walk one sample record through the draft and report the path, writing nothing.",
+      "exec_method": {
+        "module_name": "src.api.workflows",
+        "method_name": "test"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "automations_scheduler",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/automations/scheduler",
+      "description": "Run scheduled workflows that are due and resume delays that are over.",
+      "exec_method": {
+        "module_name": "src.api.workflows",
+        "method_name": "scheduler"
       }
     },
     {
