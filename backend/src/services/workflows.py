@@ -668,6 +668,10 @@ def create(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
             "condition_tree": None,
             "actions": [{"kind": "TASK"}],
         }
+        # Paused unless asked otherwise, like a rule from the wizard: a starter
+        # graph is installed straight away, and it must not start notifying
+        # people about every new record before its author has finished it.
+        seed["enabled"] = False
         for key in ("severity", "enabled", "cooldown_minutes"):
             if key in data:
                 seed[key] = data[key]

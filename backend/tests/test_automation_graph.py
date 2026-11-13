@@ -686,3 +686,10 @@ def test_missing_rules_and_records_are_not_found(client, monkeypatch):
 
 def test_catch_up_never_runs_in_tests():
     assert graphs.catch_up() is False
+
+
+@pytestmark_db
+def test_a_canvas_workflow_starts_paused_unless_asked(client, monkeypatch):
+    headers = _auth(monkeypatch)
+    response = client.post(RULES, json={"name": "Starter", "graph": _graph()}, headers=headers)
+    assert response.status_code == 201 and response.get_json()["enabled"] is False

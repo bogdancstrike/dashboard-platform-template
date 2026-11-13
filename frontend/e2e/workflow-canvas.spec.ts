@@ -31,7 +31,7 @@ test("a workflow built on the canvas is published and fires on a new task", asyn
 
   // Drag "Raise a task" from the palette onto the canvas.
   const before = await page.locator("[data-node-id]").count();
-  await page.getByTestId("palette-TASK").dragTo(page.getByTestId("workflow-canvas"), { targetPosition: { x: 420, y: 420 } });
+  await page.getByTestId("palette-TASK").dragTo(page.getByTestId("workflow-canvas"), { targetPosition: { x: 70, y: 110 } });
   await expect(page.locator("[data-node-id]")).toHaveCount(before + 1);
   const added = page.locator("[data-node-id^='task']").last();
   const addedId = await added.getAttribute("data-node-id");
@@ -45,6 +45,8 @@ test("a workflow built on the canvas is published and fires on a new task", asyn
   // Publish, then switch it on.
   await page.getByTestId("publish-workflow").click();
   await expect(page.getByText(/Published version 2/)).toBeVisible();
+  // A canvas workflow starts paused, so it cannot fire before it is finished.
+  await expect(page.getByTestId("canvas-enabled")).toHaveAttribute("aria-checked", "false");
   await page.getByTestId("canvas-enabled").click();
   await expect(page.getByText(/is live/)).toBeVisible();
 
