@@ -165,4 +165,17 @@ describe("the project delivery review", () => {
       screen.getByText("It may have been deleted, or the link may be wrong."),
     ).toBeInTheDocument();
   });
+
+  it("shows the project's work on the timeline, and links to its sprints", async () => {
+    const user = userEvent.setup();
+    render();
+    const work = await screen.findByTestId("project-work");
+    await user.click(within(work).getByText("Timeline"));
+    expect(await screen.findByTestId("project-timeline")).toBeInTheDocument();
+    expect(await screen.findByTestId("gantt")).toBeInTheDocument();
+    expect(screen.queryByTestId("timeline-project")).not.toBeInTheDocument();
+    await user.click(within(work).getByText("List"));
+    expect(screen.queryByTestId("project-timeline")).not.toBeInTheDocument();
+    expect(screen.getByTestId("project-sprints")).toBeInTheDocument();
+  });
 });

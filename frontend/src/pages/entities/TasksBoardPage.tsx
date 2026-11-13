@@ -546,7 +546,8 @@ export default function TasksBoardPage() {
           </span>
         </div>
       )}
-      {swimKeys.map((swimKey, swimIndex) => (
+      <div data-testid="task-board">
+      {swimKeys.map((swimKey) => (
       <div key={swimKey || "none"} className={swim === "none" ? undefined : "nx-pl-swimlane"} data-testid={swim === "none" ? undefined : `swimlane-${swimKey || "none"}`}>
       {swim !== "none" && (
         <div className="nx-pl-swimlane-head">
@@ -558,7 +559,6 @@ export default function TasksBoardPage() {
       )}
       <div
         className={`nu-board nx-rec-board${carried ? " is-dragging" : ""}`}
-        data-testid={swimIndex === 0 ? "task-board" : undefined}
         data-drag-scroll
       >
         {lanes.map((lane, index) => {
@@ -670,6 +670,7 @@ export default function TasksBoardPage() {
       </div>
       </div>
       ))}
+      </div>
       {board.overlay}
       </>
       )}

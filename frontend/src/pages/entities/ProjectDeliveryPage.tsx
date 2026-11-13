@@ -38,6 +38,7 @@ import {
   Descriptions,
   Progress,
   Row,
+  Segmented,
   Select,
   Skeleton,
   Space,
@@ -46,6 +47,7 @@ import {
   Typography,
 } from "antd";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useSmartBack } from "@/app/history";
 
@@ -57,6 +59,7 @@ import { CommentThread } from "@/components/comments/CommentThread";
 import { PageHeader } from "@/components/PageHeader";
 import { PeoplePicker } from "@/components/PeoplePicker";
 import { useRecordPage } from "@/components/records/useRecordPage";
+import { ProjectTimeline } from "@/components/planning/ProjectTimeline";
 import { humanStatus, StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { projectStanding } from "@/entities/delivery";
@@ -96,6 +99,8 @@ interface TaskRow {
 }
 
 export default function ProjectDeliveryPage() {
+  /** The work as a list or on the timeline (§18) — a way of looking, so not in the address. */
+  const [workView, setWorkView] = useState<"list" | "timeline">("list");
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const back = useSmartBack();
@@ -223,6 +228,9 @@ export default function ProjectDeliveryPage() {
             <Button onClick={() => navigate(`/tasks?f.project_id=${id}`)}>
               Open the work queue
             </Button>
+            <Button onClick={() => navigate(`/sprints?project=${id}`)} data-testid="project-sprints">
+              Sprints
+            </Button>
             <Tooltip title={project.can_edit ? "" : "Your role does not include records.update"}>
               <Button
                 type="primary"
@@ -305,11 +313,28 @@ export default function ProjectDeliveryPage() {
             title="The work"
             data-testid="project-work"
             extra={
-              <Link to={`/tasks?f.project_id=${id}`}>
-                {totalTasks === 1 ? "1 task" : `all ${formatNumber(totalTasks)} tasks`}
-              </Link>
+              <Space size={10} wrap>
+                <Segmented
+                  size="small"
+                  aria-label="Show the work as"
+                  data-testid="project-work-view"
+                  value={workView}
+                  onChange={(value) => setWorkView(value as "list" | "timeline")}
+                  options={[
+                    { value: "list", label: "List" },
+                    { value: "timeline", label: "Timeline" },
+                  ]}
+                />
+                <Link to={`/tasks?f.project_id=${id}`}>
+                  {totalTasks === 1 ? "1 task" : `all ${formatNumber(totalTasks)} tasks`}
+                </Link>
+              </Space>
             }
           >
+            {workView === "timeline" ? (
+              <ProjectTimeline projectId={id} />
+            ) : (
+            <>
             {rollup.isLoading ? (
               <Skeleton active title={false} paragraph={{ rows: 2 }} />
             ) : lanes.length === 0 ? (
@@ -393,6 +418,8 @@ export default function ProjectDeliveryPage() {
                 },
               ]}
             />
+            </>
+            )}
           </Card>
 
           <Card size="small" title="Brief" className="nu-block">

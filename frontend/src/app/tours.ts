@@ -292,6 +292,44 @@ export const TOURS: Record<string, TourStop[]> = {
     },
   ],
 
+  "/timeline": [
+    {
+      title: "The work in time, and what it waits on",
+      description:
+        "Every task with dates is a bar from its start to its due date, read from the same rows as the board. Arrows are finish-to-start dependencies: the task at the arrowhead cannot start until the other ends.",
+    },
+    {
+      target: "timeline-toolbar",
+      title: "Group, zoom, narrow",
+      description:
+        "By project, epic or person; by day, week, month or quarter. The address keeps the view, so a link opens the same chart. The critical path is the chain of linked work with no slack — if any of it slips, the end date slips.",
+    },
+    {
+      target: "gantt",
+      title: "Drag to reschedule, drag to link",
+      description:
+        "Drag a bar to move it and its ends to change its dates; drag the dot at a bar's end onto another bar to make that one wait on it. A move that breaks a dependency is saved and flagged, with an offer to shift everything downstream.",
+    },
+  ],
+  "/sprints": [
+    {
+      title: "Backlog, sprints and how they went",
+      description:
+        "A ranked backlog, time boxes drawn from it, the running sprint's board, and the burndown and velocity that say how each one went.",
+    },
+    {
+      target: "sprint-planning",
+      title: "Planning is dragging",
+      description:
+        "Drag work from the backlog into a sprint, back again, or up and down to rank it — one drag engine, the board's. The capacity bar turns amber when a sprint holds more points than the team expects to finish.",
+    },
+    {
+      target: "sprints-tabs",
+      title: "Board and reports",
+      description:
+        "Starting a sprint freezes its commitment; completing it carries unfinished work over. The burndown reads one snapshot a day, written by the scheduler, so a flat week then a cliff shows as exactly that.",
+    },
+  ],
   "/maps": [
     {
       title: "The same analysis, on a ground",
