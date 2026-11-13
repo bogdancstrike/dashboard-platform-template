@@ -1,0 +1,27 @@
+# Load profile for the compose stack's own API container — opt in, flip back after.
+#
+#   docker compose -f docker-compose.yml -f loadtest/docker-compose.loadtest.yml up -d api   # flip
+#   LOADTEST_AI=fake make loadtest
+#   docker compose up -d api                                                                 # flip back
+#
+# What it changes, and why:
+#  * LLM_ALLOW_FAKE_HEADER=true — the load test's AI journeys send
+#    `X-Nucleus-LLM: fake` and are answered by the free fake model. Requests
+#    without the header (a person using the app meanwhile) still get the real
+#    model, under the caps below. For a run with no real model at all, use
+#    loadtest/private-api.sh (LLM_MODE=fake) instead.
+#  * LLM_MAX_SECONDS / LLM_TURN_MAX_SECONDS=3 — no real call, and no assistant
+#    turn, outlives 3 s while the profile is on.
+#  * WEB_CONCURRENCY=4 with a 5+5 pool per worker — what the 1000-user run
+#    needed (docs/testing/performance.md): 2 workers saturate their CPU at
+#    ~170 req/s; 4 sustain the 1000-user mix at ~335 req/s, p95 < 1 s. 4 × 10
+#    connections stays well inside PostgreSQL's max_connections=100.
+services:
+  api:
+    environment:
+      LLM_ALLOW_FAKE_HEADER: "true"
+      LLM_MAX_SECONDS: "3"
+      LLM_TURN_MAX_SECONDS: "3"
+      WEB_CONCURRENCY: "4"
+      DB_POOL_SIZE: "5"
+      DB_MAX_OVERFLOW: "5"

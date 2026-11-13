@@ -268,6 +268,57 @@ docs: ## Regenerate the documents that are derived from the code
 	$(PY) scripts/render-walkthrough.py
 	$(PY) scripts/render-features.py
 
+# ── Performance, load & chaos (docs/testing/) ────────────────────────────
+#
+# The load test signs each persona in once (Keycloak's brute-force protection
+# is on) and never spends real AI tokens: AI journeys only run with
+# LOADTEST_AI=fake against a server that confirms the fake model. Every run
+# snapshots the database, cleans up what it wrote, and diffs.
+LT_PY := loadtest/.venv/bin/python
+LOADTEST_HOST ?= http://localhost:$${API_PORT:-5101}
+USERS ?= 1000
+RATE ?= 10
+DURATION ?= 5m
+PERF_ENV := TEST_DATABASE_URL=postgresql+psycopg2://platform:platform@localhost:$${POSTGRES_PORT:-5433}/platform \
+	$(STORAGE_ENV) $(CACHE_ENV)
+
+.PHONY: loadtest
+loadtest: ## Locust headless: ramp to USERS (1000) — HTML/CSV in loadtest/reports, then clean up
+	LOADTEST_HOST=$(LOADTEST_HOST) loadtest/run.sh $(USERS) $(RATE) $(DURATION)
+
+.PHONY: loadtest-ui
+loadtest-ui: ## Locust with its web UI on :8089, against LOADTEST_HOST
+	loadtest/.venv/bin/locust -f loadtest/locustfile.py --host $(LOADTEST_HOST)
+
+.PHONY: loadtest-api
+loadtest-api: ## A private API on :5197 in the load profile (fake model, 4 workers) to load instead of the shared one
+	loadtest/private-api.sh 5197 4
+
+.PHONY: loadtest-cleanup
+loadtest-cleanup: ## Remove what a load run left behind — make loadtest-cleanup RUN=<run id> (all runs if empty)
+	$(LT_PY) loadtest/cleanup.py clean $(RUN)
+
+.PHONY: ai-smoke
+ai-smoke: ## FIVE real-model requests proving the 3 s cap (spends a few real tokens)
+	$(PY) loadtest/ai_smoke.py
+
+.PHONY: test-perf
+test-perf: ## Query-count and N+1 budgets against the seeded database
+	cd $(BACKEND) && $(PERF_ENV) ../$(PY) -m pytest tests/perf -q
+
+.PHONY: test-chaos
+test-chaos: ## Fault injection: Postgres/Redis/MinIO/Keycloak/LiteLLM down or hung, edge cases, IDOR
+	cd $(BACKEND) && $(PERF_ENV) ../$(PY) -m pytest tests/chaos -q
+
+.PHONY: bundle-budget
+bundle-budget: ## Production build, then fail if the gzipped bundles outgrow their budget
+	cd $(FRONTEND) && npx vite build >/dev/null
+	node loadtest/frontend/bundle-budget.mjs $(FRONTEND)/dist
+
+.PHONY: web-vitals
+web-vitals: ## FCP/LCP/TBT/CLS of the main pages on the production build (:8090); THROTTLE=4 for a slow CPU
+	node loadtest/frontend/web-vitals.mjs $${BASE_URL:-http://localhost:8090}
+
 # ── Local development, outside Docker ────────────────────────────────────
 
 .PHONY: dev-api
