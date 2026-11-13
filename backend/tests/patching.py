@@ -3,7 +3,7 @@
 A package facade (`core.facade.lazy`) resolves names on first use, and each
 submodule binds the names it imports — so patching the facade alone changes
 nothing the code reads. `patch_package` patches every submodule that binds the
-name, and the facade.
+name; the facade reads through to them (it caches nothing).
 """
 
 from __future__ import annotations
@@ -24,5 +24,4 @@ def patch_package(monkeypatch, package: ModuleType, name: str, value: Any) -> No
         if name in vars(module):
             monkeypatch.setattr(module, name, value)
             hits += 1
-    monkeypatch.setattr(package, name, value, raising=False)
     assert hits, f"{package.__name__} binds no {name!r}"

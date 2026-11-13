@@ -15,11 +15,13 @@ from src.services.automation.graph import (
     triggers,  # noqa: F401 - runs workflows on record writes
     waits,  # noqa: F401 - workflow approvals resume the walk
 )
-from src.services.collaboration import chat  # noqa: F401 - the chat badge on the notification poll
-from src.services.decisions import (  # noqa: F401
-    approval_kinds,  # approval kinds access/change/report; holds record edits for approval
-    approvals,  # the approvals badge on the notification poll
+from src.services.collaboration.chat import channel_list  # noqa: F401 - the chat badge on the notification poll
+from src.services.decisions.approval_kinds import (  # noqa: F401
+    access_requests,  # the access-request approval kind
+    change_requests,  # holds record edits a rule says need approval
+    report_publishing,  # the report-publishing approval kind
 )
+from src.services.decisions.approvals import inbox  # noqa: F401 - the approvals badge on the notification poll
 from src.services.decisions.sla import ticket_hooks  # noqa: F401 - a ticket's SLA clock on record writes
 from src.services.decisions.timekeeping import timesheets  # noqa: F401 - timesheet approvals
 from src.services.records.customer_health import recompute_job  # noqa: F401 - the daily health-score job

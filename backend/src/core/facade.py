@@ -14,7 +14,6 @@ when the modules themselves form a tree; resolving a name on first use does not.
 
 from __future__ import annotations
 
-import sys
 from importlib import import_module
 from typing import Any, Callable, Iterable
 
@@ -28,9 +27,9 @@ def lazy(package: str, exports: dict[str, Iterable[str]]) -> tuple[
         module = where.get(name)
         if module is None:
             raise AttributeError(f"module {package!r} has no attribute {name!r}")
-        value = getattr(import_module(f"{package}.{module}"), name)
-        setattr(sys.modules[package], name, value)
-        return value
+        # Not cached on the package: a module-level variable (a snapshot, a
+        # registry) must read as it is now, not as it was on first use.
+        return getattr(import_module(f"{package}.{module}"), name)
 
     def __dir__() -> list[str]:
         return sorted(where)
