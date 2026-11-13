@@ -86,3 +86,19 @@ export function jsxElements(source: string, tag: string): string[] {
   }
   return out;
 }
+
+/**
+ * The router's source, for the tests that enumerate routes by reading it.
+ *
+ * `App.tsx` mounts the table and `app/routes/*.tsx` declares it, one module
+ * per navigation area; reading them together keeps those tests independent of
+ * how the table is split.
+ */
+export function routerSource(): string {
+  const routes = join(SRC, "app", "routes");
+  const modules = readdirSync(routes)
+    .filter((entry) => /\.tsx?$/.test(entry) && !entry.includes(".test."))
+    .sort()
+    .map((entry) => readFileSync(join(routes, entry), "utf8"));
+  return [readFileSync(join(SRC, "App.tsx"), "utf8"), ...modules].join("\n");
+}

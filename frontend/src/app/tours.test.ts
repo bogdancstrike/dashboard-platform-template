@@ -1,10 +1,7 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { describe, expect, it } from "vitest";
 
 import { TOURS, tourFor } from "@/app/tours";
-import { SRC, shippedSources } from "@/test/sources";
+import { routerSource, shippedSources } from "@/test/sources";
 
 /**
  * The per-page tour (§77).
@@ -23,7 +20,7 @@ import { SRC, shippedSources } from "@/test/sources";
  * each other honest.
  */
 
-const ROUTER = readFileSync(join(SRC, "App.tsx"), "utf8");
+const ROUTER = routerSource();
 
 describe("every tour points somewhere real", () => {
   it("names a route the router serves", () => {

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import AxeBuilder from "@axe-core/playwright";
@@ -16,7 +16,7 @@ import { signIn, storageStateFor } from "./auth";
  * lists went their whole life unaudited, and the first run over them found
  * nine unnamed progress bars.
  *
- * So the route list is not a list. It is read out of `App.tsx`, the same way
+ * So the route list is not a list. It is read out of the router, the same way
  * `showcase/templates.test.ts` reads it — a page added to the router is
  * audited by being in the router, and cannot be forgotten.
  */
@@ -25,7 +25,14 @@ test.use({ storageState: storageStateFor("admin") });
 
 /** Every concrete route the router serves — no wildcards, no parameters. */
 function routerRoutes(): string[] {
-  const source = readFileSync(join(process.cwd(), "src/App.tsx"), "utf8");
+  // `App.tsx` mounts the table; `src/app/routes/` declares it, one module per area.
+  const routes = join(process.cwd(), "src/app/routes");
+  const source = [
+    readFileSync(join(process.cwd(), "src/App.tsx"), "utf8"),
+    ...readdirSync(routes)
+      .filter((entry) => entry.endsWith(".tsx"))
+      .map((entry) => readFileSync(join(routes, entry), "utf8")),
+  ].join("\n");
   const found = [
     ...[...source.matchAll(/path="([^"]+)"/g)].map((match) => match[1]!),
     // The six entity pages are declared as data rather than as JSX.

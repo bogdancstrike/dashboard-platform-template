@@ -8,7 +8,7 @@ import {
   flowsOf,
   type CreateShape,
 } from "@/pages/showcase/creates";
-import { SRC, shippedSources } from "@/test/sources";
+import { SRC, routerSource, shippedSources } from "@/test/sources";
 
 /**
  * Creates open in the shape their decision deserves (§10, §33).
@@ -91,7 +91,7 @@ describe("what each flow actually opens", () => {
   };
 
   it("is built on the component its shape implies", () => {
-    const router = source("App.tsx");
+    const router = routerSource();
     for (const flow of CREATE_FLOWS) {
       const text = source(flow.opens);
       expect(EXPECTED[flow.shape].test(text), `${flow.what} (${flow.shape}) in ${flow.opens}`).toBe(

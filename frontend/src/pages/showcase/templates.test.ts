@@ -1,9 +1,7 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { describe, expect, it } from "vitest";
 
 import { LAYOUTS, classified, layoutOf } from "@/pages/showcase/templates";
+import { routerSource } from "@/test/sources";
 
 /**
  * The page gallery is only worth having if it is complete (§61).
@@ -29,7 +27,7 @@ import { LAYOUTS, classified, layoutOf } from "@/pages/showcase/templates";
 
 /** Every concrete route in the router — no wildcards, no parameters. */
 function routerRoutes(): string[] {
-  const source = readFileSync(join(process.cwd(), "src/App.tsx"), "utf8");
+  const source = routerSource();
   const found = [
     // `<Route path="…">`
     ...[...source.matchAll(/path="([^"]+)"/g)].map((match) => match[1]!),

@@ -1,9 +1,6 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { describe, expect, it } from "vitest";
 
-import { SRC, shippedSources } from "@/test/sources";
+import { routerSource, shippedSources } from "@/test/sources";
 
 /**
  * Every address the product sends somebody to is one the router serves.
@@ -21,7 +18,7 @@ import { SRC, shippedSources } from "@/test/sources";
  * lives anyway: a computed path is built from a route somebody had to look up.
  */
 
-const ROUTER = readFileSync(join(SRC, "App.tsx"), "utf8");
+const ROUTER = routerSource();
 
 /** Every path the router serves, as literal segments with `:params` kept. */
 const DECLARED: string[] = [

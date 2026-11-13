@@ -1,9 +1,7 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { describe, expect, it } from "vitest";
 
 import { RECORD_PAGES } from "@/app/records";
+import { routerSource } from "@/test/sources";
 
 /**
  * `RECORD_PAGES` says which datasets have a record page; the router decides.
@@ -15,11 +13,9 @@ import { RECORD_PAGES } from "@/app/records";
  * reads the router and says so, which is what this does (§8, §61).
  */
 
-const APP = join(process.cwd(), "src", "App.tsx");
-
-/** The entity table in `App.tsx`: `{ path: "tickets", key: "ticket", … }`. */
+/** The entity table in the router (`app/routes/recordRoutes.tsx`): `{ path: "tickets", key: "ticket", … }`. */
 function routedEntities(): Set<string> {
-  const source = readFileSync(APP, "utf8");
+  const source = routerSource();
   return new Set(
     [...source.matchAll(/\{\s*path:\s*"[^"]+",\s*key:\s*"([^"]+)"/g)].map((match) => match[1]!),
   );
@@ -27,7 +23,7 @@ function routedEntities(): Set<string> {
 
 /** The keys served under a bespoke route rather than through that table. */
 function bespoke(): Set<string> {
-  const source = readFileSync(APP, "utf8");
+  const source = routerSource();
   const out = new Set<string>();
   // `/tasks/:id` is declared on its own, because the list is a board.
   if (/path="tasks"/.test(source) && /TaskDetailPage/.test(source)) out.add("task");

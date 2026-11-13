@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -15,6 +12,7 @@ import {
   problemFor,
   type ProblemKind,
 } from "@/components/ProblemPage";
+import { routerSource } from "@/test/sources";
 
 /**
  * The problem surface (§34).
@@ -99,7 +97,7 @@ describe("the addresses", () => {
     // gallery's completeness test. Two places, so the correspondence is
     // asserted rather than assumed — a kind added here with no route is a link
     // in the showcase that 404s.
-    const router = readFileSync(join(process.cwd(), "src/App.tsx"), "utf8");
+    const router = routerSource();
     const missing = PROBLEM_KINDS.filter(
       (kind) => !router.includes(`path="errors/${ERROR_SLUGS[kind]}"`),
     );
