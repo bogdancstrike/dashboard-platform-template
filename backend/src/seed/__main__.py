@@ -35,6 +35,7 @@
     python -m src.seed --sync-planning   # sprints, epics, a timeline and templates for the work queue
     python -m src.seed --sync-analytics  # customer health, contracts, version histories, alerts, public links
     python -m src.seed --sync-workflows  # a graph for every automation, demo canvas workflows and their runs
+    python -m src.seed --sync-developers  # real API examples and two weeks of API usage (§31)
     python -m src.seed --dry-run          # build in memory, write nothing
 
 It refuses to seed a database that already has data unless `--reset` or
@@ -177,6 +178,7 @@ def _parser() -> argparse.ArgumentParser:
         "--sync-workflows", action="store_true",
         help="give every automation its graph and add the demo canvas workflows with run history, and exit",
     )
+    parser.add_argument("--sync-developers", action="store_true", help="add captured API examples and top up two weeks of API client usage, and exit")
     parser.add_argument("--dry-run", action="store_true", help="build in memory, write nothing")
     parser.add_argument("--quiet", action="store_true", help="only print the summary line")
     return parser
@@ -244,6 +246,14 @@ def main(argv: list[str] | None = None) -> int:
         with session_scope() as session:
             result = workflows.populate(session)
         print(", ".join(f"{count} {name}" for name, count in result.items()))
+        return 0
+
+    if args.sync_developers:
+        from src.seed import developers as feature_seed
+
+        with session_scope() as session:
+            result = feature_seed.populate(session)
+        print(", ".join(f"{count} {name.replace('_', ' ')}" for name, count in result.items()))
         return 0
 
     if args.sync_planning:

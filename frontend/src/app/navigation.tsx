@@ -209,6 +209,19 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    // The developer portal (§31): the API reference read from the platform,
+    // a try-it console and usage per API client. The UI component docs stay
+    // under Template and are linked from the portal rather than copied.
+    key: "developers",
+    icon: "code",
+    label: "Developers",
+    items: [
+      { key: "/developers", label: "API reference", icon: <NxIcon name="code" /> },
+      { key: "/developers/console", label: "Try it", icon: <NxIcon name="plug" /> },
+      { key: "/developers/usage", label: "API usage", icon: <NxIcon name="area" />, permission: "api.manage" },
+    ],
+  },
+  {
     key: "showcase",
     icon: "grid",
     label: "Template",

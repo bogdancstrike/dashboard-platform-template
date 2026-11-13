@@ -1396,6 +1396,48 @@
     },
     {
       "namespace": "platform",
+      "operation_name": "developers_examples",
+      "model_name": "Empty",
+      "request_method": [
+        "POST"
+      ],
+      "api_url": "/api/developers/examples",
+      "description": "Keep a successful try-it console call as that route's example.",
+      "exec_method": {
+        "module_name": "src.api.developers",
+        "method_name": "examples"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "developers_reference",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/developers/reference",
+      "description": "The API reference: every endpoint, grouped, with access, parameters and captured examples.",
+      "exec_method": {
+        "module_name": "src.api.developers",
+        "method_name": "reference"
+      }
+    },
+    {
+      "namespace": "platform",
+      "operation_name": "developers_usage",
+      "model_name": "Empty",
+      "request_method": [
+        "GET"
+      ],
+      "api_url": "/api/developers/usage",
+      "description": "API usage over a window: requests, errors, latency and busiest routes, overall or per client.",
+      "exec_method": {
+        "module_name": "src.api.developers",
+        "method_name": "usage"
+      }
+    },
+    {
+      "namespace": "platform",
       "operation_name": "directory_people",
       "model_name": "Empty",
       "request_method": [

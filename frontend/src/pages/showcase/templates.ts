@@ -146,7 +146,7 @@ export const LAYOUTS: PageLayout[] = [
     // `/tickets` is the split one of the entity pages, deliberately: working a
     // support queue means the next ticket matters as much as the current one
     // (§62, §63), which is not true of a customer directory.
-    routes: ["mail", "explore", "tickets"],
+    routes: ["mail", "explore", "tickets", "developers"],
   },
   {
     key: "matrix",

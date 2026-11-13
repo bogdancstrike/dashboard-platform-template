@@ -38,6 +38,7 @@ from src.seed import knowledge as knowledge_seed
 from src.seed import planning as planning_seed
 from src.seed import records_analytics as analytics_seed
 from src.seed import collab as collab_seed
+from src.seed import developers as developers_seed
 from src.seed import workflows as workflows_seed
 from src.seed.support import Rng
 from src.seed.world import SCALES, Scale, World
@@ -597,6 +598,7 @@ def run(
     analytics_seed.seed_safely(session)  # health, contracts, versions, alerts, links (§12–25)
     collab_seed.seed(session)  # chat, the wiki and meeting notes (§47–49)
     decisions_seed.populate(session)  # SLA policies, approvals, time, intake forms
+    developers_seed.populate(session)  # real API examples and two weeks of API usage (§31)
     workflows_seed.populate(session)  # canvas workflows with run history (§49)
     written = time.perf_counter()
 
@@ -1430,7 +1432,9 @@ def _unrunnable_automations(session) -> list[str]:
 
     from src.core.errors import ValidationError
     from src.core.rules import compile_tree
+    from src.models.automation_graphs import AutomationGraph
     from src.models.platform import AlertRule
+    from src.services import automation_graph
     from src.services.explorer import resources
     from src.services.workflows import ACTIONS
 
@@ -1451,8 +1455,14 @@ def _unrunnable_automations(session) -> list[str]:
                 counts.get(f"watch dataset {row.resource_type}, which does not exist", 0) + 1
             )
             continue
+        # A workflow started by an event (a record created, a webhook, a form)
+        # walks the record it was given; only a scheduled one needs a condition
+        # to say which records each run looks at (§49).
+        graph = session.scalar(_select(AutomationGraph.published).where(AutomationGraph.rule_id == row.id))
+        trigger = automation_graph.trigger_of(graph)
+        event_started = bool(trigger and trigger["data"].get("event") not in (None, "SCHEDULE"))
         try:
-            if compile_tree(row.condition_tree, resource.fields) is None:
+            if compile_tree(row.condition_tree, resource.fields) is None and not event_started:
                 counts["have no condition, so they match nothing"] = (
                     counts.get("have no condition, so they match nothing", 0) + 1
                 )

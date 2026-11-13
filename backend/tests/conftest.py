@@ -200,7 +200,7 @@ TEST_OWNED_MODELS: tuple[str, ...] = (
     # `test_api_clients` registers its own clients, and a credential points at
     # one — children first, as always. The request logs are never written by a
     # test and have no `created_at`, so they are not here.
-    "ApiCredential", "ApiClient",
+    "ApiExample", "ApiCredential", "ApiClient",
     # `test_jobs` makes its own jobs rather than editing seeded ones, so they
     # have to be swept — and before the audit rows that describe them.
     "BackgroundJob",

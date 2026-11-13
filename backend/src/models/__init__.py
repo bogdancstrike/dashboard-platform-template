@@ -51,4 +51,6 @@ from src.models.records_analytics import (  # noqa: F401
 )
 from src.models.automation_graphs import AutomationGraph, AutomationVersion, AutomationWait  # noqa: F401
 
+from src.models.developers import ApiExample  # noqa: F401
+
 __all__ = ["Base"]

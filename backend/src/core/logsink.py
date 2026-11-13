@@ -112,10 +112,22 @@ def install(app) -> None:
             g.request_log = _describe(response.status_code)
         except Exception:  # noqa: BLE001 - a log line is never worth a 500
             g.request_log = None
+        try:
+            from src.services.api_keys import capture
+
+            # A keyed request is also usage for its API client (§31).
+            g.api_usage = capture(response.status_code)
+        except Exception:  # noqa: BLE001 - a usage row is never worth a 500
+            g.api_usage = None
         return response
 
     @app.teardown_request
     def _write(_exception) -> None:
+        usage = getattr(g, "api_usage", None)
+        if usage:
+            from src.services.api_keys import record_usage
+
+            record_usage(usage)
         row = getattr(g, "request_log", None)
         if row is None:
             return

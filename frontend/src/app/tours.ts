@@ -46,6 +46,25 @@ export interface TourStop {
 
 /** Every page with something worth explaining, keyed by its route. */
 export const TOURS: Record<string, TourStop[]> = {
+  "/developers": [
+    {
+      title: "The API, read from the platform itself",
+      description:
+        "Every endpoint here comes from the route table the server mounts, its permission from the guard the handler really checks, and its response shape from a real answer — so the reference cannot describe an API that is not there.",
+    },
+    {
+      target: "api-index",
+      title: "Search by path, purpose or permission",
+      description:
+        "Type a word from the path, the description or a permission like automations.manage. Each endpoint shows curl, JavaScript and Python with your session or an API key, ready to copy.",
+    },
+    {
+      target: "developer-tabs",
+      title: "Try it, then watch it",
+      description:
+        "The console sends a real request with your session or a client's key and shows status, time and body. Usage charts every keyed call per client — requests, errors, latency and the busiest routes.",
+    },
+  ],
   // Records & analytics (§12, §13, §18, §22).
   "/customers/health": [
     {
