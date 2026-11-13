@@ -9,7 +9,7 @@ import { useCallback, useState } from "react";
  * dialog somebody has been typing into for two minutes is the same gesture
  * that dismisses one they opened by mistake. Every such layer in this platform
  * either asks before discarding or is listed in
- * `pages/showcase/guards.ts` with the reason it does not need to.
+ * `pages/showcase/guards/` with the reason it does not need to.
  *
  * The hook rather than a copy per dialog, because the copies drift in exactly
  * the way that matters: one of them forgets to reset the flag after a

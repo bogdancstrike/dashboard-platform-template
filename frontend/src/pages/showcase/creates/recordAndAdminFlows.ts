@@ -1,0 +1,168 @@
+import type { CreateFlow } from "./types";
+
+/** Creates on the record lists, the administration pages and the dashboards. */
+export const RECORD_AND_ADMIN_FLOWS: readonly CreateFlow[] = [
+  {
+    what: "A card on a board",
+    shape: "in place",
+    where: "kanban",
+    opens: "components/kanban/LaneColumn.tsx",
+    because:
+      "A card is a title in a lane. Everything else about it — assignee, due date, checklist — is edited afterwards in the card's own drawer, and asking for it up front would make adding a card slower than the work it describes.",
+  },
+  {
+    what: "A checklist step, and a comment",
+    shape: "in place",
+    where: "tasks",
+    opens: "components/planning/TaskPlanning.tsx",
+    because:
+      "Both are a line of text in a list that is already on screen. A dialog for a to-do item is a dialog for something the reader will type six of.",
+  },
+  {
+    what: "A folder",
+    shape: "modal",
+    where: "files",
+    testId: "new-folder",
+    opens: "components/NameModal.tsx",
+    because: "One question: what is it called. It goes where the reader already is.",
+  },
+  {
+    what: "A lane on a board",
+    shape: "modal",
+    where: "kanban",
+    opens: "components/NameModal.tsx",
+    because: "Also one question — and unlike a card, a lane is structure, so it is worth a moment's deliberation rather than a row that appears as you type.",
+  },
+  {
+    what: "A board",
+    shape: "modal",
+    where: "kanban",
+    testId: "new-board",
+    opens: "components/kanban/NewBoardModal.tsx",
+    because: "A name and who can see it. Two questions, and the second has three answers.",
+  },
+  {
+    what: "A tag",
+    shape: "modal",
+    where: "admin/tags",
+    testId: "tag-new",
+    opens: "pages/admin/TagsPage/TagForm.tsx",
+    because: "A word and a colour. The vocabulary behind it is the page the modal sits on, and covering it costs nothing.",
+  },
+  {
+    what: "A department",
+    shape: "modal",
+    where: "admin/organizations",
+    testId: "new-department",
+    opens: "pages/admin/OrganizationsPage/NewDepartmentModal.tsx",
+    because: "A name, a parent and a manager: three fields that fit, on a page whose tree is the context for choosing the parent.",
+  },
+  {
+    what: "A role",
+    shape: "modal",
+    where: "admin/roles",
+    testId: "new-role",
+    opens: "components/roles/NewRoleModal/index.tsx",
+    because: "The name and the code, which is derived from it. The permissions are chosen afterwards against the matrix, which is the page underneath.",
+  },
+  {
+    what: "A feature flag",
+    shape: "modal",
+    where: "admin/flags",
+    testId: "new-flag",
+    opens: "pages/admin/FlagsPage/NewFlagModal.tsx",
+    because: "A key, a description and whether it is on. Small, and read beside the flags that already exist.",
+  },
+  {
+    what: "A saved view or saved search",
+    shape: "modal",
+    where: "explore",
+    opens: "components/explorer/SavedSearchForm/index.tsx",
+    because:
+      "The question is already composed — it is the list behind the modal. All that is left is a name and who else sees it, and covering the list would hide the thing being named.",
+  },
+  {
+    what: "A record — task, project, ticket, order, customer, device",
+    shape: "modal",
+    where: "tasks",
+    testId: "record-create",
+    opens: "components/records/RecordForm/index.tsx",
+    because:
+      "One object's fields, built from the server's own declaration of which are writable, in a centred two-column sheet: a record is a short form with one decision at the end, and the list it lands in is right behind it when the sheet closes.",
+  },
+  {
+    what: "An announcement",
+    shape: "modal",
+    where: "announcements",
+    testId: "new-announcement",
+    opens: "components/announcements/AnnouncementEditor.tsx",
+    because: "A form — audience, severity, body, whether it needs agreement, when it expires — in a centred sheet, as the canvas draws it: one decision, made and published.",
+  },
+  {
+    what: "A calendar event",
+    shape: "drawer",
+    where: "calendar",
+    testId: "new-event",
+    opens: "components/calendar/EventDrawer.tsx",
+    because: "A form, and the calendar behind it is the context for the times chosen.",
+  },
+  {
+    what: "An export",
+    shape: "drawer",
+    where: "exports",
+    testId: "new-export",
+    opens: "pages/ExportsPage/NewExportDrawer.tsx",
+    because: "Dataset, format, columns and the filters to apply — one object's fields, and the list of previous exports stays in view.",
+  },
+  {
+    what: "An automation",
+    shape: "drawer",
+    where: "workflows",
+    testId: "new-automation",
+    opens: "components/automations/AutomationDrawer/index.tsx",
+    because:
+      "A condition tree and a list of actions. It is the largest thing this template puts in a drawer, and it stays one because the rule being written is *about* the list of rules behind it.",
+  },
+  {
+    what: "An API client",
+    shape: "modal",
+    where: "admin/api-clients",
+    testId: "new-client",
+    opens: "pages/admin/ApiClientsPage/NewClientModal.tsx",
+    because: "A name, scopes and two limits fit one dialog; the secret it produces is shown once, in a second modal that asks before it closes.",
+  },
+  {
+    what: "A group",
+    shape: "modal",
+    where: "admin/groups",
+    testId: "new-group",
+    opens: "pages/admin/GroupsPage/NewGroupModal.tsx",
+    because: "A name, a kind and a description; the people and the grants come after, in the drawer it opens into.",
+  },
+  {
+    what: "A dashboard widget",
+    shape: "modal",
+    where: "dashboards",
+    testId: "add-widget",
+    opens: "components/dashboards/WidgetModal.tsx",
+    because: "A kind and the question it asks. The grid it will land on stays visible, which is how the reader judges where it goes.",
+  },
+  {
+    what: "A dashboard",
+    shape: "wizard",
+    where: "dashboards",
+    testId: "new-dashboard",
+    opens: "components/dashboards/CreateDashboardWizard.tsx",
+    because:
+      "Three parts that narrow each other: what it is called, which cards it holds, and a review. A dashboard cannot be finished empty, so the shapes are chosen before anything is written.",
+  },
+  {
+    what: "A report document",
+    shape: "page",
+    where: "reports/builder",
+    testId: "new-document",
+    opens: "pages/ReportBuilderPage/index.tsx",
+    because:
+      "Nothing to ask up front: a document arrives holding a heading and a paragraph, and everything about it — its name, its paper, what it holds — is changed in the composer with the page visible. A dialog demanding a title before the first block would be a form standing between somebody and the thing they came to make.",
+  },
+];
