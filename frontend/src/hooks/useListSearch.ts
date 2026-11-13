@@ -11,13 +11,29 @@ import { applyParamChanges, type ParamChanges } from "@/hooks/useUrlState";
  * moment later, replacing rather than pushing, because a search being typed is
  * an adjustment and not a place to come back to.
  */
-export function useListSearch({ param = "q", delay = 250 }: { param?: string; delay?: number } = {}) {
+export function useListSearch({
+  param = "q",
+  delay = 250,
+  pageParam,
+}: {
+  param?: string;
+  delay?: number;
+  /** A paged list's page parameter: any other change sends the reader back to page one. */
+  pageParam?: string;
+} = {}) {
   const [params, setParams] = useSearchParams();
   const [box, setBox] = useState(params.get(param) ?? "");
   const term = useDebouncedValue(box, delay);
 
   const set = (changes: ParamChanges) =>
-    setParams((current) => applyParamChanges(current, changes), { replace: true });
+    setParams(
+      (current) => {
+        const next = applyParamChanges(current, changes);
+        if (pageParam && !(pageParam in changes)) next.delete(pageParam);
+        return next;
+      },
+      { replace: true },
+    );
 
   useEffect(() => {
     set({ [param]: term || null });
