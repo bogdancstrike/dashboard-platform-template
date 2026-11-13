@@ -20,6 +20,5 @@
   "src/pages/FilesPage.tsx",
   "src/pages/GlobalSearchPage.tsx",
   "src/pages/MailPage.tsx",
-  "src/pages/RelationshipExplorerPage.tsx",
-  "src/pages/work/SprintsPage.tsx"
+  "src/pages/RelationshipExplorerPage.tsx"
 ]
