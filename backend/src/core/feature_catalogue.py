@@ -84,7 +84,7 @@ FEATURES: tuple[Feature, ...] = (
     Feature(
         "dashboard-builder", "Dashboard builder", "Compose your own dashboards from widgets.", "overview",
         routes=("/dashboards", "/dashboards/:id"), nav=("/dashboards",),
-        components=("“Add to dashboard” buttons in the chart builder and explorer", "Pinned dashboards on Home"),
+        components=("“Add to a dashboard” on reports, saved searches and insights", "The Dashboards door on Home"),
         endpoints=("/api/dashboards*",),
     ),
     Feature(

@@ -43,6 +43,7 @@ import { explorerApi, type SavedSearch } from "@/api/explorer";
 import { AddToDashboard, type DashboardSubject } from "@/components/dashboards/AddToDashboard";
 import { COPY_MEANS, confirmCopy } from "@/lib/confirm";
 import { EmptyState } from "@/components/EmptyState";
+import { FEATURES, useFeature } from "@/settings/features";
 
 const { Text } = Typography;
 
@@ -81,6 +82,7 @@ export function SavedSearchDrawer({
   const [term, setTerm] = useState("");
   /** The search on its way to a dashboard, or nothing (§45). */
   const [pinning, setPinning] = useState<DashboardSubject | null>(null);
+  const dashboardsOn = useFeature(FEATURES.dashboardBuilder);
 
   const query = useQuery({
     queryKey: ["saved-searches", resourceType],
@@ -197,17 +199,19 @@ export function SavedSearchDrawer({
                         />
                       </Tooltip>
                     )}
-                    <Tooltip title="Answer this on a dashboard">
-                      <Button
-                        type="text"
-                        size="small"
-                        aria-label={`Add ${item.name} to a dashboard`}
-                        icon={<DashboardOutlined />}
-                        onClick={() =>
-                          setPinning({ kind: "SEARCH", id: item.id, title: item.name })
-                        }
-                      />
-                    </Tooltip>
+                    {dashboardsOn && (
+                      <Tooltip title="Answer this on a dashboard">
+                        <Button
+                          type="text"
+                          size="small"
+                          aria-label={`Add ${item.name} to a dashboard`}
+                          icon={<DashboardOutlined />}
+                          onClick={() =>
+                            setPinning({ kind: "SEARCH", id: item.id, title: item.name })
+                          }
+                        />
+                      </Tooltip>
+                    )}
                     <Tooltip title="Duplicate as a private search">
                       <Button
                         type="text"

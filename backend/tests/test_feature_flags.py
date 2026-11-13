@@ -636,3 +636,52 @@ def test_the_planning_scheduler_skips_a_switched_off_job(flags):
     with Session(get_engine()) as session:
         assert task_templates.run_scheduler(session)["results"] == {}
         session.rollback()
+
+
+@pytest.mark.database
+def test_the_flag_endpoints_filter_validate_and_refuse(client, monkeypatch, temp_flag):
+    headers = _authenticate(monkeypatch)
+    flags_url = f"{PREFIX}/admin/flags"
+    assert all(row["enabled"] for row in client.get(f"{flags_url}?state=on", headers=headers).get_json()["items"])
+    assert not any(row["enabled"] for row in client.get(f"{flags_url}?state=off", headers=headers).get_json()["items"])
+    assert all(row["stage"] == "BETA" for row in client.get(f"{flags_url}?stage=beta", headers=headers).get_json()["items"])
+
+    assert client.post(flags_url, json={"key": "", "name": "x"}, headers=headers).status_code == 400
+    assert client.post(flags_url, json={"key": temp_flag}, headers=headers).status_code == 400
+    assert client.post(flags_url, json={"key": temp_flag, "name": "Temp", "stage": "alpha"}, headers=headers).status_code == 201
+    assert client.post(flags_url, json={"key": temp_flag, "name": "Temp"}, headers=headers).status_code == 409
+
+    item = f"{flags_url}/{temp_flag}"
+    answer = client.put(item, json={
+        "target_roles": ["manager"], "target_user_ids": [str(uuid.uuid4())], "stage": "ga",
+        "experimental": False, "description": "  for the test  ", "target_group_ids": [],
+        "target_organization_ids": [],
+    }, headers=headers).get_json()
+    assert answer["target_roles"] == ["MANAGER"] and answer["stage"] == "GA"
+    assert answer["experimental"] is False and answer["description"] == "for the test"
+    assert answer["target_group_ids"] == [] and answer["target_organization_ids"] == []
+    assert client.put(item, json={"rollout_percentage": "lots"}, headers=headers).status_code == 400
+    assert client.put(item, json={"rollout_percentage": 101}, headers=headers).status_code == 400
+    assert client.put(item, json={"target_group_ids": "ops"}, headers=headers).status_code == 400
+    assert client.put(item, json={"target_roles": "MANAGER"}, headers=headers).status_code == 400
+    assert client.put(f"{flags_url}/no-such-flag", json={"enabled": True}, headers=headers).status_code == 404
+    assert client.delete(f"{flags_url}/no-such-flag", headers=headers).status_code == 404
+
+    client.put(item, json={"enabled": True, "rollout_percentage": 100}, headers=headers)
+    assert client.delete(item, headers=headers).status_code == 409
+
+
+@pytest.mark.database
+def test_preview_as_a_group_and_an_organization(client, monkeypatch, flags):
+    headers = _authenticate(monkeypatch)
+    org = str(uuid.uuid4())
+    flags.set(_all_on(
+        maps=_state("maps", rollout_percentage=0, target_group_ids=("Field ops",)),
+        chat=_state("chat", rollout_percentage=0, target_organization_ids=(org,)),
+    ))
+    monkeypatch.setattr(features, "_group_ids", lambda uid: ())
+    answer = client.get(
+        f"{PREFIX}/admin/flags/preview?role=VIEWER&group=Field%20ops&organization_id={org}", headers=headers,
+    ).get_json()
+    assert answer["features"]["maps"] is True
+    assert answer["features"]["chat"] is True

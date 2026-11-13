@@ -88,6 +88,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { DailyBrief } from "@/components/assistant/DailyBrief";
 import { OnboardingCard } from "@/components/onboarding/OnboardingCard";
 import { NxIcon } from "@/components/NxIcon";
+import { flagForPath, useFeatures } from "@/settings/features";
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -286,6 +287,7 @@ export default function HomePage() {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const can = (permission: string) => profile?.permissions.includes(permission) ?? false;
+  const features = useFeatures();
   const me = profile?.user;
 
   const app = useQuery({
@@ -432,7 +434,11 @@ export default function HomePage() {
   const live = (notices.data?.items ?? []).filter((item) => item.is_live).slice(0, 3);
   const mine = events.data?.items ?? [];
 
-  const doors = SHORTCUTS.filter((item) => !item.permission || can(item.permission));
+  const doors = SHORTCUTS.filter((item) => !item.permission || can(item.permission)).filter((item) => {
+    // A door onto a switched-off feature is not offered (§27).
+    const flag = flagForPath(item.to);
+    return !flag || features(flag);
+  });
 
   return (
     <div className="nu-home nx-ov-home">

@@ -26,6 +26,7 @@ import { KnIcon } from "@/components/knowledge/KnIcon";
 import { relativeTime } from "@/lib/time";
 import "@/styles/insights.css";
 import "@/styles/knowledge.css";
+import { FEATURES, useFeature } from "@/settings/features";
 
 const { Text } = Typography;
 
@@ -376,6 +377,7 @@ function SavedActions({
   onDashboard: () => void;
   onRemove: () => void;
 }) {
+  const dashboardsOn = useFeature(FEATURES.dashboardBuilder);
   return (
     <>
       <Tooltip title="Re-run its queries for today's numbers — the AI is not asked again">
@@ -383,9 +385,11 @@ function SavedActions({
           Refresh
         </Button>
       </Tooltip>
-      <Button icon={<AppstoreAddOutlined />} onClick={onDashboard} data-testid="insight-dashboard">
-        Add to dashboard
-      </Button>
+      {dashboardsOn && (
+        <Button icon={<AppstoreAddOutlined />} onClick={onDashboard} data-testid="insight-dashboard">
+          Add to dashboard
+        </Button>
+      )}
       {insight.can_edit && (
         <>
           <Tooltip title={insight.pinned ? "Unpin" : "Pin to the top"}>

@@ -61,6 +61,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { NxIcon } from "@/components/NxIcon";
 import { usePageCommands } from "@/commands/CommandContext";
 import { relativeTime } from "@/lib/time";
+import { FEATURES, useFeature } from "@/settings/features";
 
 const { Text } = Typography;
 
@@ -82,6 +83,8 @@ export default function ReportsPage() {
   const [term, setTerm] = useState("");
   /** The report on its way to a dashboard, or nothing (§45). */
   const [pinning, setPinning] = useState<DashboardSubject | null>(null);
+  // "Add to a dashboard" is the dashboard builder's (§27).
+  const dashboardsOn = useFeature(FEATURES.dashboardBuilder);
 
   const reports = useQuery({
     queryKey: ["reports"],
@@ -401,11 +404,13 @@ export default function ReportsPage() {
                         label: open.can_edit ? "Edit" : "Edit — only the owner may",
                         disabled: !open.can_edit,
                       },
-                      {
-                        key: "dashboard",
-                        icon: <DashboardOutlined />,
-                        label: "Add to a dashboard",
-                      },
+                      ...(dashboardsOn
+                        ? [{
+                            key: "dashboard",
+                            icon: <DashboardOutlined />,
+                            label: "Add to a dashboard",
+                          }]
+                        : []),
                       { key: "duplicate", icon: <CopyOutlined />, label: "Duplicate" },
                       {
                         key: "delete",
