@@ -21,6 +21,7 @@ import {
 } from "@/api/recordsAnalytics";
 import { PeopleField } from "@/components/analytics/parts";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { errorText } from "@/lib/errors";
 import { asText } from "@/lib/text";
 
@@ -99,6 +100,8 @@ export function ContractForm({
   onSaved?: (saved: ContractDetail) => void;
 }) {
   const [form] = Form.useForm<Values>();
+  // Fourteen answers in a drawer that closes on a click outside it (§74).
+  const { touch, settled, requestClose } = useDiscardGuard({ close: onClose, what: "contract" });
   const { message } = App.useApp();
   const client = useQueryClient();
   const stage = Form.useWatch("stage", form);
@@ -158,6 +161,7 @@ export function ContractForm({
         : contractsApi.create(body);
     },
     onSuccess: (saved) => {
+      settled();
       void message.success(contract ? `${saved.reference} saved.` : `${saved.reference} created.`);
       void client.invalidateQueries({ queryKey: ["contracts"] });
       void client.invalidateQueries({ queryKey: ["contract", saved.id] });
@@ -173,7 +177,7 @@ export function ContractForm({
   return (
     <Drawer
       open={open}
-      onClose={onClose}
+      onClose={requestClose}
       title={contract ? `Edit ${contract.reference}` : "New contract"}
       width="min(520px, 100vw)"
       rootClassName={URL_OVERLAY}
@@ -184,7 +188,7 @@ export function ContractForm({
         </Button>
       }
     >
-      <Form form={form} layout="vertical" onFinish={(values) => save.mutate(values)} requiredMark="optional">
+      <Form form={form} layout="vertical" onValuesChange={touch} onFinish={(values) => save.mutate(values)} requiredMark="optional">
         <Form.Item name="title" label="Title" rules={[{ required: true, message: "A contract needs a title" }]}>
           <Input maxLength={200} placeholder="Platform subscription" data-testid="contract-title" />
         </Form.Item>

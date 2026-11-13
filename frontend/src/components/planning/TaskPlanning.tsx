@@ -48,6 +48,8 @@ import { KindBadge, Points } from "./PlanItem";
 import { PlanIcon } from "./planIcons";
 import { shortDate } from "./gantt";
 
+// Stored on the task as `cover_color` and seeded with these exact strings, so
+// they are data the server keeps rather than styling. palette-exempt
 export const COVERS = ["#2457D6", "#7c3aed", "#0891b2", "#16a34a", "#ca8a04", "#dc2626", "#db2777", "#64748b"];
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 

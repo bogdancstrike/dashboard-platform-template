@@ -124,6 +124,16 @@ export const LAYOUTS: PageLayout[] = [
       "admin/flags",
       "admin/tags",
       "favorites",
+      // The decision and time pages are queues and ledgers read row by row.
+      "time",
+      "approvals",
+      "admin/sla",
+      "admin/forms",
+      // Records & analytics: a scored list, the watches, and the bulk-edit
+      // grid — which is the same table with every cell editable.
+      "customers/health",
+      "alerts",
+      "grid",
     ],
   },
   {
@@ -146,7 +156,18 @@ export const LAYOUTS: PageLayout[] = [
     // `/tickets` is the split one of the entity pages, deliberately: working a
     // support queue means the next ticket matters as much as the current one
     // (§62, §63), which is not true of a customer directory.
-    routes: ["mail", "explore", "tickets", "developers"],
+    routes: [
+      "mail",
+      "explore",
+      "tickets",
+      "developers",
+      // A conversation list beside the open conversation; a page tree beside
+      // the open page; a collection beside the questions asked of it.
+      "assistant",
+      "chat",
+      "docs",
+      "ai/documents",
+    ],
   },
   {
     key: "matrix",
@@ -187,7 +208,7 @@ export const LAYOUTS: PageLayout[] = [
     ],
     pieces: ["LaneColumn", "KanbanCardTile", "A drop slot", "An optimistic move"],
     url: "The board, the filters and the open card.",
-    routes: ["kanban"],
+    routes: ["kanban", "contracts", "sprints"],
   },
   {
     key: "grid",
@@ -245,7 +266,7 @@ export const LAYOUTS: PageLayout[] = [
     ],
     pieces: ["QuestionBar", "ChartCard", "The draft in the URL", "One compiler, server-side"],
     url: "The whole draft — which is what lets a half-built report be pasted to a colleague.",
-    routes: ["reports/builder", "charts/builder", "workflows", "reports"],
+    routes: ["reports/builder", "charts/builder", "workflows", "reports", "ai/insights"],
   },
   {
     key: "canvas",
@@ -266,7 +287,7 @@ export const LAYOUTS: PageLayout[] = [
     ],
     pieces: ["WidgetGrid (react-grid-layout)", "WidgetCard", "One arrange endpoint"],
     url: "Which layout is open. Where the cards are belongs to the object, not the address.",
-    routes: ["maps", "calendar", "find/relationships", "analytics"],
+    routes: ["maps", "calendar", "find/relationships", "analytics", "timeline"],
   },
   {
     key: "search",

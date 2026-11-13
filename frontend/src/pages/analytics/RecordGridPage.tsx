@@ -14,6 +14,7 @@ import { useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { useSmartBack } from "@/app/history";
+import { usePageCommands } from "@/commands/CommandContext";
 import { explorerApi, type ExplorerResource } from "@/api/explorer";
 import { RecordGrid, type GridRow } from "@/components/analytics/RecordGrid";
 import { FailureAlert } from "@/components/FailureAlert";
@@ -80,6 +81,10 @@ export default function RecordGridPage({ resourceKey }: { resourceKey: string })
       return { items: out.slice(0, CAP), total };
     },
   });
+
+  usePageCommands("record-grid", [
+    { id: "grid.reload", label: "Reload the grid", keywords: "refresh rows", run: () => void rows.refetch() },
+  ]);
 
   if (catalogue.isLoading) return <Skeleton active paragraph={{ rows: 10 }} />;
   if (catalogue.isError) return <FailureAlert error={catalogue.error} onRetry={() => void catalogue.refetch()} />;

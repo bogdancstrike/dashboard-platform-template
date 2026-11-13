@@ -13,6 +13,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { useSmartBack } from "@/app/history";
 import { useUrlOverlay } from "@/app/useUrlOverlay";
+import { usePageCommands } from "@/commands/CommandContext";
 import { alertsApi } from "@/api/recordsAnalytics";
 import { TrendChart } from "@/components/analytics/TrendChart";
 import { WatchForm } from "@/components/analytics/WatchForm";
@@ -74,6 +75,11 @@ export default function WatchDetailPage() {
     },
     onError: (error) => void message.error(errorText(error, { action: "delete watches" })),
   });
+
+  usePageCommands("watch-detail", [
+    { id: "watch.evaluate", label: "Evaluate this watch now", keywords: "check anomaly run", run: () => evaluate.mutate() },
+    ...(chart.data?.watch.can_edit ? [{ id: "watch.edit", label: "Edit this watch", keywords: "threshold sensitivity", run: () => editor.open("1") }] : []),
+  ]);
 
   if (chart.isLoading) return <Skeleton active paragraph={{ rows: 10 }} />;
   if (chart.isError) {

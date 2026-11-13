@@ -29,7 +29,6 @@ import {
   Card,
   Drawer,
   Dropdown,
-  Empty,
   Input,
   Segmented,
   Select,
@@ -55,6 +54,7 @@ import {
 } from "@/api/workflowGraph";
 import { useSmartBack } from "@/app/history";
 import { usePageCommands } from "@/commands/CommandContext";
+import { EmptyState } from "@/components/EmptyState";
 import { NxIcon, type NxIconName } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
 import { ProblemPage } from "@/components/ProblemPage";
@@ -577,7 +577,7 @@ function WorkflowPanel({ data, general, count, mode, trace, onRename, onRestore,
 
       <div className="nx-wf-field">
         <span className="nx-wf-label">Versions</span>
-        {data.versions.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Not published yet" /> : (
+        {data.versions.length === 0 ? <EmptyState compact title="Not published yet" /> : (
           <ul className="nx-wf-versions" data-testid="versions">
             {data.versions.map((version) => (
               <li key={version.version}>
@@ -587,7 +587,7 @@ function WorkflowPanel({ data, general, count, mode, trace, onRename, onRestore,
                   <small>{version.by ?? "Somebody"} · {version.published_at ? relativeTime(version.published_at) : ""}</small>
                 </span>
                 {data.can_edit && version.version !== data.version && (
-                  <Button size="small" type="text" onClick={() => onRestore(version.version)} data-testid={`restore-${version.version}`}>Restore</Button>
+                  <Button type="text" onClick={() => onRestore(version.version)} data-testid={`restore-${version.version}`}>Restore</Button>
                 )}
               </li>
             ))}

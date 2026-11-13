@@ -9,6 +9,7 @@ import { useMemo } from "react";
 
 import { useAppearance } from "@/theme/AppearanceProvider";
 import { buildChartTheme } from "@/theme/echarts";
+import { NEUTRAL, PAPER, SEMANTIC, SERIES } from "@/theme/tokens";
 
 export interface TrendPoint {
   at: string;
@@ -43,8 +44,8 @@ export function TrendChart({
     const theme = buildChartTheme(appearance.mode, appearance.density) as Record<string, unknown> & {
       color?: string[]; textStyle?: { color?: string };
     };
-    const accent = theme.color?.[0] ?? "#2457D6";
-    const text = theme.textStyle?.color ?? "#5C6370";
+    const accent = theme.color?.[0] ?? SERIES[0];
+    const text = theme.textStyle?.color ?? NEUTRAL[500];
     const hasBand = points.some((p) => p.upper !== undefined);
     const categories = points.map((p) => dateFormat(p.at));
     const series: Record<string, unknown>[] = [];
@@ -71,7 +72,7 @@ export function TrendChart({
       markPoint: {
         symbol: "circle",
         symbolSize: 12,
-        itemStyle: { color: "#D64545", borderColor: "#fff", borderWidth: 2 },
+        itemStyle: { color: SEMANTIC.danger, borderColor: PAPER, borderWidth: 2 },
         label: { show: false },
         data: points
           .map((p, index) => (p.marked ? { coord: [index, p.value], value: p.value } : null))

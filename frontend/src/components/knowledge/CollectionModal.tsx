@@ -4,7 +4,13 @@ import { Form, Input, Modal, Segmented, Space, Typography } from "antd";
 import type { Collection, CollectionInput, CollectionScope } from "@/api/knowledge";
 import { PeoplePicker } from "@/components/PeoplePicker";
 
-/** The colours a collection may wear — the design's series inks. */
+/**
+ * The colours a collection may wear — the design's series inks.
+ *
+ * Stored values rather than styling: the server accepts exactly these strings
+ * (`services/knowledge.py` COLORS), so they are written out here.
+ */
+// palette-exempt: stored values, validated by the server.
 export const COLLECTION_COLORS = ["#2457D6", "#0E9F6E", "#C2410C", "#7C3AED", "#DB2777", "#0891B2", "#CA8A04"];
 
 const SCOPES: { value: CollectionScope; label: string; hint: string }[] = [

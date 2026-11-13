@@ -18,13 +18,14 @@ import { EmptyState } from "@/components/EmptyState";
 import { useAppearance } from "@/theme/AppearanceProvider";
 
 import { shortDate } from "./gantt";
+import { NEUTRAL, SEMANTIC } from "@/theme/tokens";
 
 type Theme = ReturnType<typeof useAppearance>["chartTheme"];
 
 export function burndownOption(burndown: Burndown, theme: Theme) {
   const labels = burndown.days.map(shortDate);
   return {
-    color: [theme.accent, "#9aa3b2", "#e0a106"],
+    color: [theme.accent, NEUTRAL[400], SEMANTIC.warning],
     textStyle: theme.textStyle,
     aria: { enabled: true },
     tooltip: { trigger: "axis", valueFormatter: (value: unknown) => (typeof value === "number" ? `${value} pts` : "—") },
@@ -51,7 +52,7 @@ export function burndownOption(burndown: Burndown, theme: Theme) {
 export function velocityOption(velocity: Velocity, theme: Theme) {
   const names = velocity.items.map((item) => item.name.replace(/^.*?(Sprint)/, "$1"));
   return {
-    color: ["#c3cbe0", theme.accent, "#e0a106"],
+    color: [NEUTRAL[300], theme.accent, SEMANTIC.warning],
     textStyle: theme.textStyle,
     aria: { enabled: true },
     tooltip: { trigger: "axis", valueFormatter: (value: unknown) => (typeof value === "number" ? `${value} pts` : "—") },

@@ -12,6 +12,7 @@ import {
   formsApi, type FieldType, type FormDetail, type FormField, type FormInput, type FormSettings, type FormTarget,
 } from "@/api/forms";
 import { useSmartBack } from "@/app/history";
+import { usePageCommands } from "@/commands/CommandContext";
 import { FormRenderer } from "@/components/decisions/FormRenderer";
 import { TdIcon } from "@/components/decisions/TdIcon";
 import { NxIcon } from "@/components/NxIcon";
@@ -130,6 +131,12 @@ export default function FormDesignerPage() {
     onSuccess: () => { void client.invalidateQueries({ queryKey: ["forms"] }); message.success("Form removed"); navigate("/admin/forms", { replace: true }); },
     onError: (error) => message.error(errorText(error, { action: "remove this form" })),
   });
+
+  usePageCommands("form-designer", [
+    { id: "form.design", label: "Design the form's fields", keywords: "fields questions", run: () => setParams({}) },
+    { id: "form.settings", label: "Form settings", keywords: "slug captcha thank you", run: () => setParams({ tab: "settings" }) },
+    ...(creating ? [] : [{ id: "form.submissions", label: "See this form's submissions", keywords: "entries responses", run: () => setParams({ tab: "submissions" }) }]),
+  ]);
 
   if ((creating ? list.isLoading : loaded.isLoading) || !draft) {
     if (loaded.isError) return <Alert type="error" showIcon message={errorText(loaded.error)} />;

@@ -170,29 +170,47 @@ describe("the page", () => {
 });
 
 describe("the documentation", () => {
-  it("indexes every entry by group, and the search narrows both the index and the sections", async () => {
+  // Three tests rather than one walk: rendering every demo is the expensive
+  // part, and clearing the search re-rendered all of them inside one test
+  // that then ran past its timeout under load.
+  it("indexes every entry by group, and a search keeps its group open", async () => {
     const user = userEvent.setup();
     render("foundations");
     const index = screen.getByRole("complementary", { name: "Components" });
     const foundations = within(index).getByRole("button", { name: /Foundations/ });
     expect(foundations).toHaveAttribute("aria-expanded", "true");
     expect(within(index).getByRole("link", { name: "NxIcon" })).toBeInTheDocument();
-
-    // A group folds, and "collapse all" folds every one.
+    // While a search is narrowing, a fold does not hide the matches.
     await user.click(foundations);
     expect(within(index).queryByRole("link", { name: "NxIcon" })).toBeInTheDocument();
-    await user.clear(screen.getByLabelText("Search components"));
+  });
+
+  it("folds every group, and opens them again", async () => {
+    const user = userEvent.setup();
+    render();
+    const index = screen.getByRole("complementary", { name: "Components" });
     await user.click(within(index).getByRole("button", { name: "Collapse all groups" }));
     expect(within(index).queryByRole("link", { name: "PageHeader" })).not.toBeInTheDocument();
     await user.click(within(index).getByRole("button", { name: "Expand all groups" }));
     expect(within(index).getByRole("link", { name: "PageHeader" })).toBeInTheDocument();
+    // The whole page — every live demo — renders here, which alone takes
+    // seconds; the budget is for that render, not for the interaction.
+  }, 45_000);
 
-    await user.type(screen.getByLabelText("Search components"), "statustag");
+  it("narrows both the index and the sections as the reader searches", async () => {
+    const user = userEvent.setup();
+    render();
+    const index = screen.getByRole("complementary", { name: "Components" });
+    // Pasted rather than typed: every keystroke re-renders every demo.
+    await user.click(screen.getByLabelText("Search components"));
+    await user.paste("statustag");
     expect(within(index).getByRole("link", { name: "StatusTag" })).toBeInTheDocument();
     expect(within(index).queryByRole("link", { name: "PageHeader" })).not.toBeInTheDocument();
     expect(screen.queryByTestId("demo-PageHeader")).not.toBeInTheDocument();
     expect(screen.getByTestId("demo-StatusTag")).toBeInTheDocument();
-  });
+    // The whole page — every live demo — renders here, which alone takes
+    // seconds; the budget is for that render, not for the interaction.
+  }, 45_000);
 
   it("shows each demo's own source as code, with a copy that says it worked", async () => {
     const user = userEvent.setup();

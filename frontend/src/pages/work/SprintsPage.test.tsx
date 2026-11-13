@@ -88,7 +88,9 @@ describe("/sprints", () => {
     expect(await screen.findByText("That sprint is finished.")).toBeInTheDocument();
   });
 
-  it("plans, edits, deletes and starts sprints", async () => {
+  // Three tests rather than one: each walk renders the page and a dialog, and
+  // together they ran past the timeout on a loaded machine.
+  it("plans a new sprint", async () => {
     const user = userEvent.setup();
     open();
     await screen.findByTestId("sprint-PRJ-0001 Sprint 6");
@@ -99,7 +101,12 @@ describe("/sprints", () => {
     await user.click(within(dialog).getByRole("button", { name: "Create" }));
     expect(await screen.findByText("Sprint 7 planned")).toBeInTheDocument();
     expect(planningState.calls.at(-1)!.body).toMatchObject({ project_id: "prj-1", name: "Sprint 7", goal: "Partners" });
+  });
 
+  it("edits a planned sprint, and will not start it while another runs", async () => {
+    const user = userEvent.setup();
+    open();
+    await screen.findByTestId("sprint-PRJ-0001 Sprint 6");
     await user.click(screen.getByRole("button", { name: "More for PRJ-0001 Sprint 6" }));
     await user.click(await screen.findByText("Edit"));
     const edit = await screen.findByRole("dialog", { name: "Edit PRJ-0001 Sprint 6" });
@@ -110,7 +117,12 @@ describe("/sprints", () => {
 
     // Starting while another runs is refused, and the reason is shown.
     expect(screen.getByTestId("sprint-start-PRJ-0001 Sprint 6")).toBeDisabled();
+  });
 
+  it("deletes a planned sprint after asking", async () => {
+    const user = userEvent.setup();
+    open();
+    await screen.findByTestId("sprint-PRJ-0001 Sprint 6");
     await user.click(screen.getByRole("button", { name: "More for PRJ-0001 Sprint 6" }));
     await user.click(await screen.findByText("Delete"));
     await user.click(await screen.findByRole("button", { name: "Delete" }));

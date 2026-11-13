@@ -15,6 +15,7 @@ import { alertsApi, type MetricWatch, type WatchInput } from "@/api/recordsAnaly
 import { PeopleField } from "./parts";
 import { humanStatus } from "@/components/StatusTag";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { errorText } from "@/lib/errors";
 
 import { TrendChart } from "./TrendChart";
@@ -39,6 +40,8 @@ export function WatchForm({
   onSaved?: (saved: MetricWatch) => void;
 }) {
   const [form] = Form.useForm<Values>();
+  // Fourteen answers in a drawer that closes on a click outside it (§74).
+  const { touch, settled, requestClose } = useDiscardGuard({ close: onClose, what: "watch" });
   const client = useQueryClient();
   const { message } = App.useApp();
   const catalogue = useQuery({ queryKey: ["alerts-catalogue"], queryFn: ({ signal }) => alertsApi.catalogue(signal), enabled: open });
@@ -98,6 +101,7 @@ export function WatchForm({
       return watch ? alertsApi.update(watch.id, body) : alertsApi.create(body);
     },
     onSuccess: (saved) => {
+      settled();
       void message.success(watch ? "Watch saved." : `Watching “${saved.name}”.`);
       void client.invalidateQueries({ queryKey: ["alerts"] });
       // A page that moves on to the saved record replaces the overlay's
@@ -111,7 +115,7 @@ export function WatchForm({
   return (
     <Drawer
       open={open}
-      onClose={onClose}
+      onClose={requestClose}
       title={watch ? `Edit “${watch.name}”` : "Watch a metric"}
       width="min(560px, 100vw)"
       rootClassName={URL_OVERLAY}
@@ -125,7 +129,7 @@ export function WatchForm({
       {catalogue.isLoading ? (
         <Skeleton active />
       ) : (
-        <Form form={form} layout="vertical" onFinish={(input) => save.mutate(input)} requiredMark="optional">
+        <Form form={form} layout="vertical" onValuesChange={touch} onFinish={(input) => save.mutate(input)} requiredMark="optional">
           <Form.Item name="name" label="Name" rules={[{ required: true, message: "Name the watch" }]}>
             <Input maxLength={160} placeholder="New tickets per day" data-testid="watch-name" />
           </Form.Item>

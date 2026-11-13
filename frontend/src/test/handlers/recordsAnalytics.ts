@@ -350,7 +350,9 @@ export const recordsAnalyticsHandlers = [
 
   // ── grid save (the records bulk API's rows mode) ────────────────────
   http.post(`${P}/api/records/:type/bulk`, async ({ request }) => {
-    const body = (await request.json()) as { rows?: { id: string; changes: Record<string, unknown> }[] };
+    // A clone: a selection-mode request falls through to the bulk handler in
+    // handlers.ts, which needs the body unread.
+    const body = (await request.clone().json()) as { rows?: { id: string; changes: Record<string, unknown> }[] };
     if (!body.rows) return undefined;
     ra.gridSaves.push(body.rows);
     const results = body.rows.map((row) =>

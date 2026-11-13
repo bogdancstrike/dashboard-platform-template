@@ -209,7 +209,11 @@ describe("what the palette can offer on a page", () => {
   });
 
   it("is filled in by every page", () => {
+    // Mounted outside the app shell (the public intake form has its own entry
+    // point), so there is no palette on screen for them to fill.
+    const OUTSIDE_THE_SHELL = new Set(["pages/decisions/PublicFormPage.tsx"]);
     const silent = PAGES.filter((file) => !file.source.includes("usePageCommands("))
+      .filter((file) => !OUTSIDE_THE_SHELL.has(file.name))
       .map((file) => file.name)
       .sort();
 

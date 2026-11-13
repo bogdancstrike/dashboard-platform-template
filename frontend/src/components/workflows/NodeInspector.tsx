@@ -70,7 +70,7 @@ export function NodeInspector({
           <div className="nx-wf-inspector-kind">{node.type === "trigger" ? "Trigger" : node.type === "action" ? "Action" : node.type === "branch" ? "Branch" : "Condition"}</div>
           <div className="nx-wf-inspector-title">{summaries[node.id]?.title ?? node.id}</div>
         </div>
-        {onClose && <Button type="text" size="small" onClick={onClose} aria-label="Close step">Done</Button>}
+        {onClose && <Button type="text" onClick={onClose} aria-label="Close step">Done</Button>}
       </div>
 
       {problems.length > 0 && (

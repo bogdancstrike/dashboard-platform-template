@@ -80,7 +80,7 @@ describe("what each flow actually opens", () => {
    */
   const EXPECTED: Record<CreateShape, RegExp> = {
     // Typed where the row will be, and submitted from the keyboard.
-    "in place": /onPressEnter/,
+    "in place": /onPressEnter|event\.key === "Enter"/,
     modal: /<Modal|<NameModal/,
     drawer: /<Drawer/,
     wizard: /<Steps/,
@@ -134,7 +134,8 @@ describe("nothing creates anything unclassified", () => {
     }
     // Ids that are not a create control: the drawer a create opens *into*,
     // and the gallery tile that opens the same modal as `new-board`.
-    const NOT_A_CONTROL = new Set(["new-export-drawer", "gallery-new"]);
+    // And the "new messages" divider in a conversation, which is a marker.
+    const NOT_A_CONTROL = new Set(["new-export-drawer", "gallery-new", "new-divider"]);
     const classified = new Set(
       CREATE_FLOWS.map((flow) => flow.testId).filter((id): id is string => Boolean(id)),
     );

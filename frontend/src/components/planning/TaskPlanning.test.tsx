@@ -122,7 +122,9 @@ describe("a task's place in the plan", () => {
     expect(await screen.findByText("This task no longer repeats")).toBeInTheDocument();
   });
 
-  it("lists subtasks and dependencies, adds a subtask and removes a dependency", async () => {
+  // Split in three: the walk renders the whole planning card each time and,
+  // as one test, ran past the timeout on a loaded machine.
+  it("lists subtasks and adds one by typing where it will be", async () => {
     const user = userEvent.setup();
     render();
     const subtasks = await screen.findByTestId("task-subtasks");
@@ -130,14 +132,24 @@ describe("a task's place in the plan", () => {
     await user.type(within(subtasks).getByRole("textbox", { name: "New subtask" }), "Verify counts{Enter}");
     expect(await screen.findByText("Subtask added")).toBeInTheDocument();
     expect(puts.at(-1)).toMatchObject({ created: { title: "Verify counts", parent_id: "task-1", project_id: "prj-1" } });
+  });
 
-    const deps = screen.getByTestId("task-dependencies");
-    expect(within(deps).getByText("Agree the contract")).toBeInTheDocument();
+  it("lists dependencies and removes one after asking", async () => {
+    const user = userEvent.setup();
+    render();
+    const deps = await screen.findByTestId("task-dependencies");
+    expect(await within(deps).findByText("Agree the contract")).toBeInTheDocument();
     expect(within(deps).getByText("Nothing waits on this.")).toBeInTheDocument();
     await user.click(within(deps).getByRole("button", { name: "Remove TSK-00009" }));
     await user.click(await screen.findByRole("button", { name: "Remove" }));
     expect(await screen.findByText("Dependency removed")).toBeInTheDocument();
+  });
 
+  it("links a task this one waits on", async () => {
+    const user = userEvent.setup();
+    render();
+    const deps = await screen.findByTestId("task-dependencies");
+    await within(deps).findByText("Agree the contract");
     await user.click(within(deps).getByRole("combobox", { name: "Waits on" }));
     await user.click(await screen.findByText("TSK-00002 · Build the API"));
     await user.click(within(deps).getByRole("button", { name: /Link/ }));

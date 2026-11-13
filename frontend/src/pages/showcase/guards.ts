@@ -169,6 +169,84 @@ export const LAYERS: readonly GuardedLayer[] = [
     guarded: false,
     because: "The dataset, format, columns and filters live on the page, so closing the drawer and reopening it shows exactly the same choices. There is nothing to lose, and asking would be theatre.",
   },
+  {
+    module: "components/analytics/ContractForm.tsx",
+    what: "contract",
+    guarded: true,
+    because: "Customer, value, term, billing, notice, renewal, stage and probability — fourteen answers in a drawer that closes on a click outside it.",
+  },
+  {
+    module: "components/analytics/WatchForm.tsx",
+    what: "watch",
+    guarded: true,
+    because: "A metric, its filters, a detection method tuned against a live chart, and who to tell: slow to choose and slower to choose twice.",
+  },
+  {
+    module: "components/analytics/PublicLinksDrawer.tsx",
+    what: "public link",
+    guarded: false,
+    because: "Each link is created or revoked by its own button the moment it is pressed; the small form only labels the next link, and nothing typed there is worth a question.",
+  },
+  {
+    module: "components/collab/ChatDialogs.tsx",
+    what: "channel",
+    guarded: false,
+    because: "A channel name, a person to message, a member to add: one answer per dialog, and the dialog is the step before a conversation rather than the work itself.",
+  },
+  {
+    module: "components/decisions/EntryModal.tsx",
+    what: "time entry",
+    guarded: false,
+    because: "A date, a duration and a line of notes. Logging time is quick by design and a confirmation on top of it would cost more than retyping the entry.",
+  },
+  {
+    module: "components/docs/NewPageModal.tsx",
+    what: "page",
+    guarded: false,
+    because: "A title and a parent. The page body is written afterwards in place and saved there, so this dialog never holds the prose that would be worth protecting.",
+  },
+  {
+    module: "components/knowledge/CollectionModal.tsx",
+    what: "collection",
+    guarded: false,
+    because: "A name, a colour and who may read it; the documents themselves are dropped on the collection afterwards, so there is nothing expensive held here.",
+  },
+  {
+    module: "components/planning/SprintModals.tsx",
+    what: "sprint",
+    guarded: false,
+    because: "A name, a goal and two dates, or the choice of where unfinished work goes. Short enough that asking before closing would be the bigger interruption.",
+  },
+  {
+    module: "components/planning/TaskPlanning.tsx",
+    what: "repeat rule",
+    guarded: false,
+    because: "The repeat dialog is one rule picked from presets with a preview of the next dates; the subtask and checklist inputs save on Enter, so nothing waits in memory.",
+  },
+  {
+    module: "pages/DocsPage.tsx",
+    what: "space",
+    guarded: false,
+    because: "A new space is a name, a key and who can see it — and the key is derived from the name, so closing loses at most one line of typing.",
+  },
+  {
+    module: "pages/analytics/CustomerHealthPage.tsx",
+    what: "health model",
+    guarded: false,
+    because: "Weights are sliders with the current model as their starting point, and the drawer shows the stored model again when reopened; nothing typed is lost, only nudged.",
+  },
+  {
+    module: "pages/decisions/ApprovalsPage.tsx",
+    what: "decision",
+    guarded: false,
+    because: "The drawer shows a request and its decision buttons; the only field is an optional comment sent with approve or reject, a sentence the reader can retype.",
+  },
+  {
+    module: "pages/decisions/SlaPoliciesPage.tsx",
+    what: "SLA policy",
+    guarded: false,
+    because: "The policy form opens fully filled with working defaults and the calendar modal with standard hours, so a closed draft returns to sensible values rather than to blank fields.",
+  },
 ];
 
 export const guardedLayers = (): GuardedLayer[] => LAYERS.filter((layer) => layer.guarded);
