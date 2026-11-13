@@ -25,7 +25,7 @@
 import { heldMessage } from "@/components/decisions/held";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App as AntApp, Button, Skeleton } from "antd";
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSmartBack } from "@/app/history";
 
@@ -80,12 +80,30 @@ export function useRecordPage(
 
   const editing = useRecordEditing(resource, { onDeleted: () => navigate(options.listPath) });
 
+  // Writes go one after another, each carrying the moment the *previous*
+  // write returned. Two fields changed in quick succession used to send the
+  // same stale `updated_at` twice, and the second came back 409 — "somebody
+  // else changed this task" when nobody had but the reader (audit A).
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
   const patch = useMutation({
-    mutationFn: (changes: Record<string, unknown>) =>
-      recordsApi.update(resourceKey, id, {
-        ...changes,
-        expected_updated_at: record.data?.updated_at ?? null,
-      }),
+    mutationFn: (changes: Record<string, unknown>) => {
+      const key = ["record", resourceKey, id];
+      const run = queue.current
+        .catch(() => undefined)
+        .then(() =>
+          recordsApi.update(resourceKey, id, {
+            ...changes,
+            expected_updated_at:
+              queryClient.getQueryData<{ updated_at?: string | null }>(key)?.updated_at ?? null,
+          }),
+        )
+        .then((saved) => {
+          queryClient.setQueryData(key, saved);
+          return saved;
+        });
+      queue.current = run;
+      return run;
+    },
     onSuccess: (saved) => {
       const held = heldMessage(saved);
       if (held) message.info(held);

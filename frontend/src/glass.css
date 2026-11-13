@@ -191,6 +191,12 @@ body { color: var(--nu-text); font-feature-settings: "cv11", "ss01"; }
 .nx-scroll::-webkit-scrollbar { display: none; }
 .nx-app--tablet .nx-scroll { padding: 4px 4px 20px; }
 .nx-app--phone .nx-scroll { padding: 14px 14px 110px; }
+/* The end of a page clears the assistant's round button: scrolled to the
+   bottom, the last row's pagination, "Reject" or "Add a card" sat under it
+   (audit A). Only where the button is drawn — conversation pages hide it. */
+body:has(.nx-ai-fab) .nx-app--pc .nx-scroll,
+body:has(.nx-ai-fab) .nx-app--tablet .nx-scroll { padding-bottom: 88px; }
+body:has(.nx-ai-fab) .nx-app--phone .nx-scroll { padding-bottom: 144px; }
 
 /* ── sidebar ─────────────────────────────────────────────────────────── */
 .nx-side {

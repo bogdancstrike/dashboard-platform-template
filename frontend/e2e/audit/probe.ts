@@ -337,7 +337,7 @@ export const OVERLAY =
   ".ant-modal-wrap:not([style*='display: none']) .ant-modal, .ant-drawer-open .ant-drawer-content-wrapper, .ant-dropdown:not(.ant-dropdown-hidden), .ant-select-dropdown:not(.ant-select-dropdown-hidden), .ant-popover:not(.ant-popover-hidden), .ant-picker-dropdown:not(.ant-picker-dropdown-hidden)";
 
 /** Antd's overlays plus any of the product's own dialogs (palette, sheets, tour). */
-export const ANY_OVERLAY = `${OVERLAY}, [role="dialog"]:visible, .nx-sheet:visible`;
+export const ANY_OVERLAY = `${OVERLAY}, [role="dialog"]:visible, [cmdk-input]:visible, .nx-sheet:visible`;
 
 export async function openOverlays(page: Page): Promise<number> {
   return page.locator(ANY_OVERLAY).count();

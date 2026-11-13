@@ -216,6 +216,7 @@ export default function DocumentsPage() {
             value={activeId ?? undefined}
             onChange={(id) => select(id)}
             placeholder="Choose a collection"
+            aria-label="Collection"
             options={collections.map((c) => ({ value: c.id, label: c.name }))}
             data-testid="collection-picker"
           />

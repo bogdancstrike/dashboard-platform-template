@@ -85,7 +85,7 @@ async function closeOverlay(page: Page, url: string): Promise<string | null> {
  * Every control a reader can use without changing data: tabs, segmented
  * filters, selects, menus, and buttons whose words open something.
  */
-async function interact(page: Page, tag: string, url: string, log: Finding[], used: string[]): Promise<void> {
+async function interact(page: Page, tag: string, url: string, log: Finding[], used: string[], pick = true): Promise<void> {
   const handles = await page.evaluate((unsafeSource) => {
     const unsafe = new RegExp(unsafeSource, "i");
     const main = document.querySelector("main, .nx-main, .nx-content") ?? document.body;
@@ -141,7 +141,8 @@ async function interact(page: Page, tag: string, url: string, log: Finding[], us
         ...layout.corners,
       ].filter(Boolean);
       // A select: pick the second option and see the page survive it.
-      if (control.kind === "select" && overlays) {
+      // Never on a record's own page, where choosing an option *saves* it.
+      if (pick && control.kind === "select" && overlays) {
         const option = page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option").nth(1);
         if (await option.count()) {
           await option.click({ timeout: 2000 }).catch(() => undefined);
@@ -213,7 +214,7 @@ for (const route of ROUTES) {
         if (INTERACT_ON.includes(`${device}:${theme}`)) {
           const interactions: Finding[] = [];
           const used: string[] = [];
-          await interact(page, tag, page.url(), interactions, used);
+          await interact(page, tag, page.url(), interactions, used, "path" in route);
           report["interactions"] = interactions;
           report["used"] = used;
         }

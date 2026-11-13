@@ -3,7 +3,7 @@
  */
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { App as AntApp, Form, Input, Modal, Select } from "antd";
+import { App as AntApp, Form, Input, Modal, Select, type SelectProps } from "antd";
 
 import { ApiError } from "@/api/client";
 import { docsApi, type DocPage, type DocSpace, type TreeItem } from "@/api/docs";
@@ -95,7 +95,7 @@ export function NewPageModal({
           </div>
         </Form.Item>
         <Form.Item name="space_id" label="Space" rules={[{ required: true, message: "Pick a space." }]}>
-          <Select
+          <RequiredSelect
             aria-label="Space"
             options={spaces.map((space) => ({ value: space.id, label: `${space.icon ?? ""} ${space.name}`.trim() }))}
             onChange={() => form.setFieldValue("parent_id", undefined)}
@@ -112,4 +112,15 @@ export function NewPageModal({
       </Form>
     </Modal>
   );
+}
+
+/**
+ * A Select inside a required Form.Item. AntD hands the item's
+ * `aria-required` to the Select, which puts it on its wrapper `div` — an
+ * element that may not carry it (axe aria-allowed-attr, audit A). The
+ * requirement is still said by the label's mark and the validation message.
+ */
+function RequiredSelect(props: SelectProps & { "aria-required"?: unknown }) {
+  const { "aria-required": _required, ...rest } = props;
+  return <Select {...rest} />;
 }
