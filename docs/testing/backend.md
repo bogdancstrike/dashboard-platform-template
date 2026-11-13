@@ -100,3 +100,19 @@ running at once cannot reseed or drop each other's.
 
 `# pragma: no cover` is reserved for genuinely unreachable/defensive lines and
 must say why on the same line.
+
+Where it stands (2026-11-13, `make test-backend-cov`): **96.0 %** combined —
+97.5 % of lines, 91.1 % of branches — up from 92.4 % (94.7 % lines, 84.6 %
+branches) when the gate was introduced.
+
+| package | lines | branches | combined |
+|---|---|---|---|
+| `src/api` | 99.5 % | 97.9 % | 99.3 % |
+| `src/core` | 97.6 % | 93.3 % | 96.6 % |
+| `src/models` | 99.8 % | 91.7 % | 99.8 % |
+| `src/seed` | 96.4 % | 90.5 % | 94.9 % |
+| `src/services` | 97.3 % | 90.6 % | 95.6 % |
+
+The largest remaining gaps are single defensive branches spread across the
+big modules (`services/automation_graph`, `workflows`, `relationships`,
+`seed/runner`) rather than untested features.
