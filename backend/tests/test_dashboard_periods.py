@@ -71,3 +71,15 @@ def test_the_repair_resets_only_what_cannot_be_read(monkeypatch):
     assert good.filters["period"] == "current_month"
     assert "period" not in drop.config and drop.config["entity"] == "order"
     assert keep.config["period"] == "last_7_days"
+
+
+def test_the_brief_takes_a_due_time_already_written_as_text():
+    # The calendar returns `starts_at` serialised; the brief used to call
+    # `.isoformat()` on it and answered 500 to anybody with an invitation.
+    from datetime import UTC, datetime
+
+    from src.services.assistant_brief import _when
+
+    assert _when("2026-11-13T10:00:00Z") == "2026-11-13T10:00:00Z"
+    assert _when(datetime(2026, 11, 13, 10, tzinfo=UTC)) == "2026-11-13T10:00:00Z"
+    assert _when(None) is None

@@ -54,7 +54,7 @@ def gather(session, principal) -> dict[str, Any]:
             due: Any = None) -> None:
         if count > 0:
             items.append({"key": key, "count": int(count), "title": title, "link": link, "score": score,
-                          "examples": examples or [], "due": iso(due) if due else None})
+                          "examples": examples or [], "due": _when(due)})
 
     def ex_task(t) -> dict[str, Any]:
         return {"label": f"{t.reference} {t.title}", "link": f"/tasks/{t.id}", "priority": t.priority,
@@ -219,6 +219,15 @@ def _from_model(answer: Any, gathered: dict[str, Any]) -> dict[str, Any] | None:
     if not out and gathered["items"]:
         return None
     return {"headline": str(answer.get("headline") or "")[:300], "items": out}
+
+
+def _when(due: Any) -> str | None:
+    """A due moment as ISO text. The calendar hands its times over already
+    serialised, and `iso()` on a string made the whole brief a 500 for anybody
+    with an unanswered invitation (audit A)."""
+    if not due:
+        return None
+    return due if isinstance(due, str) else iso(due)
 
 
 def _serialise(row) -> dict[str, Any]:
