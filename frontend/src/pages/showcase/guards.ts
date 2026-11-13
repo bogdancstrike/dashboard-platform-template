@@ -170,7 +170,7 @@ export const LAYERS: readonly GuardedLayer[] = [
     because: "The dataset, format, columns and filters live on the page, so closing the drawer and reopening it shows exactly the same choices. There is nothing to lose, and asking would be theatre.",
   },
   {
-    module: "components/recordsAnalytics/ContractForm.tsx",
+    module: "components/recordsAnalytics/ContractForm/index.tsx",
     what: "contract",
     guarded: true,
     because: "Customer, value, term, billing, notice, renewal, stage and probability — fourteen answers in a drawer that closes on a click outside it.",
@@ -230,7 +230,7 @@ export const LAYERS: readonly GuardedLayer[] = [
     because: "A new space is a name, a key and who can see it — and the key is derived from the name, so closing loses at most one line of typing.",
   },
   {
-    module: "pages/recordsAnalytics/CustomerHealthPage.tsx",
+    module: "pages/recordsAnalytics/CustomerHealthPage/ModelDrawer.tsx",
     what: "health model",
     guarded: false,
     because: "Weights are sliders with the current model as their starting point, and the drawer shows the stored model again when reopened; nothing typed is lost, only nudged.",

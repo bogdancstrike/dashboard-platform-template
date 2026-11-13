@@ -363,7 +363,7 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
     shape: "drawer",
     where: "contracts",
     testId: "contract-new",
-    opens: "components/recordsAnalytics/ContractForm.tsx",
+    opens: "components/recordsAnalytics/ContractForm/index.tsx",
     because:
       "Customer, value, dates and renewal terms are one object's fields, and the pipeline behind the drawer is the context they are entered against.",
   },
