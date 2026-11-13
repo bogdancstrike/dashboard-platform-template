@@ -129,11 +129,11 @@ export const DENSE_BY_CONSTRUCTION: Record<string, string> = {
     "A plus and a minus inside a 104-pixel tile, either side of a count.",
   "components/explorer/AdvancedQueryBuilder.tsx":
     "The library draws its own controls at `renderSize`; a differently sized one beside them is what reads as broken.",
-  "components/explorer/ExplorerResults.tsx":
+  "components/explorer/ExplorerResults/cells.tsx":
     "Row actions inside a table cell, repeated once per row.",
   "components/explorer/ExplorerSearch.tsx":
     "A control inside a search field's own affix.",
-  "components/explorer/SavedSearchDrawer.tsx":
+  "components/explorer/SavedSearchDrawer/SavedSearchCard.tsx":
     "Card footers inside a 420-pixel drawer.",
   "components/explorer/SimpleSearch.tsx":
     "A control inside a search field's own affix.",
