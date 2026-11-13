@@ -235,6 +235,13 @@ test-backend-cov: ## Every backend test with branch coverage; fails under 95%
 test-frontend: ## Frontend unit and component tests
 	cd $(FRONTEND) && npm run test
 
+# The whole frontend suite, measured: total line coverage of src/ (tests, msw
+# fixtures and main.tsx excluded), failing under 95% (vitest.coverage.config.ts).
+# The HTML report lands in frontend/coverage/.
+.PHONY: test-frontend-cov
+test-frontend-cov: ## Every frontend test with coverage; fails under 95% of lines
+	cd $(FRONTEND) && npm run test:coverage
+
 # The suite *spends* fixtures, so it provisions them first. A retry consumes an
 # attempt irreversibly — `attempt` is a record of what happened and nothing
 # rewrites it — so one full sweep leaves the queue with one fewer retryable job
