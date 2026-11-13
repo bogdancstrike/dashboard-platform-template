@@ -40,6 +40,7 @@ from src.core import background, importer, vocabulary
 from src.core.db import session_scope
 from src.services.transfer import imports as service
 from tests.conftest import persona_claims
+from tests.patching import patch_package
 
 pytestmark = pytest.mark.database
 
@@ -368,7 +369,8 @@ def test_the_counts_add_up(client, monkeypatch):
 
 
 def test_a_row_is_refused_by_the_rule_a_form_uses(client, monkeypatch):
-    from src.services.records import explorer, writes as record_writes
+    from src.services.records import explorer
+    from src.services.records import writes as record_writes
 
     headers = _authenticate(monkeypatch)
     rows = [{"name": "Import Test Enum", "email": "e@example.test", "segment": ENUM_BAD}]
@@ -890,7 +892,7 @@ def test_a_running_import_cannot_be_discarded(client, monkeypatch):
 
 
 def test_only_so_many_may_be_open_at_once(client, monkeypatch):
-    monkeypatch.setattr(service, "MAX_OPEN_PER_PERSON", 1)
+    patch_package(monkeypatch, service, "MAX_OPEN_PER_PERSON", 1)
     headers = _authenticate(monkeypatch)
     first = _begin(client, headers, _csv(_rows(1))).get_json()
 
@@ -905,7 +907,7 @@ def test_only_so_many_may_be_open_at_once(client, monkeypatch):
 
 
 def test_a_discarded_import_frees_its_slot(client, monkeypatch):
-    monkeypatch.setattr(service, "MAX_OPEN_PER_PERSON", 1)
+    patch_package(monkeypatch, service, "MAX_OPEN_PER_PERSON", 1)
     headers = _authenticate(monkeypatch)
     first = _begin(client, headers, _csv(_rows(1))).get_json()
     _discard(client, headers, first["id"])

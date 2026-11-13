@@ -14,6 +14,7 @@ import pytest
 from sqlalchemy import select
 
 from src.config import Config
+from src.core.clock import now
 from src.core.db import session_scope
 from src.models.sla import BusinessCalendar
 from src.services.decisions import sla
@@ -192,7 +193,7 @@ def test_waiting_on_the_customer_pauses_the_clock_and_escalations_fire_once(clie
 
     with session_scope() as session:
         # In force for a day, so a two-minute target is long gone.
-        session.get(SlaPolicy, made["id"]).created_at = sla.now() - timedelta(days=1)
+        session.get(SlaPolicy, made["id"]).created_at = now() - timedelta(days=1)
         session.flush()
         ticket = session.get(Ticket, ticket_id)
         original = (ticket.status, ticket.priority)
@@ -200,7 +201,7 @@ def test_waiting_on_the_customer_pauses_the_clock_and_escalations_fire_once(clie
         assert state.policy_id is not None and ticket.sla_breached is True
         # Escalations fired on compute, once each.
         assert set(state.escalations_fired) == {0, 1, 2}
-        assert sla._escalate(session, ticket, state, state.policy, sla.now()) == []
+        assert sla._escalate(session, ticket, state, state.policy, now()) == []
 
         ticket.status = "WAITING_CUSTOMER"
         state = sla.compute(session, ticket)

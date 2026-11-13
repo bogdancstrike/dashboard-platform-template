@@ -17,6 +17,7 @@ from sqlalchemy import Column, Float, Integer, Numeric, String
 
 from src.core.errors import ConflictError, NotFoundError, ValidationError
 from src.services.records import writes as rw
+from tests.patching import patch_package
 
 
 def _field(kind: str, *, name: str = "f", title: str = "Field", choices=(), column=None):
@@ -175,12 +176,12 @@ def test_a_lost_race_for_an_identifier_is_retried_and_then_named(client, monkeyp
         calls["n"] += 1
         return taken if calls["n"] == 1 else real(session, resource)
 
-    monkeypatch.setattr(rw, "_next_identifier", first_one_taken)
+    patch_package(monkeypatch, rw, "_next_identifier", first_one_taken)
     made = client.post(f"{PREFIX}/api/records/task", json={"title": "Race probe"}, headers=headers)
     assert made.status_code == 201, made.get_json()
     assert calls["n"] == 2 and made.get_json()["subtitle"] != taken
 
     # Every attempt taken: a conflict that says to try again, not a 500.
-    monkeypatch.setattr(rw, "_next_identifier", lambda session, resource: taken)
+    patch_package(monkeypatch, rw, "_next_identifier", lambda session, resource: taken)
     lost = client.post(f"{PREFIX}/api/records/task", json={"title": "Race probe"}, headers=headers)
     assert lost.status_code == 409 and "Try again" in lost.get_json()["message"]

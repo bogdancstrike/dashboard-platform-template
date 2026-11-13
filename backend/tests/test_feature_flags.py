@@ -28,7 +28,12 @@ import pytest
 from src.api import endpoint_map
 from src.config import Config
 from src.core import features
-from src.core.feature_catalogue import CORE_ENDPOINTS, FEATURES, FEATURES_BY_KEY, RETIRED
+from src.core.feature_catalogue import (
+    CORE_ENDPOINTS,
+    FEATURES,
+    FEATURES_BY_KEY,
+    RETIRED,
+)
 from src.core.features import FeatureDisabledError, FlagState
 from src.services.platform import settings as service
 
@@ -217,7 +222,7 @@ def test_a_bad_token_reads_as_anonymous_to_the_gate(monkeypatch):
 
 
 def test_evaluate_off_means_off_for_everybody():
-    assert service.evaluate(enabled=False, key="k", rollout=100, user_ids=["u"], user_id="u") is False
+    assert features.evaluate(enabled=False, key="k", rollout=100, user_ids=["u"], user_id="u") is False
 
 
 @pytest.mark.parametrize(
@@ -230,18 +235,18 @@ def test_evaluate_off_means_off_for_everybody():
     ],
 )
 def test_evaluate_a_target_always_has_it(targets, reader):
-    assert service.evaluate(enabled=True, key="k", rollout=0, **targets, **reader) is True
-    assert service.evaluate(enabled=True, key="k", rollout=0, **targets) is False
+    assert features.evaluate(enabled=True, key="k", rollout=0, **targets, **reader) is True
+    assert features.evaluate(enabled=True, key="k", rollout=0, **targets) is False
 
 
 def test_evaluate_percentage_is_stable_and_proportional():
     users = [uuid.UUID(int=i) for i in range(400)]
-    first = [service.evaluate(enabled=True, key="k", rollout=25, user_id=u) for u in users]
-    again = [service.evaluate(enabled=True, key="k", rollout=25, user_id=u) for u in users]
+    first = [features.evaluate(enabled=True, key="k", rollout=25, user_id=u) for u in users]
+    again = [features.evaluate(enabled=True, key="k", rollout=25, user_id=u) for u in users]
     assert first == again
     assert 60 < sum(first) < 140
-    assert service.evaluate(enabled=True, key="k", rollout=25, user_id=None) is False
-    assert service.evaluate(enabled=True, key="k", rollout=100) is True
+    assert features.evaluate(enabled=True, key="k", rollout=25, user_id=None) is False
+    assert features.evaluate(enabled=True, key="k", rollout=100) is True
 
 
 def test_is_on_reads_a_row_with_organization_targeting():
@@ -621,8 +626,8 @@ def test_sync_flags_creates_relabels_resets_and_retires_in_a_rolled_back_transac
 
         # A decision (a FLAG_CHANGE in the audit trail) survives a sync and
         # yields to a reset.
-        from src.models.platform import AuditLog
         from src.core.clock import now as clock_now
+        from src.models.platform import AuditLog
 
         decided = fresh["calendar"]
         decided.enabled = False

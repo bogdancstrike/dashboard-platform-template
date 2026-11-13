@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from src.services.analytics import jobs as jobs
+from tests.patching import patch_package
 
 pytestmark = pytest.mark.database
 
@@ -33,7 +34,7 @@ def test_a_failing_run_is_recorded_not_raised(monkeypatch):
     def boom(*_a, **_k):
         raise RuntimeError("model exploded")
 
-    monkeypatch.setattr(customer_health, "recompute", boom)
+    patch_package(monkeypatch, customer_health, "recompute", boom)
     with session_scope() as session:
         result = jobs.run(session, "analytics.customer-health")
         assert result["status"] == "FAILED"

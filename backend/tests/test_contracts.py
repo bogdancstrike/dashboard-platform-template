@@ -16,6 +16,7 @@ The claims:
 from __future__ import annotations
 
 from datetime import date, timedelta
+from decimal import Decimal
 from uuid import uuid4
 
 import pytest
@@ -279,5 +280,5 @@ def test_values_coerce_from_the_forms_strings():
     assert service._value(None, "auto_renew", "bool", True) is True
     assert service._value(None, "auto_renew", "bool", "") is False
     assert service._value(None, "notes", "longtext", "  x ") == "x"
-    assert service._value(None, "value", "money", "€1,250.5") == service.Decimal("1250.50")
+    assert service._value(None, "value", "money", "€1,250.5") == Decimal("1250.50")
     assert service._value(None, "probability", "percent", "40") == 40

@@ -43,11 +43,12 @@ from sqlalchemy import select
 
 from src.config import Config
 from src.core import background, storage
-from src.core.clock import now
 from src.core import export as writer
+from src.core.clock import now
 from src.core.db import session_scope
 from src.services.transfer import exports as service
 from tests.conftest import persona_claims
+from tests.patching import patch_package
 
 pytestmark = pytest.mark.database
 
@@ -361,8 +362,8 @@ def test_the_reference_continues_from_the_highest_one(client, monkeypatch):
 
 
 def test_above_the_installations_ceiling_it_is_refused_with_the_number(client, monkeypatch):
-    monkeypatch.setattr(service, "DEFAULT_MAX_ROWS", 2)
-    monkeypatch.setattr(service, "max_rows", lambda _session: 2)
+    patch_package(monkeypatch, service, "DEFAULT_MAX_ROWS", 2)
+    patch_package(monkeypatch, service, "max_rows", lambda _session: 2)
     headers = _authenticate(monkeypatch)
 
     refused = client.post(EXPORTS, json={"resource_type": RESOURCE}, headers=headers)
@@ -443,7 +444,7 @@ def test_a_stalled_export_does_not_hold_a_slot_forever(client, monkeypatch):
 
     from src.models.platform import BackgroundJob
 
-    monkeypatch.setattr(service, "MAX_PENDING_PER_PERSON", 1)
+    patch_package(monkeypatch, service, "MAX_PENDING_PER_PERSON", 1)
     headers = _authenticate(monkeypatch)
     first = _queue(client, headers).get_json()
 
@@ -473,7 +474,7 @@ def test_a_stalled_export_does_not_hold_a_slot_forever(client, monkeypatch):
 def test_a_fresh_pending_export_does_hold_one(client, monkeypatch):
     from src.models.platform import BackgroundJob
 
-    monkeypatch.setattr(service, "MAX_PENDING_PER_PERSON", 1)
+    patch_package(monkeypatch, service, "MAX_PENDING_PER_PERSON", 1)
     headers = _authenticate(monkeypatch)
     first = _queue(client, headers).get_json()
 
@@ -858,7 +859,7 @@ def test_a_failure_is_recorded_on_the_row_rather_than_lost(client, monkeypatch):
     def explode(*_args, **_kwargs):
         raise RuntimeError("the bucket said no")
 
-    monkeypatch.setattr(service, "produce", explode)
+    patch_package(monkeypatch, service, "produce", explode)
     headers = _authenticate(monkeypatch)
     body = _queue(client, headers).get_json()
 
@@ -872,8 +873,8 @@ def test_a_failure_is_recorded_on_the_row_rather_than_lost(client, monkeypatch):
 
 
 def test_a_failed_export_offers_no_download(client, monkeypatch):
-    monkeypatch.setattr(
-        service, "produce", lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("no"))
+    patch_package(
+        monkeypatch, service, "produce", lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("no"))
     )
     headers = _authenticate(monkeypatch)
     body = _queue(client, headers).get_json()

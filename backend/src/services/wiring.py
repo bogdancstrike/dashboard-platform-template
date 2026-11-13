@@ -10,14 +10,16 @@ the same wiring without remembering to ask for it.
 from __future__ import annotations
 
 # Imported for their registrations; each line says what it connects.
-from src.services.analytics import metric_watches  # noqa: F401 - the hourly anomaly-watch job
-from src.services.automation.graph import triggers  # noqa: F401 - runs workflows on record writes
-from src.services.automation.graph import waits  # noqa: F401 - workflow approvals resume the walk
+from src.services.analytics.metric_watches import evaluation  # noqa: F401 - the hourly anomaly-watch job
+from src.services.automation.graph import (
+    triggers,  # noqa: F401 - runs workflows on record writes
+    waits,  # noqa: F401 - workflow approvals resume the walk
+)
 from src.services.collaboration import chat  # noqa: F401 - the chat badge on the notification poll
 from src.services.decisions import (  # noqa: F401
     approval_kinds,  # approval kinds access/change/report; holds record edits for approval
     approvals,  # the approvals badge on the notification poll
-    sla,  # a ticket's SLA clock on record writes
-    timekeeping,  # timesheet approvals
 )
-from src.services.records import customer_health  # noqa: F401 - the daily health-score job
+from src.services.decisions.sla import ticket_hooks  # noqa: F401 - a ticket's SLA clock on record writes
+from src.services.decisions.timekeeping import timesheets  # noqa: F401 - timesheet approvals
+from src.services.records.customer_health import recompute_job  # noqa: F401 - the daily health-score job
