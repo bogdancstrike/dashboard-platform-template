@@ -121,7 +121,7 @@ The whole frontend follows the **Nucleus glass design**: a soft two-glow ground 
 - 🧊 **Glass everywhere** — Ant Design is skinned globally (cards are glass panels, tables are rows of soft pills, modals and drawers are frosted sheets), so new pages look right by default.
 - ✍️ **One typeface** — Inter throughout, with heavy, tightly tracked titles whose emphasised word takes the accent colour.
 
-The tokens live in [`frontend/src/theme/tokens.ts`](frontend/src/theme/tokens.ts) and [`antd.ts`](frontend/src/theme/antd.ts); the shell and the global skin in [`AppShell.tsx`](frontend/src/app/AppShell.tsx) and [`glass.css`](frontend/src/glass.css); each area's composition in [`frontend/src/styles/`](frontend/src/styles).
+The tokens live in [`frontend/src/theme/tokens.ts`](frontend/src/theme/tokens.ts) and [`antd.ts`](frontend/src/theme/antd.ts); the shell in [`frontend/src/app/shell/`](frontend/src/app/shell) and the global skin in [`frontend/src/styles/glass/`](frontend/src/styles/glass); each area's composition in [`frontend/src/styles/`](frontend/src/styles). How the frontend is laid out is in [`docs/architecture/frontend.md`](docs/architecture/frontend.md).
 
 ## 📸 Screenshots
 
@@ -695,7 +695,7 @@ are derived rather than written, because a hand-kept gallery is worse than none
 each looks like, the question it answers, **when it is the wrong answer**, and
 links to the real pages built that way. The route list is a declaration in
 `frontend/src/pages/showcase/templates.ts`, and `templates.test.ts` asserts it
-equals the router's own — so a page added to `App.tsx` and not classified fails
+equals the router's own — so a page added to the router (`frontend/src/app/routes/`) and not classified fails
 a test. That is the only mechanism by which a document like this stays true.
 
 The same page answers the question one size down: **how a create opens**. Five

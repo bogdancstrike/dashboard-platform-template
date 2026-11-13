@@ -167,12 +167,19 @@ them.
 ## The frontend, in the same spirit
 
 ```
+app/        the shell (app/shell/), the route table (app/routes/), navigation, history
 api/        one module per API surface; nothing else calls fetch
 entities/   the contract the six lists share — URL state, chrome, saved views
 components/ shared pieces; feature folders for the ones that only fit one page
+hooks/      generic hooks (URL state, URL overlays, debouncing, sticky state)
+lib/        pure helpers, the query-key factory, error wording
 pages/      layout and the subject's own decisions
+styles/     one entry (styles/index.css): global/, glass/, then per-area sheets
 theme/      tokens, and the two builders that turn them into AntD and ECharts
 ```
+
+The full layout, the naming rules and the size limits are in
+[`architecture/frontend.md`](architecture/frontend.md).
 
 * **The URL is the state** (§72): filters, sort, page, period, tab and the open
   record all live in the address, so a view can be pasted to a colleague and a
