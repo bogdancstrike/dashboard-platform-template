@@ -58,6 +58,7 @@ def dashboard(client, headers):
         {"kind": "ANALYTICS", "title": "Orders", "config": {"entity": "order"}},
         {"kind": "BAR_CHART", "title": "By status", "config": {"entity": "ticket"}},
         {"kind": "LINE_CHART", "title": "Over time", "config": {"entity": "order", "aggregation": "sum", "measure": "total"}},
+        {"kind": "AREA_CHART", "title": "Odd period", "config": {"entity": "order"}},
         {"kind": "HEATMAP", "title": "Heat", "config": {"entity": "ticket"}},
         {"kind": "TABLE", "title": "Latest", "config": {"entity": "customer"}},
         {"kind": "LIST", "title": "Newest", "config": {"entity": "task"}},
@@ -92,7 +93,7 @@ def test_an_open_link_serves_every_widget_answered(client, headers, dashboard):
     types = {w["title"]: w["data"]["type"] for w in body["widgets"]}
     assert types == {
         "Tickets": "metrics", "Orders": "metrics", "By status": "chart", "Over time": "chart",
-        "Heat": "chart", "Latest": "rows", "Newest": "rows", "My mail": "private",
+        "Heat": "chart", "Latest": "rows", "Newest": "rows", "My mail": "private", "Odd period": "chart",
     }
     over_time = next(w for w in body["widgets"] if w["title"] == "Over time")["data"]
     assert over_time["chart"] == "line"
@@ -218,6 +219,9 @@ def test_a_widget_that_fails_says_so_in_place(client, headers, dashboard):
     from src.models.personal import DashboardWidget
 
     with session_scope() as session:
+        session.add(DashboardWidget(dashboard_id=dashboard, kind="AREA_CHART", title="Stale period",
+                                    config={"entity": "order", "period": "current_month"}, x=0, y=30, width=4,
+                                    height=2, position=98))
         session.add(DashboardWidget(dashboard_id=dashboard, kind="REPORT", title="Broken report",
                                     config={}, x=0, y=20, width=4, height=2, position=99))
         session.add(DashboardWidget(dashboard_id=dashboard, kind="REPORT", title="Gone report",
@@ -233,6 +237,7 @@ def test_a_widget_that_fails_says_so_in_place(client, headers, dashboard):
     assert data["Gone report"]["type"] == "error"
     assert data["Unchosen"]["type"] == "empty"
     assert data["Unknown set"]["type"] == "error"
+    assert data["Stale period"]["type"] == "chart"
 
 
 def test_a_saved_report_widget_is_drawn_from_the_report(client, headers, dashboard):

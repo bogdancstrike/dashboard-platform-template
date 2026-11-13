@@ -489,7 +489,15 @@ def _answer(session, widget, owner, period: str) -> dict[str, Any]:
                 "measures": [measure], "filters": config.get("filters") or {},
                 "period": config.get("period") or period,
             }
-            out = {"type": "chart", "chart": chart, "result": analysis.run(session, request, principal=owner)}
+            try:
+                result = analysis.run(session, request, principal=owner)
+            except ValidationError as refused:
+                # A widget saved with a period the compiler no longer knows is
+                # drawn over the dashboard's own period rather than not at all.
+                if request["period"] == period or "period" not in str(refused.message).lower():
+                    raise
+                result = analysis.run(session, {**request, "period": period}, principal=owner)
+            out = {"type": "chart", "chart": chart, "result": result}
         nested.commit()
         return out
     except ApiError as error:
