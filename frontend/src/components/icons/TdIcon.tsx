@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 
+import { StrokeIcon, iconClass } from "./StrokeIcon";
+
 /**
  * Icons the Time & decisions pages need and the shared set does not have,
  * drawn the same way as `NxIcon` — one path on a 24-unit grid, a round 1.9
@@ -38,21 +40,14 @@ export function TdIcon({
   style?: CSSProperties;
 }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill={name === "play" || name === "stop" ? "currentColor" : "none"}
-      stroke="currentColor"
-      strokeWidth={stroke}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-      className={className ? `nx-icon ${className}` : "nx-icon"}
+    <StrokeIcon
+      d={TD_ICONS[name]}
+      size={size}
+      stroke={stroke}
+      // The transport controls are solid, the rest outlined.
+      filled={name === "play" || name === "stop"}
+      className={iconClass(className)}
       style={style}
-    >
-      <path d={TD_ICONS[name]} />
-    </svg>
+    />
   );
 }

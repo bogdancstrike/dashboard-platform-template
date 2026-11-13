@@ -1,7 +1,8 @@
+import { StrokeIcon, iconClass } from "./StrokeIcon";
+
 /**
  * Collaboration's own stroke icons, drawn to the same grid and stroke as
  * `NxIcon` (24 units, round 1.9) so they sit in the menu beside the design's.
- * A separate file rather than new entries in `NxIcon.tsx`, which is shared.
  */
 
 const PATHS = {
@@ -13,21 +14,5 @@ const PATHS = {
 export type CoIconName = keyof typeof PATHS;
 
 export function CoIcon({ name, size = 18 }: { name: CoIconName; size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.9}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-      className="nx-icon"
-    >
-      <path d={PATHS[name]} />
-    </svg>
-  );
+  return <StrokeIcon d={PATHS[name]} size={size} className={iconClass()} />;
 }

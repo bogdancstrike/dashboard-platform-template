@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 
 import type { TimelineGrouping } from "@/api/planning";
 import { PageHeader } from "@/components/PageHeader";
-import { PlanIcon } from "@/components/planning/planIcons";
+import { PlanIcon } from "@/components/icons/PlanIcon";
 import { DEFAULT_TIMELINE, TimelineView, type TimelineState } from "@/components/planning/TimelineView";
 import { ZOOMS, type Zoom } from "@/components/planning/gantt";
 import { useUrlState } from "@/hooks/useUrlState";

@@ -48,7 +48,7 @@ import {
   setRuleOperator,
   setRuleValue,
 } from "./conditionTree";
-import { FdIcon, type FdIconName } from "./fdIcons";
+import { FdIcon, type FdIconName } from "@/components/icons/FdIcon";
 import { BUILDER_TYPE, builderOperators } from "./queryBuilderConfig";
 import type { QueryNode } from "./queryTree";
 

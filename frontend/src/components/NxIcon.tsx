@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 
+import { StrokeIcon, iconClass } from "@/components/icons/StrokeIcon";
+
 /**
  * The design's stroke icons (Claude Design "Nucleus app shell").
  *
@@ -85,24 +87,7 @@ export function NxIcon({
   className?: string;
   style?: CSSProperties;
 }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={stroke}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-      className={className ? `nx-icon ${className}` : "nx-icon"}
-      style={style}
-    >
-      <path d={NX_ICONS[name]} />
-    </svg>
-  );
+  return <StrokeIcon d={NX_ICONS[name]} size={size} stroke={stroke} className={iconClass(className)} style={style} />;
 }
 
 /** The mark: two orbits and a core, in the accent. */

@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 
+import { StrokeIcon } from "./StrokeIcon";
+
 /**
  * The Find area's extra stroke icons, drawn on the same 24-unit grid and
  * round stroke as `NxIcon` so they sit beside the shell's icons unnoticed.
@@ -61,20 +63,15 @@ export function FdIcon({
   style?: CSSProperties;
 }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill={fill ? "currentColor" : "none"}
-      stroke={fill ? "none" : "currentColor"}
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
+    <StrokeIcon
+      d={FD_ICONS[name]}
+      size={size}
+      stroke={strokeWidth}
+      filled={fill}
+      strokeless={fill}
       className={className}
       style={style}
-    >
-      <path d={FD_ICONS[name]} />
-    </svg>
+      unfocusable={false}
+    />
   );
 }

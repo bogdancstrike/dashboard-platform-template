@@ -8,7 +8,7 @@ import { clock, hours } from "@/api/time";
 import { usePageCommands } from "@/commands/CommandContext";
 
 import { SubjectPicker, parseSubjectKey } from "./SubjectPicker";
-import { TdIcon } from "./TdIcon";
+import { TdIcon } from "@/components/icons/TdIcon";
 import { useTimer } from "./useTimer";
 import { FEATURES, withFeature } from "@/settings/features";
 

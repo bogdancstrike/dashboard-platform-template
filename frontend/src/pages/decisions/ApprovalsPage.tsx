@@ -17,7 +17,7 @@ import { URL_OVERLAY } from "@/app/history";
 import { useUrlOverlay } from "@/app/useUrlOverlay";
 import { useAuth } from "@/auth/AuthProvider";
 import { usePageCommands } from "@/commands/CommandContext";
-import { TdIcon, type TdIconName } from "@/components/decisions/TdIcon";
+import { TdIcon, type TdIconName } from "@/components/icons/TdIcon";
 import { NxIcon, type NxIconName } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
 import { PersonAvatar } from "@/components/PersonAvatar";

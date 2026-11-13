@@ -37,7 +37,7 @@ import { AdvancedSearchDrawer } from "@/components/explorer/AdvancedSearchDrawer
 import { ConditionChips } from "@/components/explorer/ConditionChips";
 import { humanise } from "@/components/explorer/ConditionBuilder";
 import { treeStats } from "@/components/explorer/conditionTree";
-import { FdIcon } from "@/components/explorer/fdIcons";
+import { FdIcon } from "@/components/icons/FdIcon";
 import { NxIcon } from "@/components/NxIcon";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
 import { RecordPreview } from "@/components/explorer/RecordPreview";

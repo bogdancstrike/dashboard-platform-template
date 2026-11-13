@@ -16,7 +16,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { assistantApi, type Conversation } from "@/api/assistant";
 import { useSmartBack } from "@/app/history";
 import { usePageCommands } from "@/commands/CommandContext";
-import { AstIcon as AiIcon } from "@/components/assistant/AstIcon";
+import { AstIcon as AiIcon } from "@/components/icons/AstIcon";
 import { AssistantChat } from "@/components/assistant/AssistantChat";
 import { NameModal } from "@/components/NameModal";
 import { PageHeader } from "@/components/PageHeader";

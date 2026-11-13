@@ -9,7 +9,7 @@ import { clock, hours, timeApi, type SubjectType } from "@/api/time";
 import { relativeTime } from "@/lib/time";
 
 import { EntryModal } from "./EntryModal";
-import { TdIcon } from "./TdIcon";
+import { TdIcon } from "@/components/icons/TdIcon";
 import { useTimer } from "./useTimer";
 import { EmptyState } from "@/components/EmptyState";
 import { FEATURES, withFeature } from "@/settings/features";

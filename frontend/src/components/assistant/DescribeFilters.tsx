@@ -22,7 +22,7 @@ import type { QueryNode } from "@/api/explorer";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthProvider";
 
-import { AstIcon } from "./AstIcon";
+import { AstIcon } from "@/components/icons/AstIcon";
 import "@/styles/assistant.css";
 import { FEATURES, withFeature } from "@/settings/features";
 

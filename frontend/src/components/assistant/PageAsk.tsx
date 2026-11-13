@@ -18,7 +18,7 @@ import { ApiError } from "@/api/client";
 import type { TourStop } from "@/app/tours";
 import { useCommands } from "@/commands/CommandContext";
 
-import { AstIcon } from "./AstIcon";
+import { AstIcon } from "@/components/icons/AstIcon";
 import { Markdown } from "./Markdown";
 import "@/styles/assistant.css";
 import { FEATURES, withFeature } from "@/settings/features";

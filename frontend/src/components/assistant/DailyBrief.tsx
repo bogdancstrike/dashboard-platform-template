@@ -18,7 +18,7 @@ import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthProvider";
 import { relativeTime } from "@/lib/time";
 
-import { AstIcon } from "./AstIcon";
+import { AstIcon } from "@/components/icons/AstIcon";
 import "@/styles/assistant.css";
 import { FEATURES, withFeature } from "@/settings/features";
 import { STALE, queryKeys } from "@/lib/queryKeys";

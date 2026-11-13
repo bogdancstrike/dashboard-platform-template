@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
-import { CoIcon } from "@/components/collab/icons";
+import { CoIcon } from "@/components/icons/CoIcon";
 import { NxIcon, type NxIconName } from "@/components/NxIcon";
-import { TdIcon } from "@/components/decisions/TdIcon";
-import { PlanIcon } from "@/components/planning/planIcons";
-import { AstIcon } from "@/components/assistant/AstIcon";
-import { KnIcon } from "@/components/knowledge/KnIcon";
+import { TdIcon } from "@/components/icons/TdIcon";
+import { PlanIcon } from "@/components/icons/PlanIcon";
+import { AstIcon } from "@/components/icons/AstIcon";
+import { KnIcon } from "@/components/icons/KnIcon";
 
 /**
  * The navigation, grouped by what somebody came here to do rather than by the

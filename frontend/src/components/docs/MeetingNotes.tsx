@@ -9,7 +9,7 @@ import { App as AntApp, Button, Typography } from "antd";
 import { Link, useNavigate } from "react-router-dom";
 
 import { docsApi } from "@/api/docs";
-import { CoIcon } from "@/components/collab/icons";
+import { CoIcon } from "@/components/icons/CoIcon";
 import { relativeTime } from "@/lib/time";
 import "@/styles/docs.css";
 import { FEATURES, withFeature } from "@/settings/features";

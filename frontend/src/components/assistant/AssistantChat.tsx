@@ -27,7 +27,7 @@ import {
 } from "@/api/assistant";
 import { ApiError } from "@/api/client";
 
-import { AstIcon as AiIcon } from "./AstIcon";
+import { AstIcon as AiIcon } from "@/components/icons/AstIcon";
 import { Markdown } from "./Markdown";
 import { DEFAULT_SOURCES, SourcePicker } from "./SourcePicker";
 import "@/styles/assistant.css";

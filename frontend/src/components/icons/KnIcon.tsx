@@ -1,9 +1,10 @@
 import type { CSSProperties } from "react";
 
+import { StrokeIcon, iconClass } from "./StrokeIcon";
+
 /**
  * Stroke icons for Ask your documents and Insights, drawn on NxIcon's grid with
- * its stroke so they sit in the navigation as one family. A separate file
- * because NxIcon.tsx is the shell's (the brief: add icons beside it, not in it).
+ * its stroke so they sit in the navigation as one family.
  */
 export const KN_ICONS = {
   /** Ask your documents: an open book with a spark. */
@@ -35,22 +36,5 @@ export function KnIcon({
   className?: string;
   style?: CSSProperties;
 }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={stroke}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-      className={className ? `nx-icon ${className}` : "nx-icon"}
-      style={style}
-    >
-      <path d={KN_ICONS[name]} />
-    </svg>
-  );
+  return <StrokeIcon d={KN_ICONS[name]} size={size} stroke={stroke} className={iconClass(className)} style={style} />;
 }

@@ -6,7 +6,7 @@ import { DeleteOutlined, HistoryOutlined, PlusOutlined } from "@ant-design/icons
 import { ApiError } from "@/api/client";
 import { knowledgeApi, type Answer, type Citation, type CollectionDetail } from "@/api/knowledge";
 import { EmptyState } from "@/components/EmptyState";
-import { KnIcon } from "@/components/knowledge/KnIcon";
+import { KnIcon } from "@/components/icons/KnIcon";
 import { MiniMarkdown } from "@/components/knowledge/MiniMarkdown";
 import { relativeTime } from "@/lib/time";
 import { STALE, queryKeys } from "@/lib/queryKeys";

@@ -6,7 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { formsApi, type FormStatus } from "@/api/forms";
 import { usePageCommands } from "@/commands/CommandContext";
-import { TdIcon } from "@/components/decisions/TdIcon";
+import { TdIcon } from "@/components/icons/TdIcon";
 import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
 import { errorText } from "@/lib/errors";

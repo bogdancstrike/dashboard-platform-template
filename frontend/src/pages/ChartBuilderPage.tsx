@@ -54,7 +54,7 @@ import {
   type SaveAnalysisValues,
 } from "@/components/analysis/SaveAnalysisDialog";
 import { ChartPreview } from "@/components/charts/ChartPreview";
-import { ChartKindIcon } from "@/components/charts/ChartKindIcon";
+import { ChartKindIcon } from "@/components/icons/ChartKindIcon";
 import { CHART_SHAPES, missingFor, type ChartShape } from "@/components/charts/shapes";
 import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";

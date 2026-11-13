@@ -1,5 +1,7 @@
 import type { ChartKind } from "@/api/dashboard";
 
+import { StrokeIcon } from "./StrokeIcon";
+
 /**
  * A small line drawing of each chart kind, in the design's stroke style.
  *
@@ -27,20 +29,6 @@ const PATHS: Partial<Record<ChartKind, string>> = {
 };
 
 export function ChartKindIcon({ kind, size = 22 }: { kind: ChartKind; size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={kind === "scatter" ? 3.2 : 1.8}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path d={PATHS[kind] ?? PATHS.bar} />
-    </svg>
-  );
+  // A scatter is dots, which a thin stroke would draw as specks.
+  return <StrokeIcon d={PATHS[kind] ?? PATHS.bar ?? ""} size={size} stroke={kind === "scatter" ? 3.2 : 1.8} />;
 }

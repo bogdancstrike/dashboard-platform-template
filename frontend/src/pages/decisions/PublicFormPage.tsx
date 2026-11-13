@@ -8,7 +8,7 @@ import { formsApi, type PublicForm, type SubmitResult } from "@/api/forms";
 import { metaApi } from "@/api/meta";
 import { initializeAuth } from "@/auth/keycloak";
 import { FormRenderer } from "@/components/decisions/FormRenderer";
-import { TdIcon } from "@/components/decisions/TdIcon";
+import { TdIcon } from "@/components/icons/TdIcon";
 import { NxIcon, NxLogo } from "@/components/NxIcon";
 
 /**

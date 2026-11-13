@@ -22,7 +22,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { NameModal } from "@/components/NameModal";
 import { PageHeader } from "@/components/PageHeader";
 import { InsightView } from "@/components/insights/InsightView";
-import { KnIcon } from "@/components/knowledge/KnIcon";
+import { KnIcon } from "@/components/icons/KnIcon";
 import { relativeTime } from "@/lib/time";
 import "@/styles/insights.css";
 import "@/styles/knowledge.css";

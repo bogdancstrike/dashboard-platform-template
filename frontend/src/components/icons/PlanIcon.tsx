@@ -1,9 +1,10 @@
 import type { CSSProperties } from "react";
 
+import { StrokeIcon, iconClass } from "./StrokeIcon";
+
 /**
  * The planning area's stroke icons, on `NxIcon`'s 24-unit grid and round
- * stroke so they sit in the navigation beside the shell's own. Separate from
- * `NxIcon` on purpose: that file belongs to the shell.
+ * stroke so they sit in the navigation beside the shell's own.
  */
 export const PLAN_ICONS = {
   timeline: "M4 5h9M8 12h11M6 19h7M3 3v18",
@@ -18,22 +19,5 @@ export const PLAN_ICONS = {
 export type PlanIconName = keyof typeof PLAN_ICONS;
 
 export function PlanIcon({ name, size = 18, style }: { name: PlanIconName; size?: number; style?: CSSProperties }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.9}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-      className="nx-icon"
-      style={style}
-    >
-      <path d={PLAN_ICONS[name]} />
-    </svg>
-  );
+  return <StrokeIcon d={PLAN_ICONS[name]} size={size} className={iconClass()} style={style} />;
 }

@@ -22,7 +22,7 @@ import { FilePreview } from "@/components/files/FilePreview";
 import { AskPanel } from "@/components/knowledge/AskPanel";
 import { CollectionModal } from "@/components/knowledge/CollectionModal";
 import { DocumentsPanel } from "@/components/knowledge/DocumentsPanel";
-import { KnIcon } from "@/components/knowledge/KnIcon";
+import { KnIcon } from "@/components/icons/KnIcon";
 import { relativeTime } from "@/lib/time";
 import "@/styles/knowledge.css";
 import { STALE, queryKeys } from "@/lib/queryKeys";

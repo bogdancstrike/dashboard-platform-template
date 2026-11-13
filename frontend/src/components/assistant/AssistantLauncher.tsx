@@ -17,7 +17,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { usePageCommands } from "@/commands/CommandContext";
 
 import { AssistantChat } from "./AssistantChat";
-import { AstIcon } from "./AstIcon";
+import { AstIcon } from "@/components/icons/AstIcon";
 import { FEATURES, withFeature } from "@/settings/features";
 
 const KEY = "nucleus.assistant.panel";

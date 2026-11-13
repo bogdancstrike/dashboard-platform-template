@@ -45,7 +45,7 @@ import { refreshRecordViews } from "@/lib/refresh";
 import { relativeTime } from "@/lib/time";
 
 import { KindBadge, Points } from "./PlanItem";
-import { PlanIcon } from "./planIcons";
+import { PlanIcon } from "@/components/icons/PlanIcon";
 import { shortDate } from "./gantt";
 import { FEATURES, useFeature, useFeatures, withFeature } from "@/settings/features";
 import { queryKeys } from "@/lib/queryKeys";

@@ -101,7 +101,7 @@ import {
   WipLimitsModal,
   type Swimlane,
 } from "@/components/planning/BoardExtras";
-import { PlanIcon } from "@/components/planning/planIcons";
+import { PlanIcon } from "@/components/icons/PlanIcon";
 import "@/styles/planning.css";
 import { STALE, queryKeys } from "@/lib/queryKeys";
 

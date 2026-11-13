@@ -17,7 +17,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { usePageCommands } from "@/commands/CommandContext";
 import { EntryModal } from "@/components/decisions/EntryModal";
 import { SubjectPicker, parseSubjectKey } from "@/components/decisions/SubjectPicker";
-import { TdIcon } from "@/components/decisions/TdIcon";
+import { TdIcon } from "@/components/icons/TdIcon";
 import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
 import { PersonAvatar } from "@/components/PersonAvatar";
