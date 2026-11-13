@@ -19,47 +19,26 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import {
-  Alert,
-  Button,
-  Card,
-  Col,
-  Row,
-  Segmented,
-  Skeleton,
-  Space,
-  Table,
-  Tag,
-  Tooltip,
-  Typography,
-} from "antd";
-import {
-  ApartmentOutlined,
-  ClusterOutlined,
-  ExportOutlined,
-  NodeIndexOutlined,
-  ShareAltOutlined,
-} from "@ant-design/icons";
+import { Button, Card, Col, Row, Segmented, Skeleton, Space, Tag, Tooltip, Typography } from "antd";
+import { ApartmentOutlined, ClusterOutlined, NodeIndexOutlined, ShareAltOutlined } from "@ant-design/icons";
 
-import { ApiError } from "@/api/client";
-import {
-  relationshipsApi,
-  type Community,
-  type NetworkNode,
-  type RecordNetwork,
-} from "@/api/relationships";
+import { relationshipsApi } from "@/api/relationships";
 import { ForceGraph, type GraphLink, type GraphNode } from "@/components/graph/ForceGraph";
 import { StatCard } from "@/components/StatCard";
 import { NEUTRAL, SERIES } from "@/theme/tokens";
 import { EmptyState } from "@/components/EmptyState";
 import { queryKeys } from "@/lib/queryKeys";
-import { apiErrorDetails } from "@/components/feedback/apiErrorDetails";
+
+import { NetworkError } from "./NetworkError";
+import { describe } from "./describe";
+
+import { Clusters } from "./Clusters";
 
 const { Text } = Typography;
 
 /** Above this a label on the canvas is noise; hover and the panel carry it. */
 const LABELLED_DEGREE = 5;
+
 const MUTED = NEUTRAL[400];
 
 export function NetworkView({
@@ -72,7 +51,6 @@ export function NetworkView({
   /** Follow a record into the one-record view. */
   onExplore: (entity: string, id: string) => void;
 }) {
-  const navigate = useNavigate();
   const [highlighted, setHighlighted] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -246,168 +224,16 @@ export function NetworkView({
         </Col>
 
         <Col xs={24} xl={9}>
-          <Card
-            size="small"
-            title="The clusters, named"
-            data-testid="community-list"
-            className="nu-fill-height"
-          >
-            {chosen && <ChosenRecord node={chosen} onExplore={onExplore} onOpen={navigate} />}
-            <Table<Community>
-              size="small"
-              rowKey="id"
-              dataSource={data.communities}
-              pagination={false}
-              scroll={{ y: chosen ? 320 : 430 }}
-              onRow={(community) => ({
-                onClick: () =>
-                  setHighlighted((current) => (current === community.id ? null : community.id)),
-                style: { cursor: "pointer" },
-              })}
-              rowClassName={(community) =>
-                community.id === highlighted ? "nu-row-selected" : ""
-              }
-              columns={[
-                {
-                  title: "Cluster",
-                  dataIndex: "label",
-                  render: (label: string, community) => (
-                    <Space size={8} align="start">
-                      <span
-                        className="nu-swatch"
-                        style={{ background: colors.get(community.id) ?? MUTED }}
-                        aria-hidden
-                      />
-                      <Space direction="vertical" size={0} style={{ lineHeight: 1.3 }}>
-                        {/* A button, not a label: the row highlights a cluster
-                            on the graph, and a click handler on the row alone
-                            is a control no keyboard can reach. It is also what
-                            gives this scrolling panel focusable content, which
-                            is the other half of the same rule (§55). */}
-                        <button
-                          type="button"
-                          className="nu-row-button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setHighlighted((current) =>
-                              current === community.id ? null : community.id,
-                            );
-                          }}
-                        >
-                          {label}
-                        </button>
-                        <Text type="secondary">
-                          {community.mix
-                            .map((part) => `${part.count} ${part.label.toLowerCase()}`)
-                            .join(" · ")}
-                        </Text>
-                      </Space>
-                    </Space>
-                  ),
-                },
-                {
-                  title: "Size",
-                  dataIndex: "size",
-                  width: 70,
-                  align: "right",
-                },
-                {
-                  title: "Out",
-                  dataIndex: "external_links",
-                  width: 70,
-                  align: "right",
-                  render: (value: number) => (
-                    <Tooltip title="Links leaving this cluster. Zero means it stands alone.">
-                      <Text type={value === 0 ? "secondary" : undefined}>{value}</Text>
-                    </Tooltip>
-                  ),
-                },
-              ]}
-            />
-          </Card>
+          <Clusters
+            communities={data.communities}
+            chosen={chosen}
+            colors={colors}
+            highlighted={highlighted}
+            onHighlight={setHighlighted}
+            onExplore={onExplore}
+          />
         </Col>
       </Row>
     </Space>
   );
-}
-
-/** The record the reader clicked, with the two things they can do with it. */
-function ChosenRecord({
-  node,
-  onExplore,
-  onOpen,
-}: {
-  node: NetworkNode;
-  onExplore: (entity: string, id: string) => void;
-  onOpen: (path: string) => void;
-}) {
-  return (
-    <Card size="small" className="nu-block nu-chosen" data-testid="chosen-record">
-      <Space direction="vertical" size={4} style={{ width: "100%" }}>
-        <Space size={6} wrap>
-          <Tag>{node.entity_label}</Tag>
-          {node.status && <Tag>{node.status}</Tag>}
-          <Text type="secondary">{node.degree} links</Text>
-        </Space>
-        <Text strong>{node.label}</Text>
-        {node.summary && <Text type="secondary">{node.summary}</Text>}
-        <Space size={4}>
-          {node.explorable && (
-            <Button
-              size="small"
-              type="text"
-              icon={<ApartmentOutlined />}
-              onClick={() => onExplore(node.entity, node.id)}
-            >
-              Follow connections
-            </Button>
-          )}
-          {node.explorable && (
-            <Button
-              size="small"
-              type="text"
-              icon={<ExportOutlined />}
-              onClick={() => onOpen(`/${node.entity}s/${node.id}`)}
-            >
-              Open record
-            </Button>
-          )}
-        </Space>
-      </Space>
-    </Card>
-  );
-}
-
-function NetworkError({ error, onRetry }: { error: unknown; onRetry: () => void }) {
-  const forbidden = error instanceof ApiError && error.isForbidden;
-  return (
-    <Alert
-      type={forbidden ? "warning" : "error"}
-      showIcon
-      message={
-        forbidden
-          ? "You do not have permission to read the record graph"
-          : "The record graph could not be loaded"
-      }
-      description={apiErrorDetails(error)}
-      action={
-        <Button size="small" onClick={onRetry}>
-          Retry
-        </Button>
-      }
-    />
-  );
-}
-
-/** One sentence describing the whole picture, for a reader who cannot see it. */
-function describe(data: RecordNetwork): string {
-  const biggest = data.communities[0];
-  return [
-    `${data.stats.nodes} records in ${data.stats.communities} communities,`,
-    `joined by ${data.stats.edges} links, ${data.stats.bridges} of which cross between communities.`,
-    biggest ? `The largest is ${biggest.label}, with ${biggest.size} records.` : "",
-    `Modularity ${data.stats.modularity.toFixed(2)}.`,
-  ]
-    .filter(Boolean)
-    .join(" ");
 }

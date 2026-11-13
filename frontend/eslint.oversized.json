@@ -1,12 +1,8 @@
 [
   "src/components/CommandPalette.tsx",
-  "src/components/graph/ForceGraph.tsx",
-  "src/components/relationships/ConnectionMapView.tsx",
-  "src/components/relationships/NetworkView.tsx",
   "src/pages/ComparePage.tsx",
   "src/pages/DataCatalogPage.tsx",
   "src/pages/FavoritesPage.tsx",
   "src/pages/FilesPage.tsx",
-  "src/pages/GlobalSearchPage.tsx",
-  "src/pages/RelationshipExplorerPage.tsx"
+  "src/pages/GlobalSearchPage.tsx"
 ]

@@ -151,9 +151,17 @@ export const DENSE_BY_CONSTRUCTION: Record<string, string> = {
     "The bulk bar renders inside a table's own header row, beside controls the table sized.",
   "components/records/useRecordPage.tsx":
     "Actions inside a record's own section headers.",
-  "components/relationships/ConnectionMapView.tsx":
+  "components/relationships/ConnectionMapView/HubRecords.tsx":
     "Controls overlaid on a canvas, which the picture has to stay visible behind.",
-  "components/relationships/NetworkView.tsx":
+  "components/relationships/ConnectionMapView/RelationStrength.tsx":
+    "Controls overlaid on a canvas, which the picture has to stay visible behind.",
+  "components/relationships/ConnectionMapView/index.tsx":
+    "Controls overlaid on a canvas, which the picture has to stay visible behind.",
+  "components/relationships/NetworkView/ChosenRecord.tsx":
+    "Controls overlaid on a canvas, which the picture has to stay visible behind.",
+  "components/relationships/NetworkView/NetworkError.tsx":
+    "Controls overlaid on a canvas, which the picture has to stay visible behind.",
+  "components/relationships/NetworkView/index.tsx":
     "Controls overlaid on a canvas, which the picture has to stay visible behind.",
 };
 
