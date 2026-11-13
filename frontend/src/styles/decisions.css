@@ -298,3 +298,7 @@
   width: 64px; height: 64px; margin: 0 auto 14px; border-radius: 50%; display: grid; place-items: center;
   background: var(--nu-ok-bg); color: var(--nu-ok);
 }
+
+/* A segmented filter wider than a phone scrolls inside itself, never the page. */
+.nx-td-bar .ant-segmented { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.nx-td-bar .ant-segmented::-webkit-scrollbar { display: none; }
