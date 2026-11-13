@@ -93,6 +93,12 @@ describe("creating a record of a dataset that declares one of everything", () =>
 
     // A person, found on the server; the label drops the column's "ID".
     await user.type(screen.getByRole("combobox", { name: "Owner" }), "Otto");
+    // Only once the server's answer to the term is the whole list: an option
+    // from the list before it is replaced on the next render and selects nothing.
+    await waitFor(() => {
+      const offered = [...document.querySelectorAll<HTMLElement>(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option")];
+      expect(offered.map((node) => node.getAttribute("title"))).toEqual([people[1]!.email]);
+    });
     await pickOption("Owner", (node) => node.getAttribute("title") === people[1]!.email);
 
     // A record of another dataset, labelled by whichever title it has.
