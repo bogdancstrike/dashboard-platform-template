@@ -10,16 +10,14 @@
  * where a page boundary interrupts a read that had no reason to stop (§52).
  */
 
-import { Button, Card, List, Space, Table, Tag, Tooltip, Typography } from "antd";
-import { EyeOutlined } from "@ant-design/icons";
+import { Button, Card, List, Table, Typography } from "antd";
 import type { ColumnsType, ColumnType, TablePaginationConfig, TableProps } from "antd/es/table";
 
-import type { ExplorerField, ExplorerResult, ExplorerView } from "@/api/explorer";
-import { HighlightedText } from "@/components/HighlightedText";
-import { StatusTag } from "@/components/StatusTag";
-import { FavoriteStar } from "@/components/records/FavoriteStar";
-import { asText } from "@/lib/text";
+import type { ExplorerResult, ExplorerView } from "@/api/explorer";
 import { EmptyState } from "@/components/EmptyState";
+
+import { PreviewButton, RowStar, Value } from "./cells";
+import { group, title } from "./grouping";
 
 const { Text } = Typography;
 
@@ -61,36 +59,6 @@ export interface ExplorerResultsProps {
   path?: string;
   /** Star each row. Off where a list is a preview rather than a place to work. */
   starrable?: boolean;
-}
-
-/**
- * The star on one row.
- *
- * Named from the dataset's own title field rather than from the first column,
- * because the columns are the reader's choice and a bookmark reading "PAID"
- * helps nobody. The address is the record's own page, stored so the bookmark
- * survives both a rename and a change to the route's shape (§38).
- */
-function RowStar({
-  record,
-  result,
-  path,
-}: {
-  record: ExplorerRecord;
-  result: ExplorerResult | undefined;
-  path: string;
-}) {
-  const id = String(record.id);
-  const first = result?.columns?.[0];
-  const label = asText(record[first ?? ""]) || id.slice(0, 8);
-  return (
-    <FavoriteStar
-      resourceType={result?.resource_type ?? ""}
-      recordId={id}
-      label={label}
-      url={path ? `${path}/${id}` : `/explore?resource=${result?.resource_type ?? ""}&record=${id}`}
-    />
-  );
 }
 
 export function ExplorerResults({
@@ -272,131 +240,4 @@ export function ExplorerResults({
       )}
     </>
   );
-}
-
-function PreviewButton({
-  record,
-  onPreview,
-}: {
-  record: ExplorerRecord;
-  onPreview: (record: ExplorerRecord) => void;
-}) {
-  return (
-    <Tooltip title="Preview this record">
-      <Button
-        type="text"
-        size="small"
-        icon={<EyeOutlined />}
-        aria-label={`Preview ${String(record.id)}`}
-        onClick={(event) => {
-          // The table row opens the same preview; without this the click runs
-          // twice and the drawer flickers shut.
-          event.stopPropagation();
-          onPreview(record);
-        }}
-      />
-    </Tooltip>
-  );
-}
-
-function Value({
-  value,
-  field,
-  term,
-  primary = false,
-}: {
-  value: unknown;
-  field?: ExplorerField;
-  term: string;
-  primary?: boolean;
-}) {
-  if (value === null || value === undefined || value === "") return <Text type="secondary">—</Text>;
-  if (field?.kind === "bool") return <Tag color={value ? "green" : "default"}>{value ? "Yes" : "No"}</Tag>;
-  // Known vocabulary (status, priority, kind…) reads as the app's one status
-  // pill: sentence case, tinted, with a dot — in every view mode.
-  if (field?.kind === "enum") return <StatusTag status={asText(value)} />;
-  if (field?.kind === "datetime") {
-    const parsed = new Date(asText(value));
-    return (
-      <Text className="nu-explorer-date" title={Number.isNaN(parsed.valueOf()) ? undefined : parsed.toLocaleString()}>
-        {Number.isNaN(parsed.valueOf())
-          ? asText(value)
-          : parsed.toLocaleString(undefined, {
-              month: "short",
-              day: "numeric",
-              // The year only when it is not this one: it is the part a
-              // reader can usually supply, and the column stays narrow.
-              ...(parsed.getFullYear() === new Date().getFullYear() ? {} : { year: "numeric" }),
-              hour: "numeric",
-              minute: "2-digit",
-            })}
-      </Text>
-    );
-  }
-  if (Array.isArray(value)) {
-    return <Space size={4} wrap>{value.map((entry) => <Tag key={asText(entry)}>{asText(entry)}</Tag>)}</Space>;
-  }
-  if (typeof value === "number") {
-    return <Text>{value.toLocaleString(undefined, { maximumFractionDigits: 2 })}</Text>;
-  }
-  const text = <HighlightedText text={asText(value)} term={term} />;
-  return primary ? <Text strong>{text}</Text> : <Text>{text}</Text>;
-}
-
-interface Section {
-  value: string;
-  label: string;
-  rows: ExplorerRecord[];
-  /** How many the whole result holds, from the facet counts. */
-  total: number;
-}
-
-/**
- * Section a result by one field, biggest first.
- *
- * The sections come from the **facet counts**, which the server computed over
- * the whole result, and the loaded rows are filed into them. Building them
- * from the loaded rows instead — which is what this did — silently drops any
- * group with nothing on the first page: at 500 tasks the 34 blocked ones had
- * no row among the first 25, so the section vanished and the headings stopped
- * adding up to the total. The reader was looking at a breakdown of the answer
- * that was missing a part of the answer, with nothing to say so.
- *
- * A section with no rows yet is therefore kept, showing what it holds. It is
- * the difference between "there are no blocked tasks" and "you have not
- * scrolled to them".
- */
-function group(rows: ExplorerRecord[], field: string, result?: ExplorerResult): Section[] {
-  const totals = new Map(
-    (result?.facets[field] ?? []).map((entry) => [entry.value, entry.count] as const),
-  );
-
-  // Every group the server reported, in the order it reported them, and then
-  // any value a loaded row carries that the facet list did not mention — the
-  // facet query is capped, so a high-cardinality field can hand back rows from
-  // outside the top of the list.
-  const sections = new Map<string, ExplorerRecord[]>();
-  for (const value of totals.keys()) sections.set(value, []);
-  for (const row of rows) {
-    const value = asText(row[field]);
-    const bucket = sections.get(value);
-    if (bucket) bucket.push(row);
-    else sections.set(value, [row]);
-  }
-
-  return [...sections.entries()]
-    .map(([value, sectionRows]) => ({
-      value,
-      // An absent value is a group of its own, and saying so beats an empty
-      // heading the reader has to guess at.
-      label: value === "" ? "No value" : value.replaceAll("_", " "),
-      rows: sectionRows,
-      total: totals.get(value) ?? 0,
-    }))
-    .sort((a, b) => (b.total || b.rows.length) - (a.total || a.rows.length));
-}
-
-function title(value: string): string {
-  const spaced = value.replaceAll("_", " ");
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }

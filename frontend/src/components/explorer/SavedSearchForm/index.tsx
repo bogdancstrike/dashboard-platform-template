@@ -17,13 +17,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   App,
-  Divider,
   Form,
   Input,
   Modal,
-  Popconfirm,
   Segmented,
-  Space,
   Typography,
 } from "antd";
 
@@ -34,15 +31,12 @@ import { PeoplePicker } from "@/components/PeoplePicker";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { queryKeys } from "@/lib/queryKeys";
 
+import { initials, SCOPES, type Scope } from "./scopes";
+import { TransferOwnership } from "./TransferOwnership";
+
 const { Text } = Typography;
 
-export type Scope = SavedSearch["scope"];
-
-const SCOPES: Array<{ value: Scope; label: string; help: string }> = [
-  { value: "PRIVATE", label: "Private", help: "Only you can see it." },
-  { value: "SHARED", label: "Shared", help: "You, plus the people you name below." },
-  { value: "PUBLIC", label: "Public", help: "Everyone signed in can find and run it." },
-];
+export type { Scope } from "./scopes";
 
 interface FormValues {
   name: string;
@@ -238,46 +232,8 @@ export function SavedSearchForm({
       </Form>
 
       {editing && search?.can_edit && mayShare && (
-        <>
-          <Divider plain>Ownership</Divider>
-          <Space direction="vertical" style={{ width: "100%" }} size={8}>
-            <Text type="secondary">
-              Owned by {search.owner.name}. Handing it over is permanent: you keep read
-              access and lose the ability to change it.
-            </Text>
-            <PeoplePicker
-              aria-label="Transfer ownership to"
-              data-testid="saved-search-heir"
-              multiple={false}
-              value={heir}
-              exclude={[search.owner.id]}
-              placeholder="Transfer to…"
-              onChange={(ids) => setHeir(ids)}
-            />
-            <Popconfirm
-              title="Hand over this saved search?"
-              description="You will keep read access and lose the ability to change it."
-              okText="Transfer"
-              disabled={heir.length === 0}
-              onConfirm={() => heir[0] && transfer.mutate(heir[0])}
-            >
-              <button
-                type="button"
-                className="nu-link-button nu-danger-link"
-                disabled={heir.length === 0 || transfer.isPending}
-              >
-                Transfer ownership
-              </button>
-            </Popconfirm>
-          </Space>
-        </>
+        <TransferOwnership search={search} heir={heir} onHeir={setHeir} busy={transfer.isPending} onTransfer={(id) => transfer.mutate(id)} />
       )}
     </Modal>
   );
-}
-
-function initials(name: string): string {
-  const parts = name.split(" ").filter(Boolean);
-  if (parts.length === 0) return "?";
-  return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1]?.[0] ?? "" : "")).toUpperCase();
 }

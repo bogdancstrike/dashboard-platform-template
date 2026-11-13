@@ -74,7 +74,7 @@ export const LAYERS: readonly GuardedLayer[] = [
     because: "Three steps that narrow each other, and choosing cards arms the guard as well as typing the name.",
   },
   {
-    module: "components/explorer/SavedSearchForm.tsx",
+    module: "components/explorer/SavedSearchForm/index.tsx",
     what: "saved search",
     guarded: true,
     because: "A name, a description, an audience and the people it is shared with — four answers, none of them retyped in a gesture.",

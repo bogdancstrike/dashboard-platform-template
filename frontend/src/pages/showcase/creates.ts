@@ -171,7 +171,7 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
     what: "A saved view or saved search",
     shape: "modal",
     where: "explore",
-    opens: "components/explorer/SavedSearchForm.tsx",
+    opens: "components/explorer/SavedSearchForm/index.tsx",
     because:
       "The question is already composed — it is the list behind the modal. All that is left is a name and who else sees it, and covering the list would hide the thing being named.",
   },

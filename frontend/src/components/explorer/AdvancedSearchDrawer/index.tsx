@@ -15,7 +15,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Button, Collapse, Drawer, Select, Space, Tooltip, Typography } from "antd";
+import { Alert, Button, Collapse, Drawer, Space, Tooltip } from "antd";
 import {
   ApartmentOutlined,
   QuestionCircleOutlined,
@@ -29,11 +29,14 @@ import { useSticky } from "@/hooks/useSticky";
 
 import { DescribeFilters } from "@/components/assistant/DescribeFilters";
 
-import { ConditionBuilder } from "./ConditionBuilder";
-import { countRules, emptyTree, type QueryNode } from "./queryTree";
+import { ConditionBuilder } from "../ConditionBuilder";
+import { countRules, emptyTree, type QueryNode } from "../queryTree";
 import { queryKeys } from "@/lib/queryKeys";
 
-const { Text, Paragraph } = Typography;
+
+import { AdvancedLesson } from "./AdvancedLesson";
+import { FindLine } from "./FindLine";
+
 
 export interface AdvancedSearchDrawerProps {
   open: boolean;
@@ -138,37 +141,7 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, record
 
   return (
     <div className="nu-advanced-search nx-fd-advbody">
-      <div className="nx-fd-dfind">
-        <span>Find</span>
-        {resources && resources.length > 0 && onChooseResource ? (
-          <Select
-            className="nx-fd-dfind-select"
-            aria-label="Dataset"
-            data-testid="dataset-select"
-            value={request.resource_type}
-            popupMatchSelectWidth={false}
-            onChange={onChooseResource}
-            options={resources.map((item) => ({
-              value: item.key,
-              label: (
-                <span className="nx-fd-typeopt">
-                  <span>{item.label}</span>
-                  <span className="nx-fd-muted">{item.record_count.toLocaleString()}</span>
-                </span>
-              ),
-            }))}
-            labelRender={() => resources.find((item) => item.key === request.resource_type)?.label ?? request.resource_type}
-          />
-        ) : (
-          <b>{datasetLabel ?? request.resource_type}</b>
-        )}
-        <span>where</span>
-        {onOpenSaved && (
-          <button type="button" className="nx-fd-link nx-fd-push" onClick={onOpenSaved}>
-            Load a saved search
-          </button>
-        )}
-      </div>
+      <FindLine request={request} datasetLabel={datasetLabel} resources={resources} onChooseResource={onChooseResource} onOpenSaved={onOpenSaved} />
       {/* What a rule and a group *are*, folded until asked for — and it stays
           as this reader left it (§72). */}
       <Collapse
@@ -177,42 +150,7 @@ function AdvancedSearchBody({ fields, request, onClose, onSearch, onSave, record
         activeKey={helpOpen ? ["how"] : []}
         onChange={(keys) => setHelpOpen(keys.length > 0)}
         items={[{ key: "how", label: "How this works", children: (
-              <div className="nu-advanced-lesson" data-testid="advanced-help">
-                <div>
-                  <Text strong>A rule</Text>
-                  <Paragraph type="secondary">
-                    One comparison: a field, how to compare it, and what to compare it with —{" "}
-                    <Text code>Status is Open</Text>. Rules you have not finished are ignored
-                    while you work, so a half-typed one never changes the count.
-                  </Paragraph>
-                </div>
-                <div>
-                  <Text strong>A group</Text>
-                  <Paragraph type="secondary">
-                    A bracket around rules. Everything inside is answered together and then
-                    compared with what is outside — which is how{" "}
-                    <Text code>A and (B or C)</Text> is said, and it means something different
-                    from <Text code>(A and B) or C</Text>.
-                  </Paragraph>
-                </div>
-                <div>
-                  <Text strong>And · Or · Not</Text>
-                  <Paragraph type="secondary">
-                    <Text strong>And</Text> narrows — every rule has to hold.{" "}
-                    <Text strong>Or</Text> widens — any one will do. <Text strong>Not</Text>{" "}
-                    inverts the whole group, so “not (open and urgent)” keeps everything that is
-                    not both.
-                  </Paragraph>
-                </div>
-                <div>
-                  <Text strong>Nothing runs until you say so</Text>
-                  <Paragraph type="secondary">
-                    The number at the bottom previews this draft against the real data. The page
-                    behind keeps showing the last question you ran, and closing this without
-                    pressing <Text strong>Search</Text> leaves it exactly as it was.
-                  </Paragraph>
-                </div>
-              </div>
+              <AdvancedLesson />
         ) }]}
       />
       {/* What a rule and a group *are*, before anybody is asked to build one.
