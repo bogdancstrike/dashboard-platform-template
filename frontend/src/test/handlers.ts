@@ -18,6 +18,7 @@ import { CORRELATION_HEADER } from "@/config";
 import { assistantHandlers } from "@/test/handlers/assistant";
 import { insightsHandlers } from "@/test/handlers/insights";
 import { knowledgeHandlers } from "@/test/handlers/knowledge";
+import { planningHandlers } from "@/test/handlers/planning";
 
 export const appMeta = {
   name: "Nucleus",
@@ -3882,6 +3883,7 @@ function recentList(): Record<string, unknown> {
 export const handlers = [
   ...assistantHandlers,
   ...knowledgeHandlers,
+  ...planningHandlers,
   ...insightsHandlers,
   http.get("/platform/admin/integrations/catalogue", ({ request }) => {
     const states = ["NOT_CONFIGURED", "DISCONNECTED", "CONNECTED", "ERROR"];

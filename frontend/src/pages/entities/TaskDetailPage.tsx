@@ -34,10 +34,8 @@
 import {
   Button,
   Card,
-  Checkbox,
   Col,
   Descriptions,
-  Input,
   Progress,
   Row,
   Select,
@@ -45,8 +43,7 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
-import { useState } from "react";
+import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { useParams } from "react-router-dom";
 import { useSmartBack } from "@/app/history";
 
@@ -60,6 +57,14 @@ import { humanStatus, StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { asText } from "@/lib/text";
+import {
+  ReorderableChecklist,
+  SaveAsTemplateButton,
+  TaskPlanningSide,
+  TaskRelations,
+  useTaskPlanning,
+} from "@/components/planning/TaskPlanning";
+import "@/styles/planning.css";
 
 const { Text, Paragraph } = Typography;
 
@@ -72,8 +77,8 @@ interface ChecklistItem {
 export default function TaskDetailPage() {
   const { id = "" } = useParams();
   const back = useSmartBack();
-  const [newItem, setNewItem] = useState("");
   const page = useRecordPage("task", id, { listPath: "/tasks", noun: "task" });
+  const planning = useTaskPlanning(id);
 
   usePageCommands("record:task", [
     {
@@ -140,6 +145,7 @@ export default function TaskDetailPage() {
                 Edit
               </Button>
             </Tooltip>
+            <SaveAsTemplateButton id={id} title={task.title} disabled={!planning.data?.can_manage} />
             <Tooltip title={task.can_delete ? "" : "Your role does not include records.delete"}>
               <Button
                 danger
@@ -186,62 +192,15 @@ export default function TaskDetailPage() {
                 size="small"
               />
             )}
-            <ul className="nu-checklist">
-              {checklist.map((item, index) => (
-                <li key={`${item.text}-${index}`}>
-                  <Checkbox
-                    checked={item.done}
-                    disabled={!task.can_edit || page.writing}
-                    onChange={(event) =>
-                      writeChecklist(
-                        checklist.map((entry, position) =>
-                          position === index ? { ...entry, done: event.target.checked } : entry,
-                        ),
-                      )
-                    }
-                  >
-                    <span className={item.done ? "nu-checklist-done" : undefined}>{item.text}</span>
-                  </Checkbox>
-                  {task.can_edit && (
-                    <Button
-                      type="text"
-                      aria-label={`Remove ${item.text}`}
-                      icon={<DeleteOutlined />}
-                      onClick={() =>
-                        writeChecklist(checklist.filter((_entry, position) => position !== index))
-                      }
-                    />
-                  )}
-                </li>
-              ))}
-            </ul>
-
-            {task.can_edit && (
-              <Space.Compact style={{ width: "100%" }}>
-                <Input
-                  aria-label="New checklist item"
-                  placeholder="Add a step"
-                  value={newItem}
-                  onChange={(event) => setNewItem(event.target.value)}
-                  onPressEnter={() => {
-                    if (!newItem.trim()) return;
-                    writeChecklist([...checklist, { text: newItem.trim(), done: false }]);
-                    setNewItem("");
-                  }}
-                />
-                <Button
-                  icon={<PlusOutlined />}
-                  disabled={!newItem.trim()}
-                  onClick={() => {
-                    writeChecklist([...checklist, { text: newItem.trim(), done: false }]);
-                    setNewItem("");
-                  }}
-                >
-                  Add
-                </Button>
-              </Space.Compact>
-            )}
+            <ReorderableChecklist
+              items={checklist}
+              canEdit={Boolean(task.can_edit)}
+              saving={page.writing}
+              onChange={writeChecklist}
+            />
           </Card>
+
+          <TaskRelations id={id} page={page} />
 
           <Card size="small" title="Comments" className="nu-block">
             <CommentThread resourceType="task" resourceId={id} />
@@ -319,6 +278,7 @@ export default function TaskDetailPage() {
               </Descriptions>
             </Space>
           </Card>
+          <TaskPlanningSide id={id} page={page} />
         </Col>
       </Row>
 

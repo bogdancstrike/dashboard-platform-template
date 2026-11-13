@@ -48,9 +48,9 @@
  * pointer is a board half the readers cannot use.
  */
 
-import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
-import { Alert, App as AntApp, Button, Skeleton, Tooltip } from "antd";
-import { ClockCircleOutlined, DragOutlined, HolderOutlined, PlusOutlined, TableOutlined } from "@ant-design/icons";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Alert, App as AntApp, Button, Segmented, Select, Skeleton, Tooltip } from "antd";
+import { ClockCircleOutlined, DragOutlined, HolderOutlined, TableOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -78,6 +78,31 @@ import { StatusTag } from "@/components/StatusTag";
 import { refreshRecordViews } from "@/lib/refresh";
 import { EmptyState } from "@/components/EmptyState";
 import { DropGap, useBoardDrag, type DropTarget } from "@/components/kanban/useBoardDrag";
+import { planningApi } from "@/api/planning";
+import { recordsApi } from "@/api/records";
+import { useAuth } from "@/auth/AuthProvider";
+import { humanStatus } from "@/components/StatusTag";
+import {
+  AgeDots,
+  CardBadges,
+  laneKey,
+  parseLane,
+  QuickCreate,
+  SWIMLANE_FIELD,
+  SWIMLANES,
+  ShortcutsModal,
+  swimlaneOrder,
+  swimOf,
+  TemplatePicker,
+  useBoardShortcuts,
+  useLaneSettings,
+  usePeopleNames,
+  WipBadge,
+  WipLimitsModal,
+  type Swimlane,
+} from "@/components/planning/BoardExtras";
+import { PlanIcon } from "@/components/planning/planIcons";
+import "@/styles/planning.css";
 
 /** Rows fetched per lane. A lane is scanned, not read to the end. */
 const PER_LANE = 12;
@@ -85,12 +110,19 @@ const PER_LANE = 12;
 const COLUMNS = [
   "reference", "title", "status", "priority", "kind",
   "due_date", "progress", "estimate_hours", "logged_hours", "updated_at", "board_position",
+  // Work planning (§18): what a card shows beyond its title.
+  "story_points", "cover_color", "blocked_reason", "checklist", "epic_id", "assignee_id",
+  "status_changed_at",
 ];
+/** Rows per lane with swimlanes on: each swimlane takes its share of a lane. */
+const PER_LANE_SWIMMING = 40;
 
 /** One drop: where to, between whom, and how to take it back. */
 interface Move {
   task: TaskRow;
   to: string;
+  /** A drop into another swimlane also writes the field the swimlanes are. */
+  field?: { name: string; value: string | null };
   /** Position in the target lane, counted without the card. */
   index: number;
   afterId: string | null;
@@ -110,6 +142,13 @@ interface TaskRow {
   estimate_hours?: number;
   logged_hours?: number;
   updated_at?: string | null;
+  story_points?: number | null;
+  cover_color?: string | null;
+  blocked_reason?: string | null;
+  checklist?: { text?: string; done?: boolean }[] | null;
+  epic_id?: string | null;
+  assignee_id?: string | null;
+  status_changed_at?: string | null;
 }
 
 export default function TasksBoardPage() {
@@ -118,6 +157,18 @@ export default function TasksBoardPage() {
   const { message } = AntApp.useApp();
   const view = useEntityView("task", { columns: COLUMNS, defaultSort: "priority" });
   const { resource, rows, filters, term, setFilter } = view;
+  const { profile } = useAuth();
+  const swim = (["assignee", "priority", "epic"].includes(view.params.get("swim") ?? "")
+    ? view.params.get("swim")
+    : "none") as Swimlane;
+  const perLane = swim === "none" ? PER_LANE : PER_LANE_SWIMMING;
+  const [templating, setTemplating] = useState(false);
+  const [limiting, setLimiting] = useState(false);
+  const [helping, setHelping] = useState(false);
+  const laneSettings = useLaneSettings();
+  const epics = useQuery({ queryKey: ["epics", ""], queryFn: ({ signal }) => planningApi.epics({}, signal), staleTime: 60_000 });
+  const epicName = useMemo(() => new Map((epics.data?.items ?? []).map((epic) => [epic.id, epic.title])), [epics.data]);
+  const people = usePeopleNames(swim === "assignee");
 
   /** Cards whose move is written and not yet confirmed, so they stay marked. */
   const [pending, setPending] = useState<string[]>([]);
@@ -145,7 +196,7 @@ export default function TasksBoardPage() {
 
   const laneQueries = useQueries({
     queries: lanes.map((lane) => ({
-      queryKey: ["task-lane", lane.status, term, filters],
+      queryKey: ["task-lane", lane.status, term, filters, perLane],
       queryFn: ({ signal }: { signal: AbortSignal }) =>
         explorerApi.query(
           {
@@ -154,7 +205,7 @@ export default function TasksBoardPage() {
             filters: { ...filters, status: lane.status },
             columns: COLUMNS,
             page: 1,
-            page_size: PER_LANE,
+            page_size: perLane,
             // The board's own, hand-made order (§18): what a drop wrote is
             // what a reload shows.
             sort: "board_position",
@@ -178,18 +229,25 @@ export default function TasksBoardPage() {
    * be adjusted here without lying about the rows nobody has loaded.
    */
   const move = useMutation({
-    mutationFn: ({ task, to, afterId, beforeId }: Move) =>
-      taskBoardApi.place(task.id, {
+    mutationFn: async ({ task, to, afterId, beforeId, field }: Move) => {
+      const placed = await taskBoardApi.place(task.id, {
         status: to,
         after_id: afterId,
         before_id: beforeId,
         expected_updated_at: task.updated_at ?? null,
-      }),
-    onMutate: async ({ task, to, index }) => {
+      });
+      if (!field) return placed;
+      const saved = await recordsApi.update("task", task.id, {
+        [field.name]: field.value,
+        expected_updated_at: placed.updated_at,
+      });
+      return { ...placed, updated_at: saved.updated_at };
+    },
+    onMutate: async ({ task, to, index, field }) => {
       setPending((current) => [...current, task.id]);
       await queryClient.cancelQueries({ queryKey: ["task-lane"] });
-      const fromKey = ["task-lane", task.status ?? "", term, filters];
-      const toKey = ["task-lane", to, term, filters];
+      const fromKey = ["task-lane", task.status ?? "", term, filters, perLane];
+      const toKey = ["task-lane", to, term, filters, perLane];
       const previous = [
         [fromKey, queryClient.getQueryData(fromKey)],
         [toKey, queryClient.getQueryData(toKey)],
@@ -199,7 +257,7 @@ export default function TasksBoardPage() {
       // left alone deliberately — see above.
       queryClient.setQueryData(fromKey, (current: unknown) => withoutTask(current, task.id));
       queryClient.setQueryData(toKey, (current: unknown) =>
-        withTask(current, { ...task, status: to }, index),
+        withTask(current, { ...task, status: to, ...(field ? { [field.name]: field.value } : {}) }, index),
       );
       return { previous };
     },
@@ -263,36 +321,79 @@ export default function TasksBoardPage() {
   const byId = new Map(laneRows.flat().map((task) => [task.id, task]));
   const laneIds = lanes.map((lane) => lane.status);
 
+  /**
+   * Swimlanes (§18): each status lane is split by assignee, priority or epic.
+   * A drag lane is then `swimlane|status`, and a drop into another swimlane
+   * also writes the field the swimlanes are drawn by.
+   */
+  const swimLabel = (key: string) =>
+    swim === "assignee"
+      ? key ? people.data?.get(key)?.name ?? "Someone" : "Unassigned"
+      : swim === "epic"
+        ? key ? epicName.get(key) ?? "An epic" : "No epic"
+        : swim === "priority"
+          ? humanStatus(key || "NORMAL")
+          : "";
+  const swimKeys = swimlaneOrder(
+    laneRows.flat().map((task) => swimOf(task as Record<string, unknown>, swim)),
+    swim,
+    swimLabel,
+  );
+  if (swimKeys.length === 0) swimKeys.push(swim === "none" ? "all" : "");
+  // Without swimlanes a drag lane is just its status, as it always was.
+  const keyFor = (swimKey: string, status: string) => (swim === "none" ? status : laneKey(swimKey, status));
+  const dragLanes = swimKeys.flatMap((key) => laneIds.map((status) => keyFor(key, status)));
+  const rowsIn = (lane: string) => {
+    const { swim: key, status } = parseLane(lane);
+    return (laneRows[laneIds.indexOf(status)] ?? []).filter(
+      (task) => swim === "none" || swimOf(task as Record<string, unknown>, swim) === key,
+    );
+  };
+
   /** The neighbours a card would have at `index` of `lane`, counted without it. */
   const neighbours = (lane: string, index: number, id: string) => {
-    const rows = (laneRows[laneIds.indexOf(lane)] ?? []).filter((row) => row.id !== id);
+    const rows = rowsIn(lane).filter((row) => row.id !== id);
     return { afterId: rows[index - 1]?.id ?? null, beforeId: rows[index]?.id ?? null };
   };
 
   const board = useBoardDrag({
     enabled: canEdit,
-    lanes: laneIds,
-    items: (lane) => (laneRows[laneIds.indexOf(lane)] ?? []).map((task) => task.id),
+    lanes: dragLanes,
+    items: (lane) => rowsIn(lane).map((task) => task.id),
     // The lanes are arranged by hand, so a card lands exactly where the gap
     // was open: between any two cards, at the top, at the bottom, in its own
     // lane or another one.
     onDrop: (id, from, to: DropTarget) => {
       const task = byId.get(id);
       if (!task || !canEdit) return;
-      const origin = Math.max(0, (laneRows[laneIds.indexOf(from)] ?? []).findIndex((row) => row.id === id));
+      const origin = Math.max(0, rowsIn(from).findIndex((row) => row.id === id));
+      const target = parseLane(to.lane);
+      const source = parseLane(from);
+      const field =
+        swim !== "none" && target.swim !== source.swim
+          ? { name: SWIMLANE_FIELD[swim], value: target.swim || null }
+          : undefined;
+      // The index is within the swimlane; the cache holds the whole status lane.
+      const before = neighbours(to.lane, to.index, id).beforeId;
+      const statusRows = (laneRows[laneIds.indexOf(target.status)] ?? []).filter((row) => row.id !== id);
+      const at = before ? Math.max(0, statusRows.findIndex((row) => row.id === before)) : statusRows.length;
       move.mutate({
         task,
-        to: to.lane,
-        index: to.index,
+        to: target.status,
+        index: swim === "none" ? to.index : at,
+        field,
         ...neighbours(to.lane, to.index, id),
-        undo: { to: from, index: origin, ...neighbours(from, origin, id) },
+        undo: field ? undefined : { to: source.status, index: origin, ...neighbours(from, origin, id) },
       });
     },
     describe: (id) => {
       const task = byId.get(id);
       return [task?.reference, task?.title].filter(Boolean).join(" ") || "the card";
     },
-    laneName: (lane) => laneName(lane),
+    laneName: (lane) => {
+      const { swim: key, status } = parseLane(lane);
+      return swim === "none" ? laneName(status) : `${laneName(status)} in ${swimLabel(key)}`;
+    },
   });
   const carried = board.drag;
 
@@ -315,7 +416,22 @@ export default function TasksBoardPage() {
       keywords: "list grid columns",
       run: () => navigate("/explore?resource=task"),
     },
+    {
+      id: "task.template",
+      label: "Create a task from a template",
+      keywords: "new template checklist",
+      run: () => setTemplating(true),
+    },
+    {
+      id: "task.swim-assignee",
+      label: "Split the board into swimlanes by assignee",
+      keywords: "swimlane group person",
+      run: () => view.set({ swim: "assignee" }),
+    },
   ]);
+
+  useBoardShortcuts({ onCreate: records.create, onHelp: () => setHelping(true) });
+  const settingFor = (status: string) => laneSettings.data?.items.find((item) => item.status === status);
 
   if (view.catalogue.isLoading) return <Skeleton active paragraph={{ rows: 8 }} />;
 
@@ -327,6 +443,9 @@ export default function TasksBoardPage() {
         actions={
           <>
             <NewRecordButton records={records} resource={resource} />
+            <Button icon={<PlanIcon name="template" size={16} />} onClick={() => setTemplating(true)} data-testid="task-from-template">
+              From template
+            </Button>
             <Button icon={<TableOutlined />} onClick={() => navigate("/explore?resource=task")}>
               As a table
             </Button>
@@ -336,6 +455,57 @@ export default function TasksBoardPage() {
 
       <MetricStrip view={view} accents={["accent", "info", "neutral", "success"]} />
       <EntityFilters view={view} only={["priority", "kind"]} />
+      <div className="nx-pl-toolbar" data-testid="board-toolbar">
+        <Segmented
+          aria-label="View"
+          value="board"
+          onChange={(value) => value !== "board" && navigate(`/${String(value)}`)}
+          options={[
+            { value: "board", label: "Board" },
+            { value: "timeline", label: "Timeline" },
+            { value: "sprints", label: "Sprints" },
+          ]}
+        />
+        <Select
+          aria-label="Swimlanes"
+          data-testid="board-swimlanes"
+          style={{ minWidth: 160 }}
+          value={swim}
+          onChange={(value: Swimlane) => view.set({ swim: value === "none" ? null : value })}
+          options={SWIMLANES}
+        />
+        <Select
+          allowClear
+          showSearch
+          optionFilterProp="label"
+          aria-label="Epic"
+          placeholder="Any epic"
+          style={{ minWidth: 180 }}
+          value={filters["epic_id"] || undefined}
+          onChange={(value: string | undefined) => setFilter("epic_id", value ?? null)}
+          options={(epics.data?.items ?? []).map((epic) => ({ value: epic.id, label: epic.title }))}
+        />
+        <Button
+          type={filters["assignee_id"] && filters["assignee_id"] === profile?.user.id ? "primary" : "default"}
+          onClick={() =>
+            setFilter("assignee_id", filters["assignee_id"] === profile?.user.id ? null : (profile?.user.id ?? null))
+          }
+          data-testid="board-mine"
+        >
+          Only mine
+        </Button>
+        <span className="nx-pl-spacer" />
+        {laneSettings.data?.can_manage && (
+          <Button onClick={() => setLimiting(true)} data-testid="board-wip">
+            Lane limits
+          </Button>
+        )}
+        <Tooltip title="Keyboard shortcuts (?)">
+          <Button aria-label="Keyboard shortcuts" onClick={() => setHelping(true)}>
+            ?
+          </Button>
+        </Tooltip>
+      </div>
       <EntityError view={view} />
 
       {!canEdit && (
@@ -376,23 +546,34 @@ export default function TasksBoardPage() {
           </span>
         </div>
       )}
+      {swimKeys.map((swimKey, swimIndex) => (
+      <div key={swimKey || "none"} className={swim === "none" ? undefined : "nx-pl-swimlane"} data-testid={swim === "none" ? undefined : `swimlane-${swimKey || "none"}`}>
+      {swim !== "none" && (
+        <div className="nx-pl-swimlane-head">
+          <span>{swimLabel(swimKey)}</span>
+          <span className="nx-pl-count">
+            {laneIds.reduce((sum, status) => sum + rowsIn(keyFor(swimKey, status)).length, 0)}
+          </span>
+        </div>
+      )}
       <div
         className={`nu-board nx-rec-board${carried ? " is-dragging" : ""}`}
-        data-testid="task-board"
+        data-testid={swimIndex === 0 ? "task-board" : undefined}
         data-drag-scroll
       >
         {lanes.map((lane, index) => {
+          const key = keyFor(swimKey, lane.status);
           const query = laneQueries[index];
-          const items = laneRows[index] ?? [];
+          const items = rowsIn(key);
           const total = query?.data?.total ?? lane.total;
-          const drop = board.laneProps(lane.status);
-          const targeted = carried?.over.lane === lane.status;
+          const drop = board.laneProps(key);
+          const targeted = carried?.over.lane === key;
           // Dropping a card back where it came from changes nothing, and a
           // lane that lights up promising a move it will not make is worse
           // than one that stays quiet.
           const isSource =
-            targeted && carried.from === lane.status && carried.over.index === carried.origin;
-          const reorder = targeted && carried.from === lane.status && !isSource;
+            targeted && carried.from === key && carried.over.index === carried.origin;
+          const reorder = targeted && carried.from === key && !isSource;
 
           return (
             <section
@@ -401,8 +582,8 @@ export default function TasksBoardPage() {
                 targeted ? (isSource ? " nu-lane-source" : " nu-lane-over") : ""
               }`}
               data-drop-lane={drop["data-drop-lane"]}
-              aria-label={lane.status}
-              data-testid={`lane-${lane.status}`}
+              aria-label={swim === "none" ? lane.status : `${lane.status} · ${swimLabel(swimKey)}`}
+              data-testid={swim === "none" ? `lane-${lane.status}` : `lane-${swimKey || "none"}-${lane.status}`}
             >
               <header className="nu-lane-head">
                 <span
@@ -419,21 +600,27 @@ export default function TasksBoardPage() {
                     {isSource ? "back where it was" : reorder ? "↕ new place" : `→ ${laneName(lane.status)}`}
                   </span>
                 ) : (
-                  <span className="nu-lane-count">{total.toLocaleString()}</span>
+                  <>
+                    {settingFor(lane.status)?.wip_limit ? (
+                      <WipBadge count={total} setting={settingFor(lane.status)} />
+                    ) : (
+                      <span className="nu-lane-count">{swim === "none" ? total.toLocaleString() : items.length}</span>
+                    )}
+                  </>
                 )}
               </header>
 
               {query?.isLoading ? (
                 <Skeleton active title={false} paragraph={{ rows: 4 }} />
               ) : (
-                <ul className="nu-lane-cards" data-drop-list={lane.status}>
+                <ul className="nu-lane-cards" data-drop-list={key}>
                   {items.length === 0 && !targeted ? (
                     <li className="nx-rec-lane-empty">
                       <EmptyState compact title="Nothing here" />
                     </li>
                   ) : (
                     board.renderLane(
-                      lane.status,
+                      key,
                       items,
                       (task) => task.id,
                       (task) => (
@@ -441,7 +628,8 @@ export default function TasksBoardPage() {
                           <TaskCard
                             task={task}
                             lane={lane.status}
-                            drag={board.cardProps(task.id, lane.status)}
+                            drag={board.cardProps(task.id, key)}
+                            epicName={task.epic_id ? epicName.get(task.epic_id) : undefined}
                             saving={pending.includes(task.id)}
                             records={records}
                             onOpen={() => navigate(`/tasks/${task.id}`)}
@@ -460,7 +648,7 @@ export default function TasksBoardPage() {
                 </ul>
               )}
 
-              {total > items.length && (
+              {swim === "none" && total > items.length && (
                 <Button
                   type="text"
                   block
@@ -470,20 +658,26 @@ export default function TasksBoardPage() {
                   All {total.toLocaleString()} in this lane
                 </Button>
               )}
-              {index === 0 && records.canCreate && (
-                <button type="button" className="nx-rec-lane-new" onClick={records.create}>
-                  <PlusOutlined /> New task
-                </button>
+              {records.canCreate && (
+                <QuickCreate
+                  status={lane.status}
+                  extra={swim !== "none" && swimKey ? { [SWIMLANE_FIELD[swim]]: swimKey } : undefined}
+                />
               )}
             </section>
           );
         })}
       </div>
+      </div>
+      ))}
       {board.overlay}
       </>
       )}
 
       {records.drawer}
+      <TemplatePicker open={templating} onClose={() => setTemplating(false)} onCreated={(id) => navigate(`/tasks/${id}`)} />
+      <WipLimitsModal open={limiting} onClose={() => setLimiting(false)} />
+      <ShortcutsModal open={helping} onClose={() => setHelping(false)} />
     </>
   );
 }
@@ -503,7 +697,10 @@ function TaskCard({
   saving,
   records,
   onOpen,
+  epicName,
 }: {
+  /** The card's epic, named — a chip on the card (§18). */
+  epicName?: string;
   task: TaskRow;
   lane: string;
   drag: ReturnType<ReturnType<typeof useBoardDrag>["cardProps"]>;
@@ -521,6 +718,7 @@ function TaskCard({
       {...handlers}
       className={`nu-task-card nx-rec-card ${className}${saving ? " is-saving" : ""}`}
       data-testid={`task-card-${task.reference ?? task.id}`}
+      data-board-card
       aria-label={`${task.reference ?? ""} ${task.title ?? ""}`.trim()}
       onClick={onOpen}
       onKeyDown={(event) => {
@@ -530,9 +728,13 @@ function TaskCard({
         }
       }}
     >
+      {task.cover_color && (
+        <span className="nx-pl-cover" style={{ ["--nx-pl-tone" as string]: task.cover_color }} aria-hidden />
+      )}
       <div className="nx-rec-card-top">
         <StatusTag status={task.priority} />
         <span className="nu-task-ref">{task.reference}</span>
+        <AgeDots since={task.status_changed_at} closed={lane === "DONE" || lane === "CANCELLED"} />
         <span className="nx-rec-spacer" />
         <span onClick={(event) => event.stopPropagation()} data-no-drag>
           <RecordActions
@@ -543,6 +745,7 @@ function TaskCard({
         </span>
       </div>
       <span className="nu-task-title">{task.title}</span>
+      <CardBadges task={task} epicName={epicName} />
       <span
         className="nx-rec-card-bar"
         role="img"
