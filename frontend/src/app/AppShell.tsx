@@ -318,8 +318,11 @@ export function AppShell() {
         const closed = showLabels && closedGroups.includes(group.key);
         return (
           <div key={group.key} className="nx-group" role="group" aria-label={group.label}>
+            {/* A menuitem rather than a button: inside role="menu" only menu
+                roles are allowed, and axe failed every page on it. */}
             <button
               type="button"
+              role="menuitem"
               className="nx-grouphead"
               aria-expanded={!closed}
               onClick={() => toggleGroup(group.key)}

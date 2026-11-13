@@ -715,7 +715,15 @@
 .nu-bell-tab span { font-size: 11px; font-weight: 600; opacity: 0.75; }
 .nu-bell-tab:hover { color: var(--nu-text); }
 .nu-bell-tab.is-on { background: var(--nu-text); color: var(--nu-on-ink); }
-.nu-bell-li { position: relative; }
+/* The row is the card — its verbs sit inside it, not hanging under the next
+   one. `flex-shrink: 0` because the list is a scrolling flex column: without
+   it the rows were squeezed to fit 440px and their buttons overlapped the
+   row below (audit A). */
+.nu-bell-li { position: relative; flex-shrink: 0; border-radius: 22px; }
+.nu-bell-li:has(.nu-bell-item--unread) { background: rgba(var(--nu-glow-rgb), 0.07); }
+.nu-bell-li:has(.nu-bell-actions) .nu-bell-item--unread { background: transparent; }
+.nu-bell-li:hover { background: var(--nu-raised); }
+.nu-bell-li:hover .nu-bell-item { background: transparent; }
 .nu-bell-actions { display: flex; gap: 6px; padding: 0 12px 10px 62px; margin-top: -6px; }
 .nu-bell-actions .ant-btn { height: 30px; padding-inline: 14px; border-radius: 15px; font-size: 12.5px; }
 .nu-bell-actions .ant-btn-default { background: rgba(var(--nu-ink-rgb), 0.07); border-color: transparent; }
@@ -807,3 +815,14 @@
 .nx-ov-quiet > .nx-fd-eyebrow { margin-right: 4px; }
 .nu-alert-strip.ant-card { margin-bottom: 12px !important; }
 .nu-alert-strip.ant-card .ant-card-body { padding: 10px 16px; }
+
+/* Layout shift on /home (audit A, CLS 0.11): the strip's skeleton was one
+   line where the cards it becomes are ~100px, and the brief's three lines where
+   a brief is usually five items — so everything under them jumped as they
+   resolved. Reserve roughly the size they settle at. */
+.nx-ov-home [data-testid="waiting"][data-settled="no"] { min-height: 100px; }
+.nx-ai-brief .ant-skeleton { min-height: 280px; }
+/* A date in a card's footer never breaks across two lines ("2026-\n09-30");
+   the tags beside it wrap instead (audit A, report documents). */
+.nu-board-card .nu-board-foot { flex-wrap: wrap; row-gap: 6px; }
+.nu-board-card .nu-board-foot > .ant-typography { white-space: nowrap; }
