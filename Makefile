@@ -221,6 +221,16 @@ CACHE_ENV := TEST_REDIS_URL=redis://localhost:$${REDIS_PORT:-6380}/0
 test-backend-db: ## Backend tests including the ones that need PostgreSQL, MinIO and Redis
 	cd $(BACKEND) && TEST_DATABASE_URL=postgresql+psycopg2://platform:platform@localhost:$${POSTGRES_PORT:-5433}/platform $(STORAGE_ENV) $(CACHE_ENV) ../$(PY) -m pytest
 
+# The whole backend suite — unit, database, cache, storage, perf budgets and
+# chaos — with line *and* branch coverage, failing under 95% (`.coveragerc`).
+# One command, against the running stack's Postgres/Redis/MinIO; the suite
+# undoes exactly what it wrote (tests/undo_log.py), so the demo data survives.
+# See docs/testing/backend.md.
+.PHONY: test-backend-cov
+test-backend-cov: ## Every backend test with branch coverage; fails under 95%
+	cd $(BACKEND) && TEST_DATABASE_URL=postgresql+psycopg2://platform:platform@localhost:$${POSTGRES_PORT:-5433}/platform $(STORAGE_ENV) $(CACHE_ENV) \
+		../$(PY) -m pytest --cov=src --cov-report=term-missing:skip-covered --cov-report=html:htmlcov --cov-fail-under=95
+
 .PHONY: test-frontend
 test-frontend: ## Frontend unit and component tests
 	cd $(FRONTEND) && npm run test

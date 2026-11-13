@@ -146,3 +146,32 @@ def test_a_scratch_database_is_not_the_real_one():
     a = make_url("postgresql+psycopg2://u:p@localhost:5433/platform")
     assert _same_database(a, make_url("postgresql+psycopg2://x:y@localhost:5433/platform"))
     assert not _same_database(a, make_url("postgresql+psycopg2://u:p@localhost:5433/platform_scratch"))
+
+
+def test_a_flag_somebody_else_switched_off_does_not_switch_the_suite_off(client, monkeypatch):
+    """The live flags screen is somebody's to use; the suite reads every flag as shipped."""
+    from dataclasses import replace
+
+    from src.core import features
+    from tests.personas import PREFIX, sign_in
+
+    real = features._read_rows.source
+    monkeypatch.setattr(features._read_rows, "source",
+                        lambda: {key: replace(state, enabled=False) for key, state in real().items()})
+    features._snapshot = None
+    assert all(features.enabled_map(None).values())
+    headers = sign_in(monkeypatch, "admin")
+    assert client.get(f"{PREFIX}/api/mail/threads", headers=headers).status_code == 200
+
+
+def test_a_flag_the_test_itself_wrote_reads_as_stored():
+    """Its own flag row is the test's to switch — a new one here, so the live flags never blink."""
+    from src.core import features
+    from src.core.db import session_scope
+    from src.models.platform import FeatureFlag
+
+    key = f"cov-probe-{uuid.uuid4().hex[:6]}"
+    with session_scope() as session:
+        session.add(FeatureFlag(key=key, name="Probe", enabled=False, rollout_percentage=0))
+    features._snapshot = None
+    assert features.is_enabled(key) is False

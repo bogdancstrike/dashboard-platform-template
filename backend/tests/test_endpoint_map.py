@@ -171,7 +171,10 @@ def test_a_signed_link_is_the_credential_and_an_unsigned_one_is_not(
 
         # A tampered signature, a tampered key, an expired link, and no link
         # at all — each refused, and none with a 500.
-        assert client.get(f"{base}&expires={expires}&signature={signature[:-1]}0").status_code == 400
+        # Flipped, never set: a signature that already ended in "0" made the
+        # "tampered" one identical to the real one, once run in sixteen.
+        tampered = signature[:-1] + ("1" if signature[-1] == "0" else "0")
+        assert client.get(f"{base}&expires={expires}&signature={tampered}").status_code == 400
         assert client.get(
             f"{Config.API_PREFIX}/api/files/blob?key=probe/other.txt"
             f"&expires={expires}&signature={signature}"

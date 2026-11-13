@@ -153,6 +153,54 @@ def _remove_what_the_test_created(_undo_log):
         )
 
 
+@pytest.fixture(autouse=True)
+def _flags_as_shipped(_undo_log, monkeypatch):
+    """Every feature flag reads as on — unless this test changed it.
+
+    The flag gate (`core/features`) reads the shared database, where people
+    switch features off on purpose (that is what a flag is for, and the UI
+    audits toggle every one). A suite that obeyed those switches would fail
+    whenever somebody was using the flags screen. So a flag row this test did
+    not write reads as shipped — on, everyone, no targeting — and one it did
+    write (through the API, or by inserting it) reads exactly as stored. Tests
+    that drive the gate directly patch `features.snapshot` themselves.
+    """
+    if _undo_log is None:
+        yield
+        return
+    from dataclasses import fields, replace
+
+    from src.core import features
+    from tests.undo_log import LOG
+
+    real = features._read_rows
+
+    def as_shipped():
+        states = as_shipped.source()
+        window = LOG.current
+        touched = {key[0] for table, key in [*window.original, *window.inserted] if table == "feature_flags"}
+        mine: set[str] = set()
+        if touched:
+            from sqlalchemy import select
+
+            from src.core.db import session_scope
+            from src.models.platform import FeatureFlag
+
+            with session_scope() as session:
+                mine = set(session.scalars(select(FeatureFlag.key).where(
+                    FeatureFlag.id.in_([__import__("uuid").UUID(t) for t in touched]))))
+        names = {f.name for f in fields(next(iter(states.values())))} if states else set()
+        on = {"enabled": True, "rollout_percentage": 100}
+        on.update({name: () for name in names if name.startswith("target_")})
+        return {key: state if key in mine else replace(state, **on) for key, state in states.items()}
+
+    as_shipped.source = real  # what the database holds; a test may swap it
+    monkeypatch.setattr(features, "_read_rows", as_shipped)
+    monkeypatch.setattr(features, "_snapshot", None)
+    yield
+    features._snapshot = None
+
+
 #: The five seeded personas, by the names the realm and the seed give them.
 #:
 #: Test claims have to carry these. `core/auth._sync_user` trusts the identity
