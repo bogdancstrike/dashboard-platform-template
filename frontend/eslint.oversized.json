@@ -94,7 +94,6 @@
   "src/pages/decisions/TimePage.tsx",
   "src/pages/entities/ProjectDeliveryPage.tsx",
   "src/pages/entities/TaskDetailPage.tsx",
-  "src/pages/entities/TasksBoardPage.tsx",
   "src/pages/entities/TicketConsolePage.tsx",
   "src/pages/recordsAnalytics/AlertsPage.tsx",
   "src/pages/recordsAnalytics/ContractDetailPage.tsx",
