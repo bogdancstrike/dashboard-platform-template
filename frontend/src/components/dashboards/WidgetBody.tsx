@@ -22,6 +22,7 @@
  * fails quietly is a number somebody will quote.
  */
 
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, List, Skeleton, Table, Tag, Typography } from "antd";
 import { Link } from "react-router-dom";
@@ -106,6 +107,34 @@ const MODULE_BODIES: Partial<Record<DashboardWidget["kind"], (props: ModuleBodyP
   FAVORITES: FavoritesBody,
   CALENDAR: CalendarBody,
 };
+
+/**
+ * A chart as tall as the card has room for.
+ *
+ * Fixed heights (160, 130) were drawn into cards of any size, so a two-row
+ * card with a subtitle cut its donut in half and a gauge's tick labels landed
+ * on its own figure (audit A). The box is measured; the chart follows it,
+ * never shorter than `min`, and the old fixed height is the first guess.
+ */
+function Fit({ min = 90, guess, children }: { min?: number; guess: number; children: (height: number) => ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(guess);
+  useEffect(() => {
+    const box = ref.current;
+    if (!box || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => {
+      const next = Math.floor(entry?.contentRect.height ?? 0);
+      if (next > 0) setHeight(Math.max(min, next));
+    });
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, [min]);
+  return (
+    <div ref={ref} className="nu-widget-fit">
+      {children(height)}
+    </div>
+  );
+}
 
 export function WidgetBody({
   widget,
@@ -319,14 +348,18 @@ function MetricBody({ widget, gauge }: { widget: DashboardWidget; gauge: boolean
 
   if (gauge) {
     return (
-      <ChartPreview
-        panel={{
-          kind: "gauge",
-          title: metric.label,
-          series: [{ name: metric.label, value: metric.value }],
-        }}
-        height={130}
-      />
+      <Fit guess={130}>
+        {(height) => (
+          <ChartPreview
+            panel={{
+              kind: "gauge",
+              title: metric.label,
+              series: [{ name: metric.label, value: metric.value }],
+            }}
+            height={height}
+          />
+        )}
+      </Fit>
     );
   }
 
@@ -407,7 +440,7 @@ function ChartBody({
     return <EmptyState compact title="Nothing in this period" />;
   }
 
-  return <ChartPreview panel={panelFor(analysis.data, kind)} height={160} />;
+  return <Fit guess={160}>{(height) => <ChartPreview panel={panelFor(analysis.data, kind)} height={height} />}</Fit>;
 }
 
 /** The newest few records of a dataset, as a list or as a table. */
@@ -625,7 +658,7 @@ function ReportBody({ widget, period }: { widget: DashboardWidget; period: strin
     );
   }
 
-  return <ChartPreview panel={panelFor(run.data?.result, drawn)} height={160} />;
+  return <Fit guess={160}>{(height) => <ChartPreview panel={panelFor(run.data?.result, drawn)} height={height} />}</Fit>;
 }
 
 /**

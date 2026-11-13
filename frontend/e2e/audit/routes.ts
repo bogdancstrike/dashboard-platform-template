@@ -17,7 +17,7 @@ export const ROUTES: AuditRoute[] = [
   { name: "home", path: "/home" },
   { name: "dashboard", path: "/dashboard" },
   { name: "dashboards", path: "/dashboards" },
-  { name: "dashboard-view", from: "/dashboards", link: /^\/dashboards\/[0-9a-f-]{36}$/, click: "[data-testid^='board-card-'] h3, [data-testid^='board-card-']" },
+  { name: "dashboard-view", from: "/dashboards", link: /^\/dashboards\?dashboard=[0-9a-f-]{36}$/, click: "[data-testid^='board-card-'] h3, [data-testid^='board-card-']" },
   { name: "activity", path: "/activity" },
   { name: "notifications", path: "/notifications" },
   { name: "announcements", path: "/announcements" },
@@ -77,7 +77,9 @@ export async function resolve(page: Page, route: AuditRoute): Promise<string | n
   const card = page.locator(route.click).first();
   if (!(await card.count().catch(() => 0))) return null;
   await card.click({ timeout: 10_000 }).catch(() => undefined);
-  await page.waitForURL((url) => route.link.test(url.pathname), { timeout: 15_000 }).catch(() => undefined);
-  const path = new URL(page.url()).pathname;
+  // Pathname and query: a dashboard opens at /dashboards?dashboard=<id>.
+  await page.waitForURL((url) => route.link.test(url.pathname + url.search), { timeout: 15_000 }).catch(() => undefined);
+  const here = new URL(page.url());
+  const path = here.pathname + here.search;
   return route.link.test(path) ? path : null;
 }

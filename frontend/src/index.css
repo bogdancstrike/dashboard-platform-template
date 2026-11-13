@@ -3666,3 +3666,13 @@ p a:not(.ant-btn),
 }
 .nu-show-role .ant-typography:last-child { font-size: 12px; }
 .nu-show-rule { margin: 12px 0 0 !important; font-size: 12.5px; }
+
+/* A chart in a widget fills what the card leaves it (audit A): the scroll
+   region is a column, and the fitting box takes all of it. */
+.nu-widget-scroll { display: flex; flex-direction: column; }
+.nu-widget-fit { flex: 1 1 auto; min-height: 0; height: 100%; overflow: hidden; }
+/* A one-row card has room for its title and its number, not a subtitle too:
+   the number was cut in half under "vs previous period". */
+.nu-widget[data-rows="1"] .nu-widget-subtitle { display: none; }
+.nx-ov-rgl .nu-widget[data-rows="1"] .nu-widget-card > .ant-card-head { padding-top: 10px; min-height: 38px; }
+.nx-ov-rgl .nu-widget[data-rows="1"] .nu-widget-card > .ant-card-body { padding-top: 0; padding-bottom: 8px; }
