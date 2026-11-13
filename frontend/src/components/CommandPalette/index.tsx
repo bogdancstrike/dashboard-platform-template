@@ -1,47 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Command } from "cmdk";
-import {
-  BgColorsOutlined,
-  ColumnHeightOutlined,
-  MoonOutlined,
-  FileSearchOutlined,
-  SearchOutlined,
-  SunOutlined,
-  ThunderboltOutlined,
-} from "@ant-design/icons";
+import { FileSearchOutlined, SearchOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import { searchApi, type GlobalHit } from "@/api/search";
 import { FEATURES, navItemFlag, useFeatures } from "@/settings/features";
 import { NAV_GROUPS, NAV_ITEMS, selectedKeyFor } from "@/app/navigation";
 import { useAuth } from "@/auth/AuthProvider";
-import { useCommands, type PageCommand } from "@/commands/CommandContext";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import { RECORD_PAGES } from "@/app/records";
-import { useAppearance } from "@/theme/AppearanceProvider";
-import type { Density } from "@/theme/tokens";
-import { queryKeys } from "@/lib/queryKeys";
+import { useCommands } from "@/commands/CommandContext";
 
-//: Two letters before the server is asked. One matches most of a database,
-//: and the answer would be discarded by the next keystroke.
-const MIN_RECORD_TERM = 2;
+import { recordAddress } from "./palette";
 
-/**
- * Where selecting a record goes.
- *
- * Its own page when this dataset has one, and the explorer narrowed to it when
- * it does not — `/files` and `/admin/users` list records the router serves no
- * detail route for, and sending somebody to a 404 is worse than sending them
- * to a filtered list.
- */
-export function recordAddress(hit: GlobalHit, path: string): string {
-  if (RECORD_PAGES.has(hit.resource_type)) return `${path}/${hit.id}`;
-  return `/explore?resource=${hit.resource_type}&f.id=${hit.id}`;
-}
+import { useRecordHits, useSettingsCommands } from "./paletteHooks";
 
-export const isMacPlatform =
-  typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+export { CommandTrigger } from "./CommandTrigger";
+export { isMacPlatform, recordAddress } from "./palette";
 
 /**
  * The command palette (§31) — fast search and fast actions, on `cmdk`.
@@ -70,7 +42,6 @@ export function CommandPalette() {
   const { open, setOpen, commands } = useCommands();
   const navigate = useNavigate();
   const location = useLocation();
-  const { appearance, mode, density, setAppearance, setDensity } = useAppearance();
   const { can } = useAuth();
   const features = useFeatures();
   const [query, setQuery] = useState("");
@@ -86,63 +57,14 @@ export function CommandPalette() {
     run();
   };
 
-  /**
-   * Matching records, from the server, while the palette is open.
-   *
-   * Debounced and gated on two characters: one letter matches most of the
-   * database and the request would be thrown away by the next keystroke
-   * anyway. Disabled while the palette is closed, so a page with the provider
-   * mounted costs nothing.
-   */
-  const term = useDebouncedValue(query.trim(), 200);
-  const hits = useQuery({
-    queryKey: queryKeys.paletteSearch(term),
-    queryFn: ({ signal }) => searchApi.global(term, signal),
-    enabled: open && term.length >= MIN_RECORD_TERM && features(FEATURES.globalSearch),
-    placeholderData: (previous) => previous,
-    staleTime: 15_000,
-  });
-  const records = useMemo(
-    () =>
-      (hits.data?.groups ?? []).flatMap((group) =>
-        group.items.map((hit) => ({ hit, path: group.path, dataset: group.label })),
-      ),
-    [hits.data],
-  );
+  const { records, hits, term } = useRecordHits(open, query);
 
   const currentLabel = useMemo(() => {
     const key = selectedKeyFor(location.pathname);
     return NAV_ITEMS.find((item) => item.key === key)?.label ?? "this page";
   }, [location.pathname]);
 
-  const settingsCommands: PageCommand[] = useMemo(
-    () => [
-      {
-        id: "theme",
-        label: mode === "dark" ? "Switch to the light theme" : "Switch to the dark theme",
-        icon: mode === "dark" ? <SunOutlined /> : <MoonOutlined />,
-        keywords: "appearance dark light colour color theme",
-        run: () => setAppearance(mode === "dark" ? "light" : "dark"),
-      },
-      {
-        id: "theme-system",
-        label: "Follow the system theme",
-        icon: <BgColorsOutlined />,
-        keywords: "appearance auto os system",
-        run: () => setAppearance("system"),
-      },
-      ...(["compact", "middle", "comfortable"] as Density[])
-        .filter((option) => option !== density)
-        .map((option) => ({
-          id: `density-${option}`,
-          label: `Use ${option} density`,
-          icon: <ColumnHeightOutlined />,
-          keywords: "density rows spacing size table",
-          run: () => setDensity(option),
-        })),
-    ],
-    [mode, density, setAppearance, setDensity, appearance],
-  );
+  const settingsCommands = useSettingsCommands();
 
   return (
     <Command.Dialog
@@ -277,32 +199,5 @@ export function CommandPalette() {
         <span className="nx-fd-push">Commands for this page come first</span>
       </div>
     </Command.Dialog>
-  );
-}
-
-/** The sidebar trigger, under the logo (§31). */
-export function CommandTrigger({ collapsed }: { collapsed: boolean }) {
-  const { setOpen } = useCommands();
-  const chord = `${isMacPlatform ? "⌘" : "Ctrl"} K`;
-
-  return (
-    <div className={`nu-fast${collapsed ? " nu-fast--collapsed" : ""}`}>
-      {!collapsed && <div className="nu-fast-heading">Fast actions</div>}
-      <button
-        type="button"
-        className="nu-fast-trigger"
-        onClick={() => setOpen(true)}
-        aria-label={`Open the command palette (${chord})`}
-        title={`Command palette · ${chord}`}
-      >
-        <SearchOutlined />
-        {!collapsed && (
-          <>
-            <span className="nu-fast-label">Search or jump to…</span>
-            <kbd>{chord}</kbd>
-          </>
-        )}
-      </button>
-    </div>
   );
 }

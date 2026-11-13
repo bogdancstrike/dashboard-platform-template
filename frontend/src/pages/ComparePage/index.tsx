@@ -26,46 +26,25 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Button, Card, Segmented, Skeleton, Space, Table, Typography } from "antd";
-import type { ColumnsType } from "antd/es/table";
 import { Link, useSearchParams } from "react-router-dom";
 import { useSmartBack } from "@/app/history";
 
-import type { ComparedField, Comparison } from "@/api/compare";
+import type { ComparedField } from "@/api/compare";
 import { compareApi } from "@/api/compare";
 import { ApiError } from "@/api/client";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
-import { humanStatus, StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
-import { asText } from "@/lib/text";
 import { formatNumber } from "@/lib/formats";
 import { queryKeys } from "@/lib/queryKeys";
 
+import { idsFrom, summarise } from "./compare";
+
+import { compareColumns } from "./columns";
+
+export { idsFrom, summarise } from "./compare";
+
 const { Text } = Typography;
-
-/** What the reader is looking at, in one sentence. */
-export function summarise(comparison: Comparison | undefined): string {
-  if (!comparison) return "";
-  const { records, differing, same } = comparison;
-  if (differing === 0) {
-    return `${records.length} ${comparison.resource_label.toLowerCase()} — identical in all ${same} fields`;
-  }
-  return `${records.length} ${comparison.resource_label.toLowerCase()} · ${differing} field${
-    differing === 1 ? "" : "s"
-  } differ · ${same} the same`;
-}
-
-/** The ids to compare, from the address. Order is the reader's. */
-export function idsFrom(raw: string | null): string[] {
-  return [
-    ...new Set(
-      (raw ?? "")
-        .split(",")
-        .map((piece) => piece.trim())
-        .filter(Boolean),
-    ),
-  ];
-}
 
 export default function ComparePage() {
   const back = useSmartBack();
@@ -122,48 +101,7 @@ export default function ComparePage() {
     [comparison, show],
   );
 
-  const columns: ColumnsType<ComparedField> = useMemo(() => {
-    if (!comparison) return [];
-    return [
-      {
-        title: "Field",
-        dataIndex: "label",
-        width: 190,
-        render: (label: string, field) => (
-          <Space size={6}>
-            <Text strong={field.differs}>{label}</Text>
-            {/* A marker as well as the colour: colour alone is not a signal
-                (§64), and this is the only thing distinguishing the rows a
-                reader came here to find. */}
-            {field.differs && (
-              <span className="nx-pill nx-pill--warn nx-pill--sm" title="These records disagree about this field">
-                differs
-              </span>
-            )}
-          </Space>
-        ),
-      },
-      ...comparison.records.map((record, index) => ({
-        title: (
-          <Link to={record.path}>
-            {record.title}
-            {record.status ? <StatusTag status={record.status} /> : null}
-          </Link>
-        ),
-        key: record.id,
-        render: (_: unknown, field: ComparedField) => {
-          const value = field.values[index];
-          return value === null || value === "" || value === undefined ? (
-            <Text type="secondary">—</Text>
-          ) : (
-            <span className={field.differs ? "nx-rec-differs" : undefined}>
-              {readable(value, field.kind)}
-            </span>
-          );
-        },
-      })),
-    ];
-  }, [comparison]);
+  const columns = useMemo(() => compareColumns(comparison), [comparison]);
 
   if (!resourceType || ids.length < 2) {
     return (
@@ -278,20 +216,4 @@ export default function ComparePage() {
       )}
     </>
   );
-}
-
-/**
- * A compared value as a person reads it: a date rather than an ISO stamp, a
- * number with its separators, a vocabulary value in words. The raw value is
- * what the server compared; this is only how it is shown.
- */
-function readable(value: unknown, kind: string): string {
-  const text = asText(value);
-  if (kind === "datetime" || kind === "date") {
-    const when = new Date(text);
-    return Number.isNaN(when.getTime()) ? text : when.toLocaleDateString();
-  }
-  if (kind === "number" && typeof value === "number") return value.toLocaleString();
-  if (kind === "enum") return humanStatus(text);
-  return text;
 }
