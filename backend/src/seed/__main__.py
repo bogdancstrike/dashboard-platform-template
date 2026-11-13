@@ -31,6 +31,7 @@
     python -m src.seed --sync-assistant   # add the seeded assistant conversations that are missing
     python -m src.seed --sync-knowledge  # add the seeded document collections that are missing
     python -m src.seed --sync-dashboards # reset dashboard/widget periods the analysis engine cannot read
+    python -m src.seed --sync-report-documents # weekly/monthly report documents for the Report builder
     python -m src.seed --sync-insights   # add the seeded insights (and the dashboard widget) that are missing
     python -m src.seed --sync-planning   # sprints, epics, a timeline and templates for the work queue
     python -m src.seed --sync-analytics  # customer health, contracts, version histories, alerts, public links
@@ -143,6 +144,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-dashboards", action="store_true",
         help="reset dashboard and widget periods the analysis engine cannot read, and exit",
+    )
+    parser.add_argument(
+        "--sync-report-documents", action="store_true",
+        help="add the seeded report documents (Report builder) that are missing, and exit",
     )
     parser.add_argument(
         "--sync-insights", action="store_true",
@@ -489,6 +494,15 @@ def main(argv: list[str] | None = None) -> int:
         with session_scope() as session:
             result = dashboard_periods.sync(session)
         print(f"{result['dashboards']} dashboard periods and {result['widgets']} widget periods reset")
+        return 0
+
+    if args.sync_report_documents:
+        # Additive and by owner + name: a document already there is left alone.
+        from src.seed import report_documents as report_documents_seed
+
+        with session_scope() as session:
+            result = report_documents_seed.seed(session)
+        print(f"{result['documents']} report documents added")
         return 0
 
     if args.sync_insights:

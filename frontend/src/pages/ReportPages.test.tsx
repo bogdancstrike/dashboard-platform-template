@@ -301,7 +301,7 @@ describe("the report builder — a document, not a chart", () => {
     expect(within(paper).getByText("Orders")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByTestId("outline-b4")).toBeInTheDocument());
     // Including the chart, which is editable the way a hand-placed one is.
-    await user.click(screen.getByRole("button", { name: /order by channel/ }));
+    await user.click(screen.getByRole("button", { name: /Orders by channel/ }));
     expect(await screen.findByRole("combobox", { name: "Group by" })).toBeInTheDocument();
   });
 

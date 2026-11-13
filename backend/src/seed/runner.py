@@ -34,6 +34,7 @@ from src.seed import exports as export_files
 from src.seed import imports as import_runs
 from src.seed import assistant as assistant_seed
 from src.seed import insights as insights_seed
+from src.seed import report_documents as report_documents_seed
 from src.seed import knowledge as knowledge_seed
 from src.seed import planning as planning_seed
 from src.seed import records_analytics as analytics_seed
@@ -594,6 +595,7 @@ def run(
     assistant_seed.seed_safely(session)  # assistant conversations (§41)
     knowledge_seed.seed_safely(session)  # Ask your documents (§44)
     insights_seed.seed_safely(session)  # Insights (§43)
+    report_documents_seed.seed_safely(session)  # Report builder documents (§28)
     planning_seed.populate(session)  # sprints, epics, dependencies, templates (§18)
     analytics_seed.seed_safely(session)  # health, contracts, versions, alerts, links (§12–25)
     collab_seed.seed(session)  # chat, the wiki and meeting notes (§47–49)
