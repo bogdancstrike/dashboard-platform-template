@@ -37,7 +37,6 @@
   "src/components/workflows/NodeInspector.tsx",
   "src/components/workflows/WorkflowCanvas.tsx",
   "src/components/workflows/graph.ts",
-  "src/pages/AnnouncementsPage.tsx",
   "src/pages/AuditExplorerPage.tsx",
   "src/pages/CalendarPage.tsx",
   "src/pages/ChartBuilderPage.tsx",
