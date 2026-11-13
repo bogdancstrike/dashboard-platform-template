@@ -10,44 +10,32 @@ record and it is audited as one. Changing the vocabulary itself needs
 
 from __future__ import annotations
 
-from typing import Any
-
-from src.core.auth import json_body, me, requires
-from src.core.db import session_scope
+from src.api.handler import Call, endpoint
+from src.core.auth import requires
 from src.services import tags as service
 
 
 @requires()
-def collection(app=None, operation: str = "", request=None, **_: Any):
+@endpoint
+def collection(call: Call):
     """The vocabulary, or a new tag in it."""
-    method = (request.method if request is not None else "GET").upper()
-    with session_scope() as session:
-        if method == "POST":
-            return service.create(session, json_body(), principal=me()), 201
-        return service.vocabulary(session, principal=me()), 200
+    if call.method == "POST":
+        return call.run(service.create, call.body), 201
+    return call.run(service.vocabulary), 200
 
 
 @requires()
-def item(app=None, operation: str = "", request=None, tag_id: str = "", **kwargs: Any):
+@endpoint
+def item(call: Call, tag_id: str = ""):
     """Rename, recolour or remove one tag."""
-    identifier = tag_id or str(kwargs.get("tag_id") or "")
-    method = (request.method if request is not None else "GET").upper()
-    with session_scope() as session:
-        principal = me()
-        if method == "PUT":
-            return service.update(session, identifier, json_body(), principal=principal), 200
-        return service.remove(session, identifier, principal=principal), 200
+    if call.method == "PUT":
+        return call.run(service.update, tag_id, call.body), 200
+    return call.run(service.remove, tag_id), 200
 
 
 @requires("records.view")
-def on_record(
-    app=None,
-    operation: str = "",
-    request=None,
-    resource_type: str = "",
-    record_id: str = "",
-    **kwargs: Any,
-):
+@endpoint
+def on_record(call: Call, resource_type: str = "", record_id: str = ""):
     """The tags on one record, and setting them.
 
     `records.view` gates the handler because both verbs begin by reading the
@@ -55,11 +43,6 @@ def on_record(
     who may read but not edit is told which permission is missing rather than
     which route to use.
     """
-    kind = resource_type or str(kwargs.get("resource_type") or "")
-    identifier = record_id or str(kwargs.get("record_id") or "")
-    method = (request.method if request is not None else "GET").upper()
-    with session_scope() as session:
-        principal = me()
-        if method == "PUT":
-            return service.apply(session, kind, identifier, json_body(), principal=principal), 200
-        return service.on_record(session, kind, identifier, principal=principal), 200
+    if call.method == "PUT":
+        return call.run(service.apply, resource_type, record_id, call.body), 200
+    return call.run(service.on_record, resource_type, record_id), 200
