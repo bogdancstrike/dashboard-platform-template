@@ -44,6 +44,27 @@ interface Pending {
   error?: string;
 }
 
+/**
+ * The directory matches anywhere in a name; a mention picker should offer the
+ * people whose name *starts* with what was typed first — "@Mar" is Mara before
+ * it is Adrian from Marketing.
+ */
+export function rankPeople(people: Person[], query: string): Person[] {
+  const term = query.trim().toLowerCase();
+  const score = (person: Person) => {
+    const name = person.name.toLowerCase();
+    if (!term) return 2;
+    if (name.startsWith(term)) return 0;
+    if (name.split(/\s+/).some((word) => term.split(/\s+/).every((part) => word.startsWith(part)))) return 1;
+    return 2;
+  };
+  return people
+    .filter((person) => !person.is_me)
+    .map((person, index) => ({ person, index, rank: score(person) }))
+    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .map((entry) => entry.person);
+}
+
 /** The `@word` being typed just before the caret, if any. */
 export function mentionAt(text: string, caret: number): { start: number; query: string } | null {
   const before = text.slice(0, caret);
@@ -95,13 +116,15 @@ export function Composer({
   const active = mentionAt(text, caret);
   const term = useDebouncedValue(active?.query ?? "", 150);
   const people = useQuery({
-    queryKey: ["directory-people", term],
-    queryFn: ({ signal }) => directoryApi.people(term, signal),
+    queryKey: ["directory-people", term, "mention"],
+    // A wide net, ranked here: the directory sorts by name, so "@Mar" would
+    // otherwise fill its first page with Amaras before reaching Mara.
+    queryFn: ({ signal }) => directoryApi.people(term, signal, 50),
     enabled: active !== null,
     staleTime: 60_000,
   });
   const suggestions = useMemo(
-    () => (active ? (people.data?.items ?? []).filter((person) => !person.is_me).slice(0, 6) : []),
+    () => (active ? rankPeople(people.data?.items ?? [], active.query).slice(0, 6) : []),
     [active, people.data],
   );
 

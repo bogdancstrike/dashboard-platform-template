@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Route, Routes } from "react-router-dom";
 
 import { CommentThread } from "@/components/comments/CommentThread";
-import { Composer, mentionAt } from "@/components/collab/Composer";
+import { Composer, mentionAt, rankPeople } from "@/components/collab/Composer";
 import { dayLabel, typingText } from "@/components/collab/ConversationBits";
 import { chunks, MarkdownLite, renderInline } from "@/components/collab/MarkdownLite";
 import { AttachmentList, clockTime, initials } from "@/components/collab/MessageItem";
@@ -57,6 +57,14 @@ describe("markdown-lite", () => {
 });
 
 describe("small rules", () => {
+  it("offers people whose name starts with the term first", () => {
+    const person = (name: string, is_me = false) =>
+      ({ id: name, name, email: "", username: "", job_title: null, avatar_url: null, initials: "", is_me });
+    const ranked = rankPeople([person("Adrian Smart"), person("Lena Mara"), person("Mara Manager"), person("Me Mar", true)], "mar");
+    expect(ranked.map((item) => item.name)).toEqual(["Mara Manager", "Lena Mara", "Adrian Smart"]);
+    expect(rankPeople([person("B"), person("A")], "").map((item) => item.name)).toEqual(["B", "A"]);
+  });
+
   it("finds the mention being typed", () => {
     expect(mentionAt("hi @Ma", 6)).toEqual({ start: 3, query: "Ma" });
     expect(mentionAt("hi @Mara Ma", 11)).toEqual({ start: 3, query: "Mara Ma" });

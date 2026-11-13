@@ -28,6 +28,10 @@ export interface PeoplePage {
 }
 
 export const directoryApi = {
-  people: (query: string, signal?: AbortSignal) =>
-    api.get<PeoplePage>("/api/directory/people", { params: { q: query }, signal }),
+  /** `pageSize` up to the server's cap of 50 — a mention picker ranks a wider net itself. */
+  people: (query: string, signal?: AbortSignal, pageSize?: number) =>
+    api.get<PeoplePage>("/api/directory/people", {
+      params: pageSize ? { q: query, page_size: pageSize } : { q: query },
+      signal,
+    }),
 };
