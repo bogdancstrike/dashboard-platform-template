@@ -26,7 +26,26 @@ export const VIEWPORTS: Record<Device, { width: number; height: number }> = {
  * switching it through the UI would write the shared persona's preference for
  * every other spec. Rewriting the one response is the change nobody else sees.
  */
+/**
+ * Writes that change the platform for everybody, answered here and never sent.
+ *
+ * The stack is shared and live: a crawler that flips a flag switch, saves a
+ * setting or rotates a key changes it for every person signed in. These are
+ * refused with a local 200 whatever the harness clicks; the audit sees the
+ * page react, the platform does not.
+ */
+const PLATFORM_WRITES =
+  /\/platform\/api\/(settings|flags|feature-flags|roles|admin\/|sla|integrations|impersonat|onboarding\/sample|sample-data|api-clients|announcements\/[^/]+\/publish|forms\/[^/]+\/publish|jobs)/;
+
+export async function guardPlatformWrites(context: BrowserContext): Promise<void> {
+  await context.route(PLATFORM_WRITES, async (route) => {
+    if (route.request().method() === "GET") return route.continue();
+    return route.fulfill({ status: 200, json: {} });
+  });
+}
+
 export async function pinTheme(context: BrowserContext, theme: Theme): Promise<void> {
+  await guardPlatformWrites(context);
   await context.addInitScript((value) => {
     try {
       localStorage.setItem("nucleus.appearance", value);
