@@ -27,8 +27,6 @@
   "src/components/kanban/CardDrawer.tsx",
   "src/components/kanban/LaneColumn.tsx",
   "src/components/kanban/useBoardDrag.tsx",
-  "src/components/knowledge/AskPanel.tsx",
-  "src/components/knowledge/DocumentsPanel.tsx",
   "src/components/mail/Composer.tsx",
   "src/components/planning/BoardExtras.tsx",
   "src/components/planning/Gantt.tsx",
