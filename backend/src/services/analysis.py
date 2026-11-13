@@ -33,7 +33,7 @@ from typing import Any
 
 from sqlalchemy import Numeric, String, cast, func, select
 
-from src.core.clock import now
+from src.core.clock import now, resolve_range
 from src.core.errors import ValidationError
 from src.core.query import Field, apply_filters, count_of
 from src.core.rules import compile_tree
@@ -60,6 +60,21 @@ PERIODS: dict[str, int] = {
     "last_90_days": 90,
     "last_180_days": 180,
     "last_365_days": 365,
+}
+
+#: Calendar periods — the dashboard's period picker offers these beside the
+#: rolling ones (`services.dashboard.PERIODS`), and a widget that follows its
+#: dashboard hands the engine whatever was picked there. Rejecting them made
+#: every seeded "This month" dashboard draw its widgets as errors. Resolved by
+#: `core.clock.resolve_range`, the one place "this month" is defined, so the
+#: KPI header and the chart underneath it agree.
+CALENDAR_PERIODS: dict[str, str] = {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "current_month": "This month",
+    "previous_month": "Last month",
+    "current_year": "This year",
+    "previous_year": "Last year",
 }
 
 #: What a measure can do to a column, and how the result should be read.
@@ -159,6 +174,10 @@ def catalogue(*, principal) -> dict[str, Any]:
         "periods": [
             {"key": key, "label": _period_label(key), "days": days}
             for key, days in PERIODS.items()
+        ]
+        + [
+            {"key": key, "label": label, "days": _calendar_days(key)}
+            for key, label in CALENDAR_PERIODS.items()
         ],
     }
 
@@ -240,10 +259,14 @@ def period_window(period: Any) -> Window:
     if period in (None, "", "all_time"):
         return Window("all_time", None, None)
     if isinstance(period, str):
+        if period in CALENDAR_PERIODS:
+            start, end = resolve_range(period)
+            return Window(period, start, end)
         days = PERIODS.get(period)
         if days is None:
             raise ValidationError(
-                "Unknown period.", details={"period": period, "allowed": sorted(PERIODS)},
+                "Unknown period.",
+                details={"period": period, "allowed": sorted([*PERIODS, *CALENDAR_PERIODS])},
             )
         end = now()
         return Window(period, end - timedelta(days=days), end)
@@ -569,5 +592,19 @@ def _period_label(key: str) -> str:
         return "All time"
     if key == "custom":
         return "Custom range"
+    if key in CALENDAR_PERIODS:
+        return CALENDAR_PERIODS[key]
     days = PERIODS.get(key)
     return f"Last {days} days" if days else key.replace("_", " ")
+
+
+def _calendar_days(key: str) -> int:
+    """How many days a calendar period spans today, rounded up — for a client
+    that sizes a chart's axis by the period's length."""
+    start, end = resolve_range(key)
+    return max(1, -(-int((end - start).total_seconds()) // 86400))
+
+
+def known_period(period: Any) -> bool:
+    """Whether `period_window` would accept this — the repair's test."""
+    return period in (None, "", "all_time") or isinstance(period, dict) or period in PERIODS or period in CALENDAR_PERIODS

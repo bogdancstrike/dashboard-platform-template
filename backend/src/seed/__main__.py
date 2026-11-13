@@ -30,6 +30,7 @@
     python -m src.seed --sync-collab      # chat channels, a wiki and meeting notes, if missing
     python -m src.seed --sync-assistant   # add the seeded assistant conversations that are missing
     python -m src.seed --sync-knowledge  # add the seeded document collections that are missing
+    python -m src.seed --sync-dashboards # reset dashboard/widget periods the analysis engine cannot read
     python -m src.seed --sync-insights   # add the seeded insights (and the dashboard widget) that are missing
     python -m src.seed --sync-planning   # sprints, epics, a timeline and templates for the work queue
     python -m src.seed --sync-analytics  # customer health, contracts, version histories, alerts, public links
@@ -137,6 +138,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-reports", action="store_true",
         help="rewrite saved reports the analysis compiler would reject, and exit",
+    )
+    parser.add_argument(
+        "--sync-dashboards", action="store_true",
+        help="reset dashboard and widget periods the analysis engine cannot read, and exit",
     )
     parser.add_argument(
         "--sync-insights", action="store_true",
@@ -466,6 +471,14 @@ def main(argv: list[str] | None = None) -> int:
             if result["filled"]
             else "every account's preferences are already complete"
         )
+        return 0
+
+    if args.sync_dashboards:
+        from src.seed import dashboard_periods
+
+        with session_scope() as session:
+            result = dashboard_periods.sync(session)
+        print(f"{result['dashboards']} dashboard periods and {result['widgets']} widget periods reset")
         return 0
 
     if args.sync_insights:
