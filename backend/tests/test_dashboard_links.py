@@ -41,7 +41,7 @@ def _auth(monkeypatch, username: str = "admin", role: str = "administrator") -> 
 @pytest.fixture(autouse=True)
 def _fresh_limits(monkeypatch):
     service._local_counts.clear()
-    monkeypatch.setattr(cache, "incr", lambda *_a, **_k: 0)
+    patch_package(monkeypatch, cache, "incr", lambda *_a, **_k: 0)
 
 
 @pytest.fixture()

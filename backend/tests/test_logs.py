@@ -35,6 +35,7 @@ from src.core.db import session_scope
 from src.core.errors import ValidationError
 from src.services.platform import system_logs as service
 from tests.conftest import persona_claims
+from tests.patching import patch_package
 
 pytestmark = pytest.mark.database
 
@@ -178,7 +179,7 @@ def test_the_sink_never_turns_a_working_request_into_a_failure(client, monkeypat
     def explode(_row):
         raise RuntimeError("the logging table is on fire")
 
-    monkeypatch.setattr("src.core.logsink.record", explode)
+    patch_package(monkeypatch, logsink, "record", explode)
     answer = client.get(f"{PREFIX}/api/me", headers=headers)
     assert answer.status_code == 200
 

@@ -6,6 +6,7 @@ import pytest
 
 from src.config import Config
 from tests.conftest import persona_claims
+from tests.patching import patch_package
 
 PREFIX = Config.API_PREFIX
 
@@ -72,7 +73,7 @@ def test_readiness_does_not_fail_on_a_cache_that_is_not_there(
     from src.core import cache
 
     monkeypatch.setattr(Config, "CACHE_ENABLED", enabled)
-    monkeypatch.setattr(cache, "client", lambda: None)
+    patch_package(monkeypatch, cache, "client", lambda: None)
 
     response = client.get(f"{PREFIX}/health/ready")
     body = response.get_json()

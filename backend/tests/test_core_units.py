@@ -14,6 +14,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from tests.patching import patch_package
+
 # ── clock ────────────────────────────────────────────────────────────────
 
 
@@ -99,7 +101,7 @@ class _Broken:
 def broken_cache(monkeypatch):
     from src.core import cache
 
-    monkeypatch.setattr(cache, "client", lambda: _Broken())
+    patch_package(monkeypatch, cache, "client", lambda: _Broken())
     return cache
 
 
@@ -121,7 +123,7 @@ def test_a_broken_cache_reads_as_a_miss_and_writes_as_nothing(broken_cache):
 def test_no_cache_at_all_still_answers(monkeypatch):
     from src.core import cache
 
-    monkeypatch.setattr(cache, "client", lambda: None)
+    patch_package(monkeypatch, cache, "client", lambda: None)
     assert cache.generations() == {}
     assert cache.generations("a") == {"a": 0}
     assert cache.get_json("k") is None
@@ -139,8 +141,8 @@ def test_an_unreachable_redis_disables_the_cache_once(monkeypatch):
 
     monkeypatch.setattr(Config, "CACHE_ENABLED", True)
     monkeypatch.setattr(Config, "REDIS_URL", "redis://127.0.0.1:1/0")
-    monkeypatch.setattr(cache, "_client", None)
-    monkeypatch.setattr(cache, "_unavailable", False)
+    patch_package(monkeypatch, cache, "_client", None)
+    patch_package(monkeypatch, cache, "_unavailable", False)
     assert cache.client() is None
     assert cache._unavailable is True
     assert cache.client() is None
@@ -199,7 +201,7 @@ def test_a_working_cache_reads_through_bumps_and_invalidates(monkeypatch):
     from src.core import cache
 
     fake = _FakeRedis()
-    monkeypatch.setattr(cache, "client", lambda: fake)
+    patch_package(monkeypatch, cache, "client", lambda: fake)
 
     produced = []
     first = cache.aggregate("t", {"q": 1}, depends_on=("ticket",), producer=lambda: produced.append(1) or [1])
@@ -239,7 +241,7 @@ def live(monkeypatch):
 def test_a_message_reaches_every_open_tab_and_drops_closed_ones(live, monkeypatch):
     from src.core import cache
 
-    monkeypatch.setattr(cache, "client", lambda: None)
+    patch_package(monkeypatch, cache, "client", lambda: None)
     open_tab, other_tab, closed_tab = _Socket(), _Socket(), _Socket(fails=True)
     for socket in (open_tab, other_tab, closed_tab):
         live.subscribe("u1", socket)
@@ -261,7 +263,7 @@ def test_a_message_reaches_every_open_tab_and_drops_closed_ones(live, monkeypatc
 def test_a_failed_fan_out_still_delivers_locally(live, monkeypatch):
     from src.core import cache
 
-    monkeypatch.setattr(cache, "client", lambda: _Broken())
+    patch_package(monkeypatch, cache, "client", lambda: _Broken())
     socket = _Socket()
     live.subscribe("u2", socket)
     assert live.publish_to_user("u2", {"n": 1}) == 1
@@ -270,7 +272,7 @@ def test_a_failed_fan_out_still_delivers_locally(live, monkeypatch):
 def test_the_relay_needs_a_cache_and_starts_once(live, monkeypatch):
     from src.core import cache
 
-    monkeypatch.setattr(cache, "client", lambda: None)
+    patch_package(monkeypatch, cache, "client", lambda: None)
     assert live.start_relay() is False
 
     socket = _Socket()
@@ -284,7 +286,7 @@ def test_the_relay_needs_a_cache_and_starts_once(live, monkeypatch):
         def listen(self):
             yield message
 
-    monkeypatch.setattr(cache, "client", lambda: SimpleNamespace(pubsub=lambda **_: PubSub()))
+    patch_package(monkeypatch, cache, "client", lambda: SimpleNamespace(pubsub=lambda **_: PubSub()))
     started = []
 
     class InlineThread:

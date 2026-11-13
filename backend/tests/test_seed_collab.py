@@ -11,6 +11,8 @@ import pytest
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
+from tests.patching import patch_package
+
 pytestmark = pytest.mark.database
 
 
@@ -78,5 +80,5 @@ def test_the_seed_builds_everything_once(scratch):
 def test_without_people_there_is_nothing_to_seed(monkeypatch, scratch):
     from src.seed import collab
 
-    monkeypatch.setattr(collab, "_people", lambda session: ({}, []))
+    patch_package(monkeypatch, collab, "_people", lambda session: ({}, []))
     assert set(collab.seed(scratch).values()) == {0}

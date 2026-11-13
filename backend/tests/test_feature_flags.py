@@ -27,7 +27,7 @@ import pytest
 
 from src.api import endpoint_map
 from src.config import Config
-from src.core import features
+from src.core import cache, features
 from src.core.feature_catalogue import (
     CORE_ENDPOINTS,
     FEATURES,
@@ -301,7 +301,7 @@ def test_the_snapshot_is_cached_until_the_generation_moves(monkeypatch):
     reads: list[int] = []
     generation = {"value": 1}
     patch_package(monkeypatch, features, "_read_rows", lambda: reads.append(1) or {"k": _state("k")})
-    monkeypatch.setattr("src.core.cache.generations", lambda *names: {features.DATASET: generation["value"]})
+    patch_package(monkeypatch, cache, "generations", lambda *names: {features.DATASET: generation["value"]})
     patch_package(monkeypatch, features, "_snapshot", None)
 
     features.snapshot()
@@ -315,7 +315,7 @@ def test_the_snapshot_is_cached_until_the_generation_moves(monkeypatch):
 def test_the_snapshot_expires_after_the_local_ttl(monkeypatch):
     reads: list[int] = []
     patch_package(monkeypatch, features, "_read_rows", lambda: reads.append(1) or {})
-    monkeypatch.setattr("src.core.cache.generations", lambda *names: {features.DATASET: 0})
+    patch_package(monkeypatch, cache, "generations", lambda *names: {features.DATASET: 0})
     patch_package(monkeypatch, features, "_snapshot", None)
     features.snapshot()
     patch_package(monkeypatch, features, "_snapshot_at", features._snapshot_at - features.LOCAL_TTL - 1)
@@ -328,7 +328,7 @@ def test_an_unreachable_database_keeps_the_last_answer_or_gates_nothing(monkeypa
         raise RuntimeError("database is down")
 
     patch_package(monkeypatch, features, "_read_rows", down)
-    monkeypatch.setattr("src.core.cache.generations", lambda *names: {features.DATASET: 0})
+    patch_package(monkeypatch, cache, "generations", lambda *names: {features.DATASET: 0})
     patch_package(monkeypatch, features, "_snapshot", None)
     assert features.snapshot() == {}
     kept = {"k": _state("k", enabled=False)}
@@ -339,7 +339,7 @@ def test_an_unreachable_database_keeps_the_last_answer_or_gates_nothing(monkeypa
 
 def test_invalidate_drops_the_local_copy_and_bumps_the_generation(monkeypatch):
     bumped: list[str] = []
-    monkeypatch.setattr("src.core.cache.bump", lambda *names: bumped.extend(names))
+    patch_package(monkeypatch, cache, "bump", lambda *names: bumped.extend(names))
     patch_package(monkeypatch, features, "_snapshot", {"k": _state("k")})
     features.invalidate()
     assert features._snapshot is None

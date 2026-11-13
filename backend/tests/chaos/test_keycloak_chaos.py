@@ -21,10 +21,11 @@ import pytest
 import requests
 
 from src.config import Config
-from src.core import auth
+from src.core import auth, cache
 from src.core.auth import tokens
 from src.core.errors import UnauthorizedError
 from tests.chaos.conftest import Stopwatch
+from tests.patching import patch_package
 from tests.test_jwks import Realm
 
 
@@ -51,8 +52,8 @@ def keycloak(monkeypatch):
 
     monkeypatch.setattr(tokens.requests, "get", fetch)
     monkeypatch.setattr(tokens, "_jwks", tokens._JwksCache())
-    monkeypatch.setattr("src.core.cache.get_json", lambda _key: None)
-    monkeypatch.setattr("src.core.cache.set_json", lambda *_a, **_k: None)
+    patch_package(monkeypatch, cache, "get_json", lambda _key: None)
+    patch_package(monkeypatch, cache, "set_json", lambda *_a, **_k: None)
     return state
 
 

@@ -20,16 +20,17 @@ import pytest
 from src.config import Config
 from src.core import cache
 from tests.chaos.conftest import REFUSED_HOST, REFUSED_PORT, Stopwatch
+from tests.patching import patch_package
 
 
 @pytest.fixture()
 def fresh_cache(monkeypatch):
     """A cache module in its pristine state, with caching switched on."""
     monkeypatch.setattr(Config, "CACHE_ENABLED", True)
-    monkeypatch.setattr(cache, "_client", None)
-    monkeypatch.setattr(cache, "_unavailable", False)
-    monkeypatch.setattr(cache, "_retry_at", 0.0)
-    monkeypatch.setattr(cache, "_lost_bumps", set())
+    patch_package(monkeypatch, cache, "_client", None)
+    patch_package(monkeypatch, cache, "_unavailable", False)
+    patch_package(monkeypatch, cache, "_retry_at", 0.0)
+    patch_package(monkeypatch, cache, "_lost_bumps", set())
     clock = {"now": 1000.0}
     monkeypatch.setattr("time.monotonic", lambda: clock["now"])
     return clock
@@ -102,7 +103,7 @@ def test_refused_redis_is_a_miss_not_an_error(fresh_cache, monkeypatch):
 
 def test_a_hung_redis_costs_one_timeout_then_the_cache_steps_aside(fresh_cache, monkeypatch):
     hung = _HungRedis()
-    monkeypatch.setattr(cache, "_client", hung)
+    patch_package(monkeypatch, cache, "_client", hung)
     for _ in range(20):
         assert cache.get_json("k") is None
         cache.set_json("k", 1)
@@ -120,7 +121,7 @@ def test_a_non_connection_error_does_not_switch_the_cache_off(fresh_cache, monke
 
             raise ResponseError("WRONGTYPE Operation against a key holding the wrong kind of value")
 
-    monkeypatch.setattr(cache, "_client", _WrongType())
+    patch_package(monkeypatch, cache, "_client", _WrongType())
     assert cache.get_json("k") is None
     assert cache.client() is not None
 
@@ -154,7 +155,7 @@ def test_recovery_retires_aggregates_cached_before_the_outage(fresh_cache, monke
 
     store: dict[str, str] = {}
     good = _GoodRedis(store)
-    monkeypatch.setattr(cache, "_client", good)
+    patch_package(monkeypatch, cache, "_client", good)
     first = cache.aggregate("chaos-agg", {"q": 1}, depends_on=("ticket",), producer=lambda: "before")
     assert first == "before"
 

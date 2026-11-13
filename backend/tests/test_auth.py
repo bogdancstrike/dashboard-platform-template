@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import time
 
-from src.core import auth
+from src.core import auth, cache
 from src.core.auth import tokens
+from tests.patching import patch_package
 
 
 def _install_verifier(monkeypatch, claims):
@@ -26,12 +27,12 @@ def test_verified_claims_are_cached_for_the_tokens_remaining_lifetime(monkeypatc
     decoded = _install_verifier(monkeypatch, {"sub": "user-1", "exp": expires_at})
     stored = {}
 
-    monkeypatch.setattr("src.core.cache.get_json", lambda key: stored.get(key, (None, None))[0])
+    patch_package(monkeypatch, cache, "get_json", lambda key: stored.get(key, (None, None))[0])
 
     def save(key, value, ttl=None):
         stored[key] = (value, ttl)
 
-    monkeypatch.setattr("src.core.cache.set_json", save)
+    patch_package(monkeypatch, cache, "set_json", save)
 
     first = auth.verify_token("header.payload.signature")
     second = auth.verify_token("header.payload.signature")
@@ -47,9 +48,8 @@ def test_the_cache_never_stores_the_raw_bearer_token(monkeypatch):
     token = "reusable-secret-bearer-token"
     _install_verifier(monkeypatch, {"sub": "user-1", "exp": int(time.time()) + 60})
     written = []
-    monkeypatch.setattr("src.core.cache.get_json", lambda _key: None)
-    monkeypatch.setattr(
-        "src.core.cache.set_json",
+    patch_package(monkeypatch, cache, "get_json", lambda _key: None)
+    patch_package(monkeypatch, cache, "set_json",
         lambda key, value, ttl=None: written.append((key, value, ttl)),
     )
 
@@ -65,11 +65,10 @@ def test_an_expired_cache_entry_is_verified_again(monkeypatch):
     decoded = _install_verifier(
         monkeypatch, {"sub": "user-1", "exp": int(time.time()) + 60}
     )
-    monkeypatch.setattr(
-        "src.core.cache.get_json",
+    patch_package(monkeypatch, cache, "get_json",
         lambda _key: {"sub": "stale", "exp": int(time.time()) - 1},
     )
-    monkeypatch.setattr("src.core.cache.set_json", lambda *_args, **_kwargs: None)
+    patch_package(monkeypatch, cache, "set_json", lambda *_args, **_kwargs: None)
 
     claims = auth.verify_token("token")
 
@@ -82,10 +81,9 @@ def test_different_tokens_never_share_a_cache_entry(monkeypatch):
         monkeypatch, {"sub": "user-1", "exp": int(time.time()) + 60}
     )
     seen_keys = []
-    monkeypatch.setattr(
-        "src.core.cache.get_json", lambda key: seen_keys.append(key) or None
+    patch_package(monkeypatch, cache, "get_json", lambda key: seen_keys.append(key) or None
     )
-    monkeypatch.setattr("src.core.cache.set_json", lambda *_args, **_kwargs: None)
+    patch_package(monkeypatch, cache, "set_json", lambda *_args, **_kwargs: None)
 
     auth.verify_token("token-a")
     auth.verify_token("token-b")

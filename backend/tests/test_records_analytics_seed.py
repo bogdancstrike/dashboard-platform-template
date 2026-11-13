@@ -10,6 +10,8 @@ from __future__ import annotations
 import pytest
 from sqlalchemy import func, select, text
 
+from tests.patching import patch_package
+
 pytestmark = pytest.mark.database
 
 
@@ -69,7 +71,7 @@ def test_seed_safely_never_raises(monkeypatch):
     def boom(_session):
         raise RuntimeError("no")
 
-    monkeypatch.setattr(seed, "populate", boom)
+    patch_package(monkeypatch, seed, "populate", boom)
     session = new_session()
     try:
         seed.seed_safely(session)

@@ -18,13 +18,22 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
-    DDL, Computed, DateTime, Index, Integer, String, Text, UniqueConstraint, event,
+    DDL,
+    Computed,
+    DateTime,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    event,
 )
-from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR, UUID as PgUUID
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
+from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.models.vector import Vector
 from src.models.base import Base, SoftDeleteMixin, TimestampMixin, fk, uuid_pk
+from src.models.vector import Vector
 
 #: Where one document's ingest stands, in the order it moves.
 DOCUMENT_STATUSES = ("QUEUED", "PARSING", "CHUNKING", "EMBEDDING", "READY", "FAILED")

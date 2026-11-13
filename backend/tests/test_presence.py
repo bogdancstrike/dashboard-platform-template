@@ -13,7 +13,9 @@ import time
 
 import pytest
 
+from src.core import cache
 from src.services.collaboration import live, presence
+from tests.patching import patch_package
 
 
 class FakeRedis:
@@ -69,7 +71,7 @@ def broadcasts(monkeypatch):
 @pytest.fixture(params=["local", "redis", "broken"])
 def store(request, monkeypatch):
     client = {"local": None, "redis": FakeRedis(), "broken": BrokenRedis()}[request.param]
-    monkeypatch.setattr("src.core.cache.client", lambda: client)
+    patch_package(monkeypatch, cache, "client", lambda: client)
     return client
 
 
@@ -119,7 +121,7 @@ def test_only_the_heartbeat_and_a_status_are_accepted_from_the_socket(store, bro
 
 
 def test_a_lapsed_local_status_reads_as_offline(monkeypatch, broadcasts):
-    monkeypatch.setattr("src.core.cache.client", lambda: None)
+    patch_package(monkeypatch, cache, "client", lambda: None)
     presence.set_status("u1", "online")
     monkeypatch.setattr(time, "monotonic", lambda: 10**12)
     assert presence.status_of(["u1"]) == {"u1": "offline"}
@@ -135,7 +137,7 @@ def test_a_broadcast_reaches_every_socket_and_skips_its_own_echo(monkeypatch):
             self.sent.append(json.loads(message))
 
     fake = FakeRedis()
-    monkeypatch.setattr("src.core.cache.client", lambda: fake)
+    patch_package(monkeypatch, cache, "client", lambda: fake)
     first, second = Socket(), Socket()
     live.subscribe("a", first)
     live.subscribe("b", second)
@@ -159,5 +161,5 @@ def test_a_broadcast_reaches_every_socket_and_skips_its_own_echo(monkeypatch):
 
 
 def test_a_broadcast_survives_a_cache_that_refuses(monkeypatch):
-    monkeypatch.setattr("src.core.cache.client", lambda: BrokenRedis())
+    patch_package(monkeypatch, cache, "client", lambda: BrokenRedis())
     assert live.publish_to_all({"type": "presence"}) >= 0

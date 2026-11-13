@@ -30,9 +30,10 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from jose import jwt
 
 from src.config import Config
-from src.core import auth
+from src.core import auth, cache
 from src.core.auth import tokens
 from src.core.errors import UnauthorizedError
+from tests.patching import patch_package
 
 
 def _b64(value: int) -> str:
@@ -114,8 +115,8 @@ def realm(monkeypatch):
     monkeypatch.setattr(tokens, "_jwks", tokens._JwksCache())
     # And no Redis: this file is about the verification, not the cache around
     # it, and a hit would skip the whole path under test.
-    monkeypatch.setattr("src.core.cache.get_json", lambda _key: None)
-    monkeypatch.setattr("src.core.cache.set_json", lambda *_args, **_kwargs: None)
+    patch_package(monkeypatch, cache, "get_json", lambda _key: None)
+    patch_package(monkeypatch, cache, "set_json", lambda *_args, **_kwargs: None)
     return state
 
 

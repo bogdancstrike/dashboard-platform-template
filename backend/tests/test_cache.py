@@ -22,6 +22,7 @@ import pytest
 from src.config import Config
 from src.core import cache
 from tests.conftest import persona_claims
+from tests.patching import patch_package
 
 PREFIX = Config.API_PREFIX
 
@@ -144,7 +145,7 @@ def test_the_producer_runs_when_there_is_no_cache_at_all(monkeypatch):
     Not marked `cache`: this is the *no Redis* case, which is the default for
     this suite and the case a laptop runs in.
     """
-    monkeypatch.setattr(cache, "client", lambda: None)
+    patch_package(monkeypatch, cache, "client", lambda: None)
     calls: list[int] = []
 
     def producer():

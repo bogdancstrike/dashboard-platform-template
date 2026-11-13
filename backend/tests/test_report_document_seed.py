@@ -8,6 +8,7 @@ from uuid import uuid4
 import pytest
 
 from src.seed import report_documents as seed
+from src.seed.support import slugify
 from src.services.analytics import analysis
 from src.services.analytics import report_documents as service
 
@@ -63,4 +64,4 @@ def test_the_folder_repair_gives_each_sibling_its_own_name():
     assert content.dedupe_folders(Session()) == {"renamed": 2}
     names = [row.name for row in rows]
     assert len(set(names)) == 4 and names.count("2024") == 1
-    assert all(row.path == f"/archive/{content.slugify(row.name)}" for row in rows)
+    assert all(row.path == f"/archive/{slugify(row.name)}" for row in rows)
