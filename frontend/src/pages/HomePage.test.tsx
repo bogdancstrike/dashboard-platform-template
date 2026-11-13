@@ -3,12 +3,8 @@ import { describe, expect, it } from "vitest";
 import { Route, Routes } from "react-router-dom";
 import { HttpResponse, http } from "msw";
 
-import HomePage, {
-  SHORTCUTS,
-  dayInAWord,
-  greeting,
-  whatIsWaiting,
-} from "@/pages/HomePage";
+import HomePage from "@/pages/HomePage";
+import { SHORTCUTS, dayInAWord, greeting, whatIsWaiting } from "@/pages/HomePage/homeCopy";
 import { CommandProvider } from "@/commands/CommandContext";
 import { currentUser } from "@/test/handlers";
 import { server } from "@/test/server";
