@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Button, Dropdown, Grid, Segmented, Tooltip } from "antd";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -9,6 +9,7 @@ import { PersonAvatar } from "@/components/PersonAvatar";
 import { ProblemPage } from "@/components/ProblemPage";
 import { AnnouncementBanner } from "@/components/announcements/AnnouncementBanner";
 import { useAuth } from "@/auth/AuthProvider";
+import { useEscapeToClose } from "@/hooks/useEscapeToClose";
 import { useImpersonation } from "@/auth/ImpersonationProvider";
 import { CommandPalette } from "@/components/CommandPalette";
 import { useCommands } from "@/commands/CommandContext";
@@ -215,6 +216,8 @@ export function AppShell() {
   const home = landingPath(auth.profile?.preferences.defaults.landing_page);
   const chord = `${isMac ? "⌘" : "Ctrl "}K`;
 
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  useEscapeToClose(userMenuOpen, useCallback(() => setUserMenuOpen(false), []));
   const userMenu = {
     items: [
       {
@@ -469,7 +472,7 @@ export function AppShell() {
           })}
           <span className="nx-rail-spacer" />
           <PageTour variant="rail" />
-          <Dropdown menu={userMenu} trigger={["click"]} placement="topLeft">
+          <Dropdown menu={userMenu} trigger={["click"]} open={userMenuOpen} onOpenChange={setUserMenuOpen} placement="topLeft">
             <button className="nx-rail-me" type="button" aria-label="Open profile menu">
               {avatar(44)}
             </button>
@@ -485,7 +488,7 @@ export function AppShell() {
             {darkModeOn && themeButton}
             <TimerPill />
             <NotificationBell />
-            <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
+            <Dropdown menu={userMenu} trigger={["click"]} open={userMenuOpen} onOpenChange={setUserMenuOpen} placement="bottomRight">
               <button className="nx-user" type="button" aria-label="Open profile menu">
                 {avatar(34)}
                 <span>
@@ -551,7 +554,7 @@ export function AppShell() {
                 <NxIcon name="search" stroke={2} />
               </button>
             )}
-            <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
+            <Dropdown menu={userMenu} trigger={["click"]} open={userMenuOpen} onOpenChange={setUserMenuOpen} placement="bottomRight">
               <button className="nx-rail-me" type="button" aria-label="Open profile menu">
                 {avatar(44)}
               </button>

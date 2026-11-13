@@ -805,7 +805,16 @@ function DocumentCard({
     <div className="nu-board-card" onClick={onOpen} data-testid={`document-card-${document.id}`}>
       <div className="nu-board-head">
         <Space size={6} className="nu-board-title">
-          <button type="button" className="nu-board-open" onClick={onOpen}>
+          <button
+            type="button"
+            className="nu-board-open"
+            // The card around it opens too; letting the click reach it pushed
+            // the same address twice, so Back stayed on the document (audit A).
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpen();
+            }}
+          >
             <Text strong ellipsis>
               {document.name}
             </Text>

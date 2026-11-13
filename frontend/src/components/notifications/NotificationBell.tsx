@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge, Button, Dropdown, Skeleton, Space, Tooltip, Typography } from "antd";
 import { BellOutlined, CheckOutlined } from "@ant-design/icons";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { notificationsApi, type Notification } from "@/api/notifications";
 import { useLive, usePollInterval } from "@/live/LiveProvider";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
+import { useEscapeToClose } from "@/hooks/useEscapeToClose";
 import { categoryIcon, severityColor } from "./presentation";
 
 const { Text } = Typography;
@@ -27,6 +28,7 @@ export function NotificationBell() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  useEscapeToClose(open, useCallback(() => setOpen(false), []));
   /** The panel's tab, filtered here over what the list returned. */
   const [tab, setTab] = useState<"all" | "unread" | "mentions">("all");
   const { status } = useLive();
