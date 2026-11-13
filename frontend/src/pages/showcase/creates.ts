@@ -235,10 +235,10 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
   },
   {
     what: "A dashboard widget",
-    shape: "drawer",
+    shape: "modal",
     where: "dashboards",
     testId: "add-widget",
-    opens: "pages/DashboardsPage.tsx",
+    opens: "components/dashboards/WidgetModal.tsx",
     because: "A kind and the question it asks. The grid it will land on stays visible, which is how the reader judges where it goes.",
   },
   {

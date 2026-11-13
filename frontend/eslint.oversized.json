@@ -34,7 +34,6 @@
   "src/pages/CalendarPage.tsx",
   "src/pages/ChatPage.tsx",
   "src/pages/ComparePage.tsx",
-  "src/pages/DashboardsPage.tsx",
   "src/pages/DataCatalogPage.tsx",
   "src/pages/DocsPage.tsx",
   "src/pages/DocumentsPage.tsx",

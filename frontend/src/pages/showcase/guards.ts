@@ -98,7 +98,7 @@ export const LAYERS: readonly GuardedLayer[] = [
     because: "A name, a description of how the board is run, and who can see it.",
   },
   {
-    module: "pages/DashboardsPage.tsx",
+    module: "pages/DashboardsPage/parts/SettingsDrawer.tsx",
     what: "dashboard",
     guarded: true,
     because: "The settings drawer holds the dashboard's own name, what it is for, its audience and whether it is home — six answers, and the drawer closes on a click outside it.",
