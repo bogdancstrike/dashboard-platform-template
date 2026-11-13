@@ -45,7 +45,6 @@
   "src/pages/ChartBuilderPage.tsx",
   "src/pages/ChatPage.tsx",
   "src/pages/ComparePage.tsx",
-  "src/pages/DashboardPage.tsx",
   "src/pages/DashboardsPage.tsx",
   "src/pages/DataCatalogPage.tsx",
   "src/pages/DataExplorerPage.tsx",
