@@ -99,7 +99,8 @@ describe("what each flow actually opens", () => {
       );
       if (flow.shape === "page") {
         // The whole point of this shape is that it has an address.
-        expect(router, flow.what).toContain(flow.opens.replace(/\.tsx$/, ""));
+        // A split page is its folder: the router loads `XPage`, which is `XPage/index.tsx`.
+        expect(router, flow.what).toContain(flow.opens.replace(/(\/index)?\.tsx$/, ""));
         expect(router, flow.what).toContain(`path="${flow.where}"`);
       }
     }

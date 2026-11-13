@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 
 /**
  * The shipped source files, for the tests that assert a rule about *all* of
@@ -58,6 +58,56 @@ export function shippedSources(extension?: RegExp): ShippedSource[] {
     name: relative(SRC, path),
     source: readFileSync(path, "utf8"),
   }));
+}
+
+/**
+ * Every routed page under `src/pages/`, with the modules it is built from.
+ *
+ * A page is either `XPage.tsx` or, once split, the folder `XPage/` whose
+ * `index.tsx` is what the router loads. Either way the page's `source` is its
+ * own text followed by the text of every module it reaches through relative
+ * imports (`./parts`, `./xPage/useXPage`), so a rule like "every page fills
+ * the palette" still holds when the call moved into the page's own hook.
+ */
+export function pageSources(): ShippedSource[] {
+  return shippedFiles(/\.tsx$/, join(SRC, "pages"))
+    .filter((path) => /Page\.tsx$/.test(path) || /Page[\\/]index\.tsx$/.test(path))
+    .map((path) => ({ path, name: relative(SRC, path), source: withOwnModules(path) }));
+}
+
+/**
+ * A page's text and that of the modules it owns: for `XPage/index.tsx`, what
+ * it imports from inside `XPage/`; for `XPage.tsx`, what it imports from a
+ * folder beside it (`./xPage/...`). A sibling page it borrows a constant from
+ * is somebody else's page and is not read as this one.
+ */
+function withOwnModules(entry: string): string {
+  const root = dirname(entry);
+  const folderPage = /index\.tsx$/.test(entry);
+  const owned = (path: string) => path.startsWith(`${root}/`) && (folderPage || dirname(path) !== root);
+  const seen = new Set<string>();
+  const read = (path: string): string => {
+    if (seen.has(path)) return "";
+    seen.add(path);
+    const text = readFileSync(path, "utf8");
+    const parts = [text];
+    for (const match of text.matchAll(/from "(\.{1,2}\/[^"]+)"/g)) {
+      const found = resolveModule(join(dirname(path), match[1]!));
+      if (found && owned(found)) parts.push(read(found));
+    }
+    return parts.join("\n");
+  };
+  return read(entry);
+}
+
+function resolveModule(base: string): string | undefined {
+  return [`${base}.tsx`, `${base}.ts`, join(base, "index.tsx"), join(base, "index.ts")].find((candidate) => {
+    try {
+      return statSync(candidate).isFile();
+    } catch {
+      return false;
+    }
+  });
 }
 
 /**

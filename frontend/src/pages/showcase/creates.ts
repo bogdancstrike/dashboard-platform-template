@@ -398,7 +398,7 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
     what: "An import",
     shape: "wizard",
     where: "import",
-    opens: "pages/ImportPage.tsx",
+    opens: "pages/ImportPage/index.tsx",
     because:
       "Upload, map the columns, check the sample, run it. Every step depends on the one before — a mapping is meaningless before the file is read — and the check step is the point of the whole flow.",
   },

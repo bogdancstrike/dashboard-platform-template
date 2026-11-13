@@ -9,7 +9,7 @@ import {
   useCommands,
   usePageCommands,
 } from "@/commands/CommandContext";
-import { shippedSources } from "@/test/sources";
+import { pageSources } from "@/test/sources";
 
 /**
  * The keyboard's two ways into the palette, and the guard on the plain one (§54).
@@ -198,9 +198,9 @@ describe("what the palette can offer on a page", () => {
    * about a call existing, and rendering eighty pages to check for one would
    * be eighty fixtures to keep in step with it.
    */
-  const PAGES = shippedSources(/Page\.tsx$/).filter((file) =>
-    file.name.startsWith("pages/"),
-  );
+  // `XPage.tsx` or a split page's `XPage/index.tsx`, each read with the
+  // modules it imports from its own folder.
+  const PAGES = pageSources();
 
   it("has pages to check at all", () => {
     // A guard on the guard: a rename that emptied this list would otherwise
