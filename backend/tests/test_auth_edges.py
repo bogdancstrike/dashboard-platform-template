@@ -39,12 +39,6 @@ def test_a_user_agent_is_named_in_a_word(agent, device):
     assert auth.device_of(agent) == device
 
 
-def test_a_secret_is_never_shown_whole():
-    assert auth.mask_secret("") == ""
-    assert auth.mask_secret("abc") == "•••"
-    assert auth.mask_secret("sk_live_1234567890") == "sk_l••••••••7890"
-
-
 def test_the_highest_mapped_role_wins_and_an_unmapped_one_reads_only():
     assert auth.role_from_claims({}) == auth.DEFAULT_ROLE_CODE
     assert auth.role_from_claims({"realm_access": {"roles": ["offline_access"]}}) == auth.DEFAULT_ROLE_CODE

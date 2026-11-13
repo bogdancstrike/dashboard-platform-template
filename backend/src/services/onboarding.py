@@ -31,6 +31,7 @@ from sqlalchemy.exc import IntegrityError
 
 from src.core.clock import iso, now
 from src.core.errors import NotFoundError, ValidationError
+from src.core.repository import found_or_404
 from src.models.onboarding import OnboardingStep, SampleRecord
 
 SAMPLE_PERMISSION = "admin.access"
@@ -287,9 +288,9 @@ def load(session, area: str, *, principal) -> dict[str, Any]:
     from src.services.explorer import resources
 
     principal.require(SAMPLE_PERMISSION)
-    spec = AREAS.get(area)
-    if spec is None:
-        raise NotFoundError("There is no sample data for that area.", details={"areas": sorted(AREAS)})
+    spec = found_or_404(
+        AREAS.get(area), "There is no sample data for that area.", details={"areas": sorted(AREAS)}
+    )
     if session.scalar(select(SampleRecord.id).where(SampleRecord.area == area).limit(1)):
         raise ValidationError(f"Sample {spec['label'].lower()} are already loaded — remove them first to load again.")
     rows = record_writes.create_many(session, spec["resource"], _payloads(area, random.Random(area)), principal=principal)

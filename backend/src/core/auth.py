@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import functools
 import hashlib
-import json
 import threading
 import time
 from dataclasses import dataclass, field
@@ -870,15 +869,6 @@ def device_of(agent: str) -> str:
     return "Unknown"
 
 
-def mask_secret(value: str, *, keep: int = 4) -> str:
-    """Never show a full credential after creation (§76)."""
-    if not value:
-        return ""
-    if len(value) <= keep:
-        return "•" * len(value)
-    return f"{value[:keep]}{'•' * 8}{value[-keep:]}"
-
-
 def json_body() -> dict[str, Any]:
     """Parsed request body, tolerant of an empty one."""
     from src.core.errors import ValidationError
@@ -894,10 +884,6 @@ def json_body() -> dict[str, Any]:
     if not isinstance(body, dict):
         raise ValidationError("Request body must be a JSON object.")
     return body
-
-
-def dump(value: Any) -> str:
-    return json.dumps(value, default=str, sort_keys=True)
 
 
 def auth_health() -> dict[str, Any]:

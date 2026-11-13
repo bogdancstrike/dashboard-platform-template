@@ -52,6 +52,7 @@ from src.core.clock import iso, now
 from src.core.errors import NotFoundError, ValidationError
 from src.core.pagination import parse_uuid
 from src.core.rules import compile_tree, describe_tree, rule_count
+from src.core.repository import get_or_404
 from src.models.automation_graphs import AutomationGraph, AutomationVersion, AutomationWait
 from src.models.platform import AlertRule, AlertRuleRun
 
@@ -1065,9 +1066,7 @@ def trace(session, rule_id: Any, payload: dict[str, Any] | None, *, principal) -
         raise ValidationError("Choose a trigger and its dataset before testing.")
     resource_for_principal(resource, principal)
     record_id = parse_uuid(body.get("record_id"), field="record_id")
-    row = session.get(resource.model, record_id)
-    if row is None or getattr(row, "deleted_at", None) is not None:
-        raise NotFoundError("That record does not exist.")
+    row = get_or_404(session, resource.model, record_id, "That record does not exist.", live=True)
     match = _matches_for(resource, [row])[0]
     walk = Walk(rule=rule, graph=graph, resource=resource, dry_run=True, version=graph_row.version)
     try:
@@ -1139,9 +1138,13 @@ def ensure(session, rule: AlertRule) -> AutomationGraph:
 
 
 def _rule(session, rule_id: Any) -> AlertRule:
-    rule = session.get(AlertRule, parse_uuid(rule_id, field="rule_id"))
-    if rule is None or rule.deleted_at is not None:
-        raise NotFoundError("That automation does not exist.")
+    rule = get_or_404(
+        session,
+        AlertRule,
+        parse_uuid(rule_id, field="rule_id"),
+        "That automation does not exist.",
+        live=True,
+    )
     return rule
 
 
@@ -1396,9 +1399,9 @@ def fire_webhook(session, token: str, payload: dict[str, Any] | None) -> dict[st
     resource = _resource(rule.resource_type)
     body = payload if isinstance(payload, dict) else {}
     record_id = parse_uuid(body.get("record_id"), field="record_id")
-    record = session.get(resource.model, record_id)
-    if record is None or getattr(record, "deleted_at", None) is not None:
-        raise NotFoundError("That record does not exist.")
+    record = get_or_404(
+        session, resource.model, record_id, "That record does not exist.", live=True
+    )
     token_ = _ACTIVE.set(True)
     try:
         run = evaluate(session, rule, principal=None, dry_run=False, records=[record],

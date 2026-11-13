@@ -26,8 +26,9 @@ from typing import Any
 from sqlalchemy import Integer, case, cast, func, select
 
 from src.core.clock import iso, now
-from src.core.errors import NotFoundError, ValidationError
+from src.core.errors import ValidationError
 from src.core.pagination import parse_uuid
+from src.core.repository import get_or_404
 
 USAGE_PERMISSION = "api.manage"
 
@@ -292,9 +293,13 @@ def usage(session, args, *, principal) -> dict[str, Any]:
     where = [log.requested_at >= since]
     client = None
     if args.get("client"):
-        client = session.get(ApiClient, parse_uuid(args.get("client"), field="client"))
-        if client is None or client.deleted_at is not None:
-            raise NotFoundError("That API client does not exist.")
+        client = get_or_404(
+            session,
+            ApiClient,
+            parse_uuid(args.get("client"), field="client"),
+            "That API client does not exist.",
+            live=True,
+        )
         where.append(log.api_client_id == client.id)
 
     failed = case((log.status_code >= 400, 1), else_=0)
