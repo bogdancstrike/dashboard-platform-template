@@ -129,7 +129,11 @@ export async function signIn(
     await page.getByRole("button", { name: "Sign In" }).click();
   }
 
-  await page.waitForURL((url) => url.port === "5174");
+  // Back on the application, whichever origin it is served from — the dev
+  // server, the stable build or a deployment — rather than the identity
+  // provider's login page. A hard-coded :5174 made the whole suite unusable
+  // against any other BASE_URL.
+  await page.waitForURL((url) => !url.pathname.startsWith("/realms/"));
   await expect(banner).toBeVisible({ timeout: 90_000 });
 
   // **And it is really this persona**, or the test says so loudly.
