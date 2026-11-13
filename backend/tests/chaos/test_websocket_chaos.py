@@ -62,7 +62,13 @@ def test_retiring_worker_closes_its_live_sockets_with_1012(monkeypatch):
     assert all(s.closed_with is None for s in sockets), "nothing is closed while the worker is alive"
 
     worker.alive = False
-    gevent.sleep(0.8)
+    # The watcher polls every 0.5 s; under a loaded suite its turn can come
+    # late, so wait for the outcome (bounded) rather than a fixed 0.8 s —
+    # which failed now and then in a full run.
+    for _ in range(40):
+        if all(s.event.is_set() for s in sockets):
+            break
+        gevent.sleep(0.1)
     assert sockets[0].closed_with == (1012, "server restarting")
     assert sockets[1].closed_with == (1012, "server restarting")
     # Each waiting receive() is woken rather than left to its 25 s heartbeat.

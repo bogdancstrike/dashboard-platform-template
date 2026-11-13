@@ -289,3 +289,27 @@ def test_prefix_mismatch_is_rejected(tmp_path):
     document["endpoints"][0]["namespace"] = "elsewhere"
     with pytest.raises(ValueError, match="API_PREFIX"):
         endpoint_map.check_prefix("/platform", _write(tmp_path, document))
+
+
+@pytest.mark.parametrize(("document", "says"), [
+    ({"namespaces": [], "models": {}}, "missing required key 'endpoints'"),
+])
+def test_a_map_missing_a_section_is_refused(tmp_path, document, says):
+    with pytest.raises(ValueError, match=says):
+        endpoint_map.load(_write(tmp_path, document))
+
+
+@pytest.mark.parametrize(("overrides", "says"), [
+    ({"operation_name": ""}, "needs an operation_name"),
+    ({"request_method": []}, "at least one verb"),
+    ({"exec_method": {"module_name": "src.api.health"}}, "module_name and method_name"),
+])
+def test_an_incomplete_endpoint_is_refused(tmp_path, overrides, says):
+    with pytest.raises(ValueError, match=says):
+        endpoint_map.verify(_write(tmp_path, _base(**overrides)))
+
+
+def test_the_command_line_checks_the_map_and_prints_the_surface(capsys):
+    assert endpoint_map.main([]) == 0
+    out = capsys.readouterr().out
+    assert "map is valid" in out and "/health/live" in out

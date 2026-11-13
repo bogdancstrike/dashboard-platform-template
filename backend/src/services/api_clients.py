@@ -371,7 +371,8 @@ def create(session, payload: dict[str, Any], *, principal) -> dict[str, Any]:
         scopes=scopes,
         rate_limit_per_minute=_bounded(payload.get("rate_limit_per_minute"), 600, 1, 100_000),
         quota_per_day=_bounded(payload.get("quota_per_day"), 100_000, 1, 100_000_000),
-        allowed_ips=[str(item).strip() for item in (payload.get("allowed_ips") or []) if str(item).strip()],
+        allowed_ips=[str(item).strip() for item in (payload.get("allowed_ips") or [])
+                     if item is not None and str(item).strip()],
         requests_today=0,
         requests_total=0,
         error_rate=0,
@@ -456,8 +457,10 @@ def update(session, client_id: str, payload: dict[str, Any], *, principal) -> di
             payload.get("quota_per_day"), row.quota_per_day, 1, 100_000_000
         )
     if "allowed_ips" in payload:
+        # A JSON null is "no address", not the address "None".
         row.allowed_ips = [
-            str(item).strip() for item in (payload.get("allowed_ips") or []) if str(item).strip()
+            str(item).strip() for item in (payload.get("allowed_ips") or [])
+            if item is not None and str(item).strip()
         ]
 
     after = {"name": row.name, "scopes": sorted(row.scopes or []), "status": row.status}
