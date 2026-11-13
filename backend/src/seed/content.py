@@ -18,6 +18,10 @@ from src.seed.world import World
 RESOURCE_TYPES = ("project", "task", "ticket", "customer", "order", "device", "file")
 
 
+
+#: What a top-level folder's children are called.
+SUBFOLDER_NAMES = ("2024", "2025", "2026", "Drafts", "Approved", "Signed", "Inbound", "Outbound")
+
 def build(world: World) -> None:
     _tags(world)
     _folders(world)
@@ -80,9 +84,18 @@ def _folders(world: World) -> None:
     for project in world.projects:
         projects_by_org.setdefault(project.organization_id, []).append(project)
 
-    while len(world.folders) < world.scale.folders and roots:
+    # One name per parent: three sibling folders all called "2024" read as a
+    # broken tree (audit A). Bounded, so a small scale with few roots cannot
+    # spin once every parent has used every name.
+    taken: set[tuple] = set()
+    attempts = 0
+    while len(world.folders) < world.scale.folders and roots and attempts < world.scale.folders * 20:
+        attempts += 1
         parent = rng.pick(roots)
-        name = rng.pick(("2024", "2025", "2026", "Drafts", "Approved", "Signed", "Inbound", "Outbound"))
+        name = rng.pick(SUBFOLDER_NAMES)
+        if (parent.id, name) in taken:
+            continue
+        taken.add((parent.id, name))
         projects = projects_by_org.get(parent.organization_id, [])
         world.folders.append(
             Folder(
@@ -568,3 +581,39 @@ def _tag_links(world: World) -> None:
 
     for tag in world.tags:
         tag.usage_count = usage.get(tag.id, 0)
+
+
+def dedupe_folders(session) -> dict[str, int]:
+    """Rename sibling folders that share a name, for a database seeded before
+    the seed kept one name per parent. Renamed to a name that parent does not
+    use yet (and its path with it); files stay where they are."""
+    from sqlalchemy import select
+
+    from src.models.content import Folder
+
+    renamed = 0
+    folders = list(session.scalars(select(Folder).where(Folder.parent_id.is_not(None))))
+    by_parent: dict = {}
+    for folder in sorted(folders, key=lambda f: (str(f.parent_id), str(f.created_at), str(f.id))):
+        by_parent.setdefault(folder.parent_id, []).append(folder)
+    for siblings in by_parent.values():
+        used = {f.name for f in siblings}
+        seen: set[str] = set()
+        for folder in siblings:
+            if folder.name not in seen:
+                seen.add(folder.name)
+                continue
+            spare = next((n for n in SUBFOLDER_NAMES if n not in used), None)
+            if spare is None:
+                index = 2
+                while f"{folder.name} ({index})" in used:
+                    index += 1
+                spare = f"{folder.name} ({index})"
+            base = folder.path.rsplit("/", 1)[0] if folder.path else ""
+            folder.name = spare
+            folder.path = f"{base}/{slugify(spare)}"
+            used.add(spare)
+            seen.add(spare)
+            renamed += 1
+    session.flush()
+    return {"renamed": renamed}

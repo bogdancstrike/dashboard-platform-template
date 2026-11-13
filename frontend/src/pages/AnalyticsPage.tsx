@@ -64,7 +64,13 @@ export default function AnalyticsPage() {
   const dataset = datasets.find((item) => item.key === resourceKey);
   const period = params.get("period") ?? "last_90_days";
   const granularity = params.get("grain") ?? "month";
-  const groupBy = params.get("group") ?? dataset?.dimensions[0]?.name ?? "";
+  // The first *closed vocabulary* (status, priority…) rather than the first
+  // column: tasks opened grouped by Reference — one bar per record, 320 of
+  // them folded into "Other" (audit A).
+  const groupBy =
+    params.get("group") ??
+    (dataset?.dimensions.find((item) => item.kind === "enum") ?? dataset?.dimensions[0])?.name ??
+    "";
   const measureName = params.get("measure") ?? "";
   const kind = (params.get("chart") ?? "bar") as ChartKind;
 

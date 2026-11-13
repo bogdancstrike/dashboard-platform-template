@@ -40,3 +40,27 @@ def test_a_dimension_is_chosen_from_what_the_dataset_declares():
     assert seed._dimension(datasets, "x", "status") == "status"
     assert seed._dimension(datasets, "x", "nothing") == "region"
     assert seed._dimension(datasets, "missing", "status") is None
+
+
+def test_the_folder_repair_gives_each_sibling_its_own_name():
+    from datetime import UTC, datetime
+
+    from src.seed import content
+
+    parent = uuid4()
+    when = datetime(2026, 1, 1, tzinfo=UTC)
+    rows = [SimpleNamespace(id=uuid4(), parent_id=parent, name="2024", path="/archive/2024", created_at=when)
+            for _ in range(3)] + [SimpleNamespace(id=uuid4(), parent_id=parent, name="2025", path="/archive/2025",
+                                                  created_at=when)]
+
+    class Session:
+        def scalars(self, _statement):
+            return rows
+
+        def flush(self):
+            pass
+
+    assert content.dedupe_folders(Session()) == {"renamed": 2}
+    names = [row.name for row in rows]
+    assert len(set(names)) == 4 and names.count("2024") == 1
+    assert all(row.path == f"/archive/{content.slugify(row.name)}" for row in rows)

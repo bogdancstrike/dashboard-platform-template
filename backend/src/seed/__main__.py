@@ -32,6 +32,7 @@
     python -m src.seed --sync-knowledge  # add the seeded document collections that are missing
     python -m src.seed --sync-dashboards # reset dashboard/widget periods the analysis engine cannot read
     python -m src.seed --sync-report-documents # weekly/monthly report documents for the Report builder
+    python -m src.seed --sync-folders    # rename sibling folders that share a name
     python -m src.seed --sync-insights   # add the seeded insights (and the dashboard widget) that are missing
     python -m src.seed --sync-planning   # sprints, epics, a timeline and templates for the work queue
     python -m src.seed --sync-analytics  # customer health, contracts, version histories, alerts, public links
@@ -149,6 +150,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sync-report-documents", action="store_true",
         help="add the seeded report documents (Report builder) that are missing, and exit",
+    )
+    parser.add_argument(
+        "--sync-folders", action="store_true",
+        help="rename sibling folders that share a name (three '2024's under one parent), and exit",
     )
     parser.add_argument(
         "--sync-insights", action="store_true",
@@ -513,6 +518,14 @@ def main(argv: list[str] | None = None) -> int:
         with session_scope() as session:
             result = report_documents_seed.seed(session)
         print(f"{result['documents']} report documents added")
+        return 0
+
+    if args.sync_folders:
+        from src.seed.content import dedupe_folders
+
+        with session_scope() as session:
+            result = dedupe_folders(session)
+        print(f"{result['renamed']} folders renamed")
         return 0
 
     if args.sync_insights:

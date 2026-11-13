@@ -44,7 +44,10 @@ export function AssistantLauncher() {
   const [open, setOpen] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(remembered);
   const allowed = can("ai.use");
-  const onPage = location.pathname.startsWith("/assistant");
+  // Pages that are themselves a conversation keep the corner for their own
+  // composer: on /ai/documents the round button sat on the send button
+  // (audit A). Ctrl+J and the palette still open the panel there.
+  const onPage = ["/assistant", "/ai/documents", "/chat"].some((path) => location.pathname.startsWith(path));
 
   useEffect(() => {
     if (!allowed) return undefined;
