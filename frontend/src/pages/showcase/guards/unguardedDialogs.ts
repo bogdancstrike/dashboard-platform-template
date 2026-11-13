@@ -39,7 +39,7 @@ export const UNGUARDED_DIALOGS: readonly GuardedLayer[] = [
     because: "Each link is created or revoked by its own button the moment it is pressed; the small form only labels the next link, and nothing typed there is worth a question.",
   },
   {
-    module: "components/collab/ChatDialogs.tsx",
+    module: "components/collab/ChatDialogs/index.tsx",
     what: "channel",
     guarded: false,
     because: "A channel name, a person to message, a member to add: one answer per dialog, and the dialog is the step before a conversation rather than the work itself.",

@@ -9,14 +9,7 @@
  */
 
 import { Alert, App as AntApp, Button, Skeleton } from "antd";
-import {
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 
 import { ApiError } from "@/api/client";
 import type { RecordComment } from "@/api/comments";
@@ -24,17 +17,15 @@ import type { PresenceStatus } from "@/api/chat";
 import { useAuth } from "@/auth/AuthProvider";
 import { EmptyState } from "@/components/EmptyState";
 
-import { Composer, type ComposerSend } from "./Composer";
-import { DayDivider, NewDivider, SeenBy, TypingLine } from "./ConversationBits";
-import { MessageItem } from "./MessageItem";
-import { useConversation } from "./useConversation";
+import { Composer, type ComposerSend } from "../Composer";
+import { DayDivider, NewDivider, SeenBy, TypingLine } from "../ConversationBits";
+import { MessageItem } from "../MessageItem";
+import { useConversation } from "../useConversation";
 
-/** Lines this close together from one person read as one message. */
-const GROUP_MS = 5 * 60_000;
+/** Lines this close together from one person read as one message. */import { continues,sameDay } from "./grouping";
+import { useConversationScroll } from "./useConversationScroll";
 
-export function sameDay(a: string, b: string): boolean {
-  return new Date(a).toDateString() === new Date(b).toDateString();
-}
+export { sameDay } from "./grouping";
 
 export function ConversationView({
   resourceType,
@@ -81,35 +72,11 @@ export function ConversationView({
   const pinned = useRef(true);
   const me = profile?.user.id;
 
-  // Stay at the bottom while the reader is at the bottom; keep their place
-  // when they have scrolled up to read something older.
-  const count = items.length;
-  const lastId = items[items.length - 1]?.id;
-  useLayoutEffect(() => {
-    const node = scroller.current;
-    if (!node || !pinned.current || highlight) return;
-    node.scrollTop = node.scrollHeight;
-  }, [count, lastId, resourceId, highlight, conversation.typingNames.length]);
-
-  useEffect(() => {
-    pinned.current = true;
-  }, [resourceId, parentId]);
-
-  useEffect(() => {
-    if (!highlight) return;
-    const node = scroller.current?.querySelector(
-      `[data-comment-id="${highlight}"]`,
-    );
-    if (node && "scrollIntoView" in node)
-      (node as HTMLElement).scrollIntoView({ block: "center" });
-  }, [highlight, count]);
+  useConversationScroll({ scroller, pinned, items, resourceId, parentId, highlight, typing: conversation.typingNames.length });
 
   const firstUnread = useMemo(() => {
     if (!openedAt) return null;
-    return (
-      items.find((item) => item.created_at > openedAt && item.author.id !== me)
-        ?.id ?? null
-    );
+    return items.find((item) => item.created_at > openedAt && item.author.id !== me)?.id ?? null;
   }, [items, openedAt, me]);
 
   const fail = (fallback: string) => (error: unknown) => {
@@ -178,21 +145,12 @@ export function ConversationView({
             </Button>
           </div>
         )}
-        {items.length === 0 && !head && (
-          <EmptyState compact title={emptyTitle} />
-        )}
+        {items.length === 0 && !head && <EmptyState compact title={emptyTitle} />}
         {items.map((item, index) => {
           const previous = items[index - 1];
           const newDay =
             !previous || !sameDay(previous.created_at, item.created_at);
-          const compact =
-            !newDay &&
-            !!previous &&
-            previous.author.id === item.author.id &&
-            new Date(item.created_at).getTime() -
-              new Date(previous.created_at).getTime() <
-              GROUP_MS &&
-            item.id !== firstUnread;
+          const compact = !newDay && continues(previous, item, firstUnread);
           return (
             <div key={item.id}>
               {newDay && <DayDivider iso={item.created_at} />}

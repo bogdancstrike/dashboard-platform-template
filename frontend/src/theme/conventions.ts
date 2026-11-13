@@ -121,7 +121,9 @@ export const DENSE_BY_CONSTRUCTION: Record<string, string> = {
     "One add button per action kind, in a row under the list of actions.",
   "components/comments/CommentThread.tsx":
     "Reply and edit under each comment, repeated down a thread.",
-  "components/collab/MessageItem.tsx":
+  "components/collab/MessageItem/index.tsx":
+    "The react, reply, edit and delete strip that floats over each chat message on hover.",
+  "components/collab/MessageItem/Reactions.tsx":
     "The react, reply, edit and delete strip that floats over each chat message on hover.",
   "components/dashboards/DashboardCard.tsx":
     "A gallery card's footer, where the controls sit under two lines of description.",

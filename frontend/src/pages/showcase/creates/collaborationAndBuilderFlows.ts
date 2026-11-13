@@ -7,7 +7,7 @@ export const COLLABORATION_AND_BUILDER_FLOWS: readonly CreateFlow[] = [
     shape: "modal",
     where: "chat",
     testId: "new-channel",
-    opens: "components/collab/ChatDialogs.tsx",
+    opens: "components/collab/ChatDialogs/index.tsx",
     because:
       "A name, who may join and whether it is private: two questions at most, and the conversation it creates is the next thing on screen.",
   },
@@ -16,7 +16,7 @@ export const COLLABORATION_AND_BUILDER_FLOWS: readonly CreateFlow[] = [
     shape: "modal",
     where: "chat",
     testId: "new-direct",
-    opens: "components/collab/ChatDialogs.tsx",
+    opens: "components/collab/ChatDialogs/index.tsx",
     because:
       "One question, who to talk to. Picking a person is the whole form, and the thread opens behind the dialog the moment it closes.",
   },
@@ -25,7 +25,7 @@ export const COLLABORATION_AND_BUILDER_FLOWS: readonly CreateFlow[] = [
     shape: "modal",
     where: "chat",
     testId: "chat-new-channel",
-    opens: "components/collab/ChatDialogs.tsx",
+    opens: "components/collab/ChatDialogs/index.tsx",
     because:
       "The same dialog as the rail button, offered in the empty state where a reader with no channels yet is looking.",
   },
@@ -34,7 +34,7 @@ export const COLLABORATION_AND_BUILDER_FLOWS: readonly CreateFlow[] = [
     shape: "modal",
     where: "chat",
     testId: "chat-new-direct",
-    opens: "components/collab/ChatDialogs.tsx",
+    opens: "components/collab/ChatDialogs/index.tsx",
     because:
       "The same person picker as the rail button, offered in the empty state so the first conversation is one press away.",
   },

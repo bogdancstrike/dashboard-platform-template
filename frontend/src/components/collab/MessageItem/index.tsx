@@ -6,121 +6,26 @@
  * edit and delete for the author alone. An edited line says so.
  */
 
-import { App as AntApp, Button, Popover, Space, Tooltip, Typography } from "antd";
-import { MessageOutlined, PaperClipOutlined, SmileOutlined } from "@ant-design/icons";
+import { Button, Space, Tooltip, Typography } from "antd";
+import { MessageOutlined } from "@ant-design/icons";
 
-import type { Attachment, Reaction, RecordComment } from "@/api/comments";
-import { filesApi, readableSize } from "@/api/files";
+import type { RecordComment } from "@/api/comments";
 import type { PresenceStatus } from "@/api/chat";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { absoluteTime, relativeTime } from "@/lib/time";
 
-import { Composer } from "./Composer";
-import { MarkdownLite } from "./MarkdownLite";
-import { PresenceDot } from "./presence";
+import { Composer } from "../Composer";
+import { MarkdownLite } from "../MarkdownLite";
+import { PresenceDot } from "../presence";
+
+import { AttachmentList } from "./AttachmentList";
+import { ReactionBar, ReactionPicker } from "./Reactions";
+import { clockTime, initials } from "./format";
+
+export { AttachmentList } from "./AttachmentList";
+export { clockTime, initials } from "./format";
 
 const { Text } = Typography;
-
-export function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0]?.toUpperCase() ?? "")
-    .join("");
-}
-
-export function clockTime(iso: string): string {
-  const date = new Date(iso);
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-export function AttachmentList({ files }: { files: Attachment[] }) {
-  const { message } = AntApp.useApp();
-  if (files.length === 0) return null;
-  const open = async (file: Attachment) => {
-    try {
-      const signed = await filesApi.downloadUrl(file.id);
-      window.open(signed.download.url, "_blank", "noopener");
-    } catch {
-      message.error(`${file.name} could not be opened.`);
-    }
-  };
-  return (
-    <ul className="nx-co-files" aria-label="Attached files">
-      {files.map((file) => (
-        <li key={file.id}>
-          <button type="button" onClick={() => void open(file)} className="nx-co-file">
-            <PaperClipOutlined />
-            <span className="nx-co-file-name">{file.name}</span>
-            <span className="nx-co-muted">{readableSize(file.size_bytes)}</span>
-          </button>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function ReactionBar({
-  reactions,
-  offered,
-  onReact,
-  disabled,
-}: {
-  reactions: Reaction[];
-  offered: string[];
-  onReact: (emoji: string) => void;
-  disabled?: boolean;
-}) {
-  if (reactions.length === 0) return null;
-  return (
-    <div className="nx-co-reactions" aria-label="Reactions">
-      {reactions.map((reaction) => (
-        <Tooltip key={reaction.emoji} title={reaction.people.join(", ")}>
-          <button
-            type="button"
-            className={`nx-co-reaction${reaction.mine ? " is-mine" : ""}`}
-            aria-pressed={reaction.mine}
-            aria-label={`${reaction.emoji} ${reaction.count}`}
-            disabled={disabled || !offered.includes(reaction.emoji)}
-            onClick={() => onReact(reaction.emoji)}
-          >
-            <span>{reaction.emoji}</span>
-            <b>{reaction.count}</b>
-          </button>
-        </Tooltip>
-      ))}
-    </div>
-  );
-}
-
-function ReactionPicker({
-  offered,
-  onReact,
-  disabled,
-}: {
-  offered: string[];
-  onReact: (emoji: string) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <Popover
-      trigger="click"
-      placement="top"
-      content={
-        <div className="nx-co-emoji" role="group" aria-label="Pick a reaction">
-          {offered.map((emoji) => (
-            <button key={emoji} type="button" aria-label={`React ${emoji}`} onClick={() => onReact(emoji)}>
-              {emoji}
-            </button>
-          ))}
-        </div>
-      }
-    >
-      <Button size="small" type="text" icon={<SmileOutlined />} aria-label="Add a reaction" disabled={disabled} />
-    </Popover>
-  );
-}
 
 export function MessageItem({
   comment,
