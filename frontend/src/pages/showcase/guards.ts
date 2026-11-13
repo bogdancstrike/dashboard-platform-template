@@ -38,7 +38,7 @@ export interface GuardedLayer {
 
 export const LAYERS: readonly GuardedLayer[] = [
   {
-    module: "components/records/RecordForm.tsx",
+    module: "components/records/RecordForm/index.tsx",
     what: "record",
     guarded: true,
     because: "A record's writable fields, typed. This was the first guard in the platform and the reason the hook exists.",
@@ -158,7 +158,7 @@ export const LAYERS: readonly GuardedLayer[] = [
     because: "One field, and the field *is* the thing being named. A confirmation over eight characters is the guard that teaches people to dismiss guards.",
   },
   {
-    module: "components/records/BulkDialog.tsx",
+    module: "components/records/BulkDialog/index.tsx",
     what: "bulk change",
     guarded: false,
     because: "The selection — the expensive part — lives on the page behind it and survives the close. What the dialog holds is one field and one value, and it shows a preview before anything is applied (§75).",

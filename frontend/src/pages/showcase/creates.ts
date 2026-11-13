@@ -180,7 +180,7 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
     shape: "modal",
     where: "tasks",
     testId: "record-create",
-    opens: "components/records/RecordForm.tsx",
+    opens: "components/records/RecordForm/index.tsx",
     because:
       "One object's fields, built from the server's own declaration of which are writable, in a centred two-column sheet: a record is a short form with one decision at the end, and the list it lands in is right behind it when the sheet closes.",
   },

@@ -25,8 +25,6 @@
   "src/components/planning/TaskPlanning.tsx",
   "src/components/planning/TimelineView.tsx",
   "src/components/profile/ProfileTabs.tsx",
-  "src/components/records/BulkDialog.tsx",
-  "src/components/records/RecordForm.tsx",
   "src/components/relationships/ConnectionMapView.tsx",
   "src/components/relationships/NetworkView.tsx",
   "src/components/roles/NewRoleModal.tsx",
