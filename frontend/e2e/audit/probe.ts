@@ -151,8 +151,8 @@ export type Layout = {
  * - two interactive controls painted on top of each other;
  * - a square child painting into a rounded card's cut-off corner.
  */
-export async function measure(page: Page, scope = "body"): Promise<Layout> {
-  return page.evaluate((scopeSelector) => {
+export async function measure(page: Page, scope = "body", includeFloating = false): Promise<Layout> {
+  return page.evaluate(([scopeSelector, withFloating]) => {
     const root = document.querySelector(scopeSelector) ?? document.body;
     const describe = (el: Element) => {
       const id = el.getAttribute("data-testid") ?? el.getAttribute("aria-label") ?? "";
@@ -184,6 +184,7 @@ export async function measure(page: Page, scope = "body"): Promise<Layout> {
       return r;
     };
 
+    const FLOATING = ".nx-ai-fab, .nx-tabs, .nx-tab, .nx-tabbar";
     const doc = document.scrollingElement!;
     const horizontalOverflow =
       doc.scrollWidth > window.innerWidth + 1 ? `document is ${doc.scrollWidth}px wide in a ${window.innerWidth}px viewport` : null;
@@ -238,6 +239,10 @@ export async function measure(page: Page, scope = "body"): Promise<Layout> {
         const a = boxes[i]!;
         const b = boxes[j]!;
         if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
+        // Content scrolling under the floating chrome (the phone tab bar, the
+        // assistant button) is the design; whether the *end* of a page can
+        // clear it is measured separately, with the page scrolled to its end.
+        if (!withFloating && (a.el.closest(FLOATING) || b.el.closest(FLOATING))) continue;
         const w = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left);
         const h = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top);
         if (w <= 4 || h <= 4) continue;
@@ -291,7 +296,7 @@ export async function measure(page: Page, scope = "body"): Promise<Layout> {
       cls: Math.round((w.__cls ?? 0) * 1000) / 1000,
       shifts: (w.__shifts ?? []).slice(0, 8),
     };
-  }, scope);
+  }, [scope, includeFloating] as const);
 }
 
 export async function axe(page: Page, include?: string): Promise<string[]> {
@@ -311,6 +316,9 @@ export async function axe(page: Page, include?: string): Promise<string[]> {
 export const OVERLAY =
   ".ant-modal-wrap:not([style*='display: none']) .ant-modal, .ant-drawer-open .ant-drawer-content-wrapper, .ant-dropdown:not(.ant-dropdown-hidden), .ant-select-dropdown:not(.ant-select-dropdown-hidden), .ant-popover:not(.ant-popover-hidden), .ant-picker-dropdown:not(.ant-picker-dropdown-hidden)";
 
+/** Antd's overlays plus any of the product's own dialogs (palette, sheets, tour). */
+export const ANY_OVERLAY = `${OVERLAY}, [role="dialog"]:visible, .nx-sheet:visible`;
+
 export async function openOverlays(page: Page): Promise<number> {
-  return page.locator(OVERLAY).count();
+  return page.locator(ANY_OVERLAY).count();
 }

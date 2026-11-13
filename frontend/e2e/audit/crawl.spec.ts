@@ -8,7 +8,7 @@ import {
   axe,
   collect,
   measure,
-  OVERLAY,
+  openOverlays,
   pinTheme,
   settle,
   VIEWPORTS,
@@ -55,7 +55,7 @@ async function shot(page: Page, name: string): Promise<string> {
 }
 
 async function closeOverlay(page: Page, url: string): Promise<string | null> {
-  const before = await page.locator(OVERLAY).count();
+  const before = await openOverlays(page);
   if (before === 0) {
     if (page.url() !== url) {
       await page.goBack().catch(() => undefined);
@@ -69,23 +69,23 @@ async function closeOverlay(page: Page, url: string): Promise<string | null> {
   }
   await page.keyboard.press("Escape");
   await page.waitForTimeout(450);
-  if ((await page.locator(OVERLAY).count()) < before) return null;
+  if ((await openOverlays(page)) < before) return null;
   const close = page.locator(".ant-modal-close:visible, .ant-drawer-close:visible").first();
   if (await close.count()) {
     await close.click({ timeout: 2000 }).catch(() => undefined);
     await page.waitForTimeout(450);
-    if ((await page.locator(OVERLAY).count()) < before) return "Esc did not close it (× did)";
+    if ((await openOverlays(page)) < before) return "Esc did not close it (× did)";
   }
   await page.mouse.click(5, 5);
   await page.waitForTimeout(300);
-  return (await page.locator(OVERLAY).count()) < before ? "Esc did not close it (outside click did)" : "could not be closed";
+  return (await openOverlays(page)) < before ? "Esc did not close it (outside click did)" : "could not be closed";
 }
 
 /**
  * Every control a reader can use without changing data: tabs, segmented
  * filters, selects, menus, and buttons whose words open something.
  */
-async function interact(page: Page, tag: string, url: string, log: Finding[]): Promise<void> {
+async function interact(page: Page, tag: string, url: string, log: Finding[], used: string[]): Promise<void> {
   const handles = await page.evaluate((unsafeSource) => {
     const unsafe = new RegExp(unsafeSource, "i");
     const main = document.querySelector("main, .nx-main, .nx-content") ?? document.body;
@@ -127,11 +127,12 @@ async function interact(page: Page, tag: string, url: string, log: Finding[]): P
       continue;
     }
     await page.waitForTimeout(600);
-    const overlays = await page.locator(OVERLAY).count();
+    const overlays = await openOverlays(page);
+    used.push(`${control.kind}: ${control.label}${overlays ? " (opened)" : ""}`);
     const slug = `${tag}__${control.kind}-${control.label.replace(/[^a-z0-9]+/gi, "-").slice(0, 30)}`;
     if (overlays > 0 || control.kind === "tab" || control.kind === "segmented") {
       await settle(page, 200);
-      const layout = await measure(page, overlays ? ".ant-modal-root, .ant-drawer, .ant-dropdown, .ant-select-dropdown, .ant-popover, .ant-picker-dropdown" : "body");
+      const layout = await measure(page, overlays ? ".ant-modal-wrap:not([style*='display: none']), .ant-drawer-open, .ant-dropdown:not(.ant-dropdown-hidden), .ant-select-dropdown:not(.ant-select-dropdown-hidden), .ant-popover:not(.ant-popover-hidden), [role=dialog]" : "body");
       const shotPath = await shot(page, slug);
       const problems = [
         layout.horizontalOverflow,
@@ -198,12 +199,23 @@ for (const route of ROUTES) {
         report["shot"] = await shot(page, tag);
         // The whole page, for what sits below the fold.
         await page.screenshot({ path: join(OUT, "shots", `${tag}_full.png`), fullPage: true }).catch(() => undefined);
+        // Scrolled to the end: the last controls must clear the floating chrome.
+        await page.evaluate(() => {
+          const scroller = document.querySelector("main.nx-scroll") ?? document.scrollingElement;
+          scroller?.scrollTo({ top: 1e7 });
+        });
+        await page.waitForTimeout(400);
+        const atEnd = await measure(page, "body", true);
+        report["coveredAtEnd"] = atEnd.overlaps.filter((o) => /nx-ai-fab|nx-tab/.test(o));
+        await page.evaluate(() => (document.querySelector("main.nx-scroll") ?? document.scrollingElement)?.scrollTo({ top: 0 }));
         report["consoleOnLoad"] = [...found.console];
         report["requestsOnLoad"] = [...found.requests];
         if (INTERACT_ON.includes(`${device}:${theme}`)) {
           const interactions: Finding[] = [];
-          await interact(page, tag, page.url(), interactions);
+          const used: string[] = [];
+          await interact(page, tag, page.url(), interactions, used);
           report["interactions"] = interactions;
+          report["used"] = used;
         }
         report["console"] = found.console;
         report["requests"] = found.requests;
