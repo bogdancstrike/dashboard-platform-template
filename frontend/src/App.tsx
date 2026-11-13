@@ -25,6 +25,7 @@ const KanbanPage = lazy(() => import("@/pages/KanbanPage"));
 const TimelinePage = lazy(() => import("@/pages/work/TimelinePage"));
 const SprintsPage = lazy(() => import("@/pages/work/SprintsPage"));
 const WorkflowsPage = lazy(() => import("@/pages/WorkflowsPage"));
+const WorkflowCanvasPage = lazy(() => import("@/pages/WorkflowCanvasPage"));
 const CalendarPage = lazy(() => import("@/pages/CalendarPage"));
 const MailPage = lazy(() => import("@/pages/MailPage"));
 // Time & decisions
@@ -397,6 +398,14 @@ export default function App() {
           element={
             <Suspense fallback={<Loading />}>
               <WorkflowsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="workflows/:ruleId/canvas"
+          element={
+            <Suspense fallback={<Loading />}>
+              <WorkflowCanvasPage />
             </Suspense>
           }
         />

@@ -21,6 +21,7 @@ import { insightsHandlers } from "@/test/handlers/insights";
 import { knowledgeHandlers } from "@/test/handlers/knowledge";
 import { decisionHandlers } from "@/test/handlers/decisions";
 import { planningHandlers } from "@/test/handlers/planning";
+import { canvasCatalogueExtras, workflowHandlers } from "@/test/handlers/workflows";
 import { recordsAnalyticsHandlers } from "@/test/handlers/recordsAnalytics";
 
 export const appMeta = {
@@ -3889,8 +3890,9 @@ export const handlers = [
   ...assistantHandlers,
   ...knowledgeHandlers,
   ...decisionHandlers,
-  ...planningHandlers,
   ...insightsHandlers,
+  ...planningHandlers,
+  ...workflowHandlers,
   http.get("/platform/admin/integrations/catalogue", ({ request }) => {
     const states = ["NOT_CONFIGURED", "DISCONNECTED", "CONNECTED", "ERROR"];
     return echo(request, {
@@ -4988,6 +4990,7 @@ export const handlers = [
       severities: ["INFO", "WARNING", "CRITICAL"],
       priorities: ["LOW", "NORMAL", "HIGH", "CRITICAL"],
       limits: { max_matches: 500, max_fires: 50, max_rules: 200 },
+      ...canvasCatalogueExtras,
     }),
   ),
   http.get("/platform/api/automations/rules", ({ request }) => {

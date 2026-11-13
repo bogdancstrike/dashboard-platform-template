@@ -49,13 +49,17 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { automationsApi, type AutomationRule } from "@/api/automations";
 import { ApiError } from "@/api/client";
 import { AutomationDrawer } from "@/components/automations/AutomationDrawer";
 import { AutomationWizard } from "@/components/automations/AutomationWizard";
+import { NxIcon } from "@/components/NxIcon";
+import { starterGraph } from "@/components/workflows/graph";
+import { workflowGraphApi } from "@/api/workflowGraph";
 import { EmptyState } from "@/components/EmptyState";
+import "@/styles/workflows.css";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
@@ -97,6 +101,7 @@ export default function WorkflowsPage() {
   const queryClient = useQueryClient();
   const { message, modal } = AntApp.useApp();
   const [creating, setCreating] = useState(false);
+  const navigate = useNavigate();
 
   const state = params.get("state") ?? "";
   const open = params.get("rule");
@@ -165,7 +170,25 @@ export default function WorkflowsPage() {
       message.error(error instanceof ApiError ? error.message : "That could not be withdrawn."),
   });
 
+  // The canvas starts from a working two-step workflow, created paused, so
+  // there is a definition to save drafts against from the first drag.
+  const build = useMutation({
+    mutationFn: () => workflowGraphApi.create("Untitled workflow", starterGraph()),
+    onSuccess: (rule) => {
+      refresh();
+      navigate(`/workflows/${rule.id}/canvas`);
+    },
+    onError: (error) =>
+      message.error(error instanceof ApiError ? error.message : "The canvas could not be opened."),
+  });
+
   usePageCommands("workflows", [
+    {
+      id: "workflows.canvas",
+      label: "Build a workflow on the canvas",
+      keywords: "visual node graph flow builder branch",
+      run: () => build.mutate(),
+    },
     {
       id: "workflows.new",
       label: "Write an automation",
@@ -223,6 +246,14 @@ export default function WorkflowsPage() {
           </button>
           {/* The compiled condition, one line — the server's rendering, so it
               cannot describe a different query from the one that runs (§51). */}
+          {row.trigger && (
+            <span className="nx-wf-trigger" data-testid={`trigger-${row.id}`}>
+              <NxIcon name="flow" size={12} />
+              {row.trigger.text}
+              {(row.version ?? 0) > 0 && ` · v${row.version}`}
+              {row.has_draft && " · draft"}
+            </span>
+          )}
           <Tooltip title={row.condition_text || "No condition"}>
             <Text type="secondary" className="nu-flow-condition" ellipsis>
               {oneLine(row.condition_text) || "No condition — matches nothing"}
@@ -341,6 +372,12 @@ export default function WorkflowsPage() {
           menu={{
             items: [
               {
+                key: "canvas",
+                icon: <NxIcon name="flow" size={14} />,
+                label: "Open on canvas",
+                onClick: () => navigate(`/workflows/${row.id}/canvas`),
+              },
+              {
                 key: "dry",
                 icon: <PlayCircleOutlined />,
                 label: "Dry run",
@@ -388,14 +425,24 @@ export default function WorkflowsPage() {
           ) : undefined
         }
         actions={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setCreating(true)}
-            data-testid="new-automation"
-          >
-            Write one
-          </Button>
+          <>
+            <Button
+              icon={<NxIcon name="flow" size={16} />}
+              onClick={() => build.mutate()}
+              loading={build.isPending}
+              data-testid="build-on-canvas"
+            >
+              Build on canvas
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setCreating(true)}
+              data-testid="new-automation"
+            >
+              Write one
+            </Button>
+          </>
         }
       />
 

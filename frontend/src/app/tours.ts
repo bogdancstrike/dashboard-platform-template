@@ -596,6 +596,12 @@ export const TOURS: Record<string, TourStop[]> = {
       description:
         "The wizard runs the condition against real records and shows what would have happened, without doing any of it. An automation whose first run is its first test is an automation that emails four hundred people.",
     },
+    {
+      target: "build-on-canvas",
+      title: "Or draw it as a graph",
+      description:
+        "The canvas edits the same stored definition as the wizard, and adds what a sentence cannot say: if/else branches, waits, approvals and triggers on a record being created or a field changing. Every change is a draft until you publish it, and every publish is a version you can restore.",
+    },
   ],
 
   "/favorites": [

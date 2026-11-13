@@ -241,6 +241,10 @@ export function AutomationDrawer({
                 Watches{" "}
                 <Link to={detail.resource_path}>{detail.resource_label.toLowerCase()}</Link>
               </Text>
+              {/* The same definition, drawn as a graph (§49). */}
+              <Link to={`/workflows/${detail.id}/canvas`} data-testid="open-canvas">
+                Open on canvas
+              </Link>
               {canEdit && (
                 <Switch
                   checked={detail.enabled}
@@ -252,6 +256,16 @@ export function AutomationDrawer({
               )}
             </Space>
           </div>
+
+          {detail.linear === false && (
+            <Alert
+              type="info"
+              showIcon
+              data-testid="drawer-canvas-only"
+              message="This workflow branches, waits or asks for approval"
+              description="The form shows its first condition and its actions; change its shape on the canvas."
+            />
+          )}
 
           {/* Written on change like the task page's triage controls: an
               automation whose severity is wrong is not worth a form. */}
@@ -286,7 +300,7 @@ export function AutomationDrawer({
 
             <Field
               label="Meant to run"
-              hint="Stored, and nothing runs it unattended yet — press Run now, or wait for scheduled jobs."
+              hint="Used when the workflow starts on a schedule; the scheduler runs it when it comes due."
             >
               <Input
                 aria-label="Schedule"

@@ -247,3 +247,38 @@ describe("a rule opened", () => {
     ).not.toHaveLength(0);
   });
 });
+
+describe("the canvas, from the list (§49)", () => {
+  function renderWithCanvas() {
+    return renderWithProviders(
+      <CommandProvider>
+        <Routes>
+          <Route path="/workflows" element={<WorkflowsPage />} />
+          <Route path="/workflows/:ruleId/canvas" element={<div>canvas for the new workflow</div>} />
+        </Routes>
+      </CommandProvider>,
+      { route: "/workflows" },
+    );
+  }
+
+  it("builds a new workflow on the canvas and goes there", async () => {
+    renderWithCanvas();
+    await userEvent.click(await screen.findByTestId("build-on-canvas"));
+    expect(await screen.findByText("canvas for the new workflow")).toBeInTheDocument();
+    expect(automationRules.at(-1)!["name"]).toBe("Untitled workflow");
+    expect(automationRules.at(-1)!["graph"]).toBeTruthy();
+  });
+
+  it("says what starts each workflow, and opens one on the canvas from its menu", async () => {
+    const first = automationRules[0]!;
+    first["trigger"] = { event: "RECORD_CREATED", label: "Record created", text: "Record created" };
+    first["version"] = 3;
+    first["has_draft"] = true;
+    renderWithCanvas();
+    const id = String(first["id"]);
+    expect(await screen.findByTestId(`trigger-${id}`)).toHaveTextContent("Record created · v3 · draft");
+    await userEvent.click(screen.getAllByRole("button", { name: /Actions for/ })[0]!);
+    await userEvent.click(await screen.findByText("Open on canvas"));
+    expect(await screen.findByText("canvas for the new workflow")).toBeInTheDocument();
+  });
+});

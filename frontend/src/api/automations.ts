@@ -64,6 +64,14 @@ export interface AutomationRule {
   updated_at: string | null;
   /** The server's answer, so a control is absent for a reason it knows (§76). */
   can_edit: boolean;
+  /** What starts it, from its published graph (§49). */
+  trigger?: { event: string; label: string; text: string } | null;
+  /** The published graph's version; 0 before the first publish. */
+  version?: number;
+  /** The canvas holds unpublished changes. */
+  has_draft?: boolean;
+  /** Whether the form editor can show all of it (no branches, waits, approvals). */
+  linear?: boolean;
 }
 
 /** One record a run touched, or deliberately did not. */
