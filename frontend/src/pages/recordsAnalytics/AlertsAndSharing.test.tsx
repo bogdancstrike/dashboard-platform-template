@@ -11,7 +11,9 @@ import { ra, resetRecordsAnalytics } from "@/test/handlers/recordsAnalytics";
 import { renderWithProviders } from "@/test/render";
 import { server } from "@/test/server";
 
-import AlertsPage, { describeWatch } from "./AlertsPage";
+import { describeWatch } from "@/components/recordsAnalytics/watchParts";
+
+import AlertsPage from "./AlertsPage";
 import RecordGridPage, { gridColumns } from "./RecordGridPage";
 import WatchDetailPage from "./WatchDetailPage";
 

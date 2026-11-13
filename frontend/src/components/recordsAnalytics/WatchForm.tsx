@@ -7,20 +7,18 @@
 import "@/styles/records-analytics.css";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, App, Button, Checkbox, Drawer, Form, Input, InputNumber, Segmented, Select, Skeleton } from "antd";
+import { App, Button, Checkbox, Drawer, Form, Input, InputNumber, Segmented, Select, Skeleton } from "antd";
 import { useEffect, useMemo } from "react";
 
 import { URL_OVERLAY } from "@/app/history";
 import { alertsApi, type MetricWatch, type WatchInput } from "@/api/recordsAnalytics";
 import { PeopleField } from "./parts";
 import { humanStatus } from "@/components/StatusTag";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
-import { errorText, errorToast } from "@/lib/errors";
+import { errorToast } from "@/lib/errors";
 
-import { TrendChart } from "./TrendChart";
+import { useWatchPreview, WatchPreview } from "./WatchPreview";
 import { queryKeys } from "@/lib/queryKeys";
-import { PanelHeader } from "@/components/layout/PanelHeader";
 
 type Values = Required<Pick<WatchInput, "name" | "dataset" | "measure" | "granularity" | "method" | "sensitivity" | "direction" | "window" | "channels">> & {
   description?: string;
@@ -83,13 +81,7 @@ export function WatchForm({
       filters: Object.fromEntries(Object.entries(values.filter_values ?? {}).filter(([, v]) => v)),
     };
   }, [values]);
-  const debounced = useDebouncedValue(draft, 400);
-  const ready = Boolean(debounced && (debounced.measure === "count" || debounced.measure_field));
-  const preview = useQuery({
-    queryKey: queryKeys.alertsPreview(debounced),
-    queryFn: ({ signal }) => alertsApi.preview(debounced!, signal),
-    enabled: open && ready,
-  });
+  const { preview, ready } = useWatchPreview(draft, open);
 
   const save = useMutation({
     mutationFn: (input: Values) => {
@@ -196,20 +188,7 @@ export function WatchForm({
               <Segmented options={[{ value: "both", label: "Both" }, { value: "up", label: "Spikes" }, { value: "down", label: "Drops" }]} />
             </Form.Item>
           </div>
-          <section className="nx-ra-panel" style={{ padding: 12, marginBottom: 16 }} aria-label="Preview">
-            <PanelHeader title="Preview" extra={<span className="nx-ra-sub">{preview.data ? `${preview.data.flagged} point${preview.data.flagged === 1 ? "" : "s"} would be flagged` : ""}</span>} style={{ marginBottom: 4 }} />
-            {preview.isError ? (
-              <Alert type="warning" showIcon message={errorText(preview.error)} />
-            ) : preview.data ? (
-              <TrendChart label="Value" height={160} points={preview.data.points.map((p) => ({ ...p, marked: p.unusual }))} />
-            ) : !ready ? (
-              // Nothing is being fetched until a number is chosen, so a
-              // skeleton here would be a spinner that never ends.
-              <p className="nx-ra-sub" data-testid="watch-preview-idle">Choose the number to watch to see a preview.</p>
-            ) : (
-              <Skeleton active paragraph={{ rows: 3 }} title={false} />
-            )}
-          </section>
+          <WatchPreview preview={preview} ready={ready} />
           <Form.Item name="channels" label="Notify">
             <Checkbox.Group options={[{ value: "in_app", label: "In-app" }, { value: "email", label: "Email" }]} />
           </Form.Item>

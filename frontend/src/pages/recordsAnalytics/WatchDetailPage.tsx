@@ -23,7 +23,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { errorToast } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
 
-import { AnomalyRow, describeWatch, WatchStatus } from "./AlertsPage";
+import { AnomalyRow, describeWatch, WatchStatus } from "@/components/recordsAnalytics/watchParts";
 import { EmptyState } from "@/components/EmptyState";
 import { queryKeys } from "@/lib/queryKeys";
 import { PanelHeader } from "@/components/layout/PanelHeader";
