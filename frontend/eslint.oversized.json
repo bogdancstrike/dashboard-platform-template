@@ -58,7 +58,6 @@
   "src/pages/DataExplorerPage.tsx",
   "src/pages/DocsPage.tsx",
   "src/pages/DocumentsPage.tsx",
-  "src/pages/EntityDetailPage.tsx",
   "src/pages/ExportsPage.tsx",
   "src/pages/FavoritesPage.tsx",
   "src/pages/FilesPage.tsx",
