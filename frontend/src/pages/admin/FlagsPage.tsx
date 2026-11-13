@@ -55,6 +55,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { EmptyState } from "@/components/EmptyState";
+import { usePhoneList } from "@/pages/admin/ResponsiveTable";
 
 const { Text } = Typography;
 
@@ -87,6 +88,7 @@ export function reachOf(flag: FeatureFlag): string {
 }
 
 export default function FlagsPage() {
+  const phone = usePhoneList();
   const [params, setParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { message } = AntApp.useApp();
@@ -218,11 +220,35 @@ export default function FlagsPage() {
 
   const data = flags.data!;
 
-  const columns: ColumnsType<FeatureFlag> = [
+  const reachCell = (row: FeatureFlag) => (
+    <div className="nu-flag-reach">
+      <Text type={row.enabled ? undefined : "secondary"}>{reachOf(row)}</Text>
+      {row.enabled && (
+        <Slider
+          min={0}
+          max={100}
+          step={5}
+          value={row.rollout_percentage}
+          disabled={write.isPending}
+          tooltip={{ formatter: (value) => `${value}% of people` }}
+          // Not `aria-label`: that lands on the wrapper, and the element
+          // carrying `role="slider"` is the *handle*. A table of these
+          // was a table of unnamed inputs — nine on one screen, each
+          // announced as "50, slider" with no clue which flag it moves.
+          ariaLabelForHandle={`Rollout for ${row.name}`}
+          onChangeComplete={(next) =>
+            write.mutate({ key: row.key, body: { rollout_percentage: next } })
+          }
+        />
+      )}
+    </div>
+  );
+
+  const allColumns: ColumnsType<FeatureFlag> = [
     {
       title: "Flag",
       dataIndex: "name",
-      ellipsis: true,
+      ellipsis: !phone,
       render: (name: string, row) => (
         <div className="nu-flag-cell">
           <Space size={6}>
@@ -237,6 +263,10 @@ export default function FlagsPage() {
             {row.key}
             {row.description ? ` · ${row.description}` : ""}
           </Text>
+          {/* On a phone the reach rides under the name: as its own 300px
+              column it squeezed the name column to nothing, and the page
+              was a list of switches nobody could tell apart. */}
+          {phone && reachCell(row)}
         </div>
       ),
     },
@@ -260,29 +290,7 @@ export default function FlagsPage() {
       title: "Reach",
       key: "reach",
       width: 300,
-      render: (_value: unknown, row) => (
-        <div className="nu-flag-reach">
-          <Text type={row.enabled ? undefined : "secondary"}>{reachOf(row)}</Text>
-          {row.enabled && (
-            <Slider
-              min={0}
-              max={100}
-              step={5}
-              value={row.rollout_percentage}
-              disabled={write.isPending}
-              tooltip={{ formatter: (value) => `${value}% of people` }}
-              // Not `aria-label`: that lands on the wrapper, and the element
-              // carrying `role="slider"` is the *handle*. A table of these
-              // was a table of unnamed inputs — nine on one screen, each
-              // announced as "50, slider" with no clue which flag it moves.
-              ariaLabelForHandle={`Rollout for ${row.name}`}
-              onChangeComplete={(next) =>
-                write.mutate({ key: row.key, body: { rollout_percentage: next } })
-              }
-            />
-          )}
-        </div>
-      ),
+      render: (_value: unknown, row) => reachCell(row),
     },
     {
       title: "For you",
@@ -360,6 +368,13 @@ export default function FlagsPage() {
       ),
     },
   ];
+  const PHONE_HIDDEN = new Set(["reach", "mine", "stage", "last_toggled_at"]);
+  const columns = phone
+    ? allColumns.filter((column) => {
+        const id = String((column as { key?: string; dataIndex?: string }).key ?? (column as { dataIndex?: string }).dataIndex ?? "");
+        return !PHONE_HIDDEN.has(id);
+      })
+    : allColumns;
 
   return (
     <div className="nx-ad nx-ad--flags">

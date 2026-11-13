@@ -48,6 +48,7 @@ import {
   Alert,
   App as AntApp,
   Button,
+  Card,
   Descriptions,
   Drawer,
   Form,
@@ -364,7 +365,6 @@ export default function ExportsPage() {
     {
       title: "Where it stands",
       dataIndex: "status",
-      width: 260,
       render: (_value, row) => {
         const colour = tone(row);
         return (
@@ -424,7 +424,9 @@ export default function ExportsPage() {
     },
     {
       title: "",
-      width: 210,
+      // Wide enough for "Request again" beside "Remove": at 210 the second
+      // button was pushed past the table's edge.
+      width: 260,
       align: "right",
       render: (_value, row) => (
         <Space size={4}>
@@ -539,45 +541,49 @@ export default function ExportsPage() {
       {listing.isLoading ? (
         <Skeleton active paragraph={{ rows: 6 }} />
       ) : (
-        <ResponsiveTable<ExportRow>
-          card={(row) => ({
-            title: row.name,
-            meta: `${row.reference} · ${row.format.toUpperCase()} · ${situation(row)}`,
-            pill: <StatusTag status={row.status} label={STATUS_LABELS[row.status]} />,
-            right: row.rows === null ? undefined : `${row.rows.toLocaleString()} rows`,
-          })}
-          className="nu-exp-table"
-          scroll={{ x: 1120 }}
-          onRow={(row) => ({
-            // The phone's card opens the detail; on a desk the reference does.
-            // No event when a phone card is pressed — that press is always "open".
-            onClick: (event?: React.MouseEvent) => {
-              const target = event?.target;
-              if (target instanceof Element && target.closest("button, a")) return;
-              setParams((next) => {
-                const merged = new URLSearchParams(next);
-                merged.set("export", row.id);
-                return merged;
-              });
-            },
-          })}
-          data-testid="exports-table"
-          rowKey="id"
-          size="middle"
-          dataSource={rows}
-          columns={columns}
-          pagination={false}
-          locale={{
-            emptyText: (
-              <EmptyState title={
-                  <span>
-                    You have not exported anything yet. Any list in the platform can be
-                    exported, and one too large to download arrives here.
-                  </span>
-                } />
-            ),
-          }}
-        />
+        // A glass panel round the table, as every other list (and the design):
+        // bare, the rows floated on the page ground.
+        <Card className="nu-pane--table nu-exp-pane">
+          <ResponsiveTable<ExportRow>
+            card={(row) => ({
+              title: row.name,
+              meta: `${row.reference} · ${row.format.toUpperCase()} · ${situation(row)}`,
+              pill: <StatusTag status={row.status} label={STATUS_LABELS[row.status]} />,
+              right: row.rows === null ? undefined : `${row.rows.toLocaleString()} rows`,
+            })}
+            className="nu-exp-table"
+            scroll={{ x: 1000 }}
+            onRow={(row) => ({
+              // The phone's card opens the detail; on a desk the reference does.
+              // No event when a phone card is pressed — that press is always "open".
+              onClick: (event?: React.MouseEvent) => {
+                const target = event?.target;
+                if (target instanceof Element && target.closest("button, a")) return;
+                setParams((next) => {
+                  const merged = new URLSearchParams(next);
+                  merged.set("export", row.id);
+                  return merged;
+                });
+              },
+            })}
+            data-testid="exports-table"
+            rowKey="id"
+            size="middle"
+            dataSource={rows}
+            columns={columns}
+            pagination={false}
+            locale={{
+              emptyText: (
+                <EmptyState title={
+                    <span>
+                      You have not exported anything yet. Any list in the platform can be
+                      exported, and one too large to download arrives here.
+                    </span>
+                  } />
+              ),
+            }}
+          />
+        </Card>
       )}
 
       <Drawer

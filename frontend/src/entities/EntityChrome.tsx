@@ -19,7 +19,7 @@ import {
   Select,
   Tooltip,
 } from "antd";
-import { ClearOutlined, SearchOutlined } from "@ant-design/icons";
+import { ClearOutlined, SearchOutlined, TableOutlined } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -102,6 +102,10 @@ export function EntityHeader({
           {resource && (
             <Button
               data-testid="open-grid"
+              // An icon, because a phone shows the toolbar as icons only: with
+              // none, this was an empty circle with no name.
+              icon={<TableOutlined />}
+              aria-label="Edit as grid"
               onClick={() => {
                 const query = new URLSearchParams({ ...view.filters, ...(view.search ? { q: view.search } : {}) });
                 navigate(`${resource.path}/grid${query.toString() ? `?${query}` : ""}`);

@@ -290,6 +290,7 @@ export default function ApiClientsPage() {
     {
       title: "Client",
       dataIndex: "name",
+      width: 280,
       render: (name: string, row) => (
         <div className="nu-api-what">
           <Space size={6}>
@@ -307,7 +308,7 @@ export default function ApiClientsPage() {
       dataIndex: "live_credentials",
       width: 108,
       render: (live: number, row) => (
-        <Text type={live === 0 ? "warning" : undefined}>
+        <Text type={live === 0 ? "warning" : undefined} className="nu-api-keys">
           {/* A client with no live key cannot call at all, which is worth
               saying rather than showing as "0 of 3". */}
           {live === 0 ? "none live" : `${live} of ${row.credential_count}`}
@@ -317,12 +318,17 @@ export default function ApiClientsPage() {
     {
       title: "Scopes",
       dataIndex: "scopes",
-      width: 260,
-      render: (values: string[]) => (
-        <Text type={values.length === 0 ? "secondary" : undefined} className="nu-api-scopes">
-          {values.length === 0 ? "none" : values.join(", ")}
-        </Text>
-      ),
+      // No fixed width: the scopes take what is left and wrap to two lines.
+      // A single no-wrap line widened the whole table, squeezed the client's
+      // name to "connecto / r" and pushed Requests and Last used off screen.
+      render: (values: string[]) =>
+        values.length === 0 ? (
+          <Text type="secondary" className="nu-api-scopes">none</Text>
+        ) : (
+          <Tooltip title={values.join(", ")}>
+            <Text className="nu-api-scopes">{values.join(", ")}</Text>
+          </Tooltip>
+        ),
     },
     {
       title: "Requests",

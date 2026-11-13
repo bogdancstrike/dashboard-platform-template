@@ -166,7 +166,12 @@ export default function TagsPage() {
       dataIndex: "name",
       render: (_name: string, tag) => (
         <Space size={8} wrap>
-          <AntTag className="nu-tag-chip" style={{ borderInlineStartColor: tag.color }}>
+          <AntTag
+            className="nu-tag-chip nx-ad-tagchip"
+            // A leading dot, as on record pages: a 3px start border on a pill
+            // curves into a "(" rather than reading as a colour mark.
+            style={{ ["--tag-color" as string]: tag.color }}
+          >
             {tag.name}
           </AntTag>
           {tag.is_system && (

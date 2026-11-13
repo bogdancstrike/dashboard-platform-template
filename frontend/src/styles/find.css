@@ -771,3 +771,7 @@ button.nx-fd-qchip { padding: 0 12px 0 10px; }
 .nx-fd-pcol .nu-profile-digests > .ant-card { height: 100%; }
 .nx-fd-pgrid--fill .nx-fd-plist { max-height: 420px; overflow: auto; }
 .nx-app--phone .nx-fd-pcol .nu-profile-digests { grid-template-columns: 1fr; }
+
+/* Audit B: on a phone the favourites lists keep the name and the actions —
+   the kind, the date and the visit count squeezed names to a word a line. */
+.nx-app--phone .nx-fd-wide-only { display: none !important; }

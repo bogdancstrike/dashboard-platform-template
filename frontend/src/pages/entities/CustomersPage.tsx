@@ -15,7 +15,7 @@
 
 import { Avatar, Card, Pagination, Progress, Skeleton, Space, Tag, Tooltip, Typography } from "antd";
 import { MailOutlined, ShopOutlined } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { BandPill } from "@/components/analytics/parts";
 import type { HealthBand } from "@/api/recordsAnalytics";
@@ -167,7 +167,16 @@ export default function CustomersPage() {
                   </Avatar>
                   <div className="nu-account-name">
                     <Text strong ellipsis>
+                      {/* A real link, so the card is reachable by keyboard and opens in a
+                        new tab; it stops the click so the card's own handler
+                        does not push the same page a second time. */}
+                    <Link
+                      to={`/customers/${customer.id}`}
+                      className="nu-card-link"
+                      onClick={(event) => event.stopPropagation()}
+                    >
                       {customer.name}
+                    </Link>
                     </Text>
                     <Text type="secondary">
                       {customer.code} · {customer.city}, {customer.country}

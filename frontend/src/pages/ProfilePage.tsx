@@ -67,8 +67,8 @@ import { StatCard } from "@/components/StatCard";
 import { StatusTag } from "@/components/StatusTag";
 import { useAuth } from "@/auth/AuthProvider";
 import { usePageCommands } from "@/commands/CommandContext";
-import { absoluteTime, relativeTime } from "@/lib/time";
-import { formatNumber } from "@/lib/formats";
+import { relativeTime } from "@/lib/time";
+import { formatDate, formatNumber } from "@/lib/formats";
 import { EditProfileDrawer } from "@/components/profile/EditProfileDrawer";
 import { Highlights, ProfileAccessTab, ProfileActivityTab, WhoCard } from "@/components/profile/ProfileTabs";
 
@@ -326,7 +326,9 @@ export default function ProfilePage() {
                   // so once at the bottom rather than dashing every field.
                   children: profile.user.email ?? <Text type="secondary">Withheld</Text>,
                 },
-                { key: "joined", label: "Joined", children: absoluteTime(profile.joined_at) },
+                // The day somebody joined, not the second: "06/27/2023 05:47:56 AM"
+                // read as a log line in a person's card.
+                { key: "joined", label: "Joined", children: profile.joined_at ? formatDate(new Date(profile.joined_at)) : "—" },
                 {
                   key: "zone",
                   label: "Working hours",

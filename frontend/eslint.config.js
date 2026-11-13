@@ -23,7 +23,8 @@ import globals from "globals";
 import typescript from "typescript-eslint";
 
 export default typescript.config(
-  { ignores: ["dist", "coverage", "playwright-report", "test-results", ".auth"] },
+  // e2e/audit-b/*.mjs: the audit crawler, plain Node outside the TS project.
+  { ignores: ["dist", "coverage", "playwright-report", "test-results", ".auth", "e2e/audit-b/**/*.mjs", "e2e/audit-b/.out"] },
 
   js.configs.recommended,
   // Type-aware: the rules that matter most — floating promises, unnecessary

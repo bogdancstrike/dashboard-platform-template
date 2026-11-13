@@ -357,7 +357,8 @@ export default function ProjectsPortfolioPage() {
           rowSelection={bulk.rowSelection}
           loading={view.rows.isLoading}
           onChange={onChange}
-          scroll={{ x: 1160 }}
+          // Fits the 1100px a 1440 desk leaves; wider, the pinned actions hid the due date.
+          scroll={{ x: 1090 }}
           onRow={(row) => ({
             // Not when the click was on a control — a tick box opens nothing.
             onClick: (event) => {

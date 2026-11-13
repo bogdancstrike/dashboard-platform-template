@@ -27,6 +27,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useNavigate } from "react-router-dom";
 
 import { usePageCommands } from "@/commands/CommandContext";
+import { usePhoneList } from "@/pages/admin/ResponsiveTable";
 
 const { Text } = Typography;
 
@@ -56,6 +57,9 @@ const cellKey = (cell: Cell) => `${cell.role}:${cell.permission}`;
 const SELF_LOCKOUT_GUARD = new Set(["roles.manage", "admin.access"]);
 
 export default function RolesPage() {
+  // On a phone the permission column took three quarters of the width and
+  // the matrix showed one role, half cut off; narrower columns show two or three.
+  const phone = usePhoneList();
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const { message } = AntApp.useApp();
@@ -232,7 +236,7 @@ export default function RolesPage() {
       title: "Permission",
       dataIndex: "label",
       fixed: "left",
-      width: 280,
+      width: phone ? 150 : 280,
       render: (label: string, row) =>
         row.kind === "group" ? (
           <button
@@ -255,7 +259,7 @@ export default function RolesPage() {
     },
     ...data!.items.map((role) => ({
       key: role.code,
-      width: 150,
+      width: phone ? 104 : 150,
       align: "center" as const,
       title: (
         <div className="nx-ad-rolehead">
@@ -459,7 +463,7 @@ export default function RolesPage() {
           pagination={false}
           columns={columns}
           dataSource={rows}
-          scroll={{ x: 280 + data!.items.length * 150 }}
+          scroll={{ x: (phone ? 150 : 280) + data!.items.length * (phone ? 104 : 150) }}
           rowClassName={(row) => (row.kind === "group" ? "nu-matrix-group" : "")}
           locale={{ emptyText: `No permission matches “${term}”.` }}
         />

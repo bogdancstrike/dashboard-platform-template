@@ -247,12 +247,15 @@ export default function FavoritesPage() {
       title: "Type",
       dataIndex: "resource_type",
       width: 150,
+      // Below a phone's width the name needs the room; the kind is in the filter.
+      className: "nx-fd-wide-only",
       render: (value: string) => <KindPill kind={value} />,
     },
     {
       title: "Kept",
       dataIndex: "added_at",
       width: 120,
+      className: "nx-fd-wide-only",
       render: (value: string | null) => (
         <Tooltip title={absoluteTime(value)}>
           <span>{relativeTime(value)}</span>
@@ -328,12 +331,15 @@ export default function FavoritesPage() {
       title: "Type",
       dataIndex: "resource_type",
       width: 150,
+      // Below a phone's width the name needs the room; the kind is in the filter.
+      className: "nx-fd-wide-only",
       render: (value: string) => <KindPill kind={value} />,
     },
     {
       title: "Visits",
       dataIndex: "visit_count",
       width: 90,
+      className: "nx-fd-wide-only",
       align: "right",
       // What separates a place somebody works from one they wandered into
       // once, which is the only thing this list can say that a bookmark
@@ -344,6 +350,7 @@ export default function FavoritesPage() {
       title: "Last opened",
       dataIndex: "visited_at",
       width: 130,
+      className: "nx-fd-wide-only",
       render: (value: string | null) => (
         <Tooltip title={absoluteTime(value)}>
           <span>{relativeTime(value)}</span>

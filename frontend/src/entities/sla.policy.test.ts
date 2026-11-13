@@ -16,6 +16,13 @@ describe("slaStanding with a policy (Time & decisions)", () => {
     expect(standing.detail).toContain("Strategic accounts");
   });
 
+  it("says how long ago a breached ticket fell due by the wall clock, not the spent business budget", () => {
+    const dueAt = new Date(NOW.valueOf() - 12 * 3_600_000).toISOString();
+    const standing = slaStanding({ ...base, dueAt, breached: true, businessMinutesLeft: 0 }, NOW);
+    expect(standing.headline).toBe("SLA breached");
+    expect(standing.detail).toMatch(/^Due 12h ago\./);
+  });
+
   it("says when the clock is paused", () => {
     const standing = slaStanding({ ...base, paused: true, policyName: "Standard" }, NOW);
     expect(standing.headline).toBe("Clock paused");

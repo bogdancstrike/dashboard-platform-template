@@ -100,12 +100,19 @@ export function slaStanding(facts: TicketFacts, now: Date = new Date()): SlaStan
   }
 
   if (facts.breached || (minutesLeft !== null && minutesLeft < 0)) {
+    // How long ago it fell due is a wall-clock fact. The business-hours
+    // budget stops at zero once spent, which read as "Due 0m ago" beside a
+    // deadline the same page says passed twelve hours earlier.
+    const overdue =
+      wallClock !== null && wallClock < 0 ? -wallClock
+        : minutesLeft !== null && minutesLeft < 0 ? -minutesLeft
+          : null;
     return {
       tone: "danger",
       headline: "SLA breached",
-      detail: minutesLeft === null
+      detail: overdue === null
         ? `Marked as breached. ${answered}`
-        : `Due ${duration(Math.abs(minutesLeft))} ago. ${answered}`,
+        : `Due ${duration(overdue)} ago. ${answered}`,
       minutesLeft,
       responseMinutes,
       resolutionMinutes: null,

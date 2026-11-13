@@ -644,3 +644,27 @@ button.nx-ad-card:focus-visible { outline: 2px solid var(--nu-accent); outline-o
   .nx-ad-drawer .ant-drawer-extra { max-width: 50%; }
   .nx-ad-drawer .ant-table-wrapper { overflow-x: auto; }
 }
+
+/* Audit B: API clients — scopes wrap (two lines, full list on hover) instead of
+   one no-wrap line that widened the table past the panel. */
+.nx-ad--api .nu-api-scopes {
+  white-space: normal; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+}
+.nx-ad--api .nu-api-keys { white-space: nowrap; }
+.nx-ad--api .nu-api-what .ant-space { flex-wrap: wrap; row-gap: 2px; }
+
+/* Audit B: tag chips carry their colour as a leading dot (as on record pages). */
+.nx-ad-tagchip.ant-tag {
+  border-inline-start-width: 1px !important; border-color: transparent !important;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.nx-ad-tagchip.ant-tag::before {
+  content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--tag-color, currentColor);
+}
+
+/* Audit B: phone role columns are narrower; a long role name ellipsises inside
+   its column instead of running over the next one. */
+.nx-app--phone .nx-ad-rolehead { max-width: 100%; }
+.nx-app--phone .nx-ad-rolehead .nu-status-tag,
+.nx-app--phone .nx-ad-rolehead .ant-tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }

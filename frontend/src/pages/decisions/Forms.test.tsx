@@ -3,7 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { render as rtl } from "@testing-library/react";
 import { App as AntApp } from "antd";
 import { Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it } from "vitest";
+import { http, HttpResponse } from "msw";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import FormDesignerPage, { moved, newField } from "@/pages/decisions/FormDesignerPage";
 import FormsPage from "@/pages/decisions/FormsPage";
@@ -12,6 +13,18 @@ import { publicFormSlug } from "@/pages/decisions/publicEntry";
 import { grantDecisions } from "@/test/decisions";
 import { decisionCalls, resetDecisions } from "@/test/handlers/decisions";
 import { renderWithProviders } from "@/test/render";
+import { server } from "@/test/server";
+
+// The public page signs in through the application's own adapter; keycloak-js
+// itself has nowhere to redirect to under jsdom.
+const signIn = vi.hoisted(() => ({ calls: 0 }));
+vi.mock("@/auth/keycloak", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/auth/keycloak")>()),
+  initializeAuth: vi.fn(() => {
+    signIn.calls += 1;
+    return Promise.resolve();
+  }),
+}));
 
 function render(route: string) {
   return renderWithProviders(
@@ -85,8 +98,8 @@ describe("FormDesignerPage", () => {
     fireEvent.dragOver(fields[0]!, { dataTransfer });
     fireEvent.drop(fields[0]!, { dataTransfer });
     expect(within(canvas).getAllByTestId("form-field")[0]).toHaveTextContent("Area");
-    await userEvent.click(within(canvas).getAllByRole("button", { name: "Move up" })[1]!);
-    await userEvent.click(within(canvas).getAllByRole("button", { name: "Remove field" })[0]!);
+    await userEvent.click(within(canvas).getAllByRole("button", { name: /^Move .+ up$/ })[1]!);
+    await userEvent.click(within(canvas).getAllByRole("button", { name: /^Remove / })[0]!);
     expect(within(canvas).getAllByTestId("form-field")).toHaveLength(5);
   });
 
@@ -165,6 +178,34 @@ describe("PublicFormPage", () => {
     expect(sent.answers).toMatchObject({ email: "dana@example.com", subject: "Invoices are empty", area: "Other" });
     expect(sent.website).toBe("");
     await userEvent.click(screen.getByRole("button", { name: "Send another" }));
+  });
+
+  it("offers a way to sign in when the form is for colleagues, rather than a dead end", async () => {
+    signIn.calls = 0;
+    server.use(
+      http.get("/platform/public/forms/:slug", () =>
+        HttpResponse.json(
+          { error: "unauthorized", message: "Sign in to use this form.", details: { visibility: "INTERNAL" } },
+          { status: 401 },
+        ),
+      ),
+    );
+    show("it-equipment");
+    expect(await screen.findByText(/for colleagues — sign in to Nucleus to answer it/)).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId("public-form-sign-in"));
+    await waitFor(() => expect(signIn.calls).toBe(1));
+  });
+
+  it("finishes signing in on the way back from the identity provider, then loads the form", async () => {
+    signIn.calls = 0;
+    window.location.hash = "#state=abc&session_state=x&code=xyz";
+    try {
+      show("support");
+      expect(await screen.findByRole("heading", { name: "Customer support request" })).toBeInTheDocument();
+      expect(signIn.calls).toBe(1);
+    } finally {
+      window.location.hash = "";
+    }
   });
 
   it("says when a form is not there", async () => {

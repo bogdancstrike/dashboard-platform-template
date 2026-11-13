@@ -302,3 +302,16 @@
 /* A segmented filter wider than a phone scrolls inside itself, never the page. */
 .nx-td-bar .ant-segmented { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 .nx-td-bar .ant-segmented::-webkit-scrollbar { display: none; }
+
+/* Audit B: on a phone the policy's switch, order arrows and Edit wrap under the
+   title — beside it they squeezed "Strategic accounts — premium" to one word a line. */
+.nx-app--phone .nx-td-policy-head { flex-wrap: wrap; }
+.nx-app--phone .nx-td-policy-head > div { flex-basis: calc(100% - 46px) !important; }
+.nx-app--phone .nx-td-policy-head > .ant-space { margin-inline-start: 46px; }
+
+/* Audit B: the field's selectable area is a real button now; it keeps the look. */
+button.nx-td-field-main {
+  flex: 1 1 auto; text-align: start; background: none; border: 0; padding: 0; margin: 0;
+  font: inherit; color: inherit; cursor: pointer; border-radius: 8px;
+}
+button.nx-td-field-main:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 3px; }

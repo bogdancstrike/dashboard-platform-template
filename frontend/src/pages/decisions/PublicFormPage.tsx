@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 
 import { ApiError } from "@/api/client";
 import { formsApi, type PublicForm, type SubmitResult } from "@/api/forms";
+import { metaApi } from "@/api/meta";
+import { initializeAuth } from "@/auth/keycloak";
 import { FormRenderer } from "@/components/decisions/FormRenderer";
 import { TdIcon } from "@/components/decisions/TdIcon";
 import { NxIcon, NxLogo } from "@/components/NxIcon";
@@ -14,9 +16,28 @@ import { NxIcon, NxLogo } from "@/components/NxIcon";
  * glass, no sidebar, no account needed for a PUBLIC one. The challenge and the
  * honeypot travel with the answers; a person never sees the honeypot.
  */
+/** Back from the identity provider: the OIDC response rides in the fragment. */
+function returningFromSignIn(): boolean {
+  const hash = window.location.hash;
+  return hash.includes("state=") && /(^#|&)(code|error)=/.test(hash);
+}
+
+/**
+ * An INTERNAL form needs a signed-in caller, and this page lives outside the
+ * application, so it never had a token: "sign in and open it again" sent a
+ * colleague round in a circle. Signing in from here uses the application's own
+ * adapter, which comes back to this address; on the way back the same call
+ * finishes the exchange and every request after it carries the token.
+ */
+async function signIn(): Promise<void> {
+  await initializeAuth(await metaApi.app());
+}
+
 export function PublicFormPage({ slug }: { slug: string }) {
   const [form, setForm] = useState<PublicForm | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
+  const [needsSignIn, setNeedsSignIn] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<SubmitResult | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -26,14 +47,31 @@ export function PublicFormPage({ slug }: { slug: string }) {
   const load = (keepMessage = false) => {
     if (!keepMessage) setFailure(null);
     formsApi.publicForm(slug)
-      .then((next) => { setForm(next); setCaptcha(""); })
-      .catch((error: unknown) => setFailure(
-        error instanceof ApiError && error.status === 404 ? "This form does not exist, or is no longer published."
-          : error instanceof ApiError && error.status === 401 ? "This form is for colleagues — sign in to Nucleus and open it again."
-          : error instanceof ApiError ? error.message : "The form could not be loaded.",
-      ));
+      .then((next) => { setForm(next); setCaptcha(""); setNeedsSignIn(false); })
+      .catch((error: unknown) => {
+        setNeedsSignIn(error instanceof ApiError && error.status === 401);
+        setFailure(
+          error instanceof ApiError && error.status === 404 ? "This form does not exist, or is no longer published."
+            : error instanceof ApiError && error.status === 401 ? "This form is for colleagues — sign in to Nucleus to answer it."
+            : error instanceof ApiError ? error.message : "The form could not be loaded.",
+        );
+      });
   };
-  useEffect(() => load(), [slug]);
+  const startSignIn = () => {
+    setSigningIn(true);
+    signIn().catch(() => {
+      setSigningIn(false);
+      setFailure("Signing in did not work. Try again in a moment.");
+    });
+  };
+  useEffect(() => {
+    if (!returningFromSignIn()) return load();
+    setSigningIn(true);
+    signIn()
+      .then(() => load())
+      .catch(() => setFailure("Signing in did not work. Try again in a moment."))
+      .finally(() => setSigningIn(false));
+  }, [slug]);
   useEffect(() => { if (form) document.title = `${form.name} · Nucleus`; }, [form]);
 
   const submit = async (answers: Record<string, unknown>) => {
@@ -67,7 +105,18 @@ export function PublicFormPage({ slug }: { slug: string }) {
       <div className="nx-td-public-card">
         <div className="nx-td-public-brand"><NxLogo size={30} /> Nucleus</div>
         {!form && !failure && <Skeleton active paragraph={{ rows: 6 }} />}
-        {!form && failure && <Result status="404" title="Form not available" subTitle={failure} />}
+        {!form && failure && (
+          <Result
+            status="404"
+            title="Form not available"
+            subTitle={failure}
+            extra={needsSignIn ? (
+              <Button type="primary" loading={signingIn} onClick={startSignIn} data-testid="public-form-sign-in">
+                Sign in to answer it
+              </Button>
+            ) : undefined}
+          />
+        )}
         {form && done && (
           <div className="nx-td-done" data-testid="public-form-done">
             <div className="nx-td-done-mark"><NxIcon name="check" size={30} stroke={2.4} /></div>

@@ -104,7 +104,9 @@ export default function OrdersLedgerPage() {
     {
       title: "Reference",
       dataIndex: "reference",
-      width: 140,
+      // Columns sized so the ledger fits a 1440 desk without scrolling: at
+      // 1080+ the pinned actions covered the end of every total.
+      width: 124,
       fixed: "left",
       sorter: true,
       render: (value: string) => <Text className="nu-mono">{value}</Text>,
@@ -112,7 +114,7 @@ export default function OrdersLedgerPage() {
     {
       title: "Placed",
       dataIndex: "placed_at",
-      width: 130,
+      width: 112,
       sorter: true,
       defaultSortOrder: "descend",
       render: (value: string | null) => (
@@ -153,7 +155,7 @@ export default function OrdersLedgerPage() {
     {
       title: "Channel",
       dataIndex: "channel",
-      width: 120,
+      width: 108,
       sorter: true,
       render: (value: string | null) => (value ? humanStatus(value) : "—"),
     },
@@ -274,7 +276,7 @@ export default function OrdersLedgerPage() {
           rowSelection={bulk.rowSelection}
           loading={view.rows.isLoading}
           onChange={onChange}
-          scroll={{ x: 1080 }}
+          scroll={{ x: 1040 }}
           onRow={(row) => ({
             // Not when the click was on a control — a tick box opens nothing.
             onClick: (event) => {

@@ -50,7 +50,16 @@
 .nx-rec-tools .nu-refresh .ant-btn { background: transparent !important; border: 0 !important; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; height: 42px; }
 .nx-rec-tools .nu-refresh .ant-btn-compact-item { border-radius: 21px !important; }
 .nx-app--phone .nx-rec-toolbar { margin: 8px 0 12px; }
-.nx-app--phone .nx-rec-tools .ant-btn:not(.ant-btn-icon-only) > span:not(.ant-btn-icon):not(.anticon) { display: none; }
+/* Labels are hidden visually, never removed: display:none took the buttons'
+   accessible names with them (axe button-name), and blanked Refresh outright,
+   whose icon sits inside its label span. */
+.nx-app--phone .nx-rec-tools .ant-btn:not(.ant-btn-icon-only):not([data-testid="saved-views"]) > span:not(.ant-btn-icon):not(.anticon):not([data-testid="refresh-now"]),
+.nx-app--phone .nx-rec-tools .nu-refresh-label {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+/* The saved-view menu keeps its words: a chevron alone says nothing. */
+.nx-app--phone .nx-rec-tools .ant-btn[data-testid="saved-views"] { width: auto; max-width: 150px; padding-inline: 14px; }
+.nx-app--phone .nx-rec-tools .ant-btn[data-testid="saved-views"] > span:not(.ant-btn-icon) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nx-app--phone .nx-rec-tools .ant-btn { width: 44px; padding-inline: 0; justify-content: center; }
 .nx-app--phone .nx-rec-tools .nu-refresh { padding-left: 0; background: transparent; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .nx-app--phone .nx-rec-tools .nu-refresh .nu-refresh-age { display: none; }
@@ -638,3 +647,23 @@ body.nx-dragging, body.nx-dragging * { cursor: grabbing !important; user-select:
 .nx-app--phone .nx-rec-table .ant-table-container { overflow-x: auto; }
 .nx-app--phone .nx-rec-kboard { margin-inline: -14px; padding-inline: 14px; scroll-snap-type: x proximity; }
 .nx-app--phone .nx-rec-klane { scroll-snap-align: start; }
+
+/* Audit B: the account/device name is the card's real link (keyboard, new tab). */
+.nu-card-link { color: inherit; }
+.nu-card-link:hover { color: var(--nu-accent-ink); }
+.nu-card-link:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; border-radius: 4px; }
+
+/* Audit B: when a record table scrolls sideways, the pinned edge must hide
+   what passes under it. The translucent glass let "€14,707.55" read as
+   "€14,707." with a ghost "55" behind the actions. Opaque, matching the
+   panel, with a soft edge — the same answer the Data Explorer uses. */
+.nx-rec-table { --rec-pin: #fbfbfc; }
+:root[data-theme="dark"] .nx-rec-table { --rec-pin: #221b26; }
+.nx-rec-table.ant-table-wrapper .ant-table-ping-left .ant-table-tbody .ant-table-cell-fix-left,
+.nx-rec-table.ant-table-wrapper .ant-table-ping-right .ant-table-tbody .ant-table-cell-fix-right { background: var(--rec-pin) !important; }
+.nx-rec-table.ant-table-wrapper .ant-table-ping-right .ant-table-tbody > tr.ant-table-row:hover > td.ant-table-cell-fix-right,
+.nx-rec-table.ant-table-wrapper .ant-table-ping-left .ant-table-tbody > tr.ant-table-row:hover > td.ant-table-cell-fix-left { background: var(--nu-raised) !important; }
+:root[data-theme="dark"] .nx-rec-table.ant-table-wrapper .ant-table-ping-right .ant-table-tbody > tr.ant-table-row:hover > td.ant-table-cell-fix-right,
+:root[data-theme="dark"] .nx-rec-table.ant-table-wrapper .ant-table-ping-left .ant-table-tbody > tr.ant-table-row:hover > td.ant-table-cell-fix-left { background: #2c2431 !important; }
+.nx-rec-table .ant-table-ping-right .ant-table-cell-fix-right-first { box-shadow: -10px 0 12px -10px rgba(var(--nu-ink-rgb), 0.18); }
+.nx-rec-table .ant-table-ping-left .ant-table-cell-fix-left-last { box-shadow: 10px 0 12px -10px rgba(var(--nu-ink-rgb), 0.18); }

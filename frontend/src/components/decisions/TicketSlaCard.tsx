@@ -81,7 +81,16 @@ export function TicketSlaCard({ ticketId }: { ticketId: string }) {
           <ClockRow label="Resolution" clock={data.resolution} paused={data.paused} />
           {percent !== null && (
             <div>
-              <div className={`nx-td-meter${percent >= 100 ? " is-bad" : percent >= 75 ? " is-warn" : ""}`} aria-label={`${Math.round(percent)}% of the resolution target used`}>
+              <div
+                className={`nx-td-meter${percent >= 100 ? " is-bad" : percent >= 75 ? " is-warn" : ""}`}
+                // A meter, said as one: aria-label on a plain div is ignored
+                // by readers and refused by axe (aria-prohibited-attr).
+                role="meter"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.min(100, Math.round(percent))}
+                aria-label={`${Math.round(percent)}% of the resolution target used`}
+              >
                 <i style={{ width: `${Math.min(100, percent)}%` }} />
                 {data.escalations.filter((step) => step.at_percent < 100).map((step, index) => (
                   <s key={index} style={{ left: `${step.at_percent}%` }} />

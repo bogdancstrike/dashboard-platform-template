@@ -514,7 +514,8 @@ export default function JobsPage() {
             title: row.name,
             meta: `${row.reference} · ${row.queue}`,
             pill: <StatusTag status={row.status} />,
-            right: row.total_units ? `${row.progress} of ${row.total_units}` : undefined,
+            // Units done, not the percentage: "100 of 1" read as a hundred things done of one.
+            right: row.total_units ? progressLabel(row) : undefined,
           })}
           size="small"
           rowKey="id"

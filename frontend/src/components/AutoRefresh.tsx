@@ -88,7 +88,9 @@ export function AutoRefresh({
       >
         <span data-testid="refresh-now">
           <ReloadOutlined spin={busy} />{" "}
-          {seconds === 0 ? "Refresh" : refreshLabel(seconds)}
+          {/* Its own span so a narrow toolbar can hide the words and keep
+              the icon (and the name, for a screen reader). */}
+          <span className="nu-refresh-label">{seconds === 0 ? "Refresh" : refreshLabel(seconds)}</span>
         </span>
       </Dropdown.Button>
     </span>

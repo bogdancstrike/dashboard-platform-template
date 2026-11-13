@@ -273,24 +273,25 @@ function Designer({
                   onDragOver={(event) => { event.preventDefault(); event.stopPropagation(); setOver(position); }}
                   onDrop={(event) => { event.stopPropagation(); drop(position, event); }}
                   onClick={() => setSelected(item.id)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(event) => { if (event.key === "Enter") setSelected(item.id); }}
                   data-testid="form-field"
                 >
                   <span className="nx-td-grip" aria-hidden><TdIcon name="drag" size={16} stroke={3} /></span>
-                  <span className="nx-td-field-main">
+                  {/* The keyboard way to select a field is this button. The row
+                      used to be role="button" itself, wrapping its own move and
+                      remove buttons — nested controls a screen reader cannot
+                      reach (axe nested-interactive). */}
+                  <button type="button" className="nx-td-field-main" aria-pressed={item.id === selected} onClick={(event) => { event.stopPropagation(); setSelected(item.id); }}>
                     <b>{item.label}{item.required ? " *" : ""}</b>
                     <small>
                       {TYPE_LABEL[item.type]}
                       {item.map_to ? ` → ${target?.fields.find((f) => f.name === item.map_to)?.label ?? item.map_to}` : item.type !== "heading" ? " · kept with the submission" : ""}
                       {item.visible_when ? ` · only when ${fields.find((f) => f.id === item.visible_when?.field)?.label ?? "…"} is ${asText(item.visible_when.equals) || "answered"}` : ""}
                     </small>
-                  </span>
+                  </button>
                   {editable && (
                     <Space size={2}>
-                      <Button type="text" aria-label="Move up" disabled={position === 0} onClick={(e) => { e.stopPropagation(); onFields(moved(fields, position, position - 1)); }} icon={<TdIcon name="up" />} />
-                      <Button type="text" aria-label="Remove field" onClick={(e) => { e.stopPropagation(); onFields(fields.filter((f) => f.id !== item.id)); if (selected === item.id) setSelected(null); }} icon={<TdIcon name="x" />} />
+                      <Button type="text" aria-label={`Move ${item.label || "this field"} up`} disabled={position === 0} onClick={(e) => { e.stopPropagation(); onFields(moved(fields, position, position - 1)); }} icon={<TdIcon name="up" />} />
+                      <Button type="text" aria-label={`Remove ${item.label || "this field"}`} onClick={(e) => { e.stopPropagation(); onFields(fields.filter((f) => f.id !== item.id)); if (selected === item.id) setSelected(null); }} icon={<TdIcon name="x" />} />
                     </Space>
                   )}
                 </div>

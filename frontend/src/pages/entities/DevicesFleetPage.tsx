@@ -15,7 +15,7 @@
 
 import { Card, Pagination, Skeleton, Space, Tooltip, Typography } from "antd";
 import { ApiOutlined, ThunderboltOutlined, WifiOutlined } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { BarPanel, StatePanel, TriageTile } from "@/components/records/BreakdownPanels";
 import { StatusTag } from "@/components/StatusTag";
@@ -236,7 +236,16 @@ export default function DevicesFleetPage() {
               >
                 <div className="nu-device-head">
                   <Text strong ellipsis>
-                    {device.name}
+                    {/* A real link, so the card is reachable by keyboard and opens in a
+                        new tab; it stops the click so the card's own handler
+                        does not push the same page a second time. */}
+                    <Link
+                      to={`/devices/${device.id}`}
+                      className="nu-card-link"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      {device.name}
+                    </Link>
                   </Text>
                   <StatusTag status={device.status} bordered={false} />
                   <RecordActions
