@@ -12,7 +12,6 @@
   "src/components/mail/Composer.tsx",
   "src/components/relationships/ConnectionMapView.tsx",
   "src/components/relationships/NetworkView.tsx",
-  "src/pages/CalendarPage.tsx",
   "src/pages/ChatPage.tsx",
   "src/pages/ComparePage.tsx",
   "src/pages/DataCatalogPage.tsx",
