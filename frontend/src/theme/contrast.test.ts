@@ -54,7 +54,7 @@ export function contrast(foreground: string, background: string): number {
  * is named here now.
  *
  * `INK_ON_TINT` below says which inks are allowed on it: the tint classes in
- * `index.css` re-point `--nu-text-tertiary` to the secondary ink for
+ * the global stylesheet (`styles/global`) re-point `--nu-text-tertiary` to the secondary ink for
  * everything inside them, so the quiet end of the ramp is never drawn there.
  */
 const GROUNDS = {
@@ -149,7 +149,7 @@ describe.each(["light", "dark"] as const)("text is legible in %s", (mode) => {
    * routes were carrying it — and the tags that fail are labels like "Live"
    * and "Public", which is to say the ones a reader looks for.
    *
-   * `index.css` maps each hue onto one of the four measured inks by family,
+   * the global stylesheet (`styles/global`) maps each hue onto one of the four measured inks by family,
    * and the two families we have no ink for take the ordinary text colour.
    * This is that map, asserted against the ground AntD actually derives.
    */
@@ -182,7 +182,7 @@ describe.each(["light", "dark"] as const)("text is legible in %s", (mode) => {
   );
 
   it("every preset AntD ships is covered by that map", () => {
-    // A hue with no rule in `index.css` keeps AntD's own ink, which is the
+    // A hue with no rule in the global stylesheet (`styles/global`) keeps AntD's own ink, which is the
     // defect. `default`/`grey` are the neutral ground the text inks above
     // already cover.
     expect(Object.keys(PRESET_INK).sort()).toEqual([...PresetColors].sort());
@@ -198,7 +198,7 @@ describe.each(["light", "dark"] as const)("text is legible in %s", (mode) => {
      * appearance, including the OK button of every delete confirmation in the
      * product, was illegible; axe found it on the first dialog a spec opened
      * in dark. The fill stays fill-strength and the outlined button's ink is
-     * named in `index.css` instead.
+     * named in the global stylesheet (`styles/global`) instead.
      *
      * Mode-independent on purpose: a fill that carries white text carries it
      * in both appearances, and this is the assertion that stops somebody

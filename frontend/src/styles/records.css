@@ -1,4 +1,4 @@
-/* Glass design — records pages (Work & Records workstream). See src/glass.css for the shared skin.
+/* Glass design — records pages (Work & Records workstream). See src/styles/glass/ for the shared skin.
    Classes: .nx-pill* (status pills, app-wide), .nx-rec-* (records, work pages, their modals). */
 
 /* ═══ Status pill: a tint of the meaning, its ink, and a dot ═══════════════ */
@@ -681,7 +681,7 @@ body.nx-dragging, body.nx-dragging * { cursor: grabbing !important; user-select:
 .nx-app--tablet .nx-cal-layout > .ant-card > .ant-card-body { flex: none; overflow: visible; }
 
 /* The icon strip (1101–1280px): its headings showed as "FOLD" and "LABE…"
-   because the glass rules above out-rank index.css's hiding (audit A). In a
+   because the glass rules above out-rank the global stylesheet's hiding (audit A). In a
    56px rail the icons are the whole story. */
 @media (min-width: 1101px) and (max-width: 1280px) {
   .nu-mail .nu-mailrail-headrow,

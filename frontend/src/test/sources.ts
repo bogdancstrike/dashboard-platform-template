@@ -102,3 +102,16 @@ export function routerSource(): string {
     .map((entry) => readFileSync(join(routes, entry), "utf8"));
   return [readFileSync(join(SRC, "App.tsx"), "utf8"), ...modules].join("\n");
 }
+
+/**
+ * A stylesheet entry under `src/styles/`, with its `@import`s inlined in
+ * cascade order — `stylesheetSource("global")` is what used to be
+ * `src/index.css`, now split by concern into `styles/global/*.css`.
+ */
+export function stylesheetSource(entry: string): string {
+  const path = join(SRC, "styles", `${entry}.css`);
+  const text = readFileSync(path, "utf8");
+  return text.replace(/@import\s+"\.\/([^"]+)";/g, (_, file: string) =>
+    readFileSync(join(SRC, "styles", file), "utf8"),
+  );
+}

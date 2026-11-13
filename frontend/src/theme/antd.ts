@@ -93,7 +93,7 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
       //
       // AntD's *preset-coloured tags* take their text from the base
       // `colorWarning` rather than from this, so they are named in the
-      // stylesheet instead — see `.ant-tag-warning` in `index.css`.
+      // stylesheet instead — see `.ant-tag-warning` in the global stylesheet (`styles/global`).
       colorSuccessText: SEMANTIC_INK[mode].success,
       colorWarningText: SEMANTIC_INK[mode].warning,
       colorErrorText: SEMANTIC_INK[mode].danger,
@@ -197,7 +197,7 @@ export function buildTheme(appearance: Appearance, density: Density): ThemeConfi
         //
         // The fill stays fill-strength here (white on `#dc2626` is 4.83:1),
         // and the outlined button's *ink* is named in the stylesheet instead —
-        // `.ant-btn-dangerous:not(.ant-btn-primary)` in `index.css`, the same
+        // `.ant-btn-dangerous:not(.ant-btn-primary)` in the global stylesheet (`styles/global`), the same
         // way the preset tags are. Asserted in `contrast.test.ts`.
         colorError: SEMANTIC.danger,
       },

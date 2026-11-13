@@ -1,0 +1,163 @@
+/* ── The notification centre (§17) ───────────────────────────────────────
+   A feed, not a table. What makes it readable is the day it happened on and
+   the severity of the thing — so those are the two structural elements, and
+   everything else is quiet. */
+
+.nu-digest {
+  display: grid; gap: 12px; margin-bottom: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
+}
+.nu-digest-tile { cursor: pointer; transition: border-color 120ms ease, box-shadow 120ms ease; }
+.nu-digest-tile:hover { border-color: var(--nu-accent); }
+.nu-digest-tile:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; }
+/* The applied filter is stated on the tile, so the strip is a set of controls
+   with a current value rather than four numbers and a separate filter bar. */
+.nu-digest-tile.is-active { border-color: var(--nu-accent); box-shadow: inset 0 0 0 1px var(--nu-accent); }
+.nu-digest-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 9px; font-size: 17px;
+  background: var(--nu-surface-raised); border: 1px solid var(--nu-border-subtle);
+}
+.nu-digest-value { font-size: 22px; font-weight: 650; line-height: 1.15; }
+.nu-digest-label { font-size: 12.5px; font-weight: 600; }
+.nu-digest-hint { font-size: 11px; }
+
+.nu-notice-days { display: flex; flex-direction: column; gap: 4px; }
+.nu-notice-day {
+  display: flex; align-items: center; gap: 8px;
+  margin: 12px 0 4px; font-size: 11.5px; font-weight: 650;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--nu-text-tertiary);
+}
+.nu-notice-days section:first-child .nu-notice-day { margin-top: 0; }
+.nu-notice-day::after {
+  content: ""; flex: 1; height: 1px; background: var(--nu-border-subtle);
+}
+.nu-notice-day-count {
+  order: 3; padding: 0 6px; border-radius: 999px; font-size: 11px;
+  background: var(--nu-surface-raised); border: 1px solid var(--nu-border-subtle);
+}
+
+.nu-notice-list { list-style: none; margin: 0; padding: 0; }
+.nu-notice {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 12px; border-radius: var(--nu-radius-card);
+  border: 1px solid transparent;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.nu-notice:hover { background: var(--nu-hover); border-color: var(--nu-border-subtle); }
+/* Unread is a tinted card with an accent edge rather than bold text alone:
+   the state has to survive being skimmed from two feet away. */
+.nu-notice--unread {
+  background: var(--nu-accent-soft);
+  box-shadow: inset 3px 0 0 var(--nu-accent);
+}
+.nu-notice--unread:hover { background: var(--nu-accent-soft); border-color: var(--nu-accent); }
+.nu-notice-icon {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 8px; font-size: 15px;
+}
+.nu-notice-body { flex: 1; min-width: 0; }
+.nu-notice-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.nu-notice-open {
+  border: none; background: transparent; padding: 0; margin: 0;
+  font: inherit; color: inherit; cursor: pointer; text-align: start;
+}
+.nu-notice-open:hover .ant-typography { color: var(--nu-accent-ink); }
+.nu-notice-open:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; border-radius: 3px; }
+/* Two lines of body, then an ellipsis: enough to know whether to open it,
+   never enough for one row to push the next one off the screen. */
+.nu-notice-text {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; margin: 3px 0 0; font-size: 12.5px; line-height: 1.45;
+  color: var(--nu-text-secondary);
+}
+/* The kind on the left, the time on the right. Every fact used to huddle at
+   the left edge, which left the other half of a wide row blank — and the time
+   is what a reader scans a list of notifications *by*. */
+.nu-notice-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 6px 12px;
+  margin-top: 6px; font-size: 11.5px; color: var(--nu-text-tertiary);
+}
+.nu-notice-meta-kind { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.nu-notice-meta-kind > span + span::before {
+  content: "·"; margin-right: 6px; color: var(--nu-border-strong);
+}
+.nu-notice-chip {
+  padding: 1px 7px; border-radius: 999px; font-weight: 600;
+  background: var(--nu-surface-raised); border: 1px solid var(--nu-border-subtle);
+  color: var(--nu-text-secondary);
+}
+.nu-notice-meta > .nu-notice-chip + span::before { content: none; margin-right: 0; }
+.nu-notice-link { color: var(--nu-accent-ink); }
+/* Row actions stay put rather than appearing on hover: a control that is only
+   there while the pointer is over it is a control a keyboard never finds. */
+.nu-notice-actions { flex: 0 0 auto; }
+.nu-notice-pager { display: flex; justify-content: flex-end; padding-top: 12px; }
+
+/* A section the server counted but whose rows are further down the result. */
+.nu-result-section-unloaded { display: block; padding: 8px 4px 12px; font-size: 12.5px; }
+
+/* ── The connection map (§50) ─────────────────────────────────────────────
+   A deterministic layout, so two screenshots of the same data are the same
+   picture and "the node on the left" keeps meaning something. */
+
+.nu-hub .ant-card-body { padding: 10px 12px; }
+.nu-row-selected > td { background: var(--nu-accent-soft) !important; }
+
+/* A card that fills its column, so a two-column row does not leave a hole
+   under the shorter side. */
+.nu-fill-height { height: 100%; }
+.nu-fill-height > .ant-card-body { height: calc(100% - 40px); }
+
+/* ── The permission matrix (§13) ──────────────────────────────────────────
+   A group heading is a row, not a section break: it keeps the horizontal
+   scroll aligned with the columns it summarises. */
+
+.nu-matrix-group > td { background: var(--nu-surface); font-weight: 600; }
+.nu-permission-code { font-family: var(--nu-font-mono); font-size: 11px; }
+/* A staged toggle is visibly not yet true — a permission change nobody
+   confirmed should not look like one that has already happened. */
+.nu-cell-changed { position: relative; }
+.nu-cell-changed::after {
+  content: "";
+  position: absolute; inset: -5px -7px; border-radius: 4px;
+  border: 1px dashed var(--nu-accent);
+  pointer-events: none;
+}
+.nu-cell-lock { margin-inline-start: 6px; color: var(--nu-text-tertiary); font-size: 11px; }
+
+/* ── Impersonation (§12) ──────────────────────────────────────────────────
+   A band across the whole content area rather than a toast: a toast is gone
+   in four seconds, and the thing it was telling you lasts until you end it. */
+
+.nu-impersonation {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 8px 16px;
+  background: var(--nu-warning); color: #1c1917;
+  font-size: 13px;
+}
+.nu-impersonation strong { font-weight: 700; }
+.nu-impersonation .ant-btn { margin-inline-start: auto; }
+/* ── The file preview pane (§20, §64) ─────────────────────────────────────
+   A frame with a floor, so a 40-pixel icon and a 4000-pixel screenshot make
+   the same shaped pane: a drawer whose height jumps with the file is a drawer
+   that moves the buttons under the reader's cursor. */
+.nu-preview-frame {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 260px; max-height: 52vh; overflow: auto;
+  padding: 12px; margin-bottom: 12px;
+  border: 1px solid var(--nu-border); border-radius: var(--nu-radius-card);
+  background: var(--nu-surface);
+}
+.nu-preview-image { max-width: 100%; max-height: 48vh; object-fit: contain; }
+.nu-preview-pdf { width: 100%; height: 48vh; border: 0; }
+/* Monospace and wrapped: a log line is 300 characters and a pane that scrolls
+   sideways to read one is a pane nobody reads. */
+.nu-preview-text {
+  width: 100%; margin: 0; padding: 0;
+  font-family: var(--nu-font-mono); font-size: 12px; line-height: 1.5;
+  white-space: pre-wrap; word-break: break-word;
+  color: var(--nu-text);
+}

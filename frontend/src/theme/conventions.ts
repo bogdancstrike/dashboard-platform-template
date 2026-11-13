@@ -83,7 +83,7 @@
  * of text. It is not a way to put a hyperlink in a paragraph — a `<button>`
  * that navigates cannot be middle-clicked, opened in a new tab, or copied,
  * and it is announced as a button by a screen reader. Prose gets a `<Link>`,
- * which `index.css` already underlines for exactly this case (§55).
+ * which the global stylesheet (`styles/global`) already underlines for exactly this case (§55).
  */
 
 /** The button roles, as the product spells them. */

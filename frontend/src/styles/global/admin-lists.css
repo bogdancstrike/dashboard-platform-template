@@ -1,0 +1,167 @@
+/* Scrolls inside itself: fifty request lines must not set the drawer's
+   height. */
+.nu-api-requests {
+  max-height: 260px; overflow: auto; border: 1px solid var(--nu-border-subtle);
+  border-radius: 6px;
+}
+.nu-api-requests > li {
+  display: flex; align-items: baseline; gap: 10px; padding: 4px 10px;
+  font-family: var(--nu-font-mono); font-size: 11.5px; min-width: 0;
+}
+.nu-api-requests > li + li { border-top: 1px solid var(--nu-border-subtle); }
+.nu-api-request-status { flex: none; font-variant-numeric: tabular-nums; }
+.nu-api-request-path { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nu-api-request-when { flex: none; }
+
+/* ── Integrations (§26) ──────────────────────────────────────────────────
+   A page whose value is telling you which three of twelve are broken, so the
+   rows that need somebody are marked and sorted first. */
+.nu-int-what { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.nu-int-provider,
+.nu-int-category,
+.nu-int-situation {
+  font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-int-category { text-transform: capitalize; }
+.nu-int-tally { font-size: 11.5px; }
+/* Kept under 3%, and never the only carrier: the situation is written out in
+   the cell beside it (§64). */
+.nu-int-row.is-attention > td {
+  background: color-mix(in srgb, var(--nu-warning) 3%, transparent);
+}
+.nu-int-situation-detail { margin: 8px 0 2px; font-size: 14px; font-weight: 600; }
+
+.nu-int-fields { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.nu-int-field { display: flex; flex-direction: column; gap: 3px; }
+.nu-int-field-name { font-family: var(--nu-font-mono); font-size: 11.5px; }
+
+/* ── Exports (§30) ───────────────────────────────────────────────────────
+   A short personal list, so the layout gives the two facts a reader came for
+   — where each one stands, and whether there is a file — the width, and keeps
+   the reference and the numbers narrow and monospaced enough to compare down
+   the column. */
+.nu-exp-notice { margin-bottom: 12px; }
+.nu-exp-filter { margin-bottom: 12px; }
+.nu-exp-what { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.nu-exp-question {
+  font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* The link is the reference, so it reads as one: no padding of its own, and
+   the same tabular figures as the counts beside it. */
+.nu-exp-open {
+  padding: 0; height: auto; font-family: var(--nu-font-mono); font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.nu-exp-state { flex-wrap: nowrap; min-width: 0; }
+.nu-exp-state .ant-typography {
+  font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-exp-table td { font-variant-numeric: tabular-nums; }
+/* Narrow, because it stands in for a number in a right-aligned column and a
+   full-width bar would make that column jump between rows. */
+.nu-exp-progress { width: 64px; margin: 0; }
+.nu-exp-limits { font-size: 11.5px; margin-top: 12px; }
+.nu-exp-actions { display: flex; justify-content: flex-end; width: 100%; }
+.nu-exp-detail { display: flex; flex-direction: column; gap: 14px; }
+.nu-exp-facts .ant-descriptions-item-label { width: 130px; }
+.nu-exp-log {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 10px 12px; border: 1px solid var(--nu-border-subtle); border-radius: 6px;
+  background: var(--nu-bg); font-family: var(--nu-font-mono); font-size: 11.5px;
+}
+.nu-exp-log-line { display: flex; gap: 10px; }
+.nu-exp-log-line > .ant-typography:first-child { flex: none; }
+
+/* ── Import wizard (§29) ─────────────────────────────────────────────────
+   A page whose job is to let somebody see their own spreadsheet, so the
+   preview keeps the file's shape — one column per column, the values as
+   written — and everything else stays out of its way. */
+.nu-imp > * + * { margin-top: 12px; }
+.nu-imp-steps { max-width: 640px; }
+.nu-imp-choose { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.nu-imp-target { min-width: 200px; }
+.nu-imp-drop { padding: 8px 0; }
+.nu-imp-dialect { margin-top: 10px; }
+.nu-imp-outcome,
+.nu-imp-missing { margin-top: 10px; }
+/* One control per column, wrapping — a file with twenty columns is a real
+   file, and a single long list would put the last one below the fold. */
+.nu-imp-columns {
+  display: grid; gap: 10px 14px;
+  grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr));
+}
+.nu-imp-column { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.nu-imp-column-head { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.nu-imp-samples {
+  font-size: 11px; font-family: var(--nu-font-mono);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-imp-field { width: 100%; }
+.nu-imp-counts { font-size: 12.5px; margin-bottom: 10px; }
+.nu-imp-line { font-family: var(--nu-font-mono); font-variant-numeric: tabular-nums; }
+.nu-imp-cell { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+/* The reason is under the value rather than in a tooltip: the question is
+   "what is wrong with this line", and a hover cannot be scanned down a
+   column (§64, §76). */
+.nu-imp-why { font-size: 11px; }
+.nu-imp-table td { vertical-align: top; }
+/* Kept under 4% and never the only carrier — the message is in the cell. */
+.nu-imp-row.is-wrong > td {
+  background: color-mix(in srgb, var(--nu-warning) 4%, transparent);
+}
+.nu-imp-more { font-size: 11.5px; margin: 10px 0 0; }
+.nu-imp-open {
+  padding: 0; height: auto; font-family: var(--nu-font-mono); font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Security (§41) ──────────────────────────────────────────────────────
+   Three tables about one account, so the layout keeps addresses and agents
+   monospaced and comparable down their columns, and spends colour on only
+   two rows: the device you are reading from, and a sign-in that failed. */
+.nu-sec > * + * { margin-top: 12px; }
+.nu-sec-headline { margin-bottom: 4px; }
+.nu-sec-note { margin-bottom: 10px; }
+.nu-sec-device,
+.nu-sec-where,
+.nu-sec-event { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.nu-sec-agent,
+.nu-sec-detail {
+  font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-sec-ip {
+  font-family: var(--nu-font-mono); font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.nu-sec-where .ant-typography:last-child { font-size: 11px; }
+.nu-sec-state { flex-wrap: nowrap; min-width: 0; }
+.nu-sec-state .ant-typography {
+  font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-sec-window { font-size: 11.5px; margin: 10px 0 0; }
+/* Under 4%, and never the only carrier: the state is written in the cell
+   beside it (§64). */
+.nu-sec-row.is-current > td {
+  background: color-mix(in srgb, var(--nu-success) 4%, transparent);
+}
+.nu-sec-row.is-failure > td {
+  background: color-mix(in srgb, var(--nu-danger) 4%, transparent);
+}
+/* An event already dealt with recedes rather than disappearing — the page
+   still has to be able to answer "was this looked at". */
+.nu-sec-row.is-resolved > td { opacity: 0.62; }
+
+/* ── Favorites (§38, §39) ────────────────────────────────────────────────
+   Two lists that must not read as one: the kept list carries its own order
+   and its own controls, the visited list carries a count and a star. */
+.nu-fav > * + * { margin-top: 12px; }
+.nu-fav-what { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.nu-fav-link { font-weight: 500; }
+.nu-fav-capacity,
+.nu-fav-note { display: block; font-size: 11.5px; }
+.nu-fav-capacity { margin-bottom: 8px; }
+.nu-fav-note { margin-top: 10px; }
+/* Already kept: the same glyph as the button that keeps one, so the two read
+   as one state rather than two controls. */
+.nu-fav-kept { color: var(--nu-warning-ink); }
+.nu-fav-card td { font-variant-numeric: tabular-nums; }

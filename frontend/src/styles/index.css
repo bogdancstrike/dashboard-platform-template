@@ -1,0 +1,13 @@
+/*
+ * The application's one stylesheet entry, imported by `main.tsx`.
+ *
+ * Order is cascade order: the global rules, then the glass skin over them,
+ * then the per-area sheets that must be present on first paint. Other area
+ * sheets are still imported by the components that use them.
+ */
+@import "./global.css";
+@import "./glass.css";
+@import "./overview.css";
+@import "./records.css";
+@import "./find.css";
+@import "./admin.css";

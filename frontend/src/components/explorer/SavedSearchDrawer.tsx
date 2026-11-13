@@ -48,7 +48,7 @@ import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
 
-/** `preset`, not `color`: AntD preset names, whose ink `index.css` fixes. A
+/** `preset`, not `color`: AntD preset names, whose ink the global stylesheet (`styles/global`) fixes. A
  * field called color is where a hex ends up, and a hex on a `Tag` is white
  * text on a fill nobody measured (§55) — see `EdgeTag`. */
 const SCOPE_TAG: Record<SavedSearch["scope"], { icon: JSX.Element; label: string; preset?: string }> = {

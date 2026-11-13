@@ -1,4 +1,4 @@
-/* Glass design — admin pages. Owned by one workstream; see src/glass.css for the shared skin.
+/* Glass design — admin pages. Owned by one workstream; see src/styles/glass/ for the shared skin.
  *
  * Every administration, data and template page renders inside `.nx-ad`, so the
  * rules below only ever reach those pages. The vocabulary is the canvas's

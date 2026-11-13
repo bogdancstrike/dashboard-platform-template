@@ -79,7 +79,7 @@ describe("no page writes its own filled status tag", () => {
 
   it("has no shipped module passing a computed colour to a Tag", () => {
     // A *preset* name is fine — `<Tag color="warning">` is a tinted ground
-    // whose ink `index.css` already fixes. What this catches is a colour
+    // whose ink the global stylesheet (`styles/global`) already fixes. What this catches is a colour
     // computed from the vocabulary and handed to AntD as a fill, which is the
     // form that puts white on it.
     //

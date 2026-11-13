@@ -1,0 +1,184 @@
+/* A list beside what the list is about — tickets' triage queue (§63),
+   reports, files. `.nu-fill` on the same element makes it claim the window;
+   without it the grid still works and sizes to its content. */
+.nu-split { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 12px; align-items: start; }
+.nu-split.nu-fill { align-items: stretch; }
+/* A narrower left column, for a list of short names — a folder tree needs a
+   quarter of what a queue of ticket summaries does, and every pixel it does
+   not need is a pixel the table beside it does. */
+.nu-split--rail { grid-template-columns: minmax(180px, 230px) minmax(0, 1fr); }
+.nu-split.nu-fill > * { min-height: 0; }
+@media (max-width: 1100px) { .nu-split, .nu-split--rail { grid-template-columns: minmax(0, 1fr); } }
+.nu-split-list .ant-card-body { padding: 6px; }
+.nu-split-detail { min-height: 420px; }
+.nu-split.nu-fill .nu-split-detail { min-height: 0; }
+/* The queue scrolls inside its pane. The cap is for the pages that do not
+   fill the window; a filling one gets its height from the grid instead. */
+.nu-queue-row {
+  display: flex; gap: 10px; width: 100%; text-align: start;
+  padding: 9px 8px; border: none; background: transparent; cursor: pointer;
+  border-radius: var(--nu-radius-control);
+}
+.nu-queue-row:hover { background: var(--nu-hover); }
+.nu-queue-row.is-open { background: var(--nu-accent-soft); box-shadow: inset 2px 0 0 var(--nu-accent); }
+.nu-queue-row:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: -2px; }
+.nu-queue-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.nu-queue-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.nu-queue-pager { display: flex; justify-content: center; padding: 8px 0 2px; }
+
+/* Devices — the fleet monitor. */
+.nu-fleet {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr));
+}
+.nu-device .ant-card-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.nu-device-head { display: flex; align-items: center; gap: 8px; }
+.nu-device-head > .ant-typography { flex: 1; min-width: 0; }
+.nu-device-serial { font-size: 11px; }
+.nu-gauge { display: flex; align-items: center; gap: 8px; }
+.nu-gauge-icon { font-size: 13px; width: 14px; flex: none; }
+.nu-gauge-track {
+  flex: 1; height: 6px; border-radius: 3px; overflow: hidden;
+  background: var(--nu-border-subtle);
+}
+.nu-gauge-fill { display: block; height: 100%; border-radius: 3px; }
+.nu-gauge-value {
+  width: 26px; text-align: right; font-size: 11px;
+  font-variant-numeric: tabular-nums; color: var(--nu-text-secondary);
+}
+.nu-device-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; font-size: 11.5px; margin-top: 2px;
+}
+.nu-device-seen { white-space: nowrap; }
+
+/* Preferences (§40): a labelled control with the reason it exists under it. */
+.nu-setting {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+}
+.nu-setting-text { display: flex; flex-direction: column; gap: 2px; max-width: 60%; }
+.nu-setting-hint { font-size: 11.5px; line-height: 1.4; }
+.nu-setting-control { flex: none; }
+/* Record previews keep document whitespace and long identifiers within the panel. */
+.nu-record-content { display: grid; gap: 24px; }
+.nu-record-content h3.ant-typography { font-size: 16px; }
+.nu-preview-summary { margin-bottom: 12px; }
+.nu-record-prose p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; margin: 8px 0 0; }
+.nu-record-json { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; font-size: 12px; }
+.nu-record-content .ant-descriptions-item-content { overflow-wrap: anywhere; min-width: 0; }
+/* AntD's description/link aliases use dimmer semantic colours in dark mode.
+   Readable text uses the shared text/accent tokens; badge borders carry status. */
+.nu-record-drawer .ant-typography-secondary,
+.nu-record-drawer .ant-empty-description,
+.nu-record-drawer .ant-list-item-meta-description { color: var(--nu-text-secondary); }
+.nu-record-drawer a,
+.nu-record-drawer .ant-btn-link,
+.nu-record-drawer .ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--nu-accent-ink); }
+
+/* The project delivery review: a rollup of the work under one project (§8).
+   Every cell is a link into the board filtered to that lane, because the
+   board already exists and a second one embedded here would be a second set
+   of rules about what a lane is. */
+.nu-rollup {
+  display: grid; gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(min(96px, 100%), 1fr));
+}
+.nu-rollup-cell {
+  display: flex; flex-direction: column; gap: 2px; padding: 8px 10px;
+  border: 1px solid var(--nu-border-subtle); border-radius: var(--nu-radius-card);
+  background: var(--nu-surface-raised); color: inherit;
+  transition: border-color 140ms ease-out;
+}
+.nu-rollup-cell:hover { border-color: var(--nu-accent); }
+.nu-rollup-value { font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.nu-rollup-label {
+  font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--nu-text-secondary);
+}
+
+/* A status carries its colour on its leading edge rather than as a fill (§55).
+   White on the amber and green this platform uses for status is 2.9:1 and
+   3.3:1 — below the bar for text of any size — and the labels most worth
+   reading are the ones that fail worst. See components/StatusTag.tsx. */
+.nu-status-tag {
+  border-inline-start-width: 3px;
+  border-inline-start-style: solid;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A gauge's number keeps the surface's ink. AntD tints it green at 100% and
+   red on "exception", which is 3.3:1 and 4.8:1 on white — and the hue says
+   nothing the bar beside it has not already said.
+
+   Every progress bar, not only the ones marked `nu-gauge`: this was scoped to
+   that class, and the audit over every route found the same green at 3.29:1 on
+   `/find/catalog`, whose bars are AntD's plain ones. A rule that has to be
+   opted into is a rule the next page forgets. */
+.ant-progress-text { color: var(--nu-text) !important; }
+
+/* One audit entry's heading: the action, who did it, and when. Laid out
+   rather than left to inline flow — an unstyled span renders the actor and
+   the time as "Ada Administratorjust now". */
+.nu-audit-head {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+}
+
+/* The chart builder's gallery: every kind the platform themes, drawn from the
+   reader's own numbers. A thumbnail of real data answers "is this the right
+   picture" in a way a generic icon never does (§44). */
+.nu-gallery {
+  display: grid; gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
+}
+.nu-gallery-item {
+  display: flex; flex-direction: column; gap: 4px; padding: 6px;
+  background: var(--nu-surface); color: inherit; text-align: left;
+  border: 1px solid var(--nu-border-subtle); border-radius: var(--nu-radius-card);
+  cursor: pointer; transition: border-color 140ms ease-out;
+}
+.nu-gallery-item:hover:not(:disabled) { border-color: var(--nu-accent); }
+.nu-gallery-item.is-chosen {
+  border-color: var(--nu-accent);
+  box-shadow: inset 0 0 0 1px var(--nu-accent);
+}
+/* Refused in place, never hidden: a kind that is not offered teaches nobody
+   that it exists or what would unlock it (§76). */
+.nu-gallery-item.is-blocked { cursor: not-allowed; background: var(--nu-bg); }
+.nu-gallery-canvas {
+  display: flex; align-items: center; justify-content: center;
+  height: 104px; overflow: hidden; border-radius: var(--nu-radius-control);
+}
+.nu-gallery-label {
+  font-size: 12px; font-weight: 600; padding: 0 2px;
+}
+.nu-gallery-item:disabled .nu-gallery-label { color: var(--nu-text-secondary); }
+
+/* A chart drawn in a theme it was told to use, on that theme's own ground.
+   Floating a dark chart on a light card is not a preview of anything: the
+   axis labels were chosen to sit on the ground this paints. */
+.nu-chart-preview {
+  border-radius: var(--nu-radius-card); padding: 6px;
+  border: 1px solid var(--nu-border-subtle);
+}
+.nu-chart-preview--light { background: #ffffff; }
+.nu-chart-preview--dark { background: #15171c; }
+.nu-chart-preview figcaption {
+  font-size: 11.5px; padding: 2px 4px 0;
+}
+.nu-chart-preview--light figcaption { color: #475569; }
+.nu-chart-preview--dark figcaption { color: #9aa2b1; }
+.nu-chart-preview-empty { display: block; }
+
+/* The map page: a canvas that cannot be read by a screen reader or reached by
+   a keyboard, so it names what it shows and points at the tables that carry
+   the same numbers as rows (§54, §55). */
+.nu-map figcaption {
+  margin-top: 6px; font-size: 12px; color: var(--nu-text-secondary);
+}
+/* What the picture is hiding, said on the picture: at a wide zoom several
+   cities are one bubble, and a reader comparing the map with the table below
+   it has to be told which (§34, §50). */
+.nu-map-note {
+  margin: 6px 0 0; font-size: 12px; color: var(--nu-text-secondary);
+}

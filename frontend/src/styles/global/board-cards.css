@@ -1,0 +1,170 @@
+/* A card. The kind is a coloured *edge*, never a coloured tile: a board of
+   tinted cards cannot also use colour for priority or lateness, and body text
+   on a tint is a contrast failure waiting to be reported (§64). */
+.nu-card {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 8px 10px; border-radius: var(--nu-radius-control);
+  background: var(--nu-surface); border: 1px solid var(--nu-border);
+  border-inline-start: 3px solid var(--nu-border-strong);
+  cursor: grab;
+}
+.nu-card:hover { border-color: var(--nu-accent); }
+.nu-card--epic { border-inline-start-color: #7c3aed; }
+.nu-card--story { border-inline-start-color: var(--nu-accent); }
+.nu-card--task { border-inline-start-color: var(--nu-info); }
+.nu-card--bug { border-inline-start-color: var(--nu-danger); }
+.nu-card-head { display: flex; align-items: center; gap: 6px; }
+.nu-card-kind {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 4px; flex: none;
+  background: var(--nu-hover); font-size: 10.5px; font-weight: 700;
+}
+.nu-card-ref,
+.nu-card-title {
+  border: 0; background: transparent; padding: 0; margin: 0;
+  font: inherit; color: inherit; text-align: start; cursor: pointer;
+}
+.nu-card-ref { font-family: var(--nu-font-mono); font-size: 11px; color: var(--nu-text-tertiary); }
+.nu-card-ref:hover,
+.nu-card-title:hover { color: var(--nu-accent-ink); }
+.nu-card-title { font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+.nu-card-grip {
+  margin-inline-start: auto; border: 0; background: transparent; padding: 2px;
+  color: var(--nu-text-tertiary); cursor: pointer; line-height: 1;
+}
+.nu-card-grip:hover { color: var(--nu-accent-ink); }
+.nu-card-grip:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 1px; }
+.nu-card-foot {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  font-size: 11px;
+}
+.nu-card-foot .ant-tag { margin: 0; font-size: 10.5px; }
+.nu-card-points,
+.nu-card-said,
+.nu-card-checklist { color: var(--nu-text-secondary); font-variant-numeric: tabular-nums; }
+.nu-card-who {
+  margin-inline-start: auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #475569; color: #fff; font-size: 9.5px; font-weight: 600;
+}
+.nu-card-progress { margin: 0 !important; }
+.nu-card-drawer-title { margin: 0 !important; }
+.nu-card-drawer-grid {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+}
+
+/* The gallery, for when the address names no board. Cards rather than a
+   select: what somebody is choosing between is a board, not a name. */
+.nu-board-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.nu-board-card-name { display: block; margin-top: 6px; font-size: 14px; }
+.nu-board-card-note { display: block; font-size: 12px; }
+.nu-board-card-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--nu-border-subtle);
+  font-size: 11.5px;
+}
+.nu-board-new {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  min-height: 132px; border-radius: var(--nu-radius-card);
+  border: 1px dashed var(--nu-border-strong); background: transparent;
+  color: var(--nu-text-secondary); font: inherit; cursor: pointer;
+}
+.nu-board-new:hover { border-color: var(--nu-accent); color: var(--nu-accent-ink); }
+.nu-board-new:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; }
+
+/* The noticeboard (§17). Named `nu-announce*` and not `nu-notice*`: the
+   notifications page already owns that prefix, and three of these class names
+   collided with its rows — a notification's title became a flex row and its
+   body grew a `pre-wrap` and an 80ch cap, on a page nobody had touched.
+
+   A notice is *prose*, so it is laid out as prose
+   rather than as a table row: what a maintenance notice says is the reason
+   somebody opened the page, and a title truncated into a column with the body
+   behind a click is a page that has hidden its content. */
+.nu-announce-board { display: flex; flex-direction: column; gap: 12px; }
+/* Prose and facts want different widths. The text keeps a readable measure —
+   a hundred-character line is hard to read whatever the window is doing — and
+   the width it does not use carries the notice's own facts rather than being
+   left blank. Half of every card was empty before this. */
+/* A notice's title in the authoring table. The pin must not shrink and the
+   title must, or `Text ellipsis` measures against its own content, never
+   engages, and the cell clips the longest notice mid-word. */
+.nu-announce-cell { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.nu-announce-cell > .anticon { flex: none; }
+.nu-announce-cell > .ant-typography { flex: 1 1 auto; min-width: 0; margin-bottom: 0; }
+.nu-announce-author { display: inline-flex; align-items: center; gap: 6px; }
+.nu-announce-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.nu-announce { border-inline-start: 3px solid var(--nu-border-strong); }
+/* Severity on the leading edge rather than as a fill: the same device
+   `StatusTag` uses, and it clears 3:1 as a border where a tinted card would
+   not (§64). */
+.nu-announce--warning { border-inline-start-color: var(--nu-warning); }
+.nu-announce--critical { border-inline-start-color: var(--nu-danger); }
+/* Unread is a tint *and* a word — the row also says "unread" through the
+   count in the header — because colour alone is not a fact. */
+.nu-announce.is-unread { background: var(--nu-accent-soft); }
+.nu-announce-pin { color: var(--nu-accent-ink); }
+.nu-announce-when { font-size: 12px; white-space: nowrap; }
+.nu-announce-title {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 0 6px !important; font-size: 16px !important;
+}
+.nu-announce-body { margin: 0 0 12px !important; white-space: pre-wrap; max-width: 80ch; }
+.nu-announce-avatar { font-size: 10px; }
+.nu-announce-foot { display: flex; justify-content: center; padding-top: 4px; }
+
+/* The activity feed's kind strip (§35). One chip per kind of thing that
+   happens, each carrying a count the server computed over the whole match —
+   and each one the filter for it. A chip at zero is offered and refused
+   rather than hidden: a kind that vanishes when nothing has happened teaches
+   a reader that the platform has stopped recording it (§76). */
+.nu-kindstrip { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+/* Chips that share the row rather than huddling at the left of a wide page.
+   Six chips at their content width used half the strip and left the rest
+   blank, which is a row of the page saying nothing. */
+.nu-kindstrip--fill > .nu-kindchip { flex: 1 1 0; min-width: 104px; }
+.nu-kindchip {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  min-width: 96px; padding: 7px 12px;
+  border: 1px solid var(--nu-border); border-radius: var(--nu-radius-card);
+  background: var(--nu-surface); color: inherit; font: inherit;
+  cursor: pointer; text-align: start;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.nu-kindchip:hover:not(:disabled) { border-color: var(--nu-accent); }
+.nu-kindchip:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; }
+.nu-kindchip.is-active { border-color: var(--nu-accent); box-shadow: inset 0 0 0 1px var(--nu-accent); }
+.nu-kindchip.is-empty { cursor: default; opacity: 0.6; }
+.nu-kindchip-count { font-size: 17px; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.nu-kindchip-label { font-size: 11.5px; color: var(--nu-text-secondary); }
+
+/* The feed itself: a heading wherever the day changes, then one row per
+   thing. Forty rows each stamped "3d ago" is a wall of text. */
+.nu-feed-day + .nu-feed-day { margin-top: 6px; }
+.nu-feed-daylabel {
+  position: sticky; top: 0; z-index: 1;
+  margin: 0; padding: 6px 2px 4px;
+  font-size: 11.5px; font-weight: 650; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--nu-text-tertiary); background: var(--nu-surface);
+}
+.nu-feed { list-style: none; margin: 0; padding: 0; }
+.nu-feed-row { display: flex; gap: 10px; padding: 8px 2px; align-items: flex-start; }
+.nu-feed li + li > .nu-feed-row,
+.nu-feed-row + .nu-feed-row { border-top: 1px solid var(--nu-border-subtle); }
+/* The whole row opens what it is about — bigger to click than a word inside
+   a sentence, and it cannot disagree with the sentence beside it. */
+.nu-feed-row--link { color: inherit; border-radius: var(--nu-radius-control); }
+.nu-feed-row--link:hover { background: var(--nu-hover); color: inherit; }
+.nu-feed-row--link:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: -2px; }
+.nu-feed-avatar { flex: none; font-size: 11px; }
+.nu-feed-body { min-width: 0; flex: 1; }
+.nu-feed-line { font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+/* What it was on the left, when on the right — see the row's own comment. */
+.nu-feed-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 6px 12px; flex-wrap: wrap; font-size: 11.5px; margin-top: 2px;
+}
+.nu-feed-meta-kind { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

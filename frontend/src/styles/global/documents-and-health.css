@@ -1,0 +1,180 @@
+/* One block on the page. Selectable, because the settings rail edits whatever
+   is selected — and clicking the thing you want to change is the shortest
+   route there is. */
+.nu-doc-block {
+  border: 1px solid transparent; border-radius: 6px; padding: 2px 6px;
+  cursor: pointer;
+}
+.nu-doc-block:hover { border-color: #e2e8f0; }
+.nu-doc-block.is-chosen {
+  border-color: var(--nu-doc-accent);
+  box-shadow: inset 0 0 0 1px var(--nu-doc-accent);
+}
+.nu-doc-heading { color: var(--nu-doc-accent) !important; }
+.nu-doc-paper .nu-doc-heading,
+.nu-doc-paper .nu-doc-text,
+.nu-doc-paper .ant-typography { color: #0f172a; }
+.nu-doc-paper h1.nu-doc-heading, .nu-doc-paper h2.nu-doc-heading,
+.nu-doc-paper h3.nu-doc-heading { color: var(--nu-doc-accent); }
+.nu-doc-text { white-space: pre-wrap; }
+.nu-doc-rule { border: 0; border-top: 1px solid #e2e8f0; margin: 12px 0; }
+.nu-doc-spacer.is-small { height: 8px; }
+.nu-doc-spacer.is-medium { height: 20px; }
+.nu-doc-spacer.is-large { height: 40px; }
+/* A break is drawn as a marked seam rather than as a real new sheet: the
+   preview is one continuous column, and a reader needs to know a break is
+   *there* far more than they need the scroll to jump. */
+.nu-doc-break {
+  display: flex; align-items: center; gap: 10px; margin: 16px 0;
+  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #94a3b8;
+}
+.nu-doc-break::before, .nu-doc-break::after {
+  content: ""; flex: 1; border-top: 1px dashed #cbd5e1;
+}
+.nu-doc-figure { margin: 0 0 12px; }
+.nu-doc-caption { font-size: 11.5px; color: #64748b; margin-bottom: 4px; }
+.nu-doc-note { display: block; font-size: 11px; color: #64748b !important; margin-top: 4px; }
+.nu-doc-table .ant-table { background: transparent; }
+.nu-doc-unfinished { padding: 8px 0; }
+.nu-doc-refused { margin: 0; font-size: 12px; color: #b45309; font-style: italic; }
+.nu-doc-metrics {
+  display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+.nu-doc-metric {
+  border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.nu-doc-metric-value {
+  font-size: 20px; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums;
+}
+.nu-doc-metric-unit { font-size: 13px; font-weight: 500; margin-left: 2px; }
+.nu-doc-metric-label { font-size: 11.5px; color: #64748b; }
+
+/* The settings rail: one column, two subjects — the selected block, or the
+   paper it is all printed on. */
+.nu-doc-panel-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.nu-doc-panel-note { margin: 2px 0 10px !important; font-size: 12px; }
+.nu-doc-panel .ant-form-item { margin-bottom: 12px; }
+
+/* The actions at the end of a result row: star it, or look at it without
+   leaving the list. Kept together so the column is one target group rather
+   than two floating glyphs. */
+.nu-result-actions { display: inline-flex; align-items: center; gap: 2px; }
+.nu-fav-star-on { color: var(--nu-warning, #ca8a04); }
+
+/* The preferences page: cards of six different heights, packed.
+   A two-column `Row`/`Col` grid makes every row as tall as its tallest card
+   and leaves the difference as a hole under the short ones — six cards, five
+   holes. CSS columns pack them instead, and `break-inside` is what keeps a
+   card from being sawn in half across the gutter. */
+.nu-prefs { columns: 2; column-gap: 16px; }
+.nu-prefs > * { break-inside: avoid; margin-bottom: 16px; display: block; }
+@media (max-width: 1100px) { .nu-prefs { columns: 1; } }
+
+/* ── system health, over time (§24) ─────────────────────────────────────
+   One card per dependency, two across where there is room. The page used to
+   answer only "is it working now", which is what a deploy pipeline asks —
+   a person is almost always here about something that happened earlier. */
+.nu-health-grid {
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+}
+.nu-health-service {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 12px; border-radius: var(--nu-radius-card);
+  border: 1px solid var(--nu-border-subtle); background: var(--nu-bg);
+}
+.nu-health-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap;
+}
+.nu-health-name { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.nu-health-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.nu-health-category { font-size: 11px; text-transform: capitalize; }
+
+/* The status band: one segment per reading, under the latency line. Status
+   drawn as a second *line* would put two unrelated scales on one axis; drawn
+   as ground it says "how slow" and "would anybody have noticed" at once — and
+   it is a second carrier for what the line only hints at through height. */
+.nu-health-band {
+  display: flex; gap: 1px; height: 8px; border-radius: 4px; overflow: hidden;
+}
+.nu-health-tick { flex: 1 1 0; min-width: 1px; }
+
+.nu-health-incidents { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.nu-health-incidents > li {
+  display: flex; align-items: center; gap: 8px; font-size: 12px; min-width: 0;
+}
+.nu-health-message { font-size: 12px; }
+
+/* ── the layout gallery's wireframes (§61) ──────────────────────────────
+   The shape itself, drawn from the declaration rather than shown as a
+   screenshot: a picture is a second copy that drifts from the page it claims
+   to describe, cannot be themed, and cannot be read aloud. Twelve columns,
+   because that is the grid the product is built on — a region reading "span
+   4" here is one that would be `span={4}` there. */
+.nu-wire {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 8px; margin: 10px 0;
+  border-radius: 8px; border: 1px solid var(--nu-border-subtle);
+  background: var(--nu-bg);
+}
+.nu-wire-row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; }
+.nu-wire-box {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 26px; padding: 3px 6px; border-radius: 5px;
+  border: 1px dashed var(--nu-border-strong);
+  background: var(--nu-surface); color: var(--nu-text-secondary);
+  font-size: 10.5px; line-height: 1.2; text-align: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* The one region that carries the answer. A wireframe where every box weighs
+   the same says the parts and not the shape. */
+.nu-wire-box.is-primary {
+  border-style: solid; border-color: var(--nu-accent);
+  background: var(--nu-accent-soft); color: var(--nu-accent-ink);
+  font-weight: 600;
+  --nu-text-tertiary: var(--nu-text-secondary);
+}
+.nu-tmpl-pieces { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
+.nu-tmpl-piece { font-family: var(--nu-font-mono); font-size: 11px; }
+
+/* The advanced editor's lesson (§4). Two nouns and three connectives, none of
+   them named anywhere else on screen — so the panel that used to sit here told
+   somebody to "build groups" without having said what a group was. */
+.nu-advanced-help {
+  border: 1px solid var(--nu-border-subtle); border-radius: var(--nu-radius-card);
+  background: var(--nu-bg);
+}
+.nu-advanced-help .ant-collapse-header { padding: 8px 12px !important; }
+.nu-advanced-lesson {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+}
+.nu-advanced-lesson .ant-typography { margin: 2px 0 0 !important; font-size: 12.5px; }
+.nu-advanced-hint { color: var(--nu-text-tertiary); }
+
+/* The library's own controls, brought into the product's look: they ship as a
+   row of default AntD buttons at three different sizes. */
+.nu-query-builder .query-builder .group--actions .ant-btn { border-radius: 6px; }
+.nu-query-builder .query-builder .group--header { gap: 8px; }
+.nu-query-builder .query-builder .rule--body { gap: 8px; align-items: center; }
+
+/* The connections tab: a picture and a list, switched. Which one somebody
+   wants is a fact about them rather than about the record, so the choice
+   sticks — and both are kept because they answer different questions (§50). */
+.nu-relations-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 10px;
+}
+.nu-relations-note { display: block; margin-top: 8px; font-size: 12px; }
+
+/* The tour's step counter. AntD draws dots by default, which say how many
+   steps there are and not which one you are on — and a reader deciding whether
+   to keep going wants the second (§77). */
+.nu-tour-count {
+  font-size: 12px; color: var(--nu-text-secondary);
+  font-variant-numeric: tabular-nums;
+}

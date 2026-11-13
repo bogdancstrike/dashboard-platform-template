@@ -1,0 +1,28 @@
+/*
+ * The global stylesheet (formerly `src/index.css`): base rules, page furniture
+ * and the pages that predate per-feature sheets.
+ *
+ * Split by concern into `global/`; the order below is the cascade order, so
+ * a later file still overrides an earlier one exactly as in the single sheet.
+ */
+@import "./global/foundation.css";
+@import "./global/cards-and-tags.css";
+@import "./global/problems-and-explorer.css";
+@import "./global/search-and-relations.css";
+@import "./global/palette-and-bell.css";
+@import "./global/notifications-and-matrix.css";
+@import "./global/announcements-and-records.css";
+@import "./global/record-views.css";
+@import "./global/dashboard-widgets.css";
+@import "./global/widgets-and-lists.css";
+@import "./global/files-and-boards.css";
+@import "./global/board-cards.css";
+@import "./global/reports-and-automations.css";
+@import "./global/calendar.css";
+@import "./global/mail-and-home.css";
+@import "./global/home-and-settings.css";
+@import "./global/logs-jobs-orgs.css";
+@import "./global/admin-lists.css";
+@import "./global/showcase.css";
+@import "./global/documents-and-health.css";
+@import "./global/quiet-nav.css";

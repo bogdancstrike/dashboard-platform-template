@@ -1,0 +1,168 @@
+/*
+ * The glass design (Claude Design "Nucleus", the canvas every page is copied
+ * from): a soft two-glow ground, floating frosted panels, pill controls.
+ *
+ * Loaded after the global stylesheet (`styles/global`), so it wins where the two disagree. Everything
+ * reads the custom properties `AppearanceProvider` writes, so light and dark
+ * are the same rules with different values.
+ *
+ * Type is the product's own Inter throughout — headings are Inter at a heavy
+ * weight with tight tracking, and the design's emphasised word keeps its
+ * accent colour.
+ */
+
+/* Defaults before AppearanceProvider runs — the boot and "platform is not
+   answering" screens render outside the provider and would otherwise lose
+   every colour. Generated from `cssVariables()` (theme/antd.ts); the provider's
+   inline values win as soon as the app mounts. */
+:root {
+  --nu-accent: #2457d6;
+  --nu-on-accent: #ffffff;
+  --nu-glow-rgb: 36, 87, 214;
+  --nu-ink-rgb: 27, 30, 38;
+  --nu-glass-rgb: 255, 255, 255;
+  --nu-raised: #ffffff;
+  --nu-on-ink: #ffffff;
+  --nu-tint: #dce5fa;
+  --nu-ring: #ffffff;
+  --nu-field: rgba(255, 255, 255, 0.85);
+  --nu-ok: #1f6b40;
+  --nu-ok-bg: rgba(46, 125, 79, 0.12);
+  --nu-ok-fill: #3e9b66;
+  --nu-warn: #8a5208;
+  --nu-warn-bg: rgba(196, 128, 20, 0.14);
+  --nu-warn-fill: #d99a2b;
+  --nu-bad: #b42318;
+  --nu-bad-bg: rgba(180, 35, 24, 0.1);
+  --nu-bad-fill: #d9483b;
+  --nu-glass: rgba(255, 255, 255, 0.55);
+  --nu-glass-strong: rgba(255, 255, 255, 0.78);
+  --nu-glass-border: rgba(255, 255, 255, 0.85);
+  --nu-glass-shadow: 0 14px 36px rgba(40, 35, 60, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --nu-lift: 0 2px 12px rgba(40, 35, 60, 0.10);
+  --nu-page-bg: radial-gradient(ellipse 55% 45% at 88% 0%, #d9e4fa 0%, rgba(217, 228, 250, 0) 70%), radial-gradient(ellipse 45% 50% at 6% 100%, #e7e5f6 0%, rgba(231, 229, 246, 0) 70%), #f6f7f9;
+  --nu-accent-ink: #1e4bb8;
+  --nu-accent-soft: rgba(36, 87, 214, 0.08);
+  --nu-bg: #eef0f3;
+  --nu-surface: rgba(255, 255, 255, 0.72);
+  --nu-surface-raised: #ffffff;
+  --nu-border: rgba(27, 30, 38, 0.1);
+  --nu-border-subtle: rgba(27, 30, 38, 0.06);
+  --nu-text: #1b1e26;
+  --nu-text-secondary: #3f4552;
+  --nu-text-tertiary: #5c6370;
+  --nu-success: #3e9b66;
+  --nu-warning: #d99a2b;
+  --nu-danger: #cc4136;
+  --nu-info: #2b8bb3;
+  --nu-success-ink: #1f6b40;
+  --nu-warning-ink: #8a5208;
+  --nu-danger-ink: #b42318;
+  --nu-info-ink: #155e75;
+  --nu-zoom: 1;
+  --nu-row-height: 52px;
+  --nu-control-height: 40px;
+  --nu-font-size: 14px;
+  --nu-padding: 14px;
+  --nu-font: 'Inter Variable', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --nu-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --nu-radius-control: 12px;
+  --nu-radius-card: 28px;
+  --nu-radius-modal: 30px;
+  --nu-shadow-sm: 0 2px 12px rgba(40, 35, 60, 0.08);
+  --nu-shadow-md: 0 14px 36px rgba(40, 35, 60, 0.11);
+  --nu-shadow-lg: 0 24px 60px rgba(40, 35, 60, 0.16);
+  --nu-border-strong: #cdd1d8;
+  --nu-hover: rgba(27, 30, 38, 0.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --nu-accent: #c4b5fd;
+    --nu-on-accent: #1b1230;
+    --nu-glow-rgb: 196, 181, 253;
+    --nu-ink-rgb: 243, 231, 210;
+    --nu-glass-rgb: 34, 26, 38;
+    --nu-raised: rgba(255, 255, 255, 0.12);
+    --nu-on-ink: #211019;
+    --nu-tint: #352b52;
+    --nu-ring: #221a26;
+    --nu-field: rgba(34, 26, 38, 0.8);
+    --nu-ok: #abd7bc;
+    --nu-ok-bg: rgba(171, 215, 188, 0.15);
+    --nu-ok-fill: #7cc59a;
+    --nu-warn: #f0c698;
+    --nu-warn-bg: rgba(240, 198, 152, 0.14);
+    --nu-warn-fill: #e3ae6a;
+    --nu-bad: #f5a5a0;
+    --nu-bad-bg: rgba(245, 165, 160, 0.14);
+    --nu-bad-fill: #e9776f;
+    --nu-glass: linear-gradient(140deg, rgba(255, 255, 255, 0.138) 0%, rgba(255, 255, 255, 0.042) 100%), rgba(20, 14, 26, 0.475);
+    --nu-glass-strong: linear-gradient(140deg, rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0.05) 100%), rgba(20, 14, 26, 0.6);
+    --nu-glass-border: rgba(255, 255, 255, 0.16);
+    --nu-glass-shadow: 0 18px 44px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    --nu-lift: 0 2px 12px rgba(0, 0, 0, 0.4);
+    --nu-page-bg: radial-gradient(ellipse 55% 45% at 88% 0%, rgba(196, 181, 253, 0.32) 0%, rgba(196, 181, 253, 0) 70%), radial-gradient(ellipse 45% 50% at 6% 100%, rgba(36, 87, 214, 0.30) 0%, rgba(36, 87, 214, 0) 70%), #120e14;
+    --nu-accent-ink: #c4b5fd;
+    --nu-accent-soft: rgba(196, 181, 253, 0.14);
+    --nu-bg: #120e14;
+    --nu-surface: rgba(30, 24, 34, 0.72);
+    --nu-surface-raised: #241d29;
+    --nu-border: rgba(243, 231, 210, 0.14);
+    --nu-border-subtle: rgba(243, 231, 210, 0.08);
+    --nu-text: #f3e7d2;
+    --nu-text-secondary: #b9afbe;
+    --nu-text-tertiary: #a398a8;
+    --nu-success: #3e9b66;
+    --nu-warning: #d99a2b;
+    --nu-danger: #cc4136;
+    --nu-info: #2b8bb3;
+    --nu-success-ink: #abd7bc;
+    --nu-warning-ink: #f0c698;
+    --nu-danger-ink: #f5a5a0;
+    --nu-info-ink: #9fd8e6;
+    --nu-zoom: 1;
+    --nu-row-height: 52px;
+    --nu-control-height: 40px;
+    --nu-font-size: 14px;
+    --nu-padding: 14px;
+    --nu-font: 'Inter Variable', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --nu-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --nu-radius-control: 12px;
+    --nu-radius-card: 28px;
+    --nu-radius-modal: 30px;
+    --nu-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --nu-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+    --nu-shadow-lg: 0 12px 34px rgba(0, 0, 0, 0.62);
+    --nu-border-strong: #3a2e3e;
+    --nu-hover: rgba(243, 231, 210, 0.07);
+  }
+}
+
+/* ── ground ─────────────────────────────────────────────────────────── */
+html,
+body {
+  background: var(--nu-page-bg, #f6f7f9);
+  background-attachment: fixed;
+}
+body { color: var(--nu-text); font-feature-settings: "cv11", "ss01"; }
+
+@keyframes nxBoot { from { opacity: 0; transform: scale(1.012); filter: blur(10px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes nxSlideL { from { opacity: 0; transform: translateX(-20px); filter: blur(8px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes nxRise { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes nxFade { from { opacity: 0; } }
+@keyframes nxSheetUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
+@keyframes nxLive { 0%, 100% { box-shadow: 0 0 0 0 rgba(46, 125, 79, 0.5); } 50% { box-shadow: 0 0 0 5px rgba(46, 125, 79, 0); } }
+@keyframes nxGrow { from { transform: scaleY(0); } }
+@keyframes nxBar { from { transform: scaleX(0); } }
+
+:root { --nx-ease: cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+/* One frosted surface, used by every panel. */
+.nx-glass {
+  background: var(--nu-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--nu-glass-border);
+  box-shadow: var(--nu-glass-shadow);
+}
+.nx-glass--strong { background: var(--nu-glass-strong); }

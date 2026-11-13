@@ -1,0 +1,57 @@
+/* Once a page has arrived, nothing inside it plays an entrance again: content
+   that re-mounts (a filter, a tab, a refetch) changes in place. Spinners and
+   skeletons are AntD's own classes and keep their motion. */
+.nx-settled .ant-card,
+.nx-settled .nu-page-header,
+.nx-settled [class*="nx-"]:not(.nx-live i) { animation: none !important; }
+
+/* ── collapse / expand every section of a side menu ───────────────────── */
+.nx-collapse-all {
+  width: 26px; height: 26px; flex-shrink: 0; padding: 0;
+  border: 0; border-radius: 13px; cursor: pointer;
+  background: transparent; color: var(--nu-text-tertiary);
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.nx-collapse-all:hover { background: rgba(var(--nu-ink-rgb), 0.07); color: var(--nu-text); }
+/* In the main sidebar it sits at the end of the search row. */
+.nx-side-search { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.nx-side-search .nx-omni { flex: 1; min-width: 0; width: auto; }
+.nx-side-search .nx-collapse-all { width: 32px; height: 32px; border-radius: 16px; transition: opacity 0.2s ease, width 0.45s var(--nx-ease); }
+.nx-app--folded .nx-side-search { flex-direction: column; }
+.nx-app--folded .nx-side-search .nx-collapse-all { display: none; }
+.nx-side-search .nx-omni { gap: 6px; padding-right: 6px; }
+.nx-side-search .nx-omni span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-side-search .nx-omni kbd { flex-shrink: 0; }
+
+/* Date and time pickers: the field is a pill, the calendar is a panel. */
+.ant-picker-outlined:not(.ant-picker-dropdown) { border-radius: 999px; }
+.ant-picker-dropdown .ant-picker-panel-container,
+.ant-picker-dropdown .ant-picker-panel-layout,
+.ant-picker-dropdown .ant-picker-panel { border-radius: 16px !important; }
+.ant-picker-dropdown .ant-picker-panel-container { overflow: hidden; }
+.ant-picker-dropdown .ant-picker-ok .ant-btn,
+.ant-picker-dropdown .ant-picker-footer .ant-btn { border-radius: 8px; height: 28px; padding-inline: 12px; }
+.ant-picker-dropdown .ant-picker-cell .ant-picker-cell-inner { border-radius: 8px; }
+
+/* Live toasts on a phone sat on top of the tab bar (audit A): the bar is 66px
+   tall and floats 20px up, so a bottom-placed toast starts above both. */
+@media (max-width: 767px) {
+  .ant-notification-bottom,
+  .ant-notification-bottomRight,
+  .ant-notification-bottomLeft { bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important; }
+  .ant-notification .ant-notification-notice-wrapper { max-width: calc(100vw - 28px); }
+}
+
+/* The page list scrolls inside its own box and never runs under the help pill. */
+.nx-side-menu { overflow: hidden; }
+/* Room at the end of every page for the floating assistant button, so the
+   last row and any send button can always be scrolled clear of it. */
+.nx-app--pc .nx-scroll, .nx-app--tablet .nx-scroll { padding-bottom: 88px; }
+.nx-app--phone .nx-scroll { padding-bottom: 150px; }
+/* Phones: at most two notices at once, so a burst of live toasts never
+   covers the screen. */
+@media (max-width: 767px) {
+  .ant-notification .ant-notification-notice-wrapper:nth-last-child(n + 3) { display: none; }
+  .ant-notification-bottomRight { bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important; }
+}

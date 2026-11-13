@@ -1,0 +1,22 @@
+/* A quiet navigation, where a button used to be (§60).
+   Several cards carried `<Link><Button type="link">` in their corner — invalid
+   nesting (interactive content inside an anchor), a control a screen reader
+   announces as a button, and a middle-click that does nothing. A link that
+   looks quiet is a link. */
+.nu-quiet-link {
+  font-size: 13px; color: var(--nu-accent-ink);
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.nu-quiet-link:hover { color: var(--nu-accent); }
+.nu-quiet-link:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; border-radius: 4px; }
+
+/* A chart in a widget fills what the card leaves it (audit A): the scroll
+   region is a column, and the fitting box takes all of it. */
+.nu-widget-scroll { display: flex; flex-direction: column; }
+.nu-widget-fit { flex: 1 1 auto; min-height: 0; height: 100%; overflow: hidden; }
+/* A one-row card has room for its title and its number, not a subtitle too:
+   the number was cut in half under "vs previous period". */
+.nu-widget[data-rows="1"] .nu-widget-subtitle { display: none; }
+.nx-ov-rgl .nu-widget[data-rows="1"] .nu-widget-card > .ant-card-head { padding-top: 10px; min-height: 38px; }
+.nx-ov-rgl .nu-widget[data-rows="1"] .nu-widget-card > .ant-card-body { padding-top: 0; padding-bottom: 6px; }
+.nu-widget[data-rows="1"] .nu-widget-metric { padding: 0; gap: 0; }

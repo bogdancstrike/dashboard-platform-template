@@ -1,0 +1,188 @@
+/* ── header ──────────────────────────────────────────────────────────── */
+.nx-top {
+  height: 56px; flex-shrink: 0;
+  padding: 0 8px 0 20px; border-radius: 28px;
+  display: flex; align-items: center; gap: 10px;
+  position: relative; z-index: 5;
+  animation: nxBoot 0.8s var(--nx-ease) both;
+}
+.nx-top--phone { margin: 12px 12px 0; padding: 0 6px 0 14px; gap: 8px; }
+.nx-crumbs { flex: 1; min-width: 0; }
+.nx-crumbs ol { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; min-width: 0; }
+.nx-crumbs li { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.nx-crumb { color: var(--nu-text-tertiary); font-weight: 500; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nx-crumb:hover { color: var(--nu-text); }
+.nx-crumb--last { color: var(--nu-text); font-weight: 700; }
+.nx-crumb-sep { color: var(--nu-text-tertiary); flex-shrink: 0; }
+.nx-omni {
+  width: 300px; height: 40px; padding: 0 8px 0 14px;
+  border: 0; border-radius: 20px; cursor: pointer;
+  background: rgba(var(--nu-ink-rgb), 0.06); color: var(--nu-text-tertiary);
+  font: 13px var(--nu-font); text-align: left;
+  display: flex; align-items: center; gap: 8px;
+  transition: background 0.2s ease;
+}
+.nx-omni:hover { background: rgba(var(--nu-ink-rgb), 0.09); }
+.nx-omni span { flex: 1; }
+.nx-omni kbd { font: 600 11px var(--nu-font); padding: 3px 7px; border-radius: 8px; border: 1px solid rgba(var(--nu-ink-rgb), 0.16); color: var(--nu-text-secondary); background: transparent; }
+.nx-live {
+  height: 40px; padding: 0 12px; border-radius: 20px;
+  background: var(--nu-ok-bg); color: var(--nu-ok);
+  font-size: 12px; font-weight: 700; white-space: nowrap;
+  display: flex; align-items: center; gap: 7px;
+}
+.nx-live i { width: 7px; height: 7px; border-radius: 4px; background: var(--nu-ok); animation: nxLive 1.8s infinite; }
+.nx-live--polling, .nx-live--connecting { background: rgba(var(--nu-ink-rgb), 0.06); color: var(--nu-text-secondary); }
+.nx-live--polling i, .nx-live--connecting i { background: var(--nu-text-tertiary); animation: none; }
+.nx-iconbtn {
+  width: 40px; height: 40px; flex-shrink: 0;
+  border: 0; border-radius: 20px; cursor: pointer;
+  background: rgba(var(--nu-ink-rgb), 0.06); color: var(--nu-text);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.nx-iconbtn:hover { background: rgba(var(--nu-ink-rgb), 0.1); }
+.nx-iconbtn:active { transform: scale(0.94); }
+.nx-iconbtn--lg { width: 44px; height: 44px; border-radius: 22px; }
+/* The bell is an AntD button; it wears the same soft circle. */
+.nx-top .ant-badge > .ant-btn-circle {
+  width: 40px; height: 40px; min-width: 40px;
+  border: 0; background: rgba(var(--nu-ink-rgb), 0.06); color: var(--nu-text); box-shadow: none;
+}
+.nx-top .ant-badge > .ant-btn-circle:hover { background: rgba(var(--nu-ink-rgb), 0.1) !important; color: var(--nu-text) !important; }
+.nx-top .ant-badge .ant-badge-count { background: var(--nu-accent); color: var(--nu-on-accent); box-shadow: none; top: 4px; inset-inline-end: 3px; }
+.nx-user {
+  height: 40px; padding: 0 10px 0 4px; border: 0; border-radius: 20px; cursor: pointer;
+  background: transparent; color: var(--nu-text); font: inherit; text-align: left;
+  display: flex; align-items: center; gap: 8px;
+}
+.nx-user:hover { background: rgba(var(--nu-ink-rgb), 0.05); }
+.nx-user > span { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.nx-user b { font-size: 13px; font-weight: 600; white-space: nowrap; max-width: 18ch; overflow: hidden; text-overflow: ellipsis; }
+.nx-user small { font-size: 11px; color: var(--nu-text-tertiary); white-space: nowrap; }
+.nx-avatar.ant-avatar { background: var(--nu-accent); color: var(--nu-on-accent); font-weight: 700; flex-shrink: 0; }
+.nx-phone-logo { display: flex; }
+.nx-phone-title { flex: 1; min-width: 0; font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.nx-chips { flex-shrink: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 0 2px; }
+.nx-chips::-webkit-scrollbar { display: none; }
+.nx-chip {
+  height: 40px; flex-shrink: 0; padding: 0 16px; border-radius: 20px;
+  background: rgba(var(--nu-glass-rgb), 0.55); color: var(--nu-text);
+  box-shadow: inset 0 0 0 1px rgba(var(--nu-ink-rgb), 0.08);
+  font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap;
+  display: flex; align-items: center;
+}
+.nx-chip:hover { color: var(--nu-text); background: rgba(var(--nu-glass-rgb), 0.85); }
+.nx-chip.is-on { background: var(--nu-text); color: var(--nu-on-ink); box-shadow: none; }
+
+/* ── phone tab bar and sheet ─────────────────────────────────────────── */
+.nx-tabs {
+  position: absolute; left: 14px; right: 14px; bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  height: 66px; padding: 6px; border-radius: 33px; z-index: 20;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px;
+  animation: nxRise 0.7s var(--nx-ease) 0.3s both;
+}
+.nx-tab {
+  position: relative; border: 0; border-radius: 27px; cursor: pointer;
+  background: transparent; color: var(--nu-text-secondary);
+  font: 600 11px var(--nu-font); text-decoration: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+}
+.nx-tab:hover { color: var(--nu-text); }
+.nx-tab.is-on { background: var(--nu-text); color: var(--nu-on-ink); }
+.nx-tabbadge {
+  position: absolute; top: 5px; left: 50%; margin-left: 6px;
+  min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
+  background: var(--nu-accent); color: var(--nu-on-accent); font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.nx-sheet-scrim {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(var(--nu-ink-rgb), 0.22);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  display: flex; align-items: flex-end; padding: 12px;
+  animation: nxFade 0.25s ease both;
+}
+.nx-sheet {
+  width: 100%; max-height: calc(100dvh - 80px); overflow-y: auto;
+  border-radius: 30px; padding: 14px;
+  display: flex; flex-direction: column; gap: 12px;
+  animation: nxSheetUp 0.45s var(--nx-ease) both;
+}
+.nx-sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
+.nx-sheet-head b { font-size: 17px; }
+.nx-sheet-group h2 { margin: 0 6px 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--nu-text-tertiary); }
+.nx-sheet-group > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+.nx-sheet-item {
+  min-height: 48px; padding: 0 12px; border-radius: 18px;
+  background: rgba(var(--nu-ink-rgb), 0.04); color: var(--nu-text);
+  font-size: 13px; font-weight: 600; text-decoration: none;
+  display: flex; align-items: center; gap: 10px;
+}
+.nx-sheet-item.is-on { background: var(--nu-text); color: var(--nu-on-ink); }
+
+/* ── bands under the header ──────────────────────────────────────────── */
+.nu-impersonation {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 10px 10px 10px 18px; border-radius: 24px;
+  background: var(--nu-warn-bg); color: var(--nu-warn); font-size: 13px;
+  border: 1px solid rgba(var(--nu-ink-rgb), 0.06);
+}
+.nu-impersonation > span { flex: 1; min-width: 200px; }
+.nx-app--phone .nu-impersonation { margin: 12px 12px 0; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Page furniture
+   ═══════════════════════════════════════════════════════════════════════ */
+.nu-content { height: auto; background: transparent; }
+.nu-page-header {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;
+  padding: 6px 6px 0; margin-bottom: 18px;
+  animation: nxBoot 0.9s var(--nx-ease) both;
+}
+.nu-page-header-titles { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.nu-page-title {
+  margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  font-family: var(--nu-font); font-weight: 700;
+  font-size: 34px; line-height: 1.08; letter-spacing: -0.03em; color: var(--nu-text);
+}
+.nu-page-title em, .nx-em { font-style: normal; color: var(--nu-accent); }
+/* A badge beside a title ("2 to answer", a count, a key) is not display text:
+   the title's tight tracking is computed in px and inherited, which squeezed
+   "2 to answer" into "2toanswer" (audit A). */
+.nu-page-title .ant-tag, .nu-page-title .ant-badge, .nu-page-title small { letter-spacing: normal; }
+.nu-page-subtitle { margin-top: 0; font-size: 14px; color: var(--nu-text-tertiary); max-width: 90ch; }
+.nu-page-actions.ant-space { gap: 8px !important; }
+.nu-page-actions .ant-btn { height: 44px; padding-inline: 18px; font-size: 14px; }
+.nu-page-actions .ant-btn-default { background: var(--nu-glass); border-color: var(--nu-glass-border); box-shadow: var(--nu-glass-shadow); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); }
+.nu-page-origin { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--nu-accent-ink); }
+.nx-app--tablet .nu-page-title { font-size: 30px; }
+.nx-app--phone .nu-page-title { font-size: 27px; }
+.nx-app--phone .nu-page-header { padding: 4px 4px 0; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Ant Design, in glass
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Cards are the panels. */
+.ant-card:not(.ant-card-type-inner) {
+  background: var(--nu-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--nu-glass-border) !important;
+  border-radius: 28px;
+  box-shadow: var(--nu-glass-shadow);
+  animation: nxRise 0.6s var(--nx-ease) both;
+}
+.ant-card-type-inner, .ant-card .ant-card {
+  background: rgba(var(--nu-ink-rgb), 0.035);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  border: 0 !important; border-radius: 20px; box-shadow: none; animation: none;
+}
+.ant-card-hoverable { transition: transform 0.25s var(--nx-ease), box-shadow 0.25s ease; }
+.ant-card-hoverable:hover { box-shadow: 0 18px 40px rgba(40, 35, 60, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.8); transform: translateY(-2px); }
+.ant-card-head { border-bottom: 0 !important; min-height: 52px; padding-top: 4px; }
+.ant-card-head-title { font-size: 15px; font-weight: 700; letter-spacing: -0.005em; }
+.ant-card-extra a, .ant-card-extra .ant-btn-link { font-weight: 600; }
+.ant-card-actions { background: transparent; border-top: 1px solid rgba(var(--nu-ink-rgb), 0.07); border-radius: 0 0 28px 28px; }

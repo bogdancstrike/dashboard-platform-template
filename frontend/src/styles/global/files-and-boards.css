@@ -1,0 +1,179 @@
+/* A preset-coloured tag's text (§55).
+   `<Tag color="warning">` is amber on pale amber — 2.82:1, and the tags that
+   fail worst are the ones a reader most needs: a breach, a failure, an
+   overdue item. AntD takes that text from the base fill colour rather than
+   from `colorWarningText`, so the readable half of the ramp is named here.
+   The fills and borders are left alone: they are graphics, held to 3:1. */
+.ant-tag-success { color: var(--nu-success-ink) !important; }
+.ant-tag-warning { color: var(--nu-warning-ink) !important; }
+.ant-tag-error { color: var(--nu-danger-ink) !important; }
+.ant-tag-processing,
+.ant-tag-info { color: var(--nu-info-ink) !important; }
+
+/* And the *stock hue* presets, which are the same defect one layer down.
+   `<Tag color="green">` takes its ink from AntD's own palette rather than from
+   our seed — `#389e0d` on `#f6ffed` is 3.37:1 — so the four rules above fixed
+   `success` and left `green` broken, and the audit over every route found it
+   on `/reports`, `/notifications`, `/settings/preferences` and `/admin/audit`.
+   Mapped onto the four inks we have measured, by hue family: the tint and the
+   border keep the hue, so a green tag still reads green. The two families
+   with no ink of their own take the ordinary text colour rather than an
+   invented one. */
+.ant-tag-green,
+.ant-tag-lime { color: var(--nu-success-ink) !important; }
+.ant-tag-orange,
+.ant-tag-gold,
+.ant-tag-yellow { color: var(--nu-warning-ink) !important; }
+.ant-tag-red,
+.ant-tag-volcano { color: var(--nu-danger-ink) !important; }
+.ant-tag-blue,
+.ant-tag-cyan,
+.ant-tag-geekblue { color: var(--nu-info-ink) !important; }
+.ant-tag-purple,
+.ant-tag-magenta,
+.ant-tag-pink { color: var(--nu-text) !important; }
+.ant-tag-default,
+.ant-tag-gray,
+.ant-tag-grey { color: var(--nu-text-secondary) !important; }
+
+/* The upload tray (§20). One row per file, because a drop of forty with a
+   single indeterminate bar is a page somebody watches for four minutes
+   wondering whether it is stuck. */
+.nu-transfer { padding: 4px 0; }
+.nu-transfer + .nu-transfer { border-top: 1px solid var(--nu-border-subtle); }
+.nu-transfer-name {
+  display: flex; align-items: baseline; gap: 8px; min-width: 0;
+  font-size: 12.5px;
+}
+.nu-transfer-name > .ant-typography:first-child { flex: 1; min-width: 0; }
+
+/* The tray sits above the list inside the same pane, so it needs its own
+   separation rather than a card of its own. */
+.nu-transfers { padding: 8px 12px; border-bottom: 1px solid var(--nu-border-subtle); }
+.nu-transfers-head { display: flex; align-items: center; justify-content: space-between; }
+
+/* The file list *is* the drop target (§20), and it says so only while
+   something is over it. A permanent panel of instructions is read once and
+   then occupies a tenth of the page forever — which on a folder holding one
+   file made the instructions taller than the content. */
+.nu-drop-area { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.nu-drop-area > .ant-table-wrapper { flex: 1 1 auto; min-height: 0; }
+.nu-drop-area.is-over { outline: 2px dashed var(--nu-accent); outline-offset: -2px; border-radius: var(--nu-radius-card); }
+.nu-drop-hint {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 0 24px; text-align: center;
+  background: color-mix(in srgb, var(--nu-accent) 8%, var(--nu-surface));
+  border-radius: var(--nu-radius-card);
+  color: var(--nu-text-secondary); font-size: 12.5px;
+}
+.nu-drop-hint .anticon { font-size: 20px; color: var(--nu-accent-ink); }
+
+/* A name and the tag that qualifies it, in a cell that may be narrower than
+   both. `min-width: 0` is what lets the name give way rather than push. */
+.nu-file-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.nu-file-name > .ant-typography { min-width: 0; }
+
+/* A bar and its number on one line, in a table cell: the bar is for the scan
+   down the column, the number for the one row somebody stops on. */
+.nu-meter { display: flex; align-items: center; gap: 8px; }
+.nu-meter > .ant-progress { flex: 1; min-width: 0; margin: 0; }
+.nu-meter-value { font-variant-numeric: tabular-nums; font-size: 12px; }
+
+/* A date and, when it has gone, how long ago — on two lines by intent rather
+   than because the column ran out. */
+.nu-due { display: flex; flex-direction: column; line-height: 1.3; }
+.nu-due-late { font-size: 11px; }
+
+/* A ticket's standing against its clock: the verdict, and how long until (or
+   since) the deadline it is measured on. */
+.nu-sla-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+.nu-sla-clock { font-size: 11px; }
+
+/* The moments a ticket has passed through, in the order they happened (§48).
+   A `Descriptions` table of four timestamps is four facts; in sequence they
+   are the shape of the response, which is what a review of one looks at. The
+   marker is filled once a moment has been *reached* — a deadline that has
+   passed counts, and is not an achievement. */
+.nu-moments { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.nu-moment {
+  display: grid; grid-template-columns: 120px 96px 1fr; gap: 10px;
+  align-items: baseline; padding: 7px 0 7px 18px; position: relative;
+  font-size: 12.5px;
+}
+.nu-moment + .nu-moment { border-top: 1px solid var(--nu-border-subtle); }
+/* The rail and its marker. */
+.nu-moment::before {
+  content: ""; position: absolute; left: 4px; top: 12px;
+  width: 7px; height: 7px; border-radius: 50%;
+  border: 1.5px solid var(--nu-border-strong); background: var(--nu-surface);
+}
+.nu-moment.is-reached::before { background: var(--nu-accent); border-color: var(--nu-accent); }
+.nu-moment:not(:last-child)::after {
+  content: ""; position: absolute; left: 7px; top: 21px; bottom: -2px;
+  width: 1.5px; background: var(--nu-border-subtle);
+}
+.nu-moment-label { font-weight: 600; }
+.nu-moment-when { font-variant-numeric: tabular-nums; }
+@media (max-width: 700px) {
+  .nu-moment { grid-template-columns: 1fr; gap: 2px; }
+}
+
+/* The foot of a rail: what the whole store holds, pushed to the bottom of the
+   column so a short list does not leave two thirds of it blank. */
+.nu-rail-foot {
+  margin-top: auto; padding: 8px 8px 4px;
+  border-top: 1px solid var(--nu-border-subtle);
+  display: flex; flex-direction: column; gap: 2px; font-size: 11.5px;
+}
+
+/* Kanban boards (§18). A row of columns that scrolls sideways and each column
+   scrolls its own cards — the two axes are independent because a long lane
+   must not push the other lanes off the screen. */
+.nu-board {
+  display: flex; gap: 12px; align-items: flex-start;
+  overflow-x: auto; padding-bottom: 8px;
+}
+.nu-lane-col {
+  /* 264px fits four columns on a 1280 laptop without scrolling, which is the
+     commonest board there is; a fifth scrolls into view. */
+  flex: 0 0 264px; display: flex; flex-direction: column; gap: 8px;
+  max-height: calc(100vh - 320px);
+  padding: 10px; border-radius: var(--nu-radius-card);
+  background: var(--nu-surface-raised); border: 1px solid var(--nu-border);
+}
+.nu-lane-col.is-over {
+  border-color: var(--nu-accent); box-shadow: inset 0 0 0 1px var(--nu-accent);
+  background: color-mix(in srgb, var(--nu-accent) 5%, var(--nu-bg));
+}
+/* Where the card will drop, on a board where position is a real instruction.
+   A card-sized gap rather than a line: a two-pixel rule between two bordered
+   tiles is a target nobody can see. */
+.nu-card.is-carried { opacity: 0.4; }
+.nu-card[draggable="true"] { cursor: grab; }
+.nu-card[draggable="true"]:active { cursor: grabbing; }
+/* Over its limit: a tinted edge and, in the column, a sentence. Colour alone
+   is not a fact (§64), and the sentence is what says nothing is being
+   stopped. */
+.nu-lane-col.is-over-limit { border-inline-start: 3px solid var(--nu-warning); }
+.nu-lane-col-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.nu-lane-col-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.nu-lane-col-count { font-variant-numeric: tabular-nums; margin: 0; }
+.nu-lane-col-warning { margin: 0; font-size: 11.5px; color: var(--nu-warning-ink); }
+.nu-lane-col-cards {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 8px;
+  overflow-y: auto; min-height: 12px;
+}
+.nu-lane-col-new,
+.nu-lane-add {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; padding: 8px; border-radius: var(--nu-radius-control);
+  border: 1px dashed var(--nu-border-strong); background: transparent;
+  color: var(--nu-text-secondary); font: inherit; font-size: 12.5px; cursor: pointer;
+}
+.nu-lane-col-new:hover,
+.nu-lane-add:hover { border-color: var(--nu-accent); color: var(--nu-accent-ink); }
+.nu-lane-col-new:focus-visible,
+.nu-lane-add:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: 2px; }
+.nu-lane-add { flex: 0 0 200px; align-self: stretch; min-height: 88px; }

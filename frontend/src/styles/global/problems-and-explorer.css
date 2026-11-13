@@ -1,0 +1,167 @@
+/* ── problem pages (§34) ────────────────────────────────────────────── */
+/* Centred in the space it is given rather than pinned to the top: a failure
+   is not a page of content, and a 404 clinging to the header with eight
+   inches of nothing under it reads as a page that half-loaded. */
+.nu-problem-wrap {
+  flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
+  padding: 24px 0;
+}
+.nu-problem { max-width: 620px; }
+/* The two sentences are the page. Left-aligned inside a centred column,
+   because a centred paragraph of prose is read a word at a time. */
+.nu-problem-text { text-align: left; max-width: 46em; margin: 0 auto; }
+.nu-problem-text p { margin: 0 0 8px; }
+.nu-problem-text p:last-child { margin-bottom: 0; }
+.nu-problem-detail {
+  margin-top: 10px; padding: 8px 10px;
+  border: 1px solid var(--nu-border-subtle); border-radius: var(--nu-radius-control);
+  background: var(--nu-bg);
+  font-size: 12.5px; color: var(--nu-text-secondary);
+  overflow-wrap: anywhere;
+}
+.nu-problem-ref {
+  margin-top: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 12.5px;
+}
+/* The boot screen has no shell to sit inside, so it owns the whole viewport. */
+.nu-boot--problem { justify-content: center; }
+.nu-boot--problem .nu-problem-wrap { padding: 0; }
+
+/* ── empty states (§34) ─────────────────────────────────────────────── */
+.nu-empty { padding: 40px 16px; text-align: center; color: var(--nu-text-secondary); }
+.nu-empty--compact { padding: 18px 12px; }
+.nu-empty-icon { font-size: 28px; color: var(--nu-text-tertiary); opacity: 0.7; margin-bottom: 8px; }
+.nu-empty-hint { font-size: 12.5px; color: var(--nu-text-tertiary); margin-top: 4px; }
+.nu-empty-action { margin-top: 12px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Data Explorer (§4–§6, §51)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.nu-explorer-table .ant-table-cell { white-space: nowrap; }
+/* The mode decides how the fields lay out; the row around them is always the
+   fields plus the preview action, so that action sits in one place. */
+.nu-result--list .nu-result-fields {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: 12px 20px;
+}
+.nu-result--compact .nu-result-fields { display: flex; align-items: center; gap: 8px; overflow: hidden; }
+.nu-result--compact .nu-result-field { flex: 0 1 auto; min-width: 0; }
+.nu-result--cards .nu-result-fields { display: grid; gap: 10px; }
+.nu-result-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nu-result-field > .ant-typography { overflow: hidden; text-overflow: ellipsis; }
+.nu-column-picker {
+  display: grid; grid-template-columns: repeat(2, minmax(min(150px, 100%), 1fr));
+  max-width: min(520px, 80vw); max-height: 380px; overflow: auto; gap: 8px 14px;
+}
+.nu-query-builder { overflow-x: auto; padding-bottom: 8px; }
+.nu-query-builder .query-builder {
+  min-width: 680px; margin: 0; font: inherit; color: var(--nu-text);
+}
+
+/* The library ships a cream-and-gold palette of its own, which reads as a
+   third-party widget dropped into the page and is unreadable in dark mode.
+   Only the surfaces are restated — every control inside a rule is an AntD
+   component already themed by ConfigProvider, so re-skinning those would
+   fight the design system rather than join it.
+   Groups are tinted one step above the page and rules sit on the raised
+   surface, which is what makes nesting legible without extra borders. */
+.nu-query-builder .query-builder .group,
+.nu-query-builder .query-builder .rule_group,
+.nu-query-builder .query-builder .rule_group_ext,
+.nu-query-builder .query-builder .rule_group_ext .group {
+  background: var(--nu-bg); border: 1px solid var(--nu-border);
+}
+.nu-query-builder .query-builder .rule,
+.nu-query-builder .query-builder .rule_group .rule,
+.nu-query-builder .query-builder .rule_group_ext .rule {
+  background: var(--nu-surface-raised); border: 1px solid var(--nu-border-subtle);
+}
+.nu-query-builder .query-builder .rule-with-error .rule,
+.nu-query-builder .query-builder .group-with-error > .group { border-color: var(--nu-danger); }
+.nu-query-builder .query-builder .rule--error,
+.nu-query-builder .query-builder .rule_group--error { color: var(--nu-danger); }
+.nu-query-builder .query-builder .qb-placeholder { border-color: var(--nu-accent) !important; }
+.nu-query-builder .query-builder .group--conjunctions { margin-inline-end: 8px; }
+
+/* The duplicate control rides alongside the library's own rule actions, which
+   have no extension point of their own. It stays out of the way until the row
+   is hovered or the button itself is focused, so the action bar reads the same
+   as it did before for anyone not looking for it.
+
+   The two rules that matter are the two that were missing, and together they
+   made Delete duplicate the row instead:
+
+   * **The row is given room for it.** The control is positioned against the
+     container's right edge, and the library puts its own delete button in
+     exactly that spot — so without reserving the space the overlay sits on top
+     of Delete and swallows the click. The padding pushes the library's action
+     bar left by the width of one button; nothing overlaps.
+   * **A control nobody can see takes no clicks.** `opacity: 0` hides a button
+     and leaves it hit-testable, which is the same bug wearing a different
+     hat. It is only a pointer target once it is actually visible. */
+.nu-query-builder .query-builder .group-or-rule-container { position: relative; }
+.nu-query-builder .query-builder .group-or-rule-container > .rule,
+.nu-query-builder .query-builder .group-or-rule-container > .group > .group--header,
+.nu-query-builder .query-builder .group-or-rule-container > .rule_group > .group--header,
+.nu-query-builder .query-builder .group-or-rule-container > .rule_group_ext > .group--header {
+  padding-right: 38px;
+}
+.nu-query-duplicate {
+  position: absolute; top: 7px; right: 6px; z-index: 2;
+  color: var(--nu-text-secondary);
+  opacity: 0; pointer-events: none; transition: opacity 120ms ease;
+}
+.nu-query-builder .group-or-rule-container:hover > .nu-query-duplicate,
+.nu-query-builder .group-or-rule-container:focus-within > .nu-query-duplicate,
+.nu-query-duplicate:focus-visible { opacity: 1; pointer-events: auto; }
+.nu-query-duplicate:hover { color: var(--nu-accent-ink); }
+/* The advanced editor is a column: guidance, the tree, what it reads as, and
+   the actions that run or name it. The action row is sticky so the match count
+   and Search stay reachable while a deep tree scrolls behind them. */
+.nu-advanced-search { display: flex; flex-direction: column; gap: 16px; }
+.nu-advanced-actions {
+  position: sticky; bottom: 0; z-index: 3;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  flex-wrap: wrap; padding: 12px 0 4px;
+  background: var(--nu-surface); border-top: 1px solid var(--nu-border);
+}
+.nu-saved-card { width: 100%; border-color: var(--nu-border); }
+.nu-saved-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.nu-link-button {
+  border: 0; padding: 0; background: transparent; color: var(--nu-text);
+  font: inherit; font-weight: 650; text-align: start; cursor: pointer;
+}
+.nu-link-button:hover { color: var(--nu-accent-ink); }
+/* The same button with the surrounding typography left alone: a card's title
+   or a table cell's label that is *also* the control. `nu-link-button` sets a
+   weight, which is right for a record's name in a list and wrong for a label
+   whose weight belongs to the cell.
+
+   These exist because a row that responds only to a click is a control no
+   keyboard can reach — the cluster list and the connection map both had one,
+   and a scrolling panel with no focusable content inside it is unreachable
+   twice over (§55). */
+.nu-row-button,
+.nu-board-open {
+  border: 0; padding: 0; background: transparent; color: inherit;
+  font: inherit; text-align: start; cursor: pointer; min-width: 0;
+}
+.nu-row-button:hover,
+.nu-board-open:hover { color: var(--nu-accent-ink); }
+/* The title takes the room the row has, so the ellipsis inside it still works. */
+.nu-board-open { display: flex; min-width: 0; overflow: hidden; }
+/* A marked match, in the app's accent rather than the browser's yellow — and
+   qualified by the element, because AntD's reset styles bare `mark` and its
+   stylesheet is injected after this one. */
+mark.nu-mark {
+  padding: 0 1px; border-radius: 3px;
+  background: var(--nu-accent-soft); color: inherit; font-weight: 650;
+}
+
+/* Recent searches: a history, so each row can be forgotten individually. */
+.nu-simple-search { width: 100%; }
+.nu-recent-heading { display: flex; align-items: center; justify-content: space-between; }
+.nu-recent-clear { font-size: 12px; font-weight: 500; }
+.nu-recent-option { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+/* A hit from another dataset: what it is, and which field found it. */
+.nu-elsewhere-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

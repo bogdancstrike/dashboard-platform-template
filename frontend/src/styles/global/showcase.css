@@ -1,0 +1,139 @@
+/* ── Showcase (§60, §61) ─────────────────────────────────────────────────
+   Documentation pages, so the layout gives the *explanation* as much room as
+   the thing being explained: a component demonstrated without saying which of
+   its states are decisions teaches nothing worth knowing. */
+.nu-tmpl > * + * { margin-top: 12px; }
+.nu-tmpl-note { margin-bottom: 4px; }
+
+.nu-tmpl-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+}
+.nu-tmpl-shape { font-size: 12.5px; margin-bottom: 10px !important; }
+.nu-tmpl-rules { display: flex; flex-direction: column; gap: 8px; }
+.nu-tmpl-rule { display: flex; flex-direction: column; gap: 1px; }
+.nu-tmpl-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+/* The half a gallery usually omits gets the warning ink, so it is read
+   rather than skipped — and it is text, never colour alone (§64). */
+.nu-tmpl-unless { color: var(--nu-warning-ink); }
+.nu-tmpl-rule .ant-typography:last-child { font-size: 12px; line-height: 1.5; }
+.nu-tmpl-links {
+  display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 12px;
+  padding-top: 10px; border-top: 1px solid var(--nu-border-subtle);
+}
+.nu-tmpl-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--nu-font-mono); font-size: 11.5px;
+}
+.nu-tmpl-section { display: block; margin-top: 18px; }
+/* What opens each way, and why. A list rather than the chip row the layouts
+   use, because each line carries a sentence and chips would wrap it into
+   confetti. */
+.nu-tmpl-flows {
+  margin: 12px 0 0; padding: 10px 0 0; list-style: none;
+  border-top: 1px solid var(--nu-border-subtle);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.nu-tmpl-flows li { display: flex; flex-direction: column; gap: 1px; }
+
+/* The split view in miniature (§62): the list keeps its place while the pane
+   beside it changes, which is the whole claim of the layout and the one thing
+   a screenshot cannot show. */
+.nu-tmpl-preview {
+  display: grid; grid-template-columns: minmax(min(220px, 100%), 1fr) 1.4fr; gap: 10px;
+  margin-top: 12px; padding-top: 10px;
+  border-top: 1px solid var(--nu-border-subtle);
+}
+@media (max-width: 767px) { .nu-tmpl-preview { grid-template-columns: 1fr; } }
+.nu-tmpl-preview-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.nu-tmpl-preview-row {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 6px; align-items: center;
+  width: 100%; padding: 6px 8px; text-align: start; cursor: pointer;
+  background: none; border: 1px solid var(--nu-border-subtle); border-radius: 6px;
+  font: inherit; color: inherit;
+}
+.nu-tmpl-preview-row.is-active { background: var(--nu-accent-soft); border-color: var(--nu-accent); }
+.nu-tmpl-preview-row:hover { border-color: var(--nu-accent); }
+.nu-tmpl-preview-ref { font-family: var(--nu-font-mono); font-size: 11px; }
+.nu-tmpl-preview-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.nu-tmpl-preview-detail {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 8px 10px; border: 1px solid var(--nu-border-subtle); border-radius: 6px;
+}
+.nu-tmpl-preview-body { margin: 6px 0 !important; font-size: 12px; }
+.nu-tmpl-preview-detail .ant-typography { font-size: 12px; }
+.nu-tmpl-flows .ant-typography { font-size: 12px; line-height: 1.5; }
+.nu-tmpl-flows .nu-tmpl-link { font-family: inherit; font-size: 13px; }
+
+/* ── the report document composer (§28) ─────────────────────────────────
+   Three columns: what the document is made of, the document, and the settings
+   for whatever is selected. The middle one is drawn to look like paper,
+   because the thing being composed is a page — and a composer whose preview
+   looks like a web page teaches somebody the wrong thing about what they are
+   about to export. */
+.nu-doc-workspace {
+  display: grid; gap: 16px; align-items: start;
+  grid-template-columns: minmax(0, 250px) minmax(0, 1fr) minmax(0, 300px);
+}
+@media (max-width: 1180px) {
+  .nu-doc-workspace { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* The outline. A list rather than the page itself: reordering by dragging
+   paragraphs around a preview is a gesture nobody can aim. */
+.nu-doc-outline, .nu-doc-inspector {
+  border: 1px solid var(--nu-border); border-radius: var(--nu-radius-card);
+  background: var(--nu-surface); padding: 12px;
+  position: sticky; top: 12px; max-height: calc(100vh - 140px); overflow: auto;
+}
+.nu-doc-outline-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 8px;
+}
+.nu-doc-outline-list { list-style: none; margin: 0; padding: 0; }
+.nu-doc-outline-empty { display: block; font-size: 12.5px; padding: 8px 0; }
+.nu-doc-outline-row {
+  display: flex; align-items: center; gap: 4px;
+  border-radius: 8px; border: 1px solid transparent;
+}
+.nu-doc-outline-row:hover { background: var(--nu-bg); }
+.nu-doc-outline-row.is-chosen {
+  border-color: var(--nu-accent); background: var(--nu-accent-soft);
+  --nu-text-tertiary: var(--nu-text-secondary);
+}
+.nu-doc-outline-face {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; background: none; border: 0; color: inherit;
+  font: inherit; text-align: start; cursor: pointer;
+}
+.nu-doc-outline-face:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: -2px; }
+.nu-doc-outline-icon { color: var(--nu-text-tertiary); flex: none; }
+.nu-doc-outline-text { display: flex; flex-direction: column; min-width: 0; }
+.nu-doc-outline-label {
+  font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-doc-outline-kind { font-size: 10.5px; color: var(--nu-text-tertiary); }
+.nu-doc-additem { display: flex; flex-direction: column; }
+.nu-doc-additem > span:last-child { font-size: 11px; color: var(--nu-text-secondary); }
+
+/* The paper. A white sheet in both appearances, deliberately: the export is
+   printed on white whatever the reader's theme is, and a preview that follows
+   the dark ramp is a preview of a document nobody will ever hold. */
+.nu-doc-paper-wrap { min-width: 0; display: flex; justify-content: center; }
+.nu-doc-paper {
+  width: 100%; max-width: 820px; background: #ffffff; color: #0f172a;
+  border: 1px solid var(--nu-border); border-radius: 6px;
+  box-shadow: 0 6px 24px rgb(15 23 42 / 12%);
+  display: flex; flex-direction: column; min-height: 60vh;
+}
+.nu-doc-paper.is-landscape { max-width: 1100px; }
+.nu-doc-runhead, .nu-doc-runfoot {
+  padding: 8px 20px; font-size: 11px; color: #64748b;
+  display: flex; justify-content: space-between; gap: 12px;
+}
+.nu-doc-runhead { border-bottom: 1px solid #e2e8f0; }
+.nu-doc-runfoot { border-top: 1px solid #e2e8f0; margin-top: auto; }
+.nu-doc-body { flex: 1; }
+.nu-doc-cover { text-align: center; padding: 48px 0 8px; }
+.nu-doc-cover-title { color: var(--nu-doc-accent) !important; margin: 0 !important; }
+.nu-doc-cover-sub { color: #475569 !important; margin: 8px 0 0 !important; }

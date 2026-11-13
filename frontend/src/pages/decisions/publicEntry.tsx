@@ -1,6 +1,6 @@
 import "@fontsource-variable/inter";
-import "@/index.css";
-import "@/glass.css";
+import "@/styles/global.css";
+import "@/styles/glass.css";
 
 import { App as AntApp } from "antd";
 import { StrictMode } from "react";

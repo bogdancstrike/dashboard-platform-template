@@ -1,10 +1,5 @@
 import "@fontsource-variable/inter";
-import "./index.css";
-import "./glass.css";
-import "./styles/overview.css";
-import "./styles/records.css";
-import "./styles/find.css";
-import "./styles/admin.css";
+import "./styles/index.css";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { App as AntApp, Spin } from "antd";

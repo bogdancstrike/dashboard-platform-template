@@ -1,0 +1,184 @@
+/* "and worse" is the whole behaviour of the level chips, so it is on them.
+   Set apart by *size*, not by fading: the first version used
+   `opacity: 0.55`, which took secondary text to 2.97:1 and was caught by axe
+   on this page. Opacity multiplies whatever colour it lands on, so it escapes
+   the palette entirely — `theme/contrast.test.ts` cannot see it, and no token
+   choice protects against it. This is information, not decoration: it says
+   what the filter does. */
+.nu-kindchip-more { font-size: 0.9em; }
+
+.nu-log-detail-message {
+  margin: 8px 0 0; font-family: var(--nu-font-mono); font-size: 12.5px;
+  line-height: 1.5; overflow-wrap: anywhere;
+}
+/* Scrolls inside itself rather than widening the drawer: a stack trace is
+   eighty columns of somebody else's code and must not set the layout. */
+.nu-log-block {
+  margin: 6px 0 0; padding: 10px 12px; max-height: 240px; overflow: auto;
+  background: var(--nu-hover); border: 1px solid var(--nu-border-subtle);
+  border-radius: 6px; font-family: var(--nu-font-mono); font-size: 11.5px;
+  line-height: 1.55; white-space: pre;
+}
+.nu-log-block--trace { max-height: 320px; }
+
+.nu-log-related { margin: 6px 0 0; padding: 0; list-style: none; }
+.nu-log-related > li + li { border-top: 1px solid var(--nu-border-subtle); }
+.nu-log-related button {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 4px;
+  background: none; border: 0; text-align: start; cursor: pointer; color: inherit;
+}
+.nu-log-related button:hover { background: var(--nu-hover); }
+.nu-log-related button:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: -2px; }
+.nu-log-related-message {
+  font-family: var(--nu-font-mono); font-size: 11.5px; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ── The background-job queue (§23) ──────────────────────────────────────
+   A queue is scanned for the row that needs somebody, so the two things that
+   decide that — how it ended and how many times it has tried — are the two
+   things given room. */
+.nu-job .ant-table-tbody > tr > td { padding-block: 6px; }
+.nu-job-what { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.nu-job-name,
+.nu-job-ref {
+  display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-job-ref { font-size: 11.5px; font-family: var(--nu-font-mono); }
+.nu-job-attempt { font-size: 11px; }
+.nu-job-status { gap: 2px; }
+/* The bar and the number, stacked: the bar is `aria-hidden` because the units
+   under it say the same thing in a form that can be read out and compared
+   between rows (§64). */
+.nu-job-progress { display: flex; flex-direction: column; gap: 0; }
+.nu-job-progress .ant-progress { margin: 0; line-height: 1; }
+.nu-job-units { font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.nu-job-when { font-size: 11.5px; line-height: 1.45; }
+
+.nu-job-detail-name { margin: 8px 0 2px; font-size: 15px; font-weight: 600; }
+.nu-job-truncated { font-size: 11.5px; }
+/* Scrolls inside itself: a job that logged two hundred lines must not set the
+   height of the drawer it is in. */
+.nu-job-lines {
+  margin: 6px 0 0; padding: 8px 10px; max-height: 260px; overflow: auto;
+  list-style: none; background: var(--nu-hover);
+  border: 1px solid var(--nu-border-subtle); border-radius: 6px;
+  font-family: var(--nu-font-mono); font-size: 11.5px; line-height: 1.6;
+}
+.nu-job-lines > li { display: flex; gap: 8px; }
+.nu-job-lines > li > span { min-width: 0; overflow-wrap: anywhere; }
+
+/* ── Groups (§11) ────────────────────────────────────────────────────────
+   The list answers "what does being in this add", so the grants get room and
+   the counts do not. */
+.nu-group-what { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.nu-group-slug,
+.nu-group-grants {
+  display: block; font-size: 11.5px; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nu-group-grants { font-family: var(--nu-font-mono); }
+.nu-group-about { margin: 6px 0 0; }
+
+/* One row per person, because a group is a set somebody manages and a wall of
+   avatars cannot be checked against a list. */
+.nu-group-people {
+  margin: 8px 0 0; padding: 0; list-style: none; max-height: 260px; overflow: auto;
+  border: 1px solid var(--nu-border-subtle); border-radius: 6px;
+}
+.nu-group-people > li {
+  display: flex; align-items: center; gap: 8px; padding: 5px 10px; min-width: 0;
+}
+.nu-group-people > li + li { border-top: 1px solid var(--nu-border-subtle); }
+.nu-group-person { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.nu-group-person > span:last-child { font-size: 11.5px; }
+.nu-group-person > span {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* The picker and its Save on one line, so it is obvious the change is not
+   saved until it is pressed. */
+.nu-group-edit { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; }
+.nu-group-edit > *:first-child { flex: 1 1 auto; min-width: 0; }
+.nu-group-locked { display: block; margin-top: 10px; font-size: 12.5px; }
+
+/* ── Organizations (§42) ─────────────────────────────────────────────────
+   Tenants on the left, the chosen one's structure on the right: they are one
+   question, and splitting them across routes would lose the tree every time
+   somebody compared two organisations. */
+.nu-orgsplit { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 12px; }
+@media (max-width: 1100px) {
+  .nu-orgsplit { grid-template-columns: minmax(0, 1fr); }
+}
+.nu-orglist ul { margin: 0; padding: 0; list-style: none; }
+.nu-orglist button {
+  display: flex; flex-direction: column; gap: 1px; width: 100%; padding: 7px 10px;
+  background: none; border: 0; border-radius: 6px; text-align: start;
+  cursor: pointer; color: inherit; min-width: 0;
+}
+.nu-orglist button:hover { background: var(--nu-hover); }
+.nu-orglist button:focus-visible { outline: 2px solid var(--nu-accent); outline-offset: -2px; }
+.nu-orglist button.is-active { background: var(--nu-hover); box-shadow: inset 2px 0 0 var(--nu-accent); }
+.nu-orglist-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nu-orglist-meta { font-size: 11.5px; color: var(--nu-text-secondary); }
+
+.nu-orgstats { display: flex; flex-wrap: wrap; gap: 28px; }
+.nu-orgstats .ant-statistic-content { font-size: 20px; }
+.nu-orgregions { display: block; margin-top: 10px; font-size: 11.5px; }
+
+/* Indentation plus a rail, because the point of this screen is that the
+   structure is visible at a glance — a flat table with a parent id in it is a
+   structure somebody has to rebuild in their head. */
+.nu-orgtree, .nu-orgtree ul { margin: 0; padding: 0; list-style: none; }
+.nu-orgtree ul {
+  margin-inline-start: 14px; padding-inline-start: 12px;
+  border-inline-start: 1px solid var(--nu-border-subtle);
+}
+.nu-orgnode {
+  display: flex; align-items: center; gap: 10px; padding: 5px 6px; border-radius: 6px;
+  min-width: 0;
+}
+.nu-orgnode:hover { background: var(--nu-hover); }
+.nu-orgnode-what { display: flex; flex-direction: column; gap: 0; min-width: 140px; flex: 1 1 auto; }
+.nu-orgnode-code { font-size: 11px; font-family: var(--nu-font-mono); }
+.nu-orgnode-people { flex: none; font-size: 11.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.nu-orgnode-manager { display: flex; align-items: center; gap: 6px; flex: none; font-size: 11.5px; }
+.nu-orgnode-teams { flex: none; }
+/* Always visible, like the controls on every other admin table.
+   The first version revealed them on hover, which meant `opacity: 0` left
+   every button in the tab order and in the accessibility tree while invisible
+   — a keyboard user tabbing into something they cannot see — and needed a
+   `@media (hover: none)` escape hatch for touch on top. Small icon buttons
+   cost less noise than that costs correctness. */
+.nu-orgnode-acts { flex: none; }
+
+/* ── API clients (§25) ───────────────────────────────────────────────────
+   A list read for two things: what a machine may do, and whether it can
+   still call at all. */
+.nu-api-what { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.nu-api-id,
+.nu-api-scopes {
+  display: block; font-family: var(--nu-font-mono); font-size: 11.5px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-api-count { font-size: 11.5px; font-variant-numeric: tabular-nums; line-height: 1.45; }
+.nu-api-stats { display: flex; flex-wrap: wrap; gap: 26px; }
+.nu-api-stats .ant-statistic-content { font-size: 18px; }
+
+/* The secret, once. Big, monospace and selectable, because the reader is
+   about to copy it and will not get another chance. */
+.nu-api-secret {
+  margin: 12px 0; padding: 12px 14px; background: var(--nu-hover);
+  border: 1px solid var(--nu-border-subtle); border-radius: 6px;
+  font-family: var(--nu-font-mono); font-size: 13px; overflow-wrap: anywhere;
+}
+
+.nu-api-keys, .nu-api-requests { margin: 8px 0 0; padding: 0; list-style: none; }
+.nu-api-keys > li {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 7px 10px; border: 1px solid var(--nu-border-subtle); border-radius: 6px;
+  min-width: 0;
+}
+.nu-api-keys > li + li { margin-top: 6px; }
+.nu-api-key-what { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.nu-api-key-story { font-size: 11.5px; }

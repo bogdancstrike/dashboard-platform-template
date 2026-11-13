@@ -27,7 +27,7 @@ import { EmptyState } from "@/components/EmptyState";
 const { Text } = Typography;
 
 /** What each state is called and why, in the one place that decides it. */
-/** `preset`, not `colour`: AntD preset names, whose ink `index.css` fixes.
+/** `preset`, not `colour`: AntD preset names, whose ink the global stylesheet (`styles/global`) fixes.
  * A field called colour is where a hex ends up, and a hex on a `Tag` is white
  * text on a fill nobody measured (§55) — see `EdgeTag`. */
 const STATE: Record<AutomationOutcome["state"], { preset?: string; hint: string }> = {

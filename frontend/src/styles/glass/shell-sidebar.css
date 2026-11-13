@@ -1,0 +1,160 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Shell
+   ═══════════════════════════════════════════════════════════════════════ */
+.nx-app {
+  position: relative;
+  height: 100vh; height: 100dvh;
+  display: flex; gap: 18px; padding: 18px;
+  overflow: hidden;
+  color: var(--nu-text);
+}
+.nx-app--tablet { gap: 14px; padding: 14px; }
+.nx-app--phone { display: block; padding: 0; gap: 0; }
+
+.nx-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.nx-app--phone .nx-main { height: 100%; gap: 0; }
+
+.nx-scroll {
+  flex: 1; min-height: 0; overflow: auto;
+  padding: 6px 6px 24px;
+  scrollbar-width: none;
+}
+.nx-scroll::-webkit-scrollbar { display: none; }
+.nx-app--tablet .nx-scroll { padding: 4px 4px 20px; }
+.nx-app--phone .nx-scroll { padding: 14px 14px 110px; }
+/* The end of a page clears the assistant's round button: scrolled to the
+   bottom, the last row's pagination, "Reject" or "Add a card" sat under it
+   (audit A). Only where the button is drawn — conversation pages hide it. */
+body:has(.nx-ai-fab) .nx-app--pc .nx-scroll,
+body:has(.nx-ai-fab) .nx-app--tablet .nx-scroll { padding-bottom: 88px; }
+body:has(.nx-ai-fab) .nx-app--phone .nx-scroll { padding-bottom: 144px; }
+
+/* ── sidebar ─────────────────────────────────────────────────────────── */
+.nx-side {
+  width: var(--nx-side-w, 248px); flex-shrink: 0;
+  border-radius: 30px;
+  padding: 16px 10px 12px;
+  display: flex; flex-direction: column; gap: 10px;
+  overflow: hidden;
+  animation: nxSlideL 0.7s var(--nx-ease) both;
+  transition: width 0.45s var(--nx-ease), padding 0.45s var(--nx-ease);
+}
+.nx-side-menu { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.nx-side-menu.is-pending { visibility: hidden; }
+.nx-brandrow { display: flex; align-items: center; gap: 6px; padding: 0 0 6px 10px; transition: padding 0.45s var(--nx-ease), gap 0.45s var(--nx-ease); }
+.nx-brand { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; color: var(--nu-text); text-decoration: none; }
+.nx-brand:hover { color: var(--nu-text); }
+.nx-brand .nx-logo { flex-shrink: 0; transition: transform 0.6s var(--nx-ease); }
+.nx-brand:hover .nx-logo { transform: rotate(60deg); }
+.nx-brand .nx-fold-label { display: flex; flex-direction: column; line-height: 1.15; }
+.nx-brand b { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+.nx-brand small { font-size: 12px; color: var(--nu-text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nx-fold {
+  width: 32px; height: 32px; flex-shrink: 0;
+  border: 0; border-radius: 16px; cursor: pointer;
+  background: rgba(var(--nu-ink-rgb), 0.05); color: var(--nu-text-secondary);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.45s var(--nx-ease), background 0.2s ease;
+}
+.nx-fold:hover { background: rgba(var(--nu-ink-rgb), 0.1); color: var(--nu-text); }
+
+.nx-side-scroll {
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  display: flex; flex-direction: column; gap: 2px;
+  scrollbar-width: none;
+}
+.nx-side-scroll::-webkit-scrollbar { display: none; }
+.nx-group { display: flex; flex-direction: column; }
+.nx-grouphead {
+  height: 30px; margin-top: 6px; padding: 0 12px;
+  border: 0; background: transparent; cursor: pointer;
+  color: var(--nu-text-tertiary);
+  font: 700 10.5px var(--nu-font); letter-spacing: 0.14em; text-transform: uppercase;
+  display: flex; align-items: center; justify-content: space-between;
+  white-space: nowrap; overflow: hidden;
+  transition: opacity 0.2s ease, max-height 0.45s var(--nx-ease), margin 0.45s var(--nx-ease);
+  max-height: 30px;
+}
+.nx-grouphead:hover { color: var(--nu-text); }
+.nx-grouphead-meta { display: flex; align-items: center; gap: 6px; letter-spacing: 0; font-weight: 600; }
+.nx-grouphead .nx-icon { transition: transform 0.3s var(--nx-ease); }
+.nx-grouphead .nx-icon.is-rot { transform: rotate(-90deg); }
+/* Closing a group eases its height, with no measuring in JavaScript. */
+.nx-group-items { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 0.4s var(--nx-ease), opacity 0.3s ease; }
+.nx-group-items.is-closed { grid-template-rows: 0fr; opacity: 0; }
+.nx-group-items > div { min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
+
+.nx-navitem {
+  height: 38px; flex-shrink: 0;
+  padding: 0 12px; border-radius: 19px;
+  display: flex; align-items: center; gap: 11px;
+  color: var(--nu-text-secondary); text-decoration: none;
+  font-size: 14px; font-weight: 500; white-space: nowrap;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, padding 0.45s var(--nx-ease), gap 0.45s var(--nx-ease), width 0.45s var(--nx-ease);
+}
+.nx-navitem .nx-icon { flex-shrink: 0; }
+.nx-navitem:hover { background: rgba(var(--nu-ink-rgb), 0.05); color: var(--nu-text); }
+.nx-navitem.is-on { background: var(--nu-raised); color: var(--nu-text); font-weight: 700; box-shadow: var(--nu-lift); }
+.nx-navitem .nx-fold-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.nx-navbadge {
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
+  background: rgba(var(--nu-ink-rgb), 0.08); color: var(--nu-text);
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.2s ease;
+}
+.nx-navitem.is-on .nx-navbadge { background: var(--nu-accent); color: var(--nu-on-accent); }
+.nx-navitem.is-bad .nx-navbadge { background: #b42318; color: #fff; }
+
+.nx-help {
+  height: 40px; flex-shrink: 0; padding: 0 12px;
+  border: 0; border-radius: 20px; cursor: pointer;
+  background: rgba(var(--nu-ink-rgb), 0.05); color: var(--nu-text-secondary);
+  font: 600 13px var(--nu-font);
+  display: flex; align-items: center; gap: 10px; white-space: nowrap; overflow: hidden;
+  transition: padding 0.45s var(--nx-ease), gap 0.45s var(--nx-ease), width 0.45s var(--nx-ease), background 0.2s ease;
+}
+.nx-help:hover:not(:disabled) { background: rgba(var(--nu-ink-rgb), 0.09); color: var(--nu-text); }
+.nx-help:disabled { opacity: 0.55; cursor: default; }
+.nx-help .nx-icon { flex-shrink: 0; }
+.nx-help--rail { width: 48px; height: 44px; padding: 0; justify-content: center; border-radius: 18px; background: transparent; }
+.nx-help--rail .nx-fold-label { display: none; }
+
+/* Folding: the width eases to a rail while the words fade and slide away,
+   so the icons stay where the eye left them (after BoardGame's admin). */
+.nx-fold-label { transition: opacity 0.22s ease 0.12s, transform 0.3s var(--nx-ease) 0.08s, max-width 0.45s var(--nx-ease); max-width: 200px; }
+.nx-app--folded .nx-side { padding: 16px 12px 12px; }
+.nx-app--folded .nx-brandrow { flex-direction: column; padding: 0 0 8px; gap: 10px; }
+.nx-app--folded .nx-brand { flex: none; justify-content: center; gap: 0; }
+.nx-app--folded .nx-fold { transform: rotate(180deg); }
+.nx-app--folded .nx-fold-label { opacity: 0; transform: translateX(-8px); max-width: 0; pointer-events: none; transition: opacity 0.12s ease, transform 0.2s ease, max-width 0.45s var(--nx-ease); }
+.nx-app--folded .nx-grouphead { opacity: 0; max-height: 0; margin-top: 0; pointer-events: none; }
+.nx-app--folded .nx-group + .nx-group { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(var(--nu-ink-rgb), 0.07); }
+.nx-app--folded .nx-group-items.is-closed { grid-template-rows: 1fr; opacity: 1; }
+.nx-app--folded .nx-navitem { position: relative; width: 52px; padding: 0 17px; gap: 0; border-radius: 18px; height: 42px; }
+.nx-app--folded .nx-navitem.is-on { background: var(--nu-text); color: var(--nu-on-ink); box-shadow: none; }
+.nx-app--folded .nx-navbadge { position: absolute; opacity: 0; }
+.nx-app--folded .nx-navitem:has(.nx-navbadge)::after {
+  content: ""; position: absolute; top: 8px; right: 10px; width: 8px; height: 8px; border-radius: 4px;
+  background: var(--nu-accent); border: 2px solid var(--nu-ring);
+}
+.nx-app--folded .nx-help { width: 52px; padding: 0 17px; gap: 0; }
+
+/* ── tablet rail ─────────────────────────────────────────────────────── */
+.nx-rail {
+  width: 76px; flex-shrink: 0; border-radius: 28px;
+  padding: 14px 0; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  overflow-y: auto; scrollbar-width: none;
+  animation: nxSlideL 0.7s var(--nx-ease) both;
+}
+.nx-rail-logo { margin-bottom: 10px; display: flex; }
+.nx-railitem {
+  width: 56px; height: 48px; flex-shrink: 0; border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--nu-text-secondary);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.nx-railitem:hover { background: rgba(var(--nu-ink-rgb), 0.06); color: var(--nu-text); }
+.nx-railitem.is-on { background: var(--nu-text); color: var(--nu-on-ink); }
+.nx-rail-spacer { flex: 1; }
+.nx-rail-me { border: 0; padding: 0; background: transparent; cursor: pointer; border-radius: 22px; display: flex; flex-shrink: 0; }

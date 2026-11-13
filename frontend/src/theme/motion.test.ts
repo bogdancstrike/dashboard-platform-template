@@ -1,7 +1,6 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { describe, expect, it } from "vitest";
+
+import { stylesheetSource } from "@/test/sources";
 
 /**
  * Motion is functional and fast, and the reader can switch it off (§55, §59).
@@ -12,7 +11,7 @@ import { describe, expect, it } from "vitest";
  * from — one `transition: all 400ms` and a table that used to feel instant
  * feels sticky, and nothing fails.
  *
- * So the rules are read out of `index.css`:
+ * So the rules are read out of the global stylesheet (`styles/global/`):
  *
  * * **Every transition is short.** A state change nobody waits for is one
  *   under about a fifth of a second; the one at 200ms is the mobile sider,
@@ -26,7 +25,7 @@ import { describe, expect, it } from "vitest";
  *   everything, rather than for the handful of selectors somebody remembered.
  */
 
-const STYLESHEET = readFileSync(join(process.cwd(), "src/index.css"), "utf8");
+const STYLESHEET = stylesheetSource("global");
 
 /** Every duration in a `transition` shorthand, in milliseconds. */
 function durations(): { declaration: string; ms: number }[] {

@@ -1,0 +1,172 @@
+/* ── KPI tiles ──────────────────────────────────────────────────────── */
+/* A KPI row reads as one object only when the tiles are one size. Labels wrap
+   at some widths and only half carry a hint, so the height is set here rather
+   than left to whatever each tile happens to contain. */
+.nu-statcard {
+  border: 1px solid var(--nu-border); height: 100%; min-height: 104px;
+  transition: box-shadow 120ms ease, transform 120ms ease, border-color 120ms ease;
+}
+.nu-statcard .ant-card-body { height: 100%; }
+.nu-statcard:hover { box-shadow: var(--nu-shadow-md); transform: translateY(-1px); border-color: var(--nu-accent); }
+.nu-statcard-row { display: flex; align-items: flex-start; gap: 13px; height: 100%; }
+.nu-statcard-icon {
+  width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+  font-size: 16px; flex: 0 0 auto;
+}
+.nu-statcard-main { min-width: 0; flex: 1; }
+.nu-statcard-label {
+  font-size: 11.5px; font-weight: 600; color: var(--nu-text-secondary);
+  text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px;
+  overflow-wrap: anywhere;
+}
+.nu-statcard-value { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.nu-statcard-number {
+  font-size: 24px; font-weight: 700; line-height: 1.15; color: var(--nu-text);
+  font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+}
+.nu-statcard-delta {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 3px;
+  padding: 1px 7px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+/* Two lines rather than an ellipsis: at tile width a single nowrap line cuts
+   the sentence before the word that says which window the number is for. */
+.nu-statcard-hint {
+  font-size: 11.5px; margin-top: 4px; line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* ── charts ─────────────────────────────────────────────────────────── */
+.nu-chartcard { height: 100%; }
+.nu-chart-extra { display: inline-flex; align-items: center; gap: 8px; }
+
+/* ── alert strip (§66) ──────────────────────────────────────────────── */
+.nu-alert-strip .ant-card-body { padding: 10px 14px; }
+.nu-alert-tag { cursor: pointer; margin-inline-end: 0; border: none; }
+.nu-alert-tag:hover { filter: brightness(1.08); }
+
+/* ── activity feed ──────────────────────────────────────────────────── */
+.nu-activity-card .ant-timeline { margin-top: 4px; }
+.nu-activity-item { font-size: 13px; line-height: 1.45; }
+.nu-activity-time { font-size: 11.5px; color: var(--nu-text-tertiary); margin-top: 2px; }
+
+/* ── tags (§37) ─────────────────────────────────────────────────────── */
+.nu-tags {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 12px; min-height: 24px;
+}
+.nu-tags--editing { align-items: flex-start; }
+.nu-tags-icon { color: var(--nu-text-tertiary); }
+.nu-tags-select { min-width: 320px; max-width: 560px; }
+.nu-tags-hint { font-size: 12px; }
+/* A text button rather than an AntD one: this sits inline with a row of chips,
+   and a control with its own height and padding breaks the line. */
+.nu-tags-edit {
+  background: none; border: 0; padding: 0;
+  font: inherit; font-size: 12.5px;
+  color: var(--nu-accent-ink); cursor: pointer;
+}
+.nu-tags-edit:hover { text-decoration: underline; }
+.nu-tags-edit:disabled { color: var(--nu-text-tertiary); cursor: default; }
+/* The colour on the leading edge, never as a fill — see `StatusTag` (§55). */
+.nu-tag-chip {
+  border-inline-start-width: 3px !important;
+  border-inline-start-style: solid !important;
+  margin-inline-end: 0;
+}
+a:hover > .nu-tag-chip { border-color: var(--nu-accent); }
+
+/* ── comparison (§47) ───────────────────────────────────────────────── */
+/* The differing rows are tinted *and* marked: colour alone is not a signal
+   (§64), and these are the only rows a reader came to the page to find. */
+.nu-compare .nu-compare-differs > td {
+  background: color-mix(in srgb, var(--nu-warning) 8%, transparent);
+}
+/* The table's own container scrolls, rather than AntD's `scroll.x` — see the
+   comment in `ComparePage.tsx`. `min-width` on the table keeps the columns
+   readable instead of squashing five of them into a phone. */
+.nu-compare-scroll { overflow-x: auto; }
+.nu-compare-scroll .ant-table table { min-width: 620px; }
+.nu-compare .ant-table-cell { vertical-align: top; }
+/* Values wrap rather than truncate: a comparison is read across, and an
+   ellipsis in the one cell that differs hides the difference. */
+.nu-compare .ant-table-cell { white-space: normal; overflow-wrap: anywhere; }
+
+/* ── data quality (§65) ─────────────────────────────────────────────── */
+.nu-quality-totals {
+  display: grid; gap: 10px; margin-bottom: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+}
+.nu-quality-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.nu-quality-card .ant-card-head-title { white-space: normal; }
+/* The reason first and the remedy second, both at reading width: a finding is
+   two sentences somebody has to act on, not a row in a table. */
+.nu-quality-why { margin-bottom: 6px !important; max-width: 78ch; }
+.nu-quality-fix { margin-bottom: 0 !important; max-width: 78ch; }
+.nu-quality-nolink { display: block; margin-top: 8px; font-size: 12.5px; }
+.nu-quality-sample { margin: 6px 0 0; padding-left: 18px; }
+.nu-quality-sample li { font-size: 12.5px; }
+
+/* ── profile (§40, §41) ─────────────────────────────────────────────── */
+.nu-profile-card { margin-bottom: 12px; }
+.nu-profile-head { display: flex; gap: 16px; align-items: flex-start; }
+.nu-profile-facts { flex: 1 1 auto; min-width: 0; }
+.nu-profile-note { margin-top: 10px; }
+/* A tag as a link, so the two ways out of the page read as one control pair
+   rather than as two buttons competing with the page's own actions. */
+.nu-profile-jump { cursor: pointer; margin-inline-end: 0; }
+.nu-profile-tabs { flex: 1 1 auto; display: flex; flex-direction: column; }
+.nu-profile-tabs > .ant-tabs-content-holder { display: flex; }
+.nu-profile-tabs .ant-tabs-tabpane { display: flex; flex-direction: column; }
+.nu-profile-overview { display: flex; flex-direction: column; gap: 12px; }
+/* Five counts across on a laptop, wrapping rather than shrinking: a stat card
+   narrower than its own number is a card that reads as broken. */
+.nu-profile-stats {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(min(196px, 100%), 1fr));
+}
+.nu-profile-stat { color: inherit; }
+.nu-profile-stat:hover { color: inherit; }
+.nu-profile-charts { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+.nu-profile-digests { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+.nu-profile-digest { margin-bottom: 4px !important; }
+.nu-profile-access { display: flex; flex-direction: column; gap: 12px; }
+.nu-profile-groups { margin: 0; padding: 0; list-style: none; }
+.nu-profile-groups > li + li {
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--nu-border-subtle);
+}
+
+@media (max-width: 900px) {
+  .nu-profile-charts, .nu-profile-digests { grid-template-columns: 1fr; }
+  .nu-profile-head { flex-direction: column; }
+}
+
+/* ── bulk selection (§43, §75) ──────────────────────────────────────── */
+/* Above the table rather than floating over it: a bar pinned to the bottom of
+   the viewport covers the last row, which is part of what the reader is
+   deciding about. */
+.nu-bulkbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  margin: 0 0 8px; padding: 7px 10px;
+  border: 1px solid var(--nu-border);
+  border-radius: var(--nu-radius-control);
+  background: color-mix(in srgb, var(--nu-accent) 8%, transparent);
+}
+/* A folder in the rail, which is also where files are dropped. The label
+   rather than the tree node: AntD's own draggable moves *nodes*, and a file
+   manager needs the opposite — the folders stay put and the files land. */
+.nu-folder-node { display: inline-flex; align-items: center; gap: 6px; border-radius: 4px; padding: 0 3px; }
+.nu-folder-node.is-over {
+  background: var(--nu-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--nu-accent);
+}
+
+.nu-bulk-body { display: flex; flex-direction: column; gap: 12px; }
+.nu-bulk-form { margin-bottom: 0; }
+.nu-bulk-form .ant-form-item { margin-bottom: 8px; }
+.nu-bulk-preview { display: flex; flex-direction: column; gap: 8px; }
+.nu-bulk-split { display: flex; gap: 6px; flex-wrap: wrap; }
+.nu-bulk-sample ul { margin: 4px 0 0; padding-left: 18px; }
+.nu-bulk-sample li { font-size: 12.5px; color: var(--nu-text-secondary); }
+.nu-bulk-refusal { margin: 0; }

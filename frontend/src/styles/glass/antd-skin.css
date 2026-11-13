@@ -1,0 +1,185 @@
+/* Buttons: pills. Primary glows. */
+.ant-btn { font-weight: 600; box-shadow: none; }
+.ant-btn-primary:not(:disabled):not(.ant-btn-dangerous) { box-shadow: 0 10px 22px rgba(var(--nu-glow-rgb), 0.3); }
+.ant-btn-default:not(.ant-btn-dangerous):not(:disabled) { background: rgba(var(--nu-glass-rgb), 0.7); }
+.ant-btn-text:not(:disabled):hover { background: rgba(var(--nu-ink-rgb), 0.06); }
+.ant-btn-icon-only.ant-btn-circle, .ant-btn-icon-only { border-radius: 999px; }
+
+/* Fields: soft pills on a white well. */
+.ant-input-outlined, .ant-input-affix-wrapper-outlined, .ant-input-number-outlined,
+.ant-picker-outlined, .ant-select-outlined:not(.ant-select-customize-input) .ant-select-selector {
+  background: var(--nu-field) !important;
+  border-color: rgba(var(--nu-ink-rgb), 0.12) !important;
+}
+.ant-input-outlined:hover, .ant-input-affix-wrapper-outlined:hover, .ant-picker-outlined:hover,
+.ant-select-outlined:not(.ant-select-disabled):hover .ant-select-selector { border-color: rgba(var(--nu-ink-rgb), 0.24) !important; }
+.ant-input-outlined:focus, .ant-input-outlined:focus-within, .ant-input-affix-wrapper-outlined:focus-within,
+.ant-picker-outlined.ant-picker-focused, .ant-select-focused.ant-select-outlined .ant-select-selector {
+  border-color: var(--nu-accent) !important;
+  box-shadow: 0 0 0 4px rgba(var(--nu-glow-rgb), 0.14) !important;
+}
+textarea.ant-input { border-radius: 18px !important; padding: 10px 14px; }
+.ant-input-filled, .ant-select-filled .ant-select-selector { background: rgba(var(--nu-ink-rgb), 0.06) !important; }
+.ant-select-multiple .ant-select-selection-item { border-radius: 999px; background: var(--nu-tint); border: 0; font-weight: 600; }
+.ant-form-item-label > label { font-weight: 600; font-size: 13px; color: var(--nu-text-secondary); }
+.ant-form-vertical .ant-form-item-label { padding-bottom: 6px; }
+
+/* Dropdowns and popovers are glass too. */
+.ant-dropdown .ant-dropdown-menu, .ant-select-dropdown, .ant-picker-dropdown .ant-picker-panel-container,
+.ant-popover .ant-popover-inner, .ant-cascader-dropdown {
+  background: var(--nu-glass-strong) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--nu-glass-border);
+  box-shadow: 0 24px 60px rgba(40, 35, 60, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+:root[data-theme="dark"] .ant-dropdown .ant-dropdown-menu,
+:root[data-theme="dark"] .ant-select-dropdown,
+:root[data-theme="dark"] .ant-popover .ant-popover-inner,
+:root[data-theme="dark"] .ant-picker-dropdown .ant-picker-panel-container {
+  background: rgba(30, 24, 34, 0.94) !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.ant-dropdown .ant-dropdown-menu { padding: 6px; border-radius: 20px; }
+.ant-dropdown .ant-dropdown-menu-item { border-radius: 14px !important; padding: 8px 12px !important; min-height: 38px; }
+.ant-select-dropdown { padding: 6px; border-radius: 18px; }
+.ant-select-item { border-radius: 12px !important; min-height: 36px; align-items: center; }
+
+/* Modals and drawers: frosted sheets over a blurred page. */
+.ant-modal-mask, .ant-drawer-mask, .ant-image-preview-mask {
+  background: rgba(var(--nu-ink-rgb), 0.18) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  backdrop-filter: blur(8px) saturate(120%);
+}
+:root[data-theme="dark"] .ant-modal-mask, :root[data-theme="dark"] .ant-drawer-mask { background: rgba(0, 0, 0, 0.45) !important; }
+.ant-modal .ant-modal-content {
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(30px) saturate(180%);
+  border: 1px solid var(--nu-glass-border);
+  box-shadow: 0 30px 80px rgba(35, 26, 36, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  padding: 26px 26px 20px;
+}
+:root[data-theme="dark"] .ant-modal .ant-modal-content { box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.14); }
+.ant-modal .ant-modal-title { font-size: 24px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; }
+.ant-modal .ant-modal-header { margin-bottom: 18px; padding-inline-end: 48px; }
+.ant-modal .ant-modal-close {
+  top: 22px; inset-inline-end: 22px; width: 44px; height: 44px; border-radius: 22px;
+  background: rgba(var(--nu-ink-rgb), 0.07);
+}
+.ant-modal .ant-modal-close:hover { background: rgba(var(--nu-ink-rgb), 0.12); }
+.ant-modal .ant-modal-footer { margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(var(--nu-ink-rgb), 0.07); }
+.ant-modal .ant-modal-footer .ant-btn { height: 44px; padding-inline: 20px; }
+.ant-modal .ant-modal-footer .ant-btn-default { background: rgba(var(--nu-ink-rgb), 0.07); border-color: transparent; }
+.ant-modal-confirm .ant-modal-confirm-title { font-size: 20px; font-weight: 700; }
+.ant-drawer .ant-drawer-content-wrapper { box-shadow: none !important; }
+.ant-drawer-right > .ant-drawer-content-wrapper { top: 12px; bottom: 12px; right: 12px; }
+.ant-drawer-left > .ant-drawer-content-wrapper { top: 12px; bottom: 12px; left: 12px; }
+.ant-drawer .ant-drawer-content {
+  border-radius: 30px;
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(30px) saturate(180%);
+  border: 1px solid var(--nu-glass-border);
+  box-shadow: 0 30px 80px rgba(35, 26, 36, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+.ant-drawer-bottom > .ant-drawer-content-wrapper, .ant-drawer-top > .ant-drawer-content-wrapper { left: 12px; right: 12px; }
+.ant-drawer-bottom .ant-drawer-content { border-radius: 30px 30px 0 0; }
+.ant-drawer .ant-drawer-header { border-bottom: 0; padding: 22px 22px 8px; }
+.ant-drawer .ant-drawer-title { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.ant-drawer .ant-drawer-close { width: 40px; height: 40px; border-radius: 20px; background: rgba(var(--nu-ink-rgb), 0.07); margin-inline-end: 12px; }
+.ant-drawer .ant-drawer-footer { border-top: 1px solid rgba(var(--nu-ink-rgb), 0.07); padding: 14px 22px; }
+@media (max-width: 767px) {
+  .ant-drawer-right > .ant-drawer-content-wrapper, .ant-drawer-left > .ant-drawer-content-wrapper { top: 0; bottom: 0; right: 0; left: auto; }
+  .ant-drawer-right .ant-drawer-content, .ant-drawer-left .ant-drawer-content { border-radius: 0; }
+}
+
+/* Tables: rows are soft pills on the panel, the header is small caps. */
+.ant-table-wrapper .ant-table { background: transparent; }
+.ant-table-wrapper .ant-table-container { border: 0 !important; }
+.ant-table-wrapper .ant-table-thead > tr > th, .ant-table-wrapper .ant-table-thead > tr > td {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--nu-text-tertiary);
+  border-bottom: 0 !important; background: transparent !important;
+}
+.ant-table-wrapper .ant-table-thead > tr > th::before { display: none; }
+.ant-table-wrapper .ant-table-tbody > tr > td { border-bottom: 0 !important; transition: background 0.2s ease; }
+.ant-table-wrapper .ant-table-tbody > tr > td:first-child { border-start-start-radius: 18px; border-end-start-radius: 18px; }
+.ant-table-wrapper .ant-table-tbody > tr > td:last-child { border-start-end-radius: 18px; border-end-end-radius: 18px; }
+.ant-table-wrapper .ant-table-tbody > tr.ant-table-row:hover > td { background: var(--nu-raised) !important; }
+.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected > td { background: rgba(var(--nu-glow-rgb), 0.12) !important; }
+.ant-table-wrapper .ant-table-tbody .ant-table-cell-fix-left, .ant-table-wrapper .ant-table-tbody .ant-table-cell-fix-right { background: var(--nu-field) !important; }
+.ant-table-wrapper .ant-table-placeholder .ant-table-cell { background: transparent !important; }
+.ant-table-wrapper .ant-table-pagination { margin: 16px 8px 4px !important; }
+.ant-table-wrapper .ant-table-expanded-row > td { background: rgba(var(--nu-ink-rgb), 0.03) !important; }
+
+/* Tags: soft pills, no outline. */
+.ant-tag { border-radius: 999px; border-color: transparent; font-weight: 600; font-size: 12px; padding-inline: 9px; line-height: 22px; }
+
+/* Tabs. */
+.ant-tabs-top > .ant-tabs-nav::before, .ant-tabs-bottom > .ant-tabs-nav::before { border-bottom-color: rgba(var(--nu-ink-rgb), 0.08) !important; }
+.ant-tabs .ant-tabs-tab { font-weight: 600; }
+.ant-tabs .ant-tabs-ink-bar { height: 3px !important; border-radius: 3px; }
+
+/* Segmented: a soft track with an ink thumb. */
+.ant-segmented { padding: 3px; }
+.ant-segmented .ant-segmented-item-label { font-weight: 600; padding-inline: 14px; }
+.ant-segmented .ant-segmented-item-selected, .ant-segmented .ant-segmented-thumb { box-shadow: none; }
+
+/* Notices: soft, round. */
+.ant-alert { border-radius: 22px; border: 0; padding: 12px 18px; }
+.ant-alert-info { background: rgba(var(--nu-glow-rgb), 0.08); }
+.ant-alert-success { background: var(--nu-ok-bg); }
+.ant-alert-warning { background: var(--nu-warn-bg); }
+.ant-alert-error { background: var(--nu-bad-bg); }
+.ant-message-notice-content { -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); border: 1px solid var(--nu-glass-border); font-weight: 600; padding: 10px 18px !important; }
+.ant-notification-notice { -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); background: var(--nu-glass-strong) !important; border: 1px solid var(--nu-glass-border); }
+
+/* Statistics: big, heavy numbers in the product's own face. */
+.ant-statistic-title { font-size: 13px; font-weight: 600; color: var(--nu-text-tertiary); }
+.ant-statistic-content { font-weight: 700; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; }
+
+/* Lists, descriptions, collapse, odds and ends. */
+.ant-list-split .ant-list-item { border-block-end-color: rgba(var(--nu-ink-rgb), 0.07); }
+.ant-descriptions .ant-descriptions-item-label { color: var(--nu-text-tertiary); font-weight: 500; }
+.ant-descriptions-bordered .ant-descriptions-view { border-radius: 20px; border-color: rgba(var(--nu-ink-rgb), 0.08); }
+.ant-collapse { background: transparent; border: 0; }
+.ant-collapse > .ant-collapse-item { border-bottom: 0; margin-bottom: 6px; background: rgba(var(--nu-ink-rgb), 0.035); border-radius: 20px !important; }
+.ant-collapse .ant-collapse-content { background: transparent; border-top: 0; }
+.ant-empty-description { color: var(--nu-text-tertiary); }
+.ant-progress-bg { border-radius: 999px; }
+.ant-pagination .ant-pagination-item-active a { color: var(--nu-on-ink) !important; }
+.ant-pagination .ant-pagination-item-active { border: 0; }
+.ant-pagination .ant-pagination-item { border-radius: 999px; font-weight: 600; }
+.ant-steps .ant-steps-item-title { font-weight: 600; }
+.ant-tooltip .ant-tooltip-inner { font-size: 12px; font-weight: 500; padding: 6px 10px; }
+.ant-divider { border-color: rgba(var(--nu-ink-rgb), 0.08); }
+.ant-tour .ant-tour-inner { border-radius: 24px !important; }
+.ant-skeleton .ant-skeleton-content .ant-skeleton-title, .ant-skeleton .ant-skeleton-content .ant-skeleton-paragraph > li { border-radius: 999px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-side, .nx-fold-label, .nx-navitem, .nx-group-items { transition: none !important; }
+}
+
+/* ── density (§40): the reader's chosen scale for text and components ── */
+html { zoom: var(--nu-zoom, 1); }
+.nx-app { height: calc(100vh / var(--nu-zoom, 1)); height: calc(100dvh / var(--nu-zoom, 1)); }
+
+/* ── search in the sidebar, under the mark ───────────────────────────── */
+.nx-side .nx-omni { width: 100%; flex-shrink: 0; overflow: hidden; white-space: nowrap; transition: width 0.45s var(--nx-ease), padding 0.45s var(--nx-ease); }
+.nx-side .nx-omni span, .nx-side .nx-omni kbd { transition: opacity 0.2s ease; }
+.nx-app--folded .nx-side .nx-omni { width: 52px; padding: 0 18px; }
+.nx-app--folded .nx-side .nx-omni span, .nx-app--folded .nx-side .nx-omni kbd { opacity: 0; }
+.nx-density { display: flex; flex-direction: column; gap: 6px; padding: 4px 4px 2px; cursor: default; }
+.nx-density > small { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--nu-text-tertiary); }
+.nx-density .ant-segmented { width: 100%; }
+.nx-density .ant-segmented-item { flex: 1; }
+.ant-dropdown-menu-item:has(.nx-density) { background: transparent !important; cursor: default; }
+.nx-omni .nx-icon { flex-shrink: 0; }
+/* `#nu-main` is a flex column so `.nu-fill` pages can take the height left;
+   inside the shell it is the scroller, and must never be taller than its slot. */
+#nu-main.nx-scroll { min-height: 0; }
+/* The selected segment is ink on its own colour in both themes; AntD's
+   hover and focus states otherwise repaint the label with the track's ink. */
+.ant-segmented .ant-segmented-item-selected,
+.ant-segmented .ant-segmented-item-selected:hover,
+.ant-segmented .ant-segmented-item-selected .ant-segmented-item-label { color: var(--nu-on-ink) !important; }
+.ant-modal-title em, .ant-drawer-title em { font-style: normal; color: var(--nu-accent); }

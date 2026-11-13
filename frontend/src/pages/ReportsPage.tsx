@@ -69,7 +69,7 @@ const { Text } = Typography;
 
 /** What each visibility looks like, so the state is read rather than deduced. */
 /** `preset` and not `colour`: these are AntD preset *names*, whose ink
- * `index.css` fixes. A field called colour is where a hex ends up, and a hex
+ * the global stylesheet (`styles/global`) fixes. A field called colour is where a hex ends up, and a hex
  * on a `Tag` is a filled tag with white text on it (§55) — see `EdgeTag`. */
 const SCOPES: Record<string, { icon: React.ReactNode; label: string; preset?: string }> = {
   PRIVATE: { icon: <LockOutlined />, label: "Private" },

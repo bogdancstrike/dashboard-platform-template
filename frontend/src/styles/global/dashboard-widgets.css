@@ -1,0 +1,185 @@
+/* A dashboard widget's number. Not `StatCard`, which draws its own card — a
+   card inside a widget card is a border nobody asked for (§45). */
+.nu-widget-metric {
+  display: flex; flex-direction: column; gap: 2px; padding: 4px 0;
+}
+.nu-widget-metric-value {
+  /* 24px, not 28: a KPI widget is one grid row, and the number plus its label
+     has to fit inside it without the card scrolling. */
+  font-size: 24px; font-weight: 650; line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.nu-widget-metric-unit { font-size: 15px; font-weight: 500; margin-left: 2px; }
+/* A widget's list row: the label takes the space, the tag keeps its own. */
+.nu-widget-row {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  min-width: 0; color: inherit;
+}
+.nu-widget-row > .ant-typography:first-child { flex: 1; min-width: 0; }
+
+/* The dashboard grid (§45), laid out by react-grid-layout so a card can be
+   dragged to a place, resized by its corner, and have the gap it left closed
+   behind it. The library owns position; this owns how a card looks. */
+.nu-rgl { position: relative; }
+.nu-rgl .react-grid-item { display: flex; }
+.nu-rgl .react-grid-item > .nu-widget { width: 100%; }
+/* The drop target while a card is in the air. A placeholder that does not read
+   as "this is where it lands" is a drag somebody makes twice. */
+.nu-rgl .react-grid-placeholder {
+  background: var(--nu-accent) !important;
+  opacity: 0.14 !important;
+  border: 1px dashed var(--nu-accent);
+  border-radius: var(--nu-radius-card);
+}
+/* AntD paints the corner handle as a background image that assumes a light
+   ground; drawn here instead, from the tokens, so it is visible in both. */
+.nu-rgl .react-resizable-handle::after {
+  border-right: 2px solid var(--nu-text-tertiary);
+  border-bottom: 2px solid var(--nu-text-tertiary);
+}
+.nu-rgl .react-resizable-handle { background-image: none; }
+/* The card fills the cell the grid gave it, so two widgets that declare the
+   same height are the same height whatever their contents came back as. */
+.nu-widget { min-width: 0; display: flex; height: 100%; }
+.nu-widget-card { width: 100%; display: flex; flex-direction: column; }
+.nu-widget-card > .ant-card-body {
+  flex: 1; min-height: 0; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+/* The scroll is here rather than on the card body, so it can hold focus — a
+   scrollable region a keyboard cannot reach is a region whose bottom half does
+   not exist for anybody not using a mouse (§54, §55). */
+.nu-widget-scroll { flex: 1; min-height: 0; overflow: auto; }
+.nu-widget-scroll:focus-visible {
+  outline: 2px solid var(--nu-accent); outline-offset: -2px; border-radius: 4px;
+}
+/* The whole heading is the drag handle, which is what makes a card easy to
+   pick up: a six-pixel grip is a target people miss and then conclude the
+   layout is stuck. Only the controls in the heading opt out. */
+.nu-widget-grip { cursor: grab; }
+.nu-widget-card > .ant-card-head { cursor: grab; user-select: none; }
+.nu-widget-card > .ant-card-head .nu-widget-nodrag { cursor: default; }
+.nu-rgl .react-grid-item.react-draggable-dragging { z-index: 5; }
+.nu-rgl .react-grid-item.react-draggable-dragging .nu-widget-card {
+  cursor: grabbing;
+  box-shadow: var(--nu-shadow-raised, 0 12px 28px rgb(0 0 0 / 22%));
+  border-color: var(--nu-accent);
+}
+/* While a gesture is in flight the rest of the grid steps back, so the card
+   being moved and the space it is heading for are the only two things
+   competing for attention. */
+.nu-rgl.is-gesturing .react-grid-item:not(.is-active):not(.react-draggable-dragging)
+  .nu-widget-card { opacity: 0.55; }
+/* What the card will be if the gesture ends here — columns × rows, the same
+   vocabulary the menu and the server use. */
+.nu-widget-size {
+  position: absolute; top: 8px; right: 10px; z-index: 6;
+  padding: 1px 7px; border-radius: 999px;
+  background: var(--nu-accent); color: #fff;
+  font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+/* Four handles instead of one, and each one visible while the layout can be
+   changed. An invisible handle is a handle nobody knows is there. */
+.nu-rgl .react-resizable-handle { opacity: 0; transition: opacity 120ms ease; }
+.nu-rgl .react-grid-item:hover > .react-resizable-handle,
+.nu-rgl .react-grid-item:focus-within > .react-resizable-handle { opacity: 1; }
+.nu-rgl .react-resizable-handle-e,
+.nu-rgl .react-resizable-handle-s {
+  background: transparent;
+}
+.nu-rgl .react-resizable-handle-e::after,
+.nu-rgl .react-resizable-handle-s::after {
+  content: ""; position: absolute; border: 0; border-radius: 2px;
+  background: var(--nu-accent);
+}
+.nu-rgl .react-resizable-handle-e::after {
+  top: 50%; right: 3px; width: 3px; height: 26px; transform: translateY(-50%);
+}
+.nu-rgl .react-resizable-handle-s::after {
+  left: 50%; bottom: 3px; height: 3px; width: 26px; transform: translateX(-50%);
+}
+/* The card itself is focusable while editing, because the arrow keys move it
+   (§54). The ring has to read as "this card is selected", not as a stray
+   outline on a container. */
+.nu-widget:focus-visible {
+  outline: 2px solid var(--nu-accent); outline-offset: 2px;
+  border-radius: var(--nu-radius-card);
+}
+.nu-widget-kind { display: inline-flex; align-items: center; font-size: 13px; }
+.nu-widget-subtitle { display: block; font-size: 12px; margin-bottom: 6px; }
+
+/* ── what the module widgets draw (§45) ─────────────────────────────────
+   Each of these is a page of the product at card size. The shared vocabulary
+   is deliberate: one row shape, one dim caption, one "and the rest" link, so
+   a dashboard holding six different modules still reads as one surface. */
+
+/* The link every module ends with. A card showing six of two hundred rows and
+   offering no way through makes somebody hunt the navigation for the page they
+   were just looking at. */
+.nu-widget-more {
+  display: block; margin-top: 6px; padding-top: 6px;
+  border-top: 1px solid var(--nu-border-subtle);
+  font-size: 12px; color: var(--nu-text-secondary);
+}
+.nu-widget-more:hover { color: var(--nu-accent-ink); }
+.nu-widget-dim { font-size: 11.5px; white-space: nowrap; }
+.nu-widget-star { color: var(--nu-warning, #ca8a04); }
+/* Unread is weight and a rule, never colour alone (§55). */
+.nu-widget-scroll .ant-list-item.is-unread {
+  box-shadow: inset 2px 0 0 var(--nu-accent);
+  padding-left: 6px;
+}
+
+/* Lane counts — a board or a status vocabulary, counted by the server. */
+.nu-widget-lanes {
+  display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;
+}
+.nu-widget-lane {
+  flex: 1 1 60px; min-width: 60px;
+  display: flex; flex-direction: column; gap: 1px;
+  padding: 5px 8px; border-radius: var(--nu-radius-control, 6px);
+  border: 1px solid var(--nu-border-subtle);
+  border-top: 2px solid var(--nu-border-strong);
+  background: var(--nu-bg); color: inherit;
+}
+.nu-widget-lane:hover { border-color: var(--nu-accent); }
+.nu-widget-lane.is-over { border-top-color: var(--nu-warning, #ca8a04); }
+.nu-widget-lane-count {
+  font-size: 17px; font-weight: 650; line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.nu-widget-lane-name {
+  font-size: 11px; color: var(--nu-text-secondary);
+  text-transform: capitalize; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nu-widget-lane-limit { font-size: 10.5px; color: var(--nu-text-tertiary); }
+
+/* Projects: a bar per row, because "how far along" is the question a portfolio
+   is read for and a state name answers it only coarsely. */
+.nu-widget-projects { list-style: none; margin: 0; padding: 0; }
+.nu-widget-projects > li + li { margin-top: 8px; }
+.nu-widget-project { display: block; color: inherit; }
+.nu-widget-project-head {
+  display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px;
+}
+.nu-widget-project-head > .ant-typography:first-child { flex: 1; min-width: 0; }
+
+/* Mail: sender, subject, and the marks somebody scans for. */
+.nu-widget-mail { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; color: inherit; }
+.nu-widget-mail-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.nu-widget-mail-subject { display: block; }
+.nu-widget-mail-marks { flex: none; color: var(--nu-text-tertiary); }
+
+.nu-widget-file { min-width: 0; flex: 1; }
+.nu-widget-file .ant-typography { min-width: 0; }
+
+/* Severity as a dot rather than a tinted row: a tinted row cannot then also
+   carry an unread rule, and coloured text at 11px fails contrast (§55). */
+.nu-widget-severity {
+  width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none;
+  background: var(--nu-text-tertiary);
+}
+.nu-widget-severity[data-severity="warning"] { background: var(--nu-warning, #ca8a04); }
+.nu-widget-severity[data-severity="critical"] { background: var(--nu-danger, #dc2626); }

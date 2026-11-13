@@ -1,0 +1,189 @@
+/* The calendar agenda. A month grid at card size is forty-two boxes with
+   nothing readable in them; what a person wants is the next few things. */
+.nu-widget-agenda { list-style: none; margin: 0; padding: 0; }
+.nu-widget-agenda-day {
+  display: block; margin: 8px 0 2px; font-size: 11px; font-weight: 650;
+  letter-spacing: 0.02em; text-transform: uppercase;
+  color: var(--nu-text-tertiary);
+}
+.nu-widget-agenda > li:first-child .nu-widget-agenda-day { margin-top: 0; }
+.nu-widget-agenda-row {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0;
+  padding: 2px 0; color: inherit;
+}
+.nu-widget-agenda-row > .ant-typography { flex: 1; min-width: 0; }
+.nu-widget-agenda-time {
+  flex: none; width: 48px; font-size: 11.5px;
+  font-variant-numeric: tabular-nums; color: var(--nu-text-secondary);
+}
+.nu-widget-agenda-bar { flex: none; width: 3px; align-self: stretch; border-radius: 2px; }
+
+/* The analytics strip: every number a dataset declares, each one a link that
+   reproduces it (§44). */
+.nu-widget-strip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); gap: 8px;
+}
+.nu-widget-strip-tile {
+  display: flex; flex-direction: column; gap: 1px; color: inherit;
+  padding: 4px 8px; border-radius: var(--nu-radius-control, 6px);
+  border: 1px solid transparent;
+}
+.nu-widget-strip-tile:hover { border-color: var(--nu-border); background: var(--nu-bg); }
+.nu-widget-strip-value {
+  font-size: 19px; font-weight: 650; line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.nu-widget-map { display: flex; flex-direction: column; gap: 4px; }
+
+/* Sharing: the scope control gets room for its icons and its sentence. */
+.nu-share-scope { margin-top: 6px; }
+
+/* ── choosing a widget, with the widget beside the choice (§45) ──────────
+   Two panes: what it will show on the left, what that will look like on the
+   right. The preview renders the *real* `WidgetCard`, so nothing here restyles
+   a card — it only gives one a cell of the right height to sit in. */
+.nu-widget-modal .ant-modal-body { padding-top: 4px; }
+.nu-widget-modal-panes {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); gap: 24px;
+  align-items: start;
+}
+.nu-widget-modal-form { min-width: 0; max-height: 62vh; overflow-y: auto; padding-right: 4px; }
+.nu-widget-modal-preview {
+  position: sticky; top: 0; min-width: 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.nu-widget-modal-caption {
+  font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;
+}
+/* A cell of the grid, standing in for the place the card will land. The card
+   inside it is the same component the dashboard renders, and it stretches to
+   fill — which is what makes the preview show the *shape* a kind gets and not
+   only its contents. */
+.nu-widget-modal-cell {
+  display: flex; min-height: 120px; max-height: 46vh;
+  padding: 10px; border-radius: var(--nu-radius-card);
+  background: var(--nu-bg); border: 1px dashed var(--nu-border);
+}
+.nu-widget-modal-cell > .nu-widget { width: 100%; }
+.nu-widget-modal-question { margin: 0 !important; font-size: 12px; }
+
+/* One row of the kind dropdown: what it is called, and the question it
+   answers. The second line is the whole reason this is not a plain select —
+   somebody choosing between "Bars" and "Share" is choosing between questions,
+   not between words. */
+.nu-kindrow { display: flex; align-items: flex-start; gap: 9px; padding: 2px 0; max-width: 420px; }
+.nu-kindrow-icon { display: inline-flex; font-size: 15px; line-height: 1.5; }
+.nu-kindrow-text { display: flex; flex-direction: column; min-width: 0; }
+.nu-kindrow-label { font-size: 13px; line-height: 1.4; }
+.nu-kindrow-question {
+  font-size: 11.5px; line-height: 1.35; color: var(--nu-text-secondary);
+  white-space: normal;
+}
+
+/* One pane below 720: 340 pixels of preview beside a form is two columns
+   neither of which is usable (§56). The old breakpoint was 860, which put a
+   perfectly ordinary laptop window into the stacked layout. */
+@media (max-width: 720px) {
+  .nu-widget-modal-panes { grid-template-columns: minmax(0, 1fr); }
+  .nu-widget-modal-preview { position: static; }
+  .nu-widget-modal-form { max-height: none; }
+}
+/* A twelve-column grid on a phone is twelve slivers (§56), so the grid becomes
+   one column and the cards take their content's height. The library still owns
+   the vertical order; only the width and the row height are overridden. */
+@media (max-width: 767px) {
+  .nu-rgl { height: auto !important; }
+  .nu-rgl .react-grid-item {
+    position: static !important;
+    transform: none !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 200px;
+    margin-bottom: 12px;
+  }
+  .nu-rgl .react-resizable-handle { display: none; }
+}
+
+/* A dangerous button that is not solid (§55).
+   Its label and border come from `colorError`, which has to stay
+   fill-strength so that the *solid* danger button can carry white text — see
+   `Button.colorError` in `theme/antd.ts`. On a charcoal panel that red is
+   2.94:1 as ink, so the readable half of the ramp is named here. The solid
+   variant is excluded: it is white on the fill, and it needs the fill. */
+.ant-btn-dangerous:not(.ant-btn-primary) {
+  color: var(--nu-danger-ink) !important;
+  border-color: var(--nu-danger-ink) !important;
+}
+.ant-btn-dangerous.ant-btn-text:not(.ant-btn-primary),
+.ant-btn-dangerous.ant-btn-link:not(.ant-btn-primary) {
+  border-color: transparent !important;
+}
+
+/* A tinted surface is a *third ground*, and the quiet end of the ramp does not
+   survive it (§55).
+
+   `--nu-text-tertiary` is `#7d8595` in dark: 4.83:1 on a card, 5.27:1 on the
+   page — and **3.92:1** on the accent-soft tint painted over that card. The
+   sweep over every route found it on an unread notification's meta line, where
+   the actor's name and the time are tertiary by design.
+
+   Rather than choose a different colour in seventeen places, the tint
+   re-points the variable for everything inside it: within a highlighted row
+   the quiet ink *is* the secondary one, which measures 5.68:1 there. Custom
+   properties cascade, so this reaches our own rules and needs no page to
+   remember it. `test/a11y.test.ts` fails if a surface paints the tint without
+   it. */
+.nu-global-hit:hover,
+.nu-global-hit.is-active,
+.nu-notice--unread,
+.nu-notice--unread:hover,
+.nu-announce.is-unread,
+.nu-queue-row.is-open,
+.nu-row-selected > td,
+.nu-mailrail-row--active,
+.nu-thread--open,
+.nu-thread:hover,
+.nu-chosen,
+.nu-cmdk [cmdk-item][data-selected="true"],
+.nu-weekhours-day--today,
+.nu-weekhours-cell--today,
+.nu-month-cell-date:hover,
+.nu-month-cell-add:hover,
+.nu-month-cell--over,
+.nu-folder-node.is-over,
+.nu-event-chip:hover,
+.nu-waitcard:hover,
+.nu-waitcard-icon,
+.nu-door:hover,
+.nu-tmpl-preview-row.is-active,
+mark.nu-mark {
+  --nu-text-tertiary: var(--nu-text-secondary);
+}
+
+/* A link inside a sentence is underlined (§55).
+   Colour alone is not enough to mark a link *within* a text block: axe reports
+   it as `link-in-text-block` and measures the contrast between the link and
+   the words around it — ours is 1.41:1, because both are ink on paper. On its
+   own line, a link is unambiguous and keeps the platform's plain look; inside
+   a paragraph it takes an underline. Scoped to prose (`.ant-typography` and
+   `p`) rather than to every anchor, so the navigation, the tables and the
+   chip rows are untouched. */
+p a:not(.ant-btn),
+.ant-typography a:not(.ant-btn) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* On a handheld, a link *button* is still a target (§56).
+   AntD renders `type="link"` at the text's own height — 19px at this font
+   size, which no thumb hits reliably and which misses WCAG 2.2's 24×24
+   minimum (2.5.8). The lane's "All 15 in this lane" is one of these. An inline
+   link inside a sentence is exempt from that rule and is left alone; these are
+   standalone controls that happen to be drawn as text. */
+@media (max-width: 767px) {
+  .ant-btn-link {
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
+  }
+}

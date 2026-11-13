@@ -106,7 +106,7 @@ const DRILL_DOWN: Record<string, string> = {
  * the shortcut: a custom `color` makes AntD paint the fill and write white on
  * it, and white on our amber is 2.87:1 — an alert tag a reader cannot read,
  * which is the one tag on the page that matters. The presets are tinted
- * grounds with ink text, and `index.css` already names the readable half of
+ * grounds with ink text, and the global stylesheet already names the readable half of
  * the ramp for each of them (§55). `processing` is the preset for informational
  * blue; there is no `info` one.
  */

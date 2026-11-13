@@ -1,0 +1,12 @@
+/*
+ * The glass design (formerly `src/glass.css`): the ground, the frosted shell
+ * and the global antd skin.
+ *
+ * Split by concern into `glass/`; the order below is the cascade order, so
+ * a later file still overrides an earlier one exactly as in the single sheet.
+ */
+@import "./glass/surfaces.css";
+@import "./glass/shell-sidebar.css";
+@import "./glass/shell-header.css";
+@import "./glass/antd-skin.css";
+@import "./glass/settled-and-menus.css";

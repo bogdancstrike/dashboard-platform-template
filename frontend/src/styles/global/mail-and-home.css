@@ -1,0 +1,179 @@
+/* Three panes: folders, conversations, the one being read. Fixed rail, fixed
+   list, and the reader takes what is left — the list is the pane whose width
+   matters least once something is open, and a `1fr` list would leave the
+   reader too narrow to read prose in. */
+/* Three panes, and the page never scrolls — each pane scrolls inside itself.
+   Where the *reading* pane goes is the reader's (§40), and the three layouts
+   are one grid statement each rather than three component trees: a mailbox
+   with the pane underneath is the same three components in a different
+   arrangement, and building it twice is how the two drift. */
+.nu-mail {
+  display: grid; gap: 12px;
+  grid-template-columns: 208px minmax(300px, 380px) minmax(0, 1fr);
+}
+/* Under the list rather than beside it: for anybody who reads a wide list and
+   a wide message, which is most people on a laptop. */
+.nu-mail--bottom {
+  grid-template-columns: 208px minmax(0, 1fr);
+  grid-template-rows: minmax(200px, 45%) minmax(0, 1fr);
+}
+.nu-mail--bottom > .nu-mail-rail { grid-row: 1 / 3; }
+/* No pane at all: the list takes the width, and opening something replaces
+   it. A real mailbox, not a degraded one — some people triage that way. */
+.nu-mail--off { grid-template-columns: 208px minmax(0, 1fr); }
+.nu-mail-rail > .ant-card-body { padding: 6px; }
+.nu-mail-list > .ant-card-body, .nu-mail-reader > .ant-card-body { padding: 0; }
+
+.nu-mailrail { display: flex; flex-direction: column; gap: 1px; }
+.nu-mailrail-row {
+  display: flex; align-items: center; gap: 8px;
+  appearance: none; background: none; border: 0; cursor: pointer;
+  width: 100%; padding: 6px 8px; border-radius: 6px;
+  font: inherit; color: var(--nu-text); text-align: start;
+}
+.nu-mailrail-row:hover { background: var(--nu-bg); }
+.nu-mailrail-row--active { background: var(--nu-accent-soft); font-weight: 600; }
+.nu-mailrail-icon { flex: none; color: var(--nu-text-tertiary); }
+.nu-mailrail-row--active .nu-mailrail-icon { color: var(--nu-accent-ink); }
+.nu-mailrail-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nu-mailrail-total { flex: none; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.nu-mailrail-heading {
+  padding: 12px 8px 4px; font-size: 10.5px; letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.nu-mail-listbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; flex-wrap: wrap;
+}
+.nu-mail-pages { padding: 8px 12px; }
+.nu-mail-readerbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.nu-mail-readerbar > .ant-btn:first-child { flex: none; }
+.nu-mail-readerbar > .ant-typography { min-width: 0; }
+
+/* One conversation in the list. A three-line row — who, what, and the
+   snippet — because a one-line row makes every thread look the same and a
+   reader then opens four to find one. */
+.nu-threadlist { display: flex; flex-direction: column; }
+.nu-thread {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 9px 10px; border-bottom: 1px solid var(--nu-border-subtle);
+  /* The rule that marks unread and the one that marks *open* are the same
+     three pixels, so they are declared together and only one is ever lit. */
+  border-inline-start: 3px solid transparent;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.nu-thread:hover { background: var(--nu-bg); }
+.nu-thread--unread { border-inline-start-color: var(--nu-accent); }
+.nu-thread--open {
+  background: var(--nu-accent-soft);
+  border-inline-start-color: var(--nu-accent-ink);
+}
+.nu-thread-face { flex: none; margin-top: 1px; }
+/* The checkbox and the star are quiet until the row is under the pointer or
+   holds focus — a list whose every row carries two lit glyphs is a list where
+   the words come third. The ticked and the starred stay lit, because those
+   are facts about the row rather than affordances on it. */
+.nu-thread-star, .nu-thread .ant-checkbox-wrapper { opacity: 0.45; transition: opacity 120ms ease; }
+.nu-thread:hover .nu-thread-star,
+.nu-thread:hover .ant-checkbox-wrapper,
+.nu-thread:focus-within .nu-thread-star,
+.nu-thread:focus-within .ant-checkbox-wrapper,
+.nu-thread .ant-checkbox-wrapper-checked,
+.nu-thread-star[aria-pressed="true"] { opacity: 1; }
+/* Weight, not colour: an unread row survives a screenshot, a greyscale
+   printer and a reader who cannot separate the two blues (§64). The dot in
+   the subject line is the second carrier. */
+.nu-thread--unread .nu-thread-who,
+.nu-thread--unread .nu-thread-subject { font-weight: 650; }
+.nu-thread-star {
+  appearance: none; background: none; border: 0; padding: 2px; cursor: pointer;
+  color: var(--nu-text-tertiary); line-height: 1;
+}
+.nu-thread-starred { color: var(--nu-warning-ink); }
+.nu-thread-open {
+  appearance: none; background: none; border: 0; padding: 0; cursor: pointer;
+  font: inherit; color: inherit; text-align: start;
+  display: flex; flex-direction: column; gap: 2px;
+  flex: 1 1 auto; min-width: 0;
+}
+.nu-thread-line {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 8px; min-width: 0;
+}
+.nu-thread-who, .nu-thread-subject {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: flex; align-items: center; gap: 6px;
+}
+.nu-thread-when { flex: none; font-size: 11.5px; color: var(--nu-text-tertiary); }
+.nu-thread-count {
+  flex: none; font-size: 11px; padding: 0 5px; border-radius: 8px;
+  background: var(--nu-bg); border: 1px solid var(--nu-border-subtle);
+}
+.nu-thread-snippet {
+  font-size: 12px; color: var(--nu-text-tertiary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nu-thread-labels { display: flex; gap: 4px; flex-wrap: wrap; }
+
+/* The reading pane. Prose, so it is measured — a 1400-pixel line of body text
+   is unreadable however much room there is. */
+.nu-reader { display: flex; flex-direction: column; gap: 12px; padding: 16px 20px; }
+.nu-reader-head { display: flex; flex-direction: column; gap: 6px; }
+.nu-reader-subject { margin: 0 !important; }
+.nu-reader-collapsed {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; width: 100%;
+}
+.nu-reader-actions { padding-top: 4px; }
+/* One message, on its own ground. The thread used to be a run of paragraphs
+   with nothing between them, so a five-message conversation read as one very
+   long one — which is the thing a mail client exists to prevent. */
+.nu-message {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 12px 14px; border-radius: 10px;
+  border: 1px solid var(--nu-border-subtle); background: var(--nu-surface);
+}
+.nu-message-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+}
+.nu-message-addresses { display: block; font-size: 11.5px; }
+.nu-message-body {
+  margin-bottom: 0 !important; white-space: pre-wrap; max-width: 72ch;
+}
+.nu-message-files { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.nu-composer-grid {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+}
+.nu-composer-grid .ant-form-item { margin-bottom: 0; }
+
+@media (max-width: 1280px) {
+  /* The folder rail becomes a strip of icons before anything else goes: it is
+     the pane with the least in it and the one a reader needs least often. */
+  .nu-mail { grid-template-columns: 56px minmax(280px, 340px) minmax(0, 1fr); }
+  .nu-mailrail-label, .nu-mailrail-heading, .nu-mailrail-total { display: none; }
+  .nu-mailrail-row { justify-content: center; }
+}
+
+@media (max-width: 1100px) {
+  /* Three columns in a phone's width is three unusable ones. The panes stack
+     and the page goes back to scrolling as one document, which is what
+     `.nu-fill`'s own breakpoint already does. */
+  .nu-mail { grid-template-columns: 1fr; }
+  .nu-mailrail-label, .nu-mailrail-heading, .nu-mailrail-total { display: initial; }
+  .nu-mailrail { flex-direction: row; overflow-x: auto; }
+  .nu-mailrail-row { width: auto; justify-content: flex-start; }
+}
+
+/* ── Home (§40) ─────────────────────────────────────────────────────── */
+
+/* Generous, and deliberately so: this is the page somebody sees before they
+   have decided what to do, and a crowded one makes that decision harder. Four
+   cards, a strip and a greeting — nothing competes for attention with the
+   thing that is actually waiting. */
+.nu-home { display: flex; flex-direction: column; gap: 20px; }

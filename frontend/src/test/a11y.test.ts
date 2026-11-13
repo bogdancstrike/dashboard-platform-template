@@ -1,9 +1,8 @@
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { SRC, jsxElements, shippedSources } from "@/test/sources";
+import { jsxElements, shippedSources, stylesheetSource } from "@/test/sources";
 
 /**
  * Accessibility rules that hold across every page, asserted from the source.
@@ -60,7 +59,7 @@ describe("progress bars", () => {
 });
 
 describe("an accent-tinted surface", () => {
-  const stylesheet = readFileSync(join(SRC, "index.css"), "utf8");
+  const stylesheet = stylesheetSource("global");
 
   /** Each rule in the stylesheet, as `selector { declarations }`. */
   function blocks(): Array<{ selector: string; body: string }> {
@@ -111,7 +110,7 @@ describe("an accent-tinted surface", () => {
         /background:[^;]*--nu-accent-soft/.test(block.body) &&
         /(?:^|[^-])color:\s*var\(--nu-accent\)/.test(block.body)
       ) {
-        offenders.push(`index.css ${block.selector}`);
+        offenders.push(`styles/global ${block.selector}`);
       }
     }
     for (const file of shippedSources()) {

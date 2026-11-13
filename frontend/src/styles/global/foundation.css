@@ -1,0 +1,188 @@
+/*
+ * The global stylesheet.
+ *
+ * Deliberately short. AntD owns component styling; this file owns only what
+ * sits outside a component — the page ground, the focus ring, the scrollbars —
+ * and it reads the CSS custom properties that `AppearanceProvider` writes, so
+ * it cannot drift from the component theme.
+ */
+
+/*
+ * Every `auto-fit` / `auto-fill` grid here asks for
+ * `minmax(min(Npx, 100%), 1fr)` rather than `minmax(Npx, 1fr)`.
+ *
+ * `minmax(420px, 1fr)` is a *floor*: on a 390px phone each track is still
+ * 420px and the row overflows the content pane by the difference — the reader
+ * drags the page sideways to read a card. `min(420px, 100%)` keeps the floor
+ * on a screen with the room and drops it on one without, which is the whole of
+ * the responsive behaviour §56 promises a card grid. Found by asserting it:
+ * `e2e/responsive.spec.ts` measures the content pane at three widths, and
+ * `/home` overflowed by 44px.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--nu-font);
+  font-size: var(--nu-font-size, 14px);
+  background: var(--nu-bg);
+  color: var(--nu-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.nu-boot {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  background: var(--nu-bg, #f1f5f9);
+  color: var(--nu-text-secondary, #475569);
+  font-family: var(--nu-font, sans-serif);
+  font-size: 13px;
+}
+
+/*
+ * A focus ring that is always visible when the keyboard put it there, and never
+ * when the mouse did. §55 requires the first; §59 requires the second, because
+ * a ring around every clicked button reads as a rendering bug.
+ */
+:focus-visible {
+  outline: 2px solid var(--nu-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--nu-accent);
+  color: #fff;
+}
+
+/* Scrollbars styled to the theme; a white scrollbar on a dark page is the
+   single most common giveaway that dark mode was added afterwards. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--nu-border) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--nu-border);
+  border: 2px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--nu-text-tertiary);
+  background-clip: content-box;
+}
+
+/* §55: honour the OS setting rather than deciding for the reader. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Skip link — the first thing a keyboard user meets, and invisible otherwise. */
+.nu-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 1000;
+  padding: 8px 16px;
+  background: var(--nu-surface);
+  color: var(--nu-text);
+  box-shadow: var(--nu-shadow-md);
+  border-radius: 0 0 6px 0;
+}
+
+.nu-skip-link:focus {
+  left: 0;
+}
+
+/* ── pages that fill their window ───────────────────────────────────────
+   `.nu-content` is already a fixed-height scroll container, so a page can
+   claim the height that is left instead of ending wherever its content
+   happens to stop. Three pages needed this for the same reason: a
+   workbench — a list beside what the list is *about* — that sizes itself
+   to its content leaves two thirds of the window empty on a folder with
+   one file in it, and puts the scrollbar on the whole page rather than on
+   the column that is actually long.
+
+   Opt-in rather than default: a page whose content is a document should
+   scroll as a document. `.nu-fill` is the region that takes the leftover
+   height; `.nu-pane` is a card inside it whose *body* is the thing that
+   scrolls, so the card's own title stays put. */
+#nu-main { display: flex; flex-direction: column; min-height: 100%; }
+.nu-fill { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+/* `flex: 1 1 auto` and not `height: 100%`: a percentage height inside a flex
+   container whose own height came from `flex: 1` resolves against an
+   indefinite size and silently falls back to `auto` — which is why the
+   authoring table's card stopped at its last row while the region around it
+   was 732 pixels tall. `height: 100%` stays for the grid case, where the pane
+   is a stretched grid item rather than a flex child. */
+.nu-pane {
+  display: flex; flex-direction: column;
+  flex: 1 1 auto; min-height: 0; height: 100%;
+}
+.nu-pane > .ant-card-body {
+  flex: 1 1 auto; min-height: 0; overflow: auto;
+  display: flex; flex-direction: column;
+}
+/* A pane whose body is a table: the table takes the height and the rows
+   scroll under a header that stays. */
+.nu-pane--table > .ant-card-body { padding: 0; }
+.nu-pane--table .ant-table-wrapper { flex: 1 1 auto; min-height: 0; }
+
+/* Below the breakpoint the columns stack, and stacked columns inside a
+   fixed height would each get a scrollbar of their own. The page goes back
+   to scrolling as one document. */
+@media (max-width: 1100px) {
+  #nu-main { display: block; }
+  .nu-fill { display: block; }
+  .nu-pane { height: auto; }
+  .nu-pane > .ant-card-body { overflow: visible; }
+}
+
+/* ── page furniture ─────────────────────────────────────────────────── */
+.nu-page-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  flex-wrap: wrap; margin-bottom: 16px;
+}
+.nu-page-header-titles { min-width: 0; }
+.nu-page-title {
+  margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.015em; color: var(--nu-text);
+  display: flex; align-items: center; gap: 10px;
+}
+.nu-page-subtitle { margin-top: 4px; color: var(--nu-text-secondary); font-size: 13px; max-width: 90ch; }
+.nu-page-back { margin-inline-start: -8px; flex: 0 0 auto; }
