@@ -84,7 +84,9 @@ def test_no_seeded_value_is_missing_from_the_filter_menu(app):
                     continue
                 present = {
                     value
-                    for (value,) in session.execute(select(distinct(spec.column)))
+                    # From the model: a derived field (the customer's health
+                    # band) is a subquery correlated to its row.
+                    for (value,) in session.execute(select(distinct(spec.column)).select_from(resource.model))
                     if value is not None
                 }
                 unreachable = sorted(present - set(spec.choices))

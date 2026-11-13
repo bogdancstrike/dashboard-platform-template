@@ -1,0 +1,14 @@
+# Coverage settings for the backend suite; the 95% gate is `make test-backend-cov` (docs/testing/backend.md).
+[run]
+source = src
+branch = true
+
+[report]
+precision = 1
+show_missing = true
+skip_covered = true
+exclude_also =
+    if TYPE_CHECKING:
+    if __name__ == .__main__.:
+    raise NotImplementedError
+    \.\.\.$

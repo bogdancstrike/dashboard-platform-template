@@ -38,8 +38,10 @@ AUTH_FLOOR = 5
 #: the margin is for harmless drift (one more lookup), not for a loop.
 BUDGETS: list[tuple[str, str, dict | None, int]] = [
     ("GET", "/api/me", None, 12),
-    ("GET", "/notifications/counts", None, 10),
-    ("GET", "/notifications?page_size=20", None, 12),
+    # +4 since the approvals badge (one count) and the chat badge (a savepoint
+    # around two fixed queries) ride on the same poll — constant, not per row.
+    ("GET", "/notifications/counts", None, 15),
+    ("GET", "/notifications?page_size=20", None, 17),
     ("GET", "/dashboard/alerts", None, 12),
     ("GET", "/api/activity?page_size=10", None, 10),
     ("GET", "/favorites", None, 8),

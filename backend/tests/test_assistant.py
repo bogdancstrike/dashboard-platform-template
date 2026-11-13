@@ -137,7 +137,9 @@ def test_a_general_turn_streams_and_is_saved(client, monkeypatch):
     assert [m["content"] for m in detail["messages"] if m["role"] == "assistant"] == ["A second answer."]
 
     usage = client.get(f"{BASE}/usage", headers=h).get_json()
-    assert usage["calls"] >= 2 and usage["by_feature"][0]["feature"] == "chat" and usage["real"] is False
+    assert usage["calls"] >= 2 and usage["real"] is False
+    # Not necessarily first: the shared database also has today's briefs.
+    assert "chat" in {row["feature"] for row in usage["by_feature"]}
 
 
 @pytest.mark.database

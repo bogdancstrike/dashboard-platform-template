@@ -365,6 +365,7 @@ def test_a_chart_block_composes_its_own_question(client, monkeypatch):
         _erase(created["id"])
 
 
+@pytest.mark.database
 def test_a_chart_block_asking_for_numbers_alone_gets_no_picture(client, monkeypatch):
     """`show` decides, and the file has to agree with the preview.
 

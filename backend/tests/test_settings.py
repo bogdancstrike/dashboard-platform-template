@@ -455,20 +455,22 @@ def test_a_flag_that_hides_something_shipped_is_on(client, monkeypatch):
     feature was never built — so every key in `NAVIGATION_FLAGS` is seeded on,
     at a hundred per cent, with nobody singled out (§27).
     """
-    from src.seed import catalog
+    from src.seed import catalog, runner
+    from src.seed.world import SMALL
 
     headers = _authenticate(monkeypatch, "admin", "administrator")
     body = client.get(f"{PREFIX}/admin/flags?page_size=100", headers=headers).get_json()
     rows = {row["key"]: row for row in body["items"]}
+    # What the *seed* writes, read from the generator: the live database is
+    # shared, and somebody switching a flag off in the app (which is what a
+    # flag is for) must not fail the suite.
+    seeded = {flag.key: flag for flag in runner.generate(scale=SMALL, seed=7).feature_flags}
 
     for key in sorted(catalog.NAVIGATION_FLAGS):
-        flag = rows.get(key)
         # A key named as gating navigation and absent from the platform is the
         # other half of the same bug: the page would be gated on nothing.
-        assert flag is not None, f"{key} gates navigation and does not exist"
-        assert flag["enabled"] is True, key
-        assert flag["rollout_percentage"] == 100, key
-        assert flag["target_user_ids"] == [], key
-        # And therefore on for whoever is asking, which is the property the
-        # navigation actually reads.
-        assert flag["on_for_me"] is True, key
+        assert rows.get(key) is not None, f"{key} gates navigation and does not exist"
+        flag = seeded[key]
+        assert flag.enabled is True, key
+        assert flag.rollout_percentage == 100, key
+        assert not flag.target_user_ids, key

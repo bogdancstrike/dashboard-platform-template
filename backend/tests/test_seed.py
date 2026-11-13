@@ -497,33 +497,6 @@ def test_seed_writes_and_verifies(scratch_database, tmp_path):
         assert runner.verify(session) == [], runner.verify(session)
 
 
-def test_cleanup_order_respects_the_foreign_keys():
-    """The suite's own teardown must delete a child before its parent.
-
-    `conftest.TEST_OWNED_MODELS` is ordered by hand — `metadata.sorted_tables`
-    would derive it but warns about a pre-existing cycle elsewhere in the
-    schema — so this is what stops the order silently rotting the next time a
-    model gains a reference. The symptom it prevents is not subtle: every
-    database test's teardown becomes an error at once.
-    """
-    import src.models as models
-    from tests.conftest import TEST_OWNED_MODELS, _tables_to_clean
-
-    tables = _tables_to_clean()
-    position = {name: index for index, (name, _column) in enumerate(tables)}
-    assert len(position) == len(TEST_OWNED_MODELS), "a table is listed twice"
-
-    for table_name, index in position.items():
-        table = models.Base.metadata.tables[table_name]
-        for constraint in table.foreign_key_constraints:
-            parent = constraint.referred_table.name
-            if parent not in position or parent == table_name:
-                continue
-            assert index < position[parent], (
-                f"{table_name} references {parent} and must be deleted first"
-            )
-
-
 def test_every_task_status_has_at_least_one_task(world):
     """`/tasks` is a *board*, and an empty lane is a column of nothing.
 

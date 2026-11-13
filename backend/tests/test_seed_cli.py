@@ -37,6 +37,20 @@ SYNC_FLAGS = (
     "--sync-jobs",
     "--sync-automations",
     "--sync-reports",
+    # The feature repairs added with each workstream (§18, §41–49, §12–25).
+    "--sync-analytics",
+    "--sync-workflows",
+    "--sync-developers",
+    "--sync-planning",
+    "--sync-approvals",
+    "--sync-time",
+    "--sync-sla",
+    "--sync-forms",
+    "--sync-dashboards",
+    "--sync-insights",
+    "--sync-knowledge",
+    "--sync-assistant",
+    "--sync-collab",
 )
 
 
