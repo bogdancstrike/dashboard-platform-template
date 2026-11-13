@@ -236,10 +236,10 @@ export const LAYERS: readonly GuardedLayer[] = [
     because: "Weights are sliders with the current model as their starting point, and the drawer shows the stored model again when reopened; nothing typed is lost, only nudged.",
   },
   {
-    module: "pages/decisions/ApprovalsPage.tsx",
-    what: "decision",
+    module: "pages/decisions/ApprovalsPage/RuleModal.tsx",
+    what: "approval rule",
     guarded: false,
-    because: "The drawer shows a request and its decision buttons; the only field is an optional comment sent with approve or reject, a sentence the reader can retype.",
+    because: "A rule is a name, a dataset, a field and a condition, each picked from a list in seconds; a closed draft costs less to pick again than a confirmation costs every time.",
   },
   {
     module: "pages/decisions/SlaPoliciesPage.tsx",
