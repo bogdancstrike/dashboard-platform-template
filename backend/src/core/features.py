@@ -166,7 +166,14 @@ def snapshot() -> dict[str, FlagState]:
     ):
         return _snapshot
     with _lock:
-        rows = _read_rows()
+        try:
+            rows = _read_rows()
+        except Exception:
+            # The database is unreachable. Keep answering with what was last
+            # read — or, with nothing read yet, gate nothing: a flag check must
+            # not be the thing that turns a database blip into every endpoint
+            # failing, and the handlers will report the outage themselves.
+            return _snapshot if _snapshot is not None else {}
         _snapshot, _snapshot_generation, _snapshot_at = rows, generation, time.monotonic()
         return rows
 

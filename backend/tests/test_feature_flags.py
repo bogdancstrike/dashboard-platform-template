@@ -317,6 +317,20 @@ def test_the_snapshot_expires_after_the_local_ttl(monkeypatch):
     assert len(reads) == 2
 
 
+def test_an_unreachable_database_keeps_the_last_answer_or_gates_nothing(monkeypatch):
+    def down():
+        raise RuntimeError("database is down")
+
+    monkeypatch.setattr(features, "_read_rows", down)
+    monkeypatch.setattr("src.core.cache.generations", lambda *names: {features.DATASET: 0})
+    monkeypatch.setattr(features, "_snapshot", None)
+    assert features.snapshot() == {}
+    kept = {"k": _state("k", enabled=False)}
+    monkeypatch.setattr(features, "_snapshot", kept)
+    monkeypatch.setattr(features, "_snapshot_at", 0.0)
+    assert features.snapshot() is kept
+
+
 def test_invalidate_drops_the_local_copy_and_bumps_the_generation(monkeypatch):
     bumped: list[str] = []
     monkeypatch.setattr("src.core.cache.bump", lambda *names: bumped.extend(names))
