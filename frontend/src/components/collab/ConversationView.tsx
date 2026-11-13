@@ -145,7 +145,7 @@ export function ConversationView({
             : "The conversation could not be loaded."
         }
         action={
-          <Button size="small" onClick={() => void thread.refetch()}>
+          <Button onClick={() => void thread.refetch()}>
             Retry
           </Button>
         }
@@ -171,7 +171,6 @@ export function ConversationView({
         {conversation.hasMore && (
           <div className="nx-co-older">
             <Button
-              size="small"
               onClick={() => conversation.loadOlder()}
               loading={thread.isFetching}
             >

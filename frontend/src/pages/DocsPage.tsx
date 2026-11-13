@@ -11,7 +11,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { App as AntApp, Button, Card, Drawer, Empty, Form, Grid, Input, Modal, Select, Skeleton, Space, Typography } from "antd";
+import { App as AntApp, Button, Card, Drawer, Form, Grid, Input, Modal, Select, Skeleton, Space, Typography } from "antd";
 import { MenuOutlined, PlusOutlined } from "@ant-design/icons";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -28,6 +28,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { relativeTime } from "@/lib/time";
 import "@/styles/collab.css";
 import "@/styles/docs.css";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -196,7 +197,7 @@ export default function DocsPage() {
               {results.isLoading ? (
                 <Skeleton active />
               ) : (results.data?.items ?? []).length === 0 ? (
-                <Empty description="No page says that" />
+                <EmptyState title="No page says that" />
               ) : (
                 <ul className="nx-dc-results">
                   {results.data!.items.map((item) => (
@@ -286,7 +287,7 @@ function DocsHome({
           {loading ? (
             <Skeleton active />
           ) : (recent ?? []).length === 0 ? (
-            <Empty description="Nothing written yet" />
+            <EmptyState title="Nothing written yet" />
           ) : (
             <ul className="nx-dc-recent">
               {recent!.map((item) => (

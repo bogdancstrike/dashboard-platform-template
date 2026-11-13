@@ -166,19 +166,19 @@ function TableEditor({ block, onChange }: { block: DocBlock; onChange: (next: Do
         </tbody>
       </table>
       <Space wrap>
-        <Button size="small" icon={<PlusOutlined />} onClick={() => onChange({ ...block, rows: [...rows, Array(width).fill("")] })}>
+        <Button icon={<PlusOutlined />} onClick={() => onChange({ ...block, rows: [...rows, Array(width).fill("")] })}>
           Row
         </Button>
-        <Button size="small" icon={<PlusOutlined />} onClick={() => onChange({ ...block, rows: rows.map((row) => [...row, ""]) })}>
+        <Button icon={<PlusOutlined />} onClick={() => onChange({ ...block, rows: rows.map((row) => [...row, ""]) })}>
           Column
         </Button>
         {rows.length > 1 && (
-          <Button size="small" onClick={() => onChange({ ...block, rows: rows.slice(0, -1) })}>
+          <Button onClick={() => onChange({ ...block, rows: rows.slice(0, -1) })}>
             Remove last row
           </Button>
         )}
         {width > 1 && (
-          <Button size="small" onClick={() => onChange({ ...block, rows: rows.map((row) => row.slice(0, width - 1)) })}>
+          <Button onClick={() => onChange({ ...block, rows: rows.map((row) => row.slice(0, width - 1)) })}>
             Remove last column
           </Button>
         )}
@@ -300,10 +300,10 @@ export function BlockEditor({ block, onChange }: { block: DocBlock; onChange: (n
                 placeholder="Something to do"
                 onChange={(event) => set(index, { ...item, text: event.target.value })}
               />
-              <Button size="small" type="text" icon={<DeleteOutlined />} aria-label={`Remove item ${index + 1}`} onClick={() => set(index, null)} />
+              <Button type="text" icon={<DeleteOutlined />} aria-label={`Remove item ${index + 1}`} onClick={() => set(index, null)} />
             </div>
           ))}
-          <Button size="small" type="dashed" icon={<PlusOutlined />} onClick={() => onChange({ ...block, items: [...items, { text: "", done: false }] })}>
+          <Button icon={<PlusOutlined />} onClick={() => onChange({ ...block, items: [...items, { text: "", done: false }] })}>
             Add an item
           </Button>
         </div>
@@ -342,7 +342,7 @@ export function BlockEditor({ block, onChange }: { block: DocBlock; onChange: (n
           ) : (
             <Text type="secondary">No record chosen yet.</Text>
           )}
-          <Button size="small" onClick={() => setPicking(true)} data-testid="pick-record">
+          <Button onClick={() => setPicking(true)} data-testid="pick-record">
             {block.resource_id ? "Change" : "Choose a record"}
           </Button>
           <RecordPicker

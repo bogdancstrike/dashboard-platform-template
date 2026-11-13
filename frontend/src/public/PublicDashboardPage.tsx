@@ -10,7 +10,7 @@
  */
 import "@/styles/analytics.css";
 
-import { Button, Empty, Input, Result, Skeleton, Table } from "antd";
+import { Button, Input, Result, Skeleton, Table } from "antd";
 import { useCallback, useEffect, useState } from "react";
 
 import { panelFor } from "@/api/analysis";
@@ -23,6 +23,7 @@ import { StatusTag } from "@/components/StatusTag";
 import { formatMetric } from "@/entities/EntityChrome";
 import { asText } from "@/lib/text";
 import { absoluteTime } from "@/lib/time";
+import { EmptyState } from "@/components/EmptyState";
 
 const GRANT_KEY = (token: string) => `nucleus.share.${token}`;
 
@@ -161,7 +162,7 @@ export function PublicDashboardPage({ token }: { token: string }) {
         <span className="nx-ra-pill">Read-only</span>
       </header>
       {data.widgets.length === 0 ? (
-        <Empty description="This dashboard has no widgets yet" />
+        <EmptyState title="This dashboard has no widgets yet" />
       ) : (
         <div className="nx-ra-public-grid">
           {data.widgets.map((widget) => (
@@ -184,7 +185,8 @@ export function PublicDashboardPage({ token }: { token: string }) {
 
 function failure(error: unknown): State {
   if (error instanceof ApiError) {
-    const reason = String(error.details["reason"] ?? "");
+    const raw = error.details["reason"];
+    const reason = typeof raw === "string" ? raw : "";
     if (error.status === 404) return { kind: "gone", title: "This link does not exist", detail: "Check the address, or ask the person who shared it for a new one." };
     if (error.status === 410 && reason === "expired") return { kind: "gone", title: "This link has expired", detail: "Ask the person who shared it for a new link." };
     if (error.status === 410) return { kind: "gone", title: "This link is no longer available", detail: error.message };
@@ -212,7 +214,7 @@ function WidgetData({ data, kind }: { data: PublicWidgetData; kind: string }) {
         );
       }
       const metric = data.metrics.find((m) => m.key === data.metric) ?? (data.gauge ? data.metrics.find((m) => m.format === "percent") : undefined) ?? data.metrics[0];
-      if (!metric) return <Empty description="No metric" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+      if (!metric) return <EmptyState compact title="No metric" />;
       if (data.gauge) {
         return <ChartPreview panel={{ kind: "gauge", title: metric.label, series: [{ name: metric.label, value: Number(metric.value ?? 0) }] }} height={140} />;
       }
@@ -220,11 +222,11 @@ function WidgetData({ data, kind }: { data: PublicWidgetData; kind: string }) {
       return <div className="nx-ra-metric"><b>{shown.value}{shown.unit}</b><span>{metric.label}</span></div>;
     }
     case "chart": {
-      if (!data.result.rows.length) return <Empty description="Nothing in this period" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+      if (!data.result.rows.length) return <EmptyState compact title="Nothing in this period" />;
       return <ChartPreview panel={panelFor(data.result, (data.chart || "bar") as ChartKind)} height={kind === "REPORT" ? 200 : 170} />;
     }
     case "rows":
-      if (!data.items.length) return <Empty description="Nothing here yet" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+      if (!data.items.length) return <EmptyState compact title="Nothing here yet" />;
       if (!data.table) {
         return (
           <ul className="nx-ra-rows">

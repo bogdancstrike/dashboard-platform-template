@@ -1,7 +1,7 @@
 import "@/styles/decisions.css";
 
 import {
-  Alert, App, Button, Card, DatePicker, Dropdown, Empty, Input, Pagination, Segmented, Select, Skeleton,
+  Alert, App, Button, Card, DatePicker, Dropdown, Input, Pagination, Segmented, Select, Skeleton,
   Space, Tooltip, Typography,
 } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,6 +22,7 @@ import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { errorText } from "@/lib/errors";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -226,7 +227,7 @@ function WeekView({ params, go }: { params: URLSearchParams; go: Go }) {
             </Button>
             <Button
               type="primary"
-              icon={<TdIcon name="stamp" size={16} />}
+              icon={<TdIcon name="stamp" />}
               disabled={!data.can_submit}
               onClick={() => confirmSubmit(data)}
               data-testid="week-submit"
@@ -263,12 +264,11 @@ function WeekView({ params, go }: { params: URLSearchParams; go: Go }) {
 
       <Card size="small">
         {rows.length === 0 && !adding ? (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={mine ? "Nothing logged this week. Start a timer, log time, or add a row." : "Nothing logged this week."}
-          >
-            {data.can_edit && <Button onClick={() => setAdding(true)}>Add a row</Button>}
-          </Empty>
+          <EmptyState
+            compact
+            title={mine ? "Nothing logged this week. Start a timer, log time, or add a row." : "Nothing logged this week."}
+            action={data.can_edit ? <Button onClick={() => setAdding(true)}>Add a row</Button> : undefined}
+          />
         ) : device === "phone" ? (
           <DayCards data={data} rows={rows} onOpen={(entry) => setLogging({ open: true, entry })} />
         ) : (
@@ -421,7 +421,7 @@ function DayCards({ data, rows, onOpen }: { data: Week; rows: WeekRow[]; onOpen:
             {entries.map((entry) => (
               <div key={entry.id} className="nx-td-day-row">
                 <span>{entry.subject_label}</span>
-                <Button size="small" type="text" disabled={!data.can_edit || entry.running} onClick={() => onOpen(entry)}>
+                <Button type="text" disabled={!data.can_edit || entry.running} onClick={() => onOpen(entry)}>
                   {entry.running ? "running" : hours(entry.minutes)}
                 </Button>
               </div>
@@ -587,7 +587,7 @@ function TeamView({ params, go }: { params: URLSearchParams; go: Go }) {
                 <span className={SHEET_TONE[row.status]}>{SHEET_LABEL[row.status]}</span>
                 <b className="nx-td-num" style={{ minWidth: 64, textAlign: "end" }}>{hours(row.total_minutes)}</b>
                 {row.status === "SUBMITTED" && row.approval_id && (
-                  <Link to={`/approvals?open=${row.approval_id}`}><Button type="primary" size="small">Review</Button></Link>
+                  <Link to={`/approvals?open=${row.approval_id}`}><Button type="primary">Review</Button></Link>
                 )}
               </div>
             </div>

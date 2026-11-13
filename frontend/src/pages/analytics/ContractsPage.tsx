@@ -11,7 +11,7 @@
 import "@/styles/analytics.css";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { App, Button, Empty, Input, Segmented, Skeleton, Table, Tooltip } from "antd";
+import { App, Button, Input, Segmented, Skeleton, Table, Tooltip } from "antd";
 import dayjs from "dayjs";
 import { useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -36,6 +36,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusTag } from "@/components/StatusTag";
 import { useAuth } from "@/auth/AuthProvider";
 import { errorText } from "@/lib/errors";
+import { EmptyState } from "@/components/EmptyState";
 
 type View = "board" | "list" | "forecast" | "calendar";
 const VIEWS: { value: View; label: string }[] = [
@@ -63,7 +64,7 @@ function endsIn(days: number | null): string {
 export default function ContractsPage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const view = (VIEWS.find((v) => v.value === params.get("view"))?.value ?? "board") as View;
+  const view = (VIEWS.find((v) => v.value === params.get("view"))?.value ?? "board");
   const q = params.get("q") ?? "";
   const atRisk = params.get("at_risk") === "1";
   const creating = useUrlOverlay("contract");
@@ -391,13 +392,13 @@ function RenewalCalendar({ filters, onOpen }: { filters: Record<string, string |
       <div className="nx-ra-panel-head">
         <h2>{first.format("MMMM YYYY")}</h2>
         <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small" onClick={() => go(-1)} aria-label="Previous month">‹</Button>
-          <Button size="small" onClick={() => {
+          <Button onClick={() => go(-1)} aria-label="Previous month">‹</Button>
+          <Button onClick={() => {
             const next = new URLSearchParams(params);
             next.delete("month");
             setParams(next, { replace: true });
           }}>Today</Button>
-          <Button size="small" onClick={() => go(1)} aria-label="Next month">›</Button>
+          <Button onClick={() => go(1)} aria-label="Next month">›</Button>
         </div>
       </div>
       {calendar.isError && <FailureAlert error={calendar.error} />}
@@ -430,7 +431,7 @@ function RenewalCalendar({ filters, onOpen }: { filters: Record<string, string |
           })}
         </div>
       )}
-      {!calendar.isLoading && events.length === 0 && <Empty description="No end dates or notice deadlines this month" image={Empty.PRESENTED_IMAGE_SIMPLE} />}
+      {!calendar.isLoading && events.length === 0 && <EmptyState compact title="No end dates or notice deadlines this month" />}
     </section>
   );
 }

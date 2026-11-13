@@ -63,7 +63,7 @@ export function DailyBrief() {
       }
       extra={
         <Tooltip title={data ? `Written ${relativeTime(data.generated_at)}` : "Write it again"}>
-          <Button size="small" loading={refreshing} onClick={() => void refresh()} data-testid="brief-refresh" icon={<AstIcon name="retry" size={13} />}>
+          <Button loading={refreshing} onClick={() => void refresh()} data-testid="brief-refresh" icon={<AstIcon name="retry" />}>
             Refresh
           </Button>
         </Tooltip>

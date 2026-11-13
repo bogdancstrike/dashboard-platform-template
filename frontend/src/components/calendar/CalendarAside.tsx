@@ -104,14 +104,12 @@ export function CalendarAside({
           <div className="nx-cal-mini-nav">
             <Button
               type="text"
-              size="small"
               icon={<LeftOutlined />}
               aria-label="Previous month"
               onClick={() => setShown(new Date(shown.getFullYear(), shown.getMonth() - 1, 1))}
             />
             <Button
               type="text"
-              size="small"
               icon={<RightOutlined />}
               aria-label="Next month"
               onClick={() => setShown(new Date(shown.getFullYear(), shown.getMonth() + 1, 1))}
@@ -163,13 +161,13 @@ export function CalendarAside({
                   {item.organizer.name ? ` · from ${item.organizer.name}` : ""}
                 </span>
                 <Space size={6} className="nx-cal-invite-actions">
-                  <Button size="small" type="primary" onClick={() => onAnswer(item.event_id, "ACCEPTED")}>
+                  <Button type="primary" onClick={() => onAnswer(item.event_id, "ACCEPTED")}>
                     Accept
                   </Button>
-                  <Button size="small" onClick={() => onAnswer(item.event_id, "TENTATIVE")}>
+                  <Button onClick={() => onAnswer(item.event_id, "TENTATIVE")}>
                     Maybe
                   </Button>
-                  <Button size="small" onClick={() => onAnswer(item.event_id, "DECLINED")}>
+                  <Button onClick={() => onAnswer(item.event_id, "DECLINED")}>
                     Decline
                   </Button>
                 </Space>

@@ -72,9 +72,9 @@ export default function FormsPage() {
                 <Text className="nx-td-num" type="secondary">{item.submission_count} answers</Text>
                 <Space size={4}>
                   {item.status === "PUBLISHED" && (
-                    <a href={item.public_path} target="_blank" rel="noreferrer"><Button size="small" icon={<TdIcon name="eye" size={14} />}>Open</Button></a>
+                    <a href={item.public_path} target="_blank" rel="noreferrer"><Button icon={<TdIcon name="eye" />}>Open</Button></a>
                   )}
-                  <Link to={`/admin/forms/${item.id}?tab=submissions`}><Button size="small">Submissions</Button></Link>
+                  <Link to={`/admin/forms/${item.id}?tab=submissions`}><Button>Submissions</Button></Link>
                 </Space>
               </div>
             </div>

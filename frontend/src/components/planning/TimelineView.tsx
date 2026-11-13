@@ -149,7 +149,6 @@ export function TimelineView({
             {undo && (
               <Button
                 type="text"
-                size="small"
                 onClick={() => schedule.mutate({ bar, start: undo.start, end: undo.end })}
               >
                 Undo
@@ -314,7 +313,6 @@ export function TimelineView({
                 {warning.violations.some((item) => item.side === "successor") && (
                   <Button
                     type="primary"
-                    size="small"
                     data-testid="timeline-shift"
                     onClick={() =>
                       schedule.mutate({ bar: { ...warning.bar, updated_at: null }, start: warning.start, end: warning.end, shift: true })
@@ -323,7 +321,7 @@ export function TimelineView({
                     Shift dependants
                   </Button>
                 )}
-                <Button size="small" onClick={() => setWarning(null)}>
+                <Button onClick={() => setWarning(null)}>
                   Keep as is
                 </Button>
               </Space>

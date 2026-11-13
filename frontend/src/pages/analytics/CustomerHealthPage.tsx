@@ -7,7 +7,7 @@
 import "@/styles/analytics.css";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { App, Button, Drawer, Empty, Form, Input, InputNumber, Pagination, Segmented, Skeleton, Slider, Tooltip } from "antd";
+import { App, Button, Drawer, Form, Input, InputNumber, Pagination, Segmented, Skeleton, Slider, Tooltip } from "antd";
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -29,6 +29,7 @@ import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
 import { errorText } from "@/lib/errors";
 import { relativeTime } from "@/lib/time";
+import { EmptyState } from "@/components/EmptyState";
 
 const BANDS: HealthBand[] = ["HEALTHY", "AT_RISK", "CRITICAL"];
 
@@ -199,7 +200,7 @@ export default function CustomerHealthPage() {
                 />
               </div>
               {data.items.length === 0 ? (
-                <Empty description="No customers match" />
+                <EmptyState title="No customers match" />
               ) : (
                 <ul className="nx-ra-rows" data-testid="health-list">
                   {data.items.map((row) => (
@@ -226,7 +227,7 @@ export default function CustomerHealthPage() {
                 <span className="nx-ra-sub">Account managers were alerted</span>
               </div>
               {data.drops.length === 0 ? (
-                <Empty description="No recent drops" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                <EmptyState compact title="No recent drops" />
               ) : (
                 <ul className="nx-ra-rows">
                   {data.drops.map((row) => (

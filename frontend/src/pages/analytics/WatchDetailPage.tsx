@@ -7,7 +7,7 @@
 import "@/styles/analytics.css";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { App, Button, Dropdown, Empty, Modal, Skeleton } from "antd";
+import { App, Button, Dropdown, Modal, Skeleton } from "antd";
 import dayjs from "dayjs";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
@@ -23,6 +23,7 @@ import { errorText } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
 
 import { AnomalyRow, describeWatch, WatchStatus } from "./AlertsPage";
+import { EmptyState } from "@/components/EmptyState";
 
 export default function WatchDetailPage() {
   const { id = "" } = useParams();
@@ -148,13 +149,13 @@ export default function WatchDetailPage() {
             points={points.map((p) => ({ ...p, marked: marked.has(p.at) || p.unusual }))}
           />
         ) : (
-          <Empty description="No data yet" />
+          <EmptyState title="No data yet" />
         )}
       </section>
       <div className="nx-ra-grid nx-ra-grid--2">
         <section className="nx-ra-panel" aria-label="Alert history">
           <div className="nx-ra-panel-head"><h2>Flagged</h2><span className="nx-ra-sub">{history.data?.total ?? 0} in total</span></div>
-          {items.length === 0 ? <Empty description="Nothing flagged yet" image={Empty.PRESENTED_IMAGE_SIMPLE} /> : (
+          {items.length === 0 ? <EmptyState compact title="Nothing flagged yet" /> : (
             <ul className="nx-ra-rows">
               {items.map((anomaly) => (
                 <AnomalyRow key={anomaly.id} anomaly={anomaly} selected={anomaly.id === selected}
@@ -169,7 +170,7 @@ export default function WatchDetailPage() {
               <div className="nx-ra-panel-head">
                 <h2>{focus.direction === "up" ? "Spike" : "Drop"} on {absoluteTime(focus.bucket_at)}</h2>
                 {focus.status === "OPEN" && (
-                  <Button size="small" onClick={() => acknowledge.mutate(focus.id)} loading={acknowledge.isPending}>Mark as seen</Button>
+                  <Button onClick={() => acknowledge.mutate(focus.id)} loading={acknowledge.isPending}>Mark as seen</Button>
                 )}
               </div>
               <p className="nx-ra-sub" style={{ margin: "0 0 8px" }}>
@@ -184,7 +185,7 @@ export default function WatchDetailPage() {
               />
             </>
           ) : (
-            <Empty description="Select an alert to see the window it was judged against" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            <EmptyState compact title="Select an alert to see the window it was judged against" />
           )}
         </section>
       </div>

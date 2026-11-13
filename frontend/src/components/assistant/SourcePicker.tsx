@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Checkbox, Empty, Popover, Skeleton, Typography } from "antd";
+import { Button, Checkbox, Popover, Skeleton, Typography } from "antd";
 import { DownOutlined, RightOutlined } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 
 import type { AssistantSources } from "@/api/assistant";
 import { knowledgeApi } from "@/api/knowledge";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -83,9 +84,9 @@ export function SourcePicker({
       <div className="nx-ai-sources-title">Document collections</div>
       {list.isLoading && <Skeleton active paragraph={{ rows: 2 }} title={false} />}
       {!list.isLoading && collections.length === 0 && (
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={
+        <EmptyState
+          compact
+          title={
             <span>
               No collection with read documents yet. <Link to="/ai/documents">Add some</Link>.
             </span>
@@ -101,7 +102,6 @@ export function SourcePicker({
               <div className="nx-ai-sources-row">
                 <Button
                   type="text"
-                  size="small"
                   shape="circle"
                   aria-label={`${isOpen ? "Hide" : "Show"} files of ${collection.name}`}
                   icon={isOpen ? <DownOutlined /> : <RightOutlined />}
@@ -149,7 +149,7 @@ export function SourcePicker({
 
   return (
     <Popover content={content} trigger="click" open={open} onOpenChange={setOpen} placement="bottomLeft" arrow={false}>
-      <Button size={compact ? "small" : "middle"} disabled={disabled} data-testid="assistant-sources" className="nx-ai-sources-button">
+      <Button disabled={disabled} data-testid="assistant-sources" className={`nx-ai-sources-button${compact ? " is-compact" : ""}`}>
         Sources: {describeSources(value, names)} <DownOutlined />
       </Button>
     </Popover>

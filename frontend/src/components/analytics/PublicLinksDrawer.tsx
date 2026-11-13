@@ -6,7 +6,7 @@
 import "@/styles/analytics.css";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { App, Button, DatePicker, Drawer, Empty, Form, Input, Modal, Select, Skeleton, Switch, Typography } from "antd";
+import { App, Button, DatePicker, Drawer, Form, Input, Modal, Select, Skeleton, Switch, Typography } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 
 import { URL_OVERLAY } from "@/app/history";
@@ -16,6 +16,7 @@ import { FailureAlert } from "@/components/FailureAlert";
 import { NxIcon } from "@/components/NxIcon";
 import { errorText } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { EmptyState } from "@/components/EmptyState";
 
 export function shareUrl(link: Pick<DashboardLink, "path">): string {
   return `${window.location.origin}${link.path}`;
@@ -126,7 +127,7 @@ export function PublicLinksDrawer({ dashboardId, open, onClose }: { dashboardId:
             <p className="nx-ra-muted">Publishing needs “Publish dashboards as public or embeddable links”, on a dashboard you own.</p>
           )}
           {items.length === 0 ? (
-            <Empty description="No public links yet" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            <EmptyState compact title="No public links yet" />
           ) : (
             items.map((link) => (
               <article key={link.id} className="nx-ra-link" data-testid="public-link">
@@ -147,9 +148,9 @@ export function PublicLinksDrawer({ dashboardId, open, onClose }: { dashboardId:
                 </span>
                 {link.status === "ACTIVE" && (
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <Button size="small" href={link.path} target="_blank">Open</Button>
+                    <Button href={link.path} target="_blank">Open</Button>
                     {link.allow_embed && (
-                      <Button size="small" onClick={() => Modal.info({
+                      <Button onClick={() => Modal.info({
                         title: "Embed this dashboard",
                         width: 560,
                         content: <pre className="nx-ra-snippet" data-testid="embed-snippet">{embedSnippet(link)}</pre>,
@@ -159,7 +160,7 @@ export function PublicLinksDrawer({ dashboardId, open, onClose }: { dashboardId:
                       </Button>
                     )}
                     {canPublish && (
-                      <Button size="small" danger loading={revoke.isPending}
+                      <Button danger loading={revoke.isPending}
                         onClick={() => Modal.confirm({ title: "Revoke this link?", content: "Anyone using it loses access at once.", okText: "Revoke", okButtonProps: { danger: true }, onOk: () => revoke.mutateAsync(link.id) })}>
                         Revoke
                       </Button>

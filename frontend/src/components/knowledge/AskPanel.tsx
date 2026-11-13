@@ -199,7 +199,7 @@ export function AskPanel({
             <div className="nx-kn-q">{failure.question}</div>
             <div className="nx-kn-a nx-kn-a--failed">
               <Text>{failure.text}</Text>
-              <Button size="small" onClick={() => submit(failure.question)}>
+              <Button onClick={() => submit(failure.question)}>
                 Try again
               </Button>
             </div>
@@ -236,7 +236,7 @@ export function AskPanel({
           shape="circle"
           htmlType="submit"
           aria-label="Ask"
-          icon={<KnIcon name="send" size={16} />}
+          icon={<KnIcon name="send" />}
           loading={ask.isPending}
           disabled={!ready || !draft.trim()}
           data-testid="ask-send"

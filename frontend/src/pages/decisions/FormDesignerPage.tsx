@@ -1,7 +1,7 @@
 import "@/styles/decisions.css";
 
 import {
-  Alert, App, Button, Card, Empty, Input, InputNumber, Pagination, Popconfirm, Segmented, Select, Skeleton, Space, Switch,
+  Alert, App, Button, Card, Input, InputNumber, Pagination, Popconfirm, Segmented, Select, Skeleton, Space, Switch,
   Tooltip, Typography,
 } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,6 +22,7 @@ import { errorText } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
 
 import { FORM_STATUS_TONE } from "./FormsPage";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -148,7 +149,7 @@ export default function FormDesignerPage() {
           <Space wrap>
             {!creating && draft.status === "PUBLISHED" && (
               <Tooltip title="Copy the public address">
-                <Button icon={<TdIcon name="copy" size={14} />} onClick={() => void navigator.clipboard?.writeText(`${window.location.origin}${draft.public_path}`).then(() => message.success("Address copied"))}>
+                <Button icon={<TdIcon name="copy" />} onClick={() => void navigator.clipboard?.writeText(`${window.location.origin}${draft.public_path}`).then(() => message.success("Address copied"))}>
                   Copy link
                 </Button>
               </Tooltip>
@@ -288,8 +289,8 @@ function Designer({
                   </span>
                   {editable && (
                     <Space size={2}>
-                      <Button size="small" type="text" aria-label="Move up" disabled={position === 0} onClick={(e) => { e.stopPropagation(); onFields(moved(fields, position, position - 1)); }} icon={<TdIcon name="up" size={13} />} />
-                      <Button size="small" type="text" aria-label="Remove field" onClick={(e) => { e.stopPropagation(); onFields(fields.filter((f) => f.id !== item.id)); if (selected === item.id) setSelected(null); }} icon={<TdIcon name="x" size={13} />} />
+                      <Button type="text" aria-label="Move up" disabled={position === 0} onClick={(e) => { e.stopPropagation(); onFields(moved(fields, position, position - 1)); }} icon={<TdIcon name="up" />} />
+                      <Button type="text" aria-label="Remove field" onClick={(e) => { e.stopPropagation(); onFields(fields.filter((f) => f.id !== item.id)); if (selected === item.id) setSelected(null); }} icon={<TdIcon name="x" />} />
                     </Space>
                   )}
                 </div>
@@ -299,7 +300,7 @@ function Designer({
         </Card>
 
         <Card size="small" title={field ? `${TYPE_LABEL[field.type]} field` : "Field settings"}>
-          {!field ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Select a field to change it" /> : (
+          {!field ? <EmptyState compact title="Select a field to change it" /> : (
             <Space direction="vertical" style={{ width: "100%" }} size={12} data-testid="form-inspector">
               <label>Label<Input value={field.label} disabled={!editable} onChange={(e) => update({ label: e.target.value })} aria-label="Field label" /></label>
               {field.type !== "heading" && (
@@ -415,7 +416,7 @@ function Settings({
             {Object.entries(defaults).map(([name, value]) => (
               <div key={name} className="nx-td-logged-row" style={{ marginTop: 6 }}>
                 <span>{target?.fields.find((f) => f.name === name)?.label ?? name}: <b>{String(value)}</b></span>
-                {editable && <Button size="small" type="text" icon={<TdIcon name="x" size={12} />} aria-label={`Remove ${name}`}
+                {editable && <Button type="text" icon={<TdIcon name="x" />} aria-label={`Remove ${name}`}
                   onClick={() => { const next = { ...defaults }; delete next[name]; changeSettings({ defaults: next }); }} />}
               </div>
             ))}
@@ -489,8 +490,8 @@ function Submissions({ formId }: { formId: string }) {
               </div>
               <div className="nx-td-row-side">
                 <span className={tone[item.status]}>{item.status.toLowerCase()}</span>
-                {item.record_path && <Link to={item.record_path}><Button size="small" icon={<TdIcon name="link" size={13} />}>{item.record_label || "Record"}</Button></Link>}
-                {item.status === "FAILED" && <Button size="small" loading={retry.isPending} onClick={() => retry.mutate(item.id)}>Try again</Button>}
+                {item.record_path && <Link to={item.record_path}><Button icon={<TdIcon name="link" />}>{item.record_label || "Record"}</Button></Link>}
+                {item.status === "FAILED" && <Button loading={retry.isPending} onClick={() => retry.mutate(item.id)}>Try again</Button>}
               </div>
             </div>
           ))}

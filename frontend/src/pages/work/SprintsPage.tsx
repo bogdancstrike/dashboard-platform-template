@@ -334,12 +334,12 @@ export default function SprintsPage() {
                     <StatusTag status={sprint.state} label={sprint.state === "ACTIVE" ? "Running" : "Planned"} />
                     <span className="nx-pl-spacer" />
                     {canManage && sprint.state === "PLANNED" && (
-                      <Button size="small" type={active ? "default" : "primary"} disabled={Boolean(active)} onClick={() => setEditing({ mode: "start", sprint })} data-testid={`sprint-start-${sprint.name}`}>
+                      <Button type={active ? "default" : "primary"} disabled={Boolean(active)} onClick={() => setEditing({ mode: "start", sprint })} data-testid={`sprint-start-${sprint.name}`}>
                         Start
                       </Button>
                     )}
                     {canManage && sprint.state === "ACTIVE" && (
-                      <Button size="small" type="primary" onClick={() => setCompleting(sprint)} data-testid={`sprint-complete-${sprint.name}`}>
+                      <Button type="primary" onClick={() => setCompleting(sprint)} data-testid={`sprint-complete-${sprint.name}`}>
                         Complete
                       </Button>
                     )}
@@ -357,7 +357,7 @@ export default function SprintsPage() {
                           },
                         }}
                       >
-                        <Button size="small" type="text" icon={<MoreOutlined />} aria-label={`More for ${sprint.name}`} />
+                        <Button type="text" icon={<MoreOutlined />} aria-label={`More for ${sprint.name}`} />
                       </Dropdown>
                     )}
                   </div>

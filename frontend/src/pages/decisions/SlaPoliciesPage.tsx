@@ -94,7 +94,7 @@ export default function SlaPoliciesPage() {
         subtitle={`${data.items.length} policies · ${covered} open tickets covered · ${breached} breached · ${data.uncovered_open} without a policy`}
         actions={canManage ? (
           <Space wrap>
-            <Button icon={<TdIcon name="clock" size={16} />} loading={apply.isPending} onClick={() => apply.mutate()}>Apply now</Button>
+            <Button icon={<TdIcon name="clock" />} loading={apply.isPending} onClick={() => apply.mutate()}>Apply now</Button>
             <Button type="primary" icon={<NxIcon name="plus" />} onClick={() => (tab === "calendars" ? setCalendar({}) : policyOverlay.open("new"))} data-testid="sla-new">
               {tab === "calendars" ? "New calendar" : "New policy"}
             </Button>
@@ -134,9 +134,9 @@ export default function SlaPoliciesPage() {
                     <Switch checked={policy.active} disabled={!canManage} onChange={() => toggle.mutate(policy)} aria-label={`${policy.name} active`} />
                     {canManage && (
                       <>
-                        <Tooltip title="Evaluate earlier"><Button size="small" disabled={index === 0} onClick={() => move(index, -1)} icon={<TdIcon name="up" size={14} />} aria-label="Move up" /></Tooltip>
-                        <Tooltip title="Evaluate later"><Button size="small" disabled={index === data.items.length - 1} onClick={() => move(index, 1)} icon={<TdIcon name="up" size={14} style={{ transform: "rotate(180deg)" }} />} aria-label="Move down" /></Tooltip>
-                        <Button size="small" onClick={() => policyOverlay.open(policy.id)} data-testid="sla-edit">Edit</Button>
+                        <Tooltip title="Evaluate earlier"><Button disabled={index === 0} onClick={() => move(index, -1)} icon={<TdIcon name="up" />} aria-label="Move up" /></Tooltip>
+                        <Tooltip title="Evaluate later"><Button disabled={index === data.items.length - 1} onClick={() => move(index, 1)} icon={<TdIcon name="up" style={{ transform: "rotate(180deg)" }} />} aria-label="Move down" /></Tooltip>
+                        <Button onClick={() => policyOverlay.open(policy.id)} data-testid="sla-edit">Edit</Button>
                       </>
                     )}
                   </Space>
@@ -183,9 +183,9 @@ export default function SlaPoliciesPage() {
                   </div>
                   {canManage && (
                     <Space>
-                      <Button size="small" onClick={() => setCalendar(cal)}>Edit</Button>
+                      <Button onClick={() => setCalendar(cal)}>Edit</Button>
                       <Popconfirm title="Remove this calendar?" onConfirm={() => slaApi.removeCalendar(cal.id).then(refresh).catch((error) => message.error(errorText(error)))}>
-                        <Button size="small" danger disabled={cal.used_by > 0}>Remove</Button>
+                        <Button danger disabled={cal.used_by > 0}>Remove</Button>
                       </Popconfirm>
                     </Space>
                   )}
@@ -394,7 +394,7 @@ function EscalationRow({ name, form, onRemove }: { name: number; form: ReturnTyp
           <Select style={{ width: 190 }} options={[{ value: "assignee", label: "the assignee" }, { value: "manager", label: "the assignee's manager" }]} />
         </Form.Item>
       )}
-      <Button type="text" aria-label="Remove step" icon={<TdIcon name="x" size={14} />} onClick={onRemove} />
+      <Button type="text" aria-label="Remove step" icon={<TdIcon name="x" />} onClick={onRemove} />
     </Space>
   );
 }
@@ -469,7 +469,7 @@ function CalendarModal({
           <Space key={`${holiday.date}-${index}`}>
             <DatePicker value={dayjs(holiday.date)} allowClear={false} onChange={(value) => value && setHolidays((list) => list.map((h, i) => (i === index ? { ...h, date: value.format("YYYY-MM-DD") } : h)))} />
             <Input value={holiday.name} onChange={(event) => setHolidays((list) => list.map((h, i) => (i === index ? { ...h, name: event.target.value } : h)))} aria-label="Holiday name" />
-            <Button type="text" icon={<TdIcon name="x" size={14} />} aria-label="Remove holiday" onClick={() => setHolidays((list) => list.filter((_, i) => i !== index))} />
+            <Button type="text" icon={<TdIcon name="x" />} aria-label="Remove holiday" onClick={() => setHolidays((list) => list.filter((_, i) => i !== index))} />
           </Space>
         ))}
         <Button icon={<NxIcon name="plus" />} onClick={() => setHolidays((list) => [...list, { date: dayjs().format("YYYY-MM-DD"), name: "Holiday" }])}>Add a holiday</Button>

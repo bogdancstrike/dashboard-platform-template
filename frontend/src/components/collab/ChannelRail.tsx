@@ -5,7 +5,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { Badge, Button, Empty, Input, Skeleton, Tooltip } from "antd";
+import { Badge, Button, Input, Skeleton, Tooltip } from "antd";
 import { LockOutlined, PlusOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
 
@@ -17,6 +17,7 @@ import { relativeTime } from "@/lib/time";
 
 import { initials } from "./MessageItem";
 import { PresenceDot } from "./presence";
+import { EmptyState } from "@/components/EmptyState";
 
 export function ChannelRow({
   channel,
@@ -143,7 +144,7 @@ export function ChannelRail({
           {hits.isLoading ? (
             <Skeleton active paragraph={{ rows: 4 }} />
           ) : (hits.data?.items ?? []).length === 0 ? (
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={`Nothing says “${term}”`} />
+            <EmptyState compact title={`Nothing says “${term}”`} />
           ) : (
             <ul className="nx-co-hits">
               {hits.data!.items.map((hit) => (
@@ -173,7 +174,6 @@ export function ChannelRail({
                 {onNewChannel && (
                   <Tooltip title="New channel">
                     <Button
-                      size="small"
                       type="text"
                       icon={<PlusOutlined />}
                       aria-label="New channel"
@@ -197,7 +197,6 @@ export function ChannelRail({
                 {onNewDirect && (
                   <Tooltip title="New message">
                     <Button
-                      size="small"
                       type="text"
                       icon={<PlusOutlined />}
                       aria-label="New direct message"

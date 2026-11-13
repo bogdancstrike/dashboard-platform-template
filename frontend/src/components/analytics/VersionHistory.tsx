@@ -13,7 +13,7 @@
 import "@/styles/analytics.css";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { App, Button, Checkbox, DatePicker, Drawer, Empty, Grid, Modal, Skeleton, Tooltip } from "antd";
+import { App, Button, Checkbox, DatePicker, Drawer, Grid, Modal, Skeleton, Tooltip } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 
@@ -25,6 +25,7 @@ import { humanStatus } from "@/components/StatusTag";
 import { errorText } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { asText } from "@/lib/text";
+import { EmptyState } from "@/components/EmptyState";
 
 export function displayValue(
   field: VersionField,
@@ -136,7 +137,7 @@ export function VersionHistory({
         </span>
       ),
       okText: "Restore",
-      okButtonProps: { "data-testid": "restore-confirm" } as never,
+      okButtonProps: { "data-testid": "restore-confirm" },
       onOk: () => restore.mutateAsync(fields),
     });
   };
@@ -146,7 +147,7 @@ export function VersionHistory({
     return <FailureAlert error={history.error} onRetry={() => void history.refetch()} titles={{ not_found: "No version that early" }}
       action={asOf ? <Button onClick={() => setAsOf(null)}>Back to now</Button> : undefined} />;
   }
-  if (!data || data.versions.length === 0) return <Empty description="No history recorded for this record yet" />;
+  if (!data || data.versions.length === 0) return <EmptyState title="No history recorded for this record yet" />;
 
   const pick = (version: RecordVersion) => {
     if (version.number === b) return;
@@ -279,7 +280,7 @@ export function VersionHistoryButton({ resourceType, recordId }: { resourceType:
   const overlay = useUrlOverlay("versions");
   return (
     <>
-      <Button size="small" onClick={() => overlay.open("1")} data-testid="open-versions">
+      <Button onClick={() => overlay.open("1")} data-testid="open-versions">
         Versions & restore
       </Button>
       <Drawer

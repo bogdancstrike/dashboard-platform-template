@@ -6,7 +6,7 @@
 import "@/styles/analytics.css";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { App, Button, Empty, Input, Pagination, Skeleton } from "antd";
+import { App, Button, Input, Pagination, Skeleton } from "antd";
 import dayjs from "dayjs";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -21,6 +21,7 @@ import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
 import { errorText } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { EmptyState } from "@/components/EmptyState";
 
 export const STATUS_LABEL: Record<string, string> = { OK: "Normal", ANOMALY: "Anomaly", NO_DATA: "No data", ERROR: "Error" };
 
@@ -144,9 +145,10 @@ export default function AlertsPage() {
         ) : watches.isError ? (
           <FailureAlert error={watches.error} onRetry={() => void watches.refetch()} />
         ) : items.length === 0 ? (
-          <Empty description="Nothing watched yet">
-            {canManage && <Button type="primary" onClick={() => editor.open("new")}>Watch a metric</Button>}
-          </Empty>
+          <EmptyState
+            title="Nothing watched yet"
+            action={canManage ? <Button type="primary" onClick={() => editor.open("new")}>Watch a metric</Button> : undefined}
+          />
         ) : (
           <div className="nx-ra-watch-grid" data-testid="watch-grid">
             {items.map((watch) => (
@@ -208,7 +210,7 @@ function History({ onOpen }: { onOpen: (anomaly: Anomaly) => void }) {
         ))}
       </div>
       {feed.isLoading ? <Skeleton active /> : feed.isError ? <FailureAlert error={feed.error} /> : feed.data!.items.length === 0 ? (
-        <Empty description="Nothing flagged" />
+        <EmptyState title="Nothing flagged" />
       ) : (
         <ul className="nx-ra-rows">
           {feed.data!.items.map((anomaly) => <AnomalyRow key={anomaly.id} anomaly={anomaly} onOpen={() => onOpen(anomaly)} />)}

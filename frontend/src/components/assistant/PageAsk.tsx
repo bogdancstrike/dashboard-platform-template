@@ -127,12 +127,12 @@ export function PageAsk({ stops, onDone }: { stops: TourStop[] | undefined; onDo
           <Markdown text={answer.answer} onNavigate={onDone} />
           <div className="nx-ai-pagehelp-actions">
             {answer.highlight && (
-              <Button size="small" onClick={() => highlight(answer.highlight!)}>
+              <Button onClick={() => highlight(answer.highlight!)}>
                 Show me
               </Button>
             )}
             {answer.action && (
-              <Button size="small" type="primary" onClick={() => propose(answer.action!)} data-testid="page-ask-action">
+              <Button type="primary" onClick={() => propose(answer.action!)} data-testid="page-ask-action">
                 {answer.action.label}
               </Button>
             )}

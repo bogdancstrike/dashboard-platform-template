@@ -394,12 +394,12 @@ function ChannelHeader({
           </Tooltip>
         )}
         {!direct && !channel.is_member && channel.visibility === "PUBLIC" && (
-          <Button size="small" type="primary" onClick={onJoin}>
+          <Button type="primary" onClick={onJoin}>
             Join
           </Button>
         )}
         {!direct && channel.is_member && (
-          <Button size="small" className="nx-co-hide-phone" onClick={onLeave} data-testid="leave-channel">
+          <Button className="nx-co-hide-phone" onClick={onLeave} data-testid="leave-channel">
             Leave
           </Button>
         )}
@@ -432,7 +432,7 @@ function ThreadPanel({
       <div className="nx-co-threadpanel-head">
         <strong>Thread</strong>
         <Text type="secondary">{channel.kind === "DIRECT" ? channel.name : `#${channel.name}`}</Text>
-        <Button size="small" type="text" onClick={onClose} aria-label="Close thread">
+        <Button type="text" onClick={onClose} aria-label="Close thread">
           Close
         </Button>
       </div>

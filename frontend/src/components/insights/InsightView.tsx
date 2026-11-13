@@ -262,7 +262,7 @@ function ProgressBlock({ node }: { node: ProgressNode }) {
   return (
     <div className="nx-in-progress">
       <span className="nx-in-kpi-label">{node.label}</span>
-      <Progress percent={percent} showInfo={false} strokeColor="var(--nu-accent)" />
+      <Progress percent={percent} showInfo={false} strokeColor="var(--nu-accent)" aria-label={node.label || "Progress"} />
       <Text type="secondary">
         {formatValue(node.value, node.format)}
         {node.max ? ` of ${formatValue(node.max, node.format)}` : ""}

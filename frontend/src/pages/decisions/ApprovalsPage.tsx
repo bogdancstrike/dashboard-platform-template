@@ -1,7 +1,7 @@
 import "@/styles/decisions.css";
 
 import {
-  Alert, App, Button, Checkbox, Drawer, Empty, Form, Input, InputNumber, Modal, Pagination, Popconfirm, Segmented,
+  Alert, App, Button, Checkbox, Drawer, Form, Input, InputNumber, Modal, Pagination, Popconfirm, Segmented,
   Select, Skeleton, Space, Switch, Typography,
 } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -25,6 +25,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { asText } from "@/lib/text";
 import { errorText } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text, Paragraph } = Typography;
 
@@ -260,10 +261,9 @@ function Queue({
       {list.isLoading ? <Skeleton active paragraph={{ rows: 6 }} /> : list.isError || !data ? (
         <Alert type="error" showIcon message={errorText(list.error, { fallback: "The inbox could not be read." })} />
       ) : data.items.length === 0 ? (
-        <Empty
-          className="nx-td-empty"
-          description={scope === "inbox" ? "Nothing is waiting on you. Inbox zero." : "No requests match."}
-        />
+        <div className="nx-td-empty">
+          <EmptyState title={scope === "inbox" ? "Nothing is waiting on you. Inbox zero." : "No requests match."} />
+        </div>
       ) : (
         <>
           {scope === "inbox" && decidable.length > 0 && (
@@ -310,19 +310,18 @@ function Queue({
                   {item.can_decide && (
                     <>
                       <Button
-                        size="small"
                         type="primary"
                         onClick={() => quick.mutate({ id: item.id, decision: "approve", comment: "" })}
                         data-testid="approval-quick-approve"
                       >
                         Approve
                       </Button>
-                      <Button size="small" onClick={() => ask("reject", (comment) => quick.mutate({ id: item.id, decision: "reject", comment }))}>
+                      <Button onClick={() => ask("reject", (comment) => quick.mutate({ id: item.id, decision: "reject", comment }))}>
                         Reject
                       </Button>
                     </>
                   )}
-                  {!item.can_decide && <Button size="small" onClick={() => overlay.open(item.id)}>Open</Button>}
+                  {!item.can_decide && <Button onClick={() => overlay.open(item.id)}>Open</Button>}
                 </div>
               </div>
             ))}
@@ -578,9 +577,9 @@ function RulesView() {
                 <Switch checked={rule.active} disabled={!canManage} onChange={() => toggle.mutate(rule)} aria-label={`${rule.name} active`} />
                 {canManage && (
                   <>
-                    <Button size="small" onClick={() => setEditing(rule)}>Edit</Button>
+                    <Button onClick={() => setEditing(rule)}>Edit</Button>
                     <Popconfirm title="Remove this rule?" onConfirm={() => remove.mutate(rule.id)}>
-                      <Button size="small" danger>Remove</Button>
+                      <Button danger>Remove</Button>
                     </Popconfirm>
                   </>
                 )}

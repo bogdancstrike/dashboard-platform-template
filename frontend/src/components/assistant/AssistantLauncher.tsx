@@ -89,7 +89,7 @@ export function AssistantLauncher() {
             <span className="nx-ai-panel-title"><AstIcon name="spark" size={16} /> Assistant</span>
             <span className="nx-ai-panel-tools">
               <Tooltip title="New conversation">
-                <Button size="small" shape="circle" aria-label="New conversation" icon={<AstIcon name="plus" size={14} />} onClick={() => choose(null)} />
+                <Button shape="circle" aria-label="New conversation" icon={<AstIcon name="plus" />} onClick={() => choose(null)} />
               </Tooltip>
               <Tooltip title="Open the full page">
                 <Link to={conversationId ? `/assistant/${conversationId}` : "/assistant"} onClick={() => setOpen(false)} aria-label="Open the full page" className="nx-ai-iconbtn">

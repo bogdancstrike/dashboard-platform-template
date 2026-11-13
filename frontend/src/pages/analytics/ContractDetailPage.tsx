@@ -8,7 +8,7 @@ import "@/styles/analytics.css";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Button, Modal, Progress, Skeleton, Tabs, Upload } from "antd";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { useSmartBack } from "@/app/history";
 import { useUrlOverlay } from "@/app/useUrlOverlay";
@@ -196,9 +196,7 @@ export default function ContractDetailPage() {
                       ? "The customer's health is low while this renewal is open — it is flagged at risk on the pipeline."
                       : "Nothing in the customer's health threatens this renewal."}
                   </p>
-                  <Button type="link" style={{ paddingInline: 0 }} onClick={() => navigate(`/customers/${data.customer.id}?tab=health`)}>
-                    See why →
-                  </Button>
+                  <Link to={`/customers/${data.customer.id}?tab=health`}>See why →</Link>
                 </section>
               </div>
             ),
@@ -220,8 +218,8 @@ export default function ContractDetailPage() {
                   <p className="nx-ra-muted">No documents yet. Signed copies and order forms belong here.</p>
                 ) : (
                   <ul className="nx-ra-rows">
-                    {files.data!.items.map((file) => (
-                      <li key={file.id} className="nx-ra-row" onClick={() => navigate(`/files?folder=${files.data!.folder_id}&file=${file.id}`)}>
+                    {files.data.items.map((file) => (
+                      <li key={file.id} className="nx-ra-row" onClick={() => navigate(`/files?folder=${files.data.folder_id}&file=${file.id}`)}>
                         <NxIcon name="folder" />
                         <div className="nx-ra-row-main">
                           <b>{file.name}</b>

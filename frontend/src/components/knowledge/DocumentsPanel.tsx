@@ -229,6 +229,7 @@ export function DocumentsPanel({
                 </Text>
                 {item.state === "uploading" || item.state === "adding" ? (
                   <Progress
+                    aria-label={`Uploading ${item.file.name}`}
                     percent={Math.round(item.fraction * 100)}
                     size="small"
                     status="active"
@@ -246,18 +247,17 @@ export function DocumentsPanel({
               </div>
               <div className="nx-kn-doc-actions">
                 {item.state === "uploading" && (
-                  <Button size="small" onClick={() => item.controller?.abort()} data-testid="upload-cancel">
+                  <Button onClick={() => item.controller?.abort()} data-testid="upload-cancel">
                     Cancel
                   </Button>
                 )}
                 {(item.state === "error" || item.state === "cancelled") && (
-                  <Button size="small" icon={<ReloadOutlined />} onClick={() => void send(item)} data-testid="upload-retry">
+                  <Button icon={<ReloadOutlined />} onClick={() => void send(item)} data-testid="upload-retry">
                     Retry
                   </Button>
                 )}
                 {item.state !== "uploading" && item.state !== "adding" && (
                   <Button
-                    size="small"
                     type="text"
                     shape="circle"
                     icon={<CloseOutlined />}
@@ -394,7 +394,6 @@ function DocumentRow({
           <Button
             type="text"
             shape="circle"
-            size="small"
             icon={<EyeOutlined />}
             aria-label={`Preview ${document.file.name}`}
             disabled={!document.file.id}
@@ -406,7 +405,6 @@ function DocumentRow({
             <Button
               type="text"
               shape="circle"
-              size="small"
               icon={<EditOutlined />}
               aria-label={`Rename ${document.file.name}`}
               disabled={!document.file.id}
@@ -419,7 +417,6 @@ function DocumentRow({
             <Button
               type="text"
               shape="circle"
-              size="small"
               icon={<ReloadOutlined />}
               aria-label={`Reprocess ${document.file.name}`}
               loading={reprocessing}
@@ -437,7 +434,6 @@ function DocumentRow({
             <Button
               type="text"
               shape="circle"
-              size="small"
               danger
               icon={<DeleteOutlined />}
               aria-label={`Remove ${document.file.name}`}

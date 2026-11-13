@@ -177,7 +177,7 @@ export function MembersPanel({
                 okText="Remove"
                 onConfirm={() => remove.mutate(member.id)}
               >
-                <Button size="small" type="text" danger>
+                <Button type="text" danger>
                   Remove
                 </Button>
               </Popconfirm>

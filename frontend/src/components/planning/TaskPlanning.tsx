@@ -21,7 +21,7 @@ import {
   Input,
   InputNumber,
   Modal,
-  Radio,
+  Segmented,
   Select,
   Space,
   Switch,
@@ -238,8 +238,7 @@ export function TaskPlanningSide({ id, page }: { id: string; page: RecordPage })
           </Tooltip>
         ))}
         <Button
-          size="small"
-          icon={<PlanIcon name="eye" size={14} />}
+          icon={<PlanIcon name="eye" />}
           loading={watch.isPending}
           onClick={() => watch.mutate(!data?.watching)}
           data-testid="task-watch"
@@ -252,7 +251,7 @@ export function TaskPlanningSide({ id, page }: { id: string; page: RecordPage })
       <Space wrap>
         <span data-testid="task-recurrence">{data?.recurrence ? data.recurrence.summary : "Does not repeat"}</span>
         {data?.can_manage && (
-          <Button size="small" icon={<PlanIcon name="repeat" size={14} />} onClick={() => setRepeating(true)} data-testid="task-repeat">
+          <Button icon={<PlanIcon name="repeat" />} onClick={() => setRepeating(true)} data-testid="task-repeat">
             {data.recurrence ? "Change" : "Repeat…"}
           </Button>
         )}
@@ -355,12 +354,14 @@ export function RecurrenceModal({
         }
       >
         <Form.Item name="frequency" label="Repeats">
-          <Radio.Group optionType="button" buttonStyle="solid">
-            <Radio.Button value="DAILY">Daily</Radio.Button>
-            <Radio.Button value="WEEKLY">Weekly</Radio.Button>
-            <Radio.Button value="MONTHLY">Monthly</Radio.Button>
-            <Radio.Button value="CUSTOM">Custom</Radio.Button>
-          </Radio.Group>
+          <Segmented
+            options={[
+              { value: "DAILY", label: "Daily" },
+              { value: "WEEKLY", label: "Weekly" },
+              { value: "MONTHLY", label: "Monthly" },
+              { value: "CUSTOM", label: "Custom" },
+            ]}
+          />
         </Form.Item>
         <Space align="start" wrap>
           <Form.Item name="interval" label="Every">
@@ -403,7 +404,7 @@ function Related({ items, onRemove, empty }: { items: (PlanBrief & { dependency_
           <StatusTag status={item.status} />
           <Points value={item.story_points} />
           {onRemove && (
-            <Button type="text" size="small" icon={<DeleteOutlined />} aria-label={`Remove ${item.reference}`} onClick={() => onRemove(item)} />
+            <Button type="text" icon={<DeleteOutlined />} aria-label={`Remove ${item.reference}`} onClick={() => onRemove(item)} />
           )}
         </li>
       ))}
@@ -530,7 +531,7 @@ export function TaskRelations({ id, page }: { id: string; page: RecordPage }) {
               onChange={setWaitOn}
               options={options}
             />
-            <Button icon={<PlanIcon name="link" size={14} />} disabled={!waitOn} loading={link.isPending} onClick={() => waitOn && link.mutate(waitOn)}>
+            <Button icon={<PlanIcon name="link" />} disabled={!waitOn} loading={link.isPending} onClick={() => waitOn && link.mutate(waitOn)}>
               Link
             </Button>
           </Space.Compact>
@@ -597,7 +598,6 @@ export function ReorderableChecklist({
                   {canEdit && (
                     <Button
                       type="text"
-                      size="small"
                       data-no-drag
                       aria-label={`Remove ${item.text}`}
                       icon={<DeleteOutlined />}
@@ -642,7 +642,7 @@ export function SaveAsTemplateButton({ id, title, disabled }: { id: string; titl
   return (
     <>
       <Tooltip title={disabled ? "Your role does not include tasks.manage" : ""}>
-        <Button icon={<PlanIcon name="template" size={16} />} disabled={disabled} onClick={() => setOpen(true)} data-testid="task-save-template">
+        <Button icon={<PlanIcon name="template" />} disabled={disabled} onClick={() => setOpen(true)} data-testid="task-save-template">
           Save as template
         </Button>
       </Tooltip>

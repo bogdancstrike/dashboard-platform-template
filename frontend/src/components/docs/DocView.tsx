@@ -79,7 +79,7 @@ function AddBlock({ onAdd, label = "Add a block" }: { onAdd: (kind: DocBlockKind
         onClick: ({ key }) => onAdd(key as DocBlockKind),
       }}
     >
-      <Button size="small" type="dashed" icon={<PlusOutlined />} className="nx-dc-add" data-testid="add-block">
+      <Button icon={<PlusOutlined />} className="nx-dc-add" data-testid="add-block">
         {label}
       </Button>
     </Dropdown>
@@ -361,7 +361,6 @@ export function DocView({ pageId, onDeleted }: { pageId: string; onDeleted: (spa
                 <Space size={4}>
                   {data.can_edit && (
                     <Button
-                      size="small"
                       onClick={() => {
                         setBlocks([{ ...newDocBlock("callout"), tone: "info", text: `**Summary** — ${summary}` }, ...draft.blocks]);
                         setSummary(null);
@@ -370,7 +369,7 @@ export function DocView({ pageId, onDeleted }: { pageId: string; onDeleted: (spa
                       Add to page
                     </Button>
                   )}
-                  <Button size="small" type="text" onClick={() => setSummary(null)}>
+                  <Button type="text" onClick={() => setSummary(null)}>
                     Dismiss
                   </Button>
                 </Space>
@@ -388,9 +387,9 @@ export function DocView({ pageId, onDeleted }: { pageId: string; onDeleted: (spa
                 <div key={block.id} className="nx-dc-edit-block" data-testid={`edit-${block.kind}`}>
                   <div className="nx-dc-edit-rail">
                     <span className="nx-dc-kind">{DOC_BLOCKS[block.kind].icon}</span>
-                    <Button size="small" type="text" icon={<ArrowUpOutlined />} aria-label="Move up" disabled={index === 0} onClick={() => move(index, -1)} />
-                    <Button size="small" type="text" icon={<ArrowDownOutlined />} aria-label="Move down" disabled={index === draft.blocks.length - 1} onClick={() => move(index, 1)} />
-                    <Button size="small" type="text" danger icon={<DeleteOutlined />} aria-label="Remove block" onClick={() => setBlocks(draft.blocks.filter((item) => item.id !== block.id))} />
+                    <Button type="text" icon={<ArrowUpOutlined />} aria-label="Move up" disabled={index === 0} onClick={() => move(index, -1)} />
+                    <Button type="text" icon={<ArrowDownOutlined />} aria-label="Move down" disabled={index === draft.blocks.length - 1} onClick={() => move(index, 1)} />
+                    <Button type="text" danger icon={<DeleteOutlined />} aria-label="Remove block" onClick={() => setBlocks(draft.blocks.filter((item) => item.id !== block.id))} />
                   </div>
                   <div className="nx-dc-edit-main">
                     <BlockEditor
@@ -398,7 +397,7 @@ export function DocView({ pageId, onDeleted }: { pageId: string; onDeleted: (spa
                       onChange={(next) => setBlocks(draft.blocks.map((item) => (item.id === block.id ? next : item)))}
                     />
                     {block.kind === "action" && block.text && !block.task_id && data.can_create_tasks && (
-                      <Button size="small" className="nu-block" onClick={() => runTask(block.id)} loading={createTask.isPending && createTask.variables === block.id}>
+                      <Button className="nu-block" onClick={() => runTask(block.id)} loading={createTask.isPending && createTask.variables === block.id}>
                         Create task
                       </Button>
                     )}
@@ -489,7 +488,7 @@ export function DocView({ pageId, onDeleted }: { pageId: string; onDeleted: (spa
           title="Linked records"
           extra={
             data.can_edit && (
-              <Button size="small" type="text" icon={<LinkOutlined />} onClick={() => setLinking(true)} data-testid="link-record">
+              <Button type="text" icon={<LinkOutlined />} onClick={() => setLinking(true)} data-testid="link-record">
                 Link
               </Button>
             )
@@ -508,7 +507,7 @@ export function DocView({ pageId, onDeleted }: { pageId: string; onDeleted: (spa
                   <span className="nx-dc-link-meta">
                     <Text type="secondary">{item.source === "MANUAL" ? "linked" : item.source === "MENTION" ? "mentioned" : "action"}</Text>
                     {data.can_edit && item.source === "MANUAL" && (
-                      <Button size="small" type="text" aria-label={`Unlink ${item.label}`} onClick={() => unlink.mutate(item.id)}>
+                      <Button type="text" aria-label={`Unlink ${item.label}`} onClick={() => unlink.mutate(item.id)}>
                         ×
                       </Button>
                     )}

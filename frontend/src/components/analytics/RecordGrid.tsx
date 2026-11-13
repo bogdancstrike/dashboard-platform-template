@@ -225,7 +225,7 @@ export function RecordGrid({
     const arrows: Record<string, [number, number]> = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
     if (arrows[key]) {
       event.preventDefault();
-      const [dr, dc] = arrows[key]!;
+      const [dr, dc] = arrows[key];
       const jump = mod ? (dr ? rows.length : columns.length) : 1;
       moveTo({ row: focus.row + dr * jump, col: focus.col + dc * jump }, event.shiftKey);
       return;
@@ -324,7 +324,7 @@ export function RecordGrid({
         batch.map((row) => ({ ...row, expected_updated_at: updatedAt.get(row.id) ?? null })),
       );
       const flashed = new Set<string>();
-      let next = { ...pending };
+      const next = { ...pending };
       const byId = new Map(result.results.map((r) => [r.id, r]));
       setRows((current) =>
         current.map((row) => {
@@ -383,11 +383,11 @@ export function RecordGrid({
         {tally.cells > 0 && <span className="nx-ra-pill nx-ra-pill--warn" data-testid="grid-pending">{tally.cells} pending in {tally.rows} row{tally.rows === 1 ? "" : "s"}</span>}
         {tally.invalid > 0 && <span className="nx-ra-pill nx-ra-pill--bad" data-testid="grid-invalid">{tally.invalid} invalid</span>}
         <span className="nx-ra-spacer" />
-        <Tooltip title="Ctrl+Z"><Button size="small" onClick={() => step("back")} disabled={!history.past.length} aria-label="Undo">Undo</Button></Tooltip>
-        <Tooltip title="Ctrl+Y"><Button size="small" onClick={() => step("forward")} disabled={!history.future.length} aria-label="Redo">Redo</Button></Tooltip>
-        <Tooltip title="Ctrl+D"><Button size="small" onClick={fillDown} disabled={!canEdit || range.bottom === range.top}>Fill down</Button></Tooltip>
-        <Button size="small" onClick={discard} disabled={!tally.cells}>Discard</Button>
-        <Button type="primary" size="small" onClick={() => void save()} loading={saving}
+        <Tooltip title="Ctrl+Z"><Button onClick={() => step("back")} disabled={!history.past.length} aria-label="Undo">Undo</Button></Tooltip>
+        <Tooltip title="Ctrl+Y"><Button onClick={() => step("forward")} disabled={!history.future.length} aria-label="Redo">Redo</Button></Tooltip>
+        <Tooltip title="Ctrl+D"><Button onClick={fillDown} disabled={!canEdit || range.bottom === range.top}>Fill down</Button></Tooltip>
+        <Button onClick={discard} disabled={!tally.cells}>Discard</Button>
+        <Button type="primary" onClick={() => void save()} loading={saving}
           disabled={!canEdit || tally.cells - tally.invalid === 0} data-testid="grid-save">
           Save {tally.cells - tally.invalid || ""}
         </Button>
@@ -424,8 +424,8 @@ export function RecordGrid({
             return (
               <div key={row.id} className="nx-ra-sheet-row" role="row" aria-rowindex={r + 2}
                 style={{ top: HEAD + r * ROW, gridTemplateColumns: template, width: totalWidth }}>
-                <div className="nx-ra-cell is-rowhead" role="rowheader" title={String(row[titleField] ?? row.id)}>
-                  {String(row[titleField] ?? row.id)}
+                <div className="nx-ra-cell is-rowhead" role="rowheader" title={displayText(row[titleField] ?? row.id)}>
+                  {displayText(row[titleField] ?? row.id)}
                 </div>
                 {columns.map((column, c) => {
                   const pendingCell = pending[row.id]?.[column.name];
@@ -541,4 +541,11 @@ function CellEditor({
       aria-label={column.label}
     />
   );
+}
+
+/** A row's heading cell as text — a nested value would otherwise read "[object Object]". */
+function displayText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return `${value}`;
+  return value === null || value === undefined ? "" : JSON.stringify(value);
 }

@@ -103,7 +103,7 @@ export function ActionView({
         ) : block.task_id ? (
           <Text type="secondary">task removed</Text>
         ) : canCreate && onCreateTask && block.text ? (
-          <Button size="small" onClick={onCreateTask} loading={creating} data-testid="create-task">
+          <Button onClick={onCreateTask} loading={creating} data-testid="create-task">
             Create task
           </Button>
         ) : null}

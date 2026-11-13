@@ -4,7 +4,7 @@
  */
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { App as AntApp, Button, Drawer, Empty, Skeleton, Space, Tag, Typography } from "antd";
+import { App as AntApp, Button, Drawer, Skeleton, Space, Tag, Typography } from "antd";
 import { useState } from "react";
 
 import { ApiError } from "@/api/client";
@@ -13,6 +13,7 @@ import { URL_OVERLAY } from "@/app/history";
 import { absoluteTime, relativeTime } from "@/lib/time";
 
 import { BlockView } from "./BlockView";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -61,7 +62,7 @@ export function HistoryDrawer({
       {history.isLoading ? (
         <Skeleton active paragraph={{ rows: 6 }} />
       ) : (history.data?.items ?? []).length === 0 ? (
-        <Empty description="No history yet" />
+        <EmptyState title="No history yet" />
       ) : (
         <ol className="nx-dc-history">
           {history.data!.items.map((item) => (
@@ -75,12 +76,11 @@ export function HistoryDrawer({
               </div>
               {item.note && <Text type="secondary">{item.note}</Text>}
               <Space size={6}>
-                <Button size="small" onClick={() => setViewing(viewing === item.id ? null : item.id)}>
+                <Button onClick={() => setViewing(viewing === item.id ? null : item.id)}>
                   {viewing === item.id ? "Hide" : "View"}
                 </Button>
                 {!item.is_current && page.can_edit && (
                   <Button
-                    size="small"
                     type="primary"
                     loading={restore.isPending && restore.variables === item.id}
                     onClick={() => restore.mutate(item.id)}

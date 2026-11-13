@@ -1,6 +1,6 @@
 import "@/styles/decisions.css";
 
-import { Button, Card, Empty, Tooltip, Typography } from "antd";
+import { Button, Card, Tooltip, Typography } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -11,6 +11,7 @@ import { relativeTime } from "@/lib/time";
 import { EntryModal } from "./EntryModal";
 import { TdIcon } from "./TdIcon";
 import { useTimer } from "./useTimer";
+import { EmptyState } from "@/components/EmptyState";
 
 const { Text } = Typography;
 
@@ -74,7 +75,7 @@ export function RecordTimeCard({ subjectType, subjectId }: { subjectType: Subjec
   return (
     <Card size="small" title="Time logged" className="nu-block" data-testid="record-time">
       {!data || data.entries.length === 0 ? (
-        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No time logged yet" />
+        <EmptyState compact title="No time logged yet" />
       ) : (
         <div className="nx-td-logged">
           <div className="nx-td-logged-row">

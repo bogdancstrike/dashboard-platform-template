@@ -4,13 +4,14 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { Empty, Input, Modal, Skeleton } from "antd";
+import { Input, Modal, Skeleton } from "antd";
 import { useState } from "react";
 
 import { searchApi } from "@/api/search";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 import { RECORD_PATHS } from "./blocks";
+import { EmptyState } from "@/components/EmptyState";
 
 export interface PickedRecord {
   resource_type: string;
@@ -54,7 +55,7 @@ export function RecordPicker({
         ) : results.isLoading ? (
           <Skeleton active paragraph={{ rows: 4 }} />
         ) : groups.length === 0 ? (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing matched" />
+          <EmptyState compact title="Nothing matched" />
         ) : (
           groups.map((group) => (
             <section key={group.resource_type}>

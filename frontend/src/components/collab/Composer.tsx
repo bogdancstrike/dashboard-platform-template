@@ -241,7 +241,6 @@ export function Composer({
               <span className="nx-co-muted">{readableSize(item.size)}</span>
               {!item.file && !item.error && <Progress percent={item.progress} size="small" showInfo={false} aria-label={`Uploading ${item.name}`} />}
               <Button
-                size="small"
                 type="text"
                 aria-label={`Remove ${item.name}`}
                 icon={<CloseOutlined />}
@@ -339,7 +338,7 @@ export function Composer({
             </>
           )}
           {onCancel && (
-            <Button size="small" onClick={onCancel}>
+            <Button onClick={onCancel}>
               Cancel
             </Button>
           )}

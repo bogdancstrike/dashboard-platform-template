@@ -109,7 +109,6 @@ export function PdfPageHighlight({
       <div className="nx-kn-pdf-bar">
         <Space size={6}>
           <Button
-            size="small"
             shape="circle"
             aria-label="Previous page"
             icon={<LeftOutlined />}
@@ -121,7 +120,6 @@ export function PdfPageHighlight({
             {pages ? ` of ${pages}` : ""}
           </Typography.Text>
           <Button
-            size="small"
             shape="circle"
             aria-label="Next page"
             icon={<RightOutlined />}
@@ -130,7 +128,7 @@ export function PdfPageHighlight({
           />
         </Space>
         {page !== initialPage && (
-          <Button size="small" type="link" onClick={() => setPage(initialPage)}>
+          <Button type="text" onClick={() => setPage(initialPage)}>
             Back to the cited page
           </Button>
         )}

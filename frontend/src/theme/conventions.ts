@@ -131,6 +131,8 @@ export const DENSE_BY_CONSTRUCTION: Record<string, string> = {
     "Rows of one action each, each with its own controls.",
   "components/comments/CommentThread.tsx":
     "Reply and edit under each comment, repeated down a thread.",
+  "components/collab/MessageItem.tsx":
+    "The react, reply, edit and delete strip that floats over each chat message on hover.",
   "components/dashboards/DashboardCard.tsx":
     "A gallery card's footer, where the controls sit under two lines of description.",
   "components/dashboards/WidgetCard.tsx":

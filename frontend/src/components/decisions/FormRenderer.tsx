@@ -75,7 +75,7 @@ export function FormRenderer({
         );
       })}
       {extra}
-      <Button type="primary" htmlType="submit" size="large" block loading={busy} data-testid="form-submit">
+      <Button type="primary" htmlType="submit" block loading={busy} data-testid="form-submit">
         {submitLabel}
       </Button>
     </Form>

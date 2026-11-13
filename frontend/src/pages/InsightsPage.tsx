@@ -219,7 +219,7 @@ export default function InsightsPage() {
           data-testid="insight-failure"
           action={
             question.trim() ? (
-              <Button size="small" onClick={() => ask()}>
+              <Button onClick={() => ask()}>
                 Try again
               </Button>
             ) : undefined
@@ -379,7 +379,7 @@ function SavedActions({
   return (
     <>
       <Tooltip title="Re-run its queries for today's numbers — the AI is not asked again">
-        <Button icon={<KnIcon name="refresh" size={15} />} loading={refreshing} onClick={onRefresh} data-testid="insight-refresh">
+        <Button icon={<KnIcon name="refresh" />} loading={refreshing} onClick={onRefresh} data-testid="insight-refresh">
           Refresh
         </Button>
       </Tooltip>
