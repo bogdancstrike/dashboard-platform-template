@@ -46,6 +46,83 @@ export interface TourStop {
 
 /** Every page with something worth explaining, keyed by its route. */
 export const TOURS: Record<string, TourStop[]> = {
+  // Records & analytics (§12, §13, §18, §22).
+  "/customers/health": [
+    {
+      title: "Health is a reasoned number",
+      description:
+        "Every customer gets a 0–100 score from four weighted signals — support tickets, orders, usage and renewal — recomputed daily, so a slide shows up here weeks before it shows up as a lost renewal.",
+    },
+    {
+      target: "health-list",
+      title: "Open one to see why",
+      description:
+        "Each row opens the customer's Health tab, where the score is broken down signal by signal with the facts behind it — three escalations, no order in four months — rather than asking you to trust a colour.",
+    },
+    {
+      target: "health-model-open",
+      title: "The model is yours to tune",
+      description:
+        "Weights and cut-offs live in one place, are audited when they change, and rescore every customer at once — so a disagreement about what healthy means is settled in a setting, not in a spreadsheet.",
+    },
+  ],
+  "/contracts": [
+    {
+      title: "Renewals worked as a pipeline",
+      description:
+        "Every customer agreement with an end date moves from upcoming through negotiation to committed, renewed or churned — and each move is audited, so the contract's history reads like any record's.",
+    },
+    {
+      target: "contract-board",
+      title: "Drag to move, the forecast follows",
+      description:
+        "Moving a card sets its stage and the stage's probability; the forecast weights every open contract by it, and a card whose customer's health is low is flagged at risk wherever it appears.",
+    },
+    {
+      target: "contract-new",
+      title: "Documents belong with the contract",
+      description:
+        "A new contract gets a folder in Files on its first upload, so the signed copy and the order form are one click from the renewal and still findable by anyone browsing the file store.",
+    },
+  ],
+  "/alerts": [
+    {
+      title: "Hear about the unusual, not the usual",
+      description:
+        "A watch judges each new point of a metric against its own recent history — or against the same slot in earlier weeks — and only speaks up when it is statistically out of line, spikes or drops.",
+    },
+    {
+      target: "watch-grid",
+      title: "Each card is a live metric",
+      description:
+        "The line is the recent series and the badge is the last verdict; open one to see the expected band, every flagged point and the exact window it was judged against.",
+    },
+    {
+      target: "watch-new",
+      title: "Preview before you commit",
+      description:
+        "The editor draws what the detector would have flagged over the last thirty buckets with your settings, so sensitivity is chosen by looking at the picture rather than by guessing a number.",
+    },
+  ],
+  "/grid": [
+    {
+      title: "A list as a spreadsheet",
+      description:
+        "Every record list opens as a grid: edit cells in place, paste a block straight from Excel or a CSV, fill down, undo — and nothing is written until you save, all rows in one call.",
+    },
+    {
+      target: "record-grid",
+      title: "Pasted values are checked as they land",
+      description:
+        "Each pasted cell is converted to its column's type — currency, separators, status labels, several date formats — and a cell that cannot be is marked red with the reason before anything is sent.",
+    },
+    {
+      target: "grid-save",
+      title: "The server has the last word per cell",
+      description:
+        "Saving goes through the same bulk API and the same validation a form uses; a value the server refuses comes back onto the exact cell, and everything else is saved and audited row by row.",
+    },
+  ],
   "/chat": [
     {
       title: "Talk where the work is",

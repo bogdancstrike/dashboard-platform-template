@@ -122,7 +122,7 @@ export default function ContractsPage() {
       {view === "forecast" && <Forecast />}
       {view === "calendar" && <RenewalCalendar filters={filters} onOpen={(id) => navigate(`/contracts/${id}`)} />}
 
-      <ContractForm open={creating.value === "new"} onClose={creating.close} onSaved={(saved) => navigate(`/contracts/${saved.id}`)} />
+      <ContractForm open={creating.value === "new"} onClose={creating.close} onSaved={(saved) => navigate(`/contracts/${saved.id}`, { replace: true })} />
     </div>
   );
 }

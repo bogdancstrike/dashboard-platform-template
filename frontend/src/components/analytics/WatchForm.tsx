@@ -100,8 +100,10 @@ export function WatchForm({
     onSuccess: (saved) => {
       void message.success(watch ? "Watch saved." : `Watching “${saved.name}”.`);
       void client.invalidateQueries({ queryKey: ["alerts"] });
-      onSaved?.(saved);
-      onClose();
+      // A page that moves on to the saved record replaces the overlay's
+      // history entry itself; closing first would send "back" after it.
+      if (onSaved) onSaved(saved);
+      else onClose();
     },
     onError: (error) => void message.error(errorText(error, { action: "manage alerts" })),
   });

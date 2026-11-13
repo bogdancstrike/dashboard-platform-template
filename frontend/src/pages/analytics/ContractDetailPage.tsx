@@ -175,7 +175,7 @@ export default function ContractDetailPage() {
                   <div className="nx-ra-facts-grid">
                     <Fact label="Value (ARR)" value={money(data.value, data.currency)} />
                     <Fact label="Weighted" value={money(data.weighted, data.currency)} />
-                    <Fact label="Probability" value={<Progress percent={data.probability} size="small" style={{ width: 120, margin: 0 }} />} />
+                    <Fact label="Probability" value={<Progress percent={data.probability} size="small" aria-label={`Probability ${data.probability}%`} style={{ width: 120, margin: 0 }} />} />
                     <Fact label="Billing" value={data.billing.toLowerCase()} />
                     <Fact label="Start" value={data.start_date} />
                     <Fact label="End" value={`${data.end_date} (${data.days_to_end !== null && data.days_to_end >= 0 ? `in ${data.days_to_end} days` : "ended"})`} />

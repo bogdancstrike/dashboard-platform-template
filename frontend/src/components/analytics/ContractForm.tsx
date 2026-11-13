@@ -162,8 +162,10 @@ export function ContractForm({
       void client.invalidateQueries({ queryKey: ["contracts"] });
       void client.invalidateQueries({ queryKey: ["contract", saved.id] });
       void client.invalidateQueries({ queryKey: ["record-versions", "contract", saved.id] });
-      onSaved?.(saved);
-      onClose();
+      // A page that moves on to the saved record replaces the overlay's
+      // history entry itself; closing first would send "back" after it.
+      if (onSaved) onSaved(saved);
+      else onClose();
     },
     onError: (error) => void message.error(errorText(error, { action: "save contracts" })),
   });

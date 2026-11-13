@@ -177,7 +177,7 @@ export default function AlertsPage() {
         <History onOpen={(a) => navigate(`/alerts/${a.watch_id}?anomaly=${a.id}`)} />
       )}
 
-      <WatchForm open={editor.value === "new"} onClose={editor.close} onSaved={(saved) => navigate(`/alerts/${saved.id}`)} />
+      <WatchForm open={editor.value === "new"} onClose={editor.close} onSaved={(saved) => navigate(`/alerts/${saved.id}`, { replace: true })} />
     </div>
   );
 }
