@@ -55,3 +55,13 @@
 .nx-app--phone .nx-ff-group .ant-card-body {
   padding: 6px;
 }
+
+/* Phone: three columns that fit — the name wraps instead of pushing the switch off screen. */
+.nx-app--phone .nx-ff-group .nu-flag-key,
+.nx-app--phone .nx-ff-group .nu-flag-cell {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.nx-app--phone .nx-ff-group .ant-table-cell {
+  padding-inline: 6px;
+}

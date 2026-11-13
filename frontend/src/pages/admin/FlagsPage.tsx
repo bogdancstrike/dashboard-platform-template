@@ -551,7 +551,7 @@ export default function FlagsPage() {
         />
       )}
 
-      <div className="nu-fill nx-ff-groups" data-testid="flags-table">
+      <div className="nx-ff-groups" data-testid="flags-table">
         {groups.length === 0 && (
           <Card size="small">
             <EmptyState compact title="No flag matches" />
@@ -561,7 +561,7 @@ export default function FlagsPage() {
           <Card
             key={area}
             size="small"
-            className="nu-pane nu-pane--table nx-ff-group"
+            className="nx-ff-group"
             data-testid={`flag-group-${area}`}
             title={
               <Space size={8}>
@@ -576,6 +576,7 @@ export default function FlagsPage() {
               rowKey="key"
               size="small"
               pagination={false}
+              tableLayout={phone ? "fixed" : undefined}
               columns={columns}
               dataSource={rows}
               locale={{ emptyText: <EmptyState compact title="No flag is in this state" /> }}
