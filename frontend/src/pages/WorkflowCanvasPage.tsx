@@ -135,11 +135,11 @@ export default function WorkflowCanvasPage() {
   const [sample, setSample] = useState<string | undefined>();
   const [sampleSearch, setSampleSearch] = useState("");
   const [pending, setPending] = useState(false);
-  const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && window.innerWidth < 1100);
+  const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && window.innerWidth < 1280);
   const edits = useRef(0);
 
   useEffect(() => {
-    const onResize = () => setNarrow(window.innerWidth < 1100);
+    const onResize = () => setNarrow(window.innerWidth < 1280);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);

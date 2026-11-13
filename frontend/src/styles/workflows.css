@@ -143,3 +143,4 @@
 .nx-app--phone .nx-wf-canvas { min-height: 420px; }
 .nx-app--phone .nx-wf-minimap { display: none; }
 .nx-app--phone .nx-wf-sample { min-width: 0; max-width: none; }
+.nx-wf-toolbar .ant-segmented { max-width: 100%; overflow-x: auto; }
