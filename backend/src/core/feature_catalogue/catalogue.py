@@ -1,56 +1,11 @@
-"""The feature catalogue — every switchable feature, and everything it controls (§27).
-
-Rationale: docs/architecture/backend/modules/core-feature-catalogue.md
-"""
+"""Every feature the platform can switch (data), and the entity grids."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
-
-@dataclass(frozen=True)
-class Feature:
-    key: str
-    name: str
-    description: str
-    #: Who owns it — the navigation area it lives in.
-    area: str
-    stage: str = "GA"
-    experimental: bool = False
-    default_on: bool = True
-    default_rollout: int = 100
-    requires: tuple[str, ...] = ()
-    #: Frontend routes (React Router paths) that show the switched-off page.
-    routes: tuple[str, ...] = ()
-    #: Navigation item keys hidden from the menu.
-    nav: tuple[str, ...] = ()
-    #: UI pieces outside the routes that disappear (human-readable).
-    components: tuple[str, ...] = ()
-    #: `api_url` patterns from `maps/endpoint.json` that refuse when off.
-    endpoints: tuple[str, ...] = ()
-    #: Background job codes skipped while the flag is off everywhere.
-    jobs: tuple[str, ...] = ()
-    #: Live-channel message `type`s not delivered to a reader without it.
-    live: tuple[str, ...] = ()
-    #: Endpoint *payload* rules enforced in the service (documented here).
-    payload_rules: tuple[str, ...] = field(default_factory=tuple)
-
-
-#: The areas, in the order the administration screen groups them.
-AREAS: tuple[tuple[str, str], ...] = (
-    ("overview", "Overview"),
-    ("ai", "AI"),
-    ("find", "Find"),
-    ("analyse", "Analyse"),
-    ("work", "Work"),
-    ("collaboration", "Collaboration"),
-    ("records", "Records"),
-    ("data", "Data"),
-    ("platform", "Platform"),
-    ("developers", "Developers"),
-)
+from src.core.feature_catalogue.model import Feature
 
 ENTITY_GRIDS = tuple(f"/{entity}/grid" for entity in ("tasks", "projects", "tickets", "customers", "orders", "devices"))
+
 
 FEATURES: tuple[Feature, ...] = (
     # ── Overview ────────────────────────────────────────────────────────
@@ -344,28 +299,3 @@ FEATURES: tuple[Feature, ...] = (
         endpoints=("/api/developers/*",),
     ),
 )
-
-#: Flags an earlier catalogue seeded that no longer gate anything. The sync
-#: removes them (only when off-or-untouched is irrelevant: they control nothing).
-RETIRED: tuple[str, ...] = ("mobile-layout",)
-
-#: Endpoints no flag governs, by decision. Patterns as above. The platform's
-#: spine — identity, records, the explorer, administration (flags included:
-#: an administrator must never be able to switch off their way back).
-CORE_ENDPOINTS: tuple[str, ...] = (
-    "/health/*", "/meta/*", "/api/me", "/dashboard/*", "/notifications*", "/security/*", "/recents",
-    "/tags*", "/api/explorer/catalog", "/api/explorer/query", "/api/explorer/insights",
-    "/api/records/<string:resource_type>", "/api/records/<string:resource_type>/<uuid:record_id>",
-    "/api/records/<string:resource_type>/compare", "/api/records/<string:resource_type>/<uuid:record_id>/tags",
-    "/api/tasks/<uuid:task_id>/place", "/api/tasks/<uuid:task_id>/planning", "/api/tasks/<uuid:task_id>/watchers",
-    "/api/work/lanes",
-    "/api/files/<uuid:file_id>*", "/api/files/blob",
-    "/api/comments", "/api/comments/<uuid:comment_id>",
-    "/api/announcements*", "/api/activity", "/api/audit/timeline", "/api/directory/*", "/api/profile*",
-    "/admin/*",
-)
-
-FEATURES_BY_KEY: dict[str, Feature] = {feature.key: feature for feature in FEATURES}
-assert len(FEATURES_BY_KEY) == len(FEATURES), "duplicate feature key"
-assert {f.area for f in FEATURES} <= {key for key, _ in AREAS}
-assert all(parent in FEATURES_BY_KEY for f in FEATURES for parent in f.requires)

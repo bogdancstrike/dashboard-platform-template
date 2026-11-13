@@ -33,7 +33,7 @@ from src.core import logsink, vocabulary
 from src.core.clock import now
 from src.core.db import session_scope
 from src.core.errors import NotFoundError, ValidationError
-from src.services.platform import logs as service
+from src.services.platform import system_logs as service
 from tests.conftest import persona_claims
 
 pytestmark = pytest.mark.database

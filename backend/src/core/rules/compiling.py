@@ -1,20 +1,20 @@
-"""Query-builder trees → SQL, and → readable text.
-
-Rationale: docs/architecture/backend/modules/core-rules.md
-"""
+"""Compiling a condition tree to SQL."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import and_, false, not_, or_, true
+from sqlalchemy import and_, not_, or_
 
 from src.core.errors import ValidationError
 from src.core.query import FieldSet, build_predicate, canonical_operator
 
 #: A tree deep enough to be a denial-of-service rather than a question.
 MAX_DEPTH = 12
+
+
 MAX_RULES = 200
+
 
 _TEXT_OPERATOR = {
     "eq": "=",
@@ -37,6 +37,7 @@ _TEXT_OPERATOR = {
     "exists": "exists",
     "not_exists": "does not exist",
 }
+
 
 _VALUELESS = {"empty", "not_empty", "exists", "not_exists"}
 
@@ -150,84 +151,3 @@ def _compile_node(node: dict[str, Any], spec: FieldSet, *, depth: int, counter: 
         return build_predicate(field_spec, canonical, value)
 
     raise ValidationError(f"unknown query node type {kind!r}")
-
-
-def describe_tree(tree: dict[str, Any] | None, spec: FieldSet, *, indent: int = 0) -> str:
-    """The parenthesised, indented rendering the query inspector shows (§51)."""
-    if not tree or not isinstance(tree, dict):
-        return ""
-    return _describe_node(tree, spec, indent=indent, depth=0)
-
-
-def _describe_node(node: dict[str, Any], spec: FieldSet, *, indent: int, depth: int) -> str:
-    pad = "    " * indent
-    kind = (node.get("type") or "group").lower()
-
-    if kind in ("group", "rule_group"):
-        if depth > MAX_DEPTH:
-            return f"{pad}…"
-        properties = node.get("properties") or {}
-        conjunction = str(properties.get("conjunction") or node.get("conjunction") or "AND").upper()
-        parts = [
-            text
-            for child in _children(node)
-            if (text := _describe_node(child, spec, indent=indent + 1, depth=depth + 1)).strip()
-        ]
-        if not parts:
-            return ""
-        joiner = f"\n{pad}    {conjunction}\n"
-        body = joiner.join(parts)
-        negation = "NOT " if properties.get("not", node.get("not")) else ""
-        if depth == 0 and not negation:
-            # The root group needs no parentheses; they only add noise.
-            return body
-        return f"{pad}{negation}(\n{body}\n{pad})"
-
-    field, operator, value = _rule_parts(node)
-    if not field:
-        return ""
-    field_spec = spec.by_name.get(field)
-    label = field_spec.title if field_spec else field
-    try:
-        canonical = canonical_operator(operator)
-    except ValidationError:
-        canonical = "eq"
-    symbol = _TEXT_OPERATOR.get(canonical, canonical)
-
-    if canonical in _VALUELESS:
-        return f"{pad}{label} {symbol}"
-    if value in (None, "", []):
-        return ""
-    if isinstance(value, (list, tuple)):
-        if canonical == "between" and len(value) >= 2:
-            rendered = f"{_literal(value[0])} AND {_literal(value[1])}"
-        else:
-            rendered = "[" + ", ".join(_literal(v) for v in value) + "]"
-    else:
-        rendered = _literal(value)
-    return f"{pad}{label} {symbol} {rendered}"
-
-
-def _literal(value: Any) -> str:
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, (int, float)):
-        return str(value)
-    text = str(value)
-    return text if text.replace(".", "", 1).isdigit() else f"'{text}'"
-
-
-def rule_count(tree: dict[str, Any] | None) -> int:
-    """How many complete rules a tree carries — shown on saved-search cards."""
-    if not tree or not isinstance(tree, dict):
-        return 0
-    kind = (tree.get("type") or "group").lower()
-    if kind in ("rule", "field"):
-        return 1
-    return sum(rule_count(child) for child in _children(tree))
-
-
-def always(match: bool):
-    """Explicit all/nothing predicates, so callers never pass a bare Python
-    bool into `.where()` (SQLAlchemy 2 rejects it)."""
-    return true() if match else false()

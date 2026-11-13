@@ -15,7 +15,7 @@ from typing import Any
 
 from src.core.auth import me, requires
 from src.core.db import session_scope
-from src.services.platform import logs as service
+from src.services.platform import system_logs as service
 
 
 @requires("logs.view")
