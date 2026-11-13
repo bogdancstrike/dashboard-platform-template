@@ -30,7 +30,7 @@ export function OnboardingCard() {
       data-testid="onboarding-card"
       title={<span className="nx-ob-card-title"><NxIcon name="check" size={16} /> Getting started</span>}
       extra={
-        <Button type="text" size="small" onClick={() => dismiss.mutate()} loading={dismiss.isPending} data-testid="dismiss-onboarding">
+        <Button type="text" onClick={() => dismiss.mutate()} loading={dismiss.isPending} data-testid="dismiss-onboarding">
           Dismiss
         </Button>
       }

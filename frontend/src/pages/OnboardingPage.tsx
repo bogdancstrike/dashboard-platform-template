@@ -97,7 +97,7 @@ export default function OnboardingPage() {
                     <span className="nx-ob-area-name"><Link to={area.route}>{area.label}</Link>
                       {area.loaded > 0 && <Tag bordered={false} color="blue">{area.loaded} sample</Tag>}</span>
                     {area.loaded > 0 ? (
-                      <Button size="small" danger loading={sampleChange.isPending && sampleChange.variables.area === area.key}
+                      <Button danger loading={sampleChange.isPending && sampleChange.variables.area === area.key}
                         data-testid={`remove-sample-${area.key}`}
                         onClick={() => modal.confirm({
                           title: `Remove the sample ${area.label.toLowerCase()}?`,
@@ -108,7 +108,7 @@ export default function OnboardingPage() {
                         Remove
                       </Button>
                     ) : (
-                      <Button size="small" loading={sampleChange.isPending && sampleChange.variables.area === area.key}
+                      <Button loading={sampleChange.isPending && sampleChange.variables.area === area.key}
                         data-testid={`load-sample-${area.key}`} onClick={() => sampleChange.mutate({ area: area.key, load: true })}>
                         Load
                       </Button>
@@ -137,14 +137,14 @@ function StepRow({ step, index, onAnswer }: { step: OnboardingStep; index: numbe
         </small>
       </span>
       <Space size={6} wrap className="nx-ob-step-actions">
-        <Link to={step.to}><Button size="small" type={step.state === "todo" ? "primary" : "default"}>{step.action}</Button></Link>
+        <Link to={step.to}><Button type={step.state === "todo" ? "primary" : "default"}>{step.action}</Button></Link>
         {step.state === "todo" ? (
           <>
-            <Button size="small" onClick={() => onAnswer("done")} data-testid={`done-${step.key}`}>Mark done</Button>
-            <Button size="small" type="text" onClick={() => onAnswer("skipped")} data-testid={`skip-${step.key}`}>Skip</Button>
+            <Button onClick={() => onAnswer("done")} data-testid={`done-${step.key}`}>Mark done</Button>
+            <Button type="text" onClick={() => onAnswer("skipped")} data-testid={`skip-${step.key}`}>Skip</Button>
           </>
         ) : !step.auto && (
-          <Button size="small" type="text" onClick={() => onAnswer("todo")} data-testid={`undo-${step.key}`}>Undo</Button>
+          <Button type="text" onClick={() => onAnswer("todo")} data-testid={`undo-${step.key}`}>Undo</Button>
         )}
       </Space>
     </li>

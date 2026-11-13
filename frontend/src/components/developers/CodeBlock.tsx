@@ -39,7 +39,7 @@ export function CodeBlock({
         ) : (
           <span className="nx-dev-code-label">{label}</span>
         )}
-        <Button size="small" type="text" icon={<NxIcon name="export" size={14} />} onClick={() => void copy()}
+        <Button type="text" icon={<NxIcon name="export" size={14} />} onClick={() => void copy()}
           aria-label={`Copy ${label.toLowerCase()}`}>
           Copy
         </Button>

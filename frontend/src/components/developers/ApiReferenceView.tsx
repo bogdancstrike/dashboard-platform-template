@@ -4,7 +4,9 @@
  * captured — the real response and its inferred schema.
  */
 
-import { Button, Card, Empty, Input, Tag, Tooltip, Typography } from "antd";
+import { Button, Card, Input, Tag, Tooltip, Typography } from "antd";
+
+import { EmptyState } from "@/components/EmptyState";
 import { useMemo } from "react";
 
 import type { ApiEndpoint, ApiReference } from "@/api/developers";
@@ -60,7 +62,7 @@ export function ApiReferenceView({
       <Card size="small" className="nx-dev-index" data-testid="api-index"
         title={<Input.Search allowClear aria-label="Search endpoints" placeholder={`Search ${reference.total} endpoints`}
           value={query} onChange={(event) => onQuery(event.target.value)} />}>
-        {groups.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No endpoint matches" /> : groups.map((group) => (
+        {groups.length === 0 ? <EmptyState compact title="No endpoint matches" /> : groups.map((group) => (
           <div key={group.key} className="nx-dev-group">
             <div className="nx-dev-group-label">{group.label} <span>{group.endpoints.length}</span></div>
             {group.endpoints.map((item) => (
@@ -74,7 +76,7 @@ export function ApiReferenceView({
         ))}
       </Card>
 
-      {endpoint ? <EndpointDetail endpoint={endpoint} onTry={onTry} /> : <Card size="small"><Empty /></Card>}
+      {endpoint ? <EndpointDetail endpoint={endpoint} onTry={onTry} /> : <Card size="small"><EmptyState compact title="Choose an endpoint" /></Card>}
     </div>
   );
 }
@@ -92,7 +94,7 @@ function EndpointDetail({ endpoint, onTry }: { endpoint: ApiEndpoint; onTry: (en
       <div className="nx-dev-detail-head">
         <MethodTag method={endpoint.method} />
         <code className="nx-dev-path">{endpoint.path}</code>
-        <Button type="primary" size="small" onClick={() => onTry(endpoint)} data-testid="try-endpoint">Try it</Button>
+        <Button type="primary" onClick={() => onTry(endpoint)} data-testid="try-endpoint">Try it</Button>
       </div>
       <h3 className="nx-dev-summary">{endpoint.summary}</h3>
       {endpoint.description && endpoint.description !== endpoint.summary && (

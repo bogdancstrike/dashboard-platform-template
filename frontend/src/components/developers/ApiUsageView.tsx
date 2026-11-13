@@ -6,6 +6,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Card, Segmented, Select, Skeleton, Table, Tag } from "antd";
+
+import { EmptyState } from "@/components/EmptyState";
+import { SEMANTIC } from "@/theme/tokens";
 import ReactECharts from "echarts-for-react";
 
 import { developersApi, type ApiUsage } from "@/api/developers";
@@ -17,7 +20,7 @@ type Theme = ReturnType<typeof useAppearance>["chartTheme"];
 
 export function trafficOption(usage: ApiUsage, theme: Theme) {
   return {
-    color: [theme.accent, "#d4483b"],
+    color: [theme.accent, SEMANTIC.danger],
     textStyle: theme.textStyle,
     aria: { enabled: true },
     tooltip: { trigger: "axis" },
@@ -34,7 +37,7 @@ export function trafficOption(usage: ApiUsage, theme: Theme) {
 
 export function latencyOption(usage: ApiUsage, theme: Theme) {
   return {
-    color: [theme.accent, "#e0a106"],
+    color: [theme.accent, SEMANTIC.warning],
     textStyle: theme.textStyle,
     aria: { enabled: true },
     tooltip: { trigger: "axis", valueFormatter: (value: unknown) => (typeof value === "number" ? `${value} ms` : "—") },
@@ -89,10 +92,10 @@ export function ApiUsageView({ client, days, onClient, onDays }: {
           </div>
           <div className="nx-dev-charts">
             <Card size="small" title="Requests and errors per day">
-              {data.series.length ? <ReactECharts option={trafficOption(data, chartTheme)} style={{ height: 240 }} notMerge /> : <Empty />}
+              {data.series.length ? <ReactECharts option={trafficOption(data, chartTheme)} style={{ height: 240 }} notMerge /> : <EmptyState compact title="No requests in this window." />}
             </Card>
             <Card size="small" title="Latency">
-              {data.series.length ? <ReactECharts option={latencyOption(data, chartTheme)} style={{ height: 240 }} notMerge /> : <Empty />}
+              {data.series.length ? <ReactECharts option={latencyOption(data, chartTheme)} style={{ height: 240 }} notMerge /> : <EmptyState compact title="No requests in this window." />}
             </Card>
           </div>
           <div className="nx-dev-charts">
@@ -133,10 +136,6 @@ export function ApiUsageView({ client, days, onClient, onDays }: {
       )}
     </div>
   );
-}
-
-function Empty() {
-  return <div className="nx-dev-empty">No requests in this window.</div>;
 }
 
 function Kpi({ label, value, tone, testId }: { label: string; value: string; tone?: "bad"; testId?: string }) {

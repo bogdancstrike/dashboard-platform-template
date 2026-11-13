@@ -5,6 +5,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { PlusOutlined } from "@ant-design/icons";
 import { App as AntApp, Button } from "antd";
 import { Link } from "react-router-dom";
 
@@ -43,9 +44,9 @@ export function EmptyGuide({ area }: { area: string }) {
       <p className="nx-ob-guide-purpose">{guide.purpose}</p>
       <p className="nx-ob-guide-first">{guide.first}</p>
       <div className="nx-ob-guide-actions">
-        {guide.to && <Link to={guide.to}><Button size="small">Go there</Button></Link>}
+        {guide.to && <Link to={guide.to}><Button>Go there</Button></Link>}
         {guide.sample && can("admin.access") && (
-          <Button size="small" type="dashed" loading={load.isPending} onClick={() => load.mutate()} data-testid="load-sample">
+          <Button icon={<PlusOutlined />} loading={load.isPending} onClick={() => load.mutate()} data-testid="load-sample">
             Load sample data
           </Button>
         )}
