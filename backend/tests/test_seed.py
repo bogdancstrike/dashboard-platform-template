@@ -427,7 +427,7 @@ def scratch_database(has_database):
     it worth a fixture: the suite passes, the seed is verified, and the data
     everything else was checked against is gone.
 
-    So the destructive work happens in `<database>_scratch`, and the engine the
+    So the destructive work happens in `<database>_scratch_<pid>`, and the engine the
     seed runner uses is swapped for its duration.
     """
     url = os.getenv("TEST_DATABASE_URL")
@@ -438,7 +438,9 @@ def scratch_database(has_database):
     from sqlalchemy.engine import make_url
 
     target = make_url(url)
-    scratch_name = f"{target.database}_scratch"
+    # Per process, and dropped afterwards: two suites running at once must not
+    # reseed each other's world mid-test.
+    scratch_name = f"{target.database}_scratch_{os.getpid()}"
     scratch = target.set(database=scratch_name)
 
     admin = create_engine(target.set(database="postgres"), isolation_level="AUTOCOMMIT")
@@ -467,6 +469,21 @@ def scratch_database(has_database):
     finally:
         db_module._engine.dispose()
         db_module._engine, db_module._SessionLocal = previous_engine, previous_maker
+        drop_scratch(target, scratch_name)
+
+
+def drop_scratch(target, name: str) -> None:
+    """Remove a per-process scratch database (best effort)."""
+    from sqlalchemy import create_engine, text
+
+    admin = create_engine(target.set(database="postgres"), isolation_level="AUTOCOMMIT")
+    try:
+        with admin.connect() as connection:
+            connection.execute(text(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
+    except Exception:  # noqa: BLE001 - leaving one behind is harmless
+        pass
+    finally:
+        admin.dispose()
 
 
 @pytest.mark.database

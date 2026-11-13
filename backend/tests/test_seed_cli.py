@@ -51,6 +51,8 @@ SYNC_FLAGS = (
     "--sync-knowledge",
     "--sync-assistant",
     "--sync-collab",
+    "--sync-onboarding",
+    "--sync-report-documents",
 )
 
 

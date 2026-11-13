@@ -52,6 +52,8 @@ from __future__ import annotations
 import argparse
 import sys
 
+from sqlalchemy.exc import DBAPIError
+
 from src.config import Config
 
 
@@ -623,8 +625,18 @@ def main(argv: list[str] | None = None) -> int:
         behind = runner.schema_drift(engine)
         for item in behind:
             print(f"schema is behind the model: {item}")
-        with session_scope() as session:
-            problems = runner.verify(session)
+        try:
+            with session_scope() as session:
+                problems = runner.verify(session)
+        except DBAPIError:
+            # A missing column fails the very queries that would describe the
+            # rows — which is what a database behind its model looks like, so
+            # say what to do rather than end in a traceback.
+            if not behind:
+                raise
+            print("the rows cannot be checked until the schema is: "
+                  "run 'python -m src.seed --sync-schema' first")
+            return 1
         if behind and not problems:
             print("run 'python -m src.seed --sync-schema' to add what can be added")
             return 1

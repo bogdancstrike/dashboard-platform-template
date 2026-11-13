@@ -72,7 +72,9 @@ def scratch(has_database):
     from src.config import Config
 
     parts = urlsplit(Config.DATABASE_URL)
-    name = "nucleus_migrations_check"
+    # Per process: two suites running at once (a developer and CI, or two
+    # agents) must not drop each other's database mid-test.
+    name = f"nucleus_migrations_check_{os.getpid()}"
     url = urlunsplit(parts._replace(path=f"/{name}"))
 
     admin = create_engine(Config.DATABASE_URL, isolation_level="AUTOCOMMIT")

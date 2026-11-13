@@ -140,7 +140,7 @@ def test_the_capture_reads_the_rows_a_statement_will_touch():
 
 
 def test_a_scratch_database_is_not_the_real_one():
-    """`tests/test_seed` builds a world in `<db>_scratch`; those writes are not undone here."""
+    """`tests/test_seed` builds a world in `<db>_scratch_<pid>`; those writes are not undone here."""
     from sqlalchemy.engine import make_url
 
     a = make_url("postgresql+psycopg2://u:p@localhost:5433/platform")

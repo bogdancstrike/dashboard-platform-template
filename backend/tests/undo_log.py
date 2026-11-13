@@ -183,11 +183,12 @@ class UndoLog:
         active, self.active = self.active, False
         try:
             refused = sweep(engine, window.inserted)
+            written: list[int] = []
             if window.original:
-                refused += restore(engine, window.original, self.metadata)
+                refused += restore(engine, window.original, self.metadata, written)
             recount_tags(engine)
             self.swept += len(window.inserted)
-            self.restored += len(window.original)
+            self.restored += sum(written)
             self.leftovers += refused
         finally:
             self.active = active
@@ -324,11 +325,15 @@ def _writable_columns(connection, table: str) -> list[str]:
     return _COLUMNS[table]
 
 
-def restore(engine, original: dict, metadata) -> list[str]:
-    """Put every kept row back as it was: update it, or insert it if it is gone."""
+def restore(engine, original: dict, metadata, counter: list | None = None) -> list[str]:
+    """Put every kept row back as it was: update it, or insert it if it is gone.
+
+    `counter`, when given, receives the number of rows actually written.
+    """
     from sqlalchemy import text
     from sqlalchemy.exc import DBAPIError
 
+    changed = 0
     pending = list(original.items())
     errors: dict[tuple, str] = {}
     while pending:
@@ -345,22 +350,30 @@ def restore(engine, original: dict, metadata) -> list[str]:
                     match = " AND ".join(f'"{n}"::text = :k{i}' for i, n in enumerate(names))
                     params = {"row": row, **{f"k{i}": v for i, v in enumerate(key)}}
                     source = f"SELECT {cols} FROM json_populate_record(NULL::\"{name}\", CAST(:row AS json))"
+                    # Only rows that differ are written: a statement the
+                    # test rolled back left nothing to undo.
+                    differs = f'row_to_json("{name}".*)::jsonb IS DISTINCT FROM CAST(:row AS jsonb)'
                     updated = connection.execute(
-                        text(f'UPDATE "{name}" SET ({cols}) = ({source}) WHERE {match}'
+                        text(f'UPDATE "{name}" SET ({cols}) = ({source}) WHERE {match} AND {differs}'
                              if len(columns) > 1 else
-                             f'UPDATE "{name}" SET {cols} = ({source}) WHERE {match}'),
+                             f'UPDATE "{name}" SET {cols} = ({source}) WHERE {match} AND {differs}'),
                         params,
                     ).rowcount
                     if not updated:
-                        connection.execute(
+                        updated = connection.execute(
                             text(f'INSERT INTO "{name}" ({cols}) {source} ON CONFLICT DO NOTHING'), params
-                        )
+                        ).rowcount
+                    changed += updated
             except DBAPIError as exc:
                 failed.append(((name, key), row))
                 errors[(name, key)] = str(getattr(exc, "orig", exc)).strip().splitlines()[0]
         if len(failed) == len(pending):
+            if counter is not None:
+                counter.append(changed)
             return [f"restore {name} {key}: {errors[(name, key)]}" for (name, key), _row in failed]
         pending = failed
+    if counter is not None:
+        counter.append(changed)
     return []
 
 
