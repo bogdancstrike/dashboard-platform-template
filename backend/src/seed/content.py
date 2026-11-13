@@ -12,7 +12,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 from src.seed import catalog
-from src.seed.support import checksum_of, reference, slugify
+from src.seed.support import checksum_of, slugify
 from src.seed.world import World
 
 RESOURCE_TYPES = ("project", "task", "ticket", "customer", "order", "device", "file")

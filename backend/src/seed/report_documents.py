@@ -100,9 +100,9 @@ def _blocks(entity: str, cadence: str, datasets: dict[str, Any], report_ids: lis
 def seed(session) -> dict[str, int]:
     from src.models.identity import User
     from src.models.personal import Report, ReportDocument
+    from src.seed.support import slugify
     from src.services.analytics import analysis
     from src.services.analytics import report_documents as service
-    from src.seed.support import slugify
 
     users = {u.username: u for u in session.scalars(select(User).where(User.username.in_(("admin", "manager"))))}
     made = 0

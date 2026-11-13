@@ -28,22 +28,23 @@ from sqlalchemy import select
 
 from src.config import Config
 from src.core.clock import now
+from src.seed import assistant as assistant_seed
 from src.seed import blobs, business, content, identity, operations, personal, schema
+from src.seed import collab as collab_seed
 from src.seed import decisions as decisions_seed
+from src.seed import developers as developers_seed
 from src.seed import exports as export_files
 from src.seed import imports as import_runs
-from src.seed import assistant as assistant_seed
 from src.seed import insights as insights_seed
-from src.seed import report_documents as report_documents_seed
 from src.seed import knowledge as knowledge_seed
+from src.seed import onboarding as onboarding_seed
 from src.seed import planning as planning_seed
 from src.seed import records_analytics as analytics_seed
-from src.seed import collab as collab_seed
-from src.seed import onboarding as onboarding_seed
-from src.seed import developers as developers_seed
+from src.seed import report_documents as report_documents_seed
 from src.seed import workflows as workflows_seed
 from src.seed.support import Rng
 from src.seed.world import SCALES, Scale, World
+from src.services.automation.graph.shape import trigger_of
 
 #: (table attribute on World) in an order that satisfies every foreign key.
 #: SQLAlchemy sorts mappers itself, but ordering here keeps the flush
@@ -202,7 +203,8 @@ def sync_searches(session) -> dict[str, int]:
     the removal of filter keys that cannot work, and a view already present is
     left exactly as its owner has it.
     """
-    from sqlalchemy import func, select as _select
+    from sqlalchemy import func
+    from sqlalchemy import select as _select
 
     from src.models.identity import User
     from src.models.personal import SavedSearch
@@ -301,7 +303,8 @@ def sync_tags(session) -> dict[str, int]:
 
     Idempotent: a record already in step is written the same value.
     """
-    from sqlalchemy import func, select as _select
+    from sqlalchemy import func
+    from sqlalchemy import select as _select
 
     from src.models.content import Tag, TagLink
     from src.services.records.explorer import resources as _resources
@@ -627,9 +630,14 @@ def verify(session) -> list[str]:
     from src.models.business import Order, Project, Task, Ticket
     from src.models.content import Comment, EmailMessage, EmailThread, FileObject
     from src.models.identity import Department, Team, User
-    from src.models.personal import Dashboard, DashboardWidget, ResourceShare, SavedSearch
-    from src.services.records.explorer import resources as _resources
+    from src.models.personal import (
+        Dashboard,
+        DashboardWidget,
+        ResourceShare,
+        SavedSearch,
+    )
     from src.models.platform import ActivityEntry, AuditLog, BackgroundJob, ImportRun
+    from src.services.records.explorer import resources as _resources
 
     problems: list[str] = []
 
@@ -1281,7 +1289,8 @@ def _tags_out_of_step(session) -> list[str]:
     disagree" is what somebody acts on, and seventeen identical lines are what
     they scroll past.
     """
-    from sqlalchemy import func, select as _select
+    from sqlalchemy import func
+    from sqlalchemy import select as _select
 
     from src.models.content import Tag, TagLink
     from src.services.records.explorer import resources as _resources
@@ -1341,7 +1350,11 @@ def _unrunnable_reports(session) -> list[str]:
     from sqlalchemy import select as _select
 
     from src.models.personal import Report
-    from src.services.analytics.analysis import AGGREGATIONS, DIMENSION_KINDS, MEASURE_KINDS
+    from src.services.analytics.analysis import (
+        AGGREGATIONS,
+        DIMENSION_KINDS,
+        MEASURE_KINDS,
+    )
     from src.services.records.explorer import resources
 
     catalogue = resources()
@@ -1408,7 +1421,11 @@ def sync_reports(session) -> dict[str, int]:
     from sqlalchemy import select as _select
 
     from src.models.personal import Report
-    from src.services.analytics.analysis import AGGREGATIONS, DIMENSION_KINDS, MEASURE_KINDS
+    from src.services.analytics.analysis import (
+        AGGREGATIONS,
+        DIMENSION_KINDS,
+        MEASURE_KINDS,
+    )
     from src.services.records.explorer import resources
 
     catalogue = resources()
@@ -1488,9 +1505,8 @@ def _unrunnable_automations(session) -> list[str]:
     from src.core.rules import compile_tree
     from src.models.automation_graphs import AutomationGraph
     from src.models.platform import AlertRule
-    from src.services.automation import graph as automation_graph
-    from src.services.records.explorer import resources
     from src.services.automation.workflows import ACTIONS
+    from src.services.records.explorer import resources
 
     catalogue = resources()
     counts: dict[str, int] = {}
@@ -1513,7 +1529,7 @@ def _unrunnable_automations(session) -> list[str]:
         # walks the record it was given; only a scheduled one needs a condition
         # to say which records each run looks at (§49).
         graph = session.scalar(_select(AutomationGraph.published).where(AutomationGraph.rule_id == row.id))
-        trigger = automation_graph.trigger_of(graph)
+        trigger = trigger_of(graph)
         event_started = bool(trigger and trigger["data"].get("event") not in (None, "SCHEDULE"))
         try:
             if compile_tree(row.condition_tree, resource.fields) is None and not event_started:

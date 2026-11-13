@@ -21,6 +21,8 @@ from typing import Any, Callable
 from sqlalchemy import func, select
 
 from src.core.clock import now
+from src.services.automation.workflows.queries import list_rules
+from src.services.automation.workflows.registry import catalogue
 
 #: The window the usage charts read, and the volume that counts as "thin".
 WINDOW_DAYS = 14
@@ -30,13 +32,12 @@ THIN = 300
 def _examples() -> list[tuple[str, str, str, Callable[..., Any]]]:
     from src.services.platform import api_clients
     from src.services.records import explorer
-    from src.services.automation import workflows
 
     return [
         ("GET", "/api/automations/catalog", "/platform/api/automations/catalog",
-         lambda s, p: workflows.catalogue(s, principal=p)),
+         lambda s, p: catalogue(s, principal=p)),
         ("GET", "/api/automations/rules", "/platform/api/automations/rules",
-         lambda s, p: workflows.list_rules(s, {}, principal=p)),
+         lambda s, p: list_rules(s, {}, principal=p)),
         ("GET", "/api/explorer/catalog", "/platform/api/explorer/catalog",
          lambda s, p: explorer.catalogue(s, principal=p)),
         ("GET", "/admin/api-clients", "/platform/admin/api-clients",

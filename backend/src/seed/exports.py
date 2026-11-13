@@ -158,10 +158,10 @@ def _guarantee(session, store) -> int:
     from src.core.clock import now
     from src.models.identity import User
     from src.models.platform import BackgroundJob
-    from src.services.records import explorer
-    from src.services.transfer import exports
     from src.seed.identity import PERSONAS
     from src.seed.support import Rng
+    from src.services.records import explorer
+    from src.services.transfer import exports
 
     anchor = now()
     # Seeded from the clock, as every repair is: a fixed seed regenerates the

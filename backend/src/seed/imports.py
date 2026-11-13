@@ -116,9 +116,9 @@ def _repair_mapping(row, resource) -> None:
     columns and real fields is left exactly as it is, which is what makes this
     idempotent.
     """
+    from src.core.clock import now
     from src.seed.operations import _import_columns
     from src.seed.support import Rng
-    from src.core.clock import now
 
     columns = {str(item.get("name")) for item in (row.detected_columns or [])}
     mapping = row.column_mapping or {}

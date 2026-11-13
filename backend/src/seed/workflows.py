@@ -21,6 +21,10 @@ from typing import Any
 from sqlalchemy import select
 
 from src.core.clock import now
+from src.services.automation.graph.checks import problems
+from src.services.automation.graph.editing import create_with_graph
+from src.services.automation.graph.shape import normalize
+from src.services.automation.graph.storage import ensure
 
 
 def _tree(field: str, values: tuple[str, ...]) -> dict[str, Any]:
@@ -133,12 +137,11 @@ def populate(session) -> dict[str, int]:
     from src.models.automation_graphs import AutomationGraph
     from src.models.identity import User
     from src.models.platform import AlertRule
-    from src.services.automation import graph as automation_graph
 
     converted = 0
     for rule in session.scalars(select(AlertRule).where(AlertRule.deleted_at.is_(None))).all():
         if session.scalar(select(AutomationGraph.id).where(AutomationGraph.rule_id == rule.id)) is None:
-            automation_graph.ensure(session, rule)
+            ensure(session, rule)
             converted += 1
 
     owner = session.scalar(select(User).where(User.username == "admin")) or session.scalar(select(User).limit(1))
@@ -152,8 +155,8 @@ def populate(session) -> dict[str, int]:
         if session.scalar(select(AlertRule.id).where(AlertRule.name == spec["name"],
                                                      AlertRule.deleted_at.is_(None))):
             continue
-        graph = automation_graph.normalize(spec["graph"])
-        if automation_graph.problems(session, graph):
+        graph = normalize(spec["graph"])
+        if problems(session, graph):
             continue  # a dataset this deployment does not have
         rule = AlertRule(name=spec["name"], description=spec["description"], severity=spec["severity"],
                          resource_type=graph["nodes"][0]["data"]["resource_type"], enabled=True,
@@ -161,7 +164,7 @@ def populate(session) -> dict[str, int]:
                          created_at=now() - timedelta(days=21))
         session.add(rule)
         session.flush()
-        row = automation_graph.create_with_graph(session, rule, graph, principal=principal)
+        row = create_with_graph(session, rule, graph, principal=principal)
         runs += _history(session, rule, graph, row.version, rng)
         created += 1
     session.flush()

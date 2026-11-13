@@ -21,6 +21,7 @@ from __future__ import annotations
 import hashlib
 import json
 import zlib
+
 #: The demo images' own four inks. Not the product's palette, which lives in
 #: `frontend/src/theme/tokens.ts` where the interface can read it — these are
 #: bytes inside a seeded file, the way the colours inside somebody's uploaded

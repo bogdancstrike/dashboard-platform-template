@@ -11,7 +11,8 @@ from __future__ import annotations
 
 # Imported for their registrations; each line says what it connects.
 from src.services.analytics import metric_watches  # noqa: F401 - the hourly anomaly-watch job
-from src.services.automation import graph  # noqa: F401 - workflow approvals; runs on record writes
+from src.services.automation.graph import triggers  # noqa: F401 - runs workflows on record writes
+from src.services.automation.graph import waits  # noqa: F401 - workflow approvals resume the walk
 from src.services.collaboration import chat  # noqa: F401 - the chat badge on the notification poll
 from src.services.decisions import (  # noqa: F401
     approval_kinds,  # approval kinds access/change/report; holds record edits for approval

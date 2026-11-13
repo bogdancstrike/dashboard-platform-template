@@ -115,7 +115,6 @@ def _day(value: Any) -> date | None:
 def populate(session) -> dict[str, int]:
     """Plan the seeded work. Safe to run again."""
     from src.models.planning import Sprint
-
     from src.services.work import task_templates
 
     counts: dict[str, int] = {}
@@ -197,7 +196,11 @@ def _plan(session) -> dict[str, int]:
     from src.models.business import Project, Task
     from src.models.identity import User
     from src.models.planning import (
-        Sprint, SprintSnapshot, TaskDependency, TaskLaneSetting, TaskRecurrence, TaskTemplate,
+        Sprint,
+        TaskDependency,
+        TaskLaneSetting,
+        TaskRecurrence,
+        TaskTemplate,
         TaskWatcher,
     )
 
