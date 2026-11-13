@@ -44,7 +44,7 @@ test.setTimeout(15 * 60_000);
 
 /** A button whose words say it changes or destroys something is never pressed by the crawl. */
 const UNSAFE =
-  /delete|remove|archive|leave|sign out|log ?out|reject|approve|decline|accept|send|submit|save|publish|revoke|disable|reset|clear|restore|discard|run now|test run|mark all|dismiss|stop|close sprint|start sprint|complete|impersonat|regenerate|rotate|merge|unsubscribe|mute|follow|pin|unpin|star|favou?rite|react|vote|refresh|retry|upload|import|export|download|print|copy|duplicate|log time|start timer|join|withdraw|cancel|undo|redo|tidy|apply|generate|ask|create|add$|rescore|recompute|snooze|resolve|acknowledge|enable|toggle|switch|full ?screen/i;
+  /delete|remove|archive|leave|sign out|log ?out|reject|approve|decline|accept|send|submit|save|publish|revoke|disable|reset|clear|restore|discard|run now|test run|mark all|dismiss|stop|close sprint|start sprint|complete|impersonat|regenerate|rotate|merge|unsubscribe|mute|follow|pin|unpin|star|favou?rite|react|vote|refresh|retry|upload|import|export|download|print|copy|duplicate|log time|start timer|join|withdraw|cancel|undo|redo|tidy|apply|generate|ask|create|add$|rescore|recompute|snooze|resolve|acknowledge|enable|toggle|switch|full ?screen|new document|compose|new conversation|evaluate|untitled/i;
 
 type Finding = Record<string, unknown>;
 
