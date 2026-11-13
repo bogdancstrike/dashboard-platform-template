@@ -91,7 +91,7 @@ export function ChartCard({
     }
   };
 
-  // One builder per kind, in `charts/options.ts`. The card is chrome — title,
+  // One builder per kind, in `charts/kinds/`. The card is chrome — title,
   // table view, CSV, drill-down — and the option is data; keeping twelve kinds
   // inside this component is how a codebase ends up with a copied chart
   // instead of a new one.
