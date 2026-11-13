@@ -32,12 +32,8 @@
   "src/pages/KanbanPage.tsx",
   "src/pages/MailPage.tsx",
   "src/pages/RelationshipExplorerPage.tsx",
-  "src/pages/showcase/ComponentsPage.tsx",
-  "src/pages/showcase/TemplatesPage.tsx",
   "src/pages/showcase/creates.ts",
   "src/pages/showcase/guards.ts",
   "src/pages/showcase/templates.ts",
-  "src/pages/work/SprintsPage.tsx",
-  "src/public/PublicDashboardPage.tsx",
-  "src/theme/antd.ts"
+  "src/pages/work/SprintsPage.tsx"
 ]
