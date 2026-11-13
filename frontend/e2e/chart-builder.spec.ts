@@ -148,8 +148,8 @@ test.describe("the chart builder", () => {
     // And it is absent from the *navigation*, rather than offered and refused
     // on arrival — a whole page nobody may open is not a control. Scoped to
     // the sidebar: the breadcrumb naturally names the page being refused.
-    await expect(page.locator(".nu-sider").getByText("Chart builder")).toHaveCount(0);
-    await expect(page.locator(".nu-sider").getByText("Reports")).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Main" }).getByText("Chart builder")).toHaveCount(0);
+    await expect(page.getByRole("navigation", { name: "Main" }).getByText("Reports")).toBeVisible();
     await context.close();
   });
 });

@@ -86,7 +86,7 @@ test("a dependency is drawn from one bar's end to another", async ({ page }) => 
   const target = (await page.getByTestId(`gantt-bar-${second.reference}`).boundingBox())!;
   await drag(page, connector, { x: target.x + target.width / 2, y: target.y + target.height / 2 });
   await expect(page.getByText(`${second.reference} now waits on ${first.reference}`)).toBeVisible();
-  const plan = await (await api.get(endpoint(`/tasks/${second.id}/planning`))).json();
+  const plan = (await (await api.get(endpoint(`/tasks/${second.id}/planning`))).json()) as { blocked_by: { id: string }[] };
   expect(plan.blocked_by.map((item: { id: string }) => item.id)).toContain(first.id);
 });
 
@@ -107,7 +107,7 @@ test("a backlog item dragged into a sprint joins it", async ({ page }) => {
   await drag(page, item, { x: box.x + box.width / 2, y: box.y + box.height / 2 });
   await expect(page.getByTestId(`sprint-${sprint.name}`).getByTestId(`plan-item-${task.reference}`)).toBeVisible();
   await expect.poll(async () => {
-    const detail = await (await api.get(endpoint(`/work/sprints/${sprint.id}`))).json();
+    const detail = (await (await api.get(endpoint(`/work/sprints/${sprint.id}`))).json()) as { tasks: { id: string }[] };
     return detail.tasks.map((item: { id: string }) => item.id);
   }).toContain(task.id);
 });

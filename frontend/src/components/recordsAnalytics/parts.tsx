@@ -97,7 +97,7 @@ export function Sparkline({
     <svg className="nx-ra-spark" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" role="img" aria-label={label ?? "Trend"}>
       <path className="area" d={`${line} L${width},${height} L0,${height} Z`} />
       <path className="line" d={line} vectorEffect="non-scaling-stroke" />
-      {flagged.map((i) => (values[i] === undefined ? null : <circle key={i} cx={x(i)} cy={y(values[i]!)} r={3.5} />))}
+      {flagged.map((i) => (values[i] === undefined ? null : <circle key={i} cx={x(i)} cy={y(values[i])} r={3.5} />))}
     </svg>
   );
 }

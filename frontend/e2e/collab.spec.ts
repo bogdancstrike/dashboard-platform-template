@@ -44,7 +44,7 @@ async function scratchChannel(): Promise<string> {
   }
 }
 
-async function composer(page: Page) {
+function composer(page: Page) {
   return page.getByTestId("chat-composer").getByRole("textbox");
 }
 
@@ -63,7 +63,7 @@ test.afterAll(async () => {
 test("a message with a mention and a reaction", async ({ page }) => {
   const id = await scratchChannel();
   await signIn(page, "admin", `/chat/${id}`);
-  const box = await composer(page);
+  const box = composer(page);
   await box.click();
   await box.pressSequentially("Can you review this @Mar");
   await page.getByRole("option", { name: /Mara Manager/ }).click();
@@ -105,7 +105,7 @@ test("a line arrives live in another person's browser, with typing and presence"
     await expect(members.locator("li").filter({ hasText: "Mara Manager" }).locator('[data-presence="online"]')).toBeVisible();
     await page.keyboard.press("Escape");
 
-    const box = await composer(page);
+    const box = composer(page);
     await box.click();
     await box.pressSequentially("Live from Ada");
     await expect(mara.getByTestId("typing")).toContainText("Ada is typing");

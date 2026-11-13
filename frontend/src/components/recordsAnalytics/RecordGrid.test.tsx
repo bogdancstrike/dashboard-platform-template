@@ -59,7 +59,7 @@ describe("RecordGrid", () => {
     expect(cell(1, 0)).toHaveTextContent("Alpha");
   });
 
-  it("marks cells it cannot coerce and does not send them", async () => {
+  it("marks cells it cannot coerce and does not send them", () => {
     const grid = setup();
     fireEvent.mouseDown(cell(0, 2));
     paste(grid, "eleven\n42");

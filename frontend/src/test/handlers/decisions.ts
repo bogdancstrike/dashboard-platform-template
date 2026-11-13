@@ -319,7 +319,7 @@ export const decisionHandlers = [
     record("POST", `decision/${String(params["id"])}`, payload);
     const item = state.approvals.find((a) => a.id === params["id"])!;
     item.status = payload["decision"] === "approve" ? "APPROVED" : "REJECTED";
-    item.decision_comment = String(payload["comment"] ?? "");
+    item.decision_comment = typeof payload["comment"] === "string" ? payload["comment"] : "";
     item.can_decide = false;
     item.standing = "decided";
     return HttpResponse.json(detail(item));
@@ -405,7 +405,7 @@ export const decisionHandlers = [
   http.post("/platform/api/forms", async ({ request }) => {
     const payload = await body(request);
     record("POST", "forms", payload);
-    const created = { ...state.forms[0]!, ...(payload as Partial<FormDetail>), id: "form-new", submission_count: 0 } as FormDetail;
+    const created = { ...state.forms[0]!, ...(payload as Partial<FormDetail>), id: "form-new", submission_count: 0 };
     state.forms.push(created);
     return HttpResponse.json(created, { status: 201 });
   }),

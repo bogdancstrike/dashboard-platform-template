@@ -24,7 +24,7 @@ function renderAt(route: string) {
   );
 }
 
-const original = window.matchMedia;
+const original = window.matchMedia.bind(window);
 function desktop(on: boolean) {
   window.matchMedia = ((query: string) => ({
     ...original(query),
@@ -33,7 +33,7 @@ function desktop(on: boolean) {
     removeEventListener: vi.fn(),
     addListener: vi.fn(),
     removeListener: vi.fn(),
-  })) as typeof window.matchMedia;
+  }));
 }
 
 beforeEach(() => {

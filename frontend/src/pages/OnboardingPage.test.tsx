@@ -91,7 +91,7 @@ describe("EmptyGuide", () => {
     expect(await screen.findByText(/Loaded 8 sample records/)).toBeInTheDocument();
   });
 
-  it("says why sample data could not be loaded, and renders nothing for an unknown area", async () => {
+  it("says why sample data could not be loaded, and renders nothing for an unknown area", () => {
     renderWithProviders(<><EmptyGuide area="nothing" /><EmptyGuide area="workflow" /></>);
     expect(screen.queryByTestId("empty-guide-nothing")).not.toBeInTheDocument();
     expect(screen.getByText("Go there")).toBeInTheDocument();

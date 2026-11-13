@@ -114,44 +114,50 @@ test.describe("preferences", () => {
     browser,
   }) => {
     await signIn(page, "admin", "/dashboard");
-    const sider = page.locator(".nu-sider");
+    // The PC shell's floating sidebar; folded, the app root carries
+    // `nx-app--folded` and the sidebar becomes an icon rail.
+    const sider = page.locator(".nx-side");
+    const app = page.locator(".nx-app");
     await expect(sider).toBeVisible();
 
     // The collapse is stored on the *account*, so this test inherits whatever
     // the last run left — the same reason the density and theme tests read
     // before they write. It used to assume the rail started expanded, and
     // failed for that reason on the run after any run that ended collapsed.
-    const collapsedClass = /ant-layout-sider-collapsed/;
-    const startedCollapsed = ((await sider.getAttribute("class")) ?? "").includes(
-      "ant-layout-sider-collapsed",
-    );
+    const collapsedClass = /nx-app--folded/;
+    const startedCollapsed = ((await app.getAttribute("class")) ?? "").includes("nx-app--folded");
 
-    // AntD's own trigger at the foot of the sider — the control a reader uses.
+    // The fold control in the sidebar's brand row — the control a reader uses.
     if (!startedCollapsed) {
-      await page.locator(".ant-layout-sider-trigger").click();
+      await sider.getByRole("button", { name: "Collapse sidebar" }).click();
     }
-    await expect(sider).toHaveClass(collapsedClass);
+    await expect(app).toHaveClass(collapsedClass);
 
     // Collapsed, the rail is icons and nothing else: a group heading truncated
     // to "OV…" is a word that has lost the letters that made it a word, and it
-    // costs a row of the rail to say nothing. The headings become rules.
+    // costs a row of the rail to say nothing. The headings fade out and the
+    // groups are separated by rules.
     //
     // Asserted on the heading elements rather than on their words: "Overview"
     // is also the name of an administration *page*, so matching text finds a
     // menu item and proves nothing.
-    const headings = sider.locator(".ant-menu-item-group-title");
+    const headings = sider.locator(".nx-grouphead");
     expect(await headings.count()).toBeGreaterThan(0);
-    expect(await headings.allInnerTexts()).toEqual(
-      Array.from({ length: await headings.count() }, () => ""),
-    );
+    await expect
+      .poll(() => headings.evaluateAll((all) => all.every((el) => getComputedStyle(el).opacity === "0")))
+      .toBe(true);
 
     // And an icon is centred on the rail rather than left where a label used
     // to hold it.
-    const icon = sider.locator(".ant-menu-item .anticon").first();
+    const icon = sider.locator(".nx-navitem .nx-icon").first();
     await expect(icon).toBeVisible();
-    const rail = await sider.boundingBox();
-    const box = await icon.boundingBox();
-    expect(Math.abs((box!.x + box!.width / 2) - (rail!.x + rail!.width / 2))).toBeLessThan(3);
+    await expect
+      .poll(async () => {
+        const rail = await sider.boundingBox();
+        const box = await icon.boundingBox();
+        return Math.abs((box!.x + box!.width / 2) - (rail!.x + rail!.width / 2));
+      })
+      .toBeLessThan(3);
 
     const fresh = await browser.newContext();
     const other = await fresh.newPage();
@@ -160,13 +166,13 @@ test.describe("preferences", () => {
       // the account, which is the whole difference between a preference and a
       // habit of one machine (§40).
       await signIn(other, "admin", "/dashboard");
-      await expect(other.locator(".nu-sider")).toHaveClass(/ant-layout-sider-collapsed/);
+      await expect(other.locator(".nx-app")).toHaveClass(collapsedClass);
     } finally {
       await fresh.close();
       // Left as it was found, so the next run starts where this one did.
       if (!startedCollapsed) {
-        await page.locator(".ant-layout-sider-trigger").click();
-        await expect(sider).not.toHaveClass(collapsedClass);
+        await sider.getByRole("button", { name: "Expand sidebar" }).click();
+        await expect(app).not.toHaveClass(collapsedClass);
       }
     }
   });

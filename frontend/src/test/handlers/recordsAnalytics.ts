@@ -256,7 +256,7 @@ export const recordsAnalyticsHandlers = [
   http.get(`${P}/api/customer-health/model`, () => HttpResponse.json(ra.model)),
   http.put(`${P}/api/customer-health/model`, async ({ request }) => {
     const body = (await request.json()) as Partial<HealthModel>;
-    ra.model = { ...ra.model, ...body, weights: { ...ra.model.weights, ...(body.weights ?? {}) } } as HealthModel;
+    ra.model = { ...ra.model, ...body, weights: { ...ra.model.weights, ...(body.weights ?? {}) } };
     return HttpResponse.json({ ...ra.model, recomputed: { customers: 3 } });
   }),
   http.post(`${P}/api/customer-health/recompute`, () => HttpResponse.json({ status: "SUCCEEDED", customers: 3, dropped: 1 })),
@@ -289,7 +289,7 @@ export const recordsAnalyticsHandlers = [
   ),
   http.post(`${P}/api/contracts`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
-    const made = contract({ id: `ctr-${ra.contracts.length + 1}`, reference: `CTR-0000${ra.contracts.length + 1}`, title: String(body.title ?? "New") });
+    const made = contract({ id: `ctr-${ra.contracts.length + 1}`, reference: `CTR-0000${ra.contracts.length + 1}`, title: typeof body.title === "string" ? body.title : "New" });
     ra.contracts.push(made);
     return HttpResponse.json(made, { status: 201 });
   }),
@@ -391,7 +391,7 @@ export const recordsAnalyticsHandlers = [
   ),
   http.post(`${P}/api/alerts/watches`, async ({ request }) => {
     const body = (await request.json()) as Partial<MetricWatch>;
-    const made = watch({ id: `w-${ra.watches.length + 1}`, name: String(body.name), ...body } as MetricWatch);
+    const made = watch({ id: `w-${ra.watches.length + 1}`, name: String(body.name), ...body });
     ra.watches.push(made);
     return HttpResponse.json(made, { status: 201 });
   }),
