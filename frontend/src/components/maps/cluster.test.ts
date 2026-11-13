@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MapPoint } from "@/api/maps";
-import {
-  clusterMarkers,
-  describeCluster,
-  overlaps,
-  type Placed,
-} from "@/components/maps/cluster";
+import { clusterMarkers, describeCluster, overlaps, type Placed } from "@/components/maps/cluster";
 
 /**
  * Clustering, asserted as geometry (§50).

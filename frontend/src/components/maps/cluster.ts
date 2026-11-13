@@ -102,9 +102,7 @@ export function clusterMarkers(placed: Placed[], gap: number = GAP): Cluster[] {
 
 /** The sums, and where the bubble goes. */
 function collect(points: MapPoint[]): Cluster {
-  const ordered = [...points].sort(
-    (a, b) => b.value - a.value || a.city.localeCompare(b.city),
-  );
+  const ordered = [...points].sort((a, b) => b.value - a.value || a.city.localeCompare(b.city));
   const value = ordered.reduce((sum, point) => sum + point.value, 0);
   const rows = ordered.reduce((sum, point) => sum + point.rows, 0);
   // Weighted by the measure, so a bubble holding Berlin and a village sits on
