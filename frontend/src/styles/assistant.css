@@ -128,3 +128,55 @@
 .nx-ai-pagehelp-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .nx-ai-highlight { outline: 3px solid var(--nu-accent) !important; outline-offset: 3px; border-radius: 12px; animation: nxAiPulse 1s ease-in-out 3; }
 @keyframes nxAiPulse { 50% { outline-color: transparent; } }
+
+/* ── Data mode sources: records and/or document collections (§44) ───── */
+.nx-ai-sources-button {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nx-ai-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(380px, 86vw);
+  max-height: 60vh;
+  overflow: auto;
+}
+.nx-ai-sources-title {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--nu-text-tertiary);
+}
+.nx-ai-sources-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.nx-ai-sources-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.nx-ai-sources-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.nx-ai-sources-files {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0 6px 32px;
+}
+.nx-ai-sources-hint {
+  font-size: 12px;
+}

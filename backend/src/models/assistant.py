@@ -36,6 +36,10 @@ class AssistantConversation(Base, TimestampMixin):
     mode: Mapped[str] = mapped_column(String(16), nullable=False, default="general")
     last_message_at: Mapped[Any | None] = mapped_column(DateTime(timezone=True))
     message_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    #: What a Data-mode turn may read: `{"records": bool, "collections": [id],
+    #: "documents": [id]}` — the records, and/or document collections (§44), or
+    #: only some files of them. Absent means records only, as before.
+    sources: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
 
     messages = relationship(
         "AssistantMessage",

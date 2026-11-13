@@ -45,10 +45,18 @@ export interface AssistantMessage {
   created_at: string;
 }
 
+/** What a Data-mode turn may read: records and/or document collections (or files of them). */
+export interface AssistantSources {
+  records: boolean;
+  collections: string[];
+  documents: string[];
+}
+
 export interface Conversation {
   id: string;
   title: string;
   mode: AssistantMode;
+  sources?: AssistantSources;
   message_count: number;
   last_message_at: string | null;
   created_at: string;
@@ -131,10 +139,10 @@ const BASE = "/api/assistant";
 export const assistantApi = {
   conversations: (q = "", signal?: AbortSignal) =>
     request<ConversationPage>(`${BASE}/conversations`, { params: { q, page_size: 100 }, signal }),
-  create: (body: { mode?: AssistantMode; title?: string } = {}) =>
+  create: (body: { mode?: AssistantMode; title?: string; sources?: AssistantSources } = {}) =>
     request<Conversation>(`${BASE}/conversations`, { method: "POST", body }),
   get: (id: string, signal?: AbortSignal) => request<Conversation>(`${BASE}/conversations/${id}`, { signal }),
-  update: (id: string, body: { title?: string; mode?: AssistantMode }) =>
+  update: (id: string, body: { title?: string; mode?: AssistantMode; sources?: AssistantSources }) =>
     request<Conversation>(`${BASE}/conversations/${id}`, { method: "PATCH", body }),
   remove: (id: string) => request<{ id: string; deleted: boolean }>(`${BASE}/conversations/${id}`, { method: "DELETE" }),
   usage: (signal?: AbortSignal) => request<AiUsage>(`${BASE}/usage`, { signal }),

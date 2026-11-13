@@ -21,6 +21,7 @@ import {
   streamTurn,
   type AssistantMessage,
   type AssistantMode,
+  type AssistantSources,
   type Citation,
   type TurnEvent,
 } from "@/api/assistant";
@@ -28,6 +29,7 @@ import { ApiError } from "@/api/client";
 
 import { AstIcon as AiIcon } from "./AstIcon";
 import { Markdown } from "./Markdown";
+import { DEFAULT_SOURCES, SourcePicker } from "./SourcePicker";
 import "@/styles/assistant.css";
 
 const SUGGESTIONS: Record<AssistantMode, string[]> = {
@@ -65,6 +67,7 @@ export function AssistantChat({ conversationId, onConversationChange, compact, o
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState("");
   const [newMode, setNewMode] = useState<AssistantMode>(initialMode);
+  const [newSources, setNewSources] = useState<AssistantSources>(DEFAULT_SOURCES);
   const [live, setLive] = useState<Live | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const abort = useRef<AbortController | null>(null);
@@ -77,6 +80,7 @@ export function AssistantChat({ conversationId, onConversationChange, compact, o
   });
 
   const mode: AssistantMode = conversation.data?.mode ?? newMode;
+  const sources: AssistantSources = conversation.data?.sources ?? newSources;
   const messages = conversation.data?.messages ?? [];
   const streaming = live !== null;
 
@@ -102,6 +106,20 @@ export function AssistantChat({ conversationId, onConversationChange, compact, o
     await refresh(conversationId);
   };
 
+  const changeSources = async (next: AssistantSources) => {
+    if (!conversationId) {
+      setNewSources(next);
+      return;
+    }
+    queryClient.setQueryData(["assistant-conversation", conversationId], { ...conversation.data, sources: next });
+    try {
+      await assistantApi.update(conversationId, { sources: next });
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "Those sources could not be used.");
+    }
+    await refresh(conversationId);
+  };
+
   const run = async (body: { content?: string; regenerate?: boolean }, question: string) => {
     setFailure(null);
     let id = conversationId;
@@ -111,7 +129,7 @@ export function AssistantChat({ conversationId, onConversationChange, compact, o
     let createdId: string | null = null;
     try {
       if (!id) {
-        const created = await assistantApi.create({ mode });
+        const created = await assistantApi.create(mode === "data" ? { mode, sources } : { mode });
         id = created.id;
         queryClient.setQueryData(["assistant-conversation", id], created);
         createdId = id;
@@ -178,9 +196,11 @@ export function AssistantChat({ conversationId, onConversationChange, compact, o
             { value: "data", label: <span className="nx-ai-seg"><AiIcon name="data" size={14} /> Data</span> },
           ]}
         />
-        <span className="nx-ai-chat-hint">
-          {mode === "data" ? "Reads your records — only what you can open" : "A general assistant — no access to your records"}
-        </span>
+        {mode === "data" ? (
+          <SourcePicker value={sources} onChange={(next) => void changeSources(next)} disabled={streaming} compact={compact} />
+        ) : (
+          <span className="nx-ai-chat-hint">A general assistant — no access to your records</span>
+        )}
       </div>
 
       <div className="nx-ai-thread" aria-live="polite">
@@ -189,7 +209,7 @@ export function AssistantChat({ conversationId, onConversationChange, compact, o
           <div className="nx-ai-empty" data-testid="assistant-empty">
             <span className="nx-ai-empty-mark"><AiIcon name="spark" size={22} /></span>
             <b>{mode === "data" ? "Ask about your data" : "How can I help?"}</b>
-            <p>{mode === "data" ? "Answers cite the records they used, with links." : "Switch to Data to ask about your records."}</p>
+            <p>{mode === "data" ? (sources.collections.length ? "Answers cite the records and the document pages they used." : "Answers cite the records they used, with links.") : "Switch to Data to ask about your records."}</p>
             <div className="nx-ai-suggest">
               {SUGGESTIONS[mode].map((text) => (
                 <button key={text} type="button" className="nx-ai-chip" onClick={() => send(text)}>
@@ -247,7 +267,7 @@ export function AssistantChat({ conversationId, onConversationChange, compact, o
               send();
             }
           }}
-          placeholder={mode === "data" ? "Ask about your records…" : "Message the assistant…"}
+          placeholder={mode === "data" ? (sources.collections.length ? (sources.records ? "Ask about your records and documents…" : "Ask about your documents…") : "Ask about your records…") : "Message the assistant…"}
           autoSize={{ minRows: 1, maxRows: compact ? 4 : 8 }}
           aria-label="Message"
           data-testid="assistant-input"

@@ -37,7 +37,24 @@ def catalogue_text(principal) -> str:
     return "\n\n".join(blocks) or "(no datasets are readable by this user)"
 
 
-def definitions(principal) -> list[dict[str, Any]]:
+DOCUMENT_TOOL = {"type": "function", "function": {
+    "name": "search_documents",
+    "description": "Search the document collections chosen as sources (passages of PDFs, Word files, notes...). "
+                   "Returns numbered passages with file name and page; cite them as [D1], [D2] in the answer.",
+    "parameters": {"type": "object", "required": ["query"], "properties": {
+        "query": {"type": "string", "description": "What to look for, in the words a passage would use."},
+    }},
+}}
+
+
+def definitions(principal, sources: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    """The tools a Data-mode turn may call, for the sources it was given."""
+    sources = sources or {}
+    records = record_definitions(principal) if sources.get("records", True) else []
+    return records + ([DOCUMENT_TOOL] if sources.get("collections") else [])
+
+
+def record_definitions(principal) -> list[dict[str, Any]]:
     keys = [r.key for r in _datasets(principal)]
     tree = {
         "type": "object",
@@ -192,12 +209,47 @@ TOOLS = {
 }
 
 
-def run(session, name: str, args: dict[str, Any], *, principal) -> tuple[str, list[dict[str, str]], str]:
+def search_documents(session, args: dict[str, Any], *, principal, sources: dict[str, Any] | None = None):
+    """Passages from the chosen collections (or files), as the reader may see them."""
+    from uuid import UUID
+
+    from src.services import knowledge
+
+    sources = sources or {}
+    query = str(args.get("query") or "").strip()
+    if not query:
+        raise ValidationError("Say what to look for.")
+    visible = set(knowledge.visible_ids(session, principal))
+    chosen = [UUID(str(c)) for c in sources.get("collections") or [] if UUID(str(c)) in visible]
+    if not chosen:
+        raise ValidationError("None of the chosen collections is visible to you any more.")
+    files = {str(d) for d in sources.get("documents") or []}
+    hits = knowledge.search(session, chosen, query, limit=20)
+    if files:
+        hits = [h for h in hits if h["document_id"] in files]
+    hits = hits[:6]
+    passages, cites = [], []
+    for index, hit in enumerate(hits, start=1):
+        where = hit["file_name"] + (f", page {hit['page']}" if hit["page"] else "")
+        passages.append({"ref": f"D{index}", "where": where, "text": hit["text"][:1500]})
+        cites.append({
+            "resource_type": "document", "id": hit["chunk_id"], "dataset": "Documents",
+            "label": f"[D{index}] {hit['file_name']}" + (f" · p. {hit['page']}" if hit["page"] else ""),
+            "path": f"/ai/documents?collection={hit['collection_id']}&passage={hit['chunk_id']}",
+        })
+    return {"query": query, "total": len(passages), "passages": passages}, cites
+
+
+def run(session, name: str, args: dict[str, Any], *, principal,
+        sources: dict[str, Any] | None = None) -> tuple[str, list[dict[str, str]], str]:
     """Execute one tool call: (JSON for the model, citations, a one-line summary).
 
     A refusal or a bad argument goes back to the model as an error it can
     correct — never as an exception that ends the conversation."""
-    tool = TOOLS.get(name)
+    if name == "search_documents":
+        tool = lambda s, a, principal: search_documents(s, a, principal=principal, sources=sources)  # noqa: E731
+    else:
+        tool = TOOLS.get(name)
     if tool is None:
         return json.dumps({"error": f"unknown tool {name}"}), [], f"Unknown tool {name}"
     if not isinstance(args, dict) or "__invalid_json__" in args:
@@ -220,4 +272,6 @@ def _summary(name: str, payload: dict[str, Any]) -> str:
         return f"Counted {payload['total']} in {payload['dataset']}{extra}"
     if name == "get_record":
         return f"Read {payload['title']}"
+    if name == "search_documents":
+        return f"Read {payload['total']} passages for “{payload['query']}”"
     return f"Searched everything for “{payload['query']}” — {payload['total']} hits"

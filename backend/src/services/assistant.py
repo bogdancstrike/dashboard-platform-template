@@ -57,6 +57,7 @@ def conversation_dict(row, *, messages: list | None = None) -> dict[str, Any]:
         "id": str(row.id),
         "title": row.title,
         "mode": row.mode,
+        "sources": sources_of(row),
         "message_count": row.message_count,
         "last_message_at": iso(row.last_message_at),
         "created_at": iso(row.created_at),
@@ -110,6 +111,30 @@ def _mode(raw: Any, default: str = "general") -> str:
     return mode
 
 
+def sources_of(row) -> dict[str, Any]:
+    raw = row.sources or {}
+    return {"records": bool(raw.get("records", True)), "collections": list(raw.get("collections") or []),
+            "documents": list(raw.get("documents") or [])}
+
+
+def _sources(session, raw: Any, *, principal) -> dict[str, Any]:
+    """What a Data-mode turn may read, checked against what the reader may see."""
+    from src.services import knowledge
+
+    if not isinstance(raw, dict):
+        raise ValidationError("sources must be an object.", details={"field": "sources"})
+    visible = {str(i) for i in knowledge.visible_ids(session, principal)}
+    collections = [str(c) for c in raw.get("collections") or []][:20]
+    hidden = [c for c in collections if c not in visible]
+    if hidden:
+        raise ValidationError("You may not use those collections.", details={"collections": hidden})
+    documents = [str(d) for d in raw.get("documents") or []][:100]
+    records = bool(raw.get("records", True))
+    if not records and not collections:
+        raise ValidationError("Choose your records, a collection, or both.", details={"field": "sources"})
+    return {"records": records, "collections": collections, "documents": documents}
+
+
 def _title(raw: Any) -> str:
     title = " ".join(str(raw or "").split())[:200]
     if not title:
@@ -147,6 +172,7 @@ def create_conversation(session, body: dict[str, Any] | None, *, principal) -> d
         user_id=principal.user_id,
         title=_title(body.get("title")) if body.get("title") else DEFAULT_TITLE,
         mode=_mode(body.get("mode")),
+        sources=_sources(session, body["sources"], principal=principal) if body.get("sources") else None,
         message_count=0,
     )
     session.add(row)
@@ -168,6 +194,8 @@ def update_conversation(session, conversation_id, body: dict[str, Any] | None, *
         row.title = _title(body.get("title"))
     if "mode" in body:
         row.mode = _mode(body.get("mode"))
+    if "sources" in body:
+        row.sources = _sources(session, body.get("sources") or {}, principal=principal)
     row.updated_at = now()
     session.flush()
     return conversation_dict(row)
@@ -227,13 +255,26 @@ When you mention a record, link it in Markdown with its path, e.g. [TCK-00042](/
 Say how many records matched when that matters, and keep tables to the useful columns."""
 
 
-def _system(principal, mode: str) -> str:
+DOCUMENTS_PROMPT = """
+DOCUMENTS: the user chose these document collections as sources: {names}.
+For anything they might say, call search_documents and answer from the passages it returns, citing each claim
+with its reference in square brackets, e.g. [D1] or [D2]. If the passages do not say, say so."""
+
+
+def _system(principal, mode: str, sources: dict[str, Any] | None = None, session=None) -> str:
     text = GENERAL_PROMPT.format(today=now().strftime("%A %d %B %Y"), name=principal.full_name,
                                  role=principal.role_code.title())
-    if mode == "data":
+    sources = sources or {"records": True, "collections": []}
+    if mode == "data" and sources.get("records", True):
         from src.services.ai_filters import TREE_SCHEMA
 
         text += DATA_PROMPT.format(schema=TREE_SCHEMA, catalogue=assistant_tools.catalogue_text(principal))
+    if mode == "data" and sources.get("collections") and session is not None:
+        from src.models.knowledge import KnowledgeCollection
+
+        names = [row.name for row in session.query(KnowledgeCollection)
+                 .filter(KnowledgeCollection.id.in_(sources["collections"])).all()]
+        text += DOCUMENTS_PROMPT.format(names=", ".join(names) or "(none)")
     return text
 
 
@@ -262,6 +303,8 @@ def begin_turn(session, conversation_id, body: dict[str, Any] | None, *, princip
     convo = _own(session, conversation_id, principal)
     if "mode" in body:
         convo.mode = _mode(body.get("mode"))
+    if body.get("sources"):
+        convo.sources = _sources(session, body["sources"], principal=principal)
     messages = list(convo.messages)
     if body.get("regenerate"):
         last_user = next((m for m in reversed(messages) if m.role == "user"), None)
@@ -299,7 +342,9 @@ def begin_turn(session, conversation_id, body: dict[str, Any] | None, *, princip
         "mode": convo.mode,
         "title": convo.title,
         "user_message": message_dict(user_message),
-        "history": [{"role": "system", "content": _system(principal, convo.mode)}, *_history(messages)],
+        "sources": sources_of(convo),
+        "history": [{"role": "system", "content": _system(principal, convo.mode, sources_of(convo), session)},
+                    *_history(messages)],
     }
 
 
@@ -311,7 +356,8 @@ def stream_turn(turn: dict[str, Any], *, principal) -> Iterator[str]:
     client = llm.get_client()
     mode = turn["mode"]
     messages = list(turn["history"])
-    tools = assistant_tools.definitions(principal) if mode == "data" else None
+    sources = turn.get("sources") or {}
+    tools = (assistant_tools.definitions(principal, sources) or None) if mode == "data" else None
     text_parts: list[str] = []
     citations: dict[str, dict[str, str]] = {}
     steps: list[dict[str, Any]] = []
@@ -357,7 +403,7 @@ def stream_turn(turn: dict[str, Any], *, principal) -> Iterator[str]:
                 yield _sse("tool", {"name": call.name, "status": "running", "arguments": call.arguments})
                 with session_scope() as session:
                     output, cites, summary = assistant_tools.run(session, call.name, call.arguments,
-                                                                 principal=principal)
+                                                                 principal=principal, sources=sources)
                 for cite in cites:
                     citations.setdefault(f"{cite['resource_type']}:{cite['id']}", cite)
                 steps.append({"name": call.name, "arguments": call.arguments, "summary": summary})
@@ -378,7 +424,11 @@ def stream_turn(turn: dict[str, Any], *, principal) -> Iterator[str]:
     content = "".join(text_parts).strip()
     # Only the records the answer actually names, when it names any; all of
     # them when it names none (a count answer cites what it counted).
-    cited = [c for c in citations.values() if c["id"] in content] or list(citations.values())[:12]
+    records = [c for c in citations.values() if c["resource_type"] != "document"]
+    cited = [c for c in records if c["id"] in content] or records[:12]
+    # A passage is cited by its [Dn] marker; none marked means all that were read.
+    documents = [c for c in citations.values() if c["resource_type"] == "document"]
+    cited += [c for c in documents if c["label"].split(" ", 1)[0] in content] or documents[:6]
     with session_scope() as session:
         saved = AssistantMessage(
             conversation_id=turn["conversation_id"], role="assistant", content=content, mode=mode,
