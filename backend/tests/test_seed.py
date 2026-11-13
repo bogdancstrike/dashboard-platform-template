@@ -220,8 +220,8 @@ def test_every_seeded_report_can_actually_be_run(world):
     Asserted against the same declarations the compiler resolves against, so
     the test cannot drift from the rule it is checking.
     """
-    from src.services.analysis import AGGREGATIONS, DIMENSION_KINDS, MEASURE_KINDS
-    from src.services.explorer import resources
+    from src.services.analytics.analysis import AGGREGATIONS, DIMENSION_KINDS, MEASURE_KINDS
+    from src.services.records.explorer import resources
 
     catalogue = resources()
     assert world.reports, "the seed builds no reports at all"
@@ -583,7 +583,7 @@ def test_the_kanban_hierarchy_obeys_its_own_rule(world):
     dataset the product could not have created — and the first person to move
     a card would be told their board is invalid.
     """
-    from src.services.kanban import PARENT_OF
+    from src.services.work.kanban import PARENT_OF
 
     by_id = {card.id: card for card in world.kanban_cards}
     for card in world.kanban_cards:
@@ -651,7 +651,7 @@ def test_the_preferences_repair_fills_keys_in_and_expands_the_sidebar():
     every deploy — and a key the declaration has gained appears with its
     default rather than being absent until the next write.
     """
-    from src.services.me import PREFERENCE_DEFAULTS
+    from src.services.people.account import PREFERENCE_DEFAULTS
 
     class _User:
         def __init__(self, preferences):

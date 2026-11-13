@@ -64,7 +64,7 @@ def test_the_hierarchy_rule_lives_in_one_place():
     an epic inside a task — and the check happens on create, on re-parent and
     when a parent is deleted.
     """
-    from src.services.kanban import KINDS, PARENT_OF
+    from src.services.work.kanban import KINDS, PARENT_OF
 
     assert set(PARENT_OF) == set(KINDS)
     # Every child named is itself a kind: a rule that permits a child nothing
@@ -79,7 +79,7 @@ def test_the_hierarchy_rule_lives_in_one_place():
 @pytest.mark.database
 def test_a_new_board_arrives_with_lanes(client, monkeypatch):
     """A board created empty is a board whose first action is administration."""
-    from src.services.kanban import STARTER_LANES
+    from src.services.work.kanban import STARTER_LANES
 
     headers = _authenticate(monkeypatch)
     created = _board(client, headers, name="Delivery")

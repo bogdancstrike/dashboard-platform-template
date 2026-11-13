@@ -21,7 +21,7 @@ import pytest
 
 from src.config import Config
 from src.core.clock import now
-from src.services import metric_watches as service
+from src.services.analytics import metric_watches as service
 from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX

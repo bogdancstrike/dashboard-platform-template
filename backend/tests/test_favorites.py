@@ -32,7 +32,7 @@ from sqlalchemy import select
 
 from src.config import Config
 from src.core.db import session_scope
-from src.services import favorites as service
+from src.services.records import favorites as service
 from tests.conftest import persona_claims
 
 pytestmark = pytest.mark.database
@@ -75,7 +75,7 @@ def _bookmark(client, headers, **overrides) -> dict:
 
 
 def test_the_bookmarkable_types_come_from_the_registry():
-    from src.services import explorer
+    from src.services.records import explorer
 
     kinds = service.bookmarkable()
     # Derived, so a dataset added to the explorer becomes bookmarkable the

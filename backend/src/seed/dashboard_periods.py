@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm.attributes import flag_modified
 
 from src.models.personal import Dashboard, DashboardWidget
-from src.services.analysis import known_period
+from src.services.analytics.analysis import known_period
 
 #: What an unreadable period becomes: the dashboard's own default.
 FALLBACK = "last_30_days"

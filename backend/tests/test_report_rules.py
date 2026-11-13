@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.services import reports as service
+from src.services.analytics import reports as service
 from tests.personas import PREFIX, as_each
 
 REPORTS = f"{PREFIX}/api/reports"

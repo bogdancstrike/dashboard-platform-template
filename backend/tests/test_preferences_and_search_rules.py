@@ -13,7 +13,8 @@ from uuid import uuid4
 import pytest
 
 from src.core.errors import NotFoundError, ValidationError
-from src.services import me, search
+from src.services.people import account as me
+from src.services.records import search
 
 
 @pytest.mark.parametrize(("patch", "field"), [

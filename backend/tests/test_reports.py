@@ -244,7 +244,7 @@ def test_every_kind_the_renderer_themes_can_be_saved(client, monkeypatch):
     can compose, preview and then fail to keep — which is worse than not
     offering it, because the work is lost at the last step.
     """
-    from src.services.reports import VISUALIZATIONS
+    from src.services.analytics.reports import VISUALIZATIONS
 
     # `table` is the one entry that is not a chart: a saved analysis read as
     # rows rather than drawn. Everything else has a renderer.

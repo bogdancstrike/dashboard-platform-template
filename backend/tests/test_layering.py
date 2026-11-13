@@ -153,10 +153,10 @@ def test_a_handler_names_a_permission_and_calls_a_service():
 
     for path in modules("api"):
         text = path.read_text()
-        # `app.py` assembles the process, `handler.py` is the adapter,
+        # `handler.py` is the adapter,
         # `endpoint_map.py` validates the map and `__init__.py` is empty; none
         # is a handler module.
-        if path.name in {"app.py", "endpoint_map.py", "handler.py", "__init__.py"}:
+        if path.name in {"endpoint_map.py", "handler.py", "__init__.py"}:
             continue
         if path.stem in public:
             continue

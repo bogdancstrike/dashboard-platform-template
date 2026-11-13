@@ -17,7 +17,7 @@ import pytest
 from sqlalchemy import select
 
 from src.config import Config
-from src.services import task_templates as service
+from src.services.work import task_templates as service
 from tests.personas import PREFIX, sign_in
 
 pytestmark = pytest.mark.database

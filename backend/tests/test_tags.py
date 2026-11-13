@@ -22,7 +22,7 @@ import pytest
 from sqlalchemy import select
 
 from src.config import Config
-from src.services import tags as service
+from src.services.records import tags as service
 from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX
@@ -443,7 +443,7 @@ def test_every_entity_dataset_can_carry_tags(client, monkeypatch):
     vocabulary stopped at the ledger — an asymmetry nothing would have
     reported.
     """
-    from src.services.explorer import resources
+    from src.services.records.explorer import resources
 
     headers = _authenticate(monkeypatch)
     taggable = set(client.get(TAGS, headers=headers).get_json()["taggable"])

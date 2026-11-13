@@ -21,7 +21,7 @@ import pytest
 
 from src.config import Config
 from src.core.clock import now
-from src.services import dashboard_links as service
+from src.services.analytics import dashboard_links as service
 from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX

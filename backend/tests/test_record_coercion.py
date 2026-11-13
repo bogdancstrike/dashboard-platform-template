@@ -16,7 +16,7 @@ import pytest
 from sqlalchemy import Column, Float, Integer, Numeric, String
 
 from src.core.errors import ConflictError, NotFoundError, ValidationError
-from src.services import record_writes as rw
+from src.services.records import writes as rw
 
 
 def _field(kind: str, *, name: str = "f", title: str = "Field", choices=(), column=None):
@@ -118,7 +118,7 @@ def test_the_payload_has_to_be_an_object():
 @pytest.mark.database
 def test_an_import_hears_every_problem_and_a_form_hears_the_first(app):
     from src.core.db import session_scope
-    from src.services.explorer import resources
+    from src.services.records.explorer import resources
 
     task = resources()["task"]
     required = [name for name, spec in task.writable.items() if spec.required]

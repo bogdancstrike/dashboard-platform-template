@@ -16,7 +16,7 @@ from sqlalchemy import select
 from src.config import Config
 from src.core.db import session_scope
 from src.models.sla import BusinessCalendar
-from src.services import sla
+from src.services.decisions import sla
 from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX

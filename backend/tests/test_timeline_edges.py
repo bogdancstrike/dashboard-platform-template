@@ -13,7 +13,7 @@ from types import SimpleNamespace
 import pytest
 
 from src.core.errors import ValidationError
-from src.services import timeline as service
+from src.services.work import timeline as service
 from tests.personas import PREFIX, sign_in
 
 

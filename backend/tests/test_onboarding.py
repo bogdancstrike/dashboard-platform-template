@@ -13,7 +13,7 @@ from sqlalchemy import func, select
 
 from src.config import Config
 from src.core.db import session_scope
-from src.services import onboarding as service
+from src.services.platform import onboarding as service
 from tests.conftest import persona_claims
 
 pytestmark = pytest.mark.database

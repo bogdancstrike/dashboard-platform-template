@@ -344,7 +344,7 @@ def background_job(rng, *, index: int, status: str, users, scheduled_tasks, fres
     retryable cancelled job.
     """
     from src.models.platform import BackgroundJob
-    from src.services.jobs import NOT_OURS_TO_RETRY
+    from src.services.platform.jobs import NOT_OURS_TO_RETRY
 
     kinds = (
         tuple((kind, weight) for kind, weight in catalog.JOB_KINDS
@@ -594,7 +594,7 @@ def _watchable(resource_type: str) -> tuple[str, tuple[str, ...]] | None:
     compile against a *different* set. Every one of them was unrunnable, which
     is what somebody finds the moment they open the page and press Dry run.
     """
-    from src.services.explorer import resources
+    from src.services.records.explorer import resources
 
     resource = resources().get(resource_type)
     if resource is None:
@@ -618,7 +618,7 @@ def _alert_rules(world: World) -> None:
     """
     from src.core.rules import compile_tree, describe_tree
     from src.models.platform import AlertRule
-    from src.services.explorer import resources
+    from src.services.records.explorer import resources
 
     rng = world.rng.derive("alerts")
     catalogue = {key: name for name, key, _ in catalog.ALERT_RULES}
@@ -725,7 +725,7 @@ def _import_runs(world: World) -> None:
     """
     from src.core import importer
     from src.models.platform import ImportRun
-    from src.services import explorer
+    from src.services.records import explorer
 
     rng = world.rng.derive("imports")
     # Only datasets that can be created, from the registry: a seeded run

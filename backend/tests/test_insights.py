@@ -13,8 +13,8 @@ import pytest
 
 from src.config import Config
 from src.core import llm
-from src.services import insight_spec as specs
-from src.services import insight_suggestions as suggestions
+from src.services.analytics.insights import spec as specs
+from src.services.analytics.insights import suggestions as suggestions
 from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX

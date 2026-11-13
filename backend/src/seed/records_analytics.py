@@ -80,7 +80,8 @@ WATCHES = (
 
 def populate(session) -> dict[str, int]:
     """Add what is missing. Safe to run again."""
-    from src.services import analytics_jobs, customer_health
+    from src.services.analytics import jobs as analytics_jobs
+    from src.services.records import customer_health
 
     counts: dict[str, int] = {}
     customer_health.active_model(session)
@@ -149,7 +150,7 @@ def _audit(session, *, at: datetime, action: str, resource_type: str, resource_i
 def _contracts(session) -> int:
     from src.models.business import Customer
     from src.models.records_analytics import Contract
-    from src.services import contracts as service
+    from src.services.records import contracts as service
 
     if session.scalar(select(func.count()).select_from(Contract)):
         return 0
@@ -241,7 +242,7 @@ def _contracts(session) -> int:
 def _snapshots(session) -> int:
     """Ninety days of daily scores behind today's, for every customer missing them."""
     from src.models.records_analytics import CustomerHealth, CustomerHealthSnapshot
-    from src.services import customer_health
+    from src.services.records import customer_health
 
     rng = random.Random(SEED + 1)
     today = now().date()
@@ -300,7 +301,7 @@ def _drop_notifications(session) -> int:
     from src.models.business import Customer
     from src.models.platform import Notification
     from src.models.records_analytics import CustomerHealth
-    from src.services import customer_health
+    from src.services.records import customer_health
 
     if session.scalar(select(func.count()).select_from(Notification).where(Notification.group_key.like("health:%"))):
         return 0
@@ -369,8 +370,8 @@ def _earlier(value: Any, choices: list[Any] | None, rng: random.Random, field: s
 
 def _histories(session) -> int:
     from src.models.platform import AuditLog
-    from src.services import record_writes
-    from src.services.explorer import resource_for
+    from src.services.records import writes as record_writes
+    from src.services.records.explorer import resource_for
 
     if session.scalar(select(func.count()).select_from(AuditLog).where(
             AuditLog.metadata_json["source"].astext == MARK["source"], AuditLog.resource_type != "contract")):
@@ -430,7 +431,7 @@ def _histories(session) -> int:
 
 def _watches(session) -> int:
     from src.models.records_analytics import MetricWatch
-    from src.services import metric_watches
+    from src.services.analytics import metric_watches
 
     if session.scalar(select(func.count()).select_from(MetricWatch)):
         return 0

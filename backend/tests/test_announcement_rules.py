@@ -16,7 +16,7 @@ from uuid import uuid4
 import pytest
 
 from src.core.clock import iso, now
-from src.services import announcements as service
+from src.services.collaboration import announcements as service
 from tests.personas import PREFIX, as_each, principal
 
 FEED = f"{PREFIX}/api/announcements"

@@ -38,7 +38,7 @@ from sqlalchemy import select
 from src.config import Config
 from src.core import background, importer, vocabulary
 from src.core.db import session_scope
-from src.services import imports as service
+from src.services.transfer import imports as service
 from tests.conftest import persona_claims
 
 pytestmark = pytest.mark.database
@@ -368,7 +368,7 @@ def test_the_counts_add_up(client, monkeypatch):
 
 
 def test_a_row_is_refused_by_the_rule_a_form_uses(client, monkeypatch):
-    from src.services import explorer, record_writes
+    from src.services.records import explorer, writes as record_writes
 
     headers = _authenticate(monkeypatch)
     rows = [{"name": "Import Test Enum", "email": "e@example.test", "segment": ENUM_BAD}]
@@ -545,7 +545,7 @@ def test_an_import_creates_the_records_it_previewed(client, monkeypatch):
 
 def test_a_failure_part_way_leaves_no_records(client, monkeypatch):
     from src.models.business import Customer
-    from src.services import record_writes
+    from src.services.records import writes as record_writes
 
     headers = _authenticate(monkeypatch)
     body = _begin(client, headers, _csv(_rows(4))).get_json()
@@ -773,7 +773,7 @@ def test_a_role_without_the_import_privilege_is_refused(client, monkeypatch):
 
 
 def test_only_datasets_that_can_be_created_are_offered(client, monkeypatch):
-    from src.services import explorer
+    from src.services.records import explorer
 
     headers = _authenticate(monkeypatch)
     catalogue = client.get(f"{IMPORTS}/catalogue", headers=headers).get_json()
@@ -1027,7 +1027,7 @@ def test_no_seeded_import_describes_a_file_that_could_not_exist():
     """
     from src.core import importer
     from src.models.platform import ImportRun
-    from src.services import explorer
+    from src.services.records import explorer
 
     creatable = {
         key for key, resource in explorer.resources().items() if resource.identity is not None

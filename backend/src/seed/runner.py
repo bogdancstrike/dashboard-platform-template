@@ -209,7 +209,7 @@ def sync_searches(session) -> dict[str, int]:
     from src.seed import catalog
     from src.seed.identity import PERSONA_DOMAIN, PERSONAS
     from src.seed.personal import COLUMN_SETS
-    from src.services.explorer import resources as _resources
+    from src.services.records.explorer import resources as _resources
 
     catalogue = _resources()
     cleaned = 0
@@ -304,8 +304,8 @@ def sync_tags(session) -> dict[str, int]:
     from sqlalchemy import func, select as _select
 
     from src.models.content import Tag, TagLink
-    from src.services.explorer import resources as _resources
-    from src.services.tags import _resync
+    from src.services.records.explorer import resources as _resources
+    from src.services.records.tags import _resync
 
     rewritten = 0
     cleared = 0
@@ -628,7 +628,7 @@ def verify(session) -> list[str]:
     from src.models.content import Comment, EmailMessage, EmailThread, FileObject
     from src.models.identity import Department, Team, User
     from src.models.personal import Dashboard, DashboardWidget, ResourceShare, SavedSearch
-    from src.services.explorer import resources as _resources
+    from src.services.records.explorer import resources as _resources
     from src.models.platform import ActivityEntry, AuditLog, BackgroundJob, ImportRun
 
     problems: list[str] = []
@@ -1067,7 +1067,7 @@ def sync_preferences(session) -> dict[str, int]:
     Idempotent, so it can run on every deploy.
     """
     from src.models.identity import User
-    from src.services.me import PREFERENCE_DEFAULTS
+    from src.services.people.account import PREFERENCE_DEFAULTS
 
     filled = reset = 0
     for row in session.scalars(select(User)).all():
@@ -1284,7 +1284,7 @@ def _tags_out_of_step(session) -> list[str]:
     from sqlalchemy import func, select as _select
 
     from src.models.content import Tag, TagLink
-    from src.services.explorer import resources as _resources
+    from src.services.records.explorer import resources as _resources
 
     problems: list[str] = []
 
@@ -1341,8 +1341,8 @@ def _unrunnable_reports(session) -> list[str]:
     from sqlalchemy import select as _select
 
     from src.models.personal import Report
-    from src.services.analysis import AGGREGATIONS, DIMENSION_KINDS, MEASURE_KINDS
-    from src.services.explorer import resources
+    from src.services.analytics.analysis import AGGREGATIONS, DIMENSION_KINDS, MEASURE_KINDS
+    from src.services.records.explorer import resources
 
     catalogue = resources()
     problems: list[str] = []
@@ -1408,8 +1408,8 @@ def sync_reports(session) -> dict[str, int]:
     from sqlalchemy import select as _select
 
     from src.models.personal import Report
-    from src.services.analysis import AGGREGATIONS, DIMENSION_KINDS, MEASURE_KINDS
-    from src.services.explorer import resources
+    from src.services.analytics.analysis import AGGREGATIONS, DIMENSION_KINDS, MEASURE_KINDS
+    from src.services.records.explorer import resources
 
     catalogue = resources()
     repaired = 0
@@ -1488,9 +1488,9 @@ def _unrunnable_automations(session) -> list[str]:
     from src.core.rules import compile_tree
     from src.models.automation_graphs import AutomationGraph
     from src.models.platform import AlertRule
-    from src.services import automation_graph
-    from src.services.explorer import resources
-    from src.services.workflows import ACTIONS
+    from src.services.automation import graph as automation_graph
+    from src.services.records.explorer import resources
+    from src.services.automation.workflows import ACTIONS
 
     catalogue = resources()
     counts: dict[str, int] = {}
@@ -1563,7 +1563,7 @@ def sync_automations(session) -> dict[str, int]:
     from src.core.errors import ValidationError
     from src.core.rules import compile_tree, describe_tree
     from src.models.platform import AlertRule
-    from src.services.explorer import resources
+    from src.services.records.explorer import resources
 
     catalogue = resources()
     repaired = 0
@@ -1654,7 +1654,7 @@ def _repaired_action(item: dict[str, Any]) -> dict[str, Any] | None:
     seed wrote `{"type": "NOTIFY", "audience": "OWNERS"}`, which the engine
     reads as an action addressed to nobody.
     """
-    from src.services.workflows import ACTIONS
+    from src.services.automation.workflows import ACTIONS
 
     kind = str(item.get("kind") or item.get("type") or "").upper()
     action = ACTIONS.get(kind)
@@ -1793,7 +1793,7 @@ def sync_jobs(session) -> dict[str, int]:
     from src.models.platform import BackgroundJob, ScheduledTask
     from src.seed.operations import background_job
     from src.seed.support import Rng
-    from src.services.jobs import NOT_OURS_TO_RETRY
+    from src.services.platform.jobs import NOT_OURS_TO_RETRY
 
     anchor = now()
     # Seeded from the clock for the same reason `sync_mailboxes` is: a fixed

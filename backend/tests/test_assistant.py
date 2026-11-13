@@ -182,7 +182,7 @@ def test_data_mode_calls_tools_and_cites_records(client, monkeypatch):
 
 @pytest.mark.database
 def test_tool_rounds_are_bounded(client, monkeypatch):
-    from src.services import assistant as service
+    from src.services.ai import assistant as service
 
     h = _auth(monkeypatch)
     convo = _new(client, h, mode="data")
@@ -213,7 +213,7 @@ def test_a_model_failure_is_an_error_event_and_saved(client, monkeypatch):
 def test_stopping_saves_what_was_written(client, monkeypatch):
     from src.core.db import session_scope
     from src.models.assistant import AssistantMessage
-    from src.services import assistant as service
+    from src.services.ai import assistant as service
 
     h = _auth(monkeypatch)
     convo = _new(client, h)
@@ -235,7 +235,7 @@ def test_stopping_saves_what_was_written(client, monkeypatch):
 def test_rate_limit_and_permission(client, monkeypatch):
     from src.core.db import session_scope
     from src.core.errors import ForbiddenError, RateLimitedError
-    from src.services import ai, assistant as service
+    from src.services.ai import usage as ai, assistant as service
 
     h = _auth(monkeypatch)
     convo = _new(client, h)
@@ -263,7 +263,7 @@ def test_rate_limit_and_permission(client, monkeypatch):
 @pytest.mark.database
 def test_tools_answer_through_the_callers_permissions():
     from src.core.db import session_scope
-    from src.services import assistant_tools as tools
+    from src.services.ai import tools as tools
 
     admin = _principal()
     with session_scope() as session:
@@ -387,8 +387,8 @@ def test_auto_dataset_fallback_and_errors(client, monkeypatch):
 @pytest.mark.database
 def test_values_resolve_names_and_dates():
     from src.core.db import session_scope
-    from src.services import ai_filters as f
-    from src.services.explorer import resources
+    from src.services.ai import filters as f
+    from src.services.records.explorer import resources
 
     admin = _principal()
     today = now()
@@ -421,7 +421,7 @@ def test_values_resolve_names_and_dates():
 def test_value_helpers():
     from datetime import datetime, UTC
 
-    from src.services import ai_filters as f
+    from src.services.ai import filters as f
 
     today = datetime(2026, 11, 12, 15, 30, tzinfo=UTC)
     assert f._moment("today", today=today) == "2026-11-12 00:00:00"
@@ -443,8 +443,8 @@ def test_value_helpers():
 
 
 def test_operator_and_field_resolution():
-    from src.services import ai_filters as f
-    from src.services.explorer import resources
+    from src.services.ai import filters as f
+    from src.services.records.explorer import resources
 
     ticket = resources()["ticket"]
     fields = ticket.fields.by_name
@@ -518,7 +518,7 @@ def test_the_brief_falls_back_caches_and_refreshes_with_the_model(client, monkey
 def test_the_brief_gathers_what_is_waiting():
     from src.core.db import session_scope
     from src.models.business import Task
-    from src.services import assistant_brief as brief
+    from src.services.ai import brief as brief
 
     admin = _principal()
     with session_scope() as session:

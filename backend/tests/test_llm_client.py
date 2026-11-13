@@ -316,7 +316,7 @@ def test_fake_header_only_when_allowed(app, monkeypatch):
 
 
 def test_timeouts_become_a_clean_envelope():
-    from src.services import ai
+    from src.services.ai import usage as ai
 
     err = ai.unavailable(llm.LlmError("LLM_TIMEOUT", "slow"))
     assert err.status_code == 503 and err.message == "The assistant took too long — try again."

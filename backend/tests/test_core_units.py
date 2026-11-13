@@ -229,7 +229,7 @@ class _Socket:
 
 @pytest.fixture()
 def live(monkeypatch):
-    from src.services import live as module
+    from src.services.collaboration import live as module
 
     monkeypatch.setattr(module, "_subscribers", type(module._subscribers)(set))
     monkeypatch.setattr(module, "_relay_started", False)
@@ -310,7 +310,7 @@ def _resource(searchable=True):
 
 
 def test_an_empty_dataset_says_so_and_nothing_else():
-    from src.services.catalog import _notes
+    from src.services.records.catalog import _notes
 
     notes = _notes(_resource(), [], 0, None)
     assert [note["level"] for note in notes] == ["warning"]
@@ -318,7 +318,7 @@ def test_an_empty_dataset_says_so_and_nothing_else():
 
 def test_sparse_stale_and_unsearchable_datasets_are_described():
     from src.core.clock import now
-    from src.services.catalog import _notes
+    from src.services.records.catalog import _notes
 
     fields = [{"label": f"F{i}", "completeness": 10.0} for i in range(7)]
     notes = _notes(_resource(searchable=False), fields, 100, now() - timedelta(days=400))
@@ -333,8 +333,8 @@ def test_every_dataset_profiles_and_samples(client, monkeypatch):
     """Profiled directly, past the cache — a warm Redis would otherwise skip it."""
     from src.core.db import session_scope
     from src.core.errors import ValidationError
-    from src.services import catalog
-    from src.services.explorer import resources
+    from src.services.records import catalog
+    from src.services.records.explorer import resources
 
     class Everyone:
         def can(self, *_):

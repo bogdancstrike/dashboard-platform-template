@@ -44,7 +44,7 @@ from sqlalchemy import select
 def materialise(session) -> dict[str, int]:
     """Make every seeded import run true. Returns a tally the runner prints."""
     from src.models.platform import ImportRun
-    from src.services import explorer
+    from src.services.records import explorer
 
     repaired = 0
     staged = 0

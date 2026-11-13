@@ -32,7 +32,7 @@ def test_analysis_needs_a_bearer_token(client):
 
 
 def test_a_period_name_resolves_to_one_window():
-    from src.services.analysis import period_window
+    from src.services.analytics.analysis import period_window
 
     # Resolved on the server so a tile, the chart beneath it and the list it
     # drills into cannot each decide what "last 30 days" means (§44).
@@ -44,7 +44,7 @@ def test_a_period_name_resolves_to_one_window():
 
 def test_an_unknown_period_is_refused_with_the_ones_that_exist():
     from src.core.errors import ValidationError
-    from src.services.analysis import period_window
+    from src.services.analytics.analysis import period_window
 
     with pytest.raises(ValidationError) as raised:
         period_window("since_tuesday")
@@ -53,7 +53,7 @@ def test_an_unknown_period_is_refused_with_the_ones_that_exist():
 
 @pytest.mark.database
 def test_the_catalogue_offers_only_what_the_declaration_publishes(client, monkeypatch):
-    from src.services.explorer import resources
+    from src.services.records.explorer import resources
 
     body = client.get(
         f"{PREFIX}/api/analysis/catalog", headers=_authenticate(monkeypatch)

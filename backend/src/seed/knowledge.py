@@ -255,7 +255,7 @@ def seed(session, *, store=None) -> dict[str, int]:
     from src.models.identity import User
     from src.models.knowledge import KnowledgeCollection, KnowledgeDocument
     from src.models.personal import ResourceShare
-    from src.services import knowledge_ingest as ingest
+    from src.services.knowledge import ingest as ingest
 
     users = {u.username: u for u in session.scalars(
         select(User).where(User.username.in_(("admin", "manager", "operator", "analyst", "user"))))}
@@ -337,7 +337,7 @@ def seed(session, *, store=None) -> dict[str, int]:
 
 def _questions(session, users) -> None:
     from src.models.knowledge import KnowledgeCollection, KnowledgeQuestion
-    from src.services import knowledge
+    from src.services.knowledge import collections as knowledge
 
     thread = uuid4()
     for index, (collection_name, username, question, answer) in enumerate(QUESTIONS):

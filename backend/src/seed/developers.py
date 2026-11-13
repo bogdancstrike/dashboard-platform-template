@@ -28,7 +28,9 @@ THIN = 300
 
 
 def _examples() -> list[tuple[str, str, str, Callable[..., Any]]]:
-    from src.services import api_clients, explorer, workflows
+    from src.services.platform import api_clients
+    from src.services.records import explorer
+    from src.services.automation import workflows
 
     return [
         ("GET", "/api/automations/catalog", "/platform/api/automations/catalog",
@@ -58,7 +60,7 @@ def _admin(session):
 def populate(session) -> dict[str, int]:
     from src.core import endpoint_catalog as endpoint_map
     from src.models.developers import ApiExample
-    from src.services.developer_portal import infer_schema, sample
+    from src.services.platform.developer_portal import infer_schema, sample
 
     principal = _admin(session)
     examples = 0

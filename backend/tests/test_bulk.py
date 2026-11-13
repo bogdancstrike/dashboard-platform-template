@@ -393,7 +393,7 @@ def test_a_selection_over_the_cap_is_refused_with_the_number_in_it(client, monke
     question, because the reader has no way to check the number they are being
     shown and the recovery from a wrong filter is a restore.
     """
-    from src.services import bulk
+    from src.services.records import bulk
 
     headers = _authenticate(monkeypatch)
     monkeypatch.setattr(bulk, "MAX_ROWS", 2)

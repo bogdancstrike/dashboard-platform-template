@@ -17,7 +17,7 @@ from uuid import uuid4
 import pytest
 
 from src.core.errors import ValidationError
-from src.services import sprints as service
+from src.services.work import sprints as service
 from tests.personas import PREFIX, sign_in
 
 

@@ -109,7 +109,7 @@ def test_domain_error_from_a_mounted_endpoint(client, monkeypatch):
     because the handlers are installed on the Api too. QF resolves the handler
     by name on every request, which is what makes this patchable.
     """
-    import src.api.health as health
+    import src.api.platform.health as health
 
     def _explode(app=None, operation="", request=None, **_):
         raise ForbiddenError("not for you", details={"missing": ["health.view"]})
@@ -122,7 +122,7 @@ def test_domain_error_from_a_mounted_endpoint(client, monkeypatch):
 
 
 def test_unexpected_error_does_not_leak_its_message(client, monkeypatch):
-    import src.api.health as health
+    import src.api.platform.health as health
 
     def _explode(app=None, operation="", request=None, **_):
         raise RuntimeError("connection string postgres://user:hunter2@db/app")

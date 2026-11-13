@@ -35,13 +35,13 @@ Limits (real money — every feature inherits them by calling through here):
 * ``LLM_MAX_CONCURRENCY`` — model calls in flight per worker; no slot within
   the time cap → ``LlmError("LLM_BUSY")``.
 * Per-user rate limit — ``LLM_RATE_PER_MINUTE``, enforced by
-  ``src.services.ai.guard`` (counts the ``ai_usage`` ledger).
+  ``src.services.ai.usage.guard`` (counts the ``ai_usage`` ledger).
 * ``LLM_MODE=fake`` forces the fake for the whole process; with
   ``LLM_ALLOW_FAKE_HEADER=true`` a request carrying ``X-Nucleus-LLM: fake``
   gets the fake for that request only (load tests).
 
 Callers turn an ``LlmError`` into a clean 503 envelope with
-``src.services.ai.unavailable`` — never a 500, never a hang.
+``src.services.ai.usage.unavailable`` — never a 500, never a hang.
 """
 
 from __future__ import annotations

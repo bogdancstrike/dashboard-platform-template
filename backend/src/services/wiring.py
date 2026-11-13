@@ -9,13 +9,14 @@ the same wiring without remembering to ask for it.
 
 from __future__ import annotations
 
-from src.services import (  # noqa: F401 - imported for their registrations
-    approval_kinds,  # approval kinds: access, change, report; holds record edits
+# Imported for their registrations; each line says what it connects.
+from src.services.analytics import metric_watches  # noqa: F401 - the hourly anomaly-watch job
+from src.services.automation import graph  # noqa: F401 - workflow approvals; runs on record writes
+from src.services.collaboration import chat  # noqa: F401 - the chat badge on the notification poll
+from src.services.decisions import (  # noqa: F401
+    approval_kinds,  # approval kinds access/change/report; holds record edits for approval
     approvals,  # the approvals badge on the notification poll
-    automation_graph,  # workflow approvals; runs workflows on record writes
-    chat,  # the chat badge on the notification poll
-    customer_health,  # the daily health-score job
-    metric_watches,  # the hourly anomaly-watch job
     sla,  # a ticket's SLA clock on record writes
     timekeeping,  # timesheet approvals
 )
+from src.services.records import customer_health  # noqa: F401 - the daily health-score job

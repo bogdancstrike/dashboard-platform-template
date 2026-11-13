@@ -572,7 +572,7 @@ def test_every_kind_declares_a_size_and_a_name():
     A kind added to `WIDGET_KINDS` without either is one the create flow lays
     out at a guessed size under a heading that names its shape.
     """
-    from src.services.dashboards import DEFAULT_SIZES, WIDGET_KINDS, _TITLES
+    from src.services.analytics.dashboards import DEFAULT_SIZES, WIDGET_KINDS, _TITLES
 
     assert WIDGET_KINDS - set(DEFAULT_SIZES) == frozenset()
     assert WIDGET_KINDS - set(_TITLES) == frozenset()

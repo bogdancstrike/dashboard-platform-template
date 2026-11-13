@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.services import analytics_jobs as jobs
+from src.services.analytics import jobs as jobs
 
 pytestmark = pytest.mark.database
 
@@ -28,7 +28,7 @@ def test_both_jobs_exist_and_a_run_is_recorded():
 
 def test_a_failing_run_is_recorded_not_raised(monkeypatch):
     from src.core.db import session_scope
-    from src.services import customer_health
+    from src.services.records import customer_health
 
     def boom(*_a, **_k):
         raise RuntimeError("model exploded")

@@ -38,8 +38,8 @@ def seed(session) -> dict[str, int]:
     from src.models.identity import User
     from src.models.insights import Insight
     from src.models.personal import Dashboard, DashboardWidget
-    from src.services import insight_spec as specs
-    from src.services import insight_suggestions as suggestions
+    from src.services.analytics.insights import spec as specs
+    from src.services.analytics.insights import suggestions as suggestions
 
     users = {u.username: u for u in session.scalars(select(User).where(User.username.in_(("admin", "manager"))))}
     made = 0

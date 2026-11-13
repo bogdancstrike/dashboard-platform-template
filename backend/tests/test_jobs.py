@@ -30,7 +30,7 @@ from src.config import Config
 from src.core import vocabulary
 from src.core.clock import now
 from src.core.db import session_scope
-from src.services import jobs as service
+from src.services.platform import jobs as service
 from tests.conftest import persona_claims
 
 pytestmark = pytest.mark.database
@@ -623,7 +623,7 @@ def test_a_top_up_only_adds_jobs_this_console_can_retry():
     """
     from src.seed.operations import background_job
     from src.seed.support import Rng
-    from src.services.jobs import NOT_OURS_TO_RETRY
+    from src.services.platform.jobs import NOT_OURS_TO_RETRY
 
     rng = Rng(1234, now())
     kinds = {

@@ -18,7 +18,7 @@ from types import SimpleNamespace
 import pytest
 
 from src.core import documents
-from src.services import report_documents as docs
+from src.services.analytics import report_documents as docs
 from tests.personas import PREFIX, as_each, principal
 
 DOCUMENTS = f"{PREFIX}/api/report-documents"
@@ -144,7 +144,7 @@ def test_every_block_kind_resolves_or_says_why_not(app):
     png = _png()
     with session_scope() as session:
         report_id = _first_report_id(session)
-        from src.services import explorer
+        from src.services.records import explorer
 
         fields = explorer.run(session, {"resource_type": "task", "page_size": 1}, principal=admin)["fields"]
         wide = [field["name"] for field in fields][:8]
@@ -213,7 +213,7 @@ def test_a_reader_without_the_dataset_gets_a_reason_not_the_rows(app):
     from dataclasses import replace
 
     from src.core.db import session_scope
-    from src.services.explorer import resources
+    from src.services.records.explorer import resources
 
     viewer = principal(app, "user")
     needed = resources()["order"].permission

@@ -30,7 +30,7 @@ from uuid import uuid4
 import pytest
 
 from src.config import Config
-from src.services import profile as service
+from src.services.people import profile as service
 from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX
@@ -93,7 +93,7 @@ def test_it_explains_why_the_reader_can_do_what_they_can(client, monkeypatch):
 
     # And it is the administrator's own answer, not a second opinion.
     from src.core.db import session_scope
-    from src.services import users
+    from src.services.people import users
 
     with session_scope() as session:
         person = users.load_person(session, body["user"]["id"])

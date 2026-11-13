@@ -133,7 +133,7 @@ def test_an_edit_moves_the_record_and_says_so(client, monkeypatch, scratch_task)
 
 @pytest.mark.database
 def test_the_detail_publishes_which_fields_a_form_may_write(client, monkeypatch, scratch_task):
-    from src.services.explorer import resources
+    from src.services.records.explorer import resources
 
     body = client.get(
         f"{TASKS}/{scratch_task['id']}", headers=_authenticate(monkeypatch)

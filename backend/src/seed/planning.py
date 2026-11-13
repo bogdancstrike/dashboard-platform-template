@@ -116,7 +116,7 @@ def populate(session) -> dict[str, int]:
     """Plan the seeded work. Safe to run again."""
     from src.models.planning import Sprint
 
-    from src.services import task_templates
+    from src.services.work import task_templates
 
     counts: dict[str, int] = {}
     if session.scalar(select(func.count()).select_from(Sprint)) == 0:
@@ -174,8 +174,8 @@ class _Maker:
     """Creates tasks with the next TSK reference, one flush each."""
 
     def __init__(self, session):
-        from src.services.explorer import resource_for
-        from src.services.record_writes import _next_identifier
+        from src.services.records.explorer import resource_for
+        from src.services.records.writes import _next_identifier
 
         self.session = session
         self.resource = resource_for("task")
@@ -444,7 +444,7 @@ def _plan(session) -> dict[str, int]:
         counts["templates"] += 1
 
     # ── recurring tasks, each with the occurrences it has already made ──
-    from src.services.task_templates import next_after
+    from src.services.work.task_templates import next_after
 
     project = projects[0]
     for title, rule_spec, past in RECURRING:

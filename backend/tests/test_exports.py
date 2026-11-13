@@ -46,7 +46,7 @@ from src.core import background, storage
 from src.core.clock import now
 from src.core import export as writer
 from src.core.db import session_scope
-from src.services import exports as service
+from src.services.transfer import exports as service
 from tests.conftest import persona_claims
 
 pytestmark = pytest.mark.database
@@ -281,7 +281,7 @@ def test_a_queued_export_is_the_same_question_as_the_download_would_have_been(
 
 def test_the_row_count_matches_what_the_same_statement_counts(client, monkeypatch):
     from src.core.query import count_of
-    from src.services import explorer
+    from src.services.records import explorer
 
     headers = _authenticate(monkeypatch)
     response = _queue(client, headers, filters={"status": "OPEN"})
@@ -314,7 +314,7 @@ def test_the_stored_plan_describes_itself_from_the_field_catalogue(client, monke
 
 def test_a_plan_naming_a_column_that_no_longer_exists_is_a_bad_request():
     from src.core.errors import ValidationError
-    from src.services import explorer
+    from src.services.records import explorer
 
     # Re-validated when it runs rather than trusted: a field can be removed
     # from a resource between queueing an export and producing it, and that has
@@ -737,7 +737,7 @@ def test_the_catalogue_offers_only_datasets_the_reader_may_see(client, monkeypat
     offered = {entry["key"] for entry in body["datasets"]}
 
     assert RESOURCE in offered
-    from src.services import explorer
+    from src.services.records import explorer
 
     with session_scope():
         for key, resource in explorer.resources().items():
@@ -964,7 +964,7 @@ def test_no_seeded_export_claims_a_file_it_does_not_have():
 
 def test_every_seeded_export_names_a_query_that_can_be_run():
     from src.models.platform import BackgroundJob
-    from src.services import explorer
+    from src.services.records import explorer
 
     with session_scope() as session:
         rows = session.scalars(

@@ -26,7 +26,7 @@ from uuid import uuid4
 import pytest
 
 from src.config import Config
-from src.services import compare as service
+from src.services.records import compare as service
 from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX

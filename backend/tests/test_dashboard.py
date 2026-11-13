@@ -141,7 +141,7 @@ def test_a_deleted_record_is_gone_from_every_number(client, monkeypatch):
 def test_no_tickets_does_not_claim_perfect_sla_compliance():
     from src.core.db import session_scope
     from src.models.business import Ticket
-    from src.services.dashboard import _sla_gauge
+    from src.services.analytics.overview import _sla_gauge
 
     with session_scope() as session:
         assert _sla_gauge(session, Ticket, datetime(1900, 1, 1, tzinfo=timezone.utc),

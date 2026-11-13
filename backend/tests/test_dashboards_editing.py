@@ -199,7 +199,7 @@ def test_an_arrangement_names_only_widgets_on_the_dashboard(client, monkeypatch)
 def test_a_module_the_role_cannot_open_cannot_be_added():
     """Adding a card that could only ever say "forbidden" is refused up front."""
     from src.core.errors import ValidationError
-    from src.services import dashboards
+    from src.services.analytics import dashboards
 
     class Reader:
         def can(self, *_permissions):

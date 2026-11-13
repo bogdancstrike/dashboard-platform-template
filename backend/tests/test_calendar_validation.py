@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from src.services import calendar as service
+from src.services.work import calendar as service
 from tests.personas import PREFIX, as_each
 
 EVENTS = f"{PREFIX}/api/calendar/events"

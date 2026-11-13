@@ -40,9 +40,9 @@ def people(monkeypatch):
 def live_calls(monkeypatch):
     """Every live hint published, instead of sending it anywhere."""
     calls: list[tuple[str, dict]] = []
-    monkeypatch.setattr("src.services.live.publish_to_user",
+    monkeypatch.setattr("src.services.collaboration.live.publish_to_user",
                         lambda user, payload: calls.append((str(user), payload)) or 1)
-    monkeypatch.setattr("src.services.live.publish_to_all",
+    monkeypatch.setattr("src.services.collaboration.live.publish_to_all",
                         lambda payload: calls.append(("*", payload)) or 1)
     return calls
 
@@ -171,7 +171,7 @@ def test_posting_in_a_public_channel_joins_it_and_counts_as_unread_for_the_other
     assert next(item for item in after["items"] if item["id"] == channel["id"])["unread"] == 0
 
     from src.core.db import session_scope
-    from src.services import chat
+    from src.services.collaboration import chat
 
     with session_scope() as session:
         assert chat.unread_total(session, _user_id("manager")) >= 0
@@ -209,7 +209,7 @@ def test_a_mention_in_a_channel_notifies_the_person_named(client, people, live_c
 
 @pytest.mark.database
 def test_a_picked_mention_with_a_long_name_is_still_resolved(client, people, monkeypatch):
-    from src.services import comments
+    from src.services.collaboration import comments
 
     channel = client.post(CHANNELS, json={"name": _name()}, headers=people["admin"]).get_json()
     operator = str(_user_id("operator"))
@@ -469,7 +469,7 @@ def test_files_go_with_a_message(client, people, live_calls):
 
 @pytest.mark.database
 def test_presence_is_reported_and_set(client, people, live_calls):
-    from src.services import presence
+    from src.services.collaboration import presence
 
     presence.reset_for_tests()
     me = str(_user_id("admin"))

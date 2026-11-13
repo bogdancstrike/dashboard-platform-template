@@ -24,7 +24,7 @@ from sqlalchemy import select
 
 from src.config import Config
 from src.core.db import session_scope
-from src.services import workflows as service
+from src.services.automation import workflows as service
 from tests.conftest import persona_claims
 
 pytestmark = pytest.mark.database
@@ -127,7 +127,7 @@ def test_the_catalogue_offers_only_resources_the_engine_can_select_from(client, 
     headers = _authenticate(monkeypatch)
     answer = client.get(CATALOG, headers=headers).get_json()
 
-    from src.services.explorer import resources
+    from src.services.records.explorer import resources
 
     assert {item["key"] for item in answer["resources"]} <= set(resources())
     assert answer["resources"], "the editor cannot offer nothing"
@@ -241,7 +241,7 @@ def test_the_stored_text_is_rendered_by_the_same_module_that_compiles_it(
     rule = _rule(client, headers, condition_tree=_condition("status", ("NEW", "BLOCKED")))
 
     from src.core.rules import describe_tree
-    from src.services.explorer import resources
+    from src.services.records.explorer import resources
 
     expected = describe_tree(rule["condition_tree"], resources()["task"].fields)
     assert rule["condition_text"] == expected

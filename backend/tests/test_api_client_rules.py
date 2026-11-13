@@ -12,7 +12,7 @@ import uuid
 
 import pytest
 
-from src.services import api_clients as service
+from src.services.platform import api_clients as service
 from tests.personas import PREFIX, as_each
 
 CLIENTS = f"{PREFIX}/admin/api-clients"

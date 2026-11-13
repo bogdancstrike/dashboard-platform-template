@@ -45,7 +45,7 @@ def test_a_record_needs_a_bearer_token(client):
 
 def test_extension_metadata_masks_secret_keys_recursively_without_mutating_storage():
     from src.core.audit import MASK
-    from src.services.records import _safe_metadata
+    from src.services.records.detail import _safe_metadata
 
     stored = {"source": "portal", "nested": [{"API_KEY": "private", "tag": "public"}]}
     assert _safe_metadata(stored) == {

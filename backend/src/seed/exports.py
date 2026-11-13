@@ -59,7 +59,8 @@ def materialise(session, store) -> dict[str, int]:
     trust to have found nothing to do.
     """
     from src.models.platform import BackgroundJob
-    from src.services import explorer, exports
+    from src.services.records import explorer
+    from src.services.transfer import exports
 
     written = 0
     corrected = 0
@@ -157,7 +158,8 @@ def _guarantee(session, store) -> int:
     from src.core.clock import now
     from src.models.identity import User
     from src.models.platform import BackgroundJob
-    from src.services import explorer, exports
+    from src.services.records import explorer
+    from src.services.transfer import exports
     from src.seed.identity import PERSONAS
     from src.seed.support import Rng
 
@@ -254,7 +256,7 @@ def _next_reference(session) -> str:
     Delegated rather than reimplemented: two places that generate the same
     identifier are two places that can disagree about the next one.
     """
-    from src.services.exports import _reference
+    from src.services.transfer.exports import _reference
 
     return _reference(session)
 
@@ -266,7 +268,7 @@ def _plan_of(row) -> Any:
     which is a fact worth reporting, not an exception worth raising in the
     middle of a seed run.
     """
-    from src.services import explorer
+    from src.services.records import explorer
 
     payload = dict(row.payload or {})
     if not payload:
@@ -330,7 +332,7 @@ def _rename(session, row) -> bool:
     touched, which makes this run once.
     """
     from src.models.platform import BackgroundJob
-    from src.services import exports
+    from src.services.transfer import exports
 
     if not (row.reference or "").startswith("JOB-"):
         return False

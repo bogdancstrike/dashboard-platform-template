@@ -18,7 +18,7 @@ from sqlalchemy import distinct, select
 
 from src.core import vocabulary
 from src.seed import catalog
-from src.services.explorer import resources
+from src.services.records.explorer import resources
 
 
 def _names(weighted_values) -> tuple[str, ...]:

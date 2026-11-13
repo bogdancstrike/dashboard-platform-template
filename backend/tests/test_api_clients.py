@@ -32,7 +32,7 @@ from src.config import Config
 from src.core import vocabulary
 from src.core.clock import now
 from src.core.db import session_scope
-from src.services import api_clients as service
+from src.services.platform import api_clients as service
 from tests.conftest import persona_claims
 
 pytestmark = pytest.mark.database

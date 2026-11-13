@@ -5,7 +5,7 @@ Monkey-patching happens at the top of this module, before anything imports
 an unpatched driver blocks the event loop for its entire life, and the symptom
 is a server that looks fine under one request and serialises under two.
 
-The application itself is built by `src.api.app.create_application`, which the
+The application itself is built by `src.bootstrap.create_application`, which the
 test suite also calls — patching lives here rather than there so importing the
 factory in a test does not green-thread the interpreter.
 """
@@ -37,7 +37,7 @@ from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv()
 
-from src.api.app import create_application  # noqa: E402
+from src.bootstrap import create_application
 from src.config import Config  # noqa: E402
 
 application = create_application()

@@ -257,7 +257,7 @@ def test_a_rule_that_cannot_work_is_refused(client, as_, payload):
 
 def test_rule_matching_covers_every_operator():
     from src.models.approvals import ChangeRule
-    from src.services.approval_kinds import _matches
+    from src.services.decisions.approval_kinds import _matches
 
     assert _matches(ChangeRule(operator="ANY"), 1, 2)
     assert not _matches(ChangeRule(operator="ANY"), 2, 2)
@@ -297,7 +297,7 @@ def test_publishing_a_report_needs_approval_and_then_happens(client, as_):
 
 def test_an_unknown_kind_is_a_clear_error():
     from src.core.errors import ValidationError
-    from src.services import approvals
+    from src.services.decisions import approvals
 
     with pytest.raises(ValidationError):
         approvals.provider_for("nonsense")

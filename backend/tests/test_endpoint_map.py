@@ -224,7 +224,7 @@ def _base(**overrides):
         "model_name": "Empty",
         "request_method": ["GET"],
         "api_url": "/probe",
-        "exec_method": {"module_name": "src.api.health", "method_name": "liveness"},
+        "exec_method": {"module_name": "src.api.platform.health", "method_name": "liveness"},
     }
     endpoint.update(overrides)
     return {
@@ -240,7 +240,7 @@ def test_missing_map_is_a_clear_failure(tmp_path):
 
 
 def test_unknown_handler_is_rejected(tmp_path):
-    bad = _base(exec_method={"module_name": "src.api.health", "method_name": "nope"})
+    bad = _base(exec_method={"module_name": "src.api.platform.health", "method_name": "nope"})
     with pytest.raises(ImportError, match="no callable"):
         endpoint_map.verify(_write(tmp_path, bad))
 
@@ -302,7 +302,7 @@ def test_a_map_missing_a_section_is_refused(tmp_path, document, says):
 @pytest.mark.parametrize(("overrides", "says"), [
     ({"operation_name": ""}, "needs an operation_name"),
     ({"request_method": []}, "at least one verb"),
-    ({"exec_method": {"module_name": "src.api.health"}}, "module_name and method_name"),
+    ({"exec_method": {"module_name": "src.api.platform.health"}}, "module_name and method_name"),
 ])
 def test_an_incomplete_endpoint_is_refused(tmp_path, overrides, says):
     with pytest.raises(ValueError, match=says):

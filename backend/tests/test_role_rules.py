@@ -12,7 +12,7 @@ import uuid
 
 import pytest
 
-from src.services import roles as service
+from src.services.people import roles as service
 from tests.personas import PREFIX, as_each
 
 ROLES = f"{PREFIX}/admin/roles"

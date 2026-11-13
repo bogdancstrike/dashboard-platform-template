@@ -226,7 +226,7 @@ def test_the_unread_count_and_the_filter_agree(client, monkeypatch):
 
 @pytest.mark.database
 def test_every_category_is_offered_with_a_count_over_the_whole_match(client, monkeypatch):
-    from src.services.announcements import CATEGORIES
+    from src.services.collaboration.announcements import CATEGORIES
 
     headers = _authenticate(monkeypatch)
     _notice(client, headers, title="A release", category="RELEASE")
@@ -251,7 +251,7 @@ def test_a_category_nobody_has_used_is_still_offered_at_zero():
     test failed and nothing was wrong. The behaviour it meant to pin lives in
     one line of `_category_counts`, and that is what this reads.
     """
-    from src.services.announcements import CATEGORIES, _category_counts
+    from src.services.collaboration.announcements import CATEGORIES, _category_counts
 
     from uuid import uuid4
 

@@ -19,7 +19,7 @@
       "api_url": "/health/live",
       "description": "Process is up. Never touches a dependency.",
       "exec_method": {
-        "module_name": "src.api.health",
+        "module_name": "src.api.platform.health",
         "method_name": "liveness"
       }
     },
@@ -33,7 +33,7 @@
       "api_url": "/health/ready",
       "description": "Ready to serve traffic \u2014 the database must answer.",
       "exec_method": {
-        "module_name": "src.api.health",
+        "module_name": "src.api.platform.health",
         "method_name": "readiness"
       }
     },
@@ -47,7 +47,7 @@
       "api_url": "/health/status",
       "description": "Every monitored dependency, with latency and last error.",
       "exec_method": {
-        "module_name": "src.api.health",
+        "module_name": "src.api.platform.health",
         "method_name": "snapshot"
       }
     },
@@ -61,7 +61,7 @@
       "api_url": "/health/history",
       "description": "What each dependency was doing across a window.",
       "exec_method": {
-        "module_name": "src.api.health",
+        "module_name": "src.api.platform.health",
         "method_name": "history"
       }
     },
@@ -75,7 +75,7 @@
       "api_url": "/meta/app",
       "description": "Branding and the OIDC coordinates the SPA needs before login.",
       "exec_method": {
-        "module_name": "src.api.meta",
+        "module_name": "src.api.platform.meta",
         "method_name": "application"
       }
     },
@@ -89,7 +89,7 @@
       "api_url": "/meta/permissions",
       "description": "The permission catalogue, grouped as the admin matrix renders it.",
       "exec_method": {
-        "module_name": "src.api.meta",
+        "module_name": "src.api.platform.meta",
         "method_name": "permissions"
       }
     },
@@ -103,7 +103,7 @@
       "api_url": "/meta/roles",
       "description": "Built-in role definitions and the permissions each carries.",
       "exec_method": {
-        "module_name": "src.api.meta",
+        "module_name": "src.api.platform.meta",
         "method_name": "roles"
       }
     },
@@ -117,7 +117,7 @@
       "api_url": "/meta/routes",
       "description": "The API surface this process is serving.",
       "exec_method": {
-        "module_name": "src.api.meta",
+        "module_name": "src.api.platform.meta",
         "method_name": "routes"
       }
     },
@@ -132,7 +132,7 @@
       "api_url": "/api/me",
       "description": "The caller's profile, live permissions, organization and preferences.",
       "exec_method": {
-        "module_name": "src.api.me",
+        "module_name": "src.api.people.account",
         "method_name": "profile"
       }
     },
@@ -146,7 +146,7 @@
       "api_url": "/dashboard/summary",
       "description": "KPIs with previous-period comparison, charts, alerts and activity.",
       "exec_method": {
-        "module_name": "src.api.dashboard",
+        "module_name": "src.api.analytics.overview",
         "method_name": "summary"
       }
     },
@@ -160,7 +160,7 @@
       "api_url": "/api/explorer/catalog",
       "description": "Explorer resources, fields, operators, columns and live record counts.",
       "exec_method": {
-        "module_name": "src.api.explorer",
+        "module_name": "src.api.records.explorer",
         "method_name": "catalogue"
       }
     },
@@ -174,7 +174,7 @@
       "api_url": "/api/explorer/query",
       "description": "Run simple and nested explorer conditions in PostgreSQL.",
       "exec_method": {
-        "module_name": "src.api.explorer",
+        "module_name": "src.api.records.explorer",
         "method_name": "query"
       }
     },
@@ -188,7 +188,7 @@
       "api_url": "/api/explorer/insights",
       "description": "Headline metrics, breakdowns and a trend for the rows the current query selects.",
       "exec_method": {
-        "module_name": "src.api.explorer",
+        "module_name": "src.api.records.explorer",
         "method_name": "insights"
       }
     },
@@ -202,7 +202,7 @@
       "api_url": "/api/analysis/catalog",
       "description": "What each dataset can be grouped by, measured by, and over which periods.",
       "exec_method": {
-        "module_name": "src.api.analysis",
+        "module_name": "src.api.analytics.analysis",
         "method_name": "catalogue"
       }
     },
@@ -216,7 +216,7 @@
       "api_url": "/api/analysis/run",
       "description": "Group, measure and return \u2014 one analysis, computed in SQL.",
       "exec_method": {
-        "module_name": "src.api.analysis",
+        "module_name": "src.api.analytics.analysis",
         "method_name": "run"
       }
     },
@@ -231,7 +231,7 @@
       "api_url": "/api/kanban/boards",
       "description": "Kanban boards this reader may open, and creating one.",
       "exec_method": {
-        "module_name": "src.api.kanban",
+        "module_name": "src.api.work.kanban",
         "method_name": "boards"
       }
     },
@@ -247,7 +247,7 @@
       "api_url": "/api/kanban/boards/<uuid:board_id>",
       "description": "One board whole \u2014 its lanes and their cards \u2014 or a change to it.",
       "exec_method": {
-        "module_name": "src.api.kanban",
+        "module_name": "src.api.work.kanban",
         "method_name": "board"
       }
     },
@@ -262,7 +262,7 @@
       "api_url": "/api/kanban/boards/<uuid:board_id>/lanes",
       "description": "A new lane on a board, or the whole column order.",
       "exec_method": {
-        "module_name": "src.api.kanban",
+        "module_name": "src.api.work.kanban",
         "method_name": "lanes"
       }
     },
@@ -277,7 +277,7 @@
       "api_url": "/api/kanban/lanes/<uuid:lane_id>",
       "description": "Rename a lane, change its work-in-progress limit, or remove it.",
       "exec_method": {
-        "module_name": "src.api.kanban",
+        "module_name": "src.api.work.kanban",
         "method_name": "lane"
       }
     },
@@ -291,7 +291,7 @@
       "api_url": "/api/kanban/boards/<uuid:board_id>/cards",
       "description": "A new card on a board.",
       "exec_method": {
-        "module_name": "src.api.kanban",
+        "module_name": "src.api.work.kanban",
         "method_name": "cards"
       }
     },
@@ -307,7 +307,7 @@
       "api_url": "/api/kanban/cards/<uuid:card_id>",
       "description": "One card with its family, a change to it, or its deletion.",
       "exec_method": {
-        "module_name": "src.api.kanban",
+        "module_name": "src.api.work.kanban",
         "method_name": "card"
       }
     },
@@ -321,7 +321,7 @@
       "api_url": "/api/kanban/cards/<uuid:card_id>/move",
       "description": "Put a card in a lane at a position, renumbering what it displaced.",
       "exec_method": {
-        "module_name": "src.api.kanban",
+        "module_name": "src.api.work.kanban",
         "method_name": "move"
       }
     },
@@ -335,7 +335,7 @@
       "api_url": "/api/tasks/<uuid:task_id>/place",
       "description": "Put a task in a lane between two neighbours, so the board's order survives a reload.",
       "exec_method": {
-        "module_name": "src.api.task_board",
+        "module_name": "src.api.work.task_board",
         "method_name": "place"
       }
     },
@@ -349,7 +349,7 @@
       "api_url": "/api/tasks/<uuid:task_id>/planning",
       "description": "A task's place in the plan: epic, sprint, subtasks, dependencies, watchers, recurrence.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "task_planning_detail"
       }
     },
@@ -365,7 +365,7 @@
       "api_url": "/api/tasks/<uuid:task_id>/recurrence",
       "description": "Read, set or clear the rule that makes the next copy of a task.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "task_recurrence"
       }
     },
@@ -379,7 +379,7 @@
       "api_url": "/api/tasks/<uuid:task_id>/save-as-template",
       "description": "Save a task as a template for new ones.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "task_save_as_template"
       }
     },
@@ -393,7 +393,7 @@
       "api_url": "/api/tasks/<uuid:task_id>/schedule",
       "description": "Move or resize a task on the timeline; optionally shift its dependants.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "task_schedule"
       }
     },
@@ -408,7 +408,7 @@
       "api_url": "/api/tasks/<uuid:task_id>/watchers",
       "description": "Watch or stop watching a task.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "task_watchers"
       }
     },
@@ -422,7 +422,7 @@
       "api_url": "/api/work/backlog",
       "description": "Open work in no sprint, in the backlog's hand-made order.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "backlog"
       }
     },
@@ -436,7 +436,7 @@
       "api_url": "/api/work/backlog/place",
       "description": "Drop a task into a sprint or the backlog, between two neighbours.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "backlog_place"
       }
     },
@@ -450,7 +450,7 @@
       "api_url": "/api/work/dependencies",
       "description": "Make one task wait on another (finish-to-start).",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "dependencies"
       }
     },
@@ -464,7 +464,7 @@
       "api_url": "/api/work/dependencies/<uuid:dependency_id>",
       "description": "Remove a dependency.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "dependency"
       }
     },
@@ -478,7 +478,7 @@
       "api_url": "/api/work/epics",
       "description": "Every epic, with its progress.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "epics"
       }
     },
@@ -493,7 +493,7 @@
       "api_url": "/api/work/lanes",
       "description": "The task board's work-in-progress limits per lane.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "lanes"
       }
     },
@@ -507,7 +507,7 @@
       "api_url": "/api/work/scheduler/run",
       "description": "Run the planning jobs now: recurring tasks and sprint snapshots.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "scheduler_run"
       }
     },
@@ -522,7 +522,7 @@
       "api_url": "/api/work/sprints",
       "description": "Every sprint, or a new one.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "sprint_collection"
       }
     },
@@ -538,7 +538,7 @@
       "api_url": "/api/work/sprints/<uuid:sprint_id>",
       "description": "One sprint with its scope and burndown, or a change to it.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "sprint_item"
       }
     },
@@ -552,7 +552,7 @@
       "api_url": "/api/work/sprints/<uuid:sprint_id>/complete",
       "description": "Complete a sprint and carry unfinished work over.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "sprint_complete"
       }
     },
@@ -566,7 +566,7 @@
       "api_url": "/api/work/sprints/<uuid:sprint_id>/start",
       "description": "Start a planned sprint, freezing its commitment.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "sprint_start"
       }
     },
@@ -581,7 +581,7 @@
       "api_url": "/api/work/templates",
       "description": "Task templates, or a new one.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "template_collection"
       }
     },
@@ -597,7 +597,7 @@
       "api_url": "/api/work/templates/<uuid:template_id>",
       "description": "One task template, or a change to it.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "template_item"
       }
     },
@@ -611,7 +611,7 @@
       "api_url": "/api/work/templates/<uuid:template_id>/use",
       "description": "Create a task from a template.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "template_use"
       }
     },
@@ -625,7 +625,7 @@
       "api_url": "/api/work/timeline",
       "description": "Tasks as bars in time, grouped, with dependencies and the critical path.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "timeline"
       }
     },
@@ -639,7 +639,7 @@
       "api_url": "/api/work/velocity",
       "description": "Committed against completed points for recent sprints.",
       "exec_method": {
-        "module_name": "src.api.work_planning",
+        "module_name": "src.api.work.planning",
         "method_name": "velocity"
       }
     },
@@ -653,7 +653,7 @@
       "api_url": "/api/maps/catalog",
       "description": "Which datasets can be mapped, how each reaches a place, and the gazetteer.",
       "exec_method": {
-        "module_name": "src.api.maps",
+        "module_name": "src.api.records.maps",
         "method_name": "catalogue"
       }
     },
@@ -667,7 +667,7 @@
       "api_url": "/api/maps/places",
       "description": "Where one dataset is, measured one way, over one period.",
       "exec_method": {
-        "module_name": "src.api.maps",
+        "module_name": "src.api.records.maps",
         "method_name": "places"
       }
     },
@@ -682,7 +682,7 @@
       "api_url": "/api/dashboards",
       "description": "Every dashboard this reader may open, or one more of their own.",
       "exec_method": {
-        "module_name": "src.api.dashboards",
+        "module_name": "src.api.analytics.dashboards",
         "method_name": "collection"
       }
     },
@@ -698,7 +698,7 @@
       "api_url": "/api/dashboards/<uuid:dashboard_id>",
       "description": "One dashboard: read it, change it, or remove it.",
       "exec_method": {
-        "module_name": "src.api.dashboards",
+        "module_name": "src.api.analytics.dashboards",
         "method_name": "item"
       }
     },
@@ -712,7 +712,7 @@
       "api_url": "/api/dashboards/<uuid:dashboard_id>/widgets",
       "description": "Add a widget, and return the layout it now has.",
       "exec_method": {
-        "module_name": "src.api.dashboards",
+        "module_name": "src.api.analytics.dashboards",
         "method_name": "widgets"
       }
     },
@@ -727,7 +727,7 @@
       "api_url": "/api/dashboards/<uuid:dashboard_id>/widgets/<uuid:widget_id>",
       "description": "Change what a widget asks and where it sits, or take it off.",
       "exec_method": {
-        "module_name": "src.api.dashboards",
+        "module_name": "src.api.analytics.dashboards",
         "method_name": "widget"
       }
     },
@@ -741,7 +741,7 @@
       "api_url": "/api/dashboards/<uuid:dashboard_id>/duplicate",
       "description": "A private copy of a dashboard, owned by the caller.",
       "exec_method": {
-        "module_name": "src.api.dashboards",
+        "module_name": "src.api.analytics.dashboards",
         "method_name": "duplicate"
       }
     },
@@ -755,7 +755,7 @@
       "api_url": "/api/dashboards/<uuid:dashboard_id>/arrange",
       "description": "Every widget's geometry at once, which is what one drag produces.",
       "exec_method": {
-        "module_name": "src.api.dashboards",
+        "module_name": "src.api.analytics.dashboards",
         "method_name": "arrange"
       }
     },
@@ -769,7 +769,7 @@
       "api_url": "/api/files/tree",
       "description": "Every folder, what is in it, and what this reader may do.",
       "exec_method": {
-        "module_name": "src.api.files",
+        "module_name": "src.api.knowledge.files",
         "method_name": "tree"
       }
     },
@@ -784,7 +784,7 @@
       "api_url": "/api/files",
       "description": "The files in one folder, or a presigned place to put a new one.",
       "exec_method": {
-        "module_name": "src.api.files",
+        "module_name": "src.api.knowledge.files",
         "method_name": "collection"
       }
     },
@@ -800,7 +800,7 @@
       "api_url": "/api/files/<uuid:file_id>",
       "description": "A presigned download, a rename or a move, or a delete.",
       "exec_method": {
-        "module_name": "src.api.files",
+        "module_name": "src.api.knowledge.files",
         "method_name": "item"
       }
     },
@@ -814,7 +814,7 @@
       "api_url": "/api/files/<uuid:file_id>/confirm",
       "description": "Confirm an upload \u2014 the object is checked, not taken on trust.",
       "exec_method": {
-        "module_name": "src.api.files",
+        "module_name": "src.api.knowledge.files",
         "method_name": "confirm"
       }
     },
@@ -828,7 +828,7 @@
       "api_url": "/api/files/<uuid:file_id>/content",
       "description": "An upload's bytes through the API, for when object storage refuses the page's origin.",
       "exec_method": {
-        "module_name": "src.api.files",
+        "module_name": "src.api.knowledge.files",
         "method_name": "content"
       }
     },
@@ -842,7 +842,7 @@
       "api_url": "/api/files/blob",
       "description": "One object from the local store, to the holder of a signed link. Public: the signature is the credential.",
       "exec_method": {
-        "module_name": "src.api.files",
+        "module_name": "src.api.knowledge.files",
         "method_name": "blob"
       }
     },
@@ -856,7 +856,7 @@
       "api_url": "/api/files/folders",
       "description": "Create a folder.",
       "exec_method": {
-        "module_name": "src.api.files",
+        "module_name": "src.api.knowledge.files",
         "method_name": "folders"
       }
     },
@@ -870,7 +870,7 @@
       "api_url": "/api/files/folders/<uuid:folder_id>",
       "description": "Remove an empty folder.",
       "exec_method": {
-        "module_name": "src.api.files",
+        "module_name": "src.api.knowledge.files",
         "method_name": "folder"
       }
     },
@@ -885,7 +885,7 @@
       "api_url": "/api/insights",
       "description": "Saved insights with suggestions, or keep a draft.",
       "exec_method": {
-        "module_name": "src.api.insights",
+        "module_name": "src.api.analytics.insights",
         "method_name": "collection"
       }
     },
@@ -899,7 +899,7 @@
       "api_url": "/api/insights/generate",
       "description": "Compose an insight page for a question about the records.",
       "exec_method": {
-        "module_name": "src.api.insights",
+        "module_name": "src.api.analytics.insights",
         "method_name": "generate"
       }
     },
@@ -913,7 +913,7 @@
       "api_url": "/api/insights/suggestions/<string:key>",
       "description": "A suggested insight, bound for this reader.",
       "exec_method": {
-        "module_name": "src.api.insights",
+        "module_name": "src.api.analytics.insights",
         "method_name": "suggestion"
       }
     },
@@ -929,7 +929,7 @@
       "api_url": "/api/insights/<uuid:insight_id>",
       "description": "One insight; rename, pin, share or remove it.",
       "exec_method": {
-        "module_name": "src.api.insights",
+        "module_name": "src.api.analytics.insights",
         "method_name": "item"
       }
     },
@@ -943,7 +943,7 @@
       "api_url": "/api/insights/<uuid:insight_id>/refresh",
       "description": "Re-run an insight's queries and keep the new numbers.",
       "exec_method": {
-        "module_name": "src.api.insights",
+        "module_name": "src.api.analytics.insights",
         "method_name": "refresh"
       }
     },
@@ -957,7 +957,7 @@
       "api_url": "/api/knowledge/ask",
       "description": "Answer a question from a collection's documents, with numbered citations.",
       "exec_method": {
-        "module_name": "src.api.knowledge",
+        "module_name": "src.api.knowledge.collections",
         "method_name": "ask"
       }
     },
@@ -972,7 +972,7 @@
       "api_url": "/api/knowledge/collections",
       "description": "The document collections this reader may see, or a new one.",
       "exec_method": {
-        "module_name": "src.api.knowledge",
+        "module_name": "src.api.knowledge.collections",
         "method_name": "collections"
       }
     },
@@ -988,7 +988,7 @@
       "api_url": "/api/knowledge/collections/<uuid:collection_id>",
       "description": "One collection with its documents; rename, re-share or remove it.",
       "exec_method": {
-        "module_name": "src.api.knowledge",
+        "module_name": "src.api.knowledge.collections",
         "method_name": "collection"
       }
     },
@@ -1002,7 +1002,7 @@
       "api_url": "/api/knowledge/collections/<uuid:collection_id>/documents",
       "description": "Put files in the collection and start reading them in the background.",
       "exec_method": {
-        "module_name": "src.api.knowledge",
+        "module_name": "src.api.knowledge.collections",
         "method_name": "documents"
       }
     },
@@ -1017,7 +1017,7 @@
       "api_url": "/api/knowledge/collections/<uuid:collection_id>/documents/<uuid:document_id>",
       "description": "Where one document's reading stands, or take it out.",
       "exec_method": {
-        "module_name": "src.api.knowledge",
+        "module_name": "src.api.knowledge.collections",
         "method_name": "document"
       }
     },
@@ -1031,7 +1031,7 @@
       "api_url": "/api/knowledge/collections/<uuid:collection_id>/documents/<uuid:document_id>/reprocess",
       "description": "Read a document again.",
       "exec_method": {
-        "module_name": "src.api.knowledge",
+        "module_name": "src.api.knowledge.collections",
         "method_name": "reprocess"
       }
     },
@@ -1045,7 +1045,7 @@
       "api_url": "/api/knowledge/collections/<uuid:collection_id>/history",
       "description": "This reader's questions of the collection, by conversation.",
       "exec_method": {
-        "module_name": "src.api.knowledge",
+        "module_name": "src.api.knowledge.collections",
         "method_name": "history"
       }
     },
@@ -1059,7 +1059,7 @@
       "api_url": "/api/knowledge/collections/<uuid:collection_id>/passages/<uuid:chunk_id>",
       "description": "One cited passage, with its page and the boxes to mark.",
       "exec_method": {
-        "module_name": "src.api.knowledge",
+        "module_name": "src.api.knowledge.collections",
         "method_name": "passage"
       }
     },
@@ -1073,7 +1073,7 @@
       "api_url": "/api/knowledge/collections/<uuid:collection_id>/suggestions",
       "description": "Questions worth asking this collection.",
       "exec_method": {
-        "module_name": "src.api.knowledge",
+        "module_name": "src.api.knowledge.collections",
         "method_name": "suggestions"
       }
     },
@@ -1087,7 +1087,7 @@
       "api_url": "/api/knowledge/collections/<uuid:collection_id>/threads/<uuid:thread_id>",
       "description": "Forget one conversation.",
       "exec_method": {
-        "module_name": "src.api.knowledge",
+        "module_name": "src.api.knowledge.collections",
         "method_name": "thread"
       }
     },
@@ -1101,7 +1101,7 @@
       "api_url": "/api/knowledge/overview",
       "description": "Headline numbers across every visible collection.",
       "exec_method": {
-        "module_name": "src.api.knowledge",
+        "module_name": "src.api.knowledge.collections",
         "method_name": "overview"
       }
     },
@@ -1116,7 +1116,7 @@
       "api_url": "/api/reports",
       "description": "Saved reports this reader may open, and creating one.",
       "exec_method": {
-        "module_name": "src.api.reports",
+        "module_name": "src.api.analytics.reports",
         "method_name": "collection"
       }
     },
@@ -1132,7 +1132,7 @@
       "api_url": "/api/reports/<uuid:report_id>",
       "description": "One saved report: read it, change it, or remove it.",
       "exec_method": {
-        "module_name": "src.api.reports",
+        "module_name": "src.api.analytics.reports",
         "method_name": "item"
       }
     },
@@ -1146,7 +1146,7 @@
       "api_url": "/api/reports/<uuid:report_id>/run",
       "description": "Execute a saved report through the shared analysis compiler.",
       "exec_method": {
-        "module_name": "src.api.reports",
+        "module_name": "src.api.analytics.reports",
         "method_name": "run"
       }
     },
@@ -1160,7 +1160,7 @@
       "api_url": "/api/reports/<uuid:report_id>/duplicate",
       "description": "A private copy of a report, owned by the caller.",
       "exec_method": {
-        "module_name": "src.api.reports",
+        "module_name": "src.api.analytics.reports",
         "method_name": "duplicate"
       }
     },
@@ -1175,7 +1175,7 @@
       "api_url": "/api/report-documents",
       "description": "Every composed report document this reader may open, or one more.",
       "exec_method": {
-        "module_name": "src.api.report_documents",
+        "module_name": "src.api.analytics.report_documents",
         "method_name": "collection"
       }
     },
@@ -1191,7 +1191,7 @@
       "api_url": "/api/report-documents/<uuid:document_id>",
       "description": "One document: read it, change it, or remove it.",
       "exec_method": {
-        "module_name": "src.api.report_documents",
+        "module_name": "src.api.analytics.report_documents",
         "method_name": "item"
       }
     },
@@ -1205,7 +1205,7 @@
       "api_url": "/api/report-documents/<uuid:document_id>/duplicate",
       "description": "A private copy, owned by the caller.",
       "exec_method": {
-        "module_name": "src.api.report_documents",
+        "module_name": "src.api.analytics.report_documents",
         "method_name": "duplicate"
       }
     },
@@ -1219,7 +1219,7 @@
       "api_url": "/api/report-documents/compose",
       "description": "Compose a whole document about one dataset.",
       "exec_method": {
-        "module_name": "src.api.report_documents",
+        "module_name": "src.api.analytics.report_documents",
         "method_name": "compose"
       }
     },
@@ -1233,7 +1233,7 @@
       "api_url": "/api/report-documents/<uuid:document_id>/render",
       "description": "The document as a PDF or a DOCX.",
       "exec_method": {
-        "module_name": "src.api.report_documents",
+        "module_name": "src.api.analytics.report_documents",
         "method_name": "render"
       }
     },
@@ -1247,7 +1247,7 @@
       "api_url": "/api/explorer/export",
       "description": "Download the current exploration as CSV, JSON or XLSX.",
       "exec_method": {
-        "module_name": "src.api.explorer",
+        "module_name": "src.api.records.explorer",
         "method_name": "export"
       }
     },
@@ -1262,7 +1262,7 @@
       "api_url": "/api/saved-searches",
       "description": "List visible saved searches or save the current explorer question.",
       "exec_method": {
-        "module_name": "src.api.saved_searches",
+        "module_name": "src.api.records.saved_searches",
         "method_name": "collection"
       }
     },
@@ -1278,7 +1278,7 @@
       "api_url": "/api/saved-searches/<uuid:search_id>",
       "description": "Open, update or delete one visible saved search; only its owner may mutate it.",
       "exec_method": {
-        "module_name": "src.api.saved_searches",
+        "module_name": "src.api.records.saved_searches",
         "method_name": "item"
       }
     },
@@ -1292,7 +1292,7 @@
       "api_url": "/api/saved-searches/<uuid:search_id>/duplicate",
       "description": "Copy any visible saved search into a new private search owned by the caller.",
       "exec_method": {
-        "module_name": "src.api.saved_searches",
+        "module_name": "src.api.records.saved_searches",
         "method_name": "duplicate"
       }
     },
@@ -1306,7 +1306,7 @@
       "api_url": "/api/saved-searches/<uuid:search_id>/transfer",
       "description": "Transfer ownership of a saved search. Owner only, audited.",
       "exec_method": {
-        "module_name": "src.api.saved_searches",
+        "module_name": "src.api.records.saved_searches",
         "method_name": "transfer"
       }
     },
@@ -1320,7 +1320,7 @@
       "api_url": "/api/search/global",
       "description": "Rank one term across every dataset the caller may read.",
       "exec_method": {
-        "module_name": "src.api.search",
+        "module_name": "src.api.records.search",
         "method_name": "global_search"
       }
     },
@@ -1334,7 +1334,7 @@
       "api_url": "/api/catalog/datasets",
       "description": "Every dataset the caller may read, with field profiles and freshness.",
       "exec_method": {
-        "module_name": "src.api.catalog",
+        "module_name": "src.api.records.catalog",
         "method_name": "collection"
       }
     },
@@ -1348,7 +1348,7 @@
       "api_url": "/api/catalog/datasets/<string:resource_type>",
       "description": "One dataset's catalogue entry, or `?field=` for the values it holds.",
       "exec_method": {
-        "module_name": "src.api.catalog",
+        "module_name": "src.api.records.catalog",
         "method_name": "item"
       }
     },
@@ -1362,7 +1362,7 @@
       "api_url": "/api/relationships/overview",
       "description": "The platform's connection map: entities, weighted relations, coverage and hub records.",
       "exec_method": {
-        "module_name": "src.api.relationships",
+        "module_name": "src.api.records.relationships",
         "method_name": "overview"
       }
     },
@@ -1376,7 +1376,7 @@
       "api_url": "/api/relationships/network",
       "description": "A clustered slice of the record graph: nodes, edges, communities and modularity.",
       "exec_method": {
-        "module_name": "src.api.relationships",
+        "module_name": "src.api.records.relationships",
         "method_name": "network"
       }
     },
@@ -1390,7 +1390,7 @@
       "api_url": "/api/relationships/<string:resource_type>/<uuid:record_id>",
       "description": "Everything a record points at, and everything pointing at it.",
       "exec_method": {
-        "module_name": "src.api.relationships",
+        "module_name": "src.api.records.relationships",
         "method_name": "item"
       }
     },
@@ -1404,7 +1404,7 @@
       "api_url": "/api/developers/examples",
       "description": "Keep a successful try-it console call as that route's example.",
       "exec_method": {
-        "module_name": "src.api.developers",
+        "module_name": "src.api.platform.developer_portal",
         "method_name": "examples"
       }
     },
@@ -1418,7 +1418,7 @@
       "api_url": "/api/developers/reference",
       "description": "The API reference: every endpoint, grouped, with access, parameters and captured examples.",
       "exec_method": {
-        "module_name": "src.api.developers",
+        "module_name": "src.api.platform.developer_portal",
         "method_name": "reference"
       }
     },
@@ -1432,7 +1432,7 @@
       "api_url": "/api/developers/usage",
       "description": "API usage over a window: requests, errors, latency and busiest routes, overall or per client.",
       "exec_method": {
-        "module_name": "src.api.developers",
+        "module_name": "src.api.platform.developer_portal",
         "method_name": "usage"
       }
     },
@@ -1446,7 +1446,7 @@
       "api_url": "/api/directory/people",
       "description": "Search active colleagues, for share and assignment pickers.",
       "exec_method": {
-        "module_name": "src.api.directory",
+        "module_name": "src.api.people.directory",
         "method_name": "people"
       }
     },
@@ -1460,7 +1460,7 @@
       "api_url": "/dashboard/alerts",
       "description": "Operational alerts, each linking to the records behind it.",
       "exec_method": {
-        "module_name": "src.api.dashboard",
+        "module_name": "src.api.analytics.overview",
         "method_name": "alerts"
       }
     },
@@ -1474,7 +1474,7 @@
       "api_url": "/notifications",
       "description": "The caller's notifications, newest first, filterable and optionally grouped, with unread counts.",
       "exec_method": {
-        "module_name": "src.api.notifications",
+        "module_name": "src.api.collaboration.notifications",
         "method_name": "collection"
       }
     },
@@ -1488,7 +1488,7 @@
       "api_url": "/notifications/counts",
       "description": "Unread totals \u2014 what the header badge polls when the socket is down.",
       "exec_method": {
-        "module_name": "src.api.notifications",
+        "module_name": "src.api.collaboration.notifications",
         "method_name": "unread_counts"
       }
     },
@@ -1503,7 +1503,7 @@
       "api_url": "/notifications/<uuid:notification_id>",
       "description": "Mark one read or unread, or delete it.",
       "exec_method": {
-        "module_name": "src.api.notifications",
+        "module_name": "src.api.collaboration.notifications",
         "method_name": "item"
       }
     },
@@ -1517,7 +1517,7 @@
       "api_url": "/notifications/read-all",
       "description": "Mark everything read, or everything in one category or collapsed group.",
       "exec_method": {
-        "module_name": "src.api.notifications",
+        "module_name": "src.api.collaboration.notifications",
         "method_name": "mark_all"
       }
     },
@@ -1531,7 +1531,7 @@
       "api_url": "/admin/audit/catalog",
       "description": "Audit filter vocabulary \u2014 fields, operators, actions and results.",
       "exec_method": {
-        "module_name": "src.api.audit",
+        "module_name": "src.api.platform.audit",
         "method_name": "catalogue"
       }
     },
@@ -1545,7 +1545,7 @@
       "api_url": "/admin/audit",
       "description": "The audit ledger \u2014 who did what, when, filtered and faceted in SQL.",
       "exec_method": {
-        "module_name": "src.api.audit",
+        "module_name": "src.api.platform.audit",
         "method_name": "collection"
       }
     },
@@ -1559,7 +1559,7 @@
       "api_url": "/admin/audit/export",
       "description": "Download the audit ledger as CSV, JSON or XLSX under the current filters.",
       "exec_method": {
-        "module_name": "src.api.audit",
+        "module_name": "src.api.platform.audit",
         "method_name": "export"
       }
     },
@@ -1573,7 +1573,7 @@
       "api_url": "/admin/audit/<uuid:entry_id>",
       "description": "One audit entry, with its field-level before \u2192 after diff.",
       "exec_method": {
-        "module_name": "src.api.audit",
+        "module_name": "src.api.platform.audit",
         "method_name": "item"
       }
     },
@@ -1587,7 +1587,7 @@
       "api_url": "/api/alerts/anomalies",
       "description": "Anomaly alert history across metric watches.",
       "exec_method": {
-        "module_name": "src.api.metric_watches",
+        "module_name": "src.api.analytics.metric_watches",
         "method_name": "anomalies"
       }
     },
@@ -1601,7 +1601,7 @@
       "api_url": "/api/alerts/anomalies/<uuid:anomaly_id>",
       "description": "One flagged point with the window it was judged against.",
       "exec_method": {
-        "module_name": "src.api.metric_watches",
+        "module_name": "src.api.analytics.metric_watches",
         "method_name": "anomaly"
       }
     },
@@ -1615,7 +1615,7 @@
       "api_url": "/api/alerts/anomalies/<uuid:anomaly_id>/acknowledge",
       "description": "Mark an anomaly alert as seen.",
       "exec_method": {
-        "module_name": "src.api.metric_watches",
+        "module_name": "src.api.analytics.metric_watches",
         "method_name": "acknowledge"
       }
     },
@@ -1629,7 +1629,7 @@
       "api_url": "/api/alerts/catalogue",
       "description": "Datasets, measures, dates and methods a metric watch may use.",
       "exec_method": {
-        "module_name": "src.api.metric_watches",
+        "module_name": "src.api.analytics.metric_watches",
         "method_name": "catalogue"
       }
     },
@@ -1643,7 +1643,7 @@
       "api_url": "/api/alerts/preview",
       "description": "What a draft watch would see and flag, without saving it.",
       "exec_method": {
-        "module_name": "src.api.metric_watches",
+        "module_name": "src.api.analytics.metric_watches",
         "method_name": "preview"
       }
     },
@@ -1657,7 +1657,7 @@
       "api_url": "/api/alerts/run",
       "description": "Evaluate every metric watch now, recorded as a job.",
       "exec_method": {
-        "module_name": "src.api.metric_watches",
+        "module_name": "src.api.analytics.metric_watches",
         "method_name": "run_all"
       }
     },
@@ -1672,7 +1672,7 @@
       "api_url": "/api/alerts/watches",
       "description": "Metric watches, or a new one.",
       "exec_method": {
-        "module_name": "src.api.metric_watches",
+        "module_name": "src.api.analytics.metric_watches",
         "method_name": "watches"
       }
     },
@@ -1688,7 +1688,7 @@
       "api_url": "/api/alerts/watches/<uuid:watch_id>",
       "description": "One metric watch, or a change to it.",
       "exec_method": {
-        "module_name": "src.api.metric_watches",
+        "module_name": "src.api.analytics.metric_watches",
         "method_name": "watch"
       }
     },
@@ -1702,7 +1702,7 @@
       "api_url": "/api/alerts/watches/<uuid:watch_id>/chart",
       "description": "A watched series with its expected band and flagged points.",
       "exec_method": {
-        "module_name": "src.api.metric_watches",
+        "module_name": "src.api.analytics.metric_watches",
         "method_name": "chart"
       }
     },
@@ -1716,7 +1716,7 @@
       "api_url": "/api/alerts/watches/<uuid:watch_id>/evaluate",
       "description": "Judge a watch's latest points now.",
       "exec_method": {
-        "module_name": "src.api.metric_watches",
+        "module_name": "src.api.analytics.metric_watches",
         "method_name": "evaluate"
       }
     },
@@ -1730,7 +1730,7 @@
       "api_url": "/api/alerts/watches/<uuid:watch_id>/silence",
       "description": "Snooze, mute or unsilence a metric watch.",
       "exec_method": {
-        "module_name": "src.api.metric_watches",
+        "module_name": "src.api.analytics.metric_watches",
         "method_name": "silence"
       }
     },
@@ -1745,7 +1745,7 @@
       "api_url": "/api/contracts",
       "description": "Contracts, or a new one.",
       "exec_method": {
-        "module_name": "src.api.contracts",
+        "module_name": "src.api.records.contracts",
         "method_name": "collection"
       }
     },
@@ -1759,7 +1759,7 @@
       "api_url": "/api/contracts/board",
       "description": "The renewals pipeline, one column per stage.",
       "exec_method": {
-        "module_name": "src.api.contracts",
+        "module_name": "src.api.records.contracts",
         "method_name": "board"
       }
     },
@@ -1773,7 +1773,7 @@
       "api_url": "/api/contracts/calendar",
       "description": "Contract end dates and notice deadlines in a month.",
       "exec_method": {
-        "module_name": "src.api.contracts",
+        "module_name": "src.api.records.contracts",
         "method_name": "calendar"
       }
     },
@@ -1787,7 +1787,7 @@
       "api_url": "/api/contracts/forecast",
       "description": "Renewal ARR by quarter: pipeline, weighted, committed, renewed, churned.",
       "exec_method": {
-        "module_name": "src.api.contracts",
+        "module_name": "src.api.records.contracts",
         "method_name": "forecast"
       }
     },
@@ -1803,7 +1803,7 @@
       "api_url": "/api/contracts/<uuid:contract_id>",
       "description": "One contract, or a change to it.",
       "exec_method": {
-        "module_name": "src.api.contracts",
+        "module_name": "src.api.records.contracts",
         "method_name": "item"
       }
     },
@@ -1818,7 +1818,7 @@
       "api_url": "/api/contracts/<uuid:contract_id>/files",
       "description": "A contract's documents, or its folder made ready for an upload.",
       "exec_method": {
-        "module_name": "src.api.contracts",
+        "module_name": "src.api.records.contracts",
         "method_name": "files"
       }
     },
@@ -1832,7 +1832,7 @@
       "api_url": "/api/contracts/<uuid:contract_id>/move",
       "description": "Move a contract to a pipeline stage and a place in it.",
       "exec_method": {
-        "module_name": "src.api.contracts",
+        "module_name": "src.api.records.contracts",
         "method_name": "move"
       }
     },
@@ -1846,7 +1846,7 @@
       "api_url": "/api/customer-health",
       "description": "Customer health across the book: distribution, movers, drops, a filtered list.",
       "exec_method": {
-        "module_name": "src.api.customer_health",
+        "module_name": "src.api.records.customer_health",
         "method_name": "portfolio"
       }
     },
@@ -1860,7 +1860,7 @@
       "api_url": "/api/customer-health/customers/<uuid:customer_id>",
       "description": "One customer's health score, band, breakdown and trend.",
       "exec_method": {
-        "module_name": "src.api.customer_health",
+        "module_name": "src.api.records.customer_health",
         "method_name": "customer"
       }
     },
@@ -1875,7 +1875,7 @@
       "api_url": "/api/customer-health/model",
       "description": "The health model's weights and thresholds, or a change to them.",
       "exec_method": {
-        "module_name": "src.api.customer_health",
+        "module_name": "src.api.records.customer_health",
         "method_name": "model"
       }
     },
@@ -1889,7 +1889,7 @@
       "api_url": "/api/customer-health/recompute",
       "description": "Score every customer now and snapshot today.",
       "exec_method": {
-        "module_name": "src.api.customer_health",
+        "module_name": "src.api.records.customer_health",
         "method_name": "recompute"
       }
     },
@@ -1904,7 +1904,7 @@
       "api_url": "/api/dashboards/<uuid:dashboard_id>/links",
       "description": "A dashboard's public links, or a new one.",
       "exec_method": {
-        "module_name": "src.api.dashboard_links",
+        "module_name": "src.api.analytics.dashboard_links",
         "method_name": "links"
       }
     },
@@ -1919,7 +1919,7 @@
       "api_url": "/api/dashboards/<uuid:dashboard_id>/links/<uuid:link_id>",
       "description": "Change or revoke one public dashboard link.",
       "exec_method": {
-        "module_name": "src.api.dashboard_links",
+        "module_name": "src.api.analytics.dashboard_links",
         "method_name": "link"
       }
     },
@@ -1933,7 +1933,7 @@
       "api_url": "/api/records/<string:resource_type>/<uuid:record_id>/versions",
       "description": "Every version of a record, or the one in force at a date.",
       "exec_method": {
-        "module_name": "src.api.record_versions",
+        "module_name": "src.api.records.versions",
         "method_name": "versions"
       }
     },
@@ -1947,7 +1947,7 @@
       "api_url": "/api/records/<string:resource_type>/<uuid:record_id>/versions/compare",
       "description": "Two versions of a record side by side.",
       "exec_method": {
-        "module_name": "src.api.record_versions",
+        "module_name": "src.api.records.versions",
         "method_name": "compare"
       }
     },
@@ -1961,7 +1961,7 @@
       "api_url": "/api/records/<string:resource_type>/<uuid:record_id>/versions/restore",
       "description": "Restore a whole version of a record, or chosen fields of it.",
       "exec_method": {
-        "module_name": "src.api.record_versions",
+        "module_name": "src.api.records.versions",
         "method_name": "restore"
       }
     },
@@ -1975,7 +1975,7 @@
       "api_url": "/public/automations/hooks/<string:token>",
       "description": "Webhook trigger: run the workflow listening at this address for a record.",
       "exec_method": {
-        "module_name": "src.api.workflows",
+        "module_name": "src.api.automation.workflows",
         "method_name": "hook"
       }
     },
@@ -1989,7 +1989,7 @@
       "api_url": "/public/dashboards/<string:token>",
       "description": "Whether a public dashboard link needs a password.",
       "exec_method": {
-        "module_name": "src.api.dashboard_links",
+        "module_name": "src.api.analytics.dashboard_links",
         "method_name": "public_meta"
       }
     },
@@ -2003,7 +2003,7 @@
       "api_url": "/public/dashboards/<string:token>/unlock",
       "description": "Exchange a public dashboard's password for a short-lived grant.",
       "exec_method": {
-        "module_name": "src.api.dashboard_links",
+        "module_name": "src.api.analytics.dashboard_links",
         "method_name": "public_unlock"
       }
     },
@@ -2017,7 +2017,7 @@
       "api_url": "/public/dashboards/<string:token>/view",
       "description": "A public dashboard, read-only, every widget answered on the server.",
       "exec_method": {
-        "module_name": "src.api.dashboard_links",
+        "module_name": "src.api.analytics.dashboard_links",
         "method_name": "public_view"
       }
     },
@@ -2032,7 +2032,7 @@
       "api_url": "/api/announcements",
       "description": "The notices addressed to this reader, and writing one (announcements.manage).",
       "exec_method": {
-        "module_name": "src.api.announcements",
+        "module_name": "src.api.collaboration.announcements",
         "method_name": "collection"
       }
     },
@@ -2046,7 +2046,7 @@
       "api_url": "/api/announcements/drafts",
       "description": "Every announcement whatever its state \u2014 the author's list.",
       "exec_method": {
-        "module_name": "src.api.announcements",
+        "module_name": "src.api.collaboration.announcements",
         "method_name": "drafts"
       }
     },
@@ -2062,7 +2062,7 @@
       "api_url": "/api/announcements/<uuid:announcement_id>",
       "description": "One announcement: read it, change it, or withdraw it.",
       "exec_method": {
-        "module_name": "src.api.announcements",
+        "module_name": "src.api.collaboration.announcements",
         "method_name": "item"
       }
     },
@@ -2076,7 +2076,7 @@
       "api_url": "/api/announcements/<uuid:announcement_id>/receipt",
       "description": "Record that this reader has seen \u2014 or agreed to \u2014 this announcement.",
       "exec_method": {
-        "module_name": "src.api.announcements",
+        "module_name": "src.api.collaboration.announcements",
         "method_name": "receipt"
       }
     },
@@ -2090,7 +2090,7 @@
       "api_url": "/api/approvals",
       "description": "The approvals inbox, my requests, or decision history.",
       "exec_method": {
-        "module_name": "src.api.approvals",
+        "module_name": "src.api.decisions.approvals",
         "method_name": "collection"
       }
     },
@@ -2104,7 +2104,7 @@
       "api_url": "/api/approvals/access",
       "description": "Ask for a permission from a page that needed it.",
       "exec_method": {
-        "module_name": "src.api.approvals",
+        "module_name": "src.api.decisions.approvals",
         "method_name": "access"
       }
     },
@@ -2118,7 +2118,7 @@
       "api_url": "/api/approvals/bulk",
       "description": "Approve or reject several requests with one comment.",
       "exec_method": {
-        "module_name": "src.api.approvals",
+        "module_name": "src.api.decisions.approvals",
         "method_name": "bulk"
       }
     },
@@ -2132,7 +2132,7 @@
       "api_url": "/api/approvals/report-publish",
       "description": "Ask for a report to be published organisation-wide.",
       "exec_method": {
-        "module_name": "src.api.approvals",
+        "module_name": "src.api.decisions.approvals",
         "method_name": "publish_report"
       }
     },
@@ -2147,7 +2147,7 @@
       "api_url": "/api/approvals/rules",
       "description": "Rules that hold record edits back for approval.",
       "exec_method": {
-        "module_name": "src.api.approvals",
+        "module_name": "src.api.decisions.approvals",
         "method_name": "rules"
       }
     },
@@ -2162,7 +2162,7 @@
       "api_url": "/api/approvals/rules/<uuid:rule_id>",
       "description": "Edit or remove one change rule.",
       "exec_method": {
-        "module_name": "src.api.approvals",
+        "module_name": "src.api.decisions.approvals",
         "method_name": "rule"
       }
     },
@@ -2176,7 +2176,7 @@
       "api_url": "/api/approvals/<uuid:approval_id>",
       "description": "One request, its history and its details.",
       "exec_method": {
-        "module_name": "src.api.approvals",
+        "module_name": "src.api.decisions.approvals",
         "method_name": "item"
       }
     },
@@ -2190,7 +2190,7 @@
       "api_url": "/api/approvals/<uuid:approval_id>/decision",
       "description": "Approve or reject one request.",
       "exec_method": {
-        "module_name": "src.api.approvals",
+        "module_name": "src.api.decisions.approvals",
         "method_name": "decision"
       }
     },
@@ -2204,7 +2204,7 @@
       "api_url": "/api/approvals/<uuid:approval_id>/withdraw",
       "description": "Withdraw a request of mine.",
       "exec_method": {
-        "module_name": "src.api.approvals",
+        "module_name": "src.api.decisions.approvals",
         "method_name": "withdraw"
       }
     },
@@ -2218,7 +2218,7 @@
       "api_url": "/api/time/cell",
       "description": "Set one cell of my week grid.",
       "exec_method": {
-        "module_name": "src.api.time",
+        "module_name": "src.api.decisions.timekeeping",
         "method_name": "cell"
       }
     },
@@ -2233,7 +2233,7 @@
       "api_url": "/api/time/entries",
       "description": "Time entries; POST a manual one.",
       "exec_method": {
-        "module_name": "src.api.time",
+        "module_name": "src.api.decisions.timekeeping",
         "method_name": "entries"
       }
     },
@@ -2248,7 +2248,7 @@
       "api_url": "/api/time/entries/<uuid:entry_id>",
       "description": "Edit or remove one of my time entries.",
       "exec_method": {
-        "module_name": "src.api.time",
+        "module_name": "src.api.decisions.timekeeping",
         "method_name": "entry"
       }
     },
@@ -2262,7 +2262,7 @@
       "api_url": "/api/time/export",
       "description": "Time entries as CSV or XLSX.",
       "exec_method": {
-        "module_name": "src.api.time",
+        "module_name": "src.api.decisions.timekeeping",
         "method_name": "export"
       }
     },
@@ -2276,7 +2276,7 @@
       "api_url": "/api/time/on",
       "description": "Time logged on one task or ticket.",
       "exec_method": {
-        "module_name": "src.api.time",
+        "module_name": "src.api.decisions.timekeeping",
         "method_name": "on_subject"
       }
     },
@@ -2290,7 +2290,7 @@
       "api_url": "/api/time/report",
       "description": "Time by person, project, customer, item or day.",
       "exec_method": {
-        "module_name": "src.api.time",
+        "module_name": "src.api.decisions.timekeeping",
         "method_name": "report"
       }
     },
@@ -2304,7 +2304,7 @@
       "api_url": "/api/time/subjects",
       "description": "Work items time can be booked against.",
       "exec_method": {
-        "module_name": "src.api.time",
+        "module_name": "src.api.decisions.timekeeping",
         "method_name": "subjects"
       }
     },
@@ -2318,7 +2318,7 @@
       "api_url": "/api/time/submit",
       "description": "Submit my week for approval.",
       "exec_method": {
-        "module_name": "src.api.time",
+        "module_name": "src.api.decisions.timekeeping",
         "method_name": "submit"
       }
     },
@@ -2332,7 +2332,7 @@
       "api_url": "/api/time/team",
       "description": "Everybody's week, for approvers.",
       "exec_method": {
-        "module_name": "src.api.time",
+        "module_name": "src.api.decisions.timekeeping",
         "method_name": "team"
       }
     },
@@ -2347,7 +2347,7 @@
       "api_url": "/api/time/timer",
       "description": "The running timer; POST starts one.",
       "exec_method": {
-        "module_name": "src.api.time",
+        "module_name": "src.api.decisions.timekeeping",
         "method_name": "timer"
       }
     },
@@ -2361,7 +2361,7 @@
       "api_url": "/api/time/timer/stop",
       "description": "Stop the running timer.",
       "exec_method": {
-        "module_name": "src.api.time",
+        "module_name": "src.api.decisions.timekeeping",
         "method_name": "stop"
       }
     },
@@ -2375,7 +2375,7 @@
       "api_url": "/api/time/week",
       "description": "One person's week as a grid.",
       "exec_method": {
-        "module_name": "src.api.time",
+        "module_name": "src.api.decisions.timekeeping",
         "method_name": "week"
       }
     },
@@ -2389,7 +2389,7 @@
       "api_url": "/api/sla/apply",
       "description": "Recompute every ticket's SLA clock and fire due escalations.",
       "exec_method": {
-        "module_name": "src.api.sla",
+        "module_name": "src.api.decisions.sla",
         "method_name": "apply"
       }
     },
@@ -2403,7 +2403,7 @@
       "api_url": "/api/sla/calendars",
       "description": "Create a business-hours calendar.",
       "exec_method": {
-        "module_name": "src.api.sla",
+        "module_name": "src.api.decisions.sla",
         "method_name": "calendars"
       }
     },
@@ -2418,7 +2418,7 @@
       "api_url": "/api/sla/calendars/<uuid:calendar_id>",
       "description": "Edit or remove a business-hours calendar.",
       "exec_method": {
-        "module_name": "src.api.sla",
+        "module_name": "src.api.decisions.sla",
         "method_name": "calendar"
       }
     },
@@ -2432,7 +2432,7 @@
       "api_url": "/api/sla/catalogue",
       "description": "What an SLA policy can be made of.",
       "exec_method": {
-        "module_name": "src.api.sla",
+        "module_name": "src.api.decisions.sla",
         "method_name": "catalogue"
       }
     },
@@ -2447,7 +2447,7 @@
       "api_url": "/api/sla/policies",
       "description": "SLA policies in evaluation order; POST a new one.",
       "exec_method": {
-        "module_name": "src.api.sla",
+        "module_name": "src.api.decisions.sla",
         "method_name": "policies"
       }
     },
@@ -2461,7 +2461,7 @@
       "api_url": "/api/sla/policies/order",
       "description": "Set the evaluation order of SLA policies.",
       "exec_method": {
-        "module_name": "src.api.sla",
+        "module_name": "src.api.decisions.sla",
         "method_name": "order"
       }
     },
@@ -2477,7 +2477,7 @@
       "api_url": "/api/sla/policies/<uuid:policy_id>",
       "description": "One SLA policy.",
       "exec_method": {
-        "module_name": "src.api.sla",
+        "module_name": "src.api.decisions.sla",
         "method_name": "policy"
       }
     },
@@ -2491,7 +2491,7 @@
       "api_url": "/api/sla/tickets/<uuid:ticket_id>",
       "description": "A ticket's policy and business-hours clock.",
       "exec_method": {
-        "module_name": "src.api.sla",
+        "module_name": "src.api.decisions.sla",
         "method_name": "ticket"
       }
     },
@@ -2506,7 +2506,7 @@
       "api_url": "/api/forms",
       "description": "Intake forms; POST a new one.",
       "exec_method": {
-        "module_name": "src.api.forms",
+        "module_name": "src.api.decisions.forms",
         "method_name": "collection"
       }
     },
@@ -2522,7 +2522,7 @@
       "api_url": "/api/forms/<uuid:form_id>",
       "description": "One intake form.",
       "exec_method": {
-        "module_name": "src.api.forms",
+        "module_name": "src.api.decisions.forms",
         "method_name": "item"
       }
     },
@@ -2536,7 +2536,7 @@
       "api_url": "/api/forms/<uuid:form_id>/submissions",
       "description": "A form's submissions and the records they became.",
       "exec_method": {
-        "module_name": "src.api.forms",
+        "module_name": "src.api.decisions.forms",
         "method_name": "submissions"
       }
     },
@@ -2550,7 +2550,7 @@
       "api_url": "/api/forms/<uuid:form_id>/submissions/<uuid:submission_id>/retry",
       "description": "Convert a failed submission again.",
       "exec_method": {
-        "module_name": "src.api.forms",
+        "module_name": "src.api.decisions.forms",
         "method_name": "retry"
       }
     },
@@ -2564,7 +2564,7 @@
       "api_url": "/public/forms/<string:slug>",
       "description": "A published intake form, for its public page.",
       "exec_method": {
-        "module_name": "src.api.forms",
+        "module_name": "src.api.decisions.forms",
         "method_name": "public_form"
       }
     },
@@ -2578,7 +2578,7 @@
       "api_url": "/public/forms/<string:slug>/submit",
       "description": "Answer a published intake form.",
       "exec_method": {
-        "module_name": "src.api.forms",
+        "module_name": "src.api.decisions.forms",
         "method_name": "public_submit"
       }
     },
@@ -2593,7 +2593,7 @@
       "api_url": "/api/assistant/brief",
       "description": "Today's AI daily brief, cached per person per day; POST writes it again.",
       "exec_method": {
-        "module_name": "src.api.assistant",
+        "module_name": "src.api.ai.assistant",
         "method_name": "brief"
       }
     },
@@ -2608,7 +2608,7 @@
       "api_url": "/api/assistant/conversations",
       "description": "The caller's assistant conversations (searchable), or a new one.",
       "exec_method": {
-        "module_name": "src.api.assistant",
+        "module_name": "src.api.ai.assistant",
         "method_name": "conversations"
       }
     },
@@ -2624,7 +2624,7 @@
       "api_url": "/api/assistant/conversations/<uuid:conversation_id>",
       "description": "One conversation with its messages: read, rename or switch mode, delete.",
       "exec_method": {
-        "module_name": "src.api.assistant",
+        "module_name": "src.api.ai.assistant",
         "method_name": "conversation"
       }
     },
@@ -2638,7 +2638,7 @@
       "api_url": "/api/assistant/conversations/<uuid:conversation_id>/messages",
       "description": "Ask (or regenerate) and stream the answer as server-sent events.",
       "exec_method": {
-        "module_name": "src.api.assistant",
+        "module_name": "src.api.ai.assistant",
         "method_name": "messages"
       }
     },
@@ -2652,7 +2652,7 @@
       "api_url": "/api/assistant/filters",
       "description": "A described question compiled into the explorer's condition tree, validated and counted.",
       "exec_method": {
-        "module_name": "src.api.assistant",
+        "module_name": "src.api.ai.assistant",
         "method_name": "filters"
       }
     },
@@ -2666,7 +2666,7 @@
       "api_url": "/api/assistant/page-help",
       "description": "A how-to question about the current page: an answer, a control to highlight, an action to propose.",
       "exec_method": {
-        "module_name": "src.api.assistant",
+        "module_name": "src.api.ai.assistant",
         "method_name": "page_question"
       }
     },
@@ -2680,7 +2680,7 @@
       "api_url": "/api/assistant/page-help/actions",
       "description": "Record that a proposed page action was confirmed and run (audit).",
       "exec_method": {
-        "module_name": "src.api.assistant",
+        "module_name": "src.api.ai.assistant",
         "method_name": "page_action"
       }
     },
@@ -2694,7 +2694,7 @@
       "api_url": "/api/assistant/usage",
       "description": "The caller's AI usage over 30 days, by feature, and the model in use.",
       "exec_method": {
-        "module_name": "src.api.assistant",
+        "module_name": "src.api.ai.assistant",
         "method_name": "usage"
       }
     },
@@ -2708,7 +2708,7 @@
       "api_url": "/api/activity",
       "description": "The activity feed: what happened, filterable by kind, dataset, actor and period.",
       "exec_method": {
-        "module_name": "src.api.activity",
+        "module_name": "src.api.collaboration.activity",
         "method_name": "collection"
       }
     },
@@ -2722,7 +2722,7 @@
       "api_url": "/api/audit/timeline",
       "description": "Everything recorded against one record \u2014 the detail-page timeline. With thread=true, the records it is joined to as well (\u00a748).",
       "exec_method": {
-        "module_name": "src.api.audit",
+        "module_name": "src.api.platform.audit",
         "method_name": "resource_timeline"
       }
     },
@@ -2736,7 +2736,7 @@
       "api_url": "/api/records/<string:resource_type>",
       "description": "Create one entity record; the server names it.",
       "exec_method": {
-        "module_name": "src.api.records",
+        "module_name": "src.api.records.records",
         "method_name": "collection"
       }
     },
@@ -2752,7 +2752,7 @@
       "api_url": "/api/records/<string:resource_type>/<uuid:record_id>",
       "description": "One entity record: read it, edit it, or remove it.",
       "exec_method": {
-        "module_name": "src.api.records",
+        "module_name": "src.api.records.records",
         "method_name": "item"
       }
     },
@@ -2766,7 +2766,7 @@
       "api_url": "/api/records/<string:resource_type>/bulk/preview",
       "description": "What a bulk action would change, split into hand-picked and filter-matched.",
       "exec_method": {
-        "module_name": "src.api.records",
+        "module_name": "src.api.records.records",
         "method_name": "bulk_preview"
       }
     },
@@ -2780,7 +2780,7 @@
       "api_url": "/api/records/<string:resource_type>/bulk",
       "description": "Apply one change to many records; the answer carries both halves.",
       "exec_method": {
-        "module_name": "src.api.records",
+        "module_name": "src.api.records.records",
         "method_name": "bulk"
       }
     },
@@ -2794,7 +2794,7 @@
       "api_url": "/api/records/<string:resource_type>/compare",
       "description": "Two or more records side by side, with the differing fields marked.",
       "exec_method": {
-        "module_name": "src.api.records",
+        "module_name": "src.api.records.records",
         "method_name": "compare"
       }
     },
@@ -2809,7 +2809,7 @@
       "api_url": "/tags",
       "description": "The tag vocabulary, and adding to it.",
       "exec_method": {
-        "module_name": "src.api.tags",
+        "module_name": "src.api.records.tags",
         "method_name": "collection"
       }
     },
@@ -2824,7 +2824,7 @@
       "api_url": "/tags/<uuid:tag_id>",
       "description": "Rename, recolour or remove one tag.",
       "exec_method": {
-        "module_name": "src.api.tags",
+        "module_name": "src.api.records.tags",
         "method_name": "item"
       }
     },
@@ -2839,7 +2839,7 @@
       "api_url": "/api/records/<string:resource_type>/<uuid:record_id>/tags",
       "description": "The tags on one record; PUT sets the whole set.",
       "exec_method": {
-        "module_name": "src.api.tags",
+        "module_name": "src.api.records.tags",
         "method_name": "on_record"
       }
     },
@@ -2853,7 +2853,7 @@
       "api_url": "/api/onboarding",
       "description": "This person's onboarding checklist for their role, with progress.",
       "exec_method": {
-        "module_name": "src.api.onboarding",
+        "module_name": "src.api.platform.onboarding",
         "method_name": "checklist"
       }
     },
@@ -2867,7 +2867,7 @@
       "api_url": "/api/onboarding/dismiss",
       "description": "Hide or bring back the onboarding card on Home.",
       "exec_method": {
-        "module_name": "src.api.onboarding",
+        "module_name": "src.api.platform.onboarding",
         "method_name": "dismiss"
       }
     },
@@ -2881,7 +2881,7 @@
       "api_url": "/api/onboarding/samples",
       "description": "Which areas have sample data loaded.",
       "exec_method": {
-        "module_name": "src.api.onboarding",
+        "module_name": "src.api.platform.onboarding",
         "method_name": "samples"
       }
     },
@@ -2896,7 +2896,7 @@
       "api_url": "/api/onboarding/samples/<string:area>",
       "description": "Load a tagged sample dataset for an area, or remove exactly what was loaded.",
       "exec_method": {
-        "module_name": "src.api.onboarding",
+        "module_name": "src.api.platform.onboarding",
         "method_name": "sample"
       }
     },
@@ -2910,7 +2910,7 @@
       "api_url": "/api/onboarding/steps/<string:step_key>",
       "description": "Mark an onboarding step done or skipped, or back to to-do.",
       "exec_method": {
-        "module_name": "src.api.onboarding",
+        "module_name": "src.api.platform.onboarding",
         "method_name": "step"
       }
     },
@@ -2924,7 +2924,7 @@
       "api_url": "/api/profile",
       "description": "The signed-in reader's own page: access, work and when they work.",
       "exec_method": {
-        "module_name": "src.api.profile",
+        "module_name": "src.api.people.profile",
         "method_name": "mine"
       }
     },
@@ -2938,7 +2938,7 @@
       "api_url": "/api/profile/<uuid:user_id>",
       "description": "A colleague's page, showing only what the viewer may be told.",
       "exec_method": {
-        "module_name": "src.api.profile",
+        "module_name": "src.api.people.profile",
         "method_name": "person"
       }
     },
@@ -2952,7 +2952,7 @@
       "api_url": "/admin/quality",
       "description": "What is wrong with the records, counted, with somewhere to go for each.",
       "exec_method": {
-        "module_name": "src.api.quality",
+        "module_name": "src.api.records.quality",
         "method_name": "overview"
       }
     },
@@ -2966,7 +2966,7 @@
       "api_url": "/admin/quality/<string:resource_type>",
       "description": "One dataset's data-quality counts, for the indicator on its list.",
       "exec_method": {
-        "module_name": "src.api.quality",
+        "module_name": "src.api.records.quality",
         "method_name": "summary"
       }
     },
@@ -2981,7 +2981,7 @@
       "api_url": "/api/comments",
       "description": "The conversation on one record, and adding to it.",
       "exec_method": {
-        "module_name": "src.api.comments",
+        "module_name": "src.api.collaboration.comments",
         "method_name": "collection"
       }
     },
@@ -2996,7 +2996,7 @@
       "api_url": "/api/comments/<uuid:comment_id>",
       "description": "Change or withdraw one comment; only its author may.",
       "exec_method": {
-        "module_name": "src.api.comments",
+        "module_name": "src.api.collaboration.comments",
         "method_name": "item"
       }
     },
@@ -3011,7 +3011,7 @@
       "api_url": "/api/chat/channels",
       "description": "The conversations this person is in, and starting a channel.",
       "exec_method": {
-        "module_name": "src.api.chat",
+        "module_name": "src.api.collaboration.chat",
         "method_name": "channels"
       }
     },
@@ -3027,7 +3027,7 @@
       "api_url": "/api/chat/channels/<uuid:channel_id>",
       "description": "One conversation: read, rename or archive it.",
       "exec_method": {
-        "module_name": "src.api.chat",
+        "module_name": "src.api.collaboration.chat",
         "method_name": "channel"
       }
     },
@@ -3041,7 +3041,7 @@
       "api_url": "/api/chat/channels/<uuid:channel_id>/join",
       "description": "Join a public channel.",
       "exec_method": {
-        "module_name": "src.api.chat",
+        "module_name": "src.api.collaboration.chat",
         "method_name": "join"
       }
     },
@@ -3055,7 +3055,7 @@
       "api_url": "/api/chat/channels/<uuid:channel_id>/leave",
       "description": "Leave a channel.",
       "exec_method": {
-        "module_name": "src.api.chat",
+        "module_name": "src.api.collaboration.chat",
         "method_name": "leave"
       }
     },
@@ -3069,7 +3069,7 @@
       "api_url": "/api/chat/channels/<uuid:channel_id>/members",
       "description": "Add people to a channel.",
       "exec_method": {
-        "module_name": "src.api.chat",
+        "module_name": "src.api.collaboration.chat",
         "method_name": "members"
       }
     },
@@ -3083,7 +3083,7 @@
       "api_url": "/api/chat/channels/<uuid:channel_id>/members/<uuid:user_id>",
       "description": "Remove somebody from a channel.",
       "exec_method": {
-        "module_name": "src.api.chat",
+        "module_name": "src.api.collaboration.chat",
         "method_name": "member"
       }
     },
@@ -3097,7 +3097,7 @@
       "api_url": "/api/chat/direct",
       "description": "The direct conversation with one person, begun if new.",
       "exec_method": {
-        "module_name": "src.api.chat",
+        "module_name": "src.api.collaboration.chat",
         "method_name": "direct"
       }
     },
@@ -3112,7 +3112,7 @@
       "api_url": "/api/chat/presence",
       "description": "Who is online or away; or set one's own status.",
       "exec_method": {
-        "module_name": "src.api.chat",
+        "module_name": "src.api.collaboration.chat",
         "method_name": "presence"
       }
     },
@@ -3126,7 +3126,7 @@
       "api_url": "/api/chat/search",
       "description": "Messages matching a phrase, in conversations this person may read.",
       "exec_method": {
-        "module_name": "src.api.chat",
+        "module_name": "src.api.collaboration.chat",
         "method_name": "search"
       }
     },
@@ -3140,7 +3140,7 @@
       "api_url": "/api/comments/read",
       "description": "Mark a conversation read up to now.",
       "exec_method": {
-        "module_name": "src.api.comments",
+        "module_name": "src.api.collaboration.comments",
         "method_name": "read"
       }
     },
@@ -3154,7 +3154,7 @@
       "api_url": "/api/comments/typing",
       "description": "Tell a conversation somebody is typing.",
       "exec_method": {
-        "module_name": "src.api.comments",
+        "module_name": "src.api.collaboration.comments",
         "method_name": "typing"
       }
     },
@@ -3168,7 +3168,7 @@
       "api_url": "/api/comments/<uuid:comment_id>/reactions",
       "description": "Add or take back an emoji reaction.",
       "exec_method": {
-        "module_name": "src.api.comments",
+        "module_name": "src.api.collaboration.comments",
         "method_name": "reactions"
       }
     },
@@ -3182,7 +3182,7 @@
       "api_url": "/api/docs/backlinks",
       "description": "The wiki pages that link to one record.",
       "exec_method": {
-        "module_name": "src.api.docs",
+        "module_name": "src.api.collaboration.docs",
         "method_name": "backlinks"
       }
     },
@@ -3197,7 +3197,7 @@
       "api_url": "/api/docs/meetings",
       "description": "Meeting notes for a calendar event; or open them.",
       "exec_method": {
-        "module_name": "src.api.docs",
+        "module_name": "src.api.collaboration.docs",
         "method_name": "meetings"
       }
     },
@@ -3212,7 +3212,7 @@
       "api_url": "/api/docs/pages",
       "description": "Recently changed pages, and creating one.",
       "exec_method": {
-        "module_name": "src.api.docs",
+        "module_name": "src.api.collaboration.docs",
         "method_name": "pages"
       }
     },
@@ -3228,7 +3228,7 @@
       "api_url": "/api/docs/pages/<uuid:page_id>",
       "description": "One wiki page: read, save or remove it.",
       "exec_method": {
-        "module_name": "src.api.docs",
+        "module_name": "src.api.collaboration.docs",
         "method_name": "page"
       }
     },
@@ -3242,7 +3242,7 @@
       "api_url": "/api/docs/pages/<uuid:page_id>/actions",
       "description": "Turn an action item into a task.",
       "exec_method": {
-        "module_name": "src.api.docs",
+        "module_name": "src.api.collaboration.docs",
         "method_name": "actions"
       }
     },
@@ -3256,7 +3256,7 @@
       "api_url": "/api/docs/pages/<uuid:page_id>/links",
       "description": "Link a page to a record.",
       "exec_method": {
-        "module_name": "src.api.docs",
+        "module_name": "src.api.collaboration.docs",
         "method_name": "links"
       }
     },
@@ -3270,7 +3270,7 @@
       "api_url": "/api/docs/pages/<uuid:page_id>/links/<uuid:link_id>",
       "description": "Remove a page's link to a record.",
       "exec_method": {
-        "module_name": "src.api.docs",
+        "module_name": "src.api.collaboration.docs",
         "method_name": "link"
       }
     },
@@ -3284,7 +3284,7 @@
       "api_url": "/api/docs/pages/<uuid:page_id>/move",
       "description": "Move a page in the tree.",
       "exec_method": {
-        "module_name": "src.api.docs",
+        "module_name": "src.api.collaboration.docs",
         "method_name": "move"
       }
     },
@@ -3298,7 +3298,7 @@
       "api_url": "/api/docs/pages/<uuid:page_id>/revisions",
       "description": "A page's history.",
       "exec_method": {
-        "module_name": "src.api.docs",
+        "module_name": "src.api.collaboration.docs",
         "method_name": "revisions"
       }
     },
@@ -3312,7 +3312,7 @@
       "api_url": "/api/docs/pages/<uuid:page_id>/revisions/<uuid:revision_id>",
       "description": "One past version of a page.",
       "exec_method": {
-        "module_name": "src.api.docs",
+        "module_name": "src.api.collaboration.docs",
         "method_name": "revision"
       }
     },
@@ -3326,7 +3326,7 @@
       "api_url": "/api/docs/pages/<uuid:page_id>/revisions/<uuid:revision_id>/restore",
       "description": "Make a past version the current one.",
       "exec_method": {
-        "module_name": "src.api.docs",
+        "module_name": "src.api.collaboration.docs",
         "method_name": "restore"
       }
     },
@@ -3340,7 +3340,7 @@
       "api_url": "/api/docs/pages/<uuid:page_id>/summary",
       "description": "An AI summary of the page.",
       "exec_method": {
-        "module_name": "src.api.docs",
+        "module_name": "src.api.collaboration.docs",
         "method_name": "summary"
       }
     },
@@ -3354,7 +3354,7 @@
       "api_url": "/api/docs/search",
       "description": "Pages matching a phrase.",
       "exec_method": {
-        "module_name": "src.api.docs",
+        "module_name": "src.api.collaboration.docs",
         "method_name": "search"
       }
     },
@@ -3369,7 +3369,7 @@
       "api_url": "/api/docs/spaces",
       "description": "The wiki's spaces, and adding one.",
       "exec_method": {
-        "module_name": "src.api.docs",
+        "module_name": "src.api.collaboration.docs",
         "method_name": "spaces"
       }
     },
@@ -3385,7 +3385,7 @@
       "api_url": "/api/docs/spaces/<uuid:space_id>",
       "description": "A space's page tree; rename or remove it.",
       "exec_method": {
-        "module_name": "src.api.docs",
+        "module_name": "src.api.collaboration.docs",
         "method_name": "space"
       }
     },
@@ -3399,7 +3399,7 @@
       "api_url": "/api/docs/templates",
       "description": "The page templates.",
       "exec_method": {
-        "module_name": "src.api.docs",
+        "module_name": "src.api.collaboration.docs",
         "method_name": "templates"
       }
     },
@@ -3414,7 +3414,7 @@
       "api_url": "/admin/roles",
       "description": "The roles in force, or a new one of this installation's own.",
       "exec_method": {
-        "module_name": "src.api.roles",
+        "module_name": "src.api.people.roles",
         "method_name": "collection"
       }
     },
@@ -3429,7 +3429,7 @@
       "api_url": "/admin/roles/<string:code>",
       "description": "Change what a role grants, or remove one this installation added.",
       "exec_method": {
-        "module_name": "src.api.roles",
+        "module_name": "src.api.people.roles",
         "method_name": "item"
       }
     },
@@ -3443,7 +3443,7 @@
       "api_url": "/admin/users",
       "description": "People, with their role, status and sign-in history.",
       "exec_method": {
-        "module_name": "src.api.users",
+        "module_name": "src.api.people.users",
         "method_name": "collection"
       }
     },
@@ -3458,7 +3458,7 @@
       "api_url": "/admin/users/<uuid:user_id>",
       "description": "One person's profile and effective access, or a change to it.",
       "exec_method": {
-        "module_name": "src.api.users",
+        "module_name": "src.api.people.users",
         "method_name": "item"
       }
     },
@@ -3472,7 +3472,7 @@
       "api_url": "/admin/users/<uuid:user_id>/impersonate",
       "description": "Begin acting as this person; audited with both identities.",
       "exec_method": {
-        "module_name": "src.api.users",
+        "module_name": "src.api.people.users",
         "method_name": "impersonate"
       }
     },
@@ -3486,7 +3486,7 @@
       "api_url": "/api/automations/catalog",
       "description": "What an automation may watch and what it may do.",
       "exec_method": {
-        "module_name": "src.api.workflows",
+        "module_name": "src.api.automation.workflows",
         "method_name": "catalog"
       }
     },
@@ -3501,7 +3501,7 @@
       "api_url": "/api/automations/rules",
       "description": "Every automation, or a new one.",
       "exec_method": {
-        "module_name": "src.api.workflows",
+        "module_name": "src.api.automation.workflows",
         "method_name": "rules"
       }
     },
@@ -3517,7 +3517,7 @@
       "api_url": "/api/automations/rules/<uuid:rule_id>",
       "description": "One automation with its recent runs, a change to it, or its withdrawal.",
       "exec_method": {
-        "module_name": "src.api.workflows",
+        "module_name": "src.api.automation.workflows",
         "method_name": "rule"
       }
     },
@@ -3532,7 +3532,7 @@
       "api_url": "/api/automations/rules/<uuid:rule_id>/graph",
       "description": "A workflow's canvas: draft, published version, versions and per-node run counts; or save the draft.",
       "exec_method": {
-        "module_name": "src.api.workflows",
+        "module_name": "src.api.automation.workflows",
         "method_name": "graph"
       }
     },
@@ -3546,7 +3546,7 @@
       "api_url": "/api/automations/rules/<uuid:rule_id>/publish",
       "description": "Publish the draft as the next version; refused per node if it cannot run.",
       "exec_method": {
-        "module_name": "src.api.workflows",
+        "module_name": "src.api.automation.workflows",
         "method_name": "publish"
       }
     },
@@ -3560,7 +3560,7 @@
       "api_url": "/api/automations/rules/<uuid:rule_id>/restore",
       "description": "Copy an earlier version into the draft.",
       "exec_method": {
-        "module_name": "src.api.workflows",
+        "module_name": "src.api.automation.workflows",
         "method_name": "restore"
       }
     },
@@ -3574,7 +3574,7 @@
       "api_url": "/api/automations/rules/<uuid:rule_id>/run",
       "description": "Evaluate an automation now, as a dry run or for real.",
       "exec_method": {
-        "module_name": "src.api.workflows",
+        "module_name": "src.api.automation.workflows",
         "method_name": "run"
       }
     },
@@ -3588,7 +3588,7 @@
       "api_url": "/api/automations/rules/<uuid:rule_id>/runs",
       "description": "What this automation has done, most recent first.",
       "exec_method": {
-        "module_name": "src.api.workflows",
+        "module_name": "src.api.automation.workflows",
         "method_name": "runs"
       }
     },
@@ -3602,7 +3602,7 @@
       "api_url": "/api/automations/rules/<uuid:rule_id>/samples",
       "description": "Records from the trigger's dataset to test the workflow with.",
       "exec_method": {
-        "module_name": "src.api.workflows",
+        "module_name": "src.api.automation.workflows",
         "method_name": "samples"
       }
     },
@@ -3616,7 +3616,7 @@
       "api_url": "/api/automations/rules/<uuid:rule_id>/test",
       "description": "Walk one sample record through the draft and report the path, writing nothing.",
       "exec_method": {
-        "module_name": "src.api.workflows",
+        "module_name": "src.api.automation.workflows",
         "method_name": "test"
       }
     },
@@ -3630,7 +3630,7 @@
       "api_url": "/api/automations/scheduler",
       "description": "Run scheduled workflows that are due and resume delays that are over.",
       "exec_method": {
-        "module_name": "src.api.workflows",
+        "module_name": "src.api.automation.workflows",
         "method_name": "scheduler"
       }
     },
@@ -3645,7 +3645,7 @@
       "api_url": "/api/calendar/events",
       "description": "Everything in a window of time, expanded from its series, or a new event.",
       "exec_method": {
-        "module_name": "src.api.calendar",
+        "module_name": "src.api.work.calendar",
         "method_name": "events"
       }
     },
@@ -3661,7 +3661,7 @@
       "api_url": "/api/calendar/events/<uuid:event_id>",
       "description": "One event, a change to the whole series, or its cancellation.",
       "exec_method": {
-        "module_name": "src.api.calendar",
+        "module_name": "src.api.work.calendar",
         "method_name": "event"
       }
     },
@@ -3675,7 +3675,7 @@
       "api_url": "/api/calendar/events/<uuid:event_id>/respond",
       "description": "Say whether you are coming.",
       "exec_method": {
-        "module_name": "src.api.calendar",
+        "module_name": "src.api.work.calendar",
         "method_name": "respond"
       }
     },
@@ -3690,7 +3690,7 @@
       "api_url": "/api/mail/templates",
       "description": "The composer's wording, or one of them with its placeholders filled.",
       "exec_method": {
-        "module_name": "src.api.mail",
+        "module_name": "src.api.collaboration.mail",
         "method_name": "mail_templates"
       }
     },
@@ -3704,7 +3704,7 @@
       "api_url": "/api/mail/threads/bulk",
       "description": "One action, applied to the threads somebody selected.",
       "exec_method": {
-        "module_name": "src.api.mail",
+        "module_name": "src.api.collaboration.mail",
         "method_name": "bulk"
       }
     },
@@ -3718,7 +3718,7 @@
       "api_url": "/api/mail/threads",
       "description": "One folder of this reader's mailbox, newest first.",
       "exec_method": {
-        "module_name": "src.api.mail",
+        "module_name": "src.api.collaboration.mail",
         "method_name": "threads"
       }
     },
@@ -3734,7 +3734,7 @@
       "api_url": "/api/mail/threads/<uuid:thread_id>",
       "description": "One conversation with its messages, a change to it, or its removal.",
       "exec_method": {
-        "module_name": "src.api.mail",
+        "module_name": "src.api.collaboration.mail",
         "method_name": "thread"
       }
     },
@@ -3748,7 +3748,7 @@
       "api_url": "/api/mail/messages",
       "description": "A new message: a draft, a reply, or one queued to go.",
       "exec_method": {
-        "module_name": "src.api.mail",
+        "module_name": "src.api.collaboration.mail",
         "method_name": "messages"
       }
     },
@@ -3763,7 +3763,7 @@
       "api_url": "/api/mail/messages/<uuid:message_id>",
       "description": "Edit a draft, send it, or discard it.",
       "exec_method": {
-        "module_name": "src.api.mail",
+        "module_name": "src.api.collaboration.mail",
         "method_name": "message"
       }
     },
@@ -3777,7 +3777,7 @@
       "api_url": "/admin/settings",
       "description": "Every setting, grouped, with what the platform ships with beside it.",
       "exec_method": {
-        "module_name": "src.api.settings",
+        "module_name": "src.api.platform.settings",
         "method_name": "collection"
       }
     },
@@ -3791,7 +3791,7 @@
       "api_url": "/admin/settings/<string:key>",
       "description": "Change one setting, or reset it to its default.",
       "exec_method": {
-        "module_name": "src.api.settings",
+        "module_name": "src.api.platform.settings",
         "method_name": "item"
       }
     },
@@ -3806,7 +3806,7 @@
       "api_url": "/admin/flags",
       "description": "Every feature flag and whether it is on for this reader, or a new one.",
       "exec_method": {
-        "module_name": "src.api.settings",
+        "module_name": "src.api.platform.settings",
         "method_name": "flags"
       }
     },
@@ -3821,7 +3821,7 @@
       "api_url": "/admin/flags/<string:key>",
       "description": "Turn a flag on or off, change its rollout, or remove it.",
       "exec_method": {
-        "module_name": "src.api.settings",
+        "module_name": "src.api.platform.settings",
         "method_name": "flag"
       }
     },
@@ -3835,7 +3835,7 @@
       "api_url": "/admin/flags/<string:key>/history",
       "description": "Every recorded change to one flag: who, when, from what to what.",
       "exec_method": {
-        "module_name": "src.api.settings",
+        "module_name": "src.api.platform.settings",
         "method_name": "flag_history"
       }
     },
@@ -3849,7 +3849,7 @@
       "api_url": "/admin/flags/preview",
       "description": "Which features a role, person, group or organization would have.",
       "exec_method": {
-        "module_name": "src.api.settings",
+        "module_name": "src.api.platform.settings",
         "method_name": "flag_preview"
       }
     },
@@ -3863,7 +3863,7 @@
       "api_url": "/admin/logs/catalogue",
       "description": "The log's filter vocabulary, per-level counts and retention bound.",
       "exec_method": {
-        "module_name": "src.api.logs",
+        "module_name": "src.api.platform.logs",
         "method_name": "catalogue"
       }
     },
@@ -3877,7 +3877,7 @@
       "api_url": "/admin/logs",
       "description": "One page of the system log, filtered and faceted in PostgreSQL.",
       "exec_method": {
-        "module_name": "src.api.logs",
+        "module_name": "src.api.platform.logs",
         "method_name": "collection"
       }
     },
@@ -3891,7 +3891,7 @@
       "api_url": "/admin/logs/tail",
       "description": "Whatever has arrived since the caller's cursor \u2014 the live tail.",
       "exec_method": {
-        "module_name": "src.api.logs",
+        "module_name": "src.api.platform.logs",
         "method_name": "tail"
       }
     },
@@ -3905,7 +3905,7 @@
       "api_url": "/admin/logs/<string:line_id>",
       "description": "One log line in full: its context, stack trace and sibling lines.",
       "exec_method": {
-        "module_name": "src.api.logs",
+        "module_name": "src.api.platform.logs",
         "method_name": "item"
       }
     },
@@ -3919,7 +3919,7 @@
       "api_url": "/admin/logs/prune",
       "description": "Apply the retention policy now, as `retention.log_days` declares it.",
       "exec_method": {
-        "module_name": "src.api.logs",
+        "module_name": "src.api.platform.logs",
         "method_name": "prune"
       }
     },
@@ -3933,7 +3933,7 @@
       "api_url": "/admin/jobs/catalogue",
       "description": "The queue's filter vocabulary and per-status counts.",
       "exec_method": {
-        "module_name": "src.api.jobs",
+        "module_name": "src.api.platform.jobs",
         "method_name": "catalogue"
       }
     },
@@ -3947,7 +3947,7 @@
       "api_url": "/admin/jobs",
       "description": "One page of the background-job queue, filtered and faceted in PostgreSQL.",
       "exec_method": {
-        "module_name": "src.api.jobs",
+        "module_name": "src.api.platform.jobs",
         "method_name": "collection"
       }
     },
@@ -3961,7 +3961,7 @@
       "api_url": "/admin/jobs/<string:job_id>",
       "description": "One job in full: its payload, its result and its log lines.",
       "exec_method": {
-        "module_name": "src.api.jobs",
+        "module_name": "src.api.platform.jobs",
         "method_name": "item"
       }
     },
@@ -3975,7 +3975,7 @@
       "api_url": "/admin/jobs/<string:job_id>/retry",
       "description": "Queue another attempt on the same job.",
       "exec_method": {
-        "module_name": "src.api.jobs",
+        "module_name": "src.api.platform.jobs",
         "method_name": "retry"
       }
     },
@@ -3989,7 +3989,7 @@
       "api_url": "/admin/jobs/<string:job_id>/cancel",
       "description": "Stop a job that has not finished, keeping the row.",
       "exec_method": {
-        "module_name": "src.api.jobs",
+        "module_name": "src.api.platform.jobs",
         "method_name": "cancel"
       }
     },
@@ -4003,7 +4003,7 @@
       "api_url": "/admin/jobs/<string:job_id>/attempts",
       "description": "Grant a job more attempts, up to the allowed maximum.",
       "exec_method": {
-        "module_name": "src.api.jobs",
+        "module_name": "src.api.platform.jobs",
         "method_name": "allow_attempts"
       }
     },
@@ -4017,7 +4017,7 @@
       "api_url": "/admin/groups/catalogue",
       "description": "Group kinds, the permission catalogue, and what the reader may change.",
       "exec_method": {
-        "module_name": "src.api.groups",
+        "module_name": "src.api.people.groups",
         "method_name": "catalogue"
       }
     },
@@ -4032,7 +4032,7 @@
       "api_url": "/admin/groups",
       "description": "Every group, filtered and faceted \u2014 or a new one, granting nothing.",
       "exec_method": {
-        "module_name": "src.api.groups",
+        "module_name": "src.api.people.groups",
         "method_name": "collection"
       }
     },
@@ -4048,7 +4048,7 @@
       "api_url": "/admin/groups/<string:group_id>",
       "description": "One group and its members: read, rename, or retire it.",
       "exec_method": {
-        "module_name": "src.api.groups",
+        "module_name": "src.api.people.groups",
         "method_name": "item"
       }
     },
@@ -4062,7 +4062,7 @@
       "api_url": "/admin/groups/<string:group_id>/members",
       "description": "Set who is in a group. Effective on their next request.",
       "exec_method": {
-        "module_name": "src.api.groups",
+        "module_name": "src.api.people.groups",
         "method_name": "members"
       }
     },
@@ -4076,7 +4076,7 @@
       "api_url": "/admin/groups/<string:group_id>/grants",
       "description": "Set what being in a group grants. Needs roles.manage.",
       "exec_method": {
-        "module_name": "src.api.groups",
+        "module_name": "src.api.people.groups",
         "method_name": "grants"
       }
     },
@@ -4090,7 +4090,7 @@
       "api_url": "/admin/organizations/catalogue",
       "description": "Tiers, statuses, regions and what the reader may change.",
       "exec_method": {
-        "module_name": "src.api.organizations",
+        "module_name": "src.api.people.organizations",
         "method_name": "catalogue"
       }
     },
@@ -4104,7 +4104,7 @@
       "api_url": "/admin/organizations",
       "description": "Every organisation, filtered and faceted in PostgreSQL.",
       "exec_method": {
-        "module_name": "src.api.organizations",
+        "module_name": "src.api.people.organizations",
         "method_name": "collection"
       }
     },
@@ -4119,7 +4119,7 @@
       "api_url": "/admin/organizations/<string:organization_id>",
       "description": "One organisation's whole structure, or a change to its details.",
       "exec_method": {
-        "module_name": "src.api.organizations",
+        "module_name": "src.api.people.organizations",
         "method_name": "item"
       }
     },
@@ -4133,7 +4133,7 @@
       "api_url": "/admin/organizations/<string:organization_id>/departments",
       "description": "Add a department, optionally inside another.",
       "exec_method": {
-        "module_name": "src.api.organizations",
+        "module_name": "src.api.people.organizations",
         "method_name": "departments"
       }
     },
@@ -4148,7 +4148,7 @@
       "api_url": "/admin/departments/<string:department_id>",
       "description": "Edit or move a department, or retire it when nothing is inside.",
       "exec_method": {
-        "module_name": "src.api.organizations",
+        "module_name": "src.api.people.organizations",
         "method_name": "department"
       }
     },
@@ -4162,7 +4162,7 @@
       "api_url": "/admin/api-clients/catalogue",
       "description": "Statuses and the scopes this caller may grant.",
       "exec_method": {
-        "module_name": "src.api.api_clients",
+        "module_name": "src.api.platform.api_clients",
         "method_name": "catalogue"
       }
     },
@@ -4177,7 +4177,7 @@
       "api_url": "/admin/api-clients",
       "description": "Every API client \u2014 or a new one, whose secret is shown once.",
       "exec_method": {
-        "module_name": "src.api.api_clients",
+        "module_name": "src.api.platform.api_clients",
         "method_name": "collection"
       }
     },
@@ -4193,7 +4193,7 @@
       "api_url": "/admin/api-clients/<string:client_id>",
       "description": "One client with its credentials and recent requests; edit or retire it.",
       "exec_method": {
-        "module_name": "src.api.api_clients",
+        "module_name": "src.api.platform.api_clients",
         "method_name": "item"
       }
     },
@@ -4207,7 +4207,7 @@
       "api_url": "/admin/api-clients/<string:client_id>/rotate",
       "description": "Mint a new credential and put the old one on a deadline.",
       "exec_method": {
-        "module_name": "src.api.api_clients",
+        "module_name": "src.api.platform.api_clients",
         "method_name": "rotate"
       }
     },
@@ -4221,7 +4221,7 @@
       "api_url": "/admin/api-credentials/<string:credential_id>",
       "description": "Revoke one credential now, keeping the row.",
       "exec_method": {
-        "module_name": "src.api.api_clients",
+        "module_name": "src.api.platform.api_clients",
         "method_name": "credential"
       }
     },
@@ -4235,7 +4235,7 @@
       "api_url": "/admin/integrations/catalogue",
       "description": "Categories and states with counts, and how many need attention.",
       "exec_method": {
-        "module_name": "src.api.integrations",
+        "module_name": "src.api.platform.integrations",
         "method_name": "catalogue"
       }
     },
@@ -4249,7 +4249,7 @@
       "api_url": "/admin/integrations",
       "description": "Every integration, filtered and faceted in PostgreSQL.",
       "exec_method": {
-        "module_name": "src.api.integrations",
+        "module_name": "src.api.platform.integrations",
         "method_name": "collection"
       }
     },
@@ -4264,7 +4264,7 @@
       "api_url": "/admin/integrations/<string:integration_id>",
       "description": "One integration with its configuration; secrets come back redacted.",
       "exec_method": {
-        "module_name": "src.api.integrations",
+        "module_name": "src.api.platform.integrations",
         "method_name": "item"
       }
     },
@@ -4278,7 +4278,7 @@
       "api_url": "/admin/integrations/<string:integration_id>/enabled",
       "description": "Turn an integration on or off; refused while settings are missing.",
       "exec_method": {
-        "module_name": "src.api.integrations",
+        "module_name": "src.api.platform.integrations",
         "method_name": "enablement"
       }
     },
@@ -4292,7 +4292,7 @@
       "api_url": "/admin/integrations/<string:integration_id>/check",
       "description": "Verify the configuration, saying it did not contact the provider.",
       "exec_method": {
-        "module_name": "src.api.integrations",
+        "module_name": "src.api.platform.integrations",
         "method_name": "check"
       }
     },
@@ -4306,7 +4306,7 @@
       "api_url": "/exports/catalogue",
       "description": "What can be exported, the ceilings that apply, and where mine stand.",
       "exec_method": {
-        "module_name": "src.api.exports",
+        "module_name": "src.api.transfer.exports",
         "method_name": "catalogue"
       }
     },
@@ -4320,7 +4320,7 @@
       "api_url": "/exports",
       "description": "My exports, newest first, filtered and faceted in PostgreSQL.",
       "exec_method": {
-        "module_name": "src.api.exports",
+        "module_name": "src.api.transfer.exports",
         "method_name": "collection"
       }
     },
@@ -4334,7 +4334,7 @@
       "api_url": "/exports/estimate",
       "description": "How many rows a query has, and whether it streams or must be queued.",
       "exec_method": {
-        "module_name": "src.api.exports",
+        "module_name": "src.api.transfer.exports",
         "method_name": "estimate"
       }
     },
@@ -4348,7 +4348,7 @@
       "api_url": "/exports",
       "description": "Accept an export and start producing it off the request.",
       "exec_method": {
-        "module_name": "src.api.exports",
+        "module_name": "src.api.transfer.exports",
         "method_name": "queue"
       }
     },
@@ -4363,7 +4363,7 @@
       "api_url": "/exports/<uuid:export_id>",
       "description": "One export with its log lines; DELETE drops the file and keeps the record.",
       "exec_method": {
-        "module_name": "src.api.exports",
+        "module_name": "src.api.transfer.exports",
         "method_name": "item"
       }
     },
@@ -4377,7 +4377,7 @@
       "api_url": "/exports/<uuid:export_id>/download",
       "description": "A signed URL for the finished file, so the bytes bypass this worker.",
       "exec_method": {
-        "module_name": "src.api.exports",
+        "module_name": "src.api.transfer.exports",
         "method_name": "download"
       }
     },
@@ -4391,7 +4391,7 @@
       "api_url": "/exports/<uuid:export_id>/again",
       "description": "Queue a new export from an existing one's stored query.",
       "exec_method": {
-        "module_name": "src.api.exports",
+        "module_name": "src.api.transfer.exports",
         "method_name": "again"
       }
     },
@@ -4405,7 +4405,7 @@
       "api_url": "/imports/catalogue",
       "description": "What can be imported into, what each field accepts, and the limits.",
       "exec_method": {
-        "module_name": "src.api.imports",
+        "module_name": "src.api.transfer.imports",
         "method_name": "catalogue"
       }
     },
@@ -4419,7 +4419,7 @@
       "api_url": "/imports",
       "description": "My imports, newest first, filtered and faceted in PostgreSQL.",
       "exec_method": {
-        "module_name": "src.api.imports",
+        "module_name": "src.api.transfer.imports",
         "method_name": "collection"
       }
     },
@@ -4433,7 +4433,7 @@
       "api_url": "/imports",
       "description": "Accept a CSV, read it, and propose a column mapping.",
       "exec_method": {
-        "module_name": "src.api.imports",
+        "module_name": "src.api.transfer.imports",
         "method_name": "begin"
       }
     },
@@ -4448,7 +4448,7 @@
       "api_url": "/imports/<uuid:import_id>",
       "description": "One import with its preview; DELETE discards a draft and its staged file.",
       "exec_method": {
-        "module_name": "src.api.imports",
+        "module_name": "src.api.transfer.imports",
         "method_name": "item"
       }
     },
@@ -4462,7 +4462,7 @@
       "api_url": "/imports/<uuid:import_id>/mapping",
       "description": "Set which column is which field, and validate every row.",
       "exec_method": {
-        "module_name": "src.api.imports",
+        "module_name": "src.api.transfer.imports",
         "method_name": "mapping"
       }
     },
@@ -4476,7 +4476,7 @@
       "api_url": "/imports/<uuid:import_id>/execute",
       "description": "Write the valid rows in one transaction, off the request.",
       "exec_method": {
-        "module_name": "src.api.imports",
+        "module_name": "src.api.transfer.imports",
         "method_name": "execute"
       }
     },
@@ -4490,7 +4490,7 @@
       "api_url": "/imports/<uuid:import_id>/problems",
       "description": "The row-level error report as a CSV, to fix in the spreadsheet.",
       "exec_method": {
-        "module_name": "src.api.imports",
+        "module_name": "src.api.transfer.imports",
         "method_name": "problems"
       }
     },
@@ -4504,7 +4504,7 @@
       "api_url": "/security/overview",
       "description": "Is anything wrong with this account, in one glance.",
       "exec_method": {
-        "module_name": "src.api.security",
+        "module_name": "src.api.people.security",
         "method_name": "overview"
       }
     },
@@ -4518,7 +4518,7 @@
       "api_url": "/security/sessions",
       "description": "Every sign-in on this account, with the current one marked.",
       "exec_method": {
-        "module_name": "src.api.security",
+        "module_name": "src.api.people.security",
         "method_name": "sessions"
       }
     },
@@ -4533,7 +4533,7 @@
       "api_url": "/security/sessions/<uuid:session_id>",
       "description": "Trust a device, or DELETE to sign it out \u2014 enforced on its next request.",
       "exec_method": {
-        "module_name": "src.api.security",
+        "module_name": "src.api.people.security",
         "method_name": "session_item"
       }
     },
@@ -4547,7 +4547,7 @@
       "api_url": "/security/sessions/revoke-others",
       "description": "Sign out everywhere else, keeping this session.",
       "exec_method": {
-        "module_name": "src.api.security",
+        "module_name": "src.api.people.security",
         "method_name": "revoke_others"
       }
     },
@@ -4561,7 +4561,7 @@
       "api_url": "/security/sign-ins",
       "description": "Recent sign-ins, successes and failures, filtered in PostgreSQL.",
       "exec_method": {
-        "module_name": "src.api.security",
+        "module_name": "src.api.people.security",
         "method_name": "history"
       }
     },
@@ -4575,7 +4575,7 @@
       "api_url": "/security/events",
       "description": "What the platform has noticed about this account.",
       "exec_method": {
-        "module_name": "src.api.security",
+        "module_name": "src.api.people.security",
         "method_name": "events"
       }
     },
@@ -4589,7 +4589,7 @@
       "api_url": "/security/events/<uuid:event_id>",
       "description": "Mark one security event as dealt with, or as not.",
       "exec_method": {
-        "module_name": "src.api.security",
+        "module_name": "src.api.people.security",
         "method_name": "event_item"
       }
     },
@@ -4603,7 +4603,7 @@
       "api_url": "/favorites",
       "description": "Every bookmark, in the order this person arranged them.",
       "exec_method": {
-        "module_name": "src.api.favorites",
+        "module_name": "src.api.records.favorites",
         "method_name": "collection"
       }
     },
@@ -4617,7 +4617,7 @@
       "api_url": "/favorites",
       "description": "Bookmark something addressable, checked against the platform's registry.",
       "exec_method": {
-        "module_name": "src.api.favorites",
+        "module_name": "src.api.records.favorites",
         "method_name": "add"
       }
     },
@@ -4631,7 +4631,7 @@
       "api_url": "/favorites/<uuid:favorite_id>",
       "description": "Unstar one thing.",
       "exec_method": {
-        "module_name": "src.api.favorites",
+        "module_name": "src.api.records.favorites",
         "method_name": "item"
       }
     },
@@ -4645,7 +4645,7 @@
       "api_url": "/favorites/order",
       "description": "Put the bookmarks in the order somebody dragged them into.",
       "exec_method": {
-        "module_name": "src.api.favorites",
+        "module_name": "src.api.records.favorites",
         "method_name": "arrange"
       }
     },
@@ -4659,7 +4659,7 @@
       "api_url": "/recents",
       "description": "What this person has looked at lately, most recent first.",
       "exec_method": {
-        "module_name": "src.api.favorites",
+        "module_name": "src.api.records.favorites",
         "method_name": "recents"
       }
     },
@@ -4673,7 +4673,7 @@
       "api_url": "/recents",
       "description": "Record a visit, upserted and trimmed.",
       "exec_method": {
-        "module_name": "src.api.favorites",
+        "module_name": "src.api.records.favorites",
         "method_name": "visit"
       }
     },
@@ -4687,7 +4687,7 @@
       "api_url": "/recents",
       "description": "Forget the trail. All of it or none.",
       "exec_method": {
-        "module_name": "src.api.favorites",
+        "module_name": "src.api.records.favorites",
         "method_name": "clear_recents"
       }
     }

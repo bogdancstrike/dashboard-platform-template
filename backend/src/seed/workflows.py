@@ -133,7 +133,7 @@ def populate(session) -> dict[str, int]:
     from src.models.automation_graphs import AutomationGraph
     from src.models.identity import User
     from src.models.platform import AlertRule
-    from src.services import automation_graph
+    from src.services.automation import graph as automation_graph
 
     converted = 0
     for rule in session.scalars(select(AlertRule).where(AlertRule.deleted_at.is_(None))).all():
@@ -171,7 +171,7 @@ def populate(session) -> dict[str, int]:
 def _history(session, rule, graph: dict[str, Any], version: int, rng: random.Random) -> int:
     """A fortnight of plausible runs: how many records reached each node."""
     from src.models.platform import AlertRuleRun
-    from src.services.automation_graph import _outgoing, trigger_of
+    from src.services.automation.graph import _outgoing, trigger_of
 
     outgoing = _outgoing(graph)
     nodes = {node["id"]: node for node in graph["nodes"]}

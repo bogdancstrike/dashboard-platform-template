@@ -12,7 +12,7 @@ import uuid
 
 import pytest
 
-from src.services import files as service
+from src.services.knowledge import files as service
 from tests.personas import PREFIX, as_each
 
 FILES = f"{PREFIX}/api/files"

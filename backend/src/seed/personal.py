@@ -379,8 +379,8 @@ def _analysable(resource_type: str) -> tuple[list[str], list[str]]:
     A seed that invents identifiers is a seed that ships broken rows. Derived,
     it cannot: a field renamed in the declaration is renamed here too.
     """
-    from src.services.analysis import DIMENSION_KINDS, MEASURE_KINDS
-    from src.services.explorer import resources
+    from src.services.analytics.analysis import DIMENSION_KINDS, MEASURE_KINDS
+    from src.services.records.explorer import resources
 
     resource = resources().get(resource_type)
     if resource is None:

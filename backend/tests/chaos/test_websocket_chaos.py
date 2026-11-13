@@ -24,7 +24,7 @@ from pathlib import Path
 
 import gevent
 
-from src.services import live
+from src.services.collaboration import live
 
 CONF = Path(__file__).resolve().parents[2] / "gunicorn.conf.py"
 

@@ -68,7 +68,7 @@ def test_the_budget_defaults_to_the_call_cap_in_the_test_profile():
 
 @pytest.mark.database
 def test_a_real_model_turn_stops_when_another_call_would_not_fit(client, monkeypatch):
-    from src.services import assistant as service
+    from src.services.ai import assistant as service
 
     clock = _Clock()
     monkeypatch.setattr(service.time, "monotonic", clock)
@@ -91,7 +91,7 @@ def test_a_real_model_turn_stops_when_another_call_would_not_fit(client, monkeyp
 
 @pytest.mark.database
 def test_a_fake_model_turn_only_stops_when_the_budget_is_spent(client, monkeypatch):
-    from src.services import assistant as service
+    from src.services.ai import assistant as service
 
     clock = _Clock()
     monkeypatch.setattr(service.time, "monotonic", clock)

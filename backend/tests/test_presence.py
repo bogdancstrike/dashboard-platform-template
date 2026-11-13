@@ -12,7 +12,7 @@ import json
 
 import pytest
 
-from src.services import live, presence
+from src.services.collaboration import live, presence
 
 
 class FakeRedis:

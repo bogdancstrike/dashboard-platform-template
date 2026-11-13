@@ -18,8 +18,8 @@ import pytest
 
 from src.core import llm
 from src.core.errors import ValidationError
-from src.services import ai_filters as f
-from src.services.explorer import resources
+from src.services.ai import filters as f
+from src.services.records.explorer import resources
 from tests.personas import PREFIX, principal, sign_in
 
 FILTERS = f"{PREFIX}/api/assistant/filters"

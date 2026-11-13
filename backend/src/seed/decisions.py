@@ -65,7 +65,7 @@ def populate_approvals(session) -> dict[str, int]:
     from src.models.business import Order, Ticket
     from src.models.identity import User
     from src.models.personal import Report
-    from src.services import approvals
+    from src.services.decisions import approvals
 
     people = _personas(session)
     if "admin" not in people or "manager" not in people:
@@ -188,7 +188,7 @@ def populate_approvals(session) -> dict[str, int]:
 
 
 def _decide(row, person, status: str, comment: str, at: datetime) -> None:
-    from src.services.approvals import _event
+    from src.services.decisions.approvals import _event
 
     row.status = status
     row.decided_at = at
@@ -205,8 +205,8 @@ def populate_time(session) -> dict[str, int]:
     from src.models.business import Project, Task, Ticket
     from src.models.identity import User
     from src.models.timekeeping import TimeEntry, Timesheet
-    from src.services import approvals
-    from src.services.timekeeping import week_start
+    from src.services.decisions import approvals
+    from src.services.decisions.timekeeping import week_start
 
     people = _personas(session)
     if "manager" not in people:
@@ -323,7 +323,7 @@ def _holidays(today: date) -> list[dict[str, str]]:
 
 def populate_sla(session) -> dict[str, int]:
     from src.models.sla import BusinessCalendar, SlaPolicy, TicketSla
-    from src.services import sla
+    from src.services.decisions import sla
 
     if session.scalar(select(func.count()).select_from(SlaPolicy).where(SlaPolicy.deleted_at.is_(None))):
         return {"calendars": 0, "policies": 0, "tickets": 0}
@@ -436,7 +436,7 @@ PARTNER_FIELDS = [
 def populate_forms(session) -> dict[str, int]:
     from src.models.business import Ticket
     from src.models.forms import FormSubmission, IntakeForm
-    from src.services.forms import DEFAULT_SETTINGS
+    from src.services.decisions.forms import DEFAULT_SETTINGS
 
     people = _personas(session)
     if "manager" not in people:

@@ -111,7 +111,7 @@ def test_the_snapshot_names_the_store_even_when_it_cannot_be_reached(client, mon
     the snapshot dropped the one field that says *which* store had failed.
     """
     from src.core import storage
-    from src.services import health
+    from src.services.platform import health
 
     monkeypatch.setattr(
         storage, "for_config", lambda **_kwargs: (_ for _ in ()).throw(OSError("no such directory"))

@@ -30,7 +30,7 @@ from src.config import Config
 from src.core import features
 from src.core.feature_catalogue import CORE_ENDPOINTS, FEATURES, FEATURES_BY_KEY, RETIRED
 from src.core.features import FeatureDisabledError, FlagState
-from src.services import settings as service
+from src.services.platform import settings as service
 
 PREFIX = Config.API_PREFIX
 REPO = Path(__file__).resolve().parents[2]
@@ -140,7 +140,7 @@ def test_a_flagged_endpoint_refuses_when_off_and_works_when_on(entry, client, fl
 
 
 def test_a_child_endpoint_refuses_when_only_its_parent_is_off(client, flags, monkeypatch):
-    import src.api.workflows as module
+    import src.api.automation.workflows as module
 
     monkeypatch.setattr(module, "graph", lambda *a, **k: ({"stub": True}, 200))
     _signed_in(monkeypatch)
@@ -162,7 +162,7 @@ def test_an_anonymous_call_to_a_switched_off_endpoint_gets_the_401_first(client,
 
 
 def test_ai_master_switch_takes_every_ai_endpoint_with_it(client, flags, monkeypatch):
-    import src.api.assistant as module
+    import src.api.ai.assistant as module
 
     _signed_in(monkeypatch)
     monkeypatch.setattr(module, "brief", lambda *a, **k: ({"stub": True}, 200))
@@ -171,7 +171,7 @@ def test_ai_master_switch_takes_every_ai_endpoint_with_it(client, flags, monkeyp
 
 
 def test_core_endpoints_are_untouched_by_every_flag_being_off(client, flags, monkeypatch):
-    import src.api.health as module
+    import src.api.platform.health as module
 
     monkeypatch.setattr(module, "liveness", lambda *a, **k: ({"stub": True}, 200))
     flags.off(*FEATURES_BY_KEY)
@@ -192,7 +192,7 @@ def test_a_preflight_is_never_gated(client, flags):
 
 def test_the_gate_evaluates_the_signed_in_caller(client, flags, monkeypatch):
     """Targeted at a role: on for an administrator, off for a viewer."""
-    import src.api.maps as module
+    import src.api.records.maps as module
 
     monkeypatch.setattr(module, "catalogue", lambda *a, **k: ({"stub": True}, 200))
     flags.set(_all_on(maps=_state("maps", rollout_percentage=0, target_roles=("ADMINISTRATOR",))))
@@ -351,7 +351,7 @@ def test_jobs_are_skipped_while_their_feature_is_off(flags):
 
 
 def test_the_outbound_webhook_action_is_skipped_while_webhooks_are_off(flags):
-    from src.services import workflows
+    from src.services.automation import workflows
 
     flags.off("webhooks")
     outcome = workflows._webhook(None, rule=None, match=None, config={"url": "https://example.invalid/hook"})
@@ -359,7 +359,7 @@ def test_the_outbound_webhook_action_is_skipped_while_webhooks_are_off(flags):
 
 
 def test_the_scheduler_and_record_triggers_do_nothing_while_workflows_are_off(flags):
-    from src.services import automation_graph
+    from src.services.automation import graph as automation_graph
 
     flags.off("workflows")
     assert automation_graph.run_due(None) == {"scheduled": 0, "resumed": 0}
@@ -367,7 +367,7 @@ def test_the_scheduler_and_record_triggers_do_nothing_while_workflows_are_off(fl
 
 
 def test_document_ingest_waits_while_the_feature_is_off(flags):
-    from src.services import knowledge_ingest
+    from src.services.knowledge import ingest as knowledge_ingest
 
     flags.off("ai-documents")
     assert knowledge_ingest.run(uuid.uuid4()) is None
@@ -644,7 +644,7 @@ def test_the_planning_scheduler_skips_a_switched_off_job(flags):
     from sqlalchemy.orm import Session
 
     from src.core.db import get_engine
-    from src.services import task_templates
+    from src.services.work import task_templates
 
     flags.off("recurring-tasks", "sprints")
     with Session(get_engine()) as session:

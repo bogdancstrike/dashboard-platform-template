@@ -171,7 +171,7 @@ def test_every_kind_of_block_is_kept_and_cleaned(client, people, space):
     assert kept[10]["filters"] == {"priority": "HIGH"}
     assert kept[12]["due_date"] == "2026-12-01" and kept[12]["task_id"] is None
 
-    from src.services.docs import plain_text
+    from src.services.collaboration.docs import plain_text
 
     text = plain_text("T", kept)
     assert "Para bold" in text and "h1 h2" in text and "do" in text
@@ -312,7 +312,7 @@ def test_search_finds_titles_first_then_words_in_the_body(client, people, space)
     recent = client.get(f"{DOCS}/pages", headers=people["user"]).get_json()["items"]
     assert recent and recent[0]["title"] in (f"{marker} handbook", "Body hit")
 
-    from src.services.docs import _snippet
+    from src.services.collaboration.docs import _snippet
 
     assert _snippet("x" * 300, "zzz") == "x" * 160
     assert _snippet("a" * 100 + "needle" + "b" * 200, "needle").startswith("…")
@@ -410,7 +410,7 @@ def test_a_page_is_summarised_through_the_model(client, people, space, monkeypat
 @pytest.mark.database
 def test_the_meetings_space_cannot_be_removed(client, people):
     from src.core.db import session_scope
-    from src.services import docs
+    from src.services.collaboration import docs
 
     with session_scope() as session:
         space_id = str(docs.meetings_space(session).id)

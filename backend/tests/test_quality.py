@@ -17,8 +17,8 @@ import pytest
 from src.config import Config
 from src.core.query import apply_filters, count_of
 from src.core.vocabulary import QUALITY_SEVERITY
-from src.services import quality
-from src.services.explorer import _base_statement, resource_for
+from src.services.records import quality
+from src.services.records.explorer import _base_statement, resource_for
 from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX

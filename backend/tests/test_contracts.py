@@ -22,7 +22,7 @@ import pytest
 
 from src.config import Config
 from src.core.clock import now
-from src.services import contracts as service
+from src.services.records import contracts as service
 from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX

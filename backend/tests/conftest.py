@@ -37,7 +37,7 @@ os.environ.setdefault("ENABLE_TRACING", "false")
 
 @pytest.fixture(scope="session")
 def app():
-    from src.api.app import create_application
+    from src.bootstrap import create_application
     from src.core.errors import ConflictError
 
     application = create_application()

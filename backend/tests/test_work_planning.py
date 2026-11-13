@@ -374,7 +374,7 @@ def test_a_recurring_task_makes_its_next_copy_when_due(client, monkeypatch):
 def test_next_occurrence_arithmetic():
     from types import SimpleNamespace
 
-    from src.services.task_templates import next_after
+    from src.services.work.task_templates import next_after
 
     monday = datetime(2026, 11, 9, 6, tzinfo=timezone.utc)
 
@@ -393,7 +393,7 @@ def test_next_occurrence_arithmetic():
 
 
 def test_critical_path_arithmetic():
-    from src.services.timeline import critical_path
+    from src.services.work.timeline import critical_path
 
     d = date(2026, 1, 1)
     spans = {

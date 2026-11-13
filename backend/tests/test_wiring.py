@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from src.core.events import Hook
-from src.services import analytics_jobs, approvals, notifications, record_writes
+from src.services.analytics import jobs as analytics_jobs
+from src.services.decisions import approvals
+from src.services.collaboration import notifications
+from src.services.records import writes as record_writes
 
 
 def test_every_extension_point_has_its_built_in_subscribers():

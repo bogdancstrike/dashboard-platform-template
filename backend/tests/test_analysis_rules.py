@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 import pytest
 
 from src.core.errors import ValidationError
-from src.services import analysis
+from src.services.analytics import analysis
 from tests.personas import PREFIX, as_each
 
 RUN = f"{PREFIX}/api/analysis/run"
@@ -70,7 +70,7 @@ def test_the_accepted_spellings_all_answer(client, monkeypatch):
 
 
 def _task_fields():
-    from src.services.explorer import resources
+    from src.services.records.explorer import resources
 
     return resources()["task"].fields.by_name
 

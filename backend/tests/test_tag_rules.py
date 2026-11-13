@@ -11,7 +11,7 @@ import uuid
 
 import pytest
 
-from src.services import tags as service
+from src.services.records import tags as service
 from tests.personas import PREFIX, as_each
 
 TAGS = f"{PREFIX}/tags"

@@ -13,7 +13,7 @@ import pytest
 
 from src.config import Config
 from src.core import llm
-from src.services import knowledge_ingest as ingest
+from src.services.knowledge import ingest as ingest
 from tests.conftest import persona_claims
 from tests.test_knowledge import _file, stub_converter
 
@@ -112,7 +112,7 @@ def test_sources_are_checked(client, monkeypatch, collection):
 
 
 def test_the_document_tool_explains_its_refusals():
-    from src.services import assistant_tools
+    from src.services.ai import tools as assistant_tools
 
     class Nobody:
         user_id = None

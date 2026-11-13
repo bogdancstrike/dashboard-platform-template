@@ -306,7 +306,7 @@ def test_week_and_entries_validate_their_arguments(client, as_):
 
 
 def test_week_start_is_a_monday():
-    from src.services.timekeeping import week_start
+    from src.services.decisions.timekeeping import week_start
 
     assert week_start(date(2026, 11, 15)) == date(2026, 11, 9)
     assert week_start(date(2026, 11, 9)) == date(2026, 11, 9)

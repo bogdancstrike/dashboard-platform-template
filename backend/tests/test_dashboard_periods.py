@@ -12,8 +12,8 @@ from types import SimpleNamespace
 import pytest
 
 from src.core.clock import resolve_range
-from src.services import analysis
-from src.services.dashboard import PERIODS as DASHBOARD_PERIODS
+from src.services.analytics import analysis
+from src.services.analytics.overview import PERIODS as DASHBOARD_PERIODS
 
 
 @pytest.mark.parametrize("key", [key for key, _ in DASHBOARD_PERIODS if key != "custom"])
@@ -78,7 +78,7 @@ def test_the_brief_takes_a_due_time_already_written_as_text():
     # `.isoformat()` on it and answered 500 to anybody with an invitation.
     from datetime import UTC, datetime
 
-    from src.services.assistant_brief import _when
+    from src.services.ai.brief import _when
 
     assert _when("2026-11-13T10:00:00Z") == "2026-11-13T10:00:00Z"
     assert _when(datetime(2026, 11, 13, 10, tzinfo=UTC)) == "2026-11-13T10:00:00Z"

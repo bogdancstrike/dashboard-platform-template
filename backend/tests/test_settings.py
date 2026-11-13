@@ -24,7 +24,7 @@ from sqlalchemy import select
 
 from src.config import Config
 from src.core.db import session_scope
-from src.services import settings as service
+from src.services.platform import settings as service
 from tests.conftest import persona_claims
 
 pytestmark = pytest.mark.database

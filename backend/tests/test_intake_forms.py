@@ -228,7 +228,7 @@ def test_a_closed_form_says_so(client, as_):
 
 def test_expired_and_malformed_challenges_are_refused():
     from src.core.errors import ValidationError
-    from src.services import forms
+    from src.services.decisions import forms
 
     with pytest.raises(ValidationError):
         forms._check_challenge("x", "garbage", "3")

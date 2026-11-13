@@ -96,7 +96,7 @@ def test_a_malformed_save_is_refused(client, headers, payload):
 
 
 def test_more_than_the_cap_is_refused(client, headers, monkeypatch):
-    from src.services import bulk
+    from src.services.records import bulk
 
     monkeypatch.setattr(bulk, "MAX_ROWS", 1)
     response = client.post(BULK, json={"rows": [

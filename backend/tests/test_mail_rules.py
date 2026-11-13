@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.services import mail as service
+from src.services.collaboration import mail as service
 from tests.personas import PREFIX, as_each
 
 THREADS = f"{PREFIX}/api/mail/threads"

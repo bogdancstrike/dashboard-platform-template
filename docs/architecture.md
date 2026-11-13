@@ -37,7 +37,7 @@ every other request on the worker.
 The API is built by a vendored framework wheel (`backend/dist/qf-*.whl`). QF's
 `FrameworkApp.run()` creates the Flask app, attaches Flask-RESTX, and mounts
 **every endpoint declared in `backend/maps/endpoint.json`** — the URL surface is
-data, not decorators. `src/api/app.py` adds only what QF leaves to the
+data, not decorators. `src/bootstrap.py` adds only what QF leaves to the
 application: the correlation and CORS hooks, the request-log sink, and the error
 handlers, in that order, because each depends on the one before it.
 

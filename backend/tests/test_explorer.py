@@ -705,7 +705,7 @@ def test_global_search_asks_for_a_term_rather_than_failing(client, monkeypatch):
 @pytest.mark.database
 def test_global_search_only_looks_where_the_caller_may_read(client, monkeypatch):
     """A dataset the role cannot read is not searched, not searched and hidden."""
-    from src.services.explorer import resources
+    from src.services.records.explorer import resources
 
     everything = client.get(
         f"{PREFIX}/api/search/global?q=e", headers=_authenticate(monkeypatch)
@@ -729,7 +729,7 @@ def test_global_search_requires_a_token(client):
 def test_the_catalogue_describes_exactly_the_fields_the_explorer_exposes(client, monkeypatch):
     """Generated from one declaration, so it cannot describe a field that is
     not there or omit one that is — which is how a hand-kept catalogue rots."""
-    from src.services.explorer import resources
+    from src.services.records.explorer import resources
 
     response = client.get(f"{PREFIX}/api/catalog/datasets", headers=_authenticate(monkeypatch))
 

@@ -24,7 +24,7 @@ from sqlalchemy import select
 from src.config import Config
 from src.core.db import session_scope
 from src.core.errors import NotFoundError, ValidationError
-from src.services import automation_graph as graphs
+from src.services.automation import graph as graphs
 from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX
@@ -273,7 +273,7 @@ def test_a_graph_needs_a_trigger_a_dataset_and_an_action():
     ({"kind": "NOTIFY"}, "who it reaches"),
 ])
 def test_an_action_says_what_it_is_missing(data, message):
-    from src.services.explorer import resources
+    from src.services.records.explorer import resources
 
     with session_scope() as session, pytest.raises(ValidationError) as error:
         graphs.clean_action(session, data, resources()["task"])
@@ -282,7 +282,7 @@ def test_an_action_says_what_it_is_missing(data, message):
 
 @pytestmark_db
 def test_actions_that_are_complete_are_cleaned():
-    from src.services.explorer import resources
+    from src.services.records.explorer import resources
 
     task = resources()["task"]
     with session_scope() as session:
@@ -501,7 +501,7 @@ def test_create_record_and_a_failing_action_are_recorded(client, monkeypatch):
 @pytestmark_db
 def test_a_form_submission_fires_a_form_trigger_only(monkeypatch):
     from src.core.auth import Principal
-    from src.services import record_writes
+    from src.services.records import writes as record_writes
     from src.models.identity import User
 
     with session_scope() as session:

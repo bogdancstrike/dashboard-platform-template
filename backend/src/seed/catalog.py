@@ -430,9 +430,9 @@ LOG_MESSAGES: dict[str, tuple[str, ...]] = {
 LOG_LEVELS = weighted(vocabulary.LOG_LEVEL, (0.24, 0.5, 0.16, 0.085, 0.015))
 
 LOGGERS: tuple[str, ...] = (
-    "src.api.entities", "src.api.search", "src.api.admin", "src.core.auth",
+    "src.api.entities", "src.api.records.search", "src.api.admin", "src.core.auth",
     "src.core.query", "src.core.cache", "src.services.export",
-    "src.services.import", "src.services.notifications", "gunicorn.access",
+    "src.services.import", "src.services.collaboration.notifications", "gunicorn.access",
 )
 
 # INGEST jobs belong to a document being read (§44); the seed makes those

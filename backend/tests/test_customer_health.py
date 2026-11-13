@@ -21,7 +21,7 @@ import pytest
 
 from src.config import Config
 from src.core.errors import ForbiddenError, NotFoundError, ValidationError
-from src.services import customer_health as service
+from src.services.records import customer_health as service
 from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX

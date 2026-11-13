@@ -13,7 +13,7 @@ from datetime import date, datetime
 import pytest
 
 from src.core.errors import ValidationError
-from src.services import timekeeping as service
+from src.services.decisions import timekeeping as service
 from tests.personas import PREFIX, as_each
 
 pytestmark = pytest.mark.database

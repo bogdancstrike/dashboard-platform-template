@@ -153,7 +153,7 @@ def _who(key: str, personas: dict[str, Any], others: list[Any]):
 
 def _comment(session, *, channel_id: str, author, body: str, at, parent_id=None, reactions=None):
     from src.models.content import Comment
-    from src.services.comments import _mentioned
+    from src.services.collaboration.comments import _mentioned
 
     row = Comment(
         resource_type="chat_channel", resource_id=channel_id, parent_id=parent_id,
@@ -436,7 +436,7 @@ SPACES: tuple[tuple[str, str, str, str, str], ...] = (
 
 def seed_wiki(session, personas) -> dict[str, int]:
     from src.models.collab import DocPage, DocRevision, DocSpace
-    from src.services import docs
+    from src.services.collaboration import docs
 
     moment = now()
     authors = [personas[key] for key in ("admin", "manager", "analyst", "operator") if key in personas]
@@ -491,7 +491,7 @@ def seed_wiki(session, personas) -> dict[str, int]:
 
 def _links_for(session, page) -> None:
     from src.models.collab import DocLink
-    from src.services.explorer import resource_for
+    from src.services.records.explorer import resource_for
 
     for block in page.blocks or []:
         if block.get("kind") != "record":
@@ -523,7 +523,7 @@ def seed_meetings(session, personas) -> int:
     """Notes on the most recent past meetings, with action items — some already tasks."""
     from src.models.business import CalendarEvent, Task
     from src.models.collab import DocLink, DocPage, DocRevision
-    from src.services import docs
+    from src.services.collaboration import docs
 
     moment = now()
     space = docs.meetings_space(session, None)

@@ -96,7 +96,7 @@ def post_worker_init(worker):
         while worker.alive:
             gevent.sleep(0.5)
         try:
-            from src.services import live
+            from src.services.collaboration import live
 
             with live._lock:  # noqa: SLF001 - the registry has no public iterator
                 sockets = [socket for group in live._subscribers.values() for socket in group]  # noqa: SLF001

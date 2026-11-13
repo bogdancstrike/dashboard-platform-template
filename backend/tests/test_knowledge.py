@@ -13,7 +13,7 @@ import pytest
 
 from src.config import Config
 from src.core import background, llm
-from src.services import knowledge_ingest as ingest
+from src.services.knowledge import ingest as ingest
 from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX
@@ -348,7 +348,7 @@ def test_embeddings_degrade_instead_of_failing():
 
 
 def test_citations_are_renumbered_by_first_appearance():
-    from src.services import knowledge
+    from src.services.knowledge import collections as knowledge
 
     sources = [{"n": n, "chunk_id": str(n), "document_id": "d", "file_id": "f", "file_name": "a.pdf",
                 "extension": "pdf", "page": n, "heading": "", "text": f"text {n}", "boxes": [], "score": 0.1}

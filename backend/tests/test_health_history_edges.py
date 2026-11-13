@@ -13,7 +13,7 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 from src.core.clock import iso
-from src.services import health
+from src.services.platform import health
 
 
 def test_a_window_is_a_named_period_or_a_pair_of_moments():

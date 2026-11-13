@@ -8,8 +8,8 @@ from uuid import uuid4
 import pytest
 
 from src.seed import report_documents as seed
-from src.services import analysis
-from src.services import report_documents as service
+from src.services.analytics import analysis
+from src.services.analytics import report_documents as service
 
 
 def _admin():

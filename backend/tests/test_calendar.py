@@ -23,7 +23,7 @@ from sqlalchemy import select
 
 from src.config import Config
 from src.core.db import session_scope
-from src.services import calendar as service
+from src.services.work import calendar as service
 from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX

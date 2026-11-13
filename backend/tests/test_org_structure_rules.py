@@ -14,7 +14,7 @@ import uuid
 import pytest
 from sqlalchemy import select
 
-from src.services import organizations as service
+from src.services.people import organizations as service
 from tests.personas import PREFIX, as_each
 
 ORGS = f"{PREFIX}/admin/organizations"

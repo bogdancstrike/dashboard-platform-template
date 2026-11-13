@@ -20,7 +20,7 @@ import pytest
 
 from src.config import Config
 from src.core.clock import now
-from src.services import record_versions as service
+from src.services.records import versions as service
 from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX

@@ -58,7 +58,7 @@ def test_the_kind_vocabulary_matches_what_writes_it():
     simply never appears.
     """
     from src.core.audit import _activity_kind
-    from src.services.activity import KIND_LABELS
+    from src.services.collaboration.activity import KIND_LABELS
 
     actions = (
         "CREATE", "UPDATE", "DELETE", "COMMENT", "UPLOAD", "DOWNLOAD",
@@ -108,7 +108,7 @@ def test_choosing_a_kind_leaves_the_other_counts_alone(client, monkeypatch):
 def test_every_kind_is_offered_even_at_zero(client, monkeypatch):
     """A kind that vanishes when nothing has happened teaches a reader that the
     platform has stopped recording it."""
-    from src.services.activity import KINDS
+    from src.services.collaboration.activity import KINDS
 
     headers = _authenticate(monkeypatch)
     body = client.get(f"{FEED}?period=all_time", headers=headers).get_json()

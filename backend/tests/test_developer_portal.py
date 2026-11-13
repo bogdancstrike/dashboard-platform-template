@@ -17,7 +17,7 @@ from sqlalchemy import select
 from src.config import Config
 from src.core.clock import now
 from src.core.db import session_scope
-from src.services import developer_portal as portal
+from src.services.platform import developer_portal as portal
 from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX
@@ -67,12 +67,12 @@ def test_groups_are_named_by_the_route():
 
 
 def test_the_guard_is_read_off_the_handler():
-    assert portal._guard("src.api.workflows", "rules") == {
+    assert portal._guard("src.api.automation.workflows", "rules") == {
         "access": "permission", "permissions": ["automations.manage"],
         "doc": "Every automation, or a new one."}
-    assert portal._guard("src.api.developers", "reference")["access"] == "authenticated"
-    assert portal._guard("src.api.forms", "public_form")["access"] == "public"
-    assert portal._guard("src.api.workflows", "hook")["access"] == "public"
+    assert portal._guard("src.api.platform.developer_portal", "reference")["access"] == "authenticated"
+    assert portal._guard("src.api.decisions.forms", "public_form")["access"] == "public"
+    assert portal._guard("src.api.automation.workflows", "hook")["access"] == "public"
     assert portal._guard("src.api.nothing", "x")["access"] == "unknown"
 
 
