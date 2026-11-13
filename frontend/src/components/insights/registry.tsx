@@ -62,5 +62,5 @@ export const NODE_BODIES: Registry = {
 /** The body of one drawn node, from the registry. */
 export function NodeBody({ node, compact }: { node: Drawn; compact: boolean }) {
   const Body = NODE_BODIES[node.type] as NodeBody<Drawn["type"]>;
-  return <Body node={node as never} compact={compact} />;
+  return <Body node={node} compact={compact} />;
 }
