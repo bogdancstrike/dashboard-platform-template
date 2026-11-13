@@ -193,7 +193,7 @@ export default function InsightsPage() {
             Build insight
           </Button>
         </form>
-        <div className="nx-in-chips" data-testid="insight-suggestions">
+        <div className="nx-in-chips" data-testid="insight-suggestions" hidden={Boolean(current) || busy}>
           {(list.data?.suggestions ?? []).map((item) => (
             <button
               key={item.key}

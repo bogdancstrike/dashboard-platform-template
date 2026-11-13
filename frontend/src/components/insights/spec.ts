@@ -200,7 +200,8 @@ export function formatValue(value: number | string | null | undefined, fmt: Form
   if (typeof value === "string") return value;
   if (fmt === "percent") return `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`;
   if (fmt === "duration") return `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })} h`;
-  const options: Intl.NumberFormatOptions = compact
+  // Compact only where it saves room: 2.96 stays 2.96, 1 250 000 becomes 1.3M.
+  const options: Intl.NumberFormatOptions = compact && Math.abs(value) >= 10_000
     ? { notation: "compact", maximumFractionDigits: 1 }
     : { maximumFractionDigits: Math.abs(value) < 100 ? 2 : 0 };
   // No currency symbol: the records mix currencies, and a sum labelled "€"
