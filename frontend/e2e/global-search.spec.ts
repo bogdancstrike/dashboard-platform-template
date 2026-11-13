@@ -36,7 +36,11 @@ test.describe("global search", () => {
     await expect(page.getByTestId("global-total")).toBeVisible();
 
     await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
-    await page.getByRole("button", { name: /Data Explorer/ }).first().click();
+    // A link since the glass redesign (it is a place, and opens in a new tab).
+    await page
+      .getByRole("region", { name: "Projects" })
+      .getByRole("link", { name: /Data Explorer/ })
+      .click();
 
     // Same term, now narrowed to that one dataset.
     await expect(page).toHaveURL(/\/explore\?resource=project&q=migration/);
