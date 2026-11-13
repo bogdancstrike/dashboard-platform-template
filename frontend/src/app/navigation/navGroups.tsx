@@ -1,60 +1,13 @@
-import type { ReactNode } from "react";
 import { CoIcon } from "@/components/icons/CoIcon";
-import { NxIcon, type NxIconName } from "@/components/NxIcon";
+import { NxIcon } from "@/components/NxIcon";
 import { TdIcon } from "@/components/icons/TdIcon";
 import { PlanIcon } from "@/components/icons/PlanIcon";
 import { AstIcon } from "@/components/icons/AstIcon";
 import { KnIcon } from "@/components/icons/KnIcon";
 
-/**
- * The navigation, grouped by what somebody came here to do rather than by the
- * data model (§1).
- *
- * Two properties matter beyond the labels:
- *
- * * **Permission-aware.** An item names the permission it needs; the shell
- *   hides what the signed-in role cannot reach, rather than showing it and
- *   answering with a 403. A menu full of dead ends teaches people to distrust
- *   the menu.
- * * **Badge-aware.** An item can name a counter that rides along on the
- *   `/api/me/counts` poll, so "12 waiting on you" is visible without opening
- *   the page.
- * * **Flag-aware.** An item can name a feature flag (§27), and the shell hides
- *   it when that flag is off for this reader. `experimental` used to be a
- *   boolean here with no source of truth behind it — a marking that said "this
- *   is new" and connected to nothing, while a whole flag screen sat in
- *   administration changing nothing at all.
- */
-export interface NavItem {
-  key: string;
-  label: string;
-  icon: ReactNode;
-  /** Permission required to see it at all. Absent means everyone. */
-  permission?: string;
-  /** Which counter from the badge poll rides along. */
-  badge?: string;
-  /**
-   * The feature flag this item is behind (§27).
-   *
-   * Off means the item is not in the menu *and* the route is not reachable —
-   * a menu that hides a page whose address still works is a menu somebody
-   * routes around. A flag gates a feature; it never gates administration, so
-   * nothing under Administration names one.
-   */
-  flag?: string;
-  /** Marks a feature still behind a flag (§1, §27). */
-  experimental?: boolean;
-  disabled?: boolean;
-}
+import type { NavGroup } from "./types";
 
-export interface NavGroup {
-  key: string;
-  label: string;
-  /** The rail's icon for the whole group (tablet widths). */
-  icon: NxIconName;
-  items: NavItem[];
-}
-
+/** The menu, in order: each group and the pages under it (§1). */
 export const NAV_GROUPS: NavGroup[] = [
   {
     key: "overview",
@@ -232,59 +185,3 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ];
-
-/** Flattened, for resolving the selected key and for the command palette. */
-export const NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((group) => group.items);
-
-/**
- * The item a path belongs to — the longest matching key.
- *
- * Longest wins so `/admin/users` selects Users rather than the Administration
- * overview it also starts with.
- */
-export function selectedKeyFor(pathname: string): string {
-  // `/` redirects to `/dashboard`, so it selects the same item.
-  if (pathname === "/") return "/dashboard";
-  let best: string | undefined;
-  for (const item of NAV_ITEMS) {
-    if (
-      (pathname === item.key || pathname.startsWith(`${item.key}/`)) &&
-      (!best || item.key.length > best.length)
-    ) {
-      best = item.key;
-    }
-  }
-  // A page outside the menu (a profile, a setting, an error) selects nothing:
-  // highlighting the dashboard there read as "you are still on the page you
-  // came from".
-  return best ?? "";
-}
-
-/** Breadcrumb trail for a path, from the navigation itself. */
-/** Pages that live outside the navigation, and the trail each one reads as. */
-const OUTSIDE_NAV: { prefix: string; trail: { label: string; key: string }[] }[] = [
-  { prefix: "/profile/", trail: [{ label: "People", key: "/admin/users" }, { label: "Profile", key: "" }] },
-  { prefix: "/profile", trail: [{ label: "Account", key: "/profile" }, { label: "Profile", key: "/profile" }] },
-  { prefix: "/settings/preferences", trail: [{ label: "Account", key: "/profile" }, { label: "Preferences", key: "/settings/preferences" }] },
-  { prefix: "/settings/security", trail: [{ label: "Account", key: "/profile" }, { label: "Security", key: "/settings/security" }] },
-  { prefix: "/errors/", trail: [{ label: "Nucleus", key: "/home" }, { label: "Error", key: "" }] },
-  { prefix: "/compare", trail: [{ label: "Records", key: "/projects" }, { label: "Compare", key: "/compare" }] },
-];
-
-export function trailFor(pathname: string): { label: string; key: string }[] {
-  const outside = OUTSIDE_NAV.find((entry) => pathname === entry.prefix || pathname.startsWith(entry.prefix));
-  if (outside) return outside.trail.map((crumb) => ({ ...crumb, key: crumb.key || pathname }));
-  const selected = selectedKeyFor(pathname);
-  for (const group of NAV_GROUPS) {
-    const item = group.items.find((candidate) => candidate.key === selected);
-    if (item) {
-      return group.key === "overview" && item.key === "/dashboard"
-        ? [{ label: item.label, key: item.key }]
-        : [
-            { label: group.label, key: group.items[0]?.key ?? item.key },
-            { label: item.label, key: item.key },
-          ];
-    }
-  }
-  return [{ label: "Nucleus", key: "/" }];
-}
