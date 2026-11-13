@@ -58,8 +58,8 @@ export function ChartPreview({
   const option = useMemo(() => {
     if (!panel) return null;
     const full = buildOption(panel, buildChartTheme(drawn, appearance.density));
-    return compact ? stripped(full) : full;
-  }, [panel, drawn, appearance.density, compact]);
+    return compact ? stripped(full) : height < 150 ? small(full) : full;
+  }, [panel, drawn, appearance.density, compact, height]);
 
   return (
     <figure className={`nu-chart-preview nu-chart-preview--${drawn}`} style={{ margin: 0 }}>
@@ -94,6 +94,28 @@ export function ChartPreview({
  * this is drawn at, not about the chart: the same option at full size wants
  * every one of those labels.
  */
+/**
+ * A gauge in a short box keeps its number and drops the scale: the 0–100 tick
+ * labels around a 100-pixel arc landed on the figure itself (audit A).
+ */
+function small(option: Record<string, unknown>): Record<string, unknown> {
+  if (!Array.isArray(option["series"])) return option;
+  return {
+    ...option,
+    series: (option["series"] as Record<string, unknown>[]).map((item) =>
+      item["type"] === "gauge"
+        ? {
+            ...item,
+            axisLabel: { show: false },
+            splitLine: { show: false },
+            title: { show: false },
+            detail: { ...(item["detail"] as Record<string, unknown>), fontSize: 22, offsetCenter: [0, "8%"] },
+          }
+        : item,
+    ),
+  };
+}
+
 function stripped(option: Record<string, unknown>): Record<string, unknown> {
   const axis = (value: unknown) => {
     if (!value || typeof value !== "object") return value;

@@ -3675,4 +3675,5 @@ p a:not(.ant-btn),
    the number was cut in half under "vs previous period". */
 .nu-widget[data-rows="1"] .nu-widget-subtitle { display: none; }
 .nx-ov-rgl .nu-widget[data-rows="1"] .nu-widget-card > .ant-card-head { padding-top: 10px; min-height: 38px; }
-.nx-ov-rgl .nu-widget[data-rows="1"] .nu-widget-card > .ant-card-body { padding-top: 0; padding-bottom: 8px; }
+.nx-ov-rgl .nu-widget[data-rows="1"] .nu-widget-card > .ant-card-body { padding-top: 0; padding-bottom: 6px; }
+.nu-widget[data-rows="1"] .nu-widget-metric { padding: 0; gap: 0; }
