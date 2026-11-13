@@ -242,7 +242,7 @@ export const LAYERS: readonly GuardedLayer[] = [
     because: "A rule is a name, a dataset, a field and a condition, each picked from a list in seconds; a closed draft costs less to pick again than a confirmation costs every time.",
   },
   {
-    module: "pages/decisions/SlaPoliciesPage.tsx",
+    module: "pages/decisions/SlaPoliciesPage/PolicyDrawer.tsx",
     what: "SLA policy",
     guarded: false,
     because: "The policy form opens fully filled with working defaults and the calendar modal with standard hours, so a closed draft returns to sensible values rather than to blank fields.",

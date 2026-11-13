@@ -83,7 +83,6 @@
   "src/pages/WorkflowCanvasPage.tsx",
   "src/pages/WorkflowsPage.tsx",
   "src/pages/decisions/FormDesignerPage.tsx",
-  "src/pages/decisions/SlaPoliciesPage.tsx",
   "src/pages/recordsAnalytics/AlertsPage.tsx",
   "src/pages/recordsAnalytics/ContractDetailPage.tsx",
   "src/pages/recordsAnalytics/ContractsPage.tsx",

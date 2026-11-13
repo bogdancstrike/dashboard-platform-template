@@ -381,7 +381,7 @@ export const CREATE_FLOWS: readonly CreateFlow[] = [
     shape: "drawer",
     where: "admin/sla",
     testId: "sla-new",
-    opens: "pages/decisions/SlaPoliciesPage.tsx",
+    opens: "pages/decisions/SlaPoliciesPage/PolicyDrawer.tsx",
     because:
       "Targets per priority, business hours and escalation steps are a long form for one object; the policies table stays in view to copy from.",
   },
