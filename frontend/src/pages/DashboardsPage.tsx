@@ -84,6 +84,7 @@ import { CreateDashboardWizard } from "@/components/dashboards/CreateDashboardWi
 import { WidgetModal } from "@/components/dashboards/WidgetModal";
 import { DashboardCard } from "@/components/dashboards/DashboardCard";
 import { ShareDrawer } from "@/components/dashboards/ShareDrawer";
+import { PublishButton } from "@/components/analytics/PublicLinksDrawer";
 import { WidgetCard, type WidgetMoves } from "@/components/dashboards/WidgetCard";
 import {
   WidgetGrid,
@@ -580,6 +581,8 @@ export default function DashboardsPage() {
                   Share
                 </Button>
               )}
+              {/* Records & analytics (§25): a public, embeddable link. */}
+              {board.can_edit && <PublishButton dashboardId={board.id} />}
               <Tooltip title={board.can_edit ? "" : "Only the owner may change a dashboard"}>
                 {/* Addressed by test id, not by name: the icon contributes
                     its own label, so the accessible name reads "team

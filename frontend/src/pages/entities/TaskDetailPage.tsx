@@ -48,6 +48,7 @@ import { useParams } from "react-router-dom";
 import { useSmartBack } from "@/app/history";
 
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
+import { VersionHistoryButton } from "@/components/analytics/VersionHistory";
 import { CommentThread } from "@/components/comments/CommentThread";
 import { PageHeader } from "@/components/PageHeader";
 import { RecordTimeCard, RecordTimerButton } from "@/components/decisions/RecordTimer";
@@ -208,7 +209,7 @@ export default function TaskDetailPage() {
             <CommentThread resourceType="task" resourceId={id} />
           </Card>
 
-          <Card size="small" title="History" className="nu-block">
+          <Card size="small" title="History" className="nu-block" extra={<VersionHistoryButton resourceType="task" recordId={id} />}>
             {/* What the system recorded, kept apart from what people said:
                 one feed makes a decision indistinguishable from a side
                 effect (§21, §48). */}

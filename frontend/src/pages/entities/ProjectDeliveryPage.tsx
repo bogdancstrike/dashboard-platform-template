@@ -55,6 +55,7 @@ import { analysisApi } from "@/api/analysis";
 import { explorerApi } from "@/api/explorer";
 import { recordsApi } from "@/api/records";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
+import { VersionHistoryButton } from "@/components/analytics/VersionHistory";
 import { CommentThread } from "@/components/comments/CommentThread";
 import { PageHeader } from "@/components/PageHeader";
 import { PeoplePicker } from "@/components/PeoplePicker";
@@ -432,7 +433,7 @@ export default function ProjectDeliveryPage() {
             <CommentThread resourceType="project" resourceId={id} />
           </Card>
 
-          <Card size="small" title="History" className="nu-block">
+          <Card size="small" title="History" className="nu-block" extra={<VersionHistoryButton resourceType="project" recordId={id} />}>
             {/* What the system recorded, kept apart from what people said:
                 one feed makes a decision indistinguishable from a side
                 effect (§21, §48). */}

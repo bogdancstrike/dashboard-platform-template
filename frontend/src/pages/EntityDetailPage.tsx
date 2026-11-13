@@ -19,6 +19,8 @@ import { useSmartBack } from "@/app/history";
 import { explorerApi } from "@/api/explorer";
 import { recordsApi, type RecordField } from "@/api/records";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
+import { CustomerHealthPanel } from "@/components/analytics/CustomerHealthPanel";
+import { VersionHistory } from "@/components/analytics/VersionHistory";
 import { CommentThread } from "@/components/comments/CommentThread";
 import { RecordRelations } from "@/components/explorer/RecordRelations";
 import { FailureAlert, failureKind, retryHelps } from "@/components/FailureAlert";
@@ -227,6 +229,10 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
             label: "Overview",
             children: <Overview fields={data.fields} titleField={data.title_field} />,
           },
+          // Customer health (§12): the score and why, on the account itself.
+          ...(resourceKey === "customer"
+            ? [{ key: "health", label: "Health", children: <CustomerHealthPanel customerId={data.id} /> }]
+            : []),
           {
             // A conversation, and the records this one is connected to, as
             // *tabs* rather than on the page — the opposite of the task and
@@ -259,6 +265,9 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
             label: "History",
             children: (
               <Card size="small">
+                {/* Versions with compare and restore (§17), above the raw trail. */}
+                <VersionHistory resourceType={data.resource_type} recordId={data.id} onRestored={() => void record.refetch()} />
+                <h3 className="nu-section-title" style={{ marginTop: 18 }}>Audit trail</h3>
                 <AuditTimeline resourceType={data.resource_type} resourceId={data.id} />
               </Card>
             ),

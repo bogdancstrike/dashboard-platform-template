@@ -98,6 +98,18 @@ export function EntityHeader({
           >
             Ask a wider question
           </Button>
+          {/* Records & analytics (§18): the same list as a spreadsheet. */}
+          {resource && (
+            <Button
+              data-testid="open-grid"
+              onClick={() => {
+                const query = new URLSearchParams({ ...view.filters, ...(view.search ? { q: view.search } : {}) });
+                navigate(`${resource.path}/grid${query.toString() ? `?${query}` : ""}`);
+              }}
+            >
+              Edit as grid
+            </Button>
+          )}
           {/* Both take the same request, so an export that had to be queued
               because it was large is provably the question on screen (§30).
               Every entity list gets this by being here. */}

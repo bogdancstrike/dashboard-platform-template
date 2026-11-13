@@ -75,6 +75,14 @@ function Boot({ error }: { error?: unknown }) {
 root.render(<Boot />);
 
 async function start() {
+  // A public dashboard link (`/share/dashboards/<token>`, §25) is read by
+  // people with no account: mounted instead of — and before — the sign-in.
+  const sharedDashboard = /^\/share\/dashboards\//.test(window.location.pathname);
+  if (sharedDashboard) {
+    const { mountPublicDashboard, sharedDashboardToken } = await import("@/public/publicDashboardEntry");
+    const token = sharedDashboardToken(window.location.pathname);
+    if (token) return mountPublicDashboard(root, token);
+  }
   const meta = await metaApi.app();
   await initializeAuth(meta);
   root.render(

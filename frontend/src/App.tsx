@@ -74,6 +74,13 @@ const RolesPage = lazy(() => import("@/pages/RolesPage"));
 const UsersPage = lazy(() => import("@/pages/UsersPage"));
 const UserDetailPage = lazy(() => import("@/pages/UserDetailPage"));
 const EntityDetailPage = lazy(() => import("@/pages/EntityDetailPage"));
+// Records & analytics (§12, §13, §18, §22).
+const CustomerHealthPage = lazy(() => import("@/pages/analytics/CustomerHealthPage"));
+const ContractsPage = lazy(() => import("@/pages/analytics/ContractsPage"));
+const ContractDetailPage = lazy(() => import("@/pages/analytics/ContractDetailPage"));
+const RecordGridPage = lazy(() => import("@/pages/analytics/RecordGridPage"));
+const AlertsPage = lazy(() => import("@/pages/analytics/AlertsPage"));
+const WatchDetailPage = lazy(() => import("@/pages/analytics/WatchDetailPage"));
 
 /**
  * Six datasets, six pages (§7).
@@ -402,10 +409,18 @@ export default function App() {
           }
         />
 
+        {/* Records & analytics (§12, §13, §22): health, contracts, alerts. */}
+        <Route path="customers/health" element={<Suspense fallback={<Loading />}><CustomerHealthPage /></Suspense>} />
+        <Route path="contracts" element={<Suspense fallback={<Loading />}><ContractsPage /></Suspense>} />
+        <Route path="contracts/:id" element={<Suspense fallback={<Loading />}><ContractDetailPage /></Suspense>} />
+        <Route path="alerts" element={<Suspense fallback={<Loading />}><AlertsPage /></Suspense>} />
+        <Route path="alerts/:id" element={<Suspense fallback={<Loading />}><WatchDetailPage /></Suspense>} />
+
         {/* Records — six datasets, six pages (§7, §8). The list layouts are
             deliberately unlike one another; what they share is the query
             contract underneath, not a template. */}
         <Route path="tasks">
+          <Route path="grid" element={<Suspense fallback={<Loading />}><RecordGridPage resourceKey="task" /></Suspense>} />
           <Route
             index
             element={
@@ -436,6 +451,7 @@ export default function App() {
         ].map((entity) => (
           <Route key={entity.path} path={entity.path}>
             <Route index element={<Suspense fallback={<Loading />}>{entity.list}</Suspense>} />
+            <Route path="grid" element={<Suspense fallback={<Loading />}><RecordGridPage resourceKey={entity.key} /></Suspense>} />
             <Route
               path=":id"
               element={

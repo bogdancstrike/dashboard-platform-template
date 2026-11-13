@@ -112,6 +112,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { key: "/reports/builder", label: "Report builder", icon: <NxIcon name="report" />, permission: "reports.manage" },
       { key: "/charts/builder", label: "Chart builder", icon: <NxIcon name="pen" />, permission: "reports.manage" },
       { key: "/maps", label: "Maps", icon: <NxIcon name="globe" /> },
+      { key: "/alerts", label: "Alerts", icon: <NxIcon name="activity" />, permission: "records.view" },
     ],
   },
   {
@@ -151,6 +152,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { key: "/orders", label: "Orders", icon: <NxIcon name="cart" />, permission: "records.view" },
       { key: "/tickets", label: "Tickets", icon: <NxIcon name="ticket" />, permission: "records.view", badge: "open_tickets" },
       { key: "/devices", label: "Devices", icon: <NxIcon name="device" />, permission: "records.view" },
+      { key: "/contracts", label: "Contracts", icon: <NxIcon name="report" />, permission: "records.view" },
+      { key: "/customers/health", label: "Customer health", icon: <NxIcon name="heart" />, permission: "records.view" },
     ],
   },
   {

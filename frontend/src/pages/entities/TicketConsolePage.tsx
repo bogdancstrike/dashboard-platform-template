@@ -50,6 +50,7 @@ import { useSmartBack } from "@/app/history";
 import { explorerApi } from "@/api/explorer";
 import { recordsApi } from "@/api/records";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
+import { VersionHistoryButton } from "@/components/analytics/VersionHistory";
 import { CommentThread } from "@/components/comments/CommentThread";
 import { PageHeader } from "@/components/PageHeader";
 import { TagPicker } from "@/components/records/TagPicker";
@@ -303,7 +304,7 @@ export default function TicketConsolePage() {
             <CommentThread resourceType="ticket" resourceId={id} />
           </Card>
 
-          <Card size="small" title="History" className="nu-block">
+          <Card size="small" title="History" className="nu-block" extra={<VersionHistoryButton resourceType="ticket" recordId={id} />}>
             <AuditTimeline resourceType="ticket" resourceId={id} limit={8} />
           </Card>
         </Col>

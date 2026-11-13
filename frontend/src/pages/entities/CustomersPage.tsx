@@ -17,6 +17,8 @@ import { Avatar, Card, Pagination, Progress, Skeleton, Space, Tag, Tooltip, Typo
 import { MailOutlined, ShopOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
+import { BandPill } from "@/components/analytics/parts";
+import type { HealthBand } from "@/api/recordsAnalytics";
 import { humanStatus, StatusTag } from "@/components/StatusTag";
 import {
   NewRecordButton,
@@ -40,6 +42,8 @@ const { Text, Paragraph } = Typography;
 const COLUMNS = [
   "code", "name", "email", "status", "segment", "industry", "lifecycle_stage",
   "country", "city", "lifetime_value", "satisfaction", "last_contact_at",
+  // Customer health (§12), carried on every row.
+  "health_score", "health_band",
 ];
 
 interface CustomerRow {
@@ -123,7 +127,7 @@ export default function CustomersPage() {
       />
 
       <MetricStrip view={view} accents={["accent", "success", "info", "warning"]} />
-      <EntityFilters view={view} only={["segment", "lifecycle_stage", "industry", "country"]} />
+      <EntityFilters view={view} only={["segment", "lifecycle_stage", "industry", "country", "health_band"]} />
       <EntityError view={view} />
 
       <div className="nx-rec-book">
@@ -170,6 +174,10 @@ export default function CustomersPage() {
                     </Text>
                   </div>
                   <StatusTag status={customer.status} bordered={false} />
+                  <BandPill
+                    band={(customer as unknown as Record<string, unknown>).health_band as HealthBand | null}
+                    score={(customer as unknown as Record<string, unknown>).health_score as number | null}
+                  />
                   <RecordActions
                     records={records}
                     id={customer.id}
