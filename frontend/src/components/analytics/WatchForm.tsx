@@ -20,6 +20,7 @@ import { errorText, errorToast } from "@/lib/errors";
 
 import { TrendChart } from "./TrendChart";
 import { queryKeys } from "@/lib/queryKeys";
+import { PanelHeader } from "@/components/layout/PanelHeader";
 
 type Values = Required<Pick<WatchInput, "name" | "dataset" | "measure" | "granularity" | "method" | "sensitivity" | "direction" | "window" | "channels">> & {
   description?: string;
@@ -196,10 +197,7 @@ export function WatchForm({
             </Form.Item>
           </div>
           <section className="nx-ra-panel" style={{ padding: 12, marginBottom: 16 }} aria-label="Preview">
-            <div className="nx-ra-panel-head" style={{ marginBottom: 4 }}>
-              <h2>Preview</h2>
-              <span className="nx-ra-sub">{preview.data ? `${preview.data.flagged} point${preview.data.flagged === 1 ? "" : "s"} would be flagged` : ""}</span>
-            </div>
+            <PanelHeader title="Preview" extra={<span className="nx-ra-sub">{preview.data ? `${preview.data.flagged} point${preview.data.flagged === 1 ? "" : "s"} would be flagged` : ""}</span>} style={{ marginBottom: 4 }} />
             {preview.isError ? (
               <Alert type="warning" showIcon message={errorText(preview.error)} />
             ) : preview.data ? (

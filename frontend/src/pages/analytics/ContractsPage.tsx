@@ -38,6 +38,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { errorText } from "@/lib/errors";
 import { EmptyState } from "@/components/EmptyState";
 import { queryKeys } from "@/lib/queryKeys";
+import { PanelHeader } from "@/components/layout/PanelHeader";
 
 type View = "board" | "list" | "forecast" | "calendar";
 const VIEWS: { value: View; label: string }[] = [
@@ -328,10 +329,7 @@ function Forecast() {
         <Kpi label="Churned" value={money(data.totals.churned)} tone={data.totals.churned ? "bad" : undefined} />
       </div>
       <section className="nx-ra-panel nx-ra-forecast">
-        <div className="nx-ra-panel-head">
-          <h2>Renewal ARR by quarter</h2>
-          <span className="nx-ra-sub">By the quarter the contract ends</span>
-        </div>
+        <PanelHeader title="Renewal ARR by quarter" extra={<span className="nx-ra-sub">By the quarter the contract ends</span>} />
         <div className="nx-ra-scroll">
           <table>
             <thead>

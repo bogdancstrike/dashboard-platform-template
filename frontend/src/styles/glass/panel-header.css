@@ -1,0 +1,5 @@
+/* ── a glass panel's heading row (components/layout/PanelHeader) ──────── */
+.nu-panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.nu-panel-head h2 {
+  margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; color: var(--nu-text);
+}

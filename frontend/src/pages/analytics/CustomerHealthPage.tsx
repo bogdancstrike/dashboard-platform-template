@@ -31,6 +31,7 @@ import { errorToast } from "@/lib/errors";
 import { relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
 import { queryKeys } from "@/lib/queryKeys";
+import { PanelHeader } from "@/components/layout/PanelHeader";
 
 const BANDS: HealthBand[] = ["HEALTHY", "AT_RISK", "CRITICAL"];
 
@@ -116,10 +117,7 @@ export default function CustomerHealthPage() {
 
           <div className="nx-ra-grid nx-ra-grid--2" style={{ marginBottom: 14 }}>
             <section className="nx-ra-panel" aria-label="Distribution">
-              <div className="nx-ra-panel-head">
-                <h2>Distribution</h2>
-                <span className="nx-ra-sub">{data.computed_at ? `Scored ${relativeTime(data.computed_at)}` : "Not scored yet"}</span>
-              </div>
+              <PanelHeader title="Distribution" extra={<span className="nx-ra-sub">{data.computed_at ? `Scored ${relativeTime(data.computed_at)}` : "Not scored yet"}</span>} />
               <div className="nx-ra-dist" aria-hidden>
                 {data.distribution.map((item) =>
                   item.count ? <i key={item.band} className={item.band} style={{ flex: item.count }} /> : null,
@@ -148,16 +146,13 @@ export default function CustomerHealthPage() {
             </section>
 
             <section className="nx-ra-panel" aria-label="Movers">
-              <div className="nx-ra-panel-head">
-                <h2>Movers</h2>
-                <Segmented
+              <PanelHeader title="Movers" extra={<Segmented
                   size="small"
                   value={period}
                   onChange={(value) => set({ period: value === "7d" ? "7d" : null })}
                   options={[{ label: "7 days", value: "7d" }, { label: "30 days", value: "30d" }]}
                   aria-label="Movement period"
-                />
-              </div>
+                />} />
               <h3 className="nx-ra-sub" style={{ margin: "0 0 6px" }}>Falling</h3>
               <Movers rows={data.movers.down} period={period} onOpen={(id) => navigate(`/customers/${id}?tab=health`)} />
               <h3 className="nx-ra-sub" style={{ margin: "12px 0 6px" }}>Rising</h3>
@@ -167,10 +162,7 @@ export default function CustomerHealthPage() {
 
           <div className="nx-ra-grid nx-ra-grid--2">
             <section className="nx-ra-panel" aria-label="Customers by health">
-              <div className="nx-ra-panel-head">
-                <h2>Customers</h2>
-                <span className="nx-ra-sub">{data.matching} matching</span>
-              </div>
+              <PanelHeader title="Customers" extra={<span className="nx-ra-sub">{data.matching} matching</span>} />
               <div className="nx-ra-chips">
                 <div className="nx-ra-chips-tabs" role="tablist" aria-label="Health band">
                 {["", ...BANDS].map((key) => (
@@ -225,10 +217,7 @@ export default function CustomerHealthPage() {
             </section>
 
             <section className="nx-ra-panel" aria-label="Recent band drops">
-              <div className="nx-ra-panel-head">
-                <h2>Dropped a band</h2>
-                <span className="nx-ra-sub">Account managers were alerted</span>
-              </div>
+              <PanelHeader title="Dropped a band" extra={<span className="nx-ra-sub">Account managers were alerted</span>} />
               {data.drops.length === 0 ? (
                 <EmptyState compact title="No recent drops" />
               ) : (

@@ -16,6 +16,7 @@ import { BandPill, Delta, meterTone, ScoreRing } from "./parts";
 import { TrendChart } from "./TrendChart";
 import { FEATURES, withFeature } from "@/settings/features";
 import { queryKeys } from "@/lib/queryKeys";
+import { PanelHeader } from "@/components/layout/PanelHeader";
 
 function CustomerHealthPanelInner({ customerId }: { customerId: string }) {
   const [days, setDays] = useState(90);
@@ -51,16 +52,13 @@ function CustomerHealthPanelInner({ customerId }: { customerId: string }) {
       </section>
 
       <section className="nx-ra-panel">
-        <div className="nx-ra-panel-head">
-          <h2>Trend</h2>
-          <Segmented
+        <PanelHeader title="Trend" extra={<Segmented
             size="small"
             value={days}
             onChange={(value) => setDays(Number(value))}
             options={[{ label: "30 d", value: 30 }, { label: "90 d", value: 90 }, { label: "1 y", value: 365 }]}
             aria-label="Trend period"
-          />
-        </div>
+          />} />
         {data.trend.length > 1 ? (
           <TrendChart
             label="Health score"
@@ -77,10 +75,7 @@ function CustomerHealthPanelInner({ customerId }: { customerId: string }) {
       </section>
 
       <section className="nx-ra-panel" aria-label="Why this score">
-        <div className="nx-ra-panel-head">
-          <h2>Why this score</h2>
-          <span className="nx-ra-sub">Each signal scores 0–100; the weights decide how much it counts.</span>
-        </div>
+        <PanelHeader title="Why this score" extra={<span className="nx-ra-sub">Each signal scores 0–100; the weights decide how much it counts.</span>} />
         <div className="nx-ra-signals">
           {data.components.map((component) => (
             <Signal key={component.key} component={component} />

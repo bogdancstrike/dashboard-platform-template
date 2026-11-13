@@ -26,6 +26,7 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 import { AnomalyRow, describeWatch, WatchStatus } from "./AlertsPage";
 import { EmptyState } from "@/components/EmptyState";
 import { queryKeys } from "@/lib/queryKeys";
+import { PanelHeader } from "@/components/layout/PanelHeader";
 
 export default function WatchDetailPage() {
   const { id = "" } = useParams();
@@ -144,10 +145,7 @@ export default function WatchDetailPage() {
       />
       {watch.last_error && <FailureAlert error={new Error(watch.last_error)} titles={{ failed: "The last evaluation failed" }} />}
       <section className="nx-ra-panel" style={{ marginBottom: 14 }}>
-        <div className="nx-ra-panel-head">
-          <h2>Last {points.length} {watch.granularity}s</h2>
-          <span className="nx-ra-sub">Shaded: the expected range · red: flagged</span>
-        </div>
+        <PanelHeader title={<>Last {points.length} {watch.granularity}s</>} extra={<span className="nx-ra-sub">Shaded: the expected range · red: flagged</span>} />
         {points.length ? (
           <TrendChart
             label={watch.name}
@@ -161,7 +159,7 @@ export default function WatchDetailPage() {
       </section>
       <div className="nx-ra-grid nx-ra-grid--2">
         <section className="nx-ra-panel" aria-label="Alert history">
-          <div className="nx-ra-panel-head"><h2>Flagged</h2><span className="nx-ra-sub">{history.data?.total ?? 0} in total</span></div>
+          <PanelHeader title="Flagged" extra={<span className="nx-ra-sub">{history.data?.total ?? 0} in total</span>} />
           {items.length === 0 ? <EmptyState compact title="Nothing flagged yet" /> : (
             <div className="nx-ra-rows">
               {items.map((anomaly) => (
@@ -174,12 +172,9 @@ export default function WatchDetailPage() {
         <section className="nx-ra-panel" aria-label="Selected alert">
           {focus ? (
             <>
-              <div className="nx-ra-panel-head">
-                <h2>{focus.direction === "up" ? "Spike" : "Drop"} on {absoluteTime(focus.bucket_at)}</h2>
-                {focus.status === "OPEN" && (
+              <PanelHeader title={<>{focus.direction === "up" ? "Spike" : "Drop"} on {absoluteTime(focus.bucket_at)}</>} extra={focus.status === "OPEN" && (
                   <Button onClick={() => acknowledge.mutate(focus.id)} loading={acknowledge.isPending}>Mark as seen</Button>
-                )}
-              </div>
+                )} />
               <p className="nx-ra-sub" style={{ margin: "0 0 8px" }}>
                 {focus.value.toLocaleString()} against an expected {focus.expected.toLocaleString(undefined, { maximumFractionDigits: 1 })} ± {focus.stddev.toLocaleString(undefined, { maximumFractionDigits: 1 })} — z {focus.zscore.toFixed(2)}, {focus.severity.toLowerCase()}.
                 {focus.notified ? " People were notified." : focus.suppressed_reason ? ` Nobody was told: the watch was ${focus.suppressed_reason}.` : ""}

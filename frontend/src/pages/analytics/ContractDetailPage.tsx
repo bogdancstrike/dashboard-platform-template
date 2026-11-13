@@ -28,6 +28,7 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 
 import { riskFlag } from "./ContractsPage";
 import { queryKeys } from "@/lib/queryKeys";
+import { PanelHeader } from "@/components/layout/PanelHeader";
 
 export default function ContractDetailPage() {
   const { id = "" } = useParams();
@@ -172,7 +173,7 @@ export default function ContractDetailPage() {
             children: (
               <div className="nx-ra-grid nx-ra-grid--2">
                 <section className="nx-ra-panel">
-                  <div className="nx-ra-panel-head"><h2>Terms</h2>{riskFlag(data)}</div>
+                  <PanelHeader title="Terms" extra={riskFlag(data)} />
                   <div className="nx-ra-facts-grid">
                     <Fact label="Value (ARR)" value={money(data.value, data.currency)} />
                     <Fact label="Weighted" value={money(data.weighted, data.currency)} />
@@ -190,7 +191,7 @@ export default function ContractDetailPage() {
                   {data.notes && (<><h3 className="nx-ra-sub" style={{ marginTop: 14 }}>Notes</h3><p style={{ whiteSpace: "pre-wrap", margin: 0 }}>{data.notes}</p></>)}
                 </section>
                 <section className="nx-ra-panel">
-                  <div className="nx-ra-panel-head"><h2>Customer health</h2></div>
+                  <PanelHeader title="Customer health" />
                   <p style={{ margin: "0 0 10px" }}><BandPill band={data.health_band} score={data.health_score} /></p>
                   <p className="nx-ra-sub" style={{ margin: 0 }}>
                     {data.at_risk
@@ -207,14 +208,11 @@ export default function ContractDetailPage() {
             label: "Files",
             children: (
               <section className="nx-ra-panel" data-testid="contract-files">
-                <div className="nx-ra-panel-head">
-                  <h2>Documents</h2>
-                  {files.data?.can_upload && (
+                <PanelHeader title="Documents" extra={files.data?.can_upload && (
                     <Upload beforeUpload={(file) => upload(file)} showUploadList={false} multiple>
                       <Button icon={<NxIcon name="import" />}>Attach</Button>
                     </Upload>
-                  )}
-                </div>
+                  )} />
                 {files.isError ? <FailureAlert error={files.error} /> : !files.data ? <Skeleton active /> : files.data.items.length === 0 ? (
                   <p className="nx-ra-muted">No documents yet. Signed copies and order forms belong here.</p>
                 ) : (
