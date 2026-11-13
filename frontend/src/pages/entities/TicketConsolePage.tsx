@@ -30,7 +30,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import {
-  Button,
   Card,
   Col,
   Descriptions,
@@ -43,7 +42,7 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { ClockCircleOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import { ClockCircleOutlined } from "@ant-design/icons";
 import { Link, useParams } from "react-router-dom";
 import { useSmartBack } from "@/app/history";
 
@@ -58,6 +57,7 @@ import { PeoplePicker } from "@/components/PeoplePicker";
 import { useRecordPage } from "@/components/records/useRecordPage";
 import { humanStatus, StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
+import { Field, RecordDeleteButton, RecordEditButton } from "@/entities/detail";
 import { duration, slaStanding } from "@/entities/sla";
 import { RecordTimeCard, RecordTimerButton } from "@/components/decisions/RecordTimer";
 import { TicketSlaCard, useTicketSla } from "@/components/decisions/TicketSlaCard";
@@ -200,27 +200,8 @@ export default function TicketConsolePage() {
         actions={
           <>
             <RecordTimerButton subjectType="ticket" subjectId={id} label={`${ticket.subtitle ?? ""} · ${ticket.title}`} />
-            <Tooltip title={ticket.can_edit ? "" : "Your role does not include records.update"}>
-              <Button
-                type="primary"
-                icon={<EditOutlined />}
-                disabled={!ticket.can_edit}
-                onClick={() => page.editing.edit(id)}
-                data-testid="record-edit"
-              >
-                Edit
-              </Button>
-            </Tooltip>
-            <Tooltip title={ticket.can_delete ? "" : "Your role does not include records.delete"}>
-              <Button
-                danger
-                icon={<DeleteOutlined />}
-                disabled={!ticket.can_delete}
-                onClick={() => page.editing.remove(id, ticket.subtitle || ticket.title)}
-              >
-                Delete
-              </Button>
-            </Tooltip>
+            <RecordEditButton allowed={ticket.can_edit} onEdit={() => page.editing.edit(id)} />
+            <RecordDeleteButton allowed={ticket.can_delete} onDelete={() => page.editing.remove(id, ticket.subtitle || ticket.title)} />
           </>
         }
       />
@@ -594,14 +575,3 @@ function SlaBanner({
   );
 }
 
-/** A labelled control in the triage panel. */
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <Text strong className="nu-field-label">
-        {label}
-      </Text>
-      {children}
-    </div>
-  );
-}

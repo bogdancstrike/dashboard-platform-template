@@ -12,7 +12,6 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useSmartBack } from "@/app/history";
 
@@ -29,6 +28,7 @@ import { TagPicker } from "@/components/records/TagPicker";
 import { useRecordEditing } from "@/components/records/useRecordEditing";
 import { StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
+import { RecordDeleteButton, RecordEditButton } from "@/entities/detail";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { asText } from "@/lib/text";
 import { STALE, queryKeys } from "@/lib/queryKeys";
@@ -176,27 +176,8 @@ export default function EntityDetailPage({ resourceKey }: { resourceKey: string 
         tag={<StatusTag status={data.status} data-testid="record-status" />}
         actions={
           <>
-            <Tooltip title={data.can_edit ? "" : "Your role does not include records.update"}>
-              <Button
-                type="primary"
-                icon={<EditOutlined />}
-                disabled={!data.can_edit}
-                onClick={() => records.edit(id)}
-                data-testid="record-edit"
-              >
-                Edit
-              </Button>
-            </Tooltip>
-            <Tooltip title={data.can_delete ? "" : "Your role does not include records.delete"}>
-              <Button
-                danger
-                icon={<DeleteOutlined />}
-                disabled={!data.can_delete}
-                onClick={() => records.remove(id, data.title)}
-              >
-                Delete
-              </Button>
-            </Tooltip>
+            <RecordEditButton allowed={data.can_edit} onEdit={() => records.edit(id)} />
+            <RecordDeleteButton allowed={data.can_delete} onDelete={() => records.remove(id, data.title)} />
           </>
         }
       />

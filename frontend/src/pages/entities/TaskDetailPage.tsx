@@ -32,7 +32,6 @@
  */
 
 import {
-  Button,
   Card,
   Col,
   Descriptions,
@@ -43,7 +42,6 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { useParams } from "react-router-dom";
 import { useSmartBack } from "@/app/history";
 
@@ -57,6 +55,7 @@ import { PeoplePicker } from "@/components/PeoplePicker";
 import { useRecordPage } from "@/components/records/useRecordPage";
 import { humanStatus, StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
+import { Field, RecordDeleteButton, RecordEditButton } from "@/entities/detail";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { asText } from "@/lib/text";
 import {
@@ -137,28 +136,9 @@ export default function TaskDetailPage() {
         actions={
           <>
             <RecordTimerButton subjectType="task" subjectId={id} label={`${task.subtitle ?? ""} · ${task.title}`} />
-            <Tooltip title={task.can_edit ? "" : "Your role does not include records.update"}>
-              <Button
-                type="primary"
-                icon={<EditOutlined />}
-                disabled={!task.can_edit}
-                onClick={() => page.editing.edit(id)}
-                data-testid="record-edit"
-              >
-                Edit
-              </Button>
-            </Tooltip>
+            <RecordEditButton allowed={task.can_edit} onEdit={() => page.editing.edit(id)} />
             <SaveAsTemplateButton id={id} title={task.title} disabled={!planning.data?.can_manage} />
-            <Tooltip title={task.can_delete ? "" : "Your role does not include records.delete"}>
-              <Button
-                danger
-                icon={<DeleteOutlined />}
-                disabled={!task.can_delete}
-                onClick={() => page.editing.remove(id, task.title)}
-              >
-                Delete
-              </Button>
-            </Tooltip>
+            <RecordDeleteButton allowed={task.can_delete} onDelete={() => page.editing.remove(id, task.title)} />
           </>
         }
       />
@@ -291,14 +271,3 @@ export default function TaskDetailPage() {
   );
 }
 
-/** A labelled control in the side panel. */
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <Text strong className="nu-field-label">
-        {label}
-      </Text>
-      {children}
-    </div>
-  );
-}
