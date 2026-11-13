@@ -40,11 +40,23 @@ from uuid import UUID
 from sqlalchemy import func, select
 
 from src.core import audit
+from src.core.cleaners import (
+    choice,
+    flag,
+    json_object,
+    number,
+    one_of_listed,
+    optional,
+    text,
+    whole,
+    within,
+)
 from src.core.clock import now
 from src.core.errors import NotFoundError, ValidationError
 from src.core.pagination import parse_uuid
 from src.core.query import apply_filters
 from src.core.repository import get_or_404
+from src.core.validation import Field, Schema
 
 VIEW = "records.view"
 MANAGE = "alerts.manage"
@@ -203,82 +215,71 @@ def _config(row) -> dict[str, Any]:
     }
 
 
+def _dataset(raw: Any, ctx) -> str:
+    from src.services.explorer import resource_for
+
+    return resource_for(raw, principal=ctx.principal).key
+
+
+def _filters(raw: Any, ctx) -> dict[str, Any]:
+    filters = json_object("filters must be an object.", details={"field": "filters"},
+                          falsy_is_empty=False)(raw)
+    return {str(k): v for k, v in filters.items() if v not in (None, "", [])}
+
+
+_threshold_number = number("threshold must be a number.", details={"field": "threshold"})
+_threshold_range = within(0.5, 10, "threshold must be between 0.5 and 10.",
+                          details={"field": "threshold"})
+_window_number = whole("window must be a whole number.", details={"field": "window"})
+_window_range = within(3, 90, "window must be between 3 and 90 points.", details={"field": "window"})
+
+
+def _channels(raw: Any, ctx) -> list[str]:
+    channels = ["in_app"] if raw is None else raw
+    if not isinstance(channels, list) or any(c not in CHANNELS for c in channels):
+        raise ValidationError("channels are in_app and/or email.", details={"field": "channels"})
+    return sorted(set(channels))
+
+
+def _recipients(raw: Any, ctx) -> list[str]:
+    raw = raw or []
+    if not isinstance(raw, list):
+        raise ValidationError("recipient_ids must be a list.", details={"field": "recipient_ids"})
+    return [str(parse_uuid(item, field="recipient_ids")) for item in raw]
+
+
+def _choice(key: str, allowed, default: str) -> Field:
+    allowed = tuple(allowed)
+    return Field(key, choice(allowed, default=default, case=str.lower, error=one_of_listed(key)))
+
+
+_SCHEMA = Schema(
+    [
+        Field("name", text(160, required="A watch needs a name.", details={"field": "name"})),
+        Field("description", text(empty=None), sparse=True),
+        Field("dataset", _dataset),
+        _choice("measure", MEASURES, "count"),
+        _choice("granularity", GRANULARITIES, "day"),
+        _choice("method", METHODS, "zscore"),
+        _choice("sensitivity", SENSITIVITY, "medium"),
+        _choice("direction", DIRECTIONS, "both"),
+        Field("measure_field", text(empty=None)),
+        Field("date_field", text(empty=None)),
+        Field("filters", _filters),
+        Field("threshold", optional(lambda raw, ctx: _threshold_range(_threshold_number(raw))),
+              sparse=True),
+        Field("window", lambda raw, ctx: _window_range(_window_number(raw or 14))),
+        Field("channels", _channels),
+        Field("recipient_ids", _recipients, sparse=True),
+        Field("enabled", flag, sparse=True),
+    ],
+    not_object="The watch must be a JSON object.",
+)
+
+
 def validated(payload: Any, *, partial: bool = False, principal=None) -> dict[str, Any]:
     """A watch definition, checked against the dataset it names."""
-    if not isinstance(payload, dict):
-        raise ValidationError("The watch must be a JSON object.")
-    out: dict[str, Any] = {}
-
-    def has(key: str) -> bool:
-        return key in payload or not partial
-
-    if has("name"):
-        name = str(payload.get("name") or "").strip()
-        if not name:
-            raise ValidationError("A watch needs a name.", details={"field": "name"})
-        out["name"] = name[:160]
-    if "description" in payload:
-        out["description"] = (str(payload.get("description") or "").strip() or None)
-    if has("dataset"):
-        from src.services.explorer import resource_for
-
-        resource = resource_for(payload.get("dataset"), principal=principal)
-        out["dataset"] = resource.key
-    for key, allowed, default in (
-        ("measure", MEASURES, "count"), ("granularity", tuple(GRANULARITIES), "day"),
-        ("method", METHODS, "zscore"), ("sensitivity", tuple(SENSITIVITY), "medium"),
-        ("direction", DIRECTIONS, "both"),
-    ):
-        if has(key):
-            value = str(payload.get(key) or default).lower()
-            if value not in allowed:
-                raise ValidationError(f"{key} must be one of {', '.join(allowed)}.",
-                                      details={"field": key, "allowed": list(allowed)})
-            out[key] = value
-    if "measure_field" in payload or not partial:
-        out["measure_field"] = str(payload.get("measure_field") or "").strip() or None
-    if "date_field" in payload or not partial:
-        out["date_field"] = str(payload.get("date_field") or "").strip() or None
-    if "filters" in payload or not partial:
-        filters = payload.get("filters")
-        filters = {} if filters is None else filters
-        if not isinstance(filters, dict):
-            raise ValidationError("filters must be an object.", details={"field": "filters"})
-        out["filters"] = {str(k): v for k, v in filters.items() if v not in (None, "", [])}
-    if "threshold" in payload:
-        raw = payload.get("threshold")
-        if raw in (None, ""):
-            out["threshold"] = None
-        else:
-            try:
-                value = float(raw)
-            except (TypeError, ValueError) as exc:
-                raise ValidationError("threshold must be a number.", details={"field": "threshold"}) from exc
-            if not 0.5 <= value <= 10:
-                raise ValidationError("threshold must be between 0.5 and 10.", details={"field": "threshold"})
-            out["threshold"] = value
-    if "window" in payload or not partial:
-        try:
-            window = int(payload.get("window") or 14)
-        except (TypeError, ValueError) as exc:
-            raise ValidationError("window must be a whole number.", details={"field": "window"}) from exc
-        if not 3 <= window <= 90:
-            raise ValidationError("window must be between 3 and 90 points.", details={"field": "window"})
-        out["window"] = window
-    if "channels" in payload or not partial:
-        raw = payload.get("channels")
-        channels = ["in_app"] if raw is None else raw
-        if not isinstance(channels, list) or any(c not in CHANNELS for c in channels):
-            raise ValidationError("channels are in_app and/or email.", details={"field": "channels"})
-        out["channels"] = sorted(set(channels))
-    if "recipient_ids" in payload:
-        raw = payload.get("recipient_ids") or []
-        if not isinstance(raw, list):
-            raise ValidationError("recipient_ids must be a list.", details={"field": "recipient_ids"})
-        out["recipient_ids"] = [str(parse_uuid(item, field="recipient_ids")) for item in raw]
-    if "enabled" in payload:
-        out["enabled"] = bool(payload.get("enabled"))
-    return out
+    return _SCHEMA.validate(payload, partial=partial, principal=principal)
 
 
 def _check_measure(config: dict[str, Any]) -> None:

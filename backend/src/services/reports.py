@@ -22,12 +22,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from src.core import audit, sharing
+from src.core.cleaners import bounded_name, json_object, object_or_null, text
 from src.core.clock import iso, now
 from src.core.errors import NotFoundError, ValidationError
 from src.core.pagination import parse_uuid
+from src.core.shared_fields import members_step, scope_step
+from src.core.validation import Field, Schema
 from src.models.personal import Report
-from src.services import analysis
-from src.services import favorites
+from src.services import analysis, favorites
 from src.services.explorer import resource_for
 
 #: The polymorphic key reports share under.
@@ -224,109 +226,78 @@ def _stored_measures(row: Report) -> list[dict[str, str]]:
 # ── validation ───────────────────────────────────────────────────────────
 
 
+def _resource(out: dict[str, Any], ctx) -> None:
+    ctx.extra["resource"] = resource_for(
+        ctx.value("resource_type", inherit=True), principal=ctx.principal
+    )
+
+
+def _period(raw: Any, ctx) -> Any:
+    # Validated by the same function that will resolve it at run time, so a
+    # report cannot be saved with a period the compiler would refuse.
+    analysis.period_window(raw)
+    return raw
+
+
+def _visualization(raw: Any, ctx) -> str:
+    visualization = str(raw).strip().lower()
+    if visualization not in VISUALIZATIONS:
+        raise ValidationError(
+            "Unknown visualization.",
+            details={"visualization": visualization, "allowed": sorted(VISUALIZATIONS)},
+        )
+    return visualization
+
+
+def _order(raw: Any, ctx) -> str:
+    order = str(raw or "desc").lower()
+    if order not in ("asc", "desc"):
+        raise ValidationError("order must be asc or desc", details={"field": "order"})
+    return order
+
+
+def _schedule(raw: Any, ctx) -> str | None:
+    schedule = str(raw or "").strip() or None
+    if schedule:
+        # Setting a schedule is the scheduled-reports feature (§27); clearing
+        # one is always allowed, so a switched-off feature can still be wound down.
+        from src.core import features
+
+        features.require("report-scheduling", ctx.principal)
+    return schedule
+
+
+#: `is_favorite` is accepted but deliberately *not* written here: it is no
+#: longer a column. See `_apply_favorite`, which puts it in the one store (§38).
+_SCHEMA = Schema(
+    [
+        _resource,
+        Field("name", bounded_name()),
+        Field("description", text(empty=None), sparse=True),
+        Field("resource_type", lambda raw, ctx: ctx.extra["resource"].key),
+        scope_step(SHARE_PERMISSION),
+        Field("dimensions", lambda raw, ctx: _dimensions(raw or [])),
+        Field("metrics", lambda raw, ctx: _metrics(raw or [])),
+        Field("filters", json_object("filters must be an object."), sparse=True),
+        Field("condition_tree", object_or_null("condition_tree must be an object or null."),
+              sparse=True),
+        Field("period", _period, default="last_30_days", inherit=True),
+        Field("visualization", _visualization, default="bar", inherit=True),
+        Field("sort", text(empty=None), sparse=True),
+        Field("order", _order, sparse=True),
+        Field("schedule", _schedule, sparse=True),
+        members_step(SHARE_PERMISSION),
+    ],
+    not_object="The report must be a JSON object.",
+    unknown="Unknown report field.",
+    extra_allowed={"scope", "member_ids", "group_by", "is_favorite"},
+)
+
+
 def _validated(
     payload: Any, *, principal, partial: bool, existing: Report | None = None,
 ) -> dict[str, Any]:
-    if not isinstance(payload, dict):
-        raise ValidationError("The report must be a JSON object.")
-    allowed = {
-        "name", "description", "resource_type", "scope", "member_ids",
-        "dimensions", "metrics", "filters", "condition_tree", "group_by",
-        "sort", "order", "period", "visualization", "is_favorite", "schedule",
-    }
-    unknown = set(payload) - allowed
-    if unknown:
-        raise ValidationError("Unknown report field.", details={"fields": sorted(unknown)})
-
-    resource = resource_for(
-        payload.get("resource_type", existing.resource_type if existing else None),
-        principal=principal,
-    )
-    out: dict[str, Any] = {}
-
-    if not partial or "name" in payload:
-        name = " ".join(str(payload.get("name") or "").split())
-        if not name or len(name) > 200:
-            raise ValidationError(
-                "name must contain 1 to 200 characters", details={"field": "name"},
-            )
-        out["name"] = name
-
-    if "description" in payload:
-        out["description"] = (str(payload["description"] or "").strip() or None)
-
-    if not partial or "resource_type" in payload:
-        out["resource_type"] = resource.key
-
-    changing = existing is None or str(payload.get("scope", existing.scope)).upper() != existing.scope
-    scope = sharing.scope_of(
-        payload.get("scope", existing.scope if existing else "PRIVATE"),
-        principal=principal if changing else None,
-        share_permission=SHARE_PERMISSION,
-    )
-    if not partial or "scope" in payload:
-        out["scope"] = scope
-
-    if not partial or "dimensions" in payload:
-        out["dimensions"] = _dimensions(payload.get("dimensions") or [])
-    if not partial or "metrics" in payload:
-        out["metrics"] = _metrics(payload.get("metrics") or [])
-
-    if "filters" in payload:
-        filters = payload["filters"] or {}
-        if not isinstance(filters, dict):
-            raise ValidationError("filters must be an object.")
-        out["filters"] = filters
-    if "condition_tree" in payload:
-        tree = payload["condition_tree"]
-        if tree is not None and not isinstance(tree, dict):
-            raise ValidationError("condition_tree must be an object or null.")
-        out["condition_tree"] = tree
-
-    if not partial or "period" in payload:
-        # Validated by the same function that will resolve it at run time, so
-        # a report cannot be saved with a period the compiler would refuse.
-        period = payload.get("period", existing.period if existing else "last_30_days")
-        analysis.period_window(period)
-        out["period"] = period
-
-    if not partial or "visualization" in payload:
-        visualization = str(
-            payload.get("visualization", existing.visualization if existing else "bar")
-        ).strip().lower()
-        if visualization not in VISUALIZATIONS:
-            raise ValidationError(
-                "Unknown visualization.",
-                details={"visualization": visualization, "allowed": sorted(VISUALIZATIONS)},
-            )
-        out["visualization"] = visualization
-
-    if "sort" in payload:
-        out["sort"] = str(payload["sort"] or "").strip() or None
-    if "order" in payload:
-        order = str(payload["order"] or "desc").lower()
-        if order not in ("asc", "desc"):
-            raise ValidationError("order must be asc or desc", details={"field": "order"})
-        out["order"] = order
-    if "schedule" in payload:
-        out["schedule"] = str(payload["schedule"] or "").strip() or None
-        if out["schedule"]:
-            # Setting a schedule is the scheduled-reports feature (§27);
-            # clearing one is always allowed, so a switched-off feature can
-            # still be wound down.
-            from src.core import features
-
-            features.require("report-scheduling", principal)
-    # `is_favorite` is deliberately *not* here: it is no longer a column this
-    # writes. See `_apply_favorite`, which puts it in the one store (§38).
-
-    if "member_ids" in payload or not partial:
-        wanted = sharing.requested_members(payload)
-        if wanted:
-            principal.require(SHARE_PERMISSION)
-        out["member_ids"] = wanted
-
-    return out
+    return _SCHEMA.validate(payload, principal=principal, partial=partial, existing=existing)
 
 
 def _dimensions(raw: Any) -> list[str]:

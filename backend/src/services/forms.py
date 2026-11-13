@@ -101,24 +101,37 @@ def _checked_fields(target: str, raw: Any) -> list[dict[str, Any]]:
         raise ValidationError("fields must be a list.", details={"field": "fields"})
     if len(raw) > MAX_FIELDS:
         raise ValidationError(f"At most {MAX_FIELDS} fields.", details={"field": "fields"})
-    writable = _writable(target)
-    seen_ids: set[str] = set()
-    mapped: set[str] = set()
-    out = []
-    for index, item in enumerate(raw):
+    checker = _FieldChecker(_writable(target))
+    return [checker.check(index, item) for index, item in enumerate(raw)]
+
+
+def _refuse(message: str) -> ValidationError:
+    return ValidationError(message, details={"field": "fields"})
+
+
+class _FieldChecker:
+    """Checks a form's fields in order, remembering ids and mapped columns so
+    far: an id must be unique, a column written once, and a condition may only
+    look at a field above it."""
+
+    def __init__(self, writable) -> None:
+        self.writable = writable
+        self.seen_ids: set[str] = set()
+        self.mapped: set[str] = set()
+
+    def check(self, index: int, item: Any) -> dict[str, Any]:
         if not isinstance(item, dict):
-            raise ValidationError(f"Field {index + 1} is not an object.", details={"field": "fields"})
+            raise _refuse(f"Field {index + 1} is not an object.")
         kind = str(item.get("type") or "")
         if kind not in FIELD_TYPES:
-            raise ValidationError(f"Field {index + 1}: unknown type {kind!r}.", details={"field": "fields"})
+            raise _refuse(f"Field {index + 1}: unknown type {kind!r}.")
         ident = str(item.get("id") or f"f{index + 1}")
-        if not re.match(r"^[A-Za-z0-9_-]{1,40}$", ident) or ident in seen_ids or ident == HONEYPOT:
-            raise ValidationError(f"Field {index + 1}: the id must be unique and simple.",
-                                  details={"field": "fields"})
-        seen_ids.add(ident)
+        if not re.match(r"^[A-Za-z0-9_-]{1,40}$", ident) or ident in self.seen_ids or ident == HONEYPOT:
+            raise _refuse(f"Field {index + 1}: the id must be unique and simple.")
+        self.seen_ids.add(ident)
         label = str(item.get("label") or "").strip()
         if not label:
-            raise ValidationError(f"Field {index + 1} needs a label.", details={"field": "fields"})
+            raise _refuse(f"Field {index + 1} needs a label.")
         field: dict[str, Any] = {"id": ident, "type": kind, "label": label[:200],
                                  "help": str(item.get("help") or "")[:400],
                                  "required": bool(item.get("required")) and kind != "heading",
@@ -126,27 +139,32 @@ def _checked_fields(target: str, raw: Any) -> list[dict[str, Any]]:
         if kind in ("select", "multiselect"):
             options = [str(option).strip()[:120] for option in item.get("options") or [] if str(option).strip()]
             if not options:
-                raise ValidationError(f"{label}: give at least one option.", details={"field": "fields"})
+                raise _refuse(f"{label}: give at least one option.")
             field["options"] = options
         if kind == "rating":
             field["max"] = min(10, max(3, int(item.get("max") or 5)))
+        self._mapping(field, item, kind, label)
+        self._visibility(field, item, ident, label)
+        return field
+
+    def _mapping(self, field: dict[str, Any], item: dict[str, Any], kind: str, label: str) -> None:
         map_to = str(item.get("map_to") or "")
-        if map_to and kind not in ("heading", "file"):
-            if map_to not in writable:
-                raise ValidationError(f"{label}: {map_to!r} is not a field the dataset accepts.",
-                                      details={"field": "fields"})
-            if map_to in mapped:
-                raise ValidationError(f"Two fields write {map_to!r}.", details={"field": "fields"})
-            mapped.add(map_to)
-            field["map_to"] = map_to
+        if not map_to or kind in ("heading", "file"):
+            return
+        if map_to not in self.writable:
+            raise _refuse(f"{label}: {map_to!r} is not a field the dataset accepts.")
+        if map_to in self.mapped:
+            raise _refuse(f"Two fields write {map_to!r}.")
+        self.mapped.add(map_to)
+        field["map_to"] = map_to
+
+    def _visibility(self, field: dict[str, Any], item: dict[str, Any], ident: str, label: str) -> None:
         visible = item.get("visible_when")
-        if isinstance(visible, dict) and visible.get("field"):
-            if str(visible["field"]) not in seen_ids - {ident}:
-                raise ValidationError(f"{label}: it can only depend on a field above it.",
-                                      details={"field": "fields"})
-            field["visible_when"] = {"field": str(visible["field"]), "equals": visible.get("equals")}
-        out.append(field)
-    return out
+        if not (isinstance(visible, dict) and visible.get("field")):
+            return
+        if str(visible["field"]) not in self.seen_ids - {ident}:
+            raise _refuse(f"{label}: it can only depend on a field above it.")
+        field["visible_when"] = {"field": str(visible["field"]), "equals": visible.get("equals")}
 
 
 def _checked_settings(raw: Any, current: dict[str, Any] | None) -> dict[str, Any]:

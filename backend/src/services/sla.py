@@ -517,28 +517,45 @@ def _checked_policy(session, payload: dict[str, Any], row: SlaPolicy) -> None:
     row.name = name[:160]
     row.description = str(payload.get("description", row.description or "")).strip() or None
     row.active = bool(payload.get("active", True if row.active is None else row.active))
+    row.conditions = _conditions(payload.get("conditions", row.conditions or {}) or {})
+    row.targets = _targets(payload.get("targets", row.targets or {}) or {})
+    calendar = _calendar_choice(
+        session, payload.get("calendar_id", str(row.calendar_id) if row.calendar_id else None)
+    )
+    row.calendar_id = calendar.id if calendar is not None else None
+    row.calendar = calendar
+    row.pause_statuses = _pauses(payload.get("pause_statuses", row.pause_statuses or []) or [])
+    steps = [_step(index, step) for index, step in
+             enumerate(payload.get("escalations", row.escalations or []) or [])]
+    row.escalations = sorted(steps, key=lambda item: item["at_percent"])
 
-    raw = payload.get("conditions", row.conditions or {}) or {}
+
+_CONDITION_VALUES = {"segments": vocabulary.CUSTOMER_SEGMENT,
+                     "categories": vocabulary.TICKET_CATEGORY,
+                     "channels": vocabulary.TICKET_CHANNEL}
+
+
+def _conditions(raw: Any) -> dict[str, list[str]]:
     if not isinstance(raw, dict):
         raise ValidationError("conditions must be an object.", details={"field": "conditions"})
-    allowed = {"segments": vocabulary.CUSTOMER_SEGMENT, "categories": vocabulary.TICKET_CATEGORY,
-               "channels": vocabulary.TICKET_CHANNEL}
     conditions: dict[str, list[str]] = {}
     for key, values in raw.items():
         if key not in CONDITION_KEYS:
             raise ValidationError(f"{key!r} is not a condition.", details={"field": "conditions"})
         values = [str(item) for item in (values or [])]
-        if key in allowed and any(item not in allowed[key] for item in values):
+        allowed = _CONDITION_VALUES.get(key)
+        if allowed is not None and any(item not in allowed for item in values):
             raise ValidationError(f"Unknown value in {key}.", details={"field": f"conditions.{key}"})
         if key == "customer_ids":
             values = [str(parse_uuid(item, field="customer_ids")) for item in values]
         if values:
             conditions[key] = values
-    row.conditions = conditions
+    return conditions
 
-    targets_in = payload.get("targets", row.targets or {}) or {}
+
+def _targets(raw: dict[str, Any]) -> dict[str, dict[str, int]]:
     targets: dict[str, dict[str, int]] = {}
-    for priority, pair in targets_in.items():
+    for priority, pair in raw.items():
         if priority not in vocabulary.PRIORITY:
             raise ValidationError(f"{priority!r} is not a priority.", details={"field": "targets"})
         first = _minutes((pair or {}).get("first_response"), field=f"targets.{priority}.first_response")
@@ -549,45 +566,49 @@ def _checked_policy(session, payload: dict[str, Any], row: SlaPolicy) -> None:
         entry = {key: value for key, value in (("first_response", first), ("resolution", resolution)) if value}
         if entry:
             targets[priority] = entry
-    row.targets = targets
+    return targets
 
-    calendar_id = payload.get("calendar_id", str(row.calendar_id) if row.calendar_id else None)
-    if calendar_id:
-        calendar = session.get(BusinessCalendar, parse_uuid(calendar_id, field="calendar_id"))
-        if calendar is None or calendar.deleted_at is not None:
-            raise ValidationError("That calendar does not exist.", details={"field": "calendar_id"})
-        row.calendar_id = calendar.id
-        row.calendar = calendar
-    else:
-        row.calendar_id = None
-        row.calendar = None
 
-    pauses = [str(item) for item in (payload.get("pause_statuses", row.pause_statuses or []) or [])]
+def _calendar_choice(session, calendar_id: Any) -> BusinessCalendar | None:
+    if not calendar_id:
+        return None
+    calendar = session.get(BusinessCalendar, parse_uuid(calendar_id, field="calendar_id"))
+    if calendar is None or calendar.deleted_at is not None:
+        raise ValidationError("That calendar does not exist.", details={"field": "calendar_id"})
+    return calendar
+
+
+def _pauses(raw: Any) -> list[str]:
+    pauses = [str(item) for item in raw]
     if any(item not in vocabulary.TICKET_STATUS or item in CLOSED for item in pauses):
         raise ValidationError("Pause only on open ticket statuses.", details={"field": "pause_statuses"})
-    row.pause_statuses = pauses
+    return pauses
 
-    steps = []
-    for index, step in enumerate(payload.get("escalations", row.escalations or []) or []):
-        action = str((step or {}).get("action") or "").upper()
-        if action not in ACTIONS:
-            raise ValidationError(f"Step {index + 1}: unknown action.", details={"field": "escalations"})
-        try:
-            at = int((step or {}).get("at_percent"))
-        except (TypeError, ValueError) as exc:
-            raise ValidationError(f"Step {index + 1}: give a percentage.", details={"field": "escalations"}) from exc
-        if at < 1 or at > 500:
-            raise ValidationError(f"Step {index + 1}: between 1% and 500%.", details={"field": "escalations"})
-        clean = {"at_percent": at, "action": action}
-        if action in ("NOTIFY", "ASSIGN"):
-            target = str((step or {}).get("target") or "assignee")
-            if target not in NOTIFY_TARGETS:
-                raise ValidationError(f"Step {index + 1}: unknown target.", details={"field": "escalations"})
-            clean["target"] = target
-            if target == "user":
-                clean["user_id"] = str(parse_uuid((step or {}).get("user_id"), field="user_id"))
-        steps.append(clean)
-    row.escalations = sorted(steps, key=lambda item: item["at_percent"])
+
+def _step(index: int, step: Any) -> dict[str, Any]:
+    step = step or {}
+
+    def refuse(message: str) -> ValidationError:
+        return ValidationError(f"Step {index + 1}: {message}", details={"field": "escalations"})
+
+    action = str(step.get("action") or "").upper()
+    if action not in ACTIONS:
+        raise refuse("unknown action.")
+    try:
+        at = int(step.get("at_percent"))
+    except (TypeError, ValueError) as exc:
+        raise refuse("give a percentage.") from exc
+    if at < 1 or at > 500:
+        raise refuse("between 1% and 500%.")
+    clean: dict[str, Any] = {"at_percent": at, "action": action}
+    if action in ("NOTIFY", "ASSIGN"):
+        target = str(step.get("target") or "assignee")
+        if target not in NOTIFY_TARGETS:
+            raise refuse("unknown target.")
+        clean["target"] = target
+        if target == "user":
+            clean["user_id"] = str(parse_uuid(step.get("user_id"), field="user_id"))
+    return clean
 
 
 def save_policy(session, payload: dict[str, Any], *, principal, ident: Any = None) -> dict[str, Any]:

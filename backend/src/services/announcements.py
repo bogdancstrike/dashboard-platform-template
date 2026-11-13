@@ -35,11 +35,13 @@ from uuid import UUID
 
 from sqlalchemy import func, or_, select
 
+from src.core.cleaners import choice, flag, not_a, text
 from src.core.clock import iso, now
 from src.core.errors import NotFoundError, ValidationError
 from src.core.naming import initials
 from src.core.pagination import envelope, parse_page, parse_uuid
 from src.core.query import count_of
+from src.core.validation import Field, Schema
 
 #: Reading needs nothing: a notice is addressed to everybody by definition.
 #: Writing one is a broadcast, and that is the privilege.
@@ -527,73 +529,55 @@ def _row(session, announcement_id: Any):
     return row
 
 
-def _validated(payload: Any, *, principal, partial: bool) -> dict[str, Any]:
-    if not isinstance(payload, dict):
-        raise ValidationError("The announcement must be a JSON object.")
-
-    allowed = {
-        "title", "body", "category", "severity", "status", "publish_at", "expires_at",
-        "audience_roles", "requires_acknowledgement", "is_pinned", "link",
-        "organization_id",
-    }
-    unknown = sorted(set(payload) - allowed)
-    if unknown:
+def _organization(raw: Any, ctx) -> UUID | None:
+    """An author may narrow a notice to their own tenant or leave it open to
+    every one; they may not address somebody else's."""
+    if raw in (None, ""):
+        return None
+    identifier = parse_uuid(raw, field="organization_id")
+    if ctx.principal.organization_id and identifier != ctx.principal.organization_id:
         raise ValidationError(
-            "Unknown fields.", details={"fields": unknown, "allowed": sorted(allowed)},
+            "An announcement can be addressed to your own organization or to all.",
+            details={"organization_id": str(identifier)},
         )
+    return identifier
 
-    out: dict[str, Any] = {}
 
-    if not partial or "title" in payload:
-        title = str(payload.get("title") or "").strip()
-        if not title:
-            raise ValidationError("An announcement needs a title.")
-        out["title"] = title[:240]
-    if not partial or "body" in payload:
-        out["body"] = str(payload.get("body") or "").strip()
-    if not partial or "category" in payload:
-        out["category"] = _category(payload.get("category")) or "NEWS"
-    if not partial or "severity" in payload:
-        out["severity"] = _one_of(payload.get("severity") or "INFO", SEVERITIES, "severity")
-    if not partial or "status" in payload:
-        out["status"] = _one_of(payload.get("status") or "DRAFT", STATUSES, "status")
-    for field in ("publish_at", "expires_at"):
-        if not partial or field in payload:
-            out[field] = _moment(payload.get(field), field)
-    if not partial or "audience_roles" in payload:
-        out["audience_roles"] = _roles(payload.get("audience_roles"))
-    if not partial or "requires_acknowledgement" in payload:
-        out["requires_acknowledgement"] = bool(payload.get("requires_acknowledgement"))
-    if not partial or "is_pinned" in payload:
-        out["is_pinned"] = bool(payload.get("is_pinned"))
-    if not partial or "link" in payload:
-        link = str(payload.get("link") or "").strip()
-        out["link"] = link[:500] or None
-    if not partial or "organization_id" in payload:
-        raw = payload.get("organization_id")
-        # An author may narrow a notice to their own tenant or leave it open to
-        # every one; they may not address somebody else's.
-        if raw in (None, ""):
-            out["organization_id"] = None
-        else:
-            identifier = parse_uuid(raw, field="organization_id")
-            if principal.organization_id and identifier != principal.organization_id:
-                raise ValidationError(
-                    "An announcement can be addressed to your own organization or to all.",
-                    details={"organization_id": str(identifier)},
-                )
-            out["organization_id"] = identifier
-
-    # A window that closes before it opens is a notice nobody will ever see,
-    # and it fails silently: the list simply never matches it.
-    opens = out.get("publish_at")
-    closes = out.get("expires_at")
+def _window_opens_before_it_closes(out: dict[str, Any], ctx) -> None:
+    """A window that closes before it opens is a notice nobody will ever see,
+    and it fails silently: the list simply never matches it."""
+    opens, closes = out.get("publish_at"), out.get("expires_at")
     if opens and closes and closes <= opens:
         raise ValidationError(
             "An announcement cannot expire before it is published.",
             details={"publish_at": iso(opens), "expires_at": iso(closes)},
         )
-    return out
+
+
+_SCHEMA = Schema(
+    [
+        Field("title", text(240, required="An announcement needs a title.")),
+        Field("body", text()),
+        Field("category", lambda raw, ctx: _category(raw) or "NEWS"),
+        Field("severity", choice(SEVERITIES, default="INFO", strip=True, error=not_a("severity"))),
+        Field("status", choice(STATUSES, default="DRAFT", strip=True, error=not_a("status"))),
+        Field("publish_at", lambda raw, ctx: _moment(raw, "publish_at")),
+        Field("expires_at", lambda raw, ctx: _moment(raw, "expires_at")),
+        Field("audience_roles", lambda raw, ctx: _roles(raw)),
+        Field("requires_acknowledgement", flag),
+        Field("is_pinned", flag),
+        Field("link", text(500, empty=None)),
+        Field("organization_id", _organization),
+    ],
+    not_object="The announcement must be a JSON object.",
+    unknown="Unknown fields.",
+    unknown_lists_allowed=True,
+    checks=[_window_opens_before_it_closes],
+)
+
+
+def _validated(payload: Any, *, principal, partial: bool) -> dict[str, Any]:
+    return _SCHEMA.validate(payload, principal=principal, partial=partial)
 
 
 def _category(raw: Any) -> str:

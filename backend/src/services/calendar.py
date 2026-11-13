@@ -39,17 +39,19 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import selectinload
 
 from src.core import audit
+from src.core.cleaners import choice, flag, optional_uuid, text, unknown_named
 from src.core.clock import iso, now
 from src.core.errors import ForbiddenError, ValidationError
 from src.core.naming import initials
 from src.core.pagination import parse_uuid
+from src.core.repository import get_or_404
+from src.core.validation import Field, Schema
 from src.core.vocabulary import (
     EVENT_CATEGORY,
     EVENT_FREQUENCY,
     EVENT_RESPONSE,
     EVENT_STATUS,
 )
-from src.core.repository import get_or_404
 from src.models.business import CalendarEvent
 
 #: Reading the calendar and writing to it are separate privileges: everybody
@@ -515,89 +517,60 @@ def respond(session, event_id: Any, payload: dict[str, Any], *, principal) -> di
 # ── Validation ───────────────────────────────────────────────────────────
 
 
-def _validated(payload: dict[str, Any] | None, *, partial: bool) -> dict[str, Any]:
-    data = payload if isinstance(payload, dict) else {}
-    values: dict[str, Any] = {}
-
-    if "title" in data or not partial:
-        title = str(data.get("title") or "").strip()
-        if not title:
-            raise ValidationError("An event needs a title.")
-        values["title"] = title[:240]
-
-    if "description" in data:
-        values["description"] = str(data.get("description") or "").strip()[:4000] or None
-    if "location" in data:
-        values["location"] = str(data.get("location") or "").strip()[:200] or None
-
-    if "category" in data or not partial:
-        category = str(data.get("category") or "MEETING").upper()
-        if category not in EVENT_CATEGORY:
-            raise ValidationError(
-                "Unknown category.",
-                details={"category": category, "allowed": list(EVENT_CATEGORY)},
-            )
-        values["category"] = category
-
-    if "status" in data:
-        status = str(data.get("status") or "CONFIRMED").upper()
-        if status not in EVENT_STATUS:
-            raise ValidationError(
-                "Unknown status.", details={"status": status, "allowed": list(EVENT_STATUS)}
-            )
-        values["status"] = status
-
-    if "all_day" in data:
-        values["all_day"] = bool(data.get("all_day"))
-
-    starts = _optional_moment(data.get("starts_at"), "starts_at")
-    ends = _optional_moment(data.get("ends_at"), "ends_at")
-    if not partial and (starts is None or ends is None):
+def _times(out: dict[str, Any], ctx) -> None:
+    starts = _optional_moment(ctx.payload.get("starts_at"), "starts_at")
+    ends = _optional_moment(ctx.payload.get("ends_at"), "ends_at")
+    if not ctx.partial and (starts is None or ends is None):
         raise ValidationError("An event needs a start and an end.")
     if starts is not None:
-        values["starts_at"] = starts
+        out["starts_at"] = starts
     if ends is not None:
-        values["ends_at"] = ends
+        out["ends_at"] = ends
     if starts is not None and ends is not None and ends <= starts:
         raise ValidationError("An event has to end after it starts.")
 
-    if "participants" in data:
-        values["participants"] = _validated_participants(data.get("participants"))
 
-    if "recurrence" in data:
-        values["recurrence"] = _validated_recurrence(data.get("recurrence"))
-        if values["recurrence"] is None:
-            # A series that stops recurring has no horizon either; leaving the
-            # old one would keep the event in a range scan it can never match.
-            values["recurrence_until"] = None
+def _recurrence(out: dict[str, Any], ctx) -> None:
+    if not ctx.sent("recurrence"):
+        return
+    out["recurrence"] = _validated_recurrence(ctx.payload.get("recurrence"))
+    if out["recurrence"] is None:
+        # A series that stops recurring has no horizon either; leaving the
+        # old one would keep the event in a range scan it can never match.
+        out["recurrence_until"] = None
 
-    if "recurrence_until" in data:
-        values["recurrence_until"] = _optional_moment(
-            data.get("recurrence_until"), "recurrence_until"
-        )
 
-    if "reminder_minutes" in data:
-        raw = data.get("reminder_minutes")
-        if raw is None or raw == "":
-            values["reminder_minutes"] = None
-        else:
-            minutes = _whole(raw, "reminder_minutes")
-            if not 0 <= minutes <= 60 * 24 * 14:
-                raise ValidationError("A reminder runs from 0 minutes to 14 days before.")
-            values["reminder_minutes"] = minutes
+def _reminder(raw: Any, ctx) -> int | None:
+    if raw is None or raw == "":
+        return None
+    minutes = _whole(raw, "reminder_minutes")
+    if not 0 <= minutes <= 60 * 24 * 14:
+        raise ValidationError("A reminder runs from 0 minutes to 14 days before.")
+    return minutes
 
-    if "project_id" in data:
-        values["project_id"] = (
-            parse_uuid(data["project_id"], field="project_id") if data["project_id"] else None
-        )
-    if "task_id" in data:
-        values["task_id"] = (
-            parse_uuid(data["task_id"], field="task_id") if data["task_id"] else None
-        )
-    if "color" in data:
-        values["color"] = str(data.get("color") or "")[:16] or "#5b5bd6"
 
-    return values
+_SCHEMA = Schema([
+    Field("title", text(240, required="An event needs a title.")),
+    Field("description", text(4000, empty=None), sparse=True),
+    Field("location", text(200, empty=None), sparse=True),
+    Field("category", choice(EVENT_CATEGORY, default="MEETING", error=unknown_named("category"))),
+    Field("status", choice(EVENT_STATUS, default="CONFIRMED", error=unknown_named("status")),
+          sparse=True),
+    Field("all_day", flag, sparse=True),
+    _times,
+    Field("participants", lambda raw, ctx: _validated_participants(raw), sparse=True),
+    _recurrence,
+    Field("recurrence_until", lambda raw, ctx: _optional_moment(raw, "recurrence_until"),
+          sparse=True),
+    Field("reminder_minutes", _reminder, sparse=True),
+    Field("project_id", optional_uuid("project_id"), sparse=True),
+    Field("task_id", optional_uuid("task_id"), sparse=True),
+    Field("color", lambda raw, ctx: str(raw or "")[:16] or "#5b5bd6", sparse=True),
+])
+
+
+def _validated(payload: dict[str, Any] | None, *, partial: bool) -> dict[str, Any]:
+    return _SCHEMA.validate(payload, partial=partial)
 
 
 def _validated_participants(raw: Any) -> list[dict[str, Any]] | None:
