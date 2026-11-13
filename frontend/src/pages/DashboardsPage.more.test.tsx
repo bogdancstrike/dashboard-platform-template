@@ -280,8 +280,10 @@ describe("the dashboard's own settings", () => {
     render("/dashboards?dashboard=dash-1");
     await user.click(await screen.findByTestId("board-share"));
     expect(await screen.findByTestId("share-drawer")).toBeInTheDocument();
+    // Save waits for a change: an unchanged audience has nothing to send.
+    await user.click(screen.getByText("Everyone"));
     await user.click(screen.getByTestId("save-share"));
-    await waitFor(() => expect(screen.queryByTestId("share-drawer")).not.toBeVisible(), { timeout: 10_000 });
+    await waitFor(() => expect(savedDashboards[0]!["scope"]).toBe("PUBLIC"));
   });
 
   it("copies a colleague's open dashboard", async () => {
