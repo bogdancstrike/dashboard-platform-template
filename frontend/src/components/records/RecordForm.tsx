@@ -22,6 +22,7 @@
  * * **It guards the close** when there are unsaved changes (§74).
  */
 
+import { heldMessage } from "@/components/decisions/held";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   App as AntApp,
@@ -196,7 +197,9 @@ export function RecordForm({
       });
     },
     onSuccess: (saved) => {
-      message.success(creating ? `${saved.title} created` : `${saved.title} saved`);
+      const held = heldMessage(saved);
+      if (held) message.info(held);
+      else message.success(creating ? `${saved.title} created` : `${saved.title} saved`);
       settled();
       // Every list, lane and aggregate that could contain it is now stale. The
       // server stays the authority: nothing is patched into a cache by hand.

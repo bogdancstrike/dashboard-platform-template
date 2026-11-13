@@ -6,7 +6,7 @@ import {
 } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs, { type Dayjs } from "dayjs";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import {
@@ -265,10 +265,11 @@ function PolicyDrawer({
   const [form] = Form.useForm<PolicyForm>();
   const policy = id && id !== "new" ? policies.find((item) => item.id === id) : undefined;
 
-  useEffect(() => {
-    if (!id) return;
+  // Initial values rather than an effect: a drawer opened straight from the
+  // address mounts its form in the same pass, before an effect could fill it.
+  const initial = useMemo((): PolicyForm => {
     const hoursOf = (minutes?: number) => (minutes ? Math.round((minutes / 60) * 100) / 100 : undefined);
-    form.setFieldsValue({
+    return {
       name: policy?.name ?? "",
       description: policy?.description ?? "",
       active: policy?.active ?? true,
@@ -281,10 +282,10 @@ function PolicyDrawer({
       targets: Object.fromEntries(PRIORITIES.map((priority) => [priority, {
         first_response: hoursOf(policy?.targets[priority]?.first_response),
         resolution: hoursOf(policy?.targets[priority]?.resolution),
-      }])),
+      }])) as PolicyForm["targets"],
       escalations: policy?.escalations ?? [{ at_percent: 75, action: "NOTIFY", target: "assignee" }],
-    });
-  }, [id, policy, calendars, form]);
+    };
+  }, [policy, calendars]);
 
   const save = useMutation({
     mutationFn: (values: PolicyForm) => {
@@ -330,7 +331,7 @@ function PolicyDrawer({
       ) : undefined}
       footer={<Space><Button onClick={onClose}>Cancel</Button><Button type="primary" loading={save.isPending} onClick={() => form.submit()} data-testid="sla-save">Save policy</Button></Space>}
     >
-      <Form form={form} layout="vertical" onFinish={(values) => save.mutate(values)} requiredMark="optional">
+      <Form key={id ?? "closed"} form={form} initialValues={initial} layout="vertical" onFinish={(values) => save.mutate(values)} requiredMark="optional">
         <Form.Item name="name" label="Name" rules={[{ required: true }]}><Input placeholder="Enterprise support" /></Form.Item>
         <Form.Item name="description" label="Description"><Input.TextArea rows={2} /></Form.Item>
         <Form.Item name="active" label="Active" valuePropName="checked"><Switch /></Form.Item>

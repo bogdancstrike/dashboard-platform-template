@@ -57,3 +57,15 @@ describe("approvals, SLA and forms helpers", () => {
     expect(isVisible({ ...field, visible_when: { field: "a", equals: null } }, {})).toBe(false);
   });
 });
+
+describe("held record edits", async () => {
+  const { heldMessage } = await import("@/components/decisions/held");
+  it("says where a held edit went, and nothing otherwise", () => {
+    expect(heldMessage({ pending_approval: { reference: "APR-00001", summary: "Big order" } })).toBe(
+      "Sent for approval as APR-00001 — Big order. It applies once approved.",
+    );
+    expect(heldMessage({ pending_approval: { reference: "APR-2" } })).toContain("APR-2.");
+    expect(heldMessage({ id: "x" })).toBeNull();
+    expect(heldMessage(null)).toBeNull();
+  });
+});

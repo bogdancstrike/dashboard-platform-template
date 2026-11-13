@@ -22,6 +22,7 @@
  * applied over theirs (§73).
  */
 
+import { heldMessage } from "@/components/decisions/held";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App as AntApp, Button, Skeleton } from "antd";
 import type { ReactNode } from "react";
@@ -86,6 +87,8 @@ export function useRecordPage(
         expected_updated_at: record.data?.updated_at ?? null,
       }),
     onSuccess: (saved) => {
+      const held = heldMessage(saved);
+      if (held) message.info(held);
       queryClient.setQueryData(["record", resourceKey, id], saved);
       // Every list, lane and aggregate that could be showing this row is now
       // stale — including the counts, which are computed over the whole
