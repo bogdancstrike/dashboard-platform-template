@@ -34,18 +34,34 @@ export async function pinTheme(context: BrowserContext, theme: Theme): Promise<v
       /* private mode */
     }
   }, theme);
+  // The last profile the server sent, so a write can be answered with the
+  // whole thing — the app replaces its preferences with the response, and an
+  // echo of only the changed key crashed it ("landing_page" of undefined).
+  let profile: { preferences?: Record<string, unknown> } | null = null;
+  const merge = (base: unknown, patch: unknown): unknown => {
+    if (!patch || typeof patch !== "object" || Array.isArray(patch)) return patch;
+    const out: Record<string, unknown> = { ...((base as Record<string, unknown>) ?? {}) };
+    for (const [key, value] of Object.entries(patch)) out[key] = merge(out[key], value);
+    return out;
+  };
   await context.route("**/platform/api/me", async (route) => {
+    const method = route.request().method();
     // The app writes the appearance it booted with back to the account. A
     // crawl must never change the shared persona, so the write is answered
     // here and goes no further.
-    if (route.request().method() === "PUT" || route.request().method() === "PATCH") {
-      const sent = route.request().postDataJSON() as unknown;
-      return route.fulfill({ status: 200, json: sent ?? {} });
+    if (method === "PUT" || method === "PATCH") {
+      const sent = (route.request().postDataJSON() ?? {}) as { preferences?: unknown; user?: unknown };
+      if (profile && sent.preferences) {
+        profile = { ...profile, preferences: merge(profile.preferences, sent.preferences) as Record<string, unknown> };
+        return route.fulfill({ status: 200, json: { preferences: profile.preferences } });
+      }
+      return route.fulfill({ status: 200, json: merge(profile, sent.user ?? {}) as object });
     }
-    if (route.request().method() !== "GET") return route.continue();
+    if (method !== "GET") return route.continue();
     const response = await route.fetch();
     const body = await response.json().catch(() => null);
     if (body?.preferences?.appearance) body.preferences.appearance.theme = theme;
+    profile = body;
     await route.fulfill({ response, json: body });
   });
 }

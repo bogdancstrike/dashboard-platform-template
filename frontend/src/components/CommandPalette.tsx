@@ -181,6 +181,25 @@ export function CommandPalette() {
           </Command.Group>
         )}
 
+        {/* Pages before records: typing a page's name and pressing Enter
+            should open the page, not the first ticket that mentions the word
+            (cmdk keeps DOM order between equal scores; audit A). */}
+        <Command.Group heading="General">
+          {NAV_GROUPS.flatMap((group) =>
+            group.items.filter((item) => can(item.permission)).map((item) => (
+              <Command.Item
+                key={item.key}
+                value={`nav:${item.key}:${group.label} ${item.label}`}
+                onSelect={() => close(() => navigate(item.key))}
+              >
+                <span className="nu-cmdk-icon">{item.icon}</span>
+                <span className="nu-cmdk-label">{item.label}</span>
+                <span className="nu-cmdk-hint">{group.label}</span>
+              </Command.Item>
+            )),
+          )}
+        </Command.Group>
+
         {records.length > 0 && (
           <Command.Group heading={`Records matching “${hits.data?.query ?? term}”`}>
             {records.map(({ hit, path, dataset }) => (
@@ -205,22 +224,6 @@ export function CommandPalette() {
             ))}
           </Command.Group>
         )}
-
-        <Command.Group heading="General">
-          {NAV_GROUPS.flatMap((group) =>
-            group.items.filter((item) => can(item.permission)).map((item) => (
-              <Command.Item
-                key={item.key}
-                value={`nav:${item.key}:${group.label} ${item.label}`}
-                onSelect={() => close(() => navigate(item.key))}
-              >
-                <span className="nu-cmdk-icon">{item.icon}</span>
-                <span className="nu-cmdk-label">{item.label}</span>
-                <span className="nu-cmdk-hint">{group.label}</span>
-              </Command.Item>
-            )),
-          )}
-        </Command.Group>
 
         <Command.Group heading="Quick views">
           <Command.Item
