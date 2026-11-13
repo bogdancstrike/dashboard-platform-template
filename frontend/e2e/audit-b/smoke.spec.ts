@@ -1,7 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-import { apiAs, endpoint } from "../api";
 import { storageStateFor } from "../auth";
 
 /**
@@ -129,18 +128,30 @@ async function audit(page: Page, route: string): Promise<void> {
 
 let detailRoutes: string[] = [];
 
-test.beforeAll(async () => {
-  const api = await apiAs("admin");
+test.beforeAll(async ({ browser }) => {
+  // The page's own bearer token rather than a password grant: the realm can
+  // refuse direct grants (password sign-in switched off), and a signed-in
+  // page always has one.
+  const page = await browser.newPage({ storageState: storageStateFor("admin") });
+  let token = "";
+  page.on("request", (request) => {
+    const header = request.headers()["authorization"];
+    if (header?.startsWith("Bearer ") && request.url().includes("/platform/")) token = header.slice(7);
+  });
+  await page.goto("/home");
+  await expect(page.locator("#nu-main")).toBeVisible();
+  await expect.poll(() => token).not.toBe("");
   const found: string[] = [];
   for (const [path, resource] of Object.entries(ENTITIES)) {
-    const response = await api.post(endpoint("/explorer/query"), {
+    const response = await page.request.post("/platform/api/explorer/query", {
+      headers: { Authorization: `Bearer ${token}` },
       data: { resource_type: resource, page: 1, page_size: 1 },
     });
     if (!response.ok()) continue;
     const body = (await response.json()) as { items: { id: string }[] };
     if (body.items[0]) found.push(`/${path}/${body.items[0].id}`);
   }
-  await api.dispose();
+  await page.close();
   detailRoutes = found;
 });
 

@@ -705,3 +705,9 @@ body.nx-dragging, body.nx-dragging * { cursor: grabbing !important; user-select:
 .nu-views-menu { max-width: calc(100vw - 24px); }
 .nu-views-menu .nu-view-item { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .nu-views-menu .nu-view-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Audit B: on a phone a record's five tabs overflow and AntD adds a "more"
+   button inside the tablist — not a tab, so the list stops being one for a
+   screen reader (axe aria-required-children), and it hides tabs behind a
+   menu. The strip swipes instead (AntD scrolls it on touch, with edge fades). */
+.nx-app--phone #nu-main .ant-tabs-top > .ant-tabs-nav .ant-tabs-nav-operations { display: none !important; }
