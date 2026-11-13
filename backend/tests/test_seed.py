@@ -220,7 +220,11 @@ def test_every_seeded_report_can_actually_be_run(world):
     Asserted against the same declarations the compiler resolves against, so
     the test cannot drift from the rule it is checking.
     """
-    from src.services.analytics.analysis import AGGREGATIONS, DIMENSION_KINDS, MEASURE_KINDS
+    from src.services.analytics.analysis import (
+        AGGREGATIONS,
+        DIMENSION_KINDS,
+        MEASURE_KINDS,
+    )
     from src.services.records.explorer import resources
 
     catalogue = resources()

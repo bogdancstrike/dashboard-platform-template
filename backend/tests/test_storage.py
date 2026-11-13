@@ -112,8 +112,7 @@ def test_a_signature_is_specific_to_its_key(local):
 def test_the_seeded_bodies_are_the_formats_they_claim_to_be():
     """A `.pdf` whose bytes are plain text is a file that fails in the reader
     somebody opens it with, which is worse than not offering it."""
-    from src.seed import blobs
-    from src.seed import catalog
+    from src.seed import blobs, catalog
 
     for extension, _mime, _kind in catalog.FILE_TYPES:
         body = blobs.body_for(f"Quarterly report.{extension}", extension, "/finance", None)

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import pytest
 
+from tests.patching import patch_package
 from tests.test_seed import scratch_database  # noqa: F401 - a fixture, used by name
 
 SYNC_FLAGS = (
@@ -62,7 +63,7 @@ def local_storage(monkeypatch, tmp_path):
     from src.core.storage import LocalStorage
 
     store = LocalStorage(str(tmp_path / "objects"), secret="test", prefix="/files")
-    monkeypatch.setattr(storage, "for_config", lambda **_kwargs: store)
+    patch_package(monkeypatch, storage, "for_config", lambda **_kwargs: store)
     return store
 
 

@@ -283,8 +283,8 @@ def test_one_gesture_updates_every_selected_record_and_audits_each(
     change is a status change and not an edit, which is a decision
     `record_writes` owns and this path reuses rather than re-implements.
     """
-    from src.models.platform import AuditLog
     from src.core.db import session_scope
+    from src.models.platform import AuditLog
 
     headers = _authenticate(monkeypatch)
     ids = [record["id"] for record in scratch]

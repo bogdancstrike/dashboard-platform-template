@@ -15,6 +15,7 @@ import pytest
 
 from src.api import endpoint_map
 from src.config import Config
+from tests.patching import patch_package
 
 
 def test_the_committed_map_is_valid():
@@ -152,7 +153,7 @@ def test_a_signed_link_is_the_credential_and_an_unsigned_one_is_not(
     store = storage.LocalStorage(
         str(tmp_path / "objects"), secret="test-secret", prefix=Config.API_PREFIX
     )
-    monkeypatch.setattr(storage, "_store", store)
+    patch_package(monkeypatch, storage, "_store", store)
 
     key = "probe/blob-endpoint.txt"
     store.put(key, b"the bytes", content_type="text/plain")

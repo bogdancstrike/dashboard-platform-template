@@ -36,6 +36,7 @@ from src.core.feature_catalogue import (
 )
 from src.core.features import FeatureDisabledError, FlagState
 from src.services.platform import settings as service
+from tests.patching import patch_package
 
 PREFIX = Config.API_PREFIX
 REPO = Path(__file__).resolve().parents[2]
@@ -60,7 +61,7 @@ def _all_on(**overrides: FlagState) -> dict[str, FlagState]:
 def flags(monkeypatch):
     """Control the flag snapshot without touching the shared database."""
     current: dict[str, dict[str, FlagState]] = {"states": _all_on()}
-    monkeypatch.setattr(features, "snapshot", lambda: current["states"])
+    patch_package(monkeypatch, features, "snapshot", lambda: current["states"])
 
     def set_off(*keys: str) -> None:
         current["states"] = _all_on(**{key: _state(key, enabled=False) for key in keys})
@@ -124,7 +125,7 @@ def test_a_flagged_endpoint_refuses_when_off_and_works_when_on(entry, client, fl
     monkeypatch.setattr(module, entry["exec_method"]["method_name"], stub)
     if not entry["api_url"].startswith("/public/"):
         # A signed-in caller: anonymous calls to these get the handler's 401.
-        monkeypatch.setattr(features, "_caller", lambda: SimpleNamespace(
+        patch_package(monkeypatch, features, "_caller", lambda: SimpleNamespace(
             user_id=uuid.uuid4(), role_code="ADMINISTRATOR", groups=(), organization_id=None,
         ))
     method = entry["request_method"][0].lower()
@@ -156,7 +157,7 @@ def test_a_child_endpoint_refuses_when_only_its_parent_is_off(client, flags, mon
 
 
 def _signed_in(monkeypatch):
-    monkeypatch.setattr(features, "_caller", lambda: SimpleNamespace(
+    patch_package(monkeypatch, features, "_caller", lambda: SimpleNamespace(
         user_id=uuid.uuid4(), role_code="ADMINISTRATOR", groups=(), organization_id=None,
     ))
 
@@ -204,9 +205,9 @@ def test_the_gate_evaluates_the_signed_in_caller(client, flags, monkeypatch):
     admin = SimpleNamespace(user_id=uuid.uuid4(), role_code="ADMINISTRATOR", groups=(), organization_id=None)
     viewer = SimpleNamespace(user_id=uuid.uuid4(), role_code="VIEWER", groups=(), organization_id=None)
 
-    monkeypatch.setattr(features, "_caller", lambda: admin)
+    patch_package(monkeypatch, features, "_caller", lambda: admin)
     assert client.get(f"{PREFIX}/api/maps/catalog").status_code == 200
-    monkeypatch.setattr(features, "_caller", lambda: viewer)
+    patch_package(monkeypatch, features, "_caller", lambda: viewer)
     assert client.get(f"{PREFIX}/api/maps/catalog").get_json()["error"] == "feature_disabled"
 
 
@@ -271,7 +272,7 @@ def test_enabled_map_applies_parents_and_unknown_keys(flags):
 
 def test_enabled_map_looks_up_groups_only_when_a_flag_targets_one(flags, monkeypatch):
     looked: list[object] = []
-    monkeypatch.setattr(features, "_group_ids", lambda uid: looked.append(uid) or ("g-1",))
+    patch_package(monkeypatch, features, "_group_ids", lambda uid: looked.append(uid) or ("g-1",))
     reader = SimpleNamespace(user_id="u", role_code="VIEWER", groups=(), organization_id=None)
     features.enabled_map(reader)
     assert looked == []
@@ -299,9 +300,9 @@ def test_state_on_with_no_row_gates_nothing():
 def test_the_snapshot_is_cached_until_the_generation_moves(monkeypatch):
     reads: list[int] = []
     generation = {"value": 1}
-    monkeypatch.setattr(features, "_read_rows", lambda: reads.append(1) or {"k": _state("k")})
+    patch_package(monkeypatch, features, "_read_rows", lambda: reads.append(1) or {"k": _state("k")})
     monkeypatch.setattr("src.core.cache.generations", lambda *names: {features.DATASET: generation["value"]})
-    monkeypatch.setattr(features, "_snapshot", None)
+    patch_package(monkeypatch, features, "_snapshot", None)
 
     features.snapshot()
     features.snapshot()
@@ -313,11 +314,11 @@ def test_the_snapshot_is_cached_until_the_generation_moves(monkeypatch):
 
 def test_the_snapshot_expires_after_the_local_ttl(monkeypatch):
     reads: list[int] = []
-    monkeypatch.setattr(features, "_read_rows", lambda: reads.append(1) or {})
+    patch_package(monkeypatch, features, "_read_rows", lambda: reads.append(1) or {})
     monkeypatch.setattr("src.core.cache.generations", lambda *names: {features.DATASET: 0})
-    monkeypatch.setattr(features, "_snapshot", None)
+    patch_package(monkeypatch, features, "_snapshot", None)
     features.snapshot()
-    monkeypatch.setattr(features, "_snapshot_at", features._snapshot_at - features.LOCAL_TTL - 1)
+    patch_package(monkeypatch, features, "_snapshot_at", features._snapshot_at - features.LOCAL_TTL - 1)
     features.snapshot()
     assert len(reads) == 2
 
@@ -326,20 +327,20 @@ def test_an_unreachable_database_keeps_the_last_answer_or_gates_nothing(monkeypa
     def down():
         raise RuntimeError("database is down")
 
-    monkeypatch.setattr(features, "_read_rows", down)
+    patch_package(monkeypatch, features, "_read_rows", down)
     monkeypatch.setattr("src.core.cache.generations", lambda *names: {features.DATASET: 0})
-    monkeypatch.setattr(features, "_snapshot", None)
+    patch_package(monkeypatch, features, "_snapshot", None)
     assert features.snapshot() == {}
     kept = {"k": _state("k", enabled=False)}
-    monkeypatch.setattr(features, "_snapshot", kept)
-    monkeypatch.setattr(features, "_snapshot_at", 0.0)
+    patch_package(monkeypatch, features, "_snapshot", kept)
+    patch_package(monkeypatch, features, "_snapshot_at", 0.0)
     assert features.snapshot() is kept
 
 
 def test_invalidate_drops_the_local_copy_and_bumps_the_generation(monkeypatch):
     bumped: list[str] = []
     monkeypatch.setattr("src.core.cache.bump", lambda *names: bumped.extend(names))
-    monkeypatch.setattr(features, "_snapshot", {"k": _state("k")})
+    patch_package(monkeypatch, features, "_snapshot", {"k": _state("k")})
     features.invalidate()
     assert features._snapshot is None
     assert bumped == [features.DATASET]
@@ -698,7 +699,7 @@ def test_preview_as_a_group_and_an_organization(client, monkeypatch, flags):
         maps=_state("maps", rollout_percentage=0, target_group_ids=("Field ops",)),
         chat=_state("chat", rollout_percentage=0, target_organization_ids=(org,)),
     ))
-    monkeypatch.setattr(features, "_group_ids", lambda uid: ())
+    patch_package(monkeypatch, features, "_group_ids", lambda uid: ())
     answer = client.get(
         f"{PREFIX}/admin/flags/preview?role=VIEWER&group=Field%20ops&organization_id={org}", headers=headers,
     ).get_json()

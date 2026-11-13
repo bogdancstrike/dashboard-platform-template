@@ -34,7 +34,6 @@ from src.config import Config
 from src.core import vocabulary
 from src.core.auth import ALL_PERMISSIONS
 from src.core.db import session_scope
-from src.services.people import groups as service
 from tests.conftest import persona_claims
 
 pytestmark = pytest.mark.database

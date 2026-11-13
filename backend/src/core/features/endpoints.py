@@ -41,7 +41,7 @@ def _load_map() -> dict[str, Any]:
     import json
     from pathlib import Path
 
-    path = Path(__file__).resolve().parents[2] / "maps" / "endpoint.json"
+    path = Path(__file__).resolve().parents[3] / "maps" / "endpoint.json"
     return json.loads(path.read_text(encoding="utf-8"))
 
 

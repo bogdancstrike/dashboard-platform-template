@@ -19,6 +19,8 @@ import uuid
 
 import pytest
 
+from tests.patching import patch_package
+
 pytestmark = pytest.mark.database
 
 
@@ -105,10 +107,10 @@ def test_check_names_every_inconsistency_it_knows(session):
     from src.core import importer
     from src.core.clock import now
     from src.models.business import Project, Task
+    from src.models.content import Tag
     from src.models.identity import Department, User, UserSession
     from src.models.personal import Dashboard, Report, ResourceShare, SavedSearch
     from src.models.platform import AlertRule, BackgroundJob, ImportRun
-    from src.models.content import Tag
     from src.seed import runner
 
     # Orphans can only be made with the foreign keys out of the way.
@@ -221,18 +223,16 @@ def test_check_names_every_inconsistency_it_knows(session):
 
 
 def test_the_repairs_mend_what_check_reports(session):
-    from sqlalchemy import select
+    # Sessions: two "current", one of them revoked.
+    from sqlalchemy import func, select
 
     from src.core.clock import now
     from src.models.business import Task
     from src.models.content import Tag
-    from src.models.identity import Department, User, UserSession
+    from src.models.identity import Department, UserSession
     from src.models.personal import Favorite, Report, SavedSearch
     from src.models.platform import AlertRule, FeatureFlag
     from src.seed import catalog, runner
-
-    # Sessions: two "current", one of them revoked.
-    from sqlalchemy import func
 
     someone = session.scalar(select(UserSession.user_id).where(UserSession.user_id.is_not(None))
                              .group_by(UserSession.user_id).having(func.count() > 1).limit(1))
@@ -305,7 +305,6 @@ def test_the_import_and_export_repairs_make_every_run_describable(session, tmp_p
     from src.models.platform import BackgroundJob, ImportRun
     from src.seed import exports as export_files
     from src.seed import imports as import_seed
-    from src.seed import runner
 
     a, b, c, d = _rows(session, ImportRun, 4)
     a.target_entity = "nowhere"                          # unreadable: left alone, counted
@@ -360,7 +359,7 @@ def test_the_command_line_reports_drift_and_the_repairs_clear_it(scratch, monkey
     from src.seed.__main__ import main
 
     store = LocalStorage(str(tmp_path / "objects"), secret="test", prefix="/files")
-    monkeypatch.setattr(storage, "for_config", lambda **_kwargs: store)
+    patch_package(monkeypatch, storage, "for_config", lambda **_kwargs: store)
 
     with scratch.begin() as connection:
         connection.execute(text("ALTER TABLE tags DROP COLUMN description"))

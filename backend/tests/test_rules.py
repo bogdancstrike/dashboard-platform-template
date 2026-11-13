@@ -13,7 +13,13 @@ import pytest
 from sqlalchemy import Column, DateTime, Integer, MetaData, String, Table, select
 
 from src.core.errors import ValidationError
-from src.core.query import OPERATORS, OPERATORS_BY_KIND, Field, FieldSet, canonical_operator
+from src.core.query import (
+    OPERATORS,
+    OPERATORS_BY_KIND,
+    Field,
+    FieldSet,
+    canonical_operator,
+)
 from src.core.rules import MAX_DEPTH, MAX_RULES, compile_tree, describe_tree, rule_count
 
 _metadata = MetaData()

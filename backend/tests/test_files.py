@@ -11,7 +11,6 @@ dependency: the suite has to run on a laptop with nothing installed.
 
 from __future__ import annotations
 
-import io
 import urllib.error
 import urllib.request
 from uuid import uuid4

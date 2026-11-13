@@ -68,8 +68,8 @@ def test_readiness_does_not_fail_on_a_cache_that_is_not_there(
     actually matters in production, an *enabled* cache that cannot be reached,
     was never covered at all.
     """
-    from src.core import cache
     from src.config import Config
+    from src.core import cache
 
     monkeypatch.setattr(Config, "CACHE_ENABLED", enabled)
     monkeypatch.setattr(cache, "client", lambda: None)

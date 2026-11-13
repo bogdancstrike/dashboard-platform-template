@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import time
 
 import pytest
 import requests
 
+from src.config import Config
 from src.core import llm
 
 
@@ -212,15 +214,15 @@ def test_fake_script_and_stream():
 
 def test_selection(monkeypatch):
     llm.set_client(None)
-    monkeypatch.setattr(llm.Config, "LLM_MODE", "auto")
-    monkeypatch.setattr(llm.Config, "LLM_API_KEY", "")
+    monkeypatch.setattr(Config, "LLM_MODE", "auto")
+    monkeypatch.setattr(Config, "LLM_API_KEY", "")
     assert llm.mode() == "fake"
     assert isinstance(llm.get_client(), llm.FakeClient) and not llm.is_real()
     llm.set_client(None)
-    monkeypatch.setattr(llm.Config, "LLM_API_KEY", "k")
+    monkeypatch.setattr(Config, "LLM_API_KEY", "k")
     assert llm.mode() == "real"
     assert isinstance(llm.get_client(), llm.GatewayClient) and llm.is_real()
-    monkeypatch.setattr(llm.Config, "LLM_MODE", "fake")
+    monkeypatch.setattr(Config, "LLM_MODE", "fake")
     assert llm.mode() == "fake"
     llm.set_client(None)
 
@@ -230,12 +232,12 @@ def test_selection(monkeypatch):
 
 def test_max_seconds_defaults_to_three_in_test_profile():
     # conftest sets ENVIRONMENT=test before src.config is imported.
-    assert llm.Config.LLM_MAX_SECONDS == 3
+    assert Config.LLM_MAX_SECONDS == 3
     assert llm.max_seconds() == 3
 
 
 def test_requests_are_capped_by_max_seconds(monkeypatch):
-    monkeypatch.setattr(llm.Config, "LLM_MAX_SECONDS", 1.5)
+    monkeypatch.setattr(Config, "LLM_MAX_SECONDS", 1.5)
     client, session = _client(_Resp(body={"choices": [{"message": {"content": "ok"}}]}))
     client.timeout = 90
     assert client.chat([]).text == "ok"
@@ -244,14 +246,14 @@ def test_requests_are_capped_by_max_seconds(monkeypatch):
 
 
 def test_stream_total_duration_is_capped(monkeypatch):
-    monkeypatch.setattr(llm.Config, "LLM_MAX_SECONDS", 2)
+    monkeypatch.setattr(Config, "LLM_MAX_SECONDS", 2)
     clock = {"t": 100.0}
 
     def tick():
         clock["t"] += 0.9  # each read "takes" 0.9s
         return clock["t"]
 
-    monkeypatch.setattr(llm.time, "monotonic", tick)
+    monkeypatch.setattr(time, "monotonic", tick)
     lines = [_sse({"choices": [{"delta": {"content": "x"}}]})] * 50
     client, _ = _client(_Resp(lines=lines))
     with pytest.raises(llm.LlmError) as e:
@@ -274,21 +276,21 @@ def test_expired_deadline_refuses_before_sending():
 
 
 def test_concurrency_limit_fails_fast_as_busy(monkeypatch):
-    monkeypatch.setattr(llm.Config, "LLM_MAX_CONCURRENCY", 1)
-    monkeypatch.setattr(llm.Config, "LLM_MAX_SECONDS", 0.1)
+    monkeypatch.setattr(Config, "LLM_MAX_CONCURRENCY", 1)
+    monkeypatch.setattr(Config, "LLM_MAX_SECONDS", 0.1)
     client, _ = _client(_Resp(body={"choices": [{"message": {"content": "ok"}}]}),
                         _Resp(body={"choices": [{"message": {"content": "ok"}}]}))
     with llm.slot():
-        t0 = llm.time.monotonic()
+        t0 = time.monotonic()
         with pytest.raises(llm.LlmError) as e:
             client.chat([])
         assert e.value.code == "LLM_BUSY" and e.value.retryable
-        assert llm.time.monotonic() - t0 < 1
+        assert time.monotonic() - t0 < 1
         with pytest.raises(llm.LlmError):
             list(client.stream([]))
     # The slot is released afterwards.
     assert client.chat([]).text == "ok"
-    monkeypatch.setattr(llm.Config, "LLM_MAX_CONCURRENCY", 4)
+    monkeypatch.setattr(Config, "LLM_MAX_CONCURRENCY", 4)
     llm._semaphore()
 
 
@@ -304,9 +306,9 @@ def test_fake_header_only_when_allowed(app, monkeypatch):
     llm.set_client(real)
     try:
         with app.test_request_context(headers={llm.FAKE_HEADER: "fake"}):
-            monkeypatch.setattr(llm.Config, "LLM_ALLOW_FAKE_HEADER", False)
+            monkeypatch.setattr(Config, "LLM_ALLOW_FAKE_HEADER", False)
             assert llm.get_client() is real
-            monkeypatch.setattr(llm.Config, "LLM_ALLOW_FAKE_HEADER", True)
+            monkeypatch.setattr(Config, "LLM_ALLOW_FAKE_HEADER", True)
             assert isinstance(llm.get_client(), llm.FakeClient)
         with app.test_request_context():
             assert llm.get_client() is real

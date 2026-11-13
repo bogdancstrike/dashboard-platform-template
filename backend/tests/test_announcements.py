@@ -251,9 +251,9 @@ def test_a_category_nobody_has_used_is_still_offered_at_zero():
     test failed and nothing was wrong. The behaviour it meant to pin lives in
     one line of `_category_counts`, and that is what this reads.
     """
-    from src.services.collaboration.announcements import CATEGORIES, _category_counts
-
     from uuid import uuid4
+
+    from src.services.collaboration.announcements import CATEGORIES, _category_counts
 
     class _Session:
         """Just enough of a session: the function runs one grouped count."""

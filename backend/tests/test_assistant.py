@@ -235,7 +235,8 @@ def test_stopping_saves_what_was_written(client, monkeypatch):
 def test_rate_limit_and_permission(client, monkeypatch):
     from src.core.db import session_scope
     from src.core.errors import ForbiddenError, RateLimitedError
-    from src.services.ai import usage as ai, assistant as service
+    from src.services.ai import assistant as service
+    from src.services.ai import usage as ai
 
     h = _auth(monkeypatch)
     convo = _new(client, h)
@@ -419,7 +420,7 @@ def test_values_resolve_names_and_dates():
 
 
 def test_value_helpers():
-    from datetime import datetime, UTC
+    from datetime import UTC, datetime
 
     from src.services.ai import filters as f
 

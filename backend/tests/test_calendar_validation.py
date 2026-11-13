@@ -94,10 +94,11 @@ def test_an_edit_can_clear_what_it_set_and_a_series_can_stop_repeating(client, m
 
 
 def test_an_occurrence_id_resolves_to_its_series(app):
+    from sqlalchemy import select
+
     from src.core.db import session_scope
     from src.core.errors import NotFoundError, ValidationError
     from src.models.business import CalendarEvent
-    from sqlalchemy import select
 
     with session_scope() as session:
         row = session.scalars(select(CalendarEvent).where(CalendarEvent.deleted_at.is_(None)).limit(1)).first()

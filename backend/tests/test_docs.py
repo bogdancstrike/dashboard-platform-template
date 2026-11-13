@@ -16,6 +16,7 @@ from sqlalchemy import select
 
 from src.config import Config
 from tests.conftest import persona_claims
+from tests.patching import patch_package
 
 PREFIX = Config.API_PREFIX
 DOCS = f"{PREFIX}/api/docs"
@@ -385,7 +386,7 @@ def test_a_page_is_summarised_through_the_model(client, people, space, monkeypat
     from src.core import llm
 
     fake = llm.FakeClient(script=["The team agreed to ship on Friday.\nActions:\n- Mara: draft notes"])
-    monkeypatch.setattr(llm, "get_client", lambda: fake)
+    patch_package(monkeypatch, llm, "get_client", lambda: fake)
     page = _page(client, people["admin"], space["id"], title="Retro",
                  blocks=[{"kind": "text", "text": "We discussed the release and agreed to ship on Friday."}])
     summary = client.post(f"{DOCS}/pages/{page['id']}/summary", headers=people["admin"])
@@ -402,7 +403,7 @@ def test_a_page_is_summarised_through_the_model(client, people, space, monkeypat
         def chat(self, *args, **kwargs):
             raise llm.LlmError("LLM_TIMEOUT", "slow")
 
-    monkeypatch.setattr(llm, "get_client", lambda: Broken())
+    patch_package(monkeypatch, llm, "get_client", lambda: Broken())
     failed = client.post(f"{DOCS}/pages/{page['id']}/summary", headers=people["admin"])
     assert failed.status_code == 503
 

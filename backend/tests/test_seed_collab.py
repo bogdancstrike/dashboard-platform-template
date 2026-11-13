@@ -28,7 +28,14 @@ def scratch(engine):
 
 
 def test_the_seed_builds_everything_once(scratch):
-    from src.models.collab import ChatChannel, DocLink, DocPage, DocRevision, DocSpace, ThreadRead
+    from src.models.collab import (
+        ChatChannel,
+        DocLink,
+        DocPage,
+        DocRevision,
+        DocSpace,
+        ThreadRead,
+    )
     from src.models.content import Comment
     from src.seed import collab
 

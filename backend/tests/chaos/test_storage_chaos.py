@@ -18,6 +18,7 @@ from src.core import storage
 from src.core.errors import ServiceUnavailableError
 from tests.chaos.conftest import REFUSED_HOST, REFUSED_PORT, Stopwatch
 from tests.conftest import persona_claims
+from tests.patching import patch_package
 
 PREFIX = Config.API_PREFIX
 
@@ -33,8 +34,8 @@ def broken_store(request, black_hole, monkeypatch):
     else:
         endpoint = f"http://127.0.0.1:{black_hole.port}"
         # The hung case waits out the read timeout; keep the suite quick.
-        monkeypatch.setattr(storage, "READ_TIMEOUT_SECONDS", 1)
-        monkeypatch.setattr(storage, "CONNECT_TIMEOUT_SECONDS", 1)
+        patch_package(monkeypatch, storage, "READ_TIMEOUT_SECONDS", 1)
+        patch_package(monkeypatch, storage, "CONNECT_TIMEOUT_SECONDS", 1)
     return _store(endpoint)
 
 
@@ -68,7 +69,7 @@ def test_health_reports_the_outage(broken_store):
 @pytest.mark.database
 def test_the_files_pages_degrade_gracefully(client, monkeypatch):
     """The list and the tree answer; a download is a clean 503 envelope."""
-    monkeypatch.setattr(storage, "_store", _store(f"http://{REFUSED_HOST}:{REFUSED_PORT}"))
+    patch_package(monkeypatch, storage, "_store", _store(f"http://{REFUSED_HOST}:{REFUSED_PORT}"))
     monkeypatch.setattr("src.core.auth.tokens.verify_token", lambda _t: persona_claims("admin", "administrator",
                                                                                   sid="chaos-storage"))
     headers = {"Authorization": "Bearer chaos"}

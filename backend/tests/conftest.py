@@ -13,6 +13,8 @@ import os
 
 import pytest
 
+from tests.patching import patch_package
+
 #: A port nothing listens on, so connections are refused immediately.
 _CLOSED = "127.0.0.1:1"
 
@@ -195,8 +197,8 @@ def _flags_as_shipped(_undo_log, monkeypatch):
         return {key: state if key in mine else replace(state, **on) for key, state in states.items()}
 
     as_shipped.source = real  # what the database holds; a test may swap it
-    monkeypatch.setattr(features, "_read_rows", as_shipped)
-    monkeypatch.setattr(features, "_snapshot", None)
+    patch_package(monkeypatch, features, "_read_rows", as_shipped)
+    patch_package(monkeypatch, features, "_snapshot", None)
     yield
     features._snapshot = None
 

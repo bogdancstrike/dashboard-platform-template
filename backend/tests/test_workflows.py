@@ -573,9 +573,8 @@ def test_a_broken_condition_is_reported_as_a_failed_run_not_a_failed_request(
     headers = _authenticate(monkeypatch)
     rule = _rule(client, headers)
 
-    from src.models.platform import AlertRule
-
     from src.models.automation_graphs import AutomationGraph
+    from src.models.platform import AlertRule
 
     with session_scope() as session:
         row = session.get(AlertRule, rule["id"])

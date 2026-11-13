@@ -183,7 +183,7 @@ def test_a_column_carries_samples_so_two_can_be_told_apart():
 def test_a_file_over_the_row_cap_is_refused_with_the_number(monkeypatch):
     from src.core.errors import ValidationError
 
-    monkeypatch.setattr(importer, "MAX_ROWS", 2)
+    patch_package(monkeypatch, importer, "MAX_ROWS", 2)
     text = "code\n" + "".join(f"C-{index}\n" for index in range(5))
     with pytest.raises(ValidationError) as refusal:
         importer.read(text)

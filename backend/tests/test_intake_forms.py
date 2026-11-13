@@ -12,6 +12,7 @@ import base64
 import re
 
 import pytest
+
 from src.config import Config
 from src.core.db import session_scope
 from tests.conftest import persona_claims

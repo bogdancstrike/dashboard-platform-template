@@ -12,7 +12,16 @@ and what cannot is reported with the reason instead of attempted.
 from __future__ import annotations
 
 import pytest
-from sqlalchemy import Column, ForeignKey, Integer, MetaData, String, Table, inspect, text
+from sqlalchemy import (
+    Column,
+    ForeignKey,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    inspect,
+    text,
+)
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 
 from src.seed import schema

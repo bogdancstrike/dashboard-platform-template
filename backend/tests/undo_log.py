@@ -36,6 +36,7 @@ import json
 import re
 from typing import Any
 
+
 class Window:
     """What one test (or the time between tests) changed."""
 

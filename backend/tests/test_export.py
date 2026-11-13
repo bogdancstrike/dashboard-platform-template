@@ -17,8 +17,8 @@ from uuid import uuid4
 import pytest
 
 from src.config import Config
-from tests.conftest import persona_claims
 from src.core import export
+from tests.conftest import persona_claims
 
 PREFIX = Config.API_PREFIX
 

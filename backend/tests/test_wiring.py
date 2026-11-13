@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from src.core.events import Hook
 from src.services.analytics import jobs as analytics_jobs
-from src.services.decisions import approvals
 from src.services.collaboration import notifications
+from src.services.decisions import approvals
 from src.services.records import writes as record_writes
 
 

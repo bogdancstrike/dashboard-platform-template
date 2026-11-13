@@ -501,8 +501,8 @@ def test_create_record_and_a_failing_action_are_recorded(client, monkeypatch):
 @pytestmark_db
 def test_a_form_submission_fires_a_form_trigger_only(monkeypatch):
     from src.core.auth import Principal
-    from src.services.records import writes as record_writes
     from src.models.identity import User
+    from src.services.records import writes as record_writes
 
     with session_scope() as session:
         owner = session.scalar(select(User).where(User.username == "admin"))

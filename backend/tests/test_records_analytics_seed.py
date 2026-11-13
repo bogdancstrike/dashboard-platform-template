@@ -17,7 +17,12 @@ def test_the_seed_fills_every_feature_and_is_idempotent():
     from src.core.db import new_session
     from src.models.platform import AuditLog
     from src.models.records_analytics import (
-        Contract, CustomerHealth, CustomerHealthSnapshot, DashboardLink, MetricAnomaly, MetricWatch,
+        Contract,
+        CustomerHealth,
+        CustomerHealthSnapshot,
+        DashboardLink,
+        MetricAnomaly,
+        MetricWatch,
     )
     from src.seed import records_analytics as seed
 

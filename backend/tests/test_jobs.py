@@ -647,7 +647,8 @@ def test_the_repair_counts_what_the_console_can_actually_retry():
     had nothing retryable in it, twice. The count now uses the console's own
     rule.
     """
-    from sqlalchemy import func, select as _select
+    from sqlalchemy import func
+    from sqlalchemy import select as _select
 
     from src.models.platform import BackgroundJob
     from src.seed import runner

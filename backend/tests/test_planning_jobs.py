@@ -18,6 +18,7 @@ from sqlalchemy import select
 
 from src.config import Config
 from src.services.work import task_templates as service
+from tests.patching import patch_package
 from tests.personas import PREFIX, sign_in
 
 pytestmark = pytest.mark.database
@@ -53,7 +54,7 @@ def test_a_job_whose_feature_is_off_is_skipped_not_failed(monkeypatch):
     from src.core import features
     from src.core.db import session_scope
 
-    monkeypatch.setattr(features, "job_allowed", lambda code: False)
+    patch_package(monkeypatch, features, "job_allowed", lambda code: False)
     with session_scope() as session:
         assert service.run_scheduler(session)["results"] == {}
 
