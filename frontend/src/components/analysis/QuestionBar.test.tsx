@@ -101,7 +101,7 @@ describe("the question bar", () => {
     expect(screen.queryByRole("combobox", { name: "Measured column" })).not.toBeInTheDocument();
   });
 
-  it("offers a second measure only where a picture can read one", async () => {
+  it("offers a second measure only where a picture can read one", () => {
     show();
     expect(screen.queryByRole("combobox", { name: "Second aggregation" })).not.toBeInTheDocument();
   });

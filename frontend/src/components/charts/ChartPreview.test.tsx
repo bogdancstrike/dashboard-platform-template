@@ -79,7 +79,7 @@ describe("as a thumbnail", () => {
     );
     const heat = drawn.option!;
     if (heat["visualMap"]) expect((heat["visualMap"] as { show: boolean }).show).toBe(false);
-    renderWithProviders(<ChartPreview panel={panel("radar" as ChartPanel["kind"])} compact height={104} />);
+    renderWithProviders(<ChartPreview panel={panel("radar")} compact height={104} />);
     const radar = drawn.option!;
     if (radar["radar"]) expect((radar["radar"] as { axisName: unknown }).axisName).toEqual({ show: false });
   });

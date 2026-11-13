@@ -81,7 +81,7 @@ describe("shaping the answer", () => {
     await screen.findByText("Review customer migration");
     await user.click(screen.getByRole("button", { name: /Columns/ }));
     const picker = await screen.findByText("Visible columns");
-    const popover = picker.closest(".ant-popover")! as HTMLElement;
+    const popover = picker.closest(".ant-popover")!;
     const boxes = within(popover).getAllByRole("checkbox");
     const unticked = boxes.find((box) => !(box as HTMLInputElement).checked) ?? boxes[0]!;
     await user.click(unticked);
