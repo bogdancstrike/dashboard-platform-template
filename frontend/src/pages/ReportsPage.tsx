@@ -63,6 +63,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { relativeTime } from "@/lib/time";
 import { FEATURES, useFeature } from "@/settings/features";
 import { queryKeys } from "@/lib/queryKeys";
+import { apiErrorDetails } from "@/components/feedback/apiErrorDetails";
 
 const { Text } = Typography;
 
@@ -185,18 +186,7 @@ export default function ReportsPage() {
           type={error instanceof ApiError && error.isForbidden ? "warning" : "error"}
           showIcon
           message={error instanceof ApiError ? error.message : "Reports could not be loaded."}
-          description={
-            error instanceof ApiError ? (
-              <Space direction="vertical" size={2}>
-                {error.missingPermissions.length > 0 && (
-                  <Text type="secondary">Missing: {error.missingPermissions.join(", ")}</Text>
-                )}
-                <Text code copyable={{ text: error.correlationId }}>
-                  {error.correlationId}
-                </Text>
-              </Space>
-            ) : undefined
-          }
+          description={apiErrorDetails(error, 2)}
           action={
             <Button onClick={() => void reports.refetch()}>
               Retry

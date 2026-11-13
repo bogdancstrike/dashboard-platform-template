@@ -65,6 +65,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { relativeTime } from "@/lib/time";
 import "@/styles/workflows.css";
 import { STALE, queryKeys } from "@/lib/queryKeys";
+import { apiMessageToast } from "@/lib/errors";
 
 const { Text } = Typography;
 
@@ -245,7 +246,7 @@ export default function WorkflowCanvasPage() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.automations() });
       message.success(rule.enabled ? `${rule.name} is live` : `${rule.name} is paused`);
     },
-    onError: (error) => message.error(error instanceof ApiError ? error.message : "That change was refused."),
+    onError: apiMessageToast(message, "That change was refused."),
   });
 
   const samples = useQuery({
@@ -264,7 +265,7 @@ export default function WorkflowCanvasPage() {
       return workflowGraphApi.test(ruleId, recordId);
     },
     onSuccess: (result) => setTrace(result),
-    onError: (error) => message.error(error instanceof ApiError ? error.message : "The test could not run."),
+    onError: apiMessageToast(message, "The test could not run."),
   });
 
   const data = detail.data;

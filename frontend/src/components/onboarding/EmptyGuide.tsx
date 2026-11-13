@@ -9,11 +9,11 @@ import { PlusOutlined } from "@ant-design/icons";
 import { App as AntApp, Button } from "antd";
 import { Link } from "react-router-dom";
 
-import { ApiError } from "@/api/client";
 import { onboardingApi } from "@/api/onboarding";
 import { useAuth } from "@/auth/AuthProvider";
 import "@/styles/onboarding.css";
 import { FEATURES, withFeature } from "@/settings/features";
+import { apiMessageToast } from "@/lib/errors";
 
 /** Per area: what the page is for, and where its first record is made. */
 export const GUIDES: Record<string, { purpose: string; first: string; to?: string; sample?: string }> = {
@@ -37,7 +37,7 @@ function EmptyGuideInner({ area }: { area: string }) {
       message.success(`Loaded ${answer.created} sample records — remove them any time from Getting started.`);
       void queryClient.invalidateQueries();
     },
-    onError: (error) => message.error(error instanceof ApiError ? error.message : "Sample data could not be loaded."),
+    onError: apiMessageToast(message, "Sample data could not be loaded."),
   });
   if (!guide) return null;
   return (

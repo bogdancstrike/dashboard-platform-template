@@ -4,7 +4,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import { useEffect, useState } from "react";
 
 import { decimalHours, parseDuration, timeApi, type Subject, type TimeEntry } from "@/api/time";
-import { errorText } from "@/lib/errors";
+import { errorToast } from "@/lib/errors";
 
 import { SubjectPicker, parseSubjectKey, subjectKey } from "./SubjectPicker";
 import { queryKeys } from "@/lib/queryKeys";
@@ -91,7 +91,7 @@ export function EntryModal({
       message.success(entry ? "Entry updated" : "Time logged");
       onClose();
     },
-    onError: (error) => message.error(errorText(error, { action: "log time" })),
+    onError: errorToast(message, { action: "log time" }),
   });
 
   return (

@@ -23,7 +23,7 @@ import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusTag } from "@/components/StatusTag";
 import { usePageCommands } from "@/commands/CommandContext";
-import { errorText } from "@/lib/errors";
+import { errorText, errorToast } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
 
 import { riskFlag } from "./ContractsPage";
@@ -55,7 +55,7 @@ export default function ContractDetailPage() {
       void client.invalidateQueries({ queryKey: queryKeys.recordVersions("contract", id) });
       void message.success(`Moved to ${STAGE_LABEL[saved.stage]}.`);
     },
-    onError: (error) => void message.error(errorText(error, { action: "move contracts" })),
+    onError: errorToast(message, { action: "move contracts" }),
   });
   const remove = useMutation({
     mutationFn: () => contractsApi.remove(id),
@@ -63,7 +63,7 @@ export default function ContractDetailPage() {
       void client.invalidateQueries({ queryKey: queryKeys.contracts() });
       navigate("/contracts", { replace: true });
     },
-    onError: (error) => void message.error(errorText(error, { action: "delete contracts" })),
+    onError: errorToast(message, { action: "delete contracts" }),
   });
 
   usePageCommands(`contract:${id}`, [

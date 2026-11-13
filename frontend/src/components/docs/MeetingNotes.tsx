@@ -8,13 +8,13 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { App as AntApp, Button, Typography } from "antd";
 import { Link, useNavigate } from "react-router-dom";
 
-import { ApiError } from "@/api/client";
 import { docsApi } from "@/api/docs";
 import { CoIcon } from "@/components/collab/icons";
 import { relativeTime } from "@/lib/time";
 import "@/styles/docs.css";
 import { FEATURES, withFeature } from "@/settings/features";
 import { queryKeys } from "@/lib/queryKeys";
+import { apiMessageToast } from "@/lib/errors";
 
 const { Text } = Typography;
 
@@ -29,7 +29,7 @@ function MeetingNotesInner({ eventId }: { eventId: string }) {
   const take = useMutation({
     mutationFn: () => docsApi.takeNotes(eventId),
     onSuccess: (page) => navigate(`/docs/${page.id}${page.created ? "?edit=1" : ""}`),
-    onError: (error) => message.error(error instanceof ApiError ? error.message : "The notes could not be opened."),
+    onError: apiMessageToast(message, "The notes could not be opened."),
   });
   // No permission to read the wiki is a refused read: nothing is drawn.
   if (notes.isError) return null;

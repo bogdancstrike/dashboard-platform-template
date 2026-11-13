@@ -19,7 +19,7 @@ import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
 import { PeoplePicker } from "@/components/PeoplePicker";
 import { asText } from "@/lib/text";
-import { errorText } from "@/lib/errors";
+import { errorText, errorToast } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
 
 import { FORM_STATUS_TONE } from "./FormsPage";
@@ -127,12 +127,12 @@ export default function FormDesignerPage() {
       message.success(saved.status === "PUBLISHED" ? "Saved — the form is live" : "Saved");
       if (creating) navigate(`/admin/forms/${saved.id}`, { replace: true });
     },
-    onError: (error) => message.error(errorText(error, { action: "save this form" })),
+    onError: errorToast(message, { action: "save this form" }),
   });
   const remove = useMutation({
     mutationFn: () => formsApi.remove(id),
     onSuccess: () => { void client.invalidateQueries({ queryKey: queryKeys.forms() }); message.success("Form removed"); navigate("/admin/forms", { replace: true }); },
-    onError: (error) => message.error(errorText(error, { action: "remove this form" })),
+    onError: errorToast(message, { action: "remove this form" }),
   });
 
   usePageCommands("form-designer", [
@@ -462,7 +462,7 @@ function Submissions({ formId }: { formId: string }) {
   const retry = useMutation({
     mutationFn: (submissionId: string) => formsApi.retry(formId, submissionId),
     onSuccess: (item) => { void client.invalidateQueries({ queryKey: queryKeys.forms() }); message.success(item.status === "CONVERTED" ? "It became a record" : "Still failing — see why"); },
-    onError: (error) => message.error(errorText(error, { action: "retry this submission" })),
+    onError: errorToast(message, { action: "retry this submission" }),
   });
   if (list.isLoading) return <Skeleton active />;
   if (list.isError || !list.data) return <Alert type="error" showIcon message={errorText(list.error)} />;

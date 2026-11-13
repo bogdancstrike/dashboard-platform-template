@@ -27,7 +27,7 @@ import { TrendChart } from "@/components/analytics/TrendChart";
 import { FailureAlert } from "@/components/FailureAlert";
 import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
-import { errorText } from "@/lib/errors";
+import { errorToast } from "@/lib/errors";
 import { relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
 import { queryKeys } from "@/lib/queryKeys";
@@ -72,7 +72,7 @@ export default function CustomerHealthPage() {
       void message.success(`Scored ${result.customers} customers${result.dropped ? ` — ${result.dropped} dropped a band` : ""}.`);
       void client.invalidateQueries({ queryKey: queryKeys.healthPortfolio() });
     },
-    onError: (error) => void message.error(errorText(error)),
+    onError: errorToast(message),
   });
 
   usePageCommands("customer-health", [
@@ -309,7 +309,7 @@ function ModelDrawer({ open, onClose }: { open: boolean; onClose: () => void }) 
       void client.invalidateQueries({ queryKey: queryKeys.customerHealth() });
       onClose();
     },
-    onError: (error) => void message.error(errorText(error)),
+    onError: errorToast(message),
   });
 
   const editable = Boolean(model.data?.can_configure);

@@ -53,6 +53,7 @@ import { HistoryDrawer } from "./HistoryDrawer";
 import { RecordPicker } from "./RecordPicker";
 import { FEATURES, useFeature } from "@/settings/features";
 import { queryKeys } from "@/lib/queryKeys";
+import { apiMessageToast } from "@/lib/errors";
 
 const { Text } = Typography;
 const SAVE_AFTER_MS = 1000;
@@ -171,7 +172,7 @@ export function DocView({ pageId, onDeleted }: { pageId: string; onDeleted: (spa
       accept(saved);
       setDraft({ title: saved.title, icon: saved.icon, blocks: saved.blocks });
     },
-    onError: (error) => message.error(error instanceof ApiError ? error.message : "The task was not created."),
+    onError: apiMessageToast(message, "The task was not created."),
   });
   const runTask = (blockId: string) => {
     // A task is made from what is *saved*: save first if the words just changed.
@@ -189,13 +190,13 @@ export function DocView({ pageId, onDeleted }: { pageId: string; onDeleted: (spa
       setLinking(false);
       void page.refetch();
     },
-    onError: (error) => message.error(error instanceof ApiError ? error.message : "That link was not saved."),
+    onError: apiMessageToast(message, "That link was not saved."),
   });
   const summariesOn = useFeature(FEATURES.aiSummaries);
   const summarise = useMutation({
     mutationFn: () => docsApi.summarise(pageId),
     onSuccess: (result) => setSummary(result.summary),
-    onError: (error) => message.error(error instanceof ApiError ? error.message : "The summary could not be written."),
+    onError: apiMessageToast(message, "The summary could not be written."),
   });
   const remove = useMutation({
     mutationFn: () => docsApi.remove(pageId),

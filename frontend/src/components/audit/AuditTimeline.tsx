@@ -20,6 +20,7 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 import { AuditDiff } from "./AuditDiff";
 import { actionColor, humaniseAction } from "./vocabulary";
 import { queryKeys } from "@/lib/queryKeys";
+import { apiErrorDetails } from "@/components/feedback/apiErrorDetails";
 
 const { Text } = Typography;
 
@@ -111,18 +112,7 @@ export function AuditTimeline({
             ? "You do not have permission to read this record's history"
             : "Could not load this record's history"
         }
-        description={
-          error instanceof ApiError ? (
-            <Space direction="vertical" size={2}>
-              {forbidden && error.missingPermissions.length > 0 && (
-                <Text type="secondary">Missing: {error.missingPermissions.join(", ")}</Text>
-              )}
-              <Text code copyable={{ text: error.correlationId }}>
-                {error.correlationId}
-              </Text>
-            </Space>
-          ) : undefined
-        }
+        description={apiErrorDetails(error, 2)}
         action={
           <Button size="small" onClick={() => void timeline.refetch()}>
             Retry

@@ -29,6 +29,7 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { queryKeys } from "@/lib/queryKeys";
 import { applyParamChanges } from "@/hooks/useUrlState";
+import { apiErrorDetails } from "@/components/feedback/apiErrorDetails";
 
 const { Text } = Typography;
 
@@ -339,20 +340,7 @@ export default function UsersPage() {
               ? "You do not have permission to see the people directory"
               : "The directory could not be loaded"
           }
-          description={
-            people.error instanceof ApiError ? (
-              <Space direction="vertical" size={4}>
-                {people.error.missingPermissions.length > 0 && (
-                  <Text type="secondary">
-                    Missing: {people.error.missingPermissions.join(", ")}
-                  </Text>
-                )}
-                <Text code copyable={{ text: people.error.correlationId }}>
-                  {people.error.correlationId}
-                </Text>
-              </Space>
-            ) : undefined
-          }
+          description={apiErrorDetails(people.error)}
           action={
             <Button onClick={() => void people.refetch()}>
               Retry

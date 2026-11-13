@@ -23,7 +23,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { asText } from "@/lib/text";
-import { errorText } from "@/lib/errors";
+import { errorText, errorToast } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
 import { queryKeys } from "@/lib/queryKeys";
@@ -167,14 +167,14 @@ function Queue({
         message.success(`${result.decided} decided`);
       }
     },
-    onError: (error) => message.error(errorText(error, { action: "decide these" })),
+    onError: errorToast(message, { action: "decide these" }),
   });
 
   const quick = useMutation({
     mutationFn: ({ id, decision, comment }: { id: string; decision: "approve" | "reject"; comment: string }) =>
       approvalsApi.decide(id, decision, comment),
     onSuccess: (row) => { refresh(); message.success(`${row.reference} ${row.status.toLowerCase()}`); },
-    onError: (error) => message.error(errorText(error, { action: "decide this" })),
+    onError: errorToast(message, { action: "decide this" }),
   });
 
   const ask = (decision: "approve" | "reject", run: (comment: string) => void, count = 1) => {
@@ -374,7 +374,7 @@ function ApprovalDrawer() {
       void client.invalidateQueries({ queryKey: queryKeys.time() });
       message.success(`${row.reference} ${row.status.toLowerCase()}`);
     },
-    onError: (error) => message.error(errorText(error, { action: "decide this" })),
+    onError: errorToast(message, { action: "decide this" }),
   });
   const withdraw = useMutation({
     mutationFn: () => approvalsApi.withdraw(overlay.value!),
@@ -384,7 +384,7 @@ function ApprovalDrawer() {
       void client.invalidateQueries({ queryKey: queryKeys.time() });
       message.success("Request withdrawn");
     },
-    onError: (error) => message.error(errorText(error, { action: "withdraw this" })),
+    onError: errorToast(message, { action: "withdraw this" }),
   });
   const item = detail.data;
 
@@ -536,12 +536,12 @@ function RulesView() {
   const remove = useMutation({
     mutationFn: approvalsApi.deleteRule,
     onSuccess: () => { void client.invalidateQueries({ queryKey: queryKeys.approvals("rules") }); message.success("Rule removed"); },
-    onError: (error) => message.error(errorText(error, { action: "remove this rule" })),
+    onError: errorToast(message, { action: "remove this rule" }),
   });
   const toggle = useMutation({
     mutationFn: (rule: ChangeRule) => approvalsApi.updateRule(rule.id, { active: !rule.active }),
     onSuccess: () => void client.invalidateQueries({ queryKey: queryKeys.approvals("rules") }),
-    onError: (error) => message.error(errorText(error, { action: "change this rule" })),
+    onError: errorToast(message, { action: "change this rule" }),
   });
   if (rules.isLoading) return <Skeleton active />;
   if (rules.isError || !rules.data) return <Alert type="error" showIcon message={errorText(rules.error)} />;
@@ -610,7 +610,7 @@ function RuleModal({ rule, catalogue, onClose }: { rule: Partial<ChangeRule> | n
     mutationFn: (values: Partial<ChangeRule>) =>
       rule?.id ? approvalsApi.updateRule(rule.id, values) : approvalsApi.createRule(values),
     onSuccess: () => { void client.invalidateQueries({ queryKey: queryKeys.approvals("rules") }); message.success("Rule saved"); onClose(); },
-    onError: (error) => message.error(errorText(error, { action: "save this rule" })),
+    onError: errorToast(message, { action: "save this rule" }),
   });
   const valueInput = field?.choices.length ? (
     <Select mode={operator === "IN" ? "multiple" : undefined} options={field.choices.map((choice) => ({ value: choice, label: choice }))} />

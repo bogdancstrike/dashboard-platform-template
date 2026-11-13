@@ -33,6 +33,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { STALE, queryKeys } from "@/lib/queryKeys";
 import { applyParamChanges } from "@/hooks/useUrlState";
+import { apiErrorDetails } from "@/components/feedback/apiErrorDetails";
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -384,20 +385,7 @@ export default function AuditExplorerPage() {
                 ? ledger.error.message
                 : "Could not load the audit log"
           }
-          description={
-            ledger.error instanceof ApiError ? (
-              <Space direction="vertical" size={4}>
-                {ledger.error.missingPermissions.length > 0 && (
-                  <Text type="secondary">
-                    Missing: {ledger.error.missingPermissions.join(", ")}
-                  </Text>
-                )}
-                <Text code copyable={{ text: ledger.error.correlationId }}>
-                  {ledger.error.correlationId}
-                </Text>
-              </Space>
-            ) : undefined
-          }
+          description={apiErrorDetails(ledger.error)}
           action={
             <Button onClick={() => void ledger.refetch()}>
               Retry

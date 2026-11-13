@@ -16,7 +16,6 @@ import { MenuOutlined, PlusOutlined } from "@ant-design/icons";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-import { ApiError } from "@/api/client";
 import { docsApi, type DocPage, type DocSpace } from "@/api/docs";
 import { usePageCommands } from "@/commands/CommandContext";
 import { PageHeader } from "@/components/PageHeader";
@@ -30,6 +29,7 @@ import "@/styles/collab.css";
 import "@/styles/docs.css";
 import { EmptyState } from "@/components/EmptyState";
 import { queryKeys } from "@/lib/queryKeys";
+import { apiMessageToast } from "@/lib/errors";
 
 const { Text } = Typography;
 
@@ -85,7 +85,7 @@ export default function DocsPage() {
       return docsApi.move(id, rest);
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.docTree(spaceId) }),
-    onError: (error) => message.error(error instanceof ApiError ? error.message : "The page was not moved."),
+    onError: apiMessageToast(message, "The page was not moved."),
   });
 
   const canEdit = spaces.data?.can_edit ?? false;
@@ -320,7 +320,7 @@ function NewSpaceModal({ open, onClose, onCreated }: { open: boolean; onClose: (
       form.resetFields();
       onCreated(space);
     },
-    onError: (error) => message.error(error instanceof ApiError ? error.message : "The space was not created."),
+    onError: apiMessageToast(message, "The space was not created."),
   });
   return (
     <Modal open={open} title="New space" okText="Create space" onCancel={onClose} onOk={() => form.submit()} confirmLoading={create.isPending} destroyOnHidden>

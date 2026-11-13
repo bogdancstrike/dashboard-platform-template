@@ -20,6 +20,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { relativeTime } from "@/lib/time";
 import "@/styles/onboarding.css";
 import { queryKeys } from "@/lib/queryKeys";
+import { apiMessageToast } from "@/lib/errors";
 
 const { Text } = Typography;
 
@@ -36,7 +37,7 @@ export default function OnboardingPage() {
   const answer = useMutation({
     mutationFn: ({ key, state }: { key: string; state: "done" | "skipped" | "todo" }) => onboardingApi.answer(key, state),
     onSuccess: accept,
-    onError: (error) => message.error(error instanceof ApiError ? error.message : "That could not be saved."),
+    onError: apiMessageToast(message, "That could not be saved."),
   });
   const card = useMutation({ mutationFn: (dismissed: boolean) => onboardingApi.dismiss(dismissed), onSuccess: accept });
   const sampleChange = useMutation({
@@ -47,7 +48,7 @@ export default function OnboardingPage() {
       void queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== queryKeys.onboardingSamples()[0] });
       message.success(load ? `Loaded ${answer.created ?? 0} sample records` : "Sample data removed");
     },
-    onError: (error) => message.error(error instanceof ApiError ? error.message : "That could not be done."),
+    onError: apiMessageToast(message, "That could not be done."),
   });
 
   usePageCommands("onboarding", [

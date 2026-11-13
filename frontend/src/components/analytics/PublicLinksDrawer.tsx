@@ -14,7 +14,7 @@ import { useUrlOverlay } from "@/app/useUrlOverlay";
 import { linksApi, type DashboardLink } from "@/api/recordsAnalytics";
 import { FailureAlert } from "@/components/FailureAlert";
 import { NxIcon } from "@/components/NxIcon";
-import { errorText } from "@/lib/errors";
+import { errorToast } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
 import { FEATURES, withFeature } from "@/settings/features";
@@ -72,7 +72,7 @@ export function PublicLinksDrawer({ dashboardId, open, onClose }: { dashboardId:
       form.resetFields();
       void client.invalidateQueries({ queryKey: key });
     },
-    onError: (error) => void message.error(errorText(error, { action: "publish dashboards" })),
+    onError: errorToast(message, { action: "publish dashboards" }),
   });
   const revoke = useMutation({
     mutationFn: (id: string) => linksApi.revoke(dashboardId, id),
@@ -80,7 +80,7 @@ export function PublicLinksDrawer({ dashboardId, open, onClose }: { dashboardId:
       void message.success("Link revoked — it stops working immediately.");
       void client.invalidateQueries({ queryKey: key });
     },
-    onError: (error) => void message.error(errorText(error)),
+    onError: errorToast(message),
   });
 
   const canPublish = Boolean(links.data?.can_publish);

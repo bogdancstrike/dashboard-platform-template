@@ -22,7 +22,7 @@ import {
 import { PeopleField } from "@/components/analytics/parts";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
-import { errorText } from "@/lib/errors";
+import { errorToast } from "@/lib/errors";
 import { asText } from "@/lib/text";
 import { STALE, queryKeys } from "@/lib/queryKeys";
 
@@ -172,7 +172,7 @@ export function ContractForm({
       if (onSaved) onSaved(saved);
       else onClose();
     },
-    onError: (error) => void message.error(errorText(error, { action: "save contracts" })),
+    onError: errorToast(message, { action: "save contracts" }),
   });
 
   return (

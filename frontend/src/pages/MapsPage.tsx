@@ -41,6 +41,7 @@ import { formatNumber } from "@/lib/formats";
 import { EmptyState } from "@/components/EmptyState";
 import { STALE, queryKeys } from "@/lib/queryKeys";
 import { applyParamChanges } from "@/hooks/useUrlState";
+import { apiErrorDetails } from "@/components/feedback/apiErrorDetails";
 
 const { Text } = Typography;
 
@@ -218,18 +219,7 @@ export default function MapsPage() {
           type={api?.isForbidden ? "warning" : "error"}
           showIcon
           message={api?.message ?? "The map could not be loaded"}
-          description={
-            api ? (
-              <Space direction="vertical" size={4}>
-                {api.missingPermissions.length > 0 && (
-                  <Text type="secondary">Missing: {api.missingPermissions.join(", ")}</Text>
-                )}
-                <Text code copyable={{ text: api.correlationId }}>
-                  {api.correlationId}
-                </Text>
-              </Space>
-            ) : undefined
-          }
+          description={apiErrorDetails(api)}
         />
       </>
     );

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ApiError } from "@/api/client";
-import { errorText } from "@/lib/errors";
+import { apiMessage, apiMessageToast, errorText, errorToast } from "@/lib/errors";
 
 /**
  * One failure, one sentence.
@@ -52,5 +52,24 @@ describe("what a reader is told", () => {
     expect(errorText(new Error("the query could not be run"))).toBe(
       "the query could not be run",
     );
+  });
+});
+
+describe("the toast helpers", () => {
+  const forbidden = () => refusal({ missing_permissions: ["records.export"] });
+
+  it("errorToast shows errorText's sentence", () => {
+    const shown: string[] = [];
+    errorToast({ error: (text: string) => shown.push(text) }, { action: "export" })(forbidden());
+    expect(shown).toEqual([errorText(forbidden(), { action: "export" })]);
+  });
+
+  it("apiMessageToast shows the server's sentence, or the fallback", () => {
+    const shown: string[] = [];
+    const toast = apiMessageToast({ error: (text: string) => shown.push(text) }, "Not saved.");
+    toast(new ApiError(409, { error: "conflict", message: "Already taken" }, "corr-1"));
+    toast(new TypeError("boom"));
+    expect(shown).toEqual(["Already taken", "Not saved."]);
+    expect(apiMessage(new ApiError(400, { error: "bad", message: "Bad" }, "c"), "x")).toBe("Bad");
   });
 });

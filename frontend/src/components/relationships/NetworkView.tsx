@@ -54,6 +54,7 @@ import { StatCard } from "@/components/StatCard";
 import { NEUTRAL, SERIES } from "@/theme/tokens";
 import { EmptyState } from "@/components/EmptyState";
 import { queryKeys } from "@/lib/queryKeys";
+import { apiErrorDetails } from "@/components/feedback/apiErrorDetails";
 
 const { Text } = Typography;
 
@@ -388,18 +389,7 @@ function NetworkError({ error, onRetry }: { error: unknown; onRetry: () => void 
           ? "You do not have permission to read the record graph"
           : "The record graph could not be loaded"
       }
-      description={
-        error instanceof ApiError ? (
-          <Space direction="vertical" size={4}>
-            {error.missingPermissions.length > 0 && (
-              <Text type="secondary">Missing: {error.missingPermissions.join(", ")}</Text>
-            )}
-            <Text code copyable={{ text: error.correlationId }}>
-              {error.correlationId}
-            </Text>
-          </Space>
-        ) : undefined
-      }
+      description={apiErrorDetails(error)}
       action={
         <Button size="small" onClick={onRetry}>
           Retry

@@ -29,6 +29,7 @@ import { useNavigate } from "react-router-dom";
 import { usePageCommands } from "@/commands/CommandContext";
 import { usePhoneList } from "@/pages/admin/ResponsiveTable";
 import { queryKeys } from "@/lib/queryKeys";
+import { apiErrorDetails } from "@/components/feedback/apiErrorDetails";
 
 const { Text } = Typography;
 
@@ -190,18 +191,7 @@ export default function RolesPage() {
               ? "You do not have permission to administer roles"
               : "The permission matrix could not be loaded"
           }
-          description={
-            error instanceof ApiError ? (
-              <Space direction="vertical" size={4}>
-                {error.missingPermissions.length > 0 && (
-                  <Text type="secondary">Missing: {error.missingPermissions.join(", ")}</Text>
-                )}
-                <Text code copyable={{ text: error.correlationId }}>
-                  {error.correlationId}
-                </Text>
-              </Space>
-            ) : undefined
-          }
+          description={apiErrorDetails(error)}
           action={
             <Button onClick={() => void matrix.refetch()}>
               Retry

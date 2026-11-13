@@ -5,9 +5,9 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { App as AntApp, Form, Input, Modal, Select, type SelectProps } from "antd";
 
-import { ApiError } from "@/api/client";
 import { docsApi, type DocPage, type DocSpace, type TreeItem } from "@/api/docs";
 import { STALE, queryKeys } from "@/lib/queryKeys";
+import { apiMessageToast } from "@/lib/errors";
 
 export function NewPageModal({
   open,
@@ -47,7 +47,7 @@ export function NewPageModal({
       form.resetFields();
       onCreated(page);
     },
-    onError: (error) => message.error(error instanceof ApiError ? error.message : "The page was not created."),
+    onError: apiMessageToast(message, "The page was not created."),
   });
   const items = templates.data?.items ?? [];
 

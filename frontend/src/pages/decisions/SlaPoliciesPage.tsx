@@ -19,7 +19,7 @@ import { TdIcon } from "@/components/decisions/TdIcon";
 import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
 import { humanStatus } from "@/components/StatusTag";
-import { errorText } from "@/lib/errors";
+import { errorText, errorToast } from "@/lib/errors";
 import { STALE, queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
@@ -55,17 +55,17 @@ export default function SlaPoliciesPage() {
   const apply = useMutation({
     mutationFn: slaApi.apply,
     onSuccess: (result) => { refresh(); message.success(`${result.tickets} tickets recomputed, ${result.escalations.fired} escalations fired`); },
-    onError: (error) => message.error(errorText(error, { action: "apply the policies" })),
+    onError: errorToast(message, { action: "apply the policies" }),
   });
   const reorder = useMutation({
     mutationFn: slaApi.reorder,
     onSuccess: (next) => { client.setQueryData(queryKeys.sla("overview"), next); refresh(); },
-    onError: (error) => message.error(errorText(error, { action: "reorder policies" })),
+    onError: errorToast(message, { action: "reorder policies" }),
   });
   const toggle = useMutation({
     mutationFn: (policy: SlaPolicy) => slaApi.update(policy.id, { active: !policy.active }),
     onSuccess: refresh,
-    onError: (error) => message.error(errorText(error, { action: "change this policy" })),
+    onError: errorToast(message, { action: "change this policy" }),
   });
 
   const canManage = Boolean(overview.data?.can_manage);
@@ -307,12 +307,12 @@ function PolicyDrawer({
       return policy ? slaApi.update(policy.id, body) : slaApi.create(body);
     },
     onSuccess: () => { onSaved(); message.success("Policy saved — every ticket's clock was recomputed"); onClose(); },
-    onError: (error) => message.error(errorText(error, { action: "save this policy" })),
+    onError: errorToast(message, { action: "save this policy" }),
   });
   const remove = useMutation({
     mutationFn: () => slaApi.remove(policy!.id),
     onSuccess: () => { onSaved(); message.success("Policy removed"); onClose(); },
-    onError: (error) => message.error(errorText(error, { action: "remove this policy" })),
+    onError: errorToast(message, { action: "remove this policy" }),
   });
   const options = (values: string[]) => values.map((value) => ({ value, label: words(value) }));
 
@@ -443,7 +443,7 @@ function CalendarModal({
       return calendar?.id ? slaApi.updateCalendar(calendar.id, body) : slaApi.createCalendar(body);
     },
     onSuccess: () => { onSaved(); message.success("Calendar saved"); onClose(); },
-    onError: (error) => message.error(errorText(error, { action: "save this calendar" })),
+    onError: errorToast(message, { action: "save this calendar" }),
   });
   return (
     <Modal open={Boolean(calendar)} title={calendar?.id ? "Edit business calendar" : "New business calendar"} onCancel={onClose} onOk={() => save.mutate()} confirmLoading={save.isPending} width={560} destroyOnHidden>

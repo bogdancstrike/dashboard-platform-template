@@ -19,7 +19,7 @@ import { WatchForm } from "@/components/analytics/WatchForm";
 import { FailureAlert } from "@/components/FailureAlert";
 import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
-import { errorText } from "@/lib/errors";
+import { errorToast } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
 import { queryKeys } from "@/lib/queryKeys";
@@ -97,7 +97,7 @@ export default function AlertsPage() {
       void message.success(fired ? `${fired} new anomal${fired === 1 ? "y" : "ies"}.` : "Every watch evaluated — nothing new.");
       void client.invalidateQueries({ queryKey: queryKeys.alerts() });
     },
-    onError: (error) => void message.error(errorText(error)),
+    onError: errorToast(message),
   });
 
   usePageCommands("alerts", [

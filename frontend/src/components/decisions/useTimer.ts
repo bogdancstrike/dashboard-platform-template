@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { timeApi, type SubjectType, type TimerState } from "@/api/time";
 import { useAuth } from "@/auth/AuthProvider";
-import { errorText } from "@/lib/errors";
+import { errorToast } from "@/lib/errors";
 import { queryKeys } from "@/lib/queryKeys";
 
 export const TIMER_KEY = queryKeys.time("timer");
@@ -53,7 +53,7 @@ export function useTimer() {
           : "Timer started",
       );
     },
-    onError: (error) => message.error(errorText(error, { action: "start a timer" })),
+    onError: errorToast(message, { action: "start a timer" }),
   });
 
   const stop = useMutation({
@@ -62,7 +62,7 @@ export function useTimer() {
       settle(next);
       message.success(`Logged ${next.stopped?.minutes ?? 0} min on ${next.stopped?.subject_label ?? "the work item"}`);
     },
-    onError: (error) => message.error(errorText(error, { action: "stop the timer" })),
+    onError: errorToast(message, { action: "stop the timer" }),
   });
 
   return { allowed, state, running, elapsed, start, stop, todayMinutes: state.data?.today_minutes ?? 0 };

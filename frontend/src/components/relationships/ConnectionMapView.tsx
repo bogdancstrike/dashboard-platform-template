@@ -29,6 +29,7 @@ import { relationshipsApi, type HubRecord, type MapEdge } from "@/api/relationsh
 import { EntityGraph } from "@/components/graph/EntityGraph";
 import { StatCard } from "@/components/StatCard";
 import { queryKeys } from "@/lib/queryKeys";
+import { apiErrorDetails } from "@/components/feedback/apiErrorDetails";
 
 const { Text } = Typography;
 
@@ -79,18 +80,7 @@ export function ConnectionMapView({
             ? "You do not have permission to read the connection map"
             : "The connection map could not be loaded"
         }
-        description={
-          error instanceof ApiError ? (
-            <Space direction="vertical" size={4}>
-              {error.missingPermissions.length > 0 && (
-                <Text type="secondary">Missing: {error.missingPermissions.join(", ")}</Text>
-              )}
-              <Text code copyable={{ text: error.correlationId }}>
-                {error.correlationId}
-              </Text>
-            </Space>
-          ) : undefined
-        }
+        description={apiErrorDetails(error)}
         action={
           <Button size="small" onClick={() => void map.refetch()}>
             Retry

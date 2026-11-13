@@ -76,6 +76,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
 import { queryKeys } from "@/lib/queryKeys";
+import { apiErrorDetails } from "@/components/feedback/apiErrorDetails";
 
 const { Text, Paragraph } = Typography;
 
@@ -519,18 +520,7 @@ export default function FilesPage() {
           type={api?.isForbidden ? "warning" : "error"}
           showIcon
           message={api?.message ?? "The library could not be loaded"}
-          description={
-            api ? (
-              <Space direction="vertical" size={4}>
-                {api.missingPermissions.length > 0 && (
-                  <Text type="secondary">Missing: {api.missingPermissions.join(", ")}</Text>
-                )}
-                <Text code copyable={{ text: api.correlationId }}>
-                  {api.correlationId}
-                </Text>
-              </Space>
-            ) : undefined
-          }
+          description={apiErrorDetails(api)}
         />
       </>
     );

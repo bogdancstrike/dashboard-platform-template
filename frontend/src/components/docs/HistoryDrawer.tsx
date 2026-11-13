@@ -7,7 +7,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { App as AntApp, Button, Drawer, Skeleton, Space, Tag, Typography } from "antd";
 import { useState } from "react";
 
-import { ApiError } from "@/api/client";
 import { docsApi, type DocPage } from "@/api/docs";
 import { URL_OVERLAY } from "@/app/history";
 import { absoluteTime, relativeTime } from "@/lib/time";
@@ -15,6 +14,7 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 import { BlockView } from "./BlockView";
 import { EmptyState } from "@/components/EmptyState";
 import { queryKeys } from "@/lib/queryKeys";
+import { apiMessageToast } from "@/lib/errors";
 
 const { Text } = Typography;
 
@@ -48,7 +48,7 @@ export function HistoryDrawer({
       setViewing(null);
       onRestored(restored);
     },
-    onError: (error) => message.error(error instanceof ApiError ? error.message : "That version was not restored."),
+    onError: apiMessageToast(message, "That version was not restored."),
   });
 
   return (

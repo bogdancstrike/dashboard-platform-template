@@ -46,3 +46,33 @@ export interface ErrorTextOptions {
   /** The verb a refusal should name — "export", "save this report". */
   action?: string;
 }
+
+/**
+ * The server's own sentence for an `ApiError`, or `fallback` for anything else.
+ *
+ * Plainer than `errorText`: no correlation id, for the toasts that only ever
+ * said what the server said.
+ */
+export function apiMessage(error: unknown, fallback: string): string {
+  return error instanceof ApiError ? error.message : fallback;
+}
+
+/** The part of antd's `message` API a failure toast needs. */
+interface Toaster {
+  error: (content: string) => unknown;
+}
+
+/**
+ * A mutation's `onError`: one toast, worded by `errorText`.
+ *
+ * `onError: errorToast(message, { action: "export" })` replaces the same
+ * lambda written out by hand on every mutation.
+ */
+export function errorToast(message: Toaster, options?: ErrorTextOptions): (error: unknown) => void {
+  return (error) => void message.error(errorText(error, options));
+}
+
+/** A mutation's `onError` that shows the server's sentence (see `apiMessage`). */
+export function apiMessageToast(message: Toaster, fallback: string): (error: unknown) => void {
+  return (error) => void message.error(apiMessage(error, fallback));
+}

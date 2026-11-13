@@ -20,7 +20,7 @@ import { WatchForm } from "@/components/analytics/WatchForm";
 import { FailureAlert } from "@/components/FailureAlert";
 import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
-import { errorText } from "@/lib/errors";
+import { errorToast } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
 
 import { AnomalyRow, describeWatch, WatchStatus } from "./AlertsPage";
@@ -54,7 +54,7 @@ export default function WatchDetailPage() {
       else void message.success(result.new ? `Anomaly detected — ${result.new} new alert${result.new === 1 ? "" : "s"}.` : "Evaluated — nothing unusual.");
       refresh();
     },
-    onError: (error) => void message.error(errorText(error)),
+    onError: errorToast(message),
   });
   const silence = useMutation({
     mutationFn: (body: { hours?: number; muted?: boolean; clear?: boolean }) => alertsApi.silence(id, body),
@@ -62,7 +62,7 @@ export default function WatchDetailPage() {
       void message.success("Saved.");
       refresh();
     },
-    onError: (error) => void message.error(errorText(error, { action: "silence alerts" })),
+    onError: errorToast(message, { action: "silence alerts" }),
   });
   const acknowledge = useMutation({
     mutationFn: (anomalyId: string) => alertsApi.acknowledge(anomalyId),
@@ -74,7 +74,7 @@ export default function WatchDetailPage() {
       refresh();
       navigate("/alerts", { replace: true });
     },
-    onError: (error) => void message.error(errorText(error, { action: "delete watches" })),
+    onError: errorToast(message, { action: "delete watches" }),
   });
 
   usePageCommands("watch-detail", [

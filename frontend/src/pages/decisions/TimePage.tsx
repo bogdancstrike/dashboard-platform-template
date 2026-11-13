@@ -21,7 +21,7 @@ import { TdIcon } from "@/components/decisions/TdIcon";
 import { NxIcon } from "@/components/NxIcon";
 import { PageHeader } from "@/components/PageHeader";
 import { PersonAvatar } from "@/components/PersonAvatar";
-import { errorText } from "@/lib/errors";
+import { errorText, errorToast } from "@/lib/errors";
 import { EmptyState } from "@/components/EmptyState";
 import { queryKeys } from "@/lib/queryKeys";
 
@@ -163,7 +163,7 @@ function WeekView({ params, go }: { params: URLSearchParams; go: Go }) {
       void client.invalidateQueries({ queryKey: queryKeys.notifications() });
       message.success("Week submitted for approval");
     },
-    onError: (error) => message.error(errorText(error, { action: "submit this week" })),
+    onError: errorToast(message, { action: "submit this week" }),
   });
 
   const remove = useMutation({
@@ -172,7 +172,7 @@ function WeekView({ params, go }: { params: URLSearchParams; go: Go }) {
       void client.invalidateQueries({ queryKey: queryKeys.time() });
       message.success("Entry removed");
     },
-    onError: (error) => message.error(errorText(error, { action: "remove this entry" })),
+    onError: errorToast(message, { action: "remove this entry" }),
   });
 
   const confirmSubmit = (data: Week) => {
@@ -512,7 +512,7 @@ function EntriesView() {
   const remove = useMutation({
     mutationFn: timeApi.remove,
     onSuccess: () => { void client.invalidateQueries({ queryKey: queryKeys.time() }); message.success("Entry removed"); },
-    onError: (error) => message.error(errorText(error, { action: "remove this entry" })),
+    onError: errorToast(message, { action: "remove this entry" }),
   });
   return (
     <>

@@ -34,7 +34,7 @@ import dayjs from "dayjs";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
-import { ApiError } from "@/api/client";
+import { apiMessage, apiMessageToast } from "@/lib/errors";
 import { planningApi, type PlanBrief, type Recurrence, type TaskPlanning as Planning } from "@/api/planning";
 import { recordsApi } from "@/api/records";
 import { StatusTag } from "@/components/StatusTag";
@@ -71,9 +71,7 @@ function useRefresh(id: string) {
   };
 }
 
-function failure(error: unknown) {
-  return error instanceof ApiError ? error.message : "That could not be saved.";
-}
+const SAVE_FAILED = "That could not be saved.";
 
 /** The side card: points, start, epic, sprint, milestone, flag, cover, watchers, repeat. */
 export function TaskPlanningSide({ id, page }: { id: string; page: RecordPage }) {
@@ -101,13 +99,13 @@ export function TaskPlanningSide({ id, page }: { id: string; page: RecordPage })
   const watch = useMutation({
     mutationFn: (on: boolean) => (on ? planningApi.watch(id) : planningApi.unwatch(id)),
     onSuccess: (result) => message.success(result.watching ? "You will hear about changes to this task" : "No longer watching"),
-    onError: (error) => message.error(failure(error)),
+    onError: apiMessageToast(message, SAVE_FAILED),
     onSettled: refresh,
   });
   const plan = useMutation({
     mutationFn: (sprintId: string | null) => planningApi.place({ task_id: id, sprint_id: sprintId, after_id: null, before_id: null }),
     onSuccess: () => message.success("Sprint updated"),
-    onError: (error) => message.error(failure(error)),
+    onError: apiMessageToast(message, SAVE_FAILED),
     onSettled: refresh,
   });
 
@@ -310,7 +308,7 @@ function RecurrenceModalInner({
       onSaved();
       onClose();
     },
-    onError: (error) => message.error(failure(error)),
+    onError: apiMessageToast(message, SAVE_FAILED),
   });
   const clear = useMutation({
     mutationFn: () => planningApi.clearRecurrence(id),
@@ -319,7 +317,7 @@ function RecurrenceModalInner({
       onSaved();
       onClose();
     },
-    onError: (error) => message.error(failure(error)),
+    onError: apiMessageToast(message, SAVE_FAILED),
   });
   return (
     <Modal
@@ -450,7 +448,7 @@ export function TaskRelations({ id, page }: { id: string; page: RecordPage }) {
       setTitle("");
       message.success("Subtask added");
     },
-    onError: (error) => message.error(failure(error)),
+    onError: apiMessageToast(message, SAVE_FAILED),
     onSettled: refresh,
   });
   const link = useMutation({
@@ -461,7 +459,7 @@ export function TaskRelations({ id, page }: { id: string; page: RecordPage }) {
         created.violated ? "Linked — but this task starts before that one ends. See the timeline." : "Dependency added",
       );
     },
-    onError: (error) => message.error(failure(error)),
+    onError: apiMessageToast(message, SAVE_FAILED),
     onSettled: refresh,
   });
   const unlink = (item: PlanBrief & { dependency_id?: string }) =>
@@ -473,7 +471,7 @@ export function TaskRelations({ id, page }: { id: string; page: RecordPage }) {
         planningApi
           .unlink(item.dependency_id!)
           .then(() => message.success("Dependency removed"))
-          .catch((error: unknown) => message.error(failure(error)))
+          .catch((error: unknown) => message.error(apiMessage(error, SAVE_FAILED)))
           .finally(refresh),
     });
 
@@ -654,7 +652,7 @@ function SaveAsTemplateButtonInner({ id, title, disabled }: { id: string; title:
       void queryClient.invalidateQueries({ queryKey: queryKeys.taskTemplates() });
       setOpen(false);
     },
-    onError: (error) => message.error(failure(error)),
+    onError: apiMessageToast(message, SAVE_FAILED),
   });
   return (
     <>

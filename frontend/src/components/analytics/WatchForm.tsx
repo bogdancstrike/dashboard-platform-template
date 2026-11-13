@@ -16,7 +16,7 @@ import { PeopleField } from "./parts";
 import { humanStatus } from "@/components/StatusTag";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
-import { errorText } from "@/lib/errors";
+import { errorText, errorToast } from "@/lib/errors";
 
 import { TrendChart } from "./TrendChart";
 import { queryKeys } from "@/lib/queryKeys";
@@ -110,7 +110,7 @@ export function WatchForm({
       if (onSaved) onSaved(saved);
       else onClose();
     },
-    onError: (error) => void message.error(errorText(error, { action: "manage alerts" })),
+    onError: errorToast(message, { action: "manage alerts" }),
   });
 
   return (

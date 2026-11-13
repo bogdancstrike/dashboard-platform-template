@@ -13,7 +13,7 @@ import { App as AntApp, Input, InputNumber, Modal, Select, Space, Tooltip, Typog
 import { PlusOutlined } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 
-import { api, ApiError } from "@/api/client";
+import { api } from "@/api/client";
 import { planningApi, type LaneSetting, type TaskTemplate } from "@/api/planning";
 import type { Person } from "@/api/directory";
 import { recordsApi } from "@/api/records";
@@ -23,6 +23,7 @@ import { Points } from "./PlanItem";
 import { projectOptions, useProjects } from "./useProjects";
 import { FEATURES, withFeature } from "@/settings/features";
 import { STALE, queryKeys } from "@/lib/queryKeys";
+import { apiMessageToast } from "@/lib/errors";
 
 export type Swimlane = "none" | "assignee" | "priority" | "epic";
 
@@ -168,7 +169,7 @@ export function WipLimitsModal({ open, onClose }: { open: boolean; onClose: () =
       message.success("Lane limits saved");
       onClose();
     },
-    onError: (error) => message.error(error instanceof ApiError ? error.message : "Those limits could not be saved."),
+    onError: apiMessageToast(message, "Those limits could not be saved."),
   });
   return (
     <Modal open={open} title="Work-in-progress limits" okText="Save" confirmLoading={save.isPending} onCancel={onClose} onOk={() => save.mutate()}>
@@ -210,7 +211,7 @@ export function QuickCreate({ status, extra, onCreated }: { status: string; extr
       refreshRecordViews(queryClient);
       onCreated?.(made.id);
     },
-    onError: (error) => message.error(error instanceof ApiError ? error.message : "That card could not be added."),
+    onError: apiMessageToast(message, "That card could not be added."),
   });
   if (!open) {
     return (
@@ -264,7 +265,7 @@ function TemplatePickerInner({ open, onClose, onCreated }: { open: boolean; onCl
       setChosen(null);
       onCreated(made.id);
     },
-    onError: (error) => message.error(error instanceof ApiError ? error.message : "The task could not be created."),
+    onError: apiMessageToast(message, "The task could not be created."),
   });
   return (
     <Modal

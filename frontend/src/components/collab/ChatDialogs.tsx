@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App as AntApp, Button, Form, Input, Modal, Popconfirm, Space, Switch, Typography } from "antd";
 import { useState } from "react";
 
-import { ApiError } from "@/api/client";
+import { apiMessageToast } from "@/lib/errors";
 import { chatApi, type ChannelDetail, type PresenceStatus } from "@/api/chat";
 import { PeoplePicker } from "@/components/PeoplePicker";
 import { PersonAvatar } from "@/components/PersonAvatar";
@@ -17,10 +17,6 @@ import { PresenceDot } from "./presence";
 import { queryKeys } from "@/lib/queryKeys";
 
 const { Text } = Typography;
-
-function failure(error: unknown, fallback: string): string {
-  return error instanceof ApiError ? error.message : fallback;
-}
 
 export function NewChannelModal({
   open,
@@ -49,7 +45,7 @@ export function NewChannelModal({
       setMembers([]);
       onCreated(channel);
     },
-    onError: (error) => message.error(failure(error, "The channel was not created.")),
+    onError: apiMessageToast(message, "The channel was not created."),
   });
 
   return (
@@ -105,7 +101,7 @@ export function NewDirectModal({
       setPerson([]);
       onOpened(channel);
     },
-    onError: (error) => message.error(failure(error, "That conversation could not be opened.")),
+    onError: apiMessageToast(message, "That conversation could not be opened."),
   });
   return (
     <Modal
@@ -148,12 +144,12 @@ export function MembersPanel({
       setAdding([]);
       onChanged();
     },
-    onError: (error) => message.error(failure(error, "Those people were not added.")),
+    onError: apiMessageToast(message, "Those people were not added."),
   });
   const remove = useMutation({
     mutationFn: (userId: string) => chatApi.removeMember(channel.id, userId),
     onSuccess: onChanged,
-    onError: (error) => message.error(failure(error, "That person was not removed.")),
+    onError: apiMessageToast(message, "That person was not removed."),
   });
   const ordered = [...channel.members].sort(
     (a, b) => rank(presence[a.id]) - rank(presence[b.id]) || a.name.localeCompare(b.name),
@@ -229,12 +225,12 @@ export function ChannelSettingsModal({
       onSaved();
       onClose();
     },
-    onError: (error) => message.error(failure(error, "The channel was not saved.")),
+    onError: apiMessageToast(message, "The channel was not saved."),
   });
   const archive = useMutation({
     mutationFn: () => chatApi.archive(channel.id),
     onSuccess: onArchived,
-    onError: (error) => message.error(failure(error, "The channel was not archived.")),
+    onError: apiMessageToast(message, "The channel was not archived."),
   });
   return (
     <Modal

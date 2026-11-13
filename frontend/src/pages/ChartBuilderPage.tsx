@@ -68,6 +68,7 @@ import {
 } from "@/entities/analysisDraft";
 import { STALE, queryKeys } from "@/lib/queryKeys";
 import { applyParamChanges } from "@/hooks/useUrlState";
+import { apiErrorDetails } from "@/components/feedback/apiErrorDetails";
 
 const { Text } = Typography;
 
@@ -300,16 +301,7 @@ export default function ChartBuilderPage() {
           type="error"
           showIcon
           message={save.error.message}
-          description={
-            <Space direction="vertical" size={2}>
-              {save.error.missingPermissions.length > 0 && (
-                <Text type="secondary">Missing: {save.error.missingPermissions.join(", ")}</Text>
-              )}
-              <Text code copyable={{ text: save.error.correlationId }}>
-                {save.error.correlationId}
-              </Text>
-            </Space>
-          }
+          description={apiErrorDetails(save.error, 2)}
         />
       )}
 

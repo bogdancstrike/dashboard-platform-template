@@ -22,7 +22,7 @@ import { useUrlOverlay } from "@/app/useUrlOverlay";
 import { versionsApi, type RecordVersion, type VersionField, type VersionHistory as History } from "@/api/recordsAnalytics";
 import { FailureAlert } from "@/components/FailureAlert";
 import { humanStatus } from "@/components/StatusTag";
-import { errorText } from "@/lib/errors";
+import { errorToast } from "@/lib/errors";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { asText } from "@/lib/text";
 import { EmptyState } from "@/components/EmptyState";
@@ -124,7 +124,7 @@ function VersionHistoryInner({
       void client.invalidateQueries({ queryKey: queryKeys.contract(recordId) });
       onRestored?.();
     },
-    onError: (error) => void message.error(errorText(error, { action: "restore this record" })),
+    onError: errorToast(message, { action: "restore this record" }),
   });
 
   const confirm = (fields?: string[]) => {
