@@ -103,7 +103,7 @@ export const RECORD_AND_ADMIN_FLOWS: readonly CreateFlow[] = [
     shape: "drawer",
     where: "calendar",
     testId: "new-event",
-    opens: "components/calendar/EventDrawer.tsx",
+    opens: "components/calendar/EventDrawer/index.tsx",
     because: "A form, and the calendar behind it is the context for the times chosen.",
   },
   {

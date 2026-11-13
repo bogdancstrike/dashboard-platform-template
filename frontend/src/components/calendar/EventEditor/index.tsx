@@ -33,95 +33,21 @@ import {
   Switch,
   Typography,
 } from "antd";
-import dayjs, { type Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import { useEffect } from "react";
 
-import {
-  calendarApi,
-  type CalendarEvent,
-  type CalendarEventInput,
-  type EventRecurrence,
-} from "@/api/calendar";
+import { calendarApi, type CalendarEvent, type CalendarEventInput } from "@/api/calendar";
 import { ApiError } from "@/api/client";
 import { useDiscardGuard } from "@/hooks/useDiscardGuard";
 import { MemberPicker } from "@/components/PeoplePicker";
-import { WEEKDAY_CODES } from "@/components/calendar/weekdays";
+
+import { FormValues, recurrenceOf, valuesOf } from "./eventForm";
+
+import { RepeatDetail } from "./RepeatDetail";
+
+export { recurrenceOf } from "./eventForm";
 
 const { Text } = Typography;
-
-/** The unit an interval counts, per repeat. */
-const INTERVAL_UNIT: Record<string, string> = {
-  DAILY: "days",
-  WEEKLY: "weeks",
-  MONTHLY: "months",
-};
-
-interface FormValues {
-  title: string;
-  category: string;
-  location?: string;
-  description?: string;
-  when: [Dayjs, Dayjs];
-  all_day: boolean;
-  participants?: string[];
-  repeat: "NONE" | "DAILY" | "WEEKLY" | "MONTHLY";
-  interval?: number;
-  byday?: string[];
-  until?: Dayjs | null;
-  reminder_minutes?: number | null;
-}
-
-/**
- * The form's repeat answers, as the server's rule document.
- *
- * Pure and exported: "every second week on Tuesday and Thursday" is a claim
- * worth asserting directly, and a wrong rule here produces a series nobody
- * ever sees — the quietest failure a calendar has.
- */
-export function recurrenceOf(values: {
-  repeat: string;
-  interval?: number;
-  byday?: string[];
-}): EventRecurrence | null {
-  if (values.repeat === "NONE") return null;
-  const rule: EventRecurrence = {
-    freq: values.repeat as EventRecurrence["freq"],
-    interval: Math.max(Number(values.interval ?? 1) || 1, 1),
-  };
-  // `byday` is only meaningful weekly. Sending it with a monthly rule would
-  // be a document the server accepts and the expander ignores, which reads as
-  // the form having been ignored.
-  if (values.repeat === "WEEKLY" && values.byday?.length) rule.byday = values.byday;
-  return rule;
-}
-
-/** An existing event, as the form's values. */
-function valuesOf(event: CalendarEvent | null): Partial<FormValues> {
-  if (!event) {
-    const start = dayjs().add(1, "hour").startOf("hour");
-    return {
-      category: "MEETING",
-      all_day: false,
-      repeat: "NONE",
-      interval: 1,
-      when: [start, start.add(1, "hour")],
-    };
-  }
-  return {
-    title: event.title,
-    category: event.category,
-    location: event.location ?? undefined,
-    description: event.description ?? undefined,
-    all_day: event.all_day,
-    when: [dayjs(event.starts_at), dayjs(event.ends_at)],
-    participants: event.participants.map((person) => person.user_id),
-    repeat: event.recurrence?.freq ?? "NONE",
-    interval: event.recurrence?.interval ?? 1,
-    byday: event.recurrence?.byday ?? [],
-    until: event.recurrence_until ? dayjs(event.recurrence_until) : null,
-    reminder_minutes: event.reminder_minutes,
-  };
-}
 
 export function EventEditor({
   open,
@@ -301,41 +227,7 @@ export function EventEditor({
           />
         </Form.Item>
 
-        {repeat && repeat !== "NONE" && (
-          <div className="nu-event-form-grid" data-testid="repeat-detail">
-            <Form.Item name="interval" label="Every">
-              <InputNumber
-                min={1}
-                max={52}
-                style={{ width: "100%" }}
-                addonAfter={INTERVAL_UNIT[repeat] ?? ""}
-                aria-label="Interval"
-              />
-            </Form.Item>
-
-            {repeat === "WEEKLY" && (
-              <Form.Item name="byday" label="On">
-                <Select
-                  mode="multiple"
-                  aria-label="Days"
-                  placeholder="The day it starts on"
-                  options={WEEKDAY_CODES.map(({ code, label }) => ({
-                    value: code,
-                    label,
-                  }))}
-                />
-              </Form.Item>
-            )}
-
-            <Form.Item
-              name="until"
-              label="Until"
-              tooltip="A repeat needs a horizon: a series with no end is one the calendar has to expand forever."
-            >
-              <DatePicker style={{ width: "100%" }} aria-label="Until" />
-            </Form.Item>
-          </div>
-        )}
+        {repeat && repeat !== "NONE" && <RepeatDetail repeat={repeat} />}
 
         <Text type="secondary">
           You are added as the organiser, and marked as going.

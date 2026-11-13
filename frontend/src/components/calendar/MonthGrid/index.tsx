@@ -31,37 +31,22 @@
  * (§76).
  */
 
-import { Tooltip } from "antd";
-import { ExclamationCircleFilled, PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined } from "@ant-design/icons";
 import { useState } from "react";
 
 import type { CalendarOccurrence } from "@/api/calendar";
-import { addDays, isSameMonth, isToday, isoDay, whyNotMovable } from "@/lib/calendarGrid";
+import { addDays, isSameMonth, isToday, isoDay } from "@/lib/calendarGrid";
+
+import { EventChip } from "./EventChip";
+import { byDay } from "./hours";
+
+export { EventChip } from "./EventChip";
+export { byDay, clock, hourLabel, hourOf, hourSpan } from "./hours";
 
 /** How many events one month cell shows before it starts counting. */
 const CELL_LIMIT = 3;
 
 const WEEKDAY_HEADINGS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-/**
- * Occurrences bucketed by the day they belong to.
- *
- * Keyed on the server's own `day`, not on a date parsed in the browser: the
- * server decided which day an occurrence falls in, and a second opinion
- * computed from a timestamp is how an event at 00:30 ends up in yesterday's
- * cell for readers in one half of the world.
- */
-export function byDay(
-  items: readonly CalendarOccurrence[],
-): Map<string, CalendarOccurrence[]> {
-  const buckets = new Map<string, CalendarOccurrence[]>();
-  for (const item of items) {
-    const bucket = buckets.get(item.day);
-    if (bucket) bucket.push(item);
-    else buckets.set(item.day, [item]);
-  }
-  return buckets;
-}
 
 export function MonthGrid({
   days,
@@ -203,140 +188,4 @@ export function MonthGrid({
       </div>
     </div>
   );
-}
-
-/** One event in a month cell: the time, the title, and what is wrong with it. */
-export function EventChip({
-  item,
-  onOpen,
-  onMove,
-}: {
-  item: CalendarOccurrence;
-  onOpen: (occurrence: CalendarOccurrence) => void;
-  /** Reschedule by a number of days. Absent where rescheduling is not offered. */
-  onMove?: (byDays: number) => void;
-}) {
-  const cancelled = item.status === "CANCELLED";
-  const unanswered = item.involves_me && item.my_response === "NEEDS_ACTION";
-  const refusal = onMove ? whyNotMovable(item) : "Rescheduling is not yours to do";
-  const movable = Boolean(onMove) && refusal === null;
-
-  return (
-    <button
-      type="button"
-      className={[
-        "nu-event-chip",
-        cancelled ? "nu-event-chip--cancelled" : "",
-        unanswered ? "nu-event-chip--unanswered" : "",
-        item.involves_me ? "nu-event-chip--mine" : "",
-        movable ? "nu-event-chip--movable" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      style={{ borderInlineStartColor: item.color, ["--chip" as string]: item.color }}
-      onClick={() => onOpen(item)}
-      draggable={movable}
-      onDragStart={
-        movable
-          ? (event) => {
-              // The occurrence id, which the cell looks back up — rather than
-              // a serialised event, because the two copies would disagree the
-              // moment anything else refetched.
-              event.dataTransfer.setData("text/plain", item.id);
-              event.dataTransfer.effectAllowed = "move";
-            }
-          : undefined
-      }
-      onKeyDown={
-        movable && onMove
-          ? (event) => {
-              const by = KEY_MOVES[event.key];
-              if (by === undefined || event.metaKey || event.ctrlKey) return;
-              // Claimed before the page can scroll: arrows in a grid otherwise
-              // move the viewport and the event at the same time.
-              event.preventDefault();
-              onMove(by);
-            }
-          : undefined
-      }
-      data-testid={`event-${item.id}`}
-      title={movable ? `${item.title} — drag or use the arrow keys to move it` : item.title}
-    >
-      {!item.all_day && <span className="nu-event-chip-time">{clock(item.starts_at)}</span>}
-      <span className="nu-event-chip-title">{item.title}</span>
-      {item.clashes_with.length > 0 && (
-        // An icon *and* a sentence in the tooltip: colour alone is not a fact,
-        // and "clashes" with no names is a hunt (§64).
-        <Tooltip title={`Clashes with ${item.clashes_with.join(", ")}`}>
-          <ExclamationCircleFilled className="nu-event-chip-clash" aria-label="Clashes" />
-        </Tooltip>
-      )}
-    </button>
-  );
-}
-
-/**
- * What each arrow key moves a focused chip by, in days.
- *
- * A week vertically and a day horizontally, because that is the shape of the
- * grid the chip is sitting in: Down lands in the cell directly below, which is
- * the same day next week.
- */
-const KEY_MOVES: Record<string, number | undefined> = {
-  ArrowLeft: -1,
-  ArrowRight: 1,
-  ArrowUp: -7,
-  ArrowDown: 7,
-};
-
-/** `09:30`, in the reader's own locale. */
-export function clock(value: string | null): string {
-  if (!value) return "";
-  const moment = new Date(value);
-  if (Number.isNaN(moment.valueOf())) return "";
-  return moment.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-}
-
-/**
- * The band of hours a week view needs to draw.
- *
- * Derived from the events rather than fixed at 00:00–23:00, because a grid of
- * twenty-four rows is twenty of them empty — and fixed at 08:00–18:00 it
- * silently hides the 07:30 standup. Clamped to a working day so a week with
- * one lunchtime meeting is not a single row either.
- *
- * Pure and exported: "the earliest event is at 07:03, so the grid starts at
- * 07" is a claim worth asserting without a browser.
- */
-export function hourSpan(
-  items: readonly CalendarOccurrence[],
-  { earliest = 8, latest = 18 } = {},
-): { from: number; to: number } {
-  let from = earliest;
-  let to = latest;
-  for (const item of items) {
-    if (item.all_day) continue;
-    const start = new Date(item.starts_at ?? "");
-    const end = new Date(item.ends_at ?? "");
-    if (!Number.isNaN(start.valueOf())) from = Math.min(from, start.getHours());
-    if (!Number.isNaN(end.valueOf())) {
-      // An event ending exactly on the hour does not need that hour's row.
-      const hour = end.getMinutes() === 0 ? end.getHours() - 1 : end.getHours();
-      to = Math.max(to, hour);
-    }
-  }
-  return { from: Math.max(0, from), to: Math.min(23, Math.max(to, from)) };
-}
-
-/** `09:00`, for an hour axis label. */
-export function hourLabel(hour: number): string {
-  const at = new Date();
-  at.setHours(hour, 0, 0, 0);
-  return at.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-}
-
-/** Which hour row an occurrence belongs to. */
-export function hourOf(item: CalendarOccurrence): number {
-  const start = new Date(item.starts_at ?? "");
-  return Number.isNaN(start.valueOf()) ? 0 : start.getHours();
 }

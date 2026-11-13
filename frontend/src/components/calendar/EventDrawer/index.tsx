@@ -21,41 +21,20 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Alert,
-  App as AntApp,
-  Button,
-  Drawer,
-  Skeleton,
-  Space,
-  Tag,
-  Tooltip,
-  Typography,
-} from "antd";
+import { Alert, App as AntApp, Button, Drawer, Skeleton, Space, Tag, Tooltip, Typography } from "antd";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 
-import {
-  calendarApi,
-  type CalendarOccurrence,
-  type EventResponse,
-} from "@/api/calendar";
+import { calendarApi, type CalendarOccurrence, type EventResponse } from "@/api/calendar";
 import { ApiError } from "@/api/client";
 import { AuditTimeline } from "@/components/audit/AuditTimeline";
 import { CommentThread } from "@/components/comments/CommentThread";
 import { clock } from "@/components/calendar/MonthGrid";
-import { ResponseButtons } from "@/components/calendar/ResponseButtons";
-import { PersonAvatar } from "@/components/PersonAvatar";
 import { MeetingNotes } from "@/components/docs/MeetingNotes";
 import { queryKeys } from "@/lib/queryKeys";
 
-const { Paragraph, Text, Title } = Typography;
+import { Attendees, MyResponse } from "./Attendees";
 
-const RESPONSE_LABEL: Record<EventResponse, string> = {
-  NEEDS_ACTION: "no answer",
-  ACCEPTED: "going",
-  TENTATIVE: "maybe",
-  DECLINED: "not going",
-};
+const { Paragraph, Text, Title } = Typography;
 
 export function EventDrawer({
   occurrence,
@@ -194,23 +173,7 @@ export function EventDrawer({
           {/* The first control, and the one most readers came for. Needs no
               permission beyond being invited. */}
           {detail.involves_me && detail.status !== "CANCELLED" && (
-            <div>
-              <Text strong className="nu-field-label">
-                Are you going?
-              </Text>
-              <div data-testid="my-response">
-                <ResponseButtons
-                  size="middle"
-                  label="Your answer"
-                  value={detail.my_response}
-                  onChange={(response) => answer.mutate(response)}
-                  disabled={answer.isPending}
-                />
-              </div>
-              {detail.my_response === "NEEDS_ACTION" && (
-                <Text type="secondary">You have not answered yet.</Text>
-              )}
-            </div>
+            <MyResponse value={detail.my_response} busy={answer.isPending} onAnswer={(response) => answer.mutate(response)} />
           )}
 
           {detail.description && (
@@ -222,36 +185,7 @@ export function EventDrawer({
             </div>
           )}
 
-          <div>
-            <Text strong className="nu-field-label">
-              Who is coming{" "}
-              <Text type="secondary">
-                {detail.participants.filter((item) => item.response === "ACCEPTED").length} of{" "}
-                {detail.participants.length}
-              </Text>
-            </Text>
-            <Space direction="vertical" size={4} className="nu-block">
-              {detail.participants.length === 0 && (
-                <Text type="secondary">Nobody was invited.</Text>
-              )}
-              {detail.participants.map((person) => (
-                <div key={person.user_id} className="nu-attendee">
-                  <Space size={8}>
-                    <PersonAvatar size="small" initials={person.initials} />
-                    <Text>{person.name ?? person.email ?? "Somebody"}</Text>
-                    {detail.organizer.id === person.user_id && (
-                      <Tag bordered={false}>organiser</Tag>
-                    )}
-                  </Space>
-                  {/* In words, never a colour: "no answer" and "not going" are
-                      different facts and a grey dot says neither (§64). */}
-                  <Text type={person.response === "DECLINED" ? "danger" : "secondary"}>
-                    {RESPONSE_LABEL[person.response]}
-                  </Text>
-                </div>
-              ))}
-            </Space>
-          </div>
+          <Attendees detail={detail} />
 
           {detail.reminder_minutes !== null && (
             <Text type="secondary">

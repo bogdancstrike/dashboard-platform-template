@@ -1,8 +1,5 @@
 [
   "src/components/CommandPalette.tsx",
-  "src/components/calendar/EventDrawer.tsx",
-  "src/components/calendar/EventEditor.tsx",
-  "src/components/calendar/MonthGrid.tsx",
   "src/components/collab/ChannelRail.tsx",
   "src/components/collab/ChatDialogs.tsx",
   "src/components/collab/Composer.tsx",

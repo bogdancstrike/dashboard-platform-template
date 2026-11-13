@@ -21,7 +21,7 @@ export const GUARDED_DIALOGS: readonly GuardedLayer[] = [
     because: "Audience, severity, body, whether it needs agreement, when it expires — a form, with a paragraph in it.",
   },
   {
-    module: "components/calendar/EventEditor.tsx",
+    module: "components/calendar/EventEditor/index.tsx",
     what: "event",
     guarded: true,
     because: "Times, participants, a recurrence rule and a reminder: several choices that are slow to make twice.",
