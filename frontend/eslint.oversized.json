@@ -57,7 +57,6 @@
   "src/pages/KanbanPage.tsx",
   "src/pages/MailPage.tsx",
   "src/pages/MapsPage.tsx",
-  "src/pages/NotificationsPage.tsx",
   "src/pages/PreferencesPage.tsx",
   "src/pages/ProfilePage.tsx",
   "src/pages/RelationshipExplorerPage.tsx",

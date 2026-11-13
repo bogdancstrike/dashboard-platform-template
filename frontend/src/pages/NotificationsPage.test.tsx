@@ -3,7 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 
-import NotificationsPage, { withReadState } from "@/pages/NotificationsPage";
+import NotificationsPage from "@/pages/NotificationsPage";
+import { withReadState } from "@/pages/NotificationsPage/model";
 import { CommandProvider } from "@/commands/CommandContext";
 import { renderWithProviders } from "@/test/render";
 import { notificationPage, notificationRows } from "@/test/handlers";
