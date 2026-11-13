@@ -63,6 +63,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { queryKeys } from "@/lib/queryKeys";
+import { applyParamChanges } from "@/hooks/useUrlState";
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -86,14 +87,7 @@ export default function AnnouncementsPage() {
 
   const set = (changes: Record<string, string | null>) =>
     setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        for (const [key, value] of Object.entries(changes)) {
-          if (value === null || value === "") next.delete(key);
-          else next.set(key, value);
-        }
-        return next;
-      },
+      (current) => applyParamChanges(current, changes),
       // The board's tabs and categories are places; back returns through them.
       { replace: !("view" in changes || "category" in changes || "history" in changes) },
     );

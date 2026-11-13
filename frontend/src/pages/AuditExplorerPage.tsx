@@ -32,6 +32,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { STALE, queryKeys } from "@/lib/queryKeys";
+import { applyParamChanges } from "@/hooks/useUrlState";
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -86,14 +87,7 @@ export default function AuditExplorerPage() {
 
   const set = (changes: Record<string, string | number | null>, replace = true) => {
     setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        Object.entries(changes).forEach(([key, value]) => {
-          if (value === null || value === "") next.delete(key);
-          else next.set(key, String(value));
-        });
-        return next;
-      },
+      (current) => applyParamChanges(current, changes),
       { replace },
     );
   };

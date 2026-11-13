@@ -40,6 +40,7 @@ import { absoluteTime, groupByDay, relativeTime } from "@/lib/time";
 import { useLive, usePollInterval } from "@/live/LiveProvider";
 import { confirmDelete } from "@/lib/confirm";
 import { queryKeys } from "@/lib/queryKeys";
+import { applyParamChanges } from "@/hooks/useUrlState";
 
 const { Text } = Typography;
 
@@ -216,14 +217,7 @@ export default function NotificationsPage() {
 
   const set = (changes: Record<string, string | number | null>, replace = true) => {
     setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        Object.entries(changes).forEach(([key, value]) => {
-          if (value === null || value === "") next.delete(key);
-          else next.set(key, String(value));
-        });
-        return next;
-      },
+      (current) => applyParamChanges(current, changes),
       { replace },
     );
   };

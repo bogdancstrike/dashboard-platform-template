@@ -73,6 +73,7 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 import { EmptyState } from "@/components/EmptyState";
 import { FEATURES, useFeature } from "@/settings/features";
 import { STALE, queryKeys } from "@/lib/queryKeys";
+import { applyParamChanges } from "@/hooks/useUrlState";
 
 const { Text } = Typography;
 
@@ -142,11 +143,7 @@ export default function LogsPage() {
   const set = (changes: Record<string, string | null>) =>
     setParams(
       (current) => {
-        const next = new URLSearchParams(current);
-        for (const [key, value] of Object.entries(changes)) {
-          if (value === null || value === "") next.delete(key);
-          else next.set(key, value);
-        }
+        const next = applyParamChanges(current, changes);
         // Any change of question starts at the first page: page 3 of a
         // different filter is a page nobody asked for.
         if (!("page" in changes)) next.delete("page");

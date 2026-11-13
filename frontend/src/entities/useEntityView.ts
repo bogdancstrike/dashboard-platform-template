@@ -28,6 +28,7 @@ import {
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useDefaultPageSize } from "@/settings/PreferencesProvider";
 import { STALE, queryKeys } from "@/lib/queryKeys";
+import { applyParamChanges } from "@/hooks/useUrlState";
 
 export interface EntityView {
   /** The dataset declaration, once the catalogue has answered. */
@@ -227,14 +228,7 @@ export function useEntityView(
 
   const set = (changes: Record<string, string | number | null>) => {
     setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        Object.entries(changes).forEach(([key, value]) => {
-          if (value === null || value === "") next.delete(key);
-          else next.set(key, String(value));
-        });
-        return next;
-      },
+      (current) => applyParamChanges(current, changes),
       { replace: true },
     );
   };

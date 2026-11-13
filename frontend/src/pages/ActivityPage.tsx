@@ -53,6 +53,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, groupByDay, relativeTime } from "@/lib/time";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { STALE, queryKeys } from "@/lib/queryKeys";
+import { applyParamChanges } from "@/hooks/useUrlState";
 
 const { Text } = Typography;
 
@@ -96,11 +97,7 @@ export default function ActivityPage() {
   const set = (changes: Record<string, string | null>) =>
     setParams(
       (current) => {
-        const next = new URLSearchParams(current);
-        for (const [key, value] of Object.entries(changes)) {
-          if (value === null || value === "") next.delete(key);
-          else next.set(key, value);
-        }
+        const next = applyParamChanges(current, changes);
         // Any change to the question starts at the beginning: page 3 of a
         // different question is not a place anybody asked to be.
         if (!("page" in changes)) next.delete("page");

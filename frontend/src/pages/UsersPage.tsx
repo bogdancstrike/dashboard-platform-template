@@ -28,6 +28,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { queryKeys } from "@/lib/queryKeys";
+import { applyParamChanges } from "@/hooks/useUrlState";
 
 const { Text } = Typography;
 
@@ -69,14 +70,7 @@ export default function UsersPage() {
 
   const set = (changes: Record<string, string | number | null>, replace = true) => {
     setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        Object.entries(changes).forEach(([key, value]) => {
-          if (value === null || value === "") next.delete(key);
-          else next.set(key, String(value));
-        });
-        return next;
-      },
+      (current) => applyParamChanges(current, changes),
       { replace },
     );
   };

@@ -66,6 +66,7 @@ import { absoluteTime, relativeTime } from "@/lib/time";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { EmptyState } from "@/components/EmptyState";
 import { STALE, queryKeys } from "@/lib/queryKeys";
+import { applyParamChanges } from "@/hooks/useUrlState";
 
 const { Text } = Typography;
 
@@ -154,11 +155,7 @@ export default function JobsPage() {
   const set = (changes: Record<string, string | null>) =>
     setParams(
       (current) => {
-        const next = new URLSearchParams(current);
-        for (const [key, value] of Object.entries(changes)) {
-          if (value === null || value === "") next.delete(key);
-          else next.set(key, value);
-        }
+        const next = applyParamChanges(current, changes);
         if (!("page" in changes)) next.delete("page");
         return next;
       },

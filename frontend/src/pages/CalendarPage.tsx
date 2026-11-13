@@ -78,6 +78,7 @@ import {
   type CalendarView,
 } from "@/lib/calendarGrid";
 import { queryKeys } from "@/lib/queryKeys";
+import { applyParamChanges } from "@/hooks/useUrlState";
 
 /** The address keys that are places rather than adjustments (§history). */
 const PLACES = new Set(["view", "on"]);
@@ -117,14 +118,7 @@ export default function CalendarPage() {
 
   const set = (changes: Record<string, string | null>) =>
     setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        for (const [key, value] of Object.entries(changes)) {
-          if (value === null || value === "") next.delete(key);
-          else next.set(key, value);
-        }
-        return next;
-      },
+      (current) => applyParamChanges(current, changes),
       // Where the reader *is* ("view", "on") is a place back returns to, so it
       // is pushed; everything else is an adjustment and replaces.
       { replace: !Object.entries(changes).some(([key, value]) => PLACES.has(key) && value) },

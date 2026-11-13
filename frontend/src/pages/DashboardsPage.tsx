@@ -102,6 +102,7 @@ import { COPY_MEANS, confirmCopy } from "@/lib/confirm";
 import { EmptyState } from "@/components/EmptyState";
 import { NxIcon } from "@/components/NxIcon";
 import { STALE, queryKeys } from "@/lib/queryKeys";
+import { applyParamChanges } from "@/hooks/useUrlState";
 
 const { Text } = Typography;
 
@@ -121,14 +122,7 @@ export default function DashboardsPage() {
   const pushes = useRef(0);
   const place = (changes: Record<string, string | null>, replace = false) =>
     setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        for (const [key, value] of Object.entries(changes)) {
-          if (value) next.set(key, value);
-          else next.delete(key);
-        }
-        return next;
-      },
+      (current) => applyParamChanges(current, changes),
       { replace },
     );
   const widgetParam = params.get("widget");

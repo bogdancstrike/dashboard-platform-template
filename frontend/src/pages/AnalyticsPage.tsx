@@ -43,6 +43,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { usePageCommands } from "@/commands/CommandContext";
 import { STALE, queryKeys } from "@/lib/queryKeys";
+import { applyParamChanges } from "@/hooks/useUrlState";
 
 /** How a breakdown of one dimension is drawn, by how many values it has. */
 const BREAKDOWN_KINDS: ChartKind[] = ["bar", "pie", "hbar", "treemap"];
@@ -77,14 +78,7 @@ export default function AnalyticsPage() {
 
   const set = (changes: Record<string, string | null>) =>
     setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        for (const [key, value] of Object.entries(changes)) {
-          if (value === null || value === "") next.delete(key);
-          else next.set(key, value);
-        }
-        return next;
-      },
+      (current) => applyParamChanges(current, changes),
       { replace: true },
     );
 

@@ -74,6 +74,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { usePhoneList } from "@/pages/admin/ResponsiveTable";
 import "@/styles/flags.css";
 import { STALE, queryKeys } from "@/lib/queryKeys";
+import { applyParamChanges } from "@/hooks/useUrlState";
 
 const { Text } = Typography;
 
@@ -189,14 +190,7 @@ export default function FlagsPage() {
 
   const set = (changes: Record<string, string | null>) =>
     setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        for (const [key, value] of Object.entries(changes)) {
-          if (value === null || value === "") next.delete(key);
-          else next.set(key, value);
-        }
-        return next;
-      },
+      (current) => applyParamChanges(current, changes),
       { replace: true },
     );
 

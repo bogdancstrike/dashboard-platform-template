@@ -15,7 +15,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { PlanIcon } from "@/components/planning/planIcons";
 import { DEFAULT_TIMELINE, TimelineView, type TimelineState } from "@/components/planning/TimelineView";
 import { ZOOMS, type Zoom } from "@/components/planning/gantt";
-import { useUrlState } from "@/components/planning/useUrlState";
+import { useUrlState } from "@/hooks/useUrlState";
 import { usePageCommands } from "@/commands/CommandContext";
 import "@/styles/planning.css";
 

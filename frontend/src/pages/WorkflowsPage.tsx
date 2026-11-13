@@ -66,6 +66,7 @@ import { usePageCommands } from "@/commands/CommandContext";
 import { absoluteTime, relativeTime } from "@/lib/time";
 import { FEATURES, useFeature } from "@/settings/features";
 import { STALE, queryKeys } from "@/lib/queryKeys";
+import { applyParamChanges } from "@/hooks/useUrlState";
 
 /** The address keys that are places rather than adjustments (§history). */
 const PLACES = new Set(["rule"]);
@@ -110,14 +111,7 @@ export default function WorkflowsPage() {
 
   const set = (changes: Record<string, string | null>) =>
     setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        for (const [key, value] of Object.entries(changes)) {
-          if (value === null || value === "") next.delete(key);
-          else next.set(key, value);
-        }
-        return next;
-      },
+      (current) => applyParamChanges(current, changes),
       // Where the reader *is* ("rule") is a place back returns to, so it
       // is pushed; everything else is an adjustment and replaces.
       { replace: !Object.entries(changes).some(([key, value]) => PLACES.has(key) && value) },

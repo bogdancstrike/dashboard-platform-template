@@ -37,7 +37,7 @@ import { BurndownChart, VelocityChart } from "@/components/planning/SprintCharts
 import { CompleteSprintModal, SprintFormModal, type SprintValues } from "@/components/planning/SprintModals";
 import { shortDate } from "@/components/planning/gantt";
 import { projectOptions, useProjects } from "@/components/planning/useProjects";
-import { useUrlState } from "@/components/planning/useUrlState";
+import { useUrlState } from "@/hooks/useUrlState";
 import { usePageCommands } from "@/commands/CommandContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { knownStatusColor } from "@/theme/tokens";

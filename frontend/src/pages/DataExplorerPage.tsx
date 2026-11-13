@@ -56,6 +56,7 @@ import { asText } from "@/lib/text";
 import { FEATURES, useFeature } from "@/settings/features";
 import { EmptyState } from "@/components/EmptyState";
 import { STALE, queryKeys } from "@/lib/queryKeys";
+import { applyParamChanges } from "@/hooks/useUrlState";
 
 const { Text } = Typography;
 
@@ -192,14 +193,7 @@ export default function DataExplorerPage() {
    * back the state the first had just replaced, silently discarding it.
    */
   const set = (changes: Record<string, string | number | null>, replace = true, overlay = false) => {
-    setParams((current) => {
-      const next = new URLSearchParams(current);
-      Object.entries(changes).forEach(([key, value]) => {
-        if (value === null || value === "") next.delete(key);
-        else next.set(key, String(value));
-      });
-      return next;
-    }, { replace, ...(overlay ? { state: { overlay: true } } : {}) });
+    setParams((current) => applyParamChanges(current, changes), { replace, ...(overlay ? { state: { overlay: true } } : {}) });
   };
 
   /**
